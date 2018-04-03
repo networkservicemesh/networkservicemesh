@@ -1,0 +1,36 @@
+syntax  = "proto3";
+
+// NETWORK SERVICES
+
+message DiscoverServiceRequest {}
+message ServiceDiscoveryResponse {}
+
+message PublishServiceRequest {}
+message PublishServiceResponse {}
+
+message DelistServiceRequest {}
+message DelistServiceResponse {}
+
+message ExposeChannelRequest {}
+message ExposeChannelResponse {}
+
+message ConcealChannelRequest {}
+message ConcealChannelResponse {}
+
+message CreateSessionRequest {}
+message CreateSessionResponse {}
+
+message DestroySessionRequest {}
+message DestroySessionResponse {}
+
+service NetworkServices {
+    rpc DiscoverService (DiscoverServiceRequest) returns (ServiceDiscoveryResponse);
+    rpc PublishService (PublishServiceRequest) returns (PublishServiceResponse);
+    rpc DelistService (DelistServiceRequest) returns (DelistServiceResponse);
+
+    rpc ExposeChannel (ExposeChannelRequest) returns (ExposeChannelResponse);
+    rpc ConcealChannel (ConcealChannelRequest) returns (ConcealChannelResponse);
+
+    rpc CreateSession (CreateSessionRequest) returns (CreateSessionResponse);
+    rpc DestroySession (DestroySessionRequest) returns (DestroySessionResponse);
+}
