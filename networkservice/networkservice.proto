@@ -2,22 +2,30 @@ syntax  = "proto3";
 
 // NETWORK SERVICES
 
-message DiscoverServiceRequest {}
+message DiscoverServiceRequest {
+    map<string, string> labels = 1;
+}
 message ServiceDiscoveryResponse {}
 
-message PublishServiceRequest {}
+message PublishServiceRequest {
+    map<string, string> labels = 1;
+}
 message PublishServiceResponse {}
 
 message DelistServiceRequest {}
 message DelistServiceResponse {}
 
-message ExposeChannelRequest {}
+message ExposeChannelRequest {
+    map<string, string> labels = 1;
+}
 message ExposeChannelResponse {}
 
 message ConcealChannelRequest {}
 message ConcealChannelResponse {}
 
-message CreateSessionRequest {}
+message CreateSessionRequest {
+    map<string, string> labels = 1;
+}
 message CreateSessionResponse {}
 
 message DestroySessionRequest {}
