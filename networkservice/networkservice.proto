@@ -5,28 +5,40 @@ syntax  = "proto3";
 message DiscoverServiceRequest {
     map<string, string> labels = 1;
 }
-message ServiceDiscoveryResponse {}
+message ServiceDiscoveryResponse {
+    repeated string service_ids = 1;
+}
 
 message PublishServiceRequest {
     map<string, string> labels = 1;
 }
-message PublishServiceResponse {}
+message PublishServiceResponse {
+    string service_id = 1;
+}
 
-message DelistServiceRequest {}
+message DelistServiceRequest {
+    string service_id = 1;
+}
 message DelistServiceResponse {}
 
 message ExposeChannelRequest {
     map<string, string> labels = 1;
 }
-message ExposeChannelResponse {}
+message ExposeChannelResponse {
+    string channel_id = 1;
+}
 
-message ConcealChannelRequest {}
+message ConcealChannelRequest {
+    string channel_id = 1;
+}
 message ConcealChannelResponse {}
 
 message CreateSessionRequest {
     map<string, string> labels = 1;
 }
-message CreateSessionResponse {}
+message CreateSessionResponse {
+    string session_id = 1;
+}
 
 message DestroySessionRequest {}
 message DestroySessionResponse {}
