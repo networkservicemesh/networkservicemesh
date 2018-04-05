@@ -40,7 +40,9 @@ message CreateSessionResponse {
     string session_id = 1;
 }
 
-message DestroySessionRequest {}
+message DestroySessionRequest {
+    string session_id = 1;
+}
 message DestroySessionResponse {}
 
 service NetworkServices {
