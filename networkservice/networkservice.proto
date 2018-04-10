@@ -1,10 +1,11 @@
-syntax  = "proto3";
+syntax = "proto3";
 
 // NETWORK SERVICES
 
 message DiscoverServiceRequest {
     map<string, string> labels = 1;
 }
+
 message ServiceDiscoveryResponse {
     repeated string service_ids = 1;
 }
@@ -12,6 +13,7 @@ message ServiceDiscoveryResponse {
 message PublishServiceRequest {
     map<string, string> labels = 1;
 }
+
 message PublishServiceResponse {
     string service_id = 1;
 }
@@ -19,11 +21,14 @@ message PublishServiceResponse {
 message DelistServiceRequest {
     string service_id = 1;
 }
-message DelistServiceResponse {}
+
+message DelistServiceResponse {
+}
 
 message ExposeChannelRequest {
     map<string, string> labels = 1;
 }
+
 message ExposeChannelResponse {
     string channel_id = 1;
 }
@@ -31,11 +36,14 @@ message ExposeChannelResponse {
 message ConcealChannelRequest {
     string channel_id = 1;
 }
-message ConcealChannelResponse {}
+
+message ConcealChannelResponse {
+}
 
 message CreateConnectionRequest {
     map<string, string> labels = 1;
 }
+
 message CreateConnectionResponse {
     string connection_id = 1;
 }
@@ -43,7 +51,9 @@ message CreateConnectionResponse {
 message DestroyConnectionRequest {
     string connection_id = 1;
 }
-message DestroyConnectionResponse {}
+
+message DestroyConnectionResponse {
+}
 
 service NetworkServices {
     rpc DiscoverService (DiscoverServiceRequest) returns (ServiceDiscoveryResponse);
