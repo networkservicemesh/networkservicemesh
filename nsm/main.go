@@ -1,15 +1,14 @@
-
 package main
 
 import (
-	"log"
-	"os"
 	"github.com/fsnotify/fsnotify"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+	"log"
+	"os"
 )
 
 func main() {
-	log.Println("Loading NSM");
+	log.Println("Loading NSM")
 	log.Println("Starting FS watcher.")
 	log.Println(pluginapi.DevicePluginPath)
 	watcher, err := newFSWatcher(pluginapi.DevicePluginPath)
@@ -36,4 +35,3 @@ func newFSWatcher(files ...string) (*fsnotify.Watcher, error) {
 
 	return watcher, nil
 }
-				
