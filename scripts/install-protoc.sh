@@ -8,4 +8,6 @@ echo "GOPATH=${GOPATH}"
 echo "GOBIN=${GOBIN}"
 ls ${GOPATH}
 ls ${GOBIN}
+echo "Checking ${GOPATH}/bin"
+ls ${GOPATH}/bin
 popd
