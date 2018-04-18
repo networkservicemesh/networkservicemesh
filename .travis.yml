@@ -1,4 +1,7 @@
 language: go
 
+before_install:
+  - sudo apt-get install -y protobuf-compiler
+
 go:
   - "1.10.x"
