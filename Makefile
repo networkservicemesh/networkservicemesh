@@ -8,4 +8,4 @@ all: protos
 protos: ${PBS}
 
 %.pb: %.proto
-	PATH=$(PATH):$(GOBIN):~/bin protoc -I networkservice $*.proto --go_out=plugins=grpc:go
+	PATH=~/bin:$(PATH):$(GOBIN) protoc -I networkservice $*.proto --go_out=plugins=grpc:go
