@@ -10,3 +10,10 @@ On a Mac:
 
 - brew install make
 - brew install golang protobuf dep
+
+## Getting Involved
+
+We encourage discussion on our mailing list and accept pull requests.
+
+* [Email List](https://groups.google.com/forum/#!forum/networkservicemesh)
+* [github.com/ligato/networkservicemesh](https://github.com/ligato/networkservicemesh)
