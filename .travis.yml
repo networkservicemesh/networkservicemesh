@@ -1,10 +1,14 @@
 language: go
 
+go:
+  - "1.10.x"
+
 before_install:
   - sudo apt-get install -y unzip
 
 install:
   - ./scripts/install-protoc.sh
 
-go:
-  - "1.10.x"
+script:
+- echo "Looking for protoc-gen-go ..." && find ~/ -name protoc-gen-go
+- make
