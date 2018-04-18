@@ -7,6 +7,5 @@ install:
   - ./scripts/install-protoc.sh
 
 script:
-- echo "Looking for protoc-gen-go ..." && find ~/ -name protoc-gen-go
 - go get -u github.com/golang/protobuf/protoc-gen-go
 - make
