@@ -9,5 +9,4 @@ A Network Service Mesh is an extension of the Service Mesh concept common in app
 On a Mac:
 
 - brew install make
-- brew install golang protobuf
-- go get -u github.com/golang/protobuf/protoc-gen-go
+- brew install golang protobuf dep
