@@ -3,5 +3,8 @@ language: go
 before_install:
   - sudo apt-get install -y protobuf-compiler
 
+install:
+  - ./scripts/install-protobuf.sh
+
 go:
   - "1.10.x"
