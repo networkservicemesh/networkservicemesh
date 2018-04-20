@@ -9,3 +9,7 @@ install:
 script:
 - go get -u github.com/golang/protobuf/protoc-gen-go
 - make
+
+notifications:
+  irc:
+    - "chat.freenode.net#networkservicemesh"
