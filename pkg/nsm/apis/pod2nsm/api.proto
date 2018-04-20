@@ -1,5 +1,5 @@
 syntax = "proto3";
-package networkservice;
+package pod2nsm;
 
 // NETWORK SERVICES
 
