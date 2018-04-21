@@ -2,6 +2,17 @@
 
 
 [[projects]]
+  name = "github.com/gogo/protobuf"
+  packages = [
+    "gogoproto",
+    "proto",
+    "protoc-gen-gogo/descriptor",
+    "sortkeys"
+  ]
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -90,9 +101,15 @@
   revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
   version = "v1.11.3"
 
+[[projects]]
+  name = "k8s.io/kubernetes"
+  packages = ["pkg/kubelet/apis/deviceplugin/v1beta1"]
+  revision = "d4ab47518836c750f9949b9e0d387f20fb92260b"
+  version = "v1.10.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "67631bc92c8e3ec00e70067dff798e91e4515705af72af42524c17e74b3da74e"
+  inputs-digest = "74ef8cc62ffcd040a7099d93830ee2870ae3699c0267855c9d64b59f3ddf8e6a"
   solver-name = "gps-cdcl"
   solver-version = 1
