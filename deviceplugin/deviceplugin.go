@@ -16,14 +16,12 @@ import (
 type DevicePlugin struct {
 	socket       string
 	resourceName string
-	stop         chan interface{}
 	server       *grpc.Server
 }
 
 func NewDevicePlugin(serversock string, resourcename string) *DevicePlugin {
 	return &DevicePlugin{
 		socket:       serversock,
-		stop:         make(chan interface{}),
 		resourceName: resourcename,
 	}
 }
@@ -83,7 +81,6 @@ func (d *DevicePlugin) Stop() error {
 
 	d.server.Stop()
 	d.server = nil
-	close(d.stop)
 	return d.cleanup()
 }
 
