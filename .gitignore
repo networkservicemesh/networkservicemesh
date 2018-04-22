@@ -13,3 +13,6 @@
 
 # Emacs backupfiles
 *~
+
+# Cmds being built
+cmd/nsm/nsm
