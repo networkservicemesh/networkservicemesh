@@ -17,5 +17,6 @@
 // shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
 // must be implemented by each plugin.
 
-package pod2nsm;
+package pod2nsm
+
 //go:generate protoc -I . api.proto --go_out=plugins=grpc:.
