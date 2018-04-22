@@ -7,8 +7,11 @@ install:
   - ./scripts/install-protoc.sh
 
 script:
+- [[ "$(go fmt ./...)" == "" ]] # Check for gofmt compliance
 - go get -u github.com/golang/protobuf/protoc-gen-go
-- make
+- go generate ./...
+- go build ./...
+- go test ./...
 
 notifications:
   irc:
