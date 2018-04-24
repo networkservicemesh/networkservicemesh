@@ -17,5 +17,5 @@ See [BUILD.md](BUILD.md) for build instructions.
 We encourage discussion on our mailing list and IRC channel and accept pull requests.
 
 * [Email List](https://groups.google.com/forum/#!forum/networkservicemesh)
-* IRC Channel - #networkservicemesh on freenode]
+* IRC Channel - #networkservicemesh on freenode
 * [github.com/ligato/networkservicemesh](https://github.com/ligato/networkservicemesh)
