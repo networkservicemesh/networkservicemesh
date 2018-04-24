@@ -20,10 +20,9 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
-	select {
-	case s := <-sigChan:
+	go func() {
+		s := <-sigChan
 		log.Printf("Received signal \"%v\", shutting down.", s)
 		dp.Stop()
-	}
-
+	}()
 }
