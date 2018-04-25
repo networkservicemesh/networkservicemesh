@@ -19,3 +19,5 @@ We encourage discussion on our mailing list and IRC channel and accept pull requ
 * [Email List](https://groups.google.com/forum/#!forum/networkservicemesh)
 * IRC Channel - #networkservicemesh on freenode
 * [github.com/ligato/networkservicemesh](https://github.com/ligato/networkservicemesh)
+* [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
+* [Weekly Meeting Minutes](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
