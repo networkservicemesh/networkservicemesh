@@ -12,6 +12,7 @@ import (
 func main() {
 	var wg sync.WaitGroup
 
+	log.SetFlags(log.Flags() | log.Lshortfile)
 	log.Println("Starting NSM")
 
 	dp := nsmdp.NewNSMDevicePlugin()
