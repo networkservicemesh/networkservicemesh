@@ -36,6 +36,7 @@ func NewNSMDevicePlugin() *NSMDevicePlugin {
 		DevicePlugin: deviceplugin.NewDevicePlugin(serverSock, resourceName),
 		devs:         make(map[string]*NSMDevice),
 		stop:         make(chan interface{}),
+		updatedevs:   make(chan *NSMDevice, 10),
 	}
 	for i := uint(0); i < initDeviceCount; i++ {
 		dev := &NSMDevice{
