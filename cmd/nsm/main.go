@@ -5,13 +5,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 	"sync"
+	"syscall"
 )
 
-var wg sync.WaitGroup
-
 func main() {
+	var wg sync.WaitGroup
+
 	log.Println("Starting NSM")
 
 	dp := nsmdp.NewNSMDevicePlugin()
@@ -28,10 +28,10 @@ func main() {
 	go func() {
 		defer wg.Done()
 		s := <-sigChan
-		log.Println("Received signal \"%v\", shutting down.", s)
+		log.Printf("Received signal \"%v\", shutting down.", s)
 		dp.Stop()
 	}()
 
-	log.Println("Stopping NSM")
 	wg.Wait()
+	log.Println("Stopping NSM")
 }
