@@ -69,7 +69,7 @@ func (n *NSMDevicePlugin) Stop() error {
 func (n *NSMDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	responses := pluginapi.AllocateResponse{}
 	for _, req := range reqs.ContainerRequests {
-		var mounts = []*pluginapi.Mount{}
+		var mounts []*pluginapi.Mount
 		for _, id := range req.DevicesIDs {
 			_, ok := n.devs[id]
 			if !ok {
