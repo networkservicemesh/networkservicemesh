@@ -6,7 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"sync"
 )
+
+var wg sync.WaitGroup
 
 func main() {
 	log.Println("Starting NSM")
@@ -20,9 +23,15 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
+	wg.Add(1)
+
 	go func() {
+		defer wg.Done()
 		s := <-sigChan
-		log.Printf("Received signal \"%v\", shutting down.", s)
+		log.Println("Received signal \"%v\", shutting down.", s)
 		dp.Stop()
 	}()
+
+	log.Println("Stopping NSM")
+	wg.Wait()
 }
