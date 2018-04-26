@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package netmesh;
+
+enum NetmeshApiVersion {
+    NETMESH_API_VERSION_1 = 0;
+};
+
+enum NetmeshPayload {
+    NETMESH_PAYLOAD_IP = 0;
+    NETMESH_PAYLOAD_ETHERNET = 1;
+    NETMESH_PAYLOAD_MPLS = 2;
+    NETMESH_PAYLOAD_VXLAN = 3;
+    NETMESH_PAYLOAD_SRV6 = 4;
+};
+
+message NetworkServiceEndpoint {
+    string name = 1;
+    string uuid = 2;
+};
+
+message NetworkService {
+    string name = 1;
+    string uuid = 2;
+    string selector = 3;
+
+    message NetmeshChannel {
+        string name = 1;
+        NetmeshPayload payload = 2;
+    };
+    repeated NetmeshChannel channels = 4;
+    NetmeshApiVersion version = 5;
+};
