@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package netmesh;
+
+message NetworkServiceEndpoint {
+    string name = 1;
+    string uuid = 2;
+};
+
+message NetworkService {
+    string name = 1;
+    string uuid = 2;
+    string selector = 3;
+
+    message NetmeshChannel {
+        string name = 1;
+        string payload = 2;
+    };
+    repeated NetmeshChannel channels = 4;
+};
