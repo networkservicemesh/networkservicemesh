@@ -7,7 +7,7 @@ You will need to install
 3. dep
 4. protoc-gen-go
 
-##On a Mac:
+## On a Mac:
 
 ```bash
 brew install golang protobuf dep
@@ -24,4 +24,5 @@ go test ./...
 
 # Canonical source on how to build
 
-The travis.yml file in the project provides the canonical source on how to build in case this file is not properly maintained.
+The travis.yml file in the project provides the canonical source on how to
+build in case this file is not properly maintained.
