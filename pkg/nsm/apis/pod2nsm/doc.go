@@ -19,4 +19,4 @@
 
 package pod2nsm
 
-//go:generate protoc -I . api.proto --go_out=plugins=grpc:.
+//go:generate protoc -I . api.proto --gogo_out=.
