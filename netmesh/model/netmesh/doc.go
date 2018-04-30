@@ -19,4 +19,4 @@
 
 package netmesh
 
-//go:generate protoc -I . netmesh.proto --go_out=plugins=grpc:.
+//go:generate protoc -I . netmesh.proto --gogo_out=.
