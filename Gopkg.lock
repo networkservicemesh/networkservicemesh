@@ -499,13 +499,13 @@
   version = "kubernetes-1.10.0"
 
 [[projects]]
-  branch = "master"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
     "pkg/apis/meta/v1",
+    "pkg/apis/meta/v1/unstructured",
     "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
@@ -537,7 +537,8 @@
     "pkg/watch",
     "third_party/forked/golang/reflect"
   ]
-  revision = "c49b303688e142d7b92f4e1f69587ed58aa40cfd"
+  revision = "302974c03f7e50f16561ba237db776ab93594ef6"
+  version = "kubernetes-1.10.0"
 
 [[projects]]
   branch = "release-7.0"
@@ -604,6 +605,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e10381e71f6ee0eaaa957dcc81d0c9a81ebb01d47415cc9b8a6008ef4472058c"
+  inputs-digest = "fa7bca585e432ba72d7d459abf7cc75c386fc2dd44c4a00979875159e9e6855f"
   solver-name = "gps-cdcl"
   solver-version = 1

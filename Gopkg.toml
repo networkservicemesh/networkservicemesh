@@ -52,6 +52,10 @@ required = ["github.com/golang/protobuf/protoc-gen-go"]
   version = "kubernetes-1.10.2"
 
 [[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.10.2"
+
+[[override]]
   name = "github.com/coreos/etcd"
   version = "3.3.4"
 
