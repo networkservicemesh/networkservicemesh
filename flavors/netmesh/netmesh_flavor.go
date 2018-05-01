@@ -23,7 +23,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/connectors"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/flavors/rpc"
-	"networkservicemesh/plugins/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/netmesh"
 )
 
 const (
