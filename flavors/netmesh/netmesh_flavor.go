@@ -16,7 +16,6 @@
 package netmesh
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/netmesh"
 	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/core"
 	"github.com/ligato/cn-infra/datasync/kvdbsync"
@@ -24,6 +23,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/connectors"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/flavors/rpc"
+	"networkservicemesh/plugins/netmesh"
 )
 
 const (
@@ -91,7 +91,7 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 	// Reuse ForPlugin to define configuration file for 3rd party library (k8s client).
 	f.Netmesh.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
 	f.Netmesh.Deps.Publish = &f.ETCDDataSync
-	f.Netmesh.StatusMonitor = &f.StatusCheck            // StatusCheck included in local.FlavorLocal
+	f.Netmesh.StatusMonitor = &f.StatusCheck // StatusCheck included in local.FlavorLocal
 
 	// Please note that Prometheus handlers are currently wired to the Probe
 	// HTTP server, as defined in in rpc.FlavorRPC' If you want them to be

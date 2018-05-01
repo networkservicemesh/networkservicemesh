@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -46,9 +45,8 @@ type Plugin struct {
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
 
-
-	StatusMonitor  statuscheck.StatusReader
-	etcdMonitor    EtcdMonitor
+	StatusMonitor statuscheck.StatusReader
+	etcdMonitor   EtcdMonitor
 }
 
 // EtcdMonitor defines the state data for the Etcd Monitor
@@ -108,8 +106,8 @@ func (plugin *Plugin) Init() error {
 func (plugin *Plugin) AfterInit() error {
 	go plugin.monitorEtcdStatus(plugin.stopCh)
 
-        dp := nsmdp.NewNSMDevicePlugin()
-        dp.Serve()
+	dp := nsmdp.NewNSMDevicePlugin()
+	dp.Serve()
 
 	return nil
 }
