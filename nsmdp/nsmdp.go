@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"github.com/ligato/networkservicemesh/deviceplugin"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+	"networkservicemesh/deviceplugin"
 	"os"
 )
 

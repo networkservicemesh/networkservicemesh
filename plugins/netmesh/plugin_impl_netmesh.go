@@ -31,7 +31,7 @@ import (
 	"github.com/ligato/cn-infra/health/statuscheck"
 	"github.com/ligato/cn-infra/health/statuscheck/model/status"
 	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/networkservicemesh/nsmdp"
+	"networkservicemesh/nsmdp"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
