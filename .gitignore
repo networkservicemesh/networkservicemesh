@@ -14,5 +14,8 @@
 # Emacs backupfiles
 *~
 
+# Goland files
+.idea
+
 # Cmds being built
 cmd/nsm/nsm
