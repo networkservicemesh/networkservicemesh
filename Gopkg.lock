@@ -19,6 +19,7 @@
     "protoc-gen-go",
     "protoc-gen-go/descriptor",
     "protoc-gen-go/generator",
+    "protoc-gen-go/generator/internal/remap",
     "protoc-gen-go/grpc",
     "protoc-gen-go/plugin",
     "ptypes",
@@ -26,8 +27,17 @@
     "ptypes/duration",
     "ptypes/timestamp"
   ]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/ligato/networkservicemesh"
+  packages = [
+    "deviceplugin",
+    "nsmdp"
+  ]
+  revision = "ffeb8a67cd361e3f7e6d93dd5e1a8a09d2019fd3"
 
 [[projects]]
   branch = "master"
@@ -110,6 +120,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "74ef8cc62ffcd040a7099d93830ee2870ae3699c0267855c9d64b59f3ddf8e6a"
+  inputs-digest = "1f233b64b0bb1d0ea6001fe762c392887c74ff27a00fcf675b675921b564ff85"
   solver-name = "gps-cdcl"
   solver-version = 1
