@@ -16,7 +16,7 @@ package main
 
 import (
 	"github.com/ligato/cn-infra/core"
-	"github.com/ligato/networkservicemesh/flavors/netmesh"
+	"networkservicemesh/flavors/netmesh"
 )
 
 // netmesh main entry point.
