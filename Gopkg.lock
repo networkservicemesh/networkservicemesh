@@ -32,15 +32,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/ligato/networkservicemesh"
-  packages = [
-    "deviceplugin",
-    "nsmdp"
-  ]
-  revision = "ffeb8a67cd361e3f7e6d93dd5e1a8a09d2019fd3"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -120,6 +111,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1f233b64b0bb1d0ea6001fe762c392887c74ff27a00fcf675b675921b564ff85"
+  inputs-digest = "d4b33eccb373fd2375d0859edd1f2acb038cc606a8d2730996c46a0649df8fe1"
   solver-name = "gps-cdcl"
   solver-version = 1
