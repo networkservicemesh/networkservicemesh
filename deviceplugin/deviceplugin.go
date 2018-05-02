@@ -40,6 +40,11 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 }
 
 func (d *DevicePlugin) cleanup() error {
+	_, serr := os.Stat(d.socket)
+	if serr != nil && os.IsNotExist(serr) {
+		return nil
+	}
+
 	if err := os.Remove(d.socket); err != nil {
 		return err
 	}
