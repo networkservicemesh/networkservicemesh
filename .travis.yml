@@ -5,7 +5,6 @@ go:
   - "1.10.x"
 
 script:
-- docker build -t ligato/networkservicemesh/nsm-test -f build/nsm/docker/Test.Dockerfile .
 - docker build -t ligato/networkservicemesh/nsm -f build/nsm/docker/Dockerfile .
 
 notifications:
