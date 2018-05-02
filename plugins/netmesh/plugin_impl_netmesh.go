@@ -34,6 +34,9 @@ import (
 	"github.com/ligato/networkservicemesh/nsmdp"
 )
 
+// Global NSMDevicePlugin used across plugin methods (AfterInit and Close)
+var netmeshdp *nsmdp.NSMDevicePlugin
+
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
 // data store.
 type Plugin struct {
@@ -104,16 +107,19 @@ func (plugin *Plugin) Init() error {
 // the kvdbsync is fully initialized and ready for publishing when a k8s
 // notification comes.
 func (plugin *Plugin) AfterInit() error {
-	go plugin.monitorEtcdStatus(plugin.stopCh)
+	netmeshdp = nsmdp.NewNSMDevicePlugin()
+	netmeshdp.Serve()
 
-	dp := nsmdp.NewNSMDevicePlugin()
-	dp.Serve()
+	go plugin.monitorEtcdStatus(plugin.stopCh)
 
 	return nil
 }
 
 // Close stops all reflectors.
 func (plugin *Plugin) Close() error {
+	if err := netmeshdp.Stop(); err != nil {
+		plugin.Log.Info("Error cleaning up")
+	}
 	close(plugin.stopCh)
 	plugin.wg.Wait()
 	return nil
