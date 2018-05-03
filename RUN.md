@@ -14,15 +14,28 @@ Network Service Mesh requires a kubernetes cluster as well. The details of
 installing a Kubernetes cluster are not spelled out here. Network Service Mesh
 will work with Kubernetes for Mac, however.
 
+You may need to expose a proxy into your kubernetes cluster. For example, if
+you're running Kubernetes for Mac. To do this, run a kubectl command similar to
+the following:
+
+```
+kubectl proxy --port=8080 --address=<IP ADDRESS>
+```
+
+Replace `IP ADDRESS` above with a valid IP address from which the container
+running Network Service Mesh can access your kubernetes proxy.
+
 Example run command
 -------------------
 You need three configuration files:
 
-* kube.conf: This is the kubernetes configuration file used to access your kubernetes cluster.
+* kube.conf: This is the kubernetes configuration file used to access your
+  kubernetes cluster.
 * etcdv3.conf: This is the etcd configuration file.
 * http.conf: The file used to expose the REST API.
 
-The etcdv3.conf and http.conf are checked into the repository in the `cmd/nsm` directory. Copy them and modify as appropriate, and provide your own kube.conf.
+The etcdv3.conf and http.conf are checked into the repository in the `cmd/nsm`
+directory. Copy them and modify as appropriate, and provide your own kube.conf.
 
 To run nsm, execute a command as below:
 
