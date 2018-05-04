@@ -7,4 +7,5 @@ RUN ./scripts/build.sh --race-test-disabled
 
 FROM alpine as runtime
 COPY --from=build /go/bin/nsm /go/bin/nsm
+RUN mkdir -p /var/lib/kubelet/device-plugins
 ENTRYPOINT ["/go/bin/nsm", "-microservice-label=netmesh", "-kube-config=/conf/kube.conf", "-etcdv3-config=/conf/etcdv3.conf", "-http-config=/conf/http.conf"]
