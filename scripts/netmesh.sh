@@ -39,7 +39,8 @@ FILELOG=1
 SCREENLOG=0
 THELOGFILE=/tmp/netmesh.log
 
-ETCDNAME=etcd-gcr-v3.3.4
+ETCDVERSION=v3.3.5
+ETCDNAME=etcd-gcr-${ETCDVERSION}
 KUBECTLPIDFILE=/tmp/.kubectl_proxy.pid
 NETMESHNAME=netmesh
 KUBECONF=""
@@ -113,8 +114,8 @@ function startEtcd() {
 			  -p 22379:22379 \
 			  -p 22380:22380 \
 			  --mount type=bind,source=/tmp/etcd-data.tmp,destination=/etcd-data \
-			  --name etcd-gcr-v3.3.4 \
-			  gcr.io/etcd-development/etcd:v3.3.4 \
+			  --name ${ETCDNAME} \
+			  gcr.io/etcd-development/etcd:${ETCDVERSION} \
 			  /usr/local/bin/etcd \
 			  --name s1 \
 			  --data-dir /etcd-data \
