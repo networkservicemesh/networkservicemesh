@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: netmesh
+spec:
+  template:
+    metadata:
+      labels:
+        app: netmesh-ds
+    spec:
+      nodeSelector:
+        app: netmesh-node
+      containers:
+        - name: netmesh
+          image: ligato/networkservicemesh/netmesh
+          imagePullPolicy: Never
