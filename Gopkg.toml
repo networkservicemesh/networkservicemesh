@@ -41,8 +41,7 @@ required = ["github.com/golang/protobuf/protoc-gen-go"]
 
 [[constraint]]
   name = "github.com/ligato/cn-infra"
-  revision = "2d81f9bfd936b368e2843ac91b047816a51c0fb7"
-#  revision = "6dc312561669efc1454463221f9f002e565e78d7"
+  revision = "2cfa6d8343bbb698758010828219b1c1f860c257"
 
 [[constraint]]
   name = "k8s.io/client-go"
