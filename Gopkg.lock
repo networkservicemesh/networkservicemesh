@@ -114,7 +114,7 @@
     "servicelabel",
     "utils/safeclose"
   ]
-  revision = "2d81f9bfd936b368e2843ac91b047816a51c0fb7"
+  revision = "2cfa6d8343bbb698758010828219b1c1f860c257"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -447,6 +447,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8fd62c146f80fd8da131e694bebf927200e427c661db8e65cfe63f8053fe0f8c"
+  inputs-digest = "09781e3692522656024cc6d52ebc5e0133a5b1b81832cbc6d7dfcaea13f6eb73"
   solver-name = "gps-cdcl"
   solver-version = 1
