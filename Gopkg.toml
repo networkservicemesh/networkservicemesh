@@ -24,8 +24,14 @@
 #   go-tests = true
 #   unused-packages = true
 
-required = ["github.com/golang/protobuf/protoc-gen-go"]
-
+required = [
+  "github.com/golang/protobuf/protoc-gen-go",
+  "k8s.io/code-generator/cmd/client-gen",
+  "k8s.io/code-generator/cmd/deepcopy-gen",
+  "k8s.io/code-generator/cmd/defaulter-gen",
+  "k8s.io/code-generator/cmd/informer-gen",
+  "k8s.io/code-generator/cmd/lister-gen"
+]
 
 [[override]]
   name = "github.com/golang/protobuf"
@@ -56,9 +62,18 @@ required = ["github.com/golang/protobuf/protoc-gen-go"]
   version = "kubernetes-1.10.2"
 
 [[override]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.10.2"
+
+[[override]]
   name = "github.com/coreos/etcd"
   version = "3.3.5"
 
 [prune]
   go-tests = true
   unused-packages = true
+
+  [[prune.project]]
+    name = "k8s.io/code-generator"
+    unused-packages = false
+    go-tests = false
