@@ -272,7 +272,7 @@ func informerNetworkserviceendpoints(plugin *Plugin) {
 	plugin.Log.Info("NetworkServiceEndpoint Informer is ready")
 }
 
-// This will create all of the CRDs for NetworkServiceMesh.
+// AfterInit This will create all of the CRDs for NetworkServiceMesh.
 func (plugin *Plugin) AfterInit() error {
 	var err error
 	var crdname string
