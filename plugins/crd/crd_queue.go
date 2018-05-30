@@ -28,16 +28,16 @@ import (
 
 func networkserviceWork(plugin *Plugin) {
 	for {
-		// we read a message off the queue
+		// We read a message off the queue ...
 		key, shutdown := queueNS.Get()
 
-		// if the queue has been shut down, we should exit the work queue here
+		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
 			plugin.informerStopCh <- struct{}{}
 			return
 		}
 
-		// convert the queue item into a string. If it's not a string, we'll
+		// Convert the queue item into a string. If it's not a string, we'll
 		// simply discard it as invalid data and log a message.
 		var strKey string
 		var ok bool
@@ -46,7 +46,7 @@ func networkserviceWork(plugin *Plugin) {
 			return
 		}
 
-		// we define a function here to process a queue item, so that we can
+		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
 			var obj interface{}
@@ -54,21 +54,28 @@ func networkserviceWork(plugin *Plugin) {
 
 			defer queueNS.Done(key)
 
-			// attempt to split the 'key' into namespace and object name
+			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
-				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
+				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
+				runtime.HandleError(fmt.Errorf("Error splitting meta namespace key into parts: %s", err.Error()))
+				// This is a soft-error, we merely want to forget it and mark it done on the queue
+				queueNS.Forget(key)
 				return
 			}
 
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
-			// retrieve the latest version in the cache of this alert
+			// Retrieve the latest version in the cache of this alert
 			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Lister().NetworkServices(namespace).Get(name)
 
 			if err != nil {
-				runtime.HandleError(fmt.Errorf("error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
+				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
+				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
+				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
+				queueNS.Forget(key)
+				plugin.queueError <- true
 				return
 			}
 
@@ -76,14 +83,14 @@ func networkserviceWork(plugin *Plugin) {
 			plugin.Log.Infof("Object found: %s", obj)
 			plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
 
-			// as we managed to process this successfully, we can forget it
+			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
 			queueNS.Forget(key)
 		}(strKey)
 	}
 }
 
-// networkservice_enqueue will add an object 'obj' into the workqueue. The object being added
+// networkserviceEnqeue will add an object 'obj' into the workqueue. The object being added
 // must be of type metav1.Object, metav1.ObjectAccessor or cache.ExplicitKey.
 func networkserviceEnqueue(obj interface{}) {
 	// DeletionHandlingMetaNamespaceKeyFunc will convert an object into a
@@ -96,22 +103,22 @@ func networkserviceEnqueue(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("error obtaining key for object being enqueue: %s", err.Error()))
 		return
 	}
-	// add the item to the queue
+	// Add the item to the queue
 	queueNS.Add(key)
 }
 
 func networkservicechannelWork(plugin *Plugin) {
 	for {
-		// we read a message off the queue
+		// We read a message off the queue
 		key, shutdown := queueNSC.Get()
 
-		// if the queue has been shut down, we should exit the work queue here
+		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
 			plugin.informerStopCh <- struct{}{}
 			return
 		}
 
-		// convert the queue item into a string. If it's not a string, we'll
+		// Convert the queue item into a string. If it's not a string, we'll
 		// simply discard it as invalid data and log a message.
 		var strKey string
 		var ok bool
@@ -120,29 +127,36 @@ func networkservicechannelWork(plugin *Plugin) {
 			return
 		}
 
-		// we define a function here to process a queue item, so that we can
+		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
 			var obj interface{}
 			var err error
 
-			defer queueNSC.Done(key)
+			defer queueNS.Done(key)
 
-			// attempt to split the 'key' into namespace and object name
+			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
+				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
 				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
+				// This is a soft-error, we merely want to forget it and mark it done on the queue
+				queueNS.Forget(key)
 				return
 			}
 
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
-			// retrieve the latest version in the cache of this alert
+			// Retrieve the latest version in the cache of this alert
 			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServiceChannels().Lister().NetworkServiceChannels(namespace).Get(name)
 
 			if err != nil {
-				runtime.HandleError(fmt.Errorf("error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
+				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
+				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
+				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
+				queueNS.Forget(key)
+				plugin.queueError <- true
 				return
 			}
 
@@ -150,14 +164,14 @@ func networkservicechannelWork(plugin *Plugin) {
 			plugin.Log.Infof("Object found: %s", obj)
 			plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
 
-			// as we managed to process this successfully, we can forget it
+			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
 			queueNSC.Forget(key)
 		}(strKey)
 	}
 }
 
-// networkservicechannel_enqueue will add an object 'obj' into the workqueue. The object being added
+// networkserviceChannelEnqueue will add an object 'obj' into the workqueue. The object being added
 // must be of type metav1.Object, metav1.ObjectAccessor or cache.ExplicitKey.
 func networkservicechannelEnqueue(obj interface{}) {
 	// DeletionHandlingMetaNamespaceKeyFunc will convert an object into a
@@ -170,22 +184,22 @@ func networkservicechannelEnqueue(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("error obtaining key for object being enqueue: %s", err.Error()))
 		return
 	}
-	// add the item to the queue
+	// Add the item to the queue
 	queueNSC.Add(key)
 }
 
 func networkserviceendpointWork(plugin *Plugin) {
 	for {
-		// we read a message off the queue
+		// We read a message off the queue
 		key, shutdown := queueNSE.Get()
 
-		// if the queue has been shut down, we should exit the work queue here
+		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
 			plugin.informerStopCh <- struct{}{}
 			return
 		}
 
-		// convert the queue item into a string. If it's not a string, we'll
+		// Convert the queue item into a string. If it's not a string, we'll
 		// simply discard it as invalid data and log a message.
 		var strKey string
 		var ok bool
@@ -194,29 +208,36 @@ func networkserviceendpointWork(plugin *Plugin) {
 			return
 		}
 
-		// we define a function here to process a queue item, so that we can
+		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
 			var obj interface{}
 			var err error
 
-			defer queueNSE.Done(key)
+			defer queueNS.Done(key)
 
-			// attempt to split the 'key' into namespace and object name
+			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
+				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
 				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
+				// This is a soft-error, we merely want to forget it and mark it done on the queue
+				queueNS.Forget(key)
 				return
 			}
 
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
-			// retrieve the latest version in the cache of this alert
+			// Retrieve the latest version in the cache of this alert
 			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServiceEndpoints().Lister().NetworkServiceEndpoints(namespace).Get(name)
 
 			if err != nil {
-				runtime.HandleError(fmt.Errorf("error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
+				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
+				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
+				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
+				queueNS.Forget(key)
+				plugin.queueError <- true
 				return
 			}
 
@@ -224,14 +245,14 @@ func networkserviceendpointWork(plugin *Plugin) {
 			plugin.Log.Infof("Object found: %s", obj)
 			plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
 
-			// as we managed to process this successfully, we can forget it
+			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
 			queueNSE.Forget(key)
 		}(strKey)
 	}
 }
 
-// networkserviceendpoint_enqueue will add an object 'obj' into the workqueue. The object being added
+// networkserviceEndpointEnqueue will add an object 'obj' into the workqueue. The object being added
 // must be of type metav1.Object, metav1.ObjectAccessor or cache.ExplicitKey.
 func networkserviceendpointEnqueue(obj interface{}) {
 	// DeletionHandlingMetaNamespaceKeyFunc will convert an object into a
@@ -244,6 +265,6 @@ func networkserviceendpointEnqueue(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("error obtaining key for object being enqueue: %s", err.Error()))
 		return
 	}
-	// add the item to the queue
+	// Add the item to the queue
 	queueNSE.Add(key)
 }

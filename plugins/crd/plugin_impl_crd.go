@@ -46,16 +46,16 @@ import (
 type Plugin struct {
 	Deps
 
-	pluginStopCh chan struct{}
-	wg           sync.WaitGroup
-
+	pluginStopCh    chan struct{}
+	wg              sync.WaitGroup
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
 	apiclientset    *apiextcs.Clientset
 	crdClient       client.Interface
+	StatusMonitor   statuscheck.StatusReader
 
-	StatusMonitor statuscheck.StatusReader
-
+	// Used to signal hard errors while processing the queue
+	queueError chan bool
 	// informerStopCh can be used to stop all the informer, as well as control loops
 	// within the application.
 	informerStopCh chan struct{}
@@ -104,6 +104,7 @@ func (plugin *Plugin) Init() error {
 	}
 
 	plugin.informerStopCh = make(chan struct{})
+	plugin.queueError = make(chan bool, 1)
 
 	return nil
 }
@@ -301,8 +302,18 @@ func (plugin *Plugin) AfterInit() error {
 	go networkserviceWork(plugin)
 	go networkservicechannelWork(plugin)
 	go networkserviceendpointWork(plugin)
+	go handleQueueErrors(plugin)
 
 	return nil
+}
+
+// handleQueueErrors monitors the queueError channel for errors from the
+// dequeueing functions and closes the plugin down if one is received.
+func handleQueueErrors(plugin *Plugin) {
+	<-plugin.queueError
+	plugin.Log.Error("Error processing queues, shutting plugin down")
+
+	plugin.Close()
 }
 
 // Close stops all reflectors.
