@@ -1,5 +1,4 @@
-// Copyright 2018 Red Hat, Inc.
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) YEAR Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,12 +12,3 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core manages the lifecycle of all plugins (start, graceful
-// shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
-// must be implemented by each plugin.
-
-package netmesh
-
-//go:generate protoc -I . netmesh.proto --go_out=plugins=grpc:.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:deepcopy-gen=package,register
