@@ -133,7 +133,7 @@ func networkservicechannelWork(plugin *Plugin) {
 			var obj interface{}
 			var err error
 
-			defer queueNS.Done(key)
+			defer queueNSC.Done(key)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
@@ -142,7 +142,7 @@ func networkservicechannelWork(plugin *Plugin) {
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
 				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
 				// This is a soft-error, we merely want to forget it and mark it done on the queue
-				queueNS.Forget(key)
+				queueNSC.Forget(key)
 				return
 			}
 
@@ -155,7 +155,7 @@ func networkservicechannelWork(plugin *Plugin) {
 				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
 				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
 				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
-				queueNS.Forget(key)
+				queueNSC.Forget(key)
 				plugin.queueError <- true
 				return
 			}
@@ -214,7 +214,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 			var obj interface{}
 			var err error
 
-			defer queueNS.Done(key)
+			defer queueNSE.Done(key)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
@@ -223,7 +223,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
 				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
 				// This is a soft-error, we merely want to forget it and mark it done on the queue
-				queueNS.Forget(key)
+				queueNSE.Forget(key)
 				return
 			}
 
@@ -236,7 +236,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
 				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
 				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
-				queueNS.Forget(key)
+				queueNSE.Forget(key)
 				plugin.queueError <- true
 				return
 			}
