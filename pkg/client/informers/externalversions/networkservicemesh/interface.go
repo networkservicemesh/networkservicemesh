@@ -18,7 +18,7 @@ package networkservice
 
 import (
 	internalinterfaces "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/internalinterfaces"
-	v1 "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/networkservicemesh.io/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/networkservicemesh/v1"
 )
 
 // Interface provides access to each of this group's versions.

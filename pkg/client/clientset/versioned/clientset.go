@@ -18,7 +18,7 @@ package versioned
 
 import (
 	glog "github.com/golang/glog"
-	networkservicev1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh.io/v1"
+	networkservicev1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

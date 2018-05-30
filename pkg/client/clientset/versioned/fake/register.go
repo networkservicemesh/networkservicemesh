@@ -17,7 +17,7 @@
 package fake
 
 import (
-	networkservicev1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	networkservicev1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

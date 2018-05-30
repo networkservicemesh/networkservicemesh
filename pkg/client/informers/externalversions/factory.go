@@ -23,7 +23,7 @@ import (
 
 	versioned "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/internalinterfaces"
-	networkservicemesh_io "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/networkservicemesh.io"
+	networkservicemesh "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/networkservicemesh"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -121,9 +121,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Networkservice() networkservicemesh_io.Interface
+	Networkservice() networkservicemesh.Interface
 }
 
-func (f *sharedInformerFactory) Networkservice() networkservicemesh_io.Interface {
-	return networkservicemesh_io.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Networkservice() networkservicemesh.Interface {
+	return networkservicemesh.New(f, f.namespace, f.tweakListOptions)
 }

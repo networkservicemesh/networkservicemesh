@@ -25,7 +25,7 @@ import (
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -36,7 +36,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/health/statuscheck"
 	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 )
@@ -46,8 +46,8 @@ import (
 type Plugin struct {
 	Deps
 
-	stopCh chan struct{}
-	wg     sync.WaitGroup
+	pluginStopCh chan struct{}
+	wg           sync.WaitGroup
 
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
@@ -55,13 +55,17 @@ type Plugin struct {
 	crdClient       client.Interface
 
 	StatusMonitor statuscheck.StatusReader
-}
 
-// Deps defines dependencies of netmesh plugin.
-type Deps struct {
-	local.PluginInfraDeps
-	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig config.PluginConfig
+	// informerStopCh can be used to stop all the informer, as well as control loops
+	// within the application.
+	informerStopCh chan struct{}
+	// sharedFactory is a shared informer factory that is used a a cache for
+	// items in the API server. It saves each informer listing and watching the
+	// same resources independently of each other, thus providing more up to
+	// date results with less 'effort'
+	sharedFactoryNS  factory.SharedInformerFactory
+	sharedFactoryNSE factory.SharedInformerFactory
+	sharedFactoryNSC factory.SharedInformerFactory
 }
 
 var (
@@ -71,98 +75,75 @@ var (
 	queueNS  = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
 	queueNSC = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
 	queueNSE = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
-
-	// stopCh can be used to stop all the informer, as well as control loops
-	// within the application.
-	stopCh = make(chan struct{})
-
-	// sharedFactory is a shared informer factory that is used a a cache for
-	// items in the API server. It saves each informer listing and watching the
-	// same resources independently of each other, thus providing more up to
-	// date results with less 'effort'
-	sharedFactoryNS  factory.SharedInformerFactory
-	sharedFactoryNSE factory.SharedInformerFactory
-	sharedFactoryNSC factory.SharedInformerFactory
 )
+
+// Deps defines dependencies of netmesh plugin.
+type Deps struct {
+	local.PluginInfraDeps
+	// Kubeconfig with k8s cluster address and access credentials to use.
+	KubeConfig config.PluginConfig
+}
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (plugin *Plugin) Init() error {
 	var err error
 	plugin.Log.SetLevel(logging.DebugLevel)
-	plugin.stopCh = make(chan struct{})
+	plugin.pluginStopCh = make(chan struct{})
 
 	kubeconfig := plugin.KubeConfig.GetConfigName()
 	plugin.Log.WithField("kubeconfig", kubeconfig).Info("Loading kubernetes client config")
 	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client config: %s", err)
+		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
 	}
 
 	plugin.k8sClientset, err = kubernetes.NewForConfig(plugin.k8sClientConfig)
 	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client: %s", err)
+		return fmt.Errorf("Failed to build kubernetes client: %s", err)
 	}
+
+	plugin.informerStopCh = make(chan struct{})
 
 	return nil
 }
 
 // Create the CRD resource, ignore error if it already exists
-func createCRD(plugin *Plugin, FullCRDName, CRDGroup, CRDVersion, CRDPlural, CRDName string) error {
+func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) error {
 	crd := &apiextv1beta1.CustomResourceDefinition{
-		ObjectMeta: meta_v1.ObjectMeta{Name: FullCRDName},
+		ObjectMeta: meta.ObjectMeta{Name: FullName},
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Group:   CRDGroup,
-			Version: CRDVersion,
+			Group:   Group,
+			Version: Version,
 			Scope:   apiextv1beta1.NamespaceScoped,
 			Names: apiextv1beta1.CustomResourceDefinitionNames{
-				Plural: CRDPlural,
-				Kind:   CRDName,
+				Plural: Plural,
+				Kind:   Name,
 			},
 		},
 	}
 
 	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
 	if cserr != nil && apierrors.IsAlreadyExists(cserr) {
-		plugin.Log.Infof("Created CRD %s succesfully, though it already existed", CRDName)
+		plugin.Log.Infof("Created CRD %s succesfully, though it already existed", Name)
 		return nil
 	} else if cserr != nil {
-		plugin.Log.Infof("Error creating CRD %s: %s", CRDName, cserr)
+		plugin.Log.Infof("Error creating CRD %s: %s", Name, cserr)
 	} else {
-		plugin.Log.Infof("Created CRD %s succesfully", CRDName)
+		plugin.Log.Infof("Created CRD %s succesfully", Name)
 	}
 
 	return cserr
 }
 
-// Delete the CRD resource
-// Note this is not currently used, as once we create the CRDs we want to leave them
-// in the DB even after the plugin is closed.
-func deleteCRD(plugin *Plugin, CRDName string) error {
-	err := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(CRDName, nil)
-	if err != nil {
-		plugin.Log.Infof("Error deleting CRD %s: %s", CRDName, err)
-	} else {
-		plugin.Log.Infof("Successfully deleted CRD %s", CRDName)
-	}
-
-	return err
-}
-
-func informerNetworkservices(plugin *Plugin) {
-	var err error
-
-	if err != nil {
-		plugin.Log.Errorf("Error creating api client: %s", err.Error())
-	}
-
+func informerNetworkServices(plugin *Plugin) {
 	// We use a shared informer from the informer factory, to save calls to the
 	// API as we grow our application and so state is consistent between our
 	// control loops. We set a resync period of 30 seconds, in case any
 	// create/replace/update/delete operations are missed when watching
-	sharedFactoryNS = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
+	plugin.sharedFactoryNS = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informer := sharedFactoryNS.Networkservice().V1().NetworkServices().Informer()
+	informer := plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Informer()
 	// We add a new event handler, watching for changes to API resources.
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -178,32 +159,26 @@ func informerNetworkservices(plugin *Plugin) {
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
-	sharedFactoryNS.Start(stopCh)
+	plugin.sharedFactoryNS.Start(plugin.informerStopCh)
 	plugin.Log.Info("Started NetworkService informer factory.")
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
-		plugin.Log.Errorf("Error waiting for informer cache to sync: %s", err.Error())
+	if !cache.WaitForCacheSync(plugin.informerStopCh, informer.HasSynced) {
+		plugin.Log.Error("Error waiting for informer cache to sync")
 	}
 
 	plugin.Log.Info("NetworkService Informer is ready")
 }
 
-func informerNetworkservicechannels(plugin *Plugin) {
-	var err error
-
-	if err != nil {
-		plugin.Log.Errorf("Error creating api client: %s", err.Error())
-	}
-
+func informerNetworkServiceChannels(plugin *Plugin) {
 	// We use a shared informer from the informer factory, to save calls to the
 	// API as we grow our application and so state is consistent between our
 	// control loops. We set a resync period of 30 seconds, in case any
 	// create/replace/update/delete operations are missed when watching
-	sharedFactoryNSC = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
+	plugin.sharedFactoryNSC = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informer := sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Informer()
+	informer := plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Informer()
 	// we add a new event handler, watching for changes to API resources.
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -219,32 +194,26 @@ func informerNetworkservicechannels(plugin *Plugin) {
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
-	sharedFactoryNSC.Start(stopCh)
+	plugin.sharedFactoryNSC.Start(plugin.informerStopCh)
 	plugin.Log.Info("Started NetworkServiceChannel informer factory.")
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
-		plugin.Log.Errorf("Error waiting for informer cache to sync: %s", err.Error())
+	if !cache.WaitForCacheSync(plugin.informerStopCh, informer.HasSynced) {
+		plugin.Log.Errorf("Error waiting for informer cache to sync")
 	}
 
 	plugin.Log.Info("NetworkServiceChannel Informer is ready")
 }
 
-func informerNetworkserviceendpoints(plugin *Plugin) {
-	var err error
-
-	if err != nil {
-		plugin.Log.Errorf("Error creating api client: %s", err.Error())
-	}
-
+func informerNetworkServiceEndpoints(plugin *Plugin) {
 	// We use a shared informer from the informer factory, to save calls to the
 	// API as we grow our application and so state is consistent between our
 	// control loops. We set a resync period of 30 seconds, in case any
 	// create/replace/update/delete operations are missed when watching
-	sharedFactoryNSE = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
+	plugin.sharedFactoryNSE = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informer := sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Informer()
+	informer := plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Informer()
 	// we add a new event handler, watching for changes to API resources.
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -260,13 +229,13 @@ func informerNetworkserviceendpoints(plugin *Plugin) {
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
-	sharedFactoryNSE.Start(stopCh)
+	plugin.sharedFactoryNSE.Start(plugin.informerStopCh)
 	plugin.Log.Info("Started NetworkServiceEndpoints informer factory.")
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
-		plugin.Log.Errorf("Error waiting for informer cache to sync: %s", err.Error())
+	if !cache.WaitForCacheSync(plugin.informerStopCh, informer.HasSynced) {
+		plugin.Log.Errorf("Error waiting for informer cache to sync")
 	}
 
 	plugin.Log.Info("NetworkServiceEndpoint Informer is ready")
@@ -277,7 +246,7 @@ func (plugin *Plugin) AfterInit() error {
 	var err error
 	var crdname string
 
-	// create clientset and create our CRD, this only needs to run once
+	// Create clientset and create our CRD, this only needs to run once
 	plugin.apiclientset, err = apiextcs.NewForConfig(plugin.k8sClientConfig)
 	if err != nil {
 		panic(err.Error())
@@ -285,7 +254,6 @@ func (plugin *Plugin) AfterInit() error {
 
 	// Create an instance of our own API client
 	plugin.crdClient, err = client.NewForConfig(plugin.k8sClientConfig)
-
 	if err != nil {
 		plugin.Log.Errorf("Error creating CRD client: %s", err.Error())
 		panic(err.Error())
@@ -327,9 +295,9 @@ func (plugin *Plugin) AfterInit() error {
 		return err
 	}
 
-	go informerNetworkservices(plugin)
-	go informerNetworkservicechannels(plugin)
-	go informerNetworkserviceendpoints(plugin)
+	go informerNetworkServices(plugin)
+	go informerNetworkServiceChannels(plugin)
+	go informerNetworkServiceEndpoints(plugin)
 	go networkserviceWork(plugin)
 	go networkservicechannelWork(plugin)
 	go networkserviceendpointWork(plugin)
@@ -339,7 +307,7 @@ func (plugin *Plugin) AfterInit() error {
 
 // Close stops all reflectors.
 func (plugin *Plugin) Close() error {
-	close(plugin.stopCh)
+	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
 	return nil
 }

@@ -21,8 +21,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-
-	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 )
 
 // This file contains the work queue backends for each of the CRDs we create in the
@@ -35,7 +33,7 @@ func networkserviceWork(plugin *Plugin) {
 
 		// if the queue has been shut down, we should exit the work queue here
 		if shutdown {
-			stopCh <- struct{}{}
+			plugin.informerStopCh <- struct{}{}
 			return
 		}
 
@@ -67,8 +65,7 @@ func networkserviceWork(plugin *Plugin) {
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
 			// retrieve the latest version in the cache of this alert
-			plugin.Log.Infof("Dequeuing interface of type %s", v1.NSMPlural)
-			obj, err = sharedFactoryNS.Networkservice().V1().NetworkServices().Lister().NetworkServices(namespace).Get(name)
+			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Lister().NetworkServices(namespace).Get(name)
 
 			if err != nil {
 				runtime.HandleError(fmt.Errorf("error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
@@ -110,7 +107,7 @@ func networkservicechannelWork(plugin *Plugin) {
 
 		// if the queue has been shut down, we should exit the work queue here
 		if shutdown {
-			stopCh <- struct{}{}
+			plugin.informerStopCh <- struct{}{}
 			return
 		}
 
@@ -142,8 +139,7 @@ func networkservicechannelWork(plugin *Plugin) {
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
 			// retrieve the latest version in the cache of this alert
-			plugin.Log.Infof("Dequeuing interface of type %s", v1.NSMChannelPlural)
-			obj, err = sharedFactoryNS.Networkservice().V1().NetworkServiceChannels().Lister().NetworkServiceChannels(namespace).Get(name)
+			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServiceChannels().Lister().NetworkServiceChannels(namespace).Get(name)
 
 			if err != nil {
 				runtime.HandleError(fmt.Errorf("error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
@@ -185,7 +181,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 
 		// if the queue has been shut down, we should exit the work queue here
 		if shutdown {
-			stopCh <- struct{}{}
+			plugin.informerStopCh <- struct{}{}
 			return
 		}
 
@@ -217,8 +213,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
 			// retrieve the latest version in the cache of this alert
-			plugin.Log.Infof("Dequeuing interface of type %s", v1.NSMEPPlural)
-			obj, err = sharedFactoryNS.Networkservice().V1().NetworkServiceEndpoints().Lister().NetworkServiceEndpoints(namespace).Get(name)
+			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServiceEndpoints().Lister().NetworkServiceEndpoints(namespace).Get(name)
 
 			if err != nil {
 				runtime.HandleError(fmt.Errorf("error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
