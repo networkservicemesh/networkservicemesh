@@ -19,7 +19,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

@@ -17,7 +17,7 @@
 package fake
 
 import (
-	v1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh.io/v1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

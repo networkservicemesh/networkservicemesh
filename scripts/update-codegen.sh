@@ -12,7 +12,7 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 echo "Calling ${CODEGEN_PKG}/generate-groups.sh"
 ${CODEGEN_PKG}/generate-groups.sh all \
   github.com/ligato/networkservicemesh/pkg/client github.com/ligato/networkservicemesh/pkg/apis \
-  networkservicemesh:v1 \
+  networkservicemesh.io:v1 \
   --output-base "${GOPATH}/src/" \
   --go-header-file ${SCRIPT_ROOT}/conf/boilerplate.txt
 

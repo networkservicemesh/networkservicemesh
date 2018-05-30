@@ -19,69 +19,69 @@ package v1
 import (
 	time "time"
 
-	networkservicemesh_v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
+	networkservicemesh_io_v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	versioned "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions/internalinterfaces"
-	v1 "github.com/ligato/networkservicemesh/pkg/client/listers/networkservicemesh/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/client/listers/networkservicemesh.io/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// NetworkServiceEndpointInformer provides access to a shared informer and lister for
-// NetworkServiceEndpoints.
-type NetworkServiceEndpointInformer interface {
+// NetworkServiceInformer provides access to a shared informer and lister for
+// NetworkServices.
+type NetworkServiceInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.NetworkServiceEndpointLister
+	Lister() v1.NetworkServiceLister
 }
 
-type networkServiceEndpointInformer struct {
+type networkServiceInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewNetworkServiceEndpointInformer constructs a new informer for NetworkServiceEndpoint type.
+// NewNetworkServiceInformer constructs a new informer for NetworkService type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewNetworkServiceEndpointInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredNetworkServiceEndpointInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewNetworkServiceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredNetworkServiceInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredNetworkServiceEndpointInformer constructs a new informer for NetworkServiceEndpoint type.
+// NewFilteredNetworkServiceInformer constructs a new informer for NetworkService type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredNetworkServiceEndpointInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredNetworkServiceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.NetworkserviceV1().NetworkServiceEndpoints(namespace).List(options)
+				return client.NetworkserviceV1().NetworkServices(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.NetworkserviceV1().NetworkServiceEndpoints(namespace).Watch(options)
+				return client.NetworkserviceV1().NetworkServices(namespace).Watch(options)
 			},
 		},
-		&networkservicemesh_v1.NetworkServiceEndpoint{},
+		&networkservicemesh_io_v1.NetworkService{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *networkServiceEndpointInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredNetworkServiceEndpointInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *networkServiceInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredNetworkServiceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *networkServiceEndpointInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&networkservicemesh_v1.NetworkServiceEndpoint{}, f.defaultInformer)
+func (f *networkServiceInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&networkservicemesh_io_v1.NetworkService{}, f.defaultInformer)
 }
 
-func (f *networkServiceEndpointInformer) Lister() v1.NetworkServiceEndpointLister {
-	return v1.NewNetworkServiceEndpointLister(f.Informer().GetIndexer())
+func (f *networkServiceInformer) Lister() v1.NetworkServiceLister {
+	return v1.NewNetworkServiceLister(f.Informer().GetIndexer())
 }

@@ -36,7 +36,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/health/statuscheck"
 	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
+	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 )

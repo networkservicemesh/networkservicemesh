@@ -17,7 +17,7 @@
 package v1
 
 import (
-	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"

@@ -18,8 +18,8 @@ package fake
 
 import (
 	clientset "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
-	networkservicev1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh/v1"
-	fakenetworkservicev1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh/v1/fake"
+	networkservicev1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh.io/v1"
+	fakenetworkservicev1 "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/typed/networkservicemesh.io/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

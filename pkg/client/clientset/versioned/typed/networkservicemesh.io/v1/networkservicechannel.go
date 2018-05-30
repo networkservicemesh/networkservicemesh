@@ -17,7 +17,7 @@
 package v1
 
 import (
-	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	scheme "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/scheme"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"

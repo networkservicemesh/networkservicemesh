@@ -22,7 +22,7 @@ import (
 
 // Constants to register CRDs for our resources
 const (
-	NSMGroup           string = "networkservicemesh"
+	NSMGroup           string = "networkservicemesh.io"
 	NSMGroupVersion    string = "v1"
 	NSMEPPlural        string = "networkserviceendpoints"
 	FullNSMEPName      string = NSMEPPlural + "." + NSMGroup

@@ -17,7 +17,7 @@
 package v1
 
 import (
-	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh/v1"
+	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
