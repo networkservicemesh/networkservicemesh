@@ -1,8 +1,7 @@
 #!/bin/bash
 #
-# Sample script for creating testable Network Service Mesh CRDs
+# Sample script for deleting Network Service Mesh CRDs.
 #
-# NOTE: This assumes minikube for now
 
 # First, delete the network service
 kubectl delete -f conf/sample/networkservice.yaml

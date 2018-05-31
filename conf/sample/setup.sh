@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Sample script for creating testable Network Service Mesh CRDs
+# Sample script for creating Network Service Mesh CRDs.
 #
-# NOTE: This assumes minikube for now
+# NOTE: This assumes minikube for now during the label step.
 
 # First, label the nodes
 kubectl label --overwrite nodes minikube app=networkservice-node
