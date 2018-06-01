@@ -66,7 +66,7 @@ NAME        STATUS    AGE
 Label the nodes:
 
 ```
-$ kubectl label node 10.0.10.2 app=netmesh-node
+$ kubectl label node 10.0.10.2 app=networkservice-node
 node "10.0.10.2" labeled
 ```
 
