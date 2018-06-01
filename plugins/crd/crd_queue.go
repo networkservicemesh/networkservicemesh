@@ -33,7 +33,7 @@ func networkserviceWork(plugin *Plugin) {
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
-			plugin.informerStopCh <- struct{}{}
+			plugin.stopChNS <- struct{}{}
 			return
 		}
 
@@ -114,7 +114,7 @@ func networkservicechannelWork(plugin *Plugin) {
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
-			plugin.informerStopCh <- struct{}{}
+			plugin.stopChNSC <- struct{}{}
 			return
 		}
 
@@ -149,7 +149,7 @@ func networkservicechannelWork(plugin *Plugin) {
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
 			// Retrieve the latest version in the cache of this alert
-			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServiceChannels().Lister().NetworkServiceChannels(namespace).Get(name)
+			obj, err = plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Lister().NetworkServiceChannels(namespace).Get(name)
 
 			if err != nil {
 				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
@@ -195,7 +195,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
-			plugin.informerStopCh <- struct{}{}
+			plugin.stopChNSE <- struct{}{}
 			return
 		}
 
@@ -230,7 +230,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
 			// Retrieve the latest version in the cache of this alert
-			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServiceEndpoints().Lister().NetworkServiceEndpoints(namespace).Get(name)
+			obj, err = plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Lister().NetworkServiceEndpoints(namespace).Get(name)
 
 			if err != nil {
 				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
