@@ -56,11 +56,13 @@ type Plugin struct {
 
 	// Used to signal hard errors while processing the queue
 	queueError chan bool
-	// informerStopCh can be used to stop all the informer, as well as control loops
+	// These can be used to stop all the informers, as well as control loops
 	// within the application.
-	informerStopCh chan struct{}
-	// sharedFactory is a shared informer factory that is used a a cache for
-	// items in the API server. It saves each informer listing and watching the
+	stopChNS  chan struct{}
+	stopChNSE chan struct{}
+	stopChNSC chan struct{}
+	// sharedFactory's are shared informer factorys used as a cache for
+	// items in the API server. They saves each informer listing and watch the
 	// same resources independently of each other, thus providing more up to
 	// date results with less 'effort'
 	sharedFactoryNS  factory.SharedInformerFactory
@@ -103,7 +105,9 @@ func (plugin *Plugin) Init() error {
 		return fmt.Errorf("Failed to build kubernetes client: %s", err)
 	}
 
-	plugin.informerStopCh = make(chan struct{})
+	plugin.stopChNS = make(chan struct{})
+	plugin.stopChNSC = make(chan struct{})
+	plugin.stopChNSE = make(chan struct{})
 	plugin.queueError = make(chan bool, 1)
 
 	return nil
@@ -160,12 +164,12 @@ func informerNetworkServices(plugin *Plugin) {
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
-	plugin.sharedFactoryNS.Start(plugin.informerStopCh)
+	plugin.sharedFactoryNS.Start(plugin.stopChNS)
 	plugin.Log.Info("Started NetworkService informer factory.")
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.informerStopCh, informer.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNS, informer.HasSynced) {
 		plugin.Log.Error("Error waiting for informer cache to sync")
 	}
 
@@ -198,12 +202,12 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
-	plugin.sharedFactoryNSC.Start(plugin.informerStopCh)
+	plugin.sharedFactoryNSC.Start(plugin.stopChNSC)
 	plugin.Log.Info("Started NetworkServiceChannel informer factory.")
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.informerStopCh, informer.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNSC, informer.HasSynced) {
 		plugin.Log.Errorf("Error waiting for informer cache to sync")
 	}
 
@@ -236,12 +240,12 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
-	plugin.sharedFactoryNSE.Start(plugin.informerStopCh)
+	plugin.sharedFactoryNSE.Start(plugin.stopChNSE)
 	plugin.Log.Info("Started NetworkServiceEndpoints informer factory.")
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.informerStopCh, informer.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNSE, informer.HasSynced) {
 		plugin.Log.Errorf("Error waiting for informer cache to sync")
 	}
 
