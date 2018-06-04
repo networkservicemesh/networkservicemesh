@@ -1,0 +1,8 @@
+apiVersion: networkservicemesh.io/v1
+kind: NetworkService
+metadata:
+  name: gold-network
+spec:
+  name: gold-network
+  selector: routing
+  channels: gold-ethernet
