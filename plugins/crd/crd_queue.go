@@ -23,6 +23,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// How many times do we retry processing an item
+const QUEUE_RETRY_COUNT = 5
+
 // This file contains the work queue backends for each of the CRDs we create in the
 // plugin AfterInit() call.
 
@@ -33,6 +36,7 @@ func networkserviceWork(plugin *Plugin) {
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
+			plugin.Log.Error("shutdown signaled, closing stopChNS")
 			plugin.stopChNS <- struct{}{}
 			return
 		}
@@ -49,39 +53,53 @@ func networkserviceWork(plugin *Plugin) {
 		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
-			var obj interface{}
-			var err error
-
 			defer queueNS.Done(key)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
+				// This is a soft-error, retry up to QUEUE_RETRY_COUNT times
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				runtime.HandleError(fmt.Errorf("Error splitting meta namespace key into parts: %s", err.Error()))
-				// This is a soft-error, we merely want to forget it and mark it done on the queue
-				queueNS.Forget(key)
+				if err != nil {
+					if queueNS.NumRequeues(key) < QUEUE_RETRY_COUNT {
+						plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+						queueNS.AddRateLimited(key)
+					} else {
+						plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+						queueNS.Forget(key)
+					}
+				}
 				return
 			}
 
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
-			// Retrieve the latest version in the cache of this alert
-			obj, err = plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Lister().NetworkServices(namespace).Get(name)
+			// Retrieve the latest version in the cache of this NetworkService. By using
+			// GetByKey() we are able to determine if the item exists, and thus if it was
+			// added or deleted from the queue, and process appropriately
+			item, exists, err := plugin.informerNS.GetIndexer().GetByKey(strKey)
 
 			if err != nil {
-				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
-				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
-				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
-				queueNS.Forget(key)
-				plugin.queueError <- true
-				return
+				if queueNS.NumRequeues(key) < QUEUE_RETRY_COUNT {
+					plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+					queueNS.AddRateLimited(key)
+					return
+				} else {
+					plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+					queueNS.Forget(key)
+					return
+				}
 			}
 
-			plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-			plugin.Log.Infof("Object found: %s", obj)
-			plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+			// Verify if this was a delete vs. an add/update
+			if !exists {
+				plugin.Log.Infof("Object (%s) deleted from queue", name)
+			} else {
+				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+				plugin.Log.Infof("Object found: %s", item)
+				plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+			}
 
 			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
@@ -114,6 +132,7 @@ func networkservicechannelWork(plugin *Plugin) {
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
+			plugin.Log.Error("shutdown signaled, closing stopChNSC")
 			plugin.stopChNSC <- struct{}{}
 			return
 		}
@@ -130,39 +149,53 @@ func networkservicechannelWork(plugin *Plugin) {
 		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
-			var obj interface{}
-			var err error
-
 			defer queueNSC.Done(key)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
+				// This is a soft-error, retry up to QUEUE_RETRY_COUNT times
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
-				// This is a soft-error, we merely want to forget it and mark it done on the queue
-				queueNSC.Forget(key)
+				if err != nil {
+					if queueNSC.NumRequeues(key) < QUEUE_RETRY_COUNT {
+						plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+						queueNSC.AddRateLimited(key)
+					} else {
+						plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+						queueNSC.Forget(key)
+					}
+				}
 				return
 			}
 
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
-			// Retrieve the latest version in the cache of this alert
-			obj, err = plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Lister().NetworkServiceChannels(namespace).Get(name)
+			// Retrieve the latest version in the cache of this NetworkService. By using
+			// GetByKey() we are able to determine if the item exists, and thus if it was
+			// added or deleted from the queue, and process appropriately
+			item, exists, err := plugin.informerNSC.GetIndexer().GetByKey(strKey)
 
 			if err != nil {
-				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
-				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
-				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
-				queueNSC.Forget(key)
-				plugin.queueError <- true
-				return
+				if queueNSC.NumRequeues(key) < QUEUE_RETRY_COUNT {
+					plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+					queueNSC.AddRateLimited(key)
+					return
+				} else {
+					plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+					queueNSC.Forget(key)
+					return
+				}
 			}
 
-			plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-			plugin.Log.Infof("Object found: %s", obj)
-			plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+			// Verify if this was a delete vs. an add/update
+			if !exists {
+				plugin.Log.Infof("Object (%s) deleted from queue", name)
+			} else {
+				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+				plugin.Log.Infof("Object found: %s", item)
+				plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+			}
 
 			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
@@ -195,6 +228,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
+			plugin.Log.Error("shutdown signaled, closing stopChNSE")
 			plugin.stopChNSE <- struct{}{}
 			return
 		}
@@ -211,39 +245,53 @@ func networkserviceendpointWork(plugin *Plugin) {
 		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
-			var obj interface{}
-			var err error
-
 			defer queueNSE.Done(key)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
+				// This is a soft-error, retry up to QUEUE_RETRY_COUNT times
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				runtime.HandleError(fmt.Errorf("error splitting meta namespace key into parts: %s", err.Error()))
-				// This is a soft-error, we merely want to forget it and mark it done on the queue
-				queueNSE.Forget(key)
+				if err != nil {
+					if queueNSE.NumRequeues(key) < QUEUE_RETRY_COUNT {
+						plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+						queueNSE.AddRateLimited(key)
+					} else {
+						plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+						queueNSE.Forget(key)
+					}
+				}
 				return
 			}
 
 			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
 
-			// Retrieve the latest version in the cache of this alert
-			obj, err = plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Lister().NetworkServiceEndpoints(namespace).Get(name)
+			// Retrieve the latest version in the cache of this NetworkService. By using
+			// GetByKey() we are able to determine if the item exists, and thus if it was
+			// added or deleted from the queue, and process appropriately
+			item, exists, err := plugin.informerNSE.GetIndexer().GetByKey(strKey)
 
 			if err != nil {
-				plugin.Log.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error())
-				runtime.HandleError(fmt.Errorf("Error getting object '%s/%s' from api: %s", namespace, name, err.Error()))
-				// This is a hard-error, we'll raise the flag so the plugin catches this and shuts down
-				queueNSE.Forget(key)
-				plugin.queueError <- true
-				return
+				if queueNSE.NumRequeues(key) < QUEUE_RETRY_COUNT {
+					plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+					queueNSE.AddRateLimited(key)
+					return
+				} else {
+					plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+					queueNSE.Forget(key)
+					return
+				}
 			}
 
-			plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-			plugin.Log.Infof("Object found: %s", obj)
-			plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+			// Verify if this was a delete vs. an add/update
+			if !exists {
+				plugin.Log.Infof("Object (%s) deleted from queue", name)
+			} else {
+				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+				plugin.Log.Infof("Object found: %s", item)
+				plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+			}
 
 			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
