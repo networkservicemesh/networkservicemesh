@@ -10,7 +10,38 @@ spec:
     spec:
       nodeSelector:
         app: networkservice-node
+      serviceAccountName: networkservicemesh
       containers:
         - name: netmesh
           image: ligato/networkservicemesh/netmesh
           imagePullPolicy: IfNotPresent
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: networkservicemesh
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: crd-creater
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: crd-creater-binding
+subjects:
+- kind: ServiceAccount
+  namespace: default
+  name: networkservicemesh
+roleRef:
+  kind: ClusterRole
+  name: crd-creater
+  apiGroup: rbac.authorization.k8s.io
