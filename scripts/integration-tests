@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Copyright (c) 2016-2017 Bitnami
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# Default kubernetes context - if it's "dind" or "minikube" will
+# try to bring up a local (dockerized) cluster
+test -n "${TRAVIS_K8S_CONTEXT}" && set -- ${TRAVIS_K8S_CONTEXT}
+
+export TEST_CONTEXT=${1:?}
+
+KUBECTL_VERSION=v1.10.3
+
+# Install kubectl
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
+	chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+# __main__ () {
+. scripts/cluster_common.bash
+
+# Create the 'minikube' or 'dind' cluster
+create_k8s_cluster ${TEST_CONTEXT}
+
+# Just exercising some kubectl-s
+KUBECTL_BIN=$(which kubectl)
+kubectl() {
+    ${KUBECTL_BIN:?} --context=${TEST_CONTEXT} "${@}"
+}
+
+(set -xe
+kubectl get nodes
+kubectl version
+kubectl api-versions
+kubectl label --overwrite --all=true nodes app=networkservice-node
+kubectl create -f conf/sample/networkservice-daemonset.yaml
+
+# Wait til settles
+echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
+typeset -i cnt=120
+until kubectl get crd | grep networkservicemesh.io ; do
+    ((cnt=cnt-1)) || exit 1
+    sleep 2
+done
+
+kubectl get nodes
+kubectl get pods
+kubectl get crd
+kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
+
+kubectl create -f conf/sample/networkservice-channel.yaml
+kubectl create -f conf/sample/networkservice-endpoint.yaml
+kubectl create -f conf/sample/networkservice.yaml
+kubectl get pod,crd,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
+)
+exit_code=$?
+[[ ${exit_code} == 0 ]] && echo "TESTS: PASS" || echo "TESTS: FAIL"
+exit ${exit_code}
+# }
+
+# vim: sw=4 ts=4 et si
