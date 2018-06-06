@@ -55,7 +55,7 @@ func (in *NetworkServiceChannel) DeepCopyInto(out *NetworkServiceChannel) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.Spec.DeepCopyInto(&out.Spec)
+	out.Spec = in.Spec
 	out.Status = in.Status
 	return
 }
@@ -132,7 +132,7 @@ func (in *NetworkServiceEndpoint) DeepCopyInto(out *NetworkServiceEndpoint) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.Spec.DeepCopyInto(&out.Spec)
+	out.Spec = in.Spec
 	out.Status = in.Status
 	return
 }
