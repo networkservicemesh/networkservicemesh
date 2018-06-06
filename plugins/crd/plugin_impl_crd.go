@@ -113,9 +113,9 @@ func (plugin *Plugin) Init() error {
 	return nil
 }
 
+// networkServiceValidation generates OpenAPIV3 validator for NetworkService CRD
 func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
-	minLength := int64(4)
-	maxLength := int64(16)
+	maxLength := int64(64)
 	validation := &apiextv1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
@@ -124,7 +124,79 @@ func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"name": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
-							MinLength:   &minLength,
+							MaxLength:   &maxLength,
+							Description: "NetworkService Name",
+							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+						},
+						"uuid": apiextv1beta1.JSONSchemaProps{
+							Type:        "string",
+							MaxLength:   &maxLength,
+							Description: "NetworkService Name",
+							Pattern:     `[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}`,
+						},
+						"selector": apiextv1beta1.JSONSchemaProps{
+							Description: "The value of Selector is restricted to: routing",
+							Type:        "string",
+							Enum: []apiextv1beta1.JSON{
+								{
+									Raw: []byte(`"routing"`),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return validation
+}
+
+// networkServiceEndpointsValidation generates OpenAPIV3 validator for NetworkServiceEndpoints CRD
+func networkServiceEndpointsValidation() *apiextv1beta1.CustomResourceValidation {
+	maxLength := int64(64)
+	validation := &apiextv1beta1.CustomResourceValidation{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+			Properties: map[string]apiextv1beta1.JSONSchemaProps{
+				"spec": apiextv1beta1.JSONSchemaProps{
+					Required: []string{"name"},
+					Properties: map[string]apiextv1beta1.JSONSchemaProps{
+						"name": apiextv1beta1.JSONSchemaProps{
+							Type:        "string",
+							MaxLength:   &maxLength,
+							Description: "NetworkService Name",
+							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+						},
+						"uuid": apiextv1beta1.JSONSchemaProps{
+							Type:        "string",
+							MaxLength:   &maxLength,
+							Description: "NetworkService Name",
+							Pattern:     `[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}`,
+						},
+					},
+				},
+			},
+		},
+	}
+	return validation
+}
+
+// networkServiceChannels generates OpenAPIV3 validator for NetworkServiceChannels CRD
+func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation {
+	maxLength := int64(64)
+	validation := &apiextv1beta1.CustomResourceValidation{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+			Properties: map[string]apiextv1beta1.JSONSchemaProps{
+				"spec": apiextv1beta1.JSONSchemaProps{
+					Required: []string{"name"},
+					Properties: map[string]apiextv1beta1.JSONSchemaProps{
+						"name": apiextv1beta1.JSONSchemaProps{
+							Type:        "string",
+							MaxLength:   &maxLength,
+							Description: "NetworkService Name",
+							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+						},
+						"payload": apiextv1beta1.JSONSchemaProps{
+							Type:        "string",
 							MaxLength:   &maxLength,
 							Description: "NetworkService Name",
 							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
@@ -144,6 +216,10 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 	switch Name {
 	case "NetworkService":
 		validation = networkServiceValidation()
+	case "NetworkServiceEndpoints":
+		validation = networkServiceEndpointsValidation()
+	case "NetworkServiceChannels":
+		validation = networkServiceChannelsValidation()
 	default:
 		validation = &apiextv1beta1.CustomResourceValidation{}
 	}
@@ -162,8 +238,6 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 	}
 
 	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-	newCRD, _ := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(FullName, meta.GetOptions{})
-	plugin.Log.Infof("Created CRD %+v succesfully", newCRD)
 	if cserr != nil && apierrors.IsAlreadyExists(cserr) {
 		plugin.Log.Infof("Created CRD %s succesfully, though it already existed", Name)
 		return nil
