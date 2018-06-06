@@ -131,7 +131,7 @@ func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
 						"uuid": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
 							MaxLength:   &maxLength,
-							Description: "NetworkService Name",
+							Description: "NetworkService UUID",
 							Pattern:     `[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}`,
 						},
 					},
@@ -154,13 +154,13 @@ func networkServiceEndpointsValidation() *apiextv1beta1.CustomResourceValidation
 						"name": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
 							MaxLength:   &maxLength,
-							Description: "NetworkService Name",
+							Description: "NetworkServiceEndpoints Name",
 							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
 						},
 						"uuid": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
 							MaxLength:   &maxLength,
-							Description: "NetworkService Name",
+							Description: "NetworkServiceEndpoints UUID",
 							Pattern:     `[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}`,
 						},
 					},
@@ -183,13 +183,13 @@ func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation 
 						"name": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
 							MaxLength:   &maxLength,
-							Description: "NetworkService Name",
+							Description: "NetworkServiceChannels Name",
 							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
 						},
 						"payload": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
 							MaxLength:   &maxLength,
-							Description: "NetworkService Name",
+							Description: "NetworkServiceChannels Payload",
 							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
 						},
 					},
