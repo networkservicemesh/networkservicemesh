@@ -134,15 +134,6 @@ func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
 							Description: "NetworkService Name",
 							Pattern:     `[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}`,
 						},
-						"selector": apiextv1beta1.JSONSchemaProps{
-							Description: "The value of Selector is restricted to: routing",
-							Type:        "string",
-							Enum: []apiextv1beta1.JSON{
-								{
-									Raw: []byte(`"routing"`),
-								},
-							},
-						},
 					},
 				},
 			},
