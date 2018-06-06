@@ -113,8 +113,40 @@ func (plugin *Plugin) Init() error {
 	return nil
 }
 
+func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
+	minLength := int64(3)
+	maxLength := int64(16)
+	validation := &apiextv1beta1.CustomResourceValidation{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+			Properties: map[string]apiextv1beta1.JSONSchemaProps{
+				"spec": apiextv1beta1.JSONSchemaProps{
+					Required: []string{"name"},
+					Properties: map[string]apiextv1beta1.JSONSchemaProps{
+						"name": apiextv1beta1.JSONSchemaProps{
+							Type:        "string",
+							MinLength:   &minLength,
+							MaxLength:   &maxLength,
+							Description: "NetworkService Name",
+							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+						},
+					},
+				},
+			},
+		},
+	}
+	return validation
+}
+
 // Create the CRD resource, ignore error if it already exists
 func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) error {
+
+	var validation *apiextv1beta1.CustomResourceValidation
+	switch Name {
+	case "NetworkService":
+		validation = networkServiceValidation()
+	default:
+		validation = &apiextv1beta1.CustomResourceValidation{}
+	}
 	crd := &apiextv1beta1.CustomResourceDefinition{
 		ObjectMeta: meta.ObjectMeta{Name: FullName},
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
@@ -125,10 +157,13 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 				Plural: Plural,
 				Kind:   Name,
 			},
+			Validation: validation,
 		},
 	}
 
 	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
+	newCRD, _ := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(FullName, meta.GetOptions{})
+	plugin.Log.Infof("Created CRD %+v succesfully", newCRD)
 	if cserr != nil && apierrors.IsAlreadyExists(cserr) {
 		plugin.Log.Infof("Created CRD %s succesfully, though it already existed", Name)
 		return nil
