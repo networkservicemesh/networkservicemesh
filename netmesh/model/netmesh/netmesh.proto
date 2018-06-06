@@ -10,7 +10,7 @@ message NetworkServiceEndpoint {
 message NetworkService {
     string name = 1;
     string uuid = 2;
-    string selector = 3;
+    map<string ,string> selector = 3;
 
     message NetmeshChannel {
         string name = 1;
