@@ -4,6 +4,7 @@ metadata:
   name: gold-network
 spec:
   name: gold-network
-  selector: routing
   channels:
     - name: 'gold-ethernet'
+  selector: 
+    app: routing
