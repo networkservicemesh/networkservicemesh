@@ -59,17 +59,9 @@ func networkserviceWork(plugin *Plugin) {
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
-				// This is a soft-error, retry up to QUEUE_RETRY_COUNT times
+				// This is a soft-error
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				if err != nil {
-					if queueNS.NumRequeues(key) < QUEUE_RETRY_COUNT {
-						plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
-						queueNS.AddRateLimited(key)
-					} else {
-						plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
-						queueNS.Forget(key)
-					}
-				}
+				queueNS.Forget(key)
 				return
 			}
 
@@ -155,17 +147,9 @@ func networkservicechannelWork(plugin *Plugin) {
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
-				// This is a soft-error, retry up to QUEUE_RETRY_COUNT times
+				// This is a soft-error
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				if err != nil {
-					if queueNSC.NumRequeues(key) < QUEUE_RETRY_COUNT {
-						plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
-						queueNSC.AddRateLimited(key)
-					} else {
-						plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
-						queueNSC.Forget(key)
-					}
-				}
+				queueNSC.Forget(key)
 				return
 			}
 
@@ -251,17 +235,9 @@ func networkserviceendpointWork(plugin *Plugin) {
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
 
 			if err != nil {
-				// This is a soft-error, retry up to QUEUE_RETRY_COUNT times
+				// This is a soft-error
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				if err != nil {
-					if queueNSE.NumRequeues(key) < QUEUE_RETRY_COUNT {
-						plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
-						queueNSE.AddRateLimited(key)
-					} else {
-						plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
-						queueNSE.Forget(key)
-					}
-				}
+				queueNSE.Forget(key)
 				return
 			}
 
