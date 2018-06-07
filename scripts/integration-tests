@@ -40,6 +40,8 @@ kubectl() {
 }
 
 (set -xe
+# Remove the taint on the master node
+kubectl taint nodes --all node-role.kubernetes.io/master-
 kubectl get nodes
 kubectl version
 kubectl api-versions
