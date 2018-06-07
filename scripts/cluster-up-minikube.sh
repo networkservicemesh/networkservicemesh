@@ -26,6 +26,7 @@ export KUBECONFIG=$HOME/.kube/config
 export PATH=${PATH}:${GOPATH:?}/bin
 
 MINIKUBE_VERSION=v0.25.2
+KUBERNETES_VERSION=v1.10.0
 
 install_bin() {
     local exe=${1:?}
@@ -72,7 +73,7 @@ MINIKUBE_BIN=$(which minikube)
 # Start minikube
 sudo -E ${MINIKUBE_BIN} start --vm-driver=none \
     --extra-config=apiserver.Authorization.Mode=RBAC \
-    --kubernetes-version=v1.10.0
+    --kubernetes-version=${KUBERNETES_VERSION}
 
 # Wait til settles
 echo "INFO: Waiting for minikube cluster to be ready ..."
