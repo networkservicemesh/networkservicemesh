@@ -24,7 +24,6 @@ import (
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -118,7 +117,7 @@ func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
 							Type:        "string",
 							MaxLength:   &maxLength,
 							Description: "NetworkService Name",
-							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+							Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 						},
 						"uuid": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
@@ -147,7 +146,7 @@ func networkServiceEndpointsValidation() *apiextv1beta1.CustomResourceValidation
 							Type:        "string",
 							MaxLength:   &maxLength,
 							Description: "NetworkServiceEndpoints Name",
-							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+							Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 						},
 						"uuid": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
@@ -176,13 +175,13 @@ func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation 
 							Type:        "string",
 							MaxLength:   &maxLength,
 							Description: "NetworkServiceChannels Name",
-							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+							Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 						},
 						"payload": apiextv1beta1.JSONSchemaProps{
 							Type:        "string",
 							MaxLength:   &maxLength,
 							Description: "NetworkServiceChannels Payload",
-							Pattern:     `^[a-zA-Z0-9]+\-[a-zA-Z0-9]*$`,
+							Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 						},
 					},
 				},
@@ -219,16 +218,7 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 			Validation: validation,
 		},
 	}
-
 	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-	if cserr != nil && apierrors.IsAlreadyExists(cserr) {
-		plugin.Log.Infof("Created CRD %s succesfully, though it already existed", Name)
-		return nil
-	} else if cserr != nil {
-		plugin.Log.Infof("Error creating CRD %s: %s", Name, cserr)
-	} else {
-		plugin.Log.Infof("Created CRD %s succesfully", Name)
-	}
 
 	return cserr
 }
