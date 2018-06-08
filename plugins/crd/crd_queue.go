@@ -74,7 +74,7 @@ func networkserviceWork(plugin *Plugin) {
 
 			if err != nil {
 				if queueNS.NumRequeues(key) < QUEUE_RETRY_COUNT {
-					plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+					plugin.Log.Errorf("Requeueing after error processing item with key %s, error %v", key, err)
 					queueNS.AddRateLimited(key)
 					return
 				} else {
@@ -162,7 +162,7 @@ func networkservicechannelWork(plugin *Plugin) {
 
 			if err != nil {
 				if queueNSC.NumRequeues(key) < QUEUE_RETRY_COUNT {
-					plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+					plugin.Log.Errorf("Requeueing after error processing item with key %s, error %v", key, err)
 					queueNSC.AddRateLimited(key)
 					return
 				} else {
@@ -250,7 +250,7 @@ func networkserviceendpointWork(plugin *Plugin) {
 
 			if err != nil {
 				if queueNSE.NumRequeues(key) < QUEUE_RETRY_COUNT {
-					plugin.Log.Errorf("Error processing item with key %s, error %v", key, err)
+					plugin.Log.Errorf("Requeueing after error processing item with key %s, error %v", key, err)
 					queueNSE.AddRateLimited(key)
 					return
 				} else {

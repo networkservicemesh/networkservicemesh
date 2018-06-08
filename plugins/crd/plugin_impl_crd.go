@@ -54,8 +54,6 @@ type Plugin struct {
 	crdClient       client.Interface
 	StatusMonitor   statuscheck.StatusReader
 
-	// Used to signal hard errors while processing the queue
-	queueError chan bool
 	// These can be used to stop all the informers, as well as control loops
 	// within the application.
 	stopChNS  chan struct{}
@@ -113,7 +111,6 @@ func (plugin *Plugin) Init() error {
 	plugin.stopChNS = make(chan struct{})
 	plugin.stopChNSC = make(chan struct{})
 	plugin.stopChNSE = make(chan struct{})
-	plugin.queueError = make(chan bool, 1)
 
 	return nil
 }
@@ -417,18 +414,8 @@ func (plugin *Plugin) AfterInit() error {
 	go informerNetworkServices(plugin)
 	go informerNetworkServiceChannels(plugin)
 	go informerNetworkServiceEndpoints(plugin)
-	go handleQueueErrors(plugin)
 
 	return nil
-}
-
-// handleQueueErrors monitors the queueError channel for errors from the
-// dequeueing functions and closes the plugin down if one is received.
-func handleQueueErrors(plugin *Plugin) {
-	<-plugin.queueError
-	plugin.Log.Error("Error processing queues, shutting plugin down")
-
-	plugin.Close()
 }
 
 // Close stops all reflectors.
