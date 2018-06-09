@@ -161,6 +161,34 @@ func TestCRDValidation(t *testing.T) {
 			},
 			expectFail: false,
 		},
+		{
+			testName: "Network Service incorrect name",
+			ns: v1.NetworkService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "nsm-serv%ice-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkService{
+					Name: "nsm-service-1",
+					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+				},
+			},
+			expectFail: true,
+		},
+		{
+			testName: "Network Service incorrect UUID",
+			ns: v1.NetworkService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "nsm-service-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkService{
+					Name: "nsm-service-1",
+					Uuid: "81a6688-4052-46d3-989-742da5a04b70",
+				},
+			},
+			expectFail: true,
+		},
 	}
 
 	for _, test := range testsNS {
