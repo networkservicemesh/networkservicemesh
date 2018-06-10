@@ -54,8 +54,6 @@ type Plugin struct {
 	crdClient       client.Interface
 	StatusMonitor   statuscheck.StatusReader
 
-	// Used to signal hard errors while processing the queue
-	queueError chan bool
 	// These can be used to stop all the informers, as well as control loops
 	// within the application.
 	stopChNS  chan struct{}
@@ -68,6 +66,11 @@ type Plugin struct {
 	sharedFactoryNS  factory.SharedInformerFactory
 	sharedFactoryNSE factory.SharedInformerFactory
 	sharedFactoryNSC factory.SharedInformerFactory
+
+	// Informer factories per CRD object
+	informerNS  cache.SharedIndexInformer
+	informerNSE cache.SharedIndexInformer
+	informerNSC cache.SharedIndexInformer
 }
 
 var (
@@ -108,7 +111,6 @@ func (plugin *Plugin) Init() error {
 	plugin.stopChNS = make(chan struct{})
 	plugin.stopChNSC = make(chan struct{})
 	plugin.stopChNSE = make(chan struct{})
-	plugin.queueError = make(chan bool, 1)
 
 	return nil
 }
@@ -248,9 +250,9 @@ func informerNetworkServices(plugin *Plugin) {
 	// create/replace/update/delete operations are missed when watching
 	plugin.sharedFactoryNS = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informer := plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Informer()
+	plugin.informerNS = plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Informer()
 	// We add a new event handler, watching for changes to API resources.
-	informer.AddEventHandler(
+	plugin.informerNS.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: networkserviceEnqueue,
 			UpdateFunc: func(old, cur interface{}) {
@@ -269,7 +271,7 @@ func informerNetworkServices(plugin *Plugin) {
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNS, informer.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced) {
 		plugin.Log.Error("Error waiting for informer cache to sync")
 	}
 
@@ -286,9 +288,9 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 	// create/replace/update/delete operations are missed when watching
 	plugin.sharedFactoryNSC = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informer := plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Informer()
+	plugin.informerNSC = plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Informer()
 	// we add a new event handler, watching for changes to API resources.
-	informer.AddEventHandler(
+	plugin.informerNSC.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: networkservicechannelEnqueue,
 			UpdateFunc: func(old, cur interface{}) {
@@ -307,7 +309,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNSC, informer.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNSC, plugin.informerNSC.HasSynced) {
 		plugin.Log.Errorf("Error waiting for informer cache to sync")
 	}
 
@@ -324,9 +326,9 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 	// create/replace/update/delete operations are missed when watching
 	plugin.sharedFactoryNSE = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informer := plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Informer()
+	plugin.informerNSE = plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Informer()
 	// we add a new event handler, watching for changes to API resources.
-	informer.AddEventHandler(
+	plugin.informerNSE.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: networkserviceendpointEnqueue,
 			UpdateFunc: func(old, cur interface{}) {
@@ -345,7 +347,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 
 	// Wait for the informer cache to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNSE, informer.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNSE, plugin.informerNSE.HasSynced) {
 		plugin.Log.Errorf("Error waiting for informer cache to sync")
 	}
 
@@ -412,18 +414,8 @@ func (plugin *Plugin) AfterInit() error {
 	go informerNetworkServices(plugin)
 	go informerNetworkServiceChannels(plugin)
 	go informerNetworkServiceEndpoints(plugin)
-	go handleQueueErrors(plugin)
 
 	return nil
-}
-
-// handleQueueErrors monitors the queueError channel for errors from the
-// dequeueing functions and closes the plugin down if one is received.
-func handleQueueErrors(plugin *Plugin) {
-	<-plugin.queueError
-	plugin.Log.Error("Error processing queues, shutting plugin down")
-
-	plugin.Close()
 }
 
 // Close stops all reflectors.
