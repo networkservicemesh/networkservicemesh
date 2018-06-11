@@ -21,8 +21,8 @@ set -o pipefail
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")/..
 SCRIPT_BASE=${SCRIPT_ROOT}/../..
 
-DIFFROOT="${SCRIPT_ROOT}/_examples"
-TMP_DIFFROOT="${SCRIPT_ROOT}/_tmp/_examples"
+DIFFROOT="${SCRIPT_ROOT}/pkg"
+TMP_DIFFROOT="${SCRIPT_ROOT}/_tmp/pkg"
 _tmp="${SCRIPT_ROOT}/_tmp"
 
 cleanup() {
@@ -49,5 +49,5 @@ else
 fi
 
 # smoke test
-echo "Smoke testing _example by compiling..."
-go build ${SCRIPT_ROOT}/_example/...
+echo "Smoke testing pkg by compiling..."
+go build ${SCRIPT_ROOT}/pkg/...
