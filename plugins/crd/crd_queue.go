@@ -25,8 +25,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-// How many times do we retry processing an item
-const QUEUE_RETRY_COUNT = 5
+// QueueRetryCount is the max number of times to retry processing a failed item
+// from the workqueue.
+const QueueRetryCount = 5
 
 var (
 	// queue is a queue of resources to be processed. It performs exponential
@@ -84,15 +85,15 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, stopCH c
 			item, exists, err := plugin.informerNS.GetIndexer().GetByKey(strKey)
 
 			if err != nil {
-				if queue.NumRequeues(key) < QUEUE_RETRY_COUNT {
+				if queue.NumRequeues(key) < QueueRetryCount {
 					plugin.Log.Errorf("Requeueing after error processing item with key %s, error %v", key, err)
 					queue.AddRateLimited(key)
 					return
-				} else {
-					plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
-					queue.Forget(key)
-					return
 				}
+
+				plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
+				queue.Forget(key)
+				return
 			}
 
 			// Verify if this was a delete vs. an add/update
