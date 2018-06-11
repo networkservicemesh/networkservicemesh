@@ -9,6 +9,7 @@ go_import_path: github.com/ligato/networkservicemesh
 script:
 - docker build -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
 - docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+- ./scripts/integration-tests minikube
 
 notifications:
   irc:
