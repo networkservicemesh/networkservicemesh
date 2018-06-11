@@ -26,7 +26,7 @@ import (
 	networkservicemesh "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -79,7 +79,7 @@ func setupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error
 	}
 	// Setting up testing namespace
 	namespace := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: meta.ObjectMeta{
 			Name: nsmTestNamespace,
 		},
 	}
@@ -113,12 +113,12 @@ func cleanupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) err
 		{name: reflect.TypeOf(v1.NetworkService{}).Name(), plural: v1.NSMPlural, fullname: v1.FullNSMName},
 	}
 	for _, crd := range crds {
-		err := apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(crd.fullname, &metav1.DeleteOptions{})
+		err := apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(crd.fullname, &meta.DeleteOptions{})
 		if err != nil {
 			return err
 		}
 	}
-	if err := k8s.CoreV1().Namespaces().Delete(nsmTestNamespace, &metav1.DeleteOptions{}); err != nil {
+	if err := k8s.CoreV1().Namespaces().Delete(nsmTestNamespace, &meta.DeleteOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -150,7 +150,7 @@ func TestCRDValidation(t *testing.T) {
 		{
 			testName: "Network Service All Good",
 			ns: v1.NetworkService{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: meta.ObjectMeta{
 					Name:      "nsm-service-1",
 					Namespace: nsmTestNamespace,
 				},
@@ -164,7 +164,7 @@ func TestCRDValidation(t *testing.T) {
 		{
 			testName: "Network Service incorrect name",
 			ns: v1.NetworkService{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: meta.ObjectMeta{
 					Name:      "nsm-serv%ice-1",
 					Namespace: nsmTestNamespace,
 				},
@@ -178,7 +178,7 @@ func TestCRDValidation(t *testing.T) {
 		{
 			testName: "Network Service incorrect UUID",
 			ns: v1.NetworkService{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: meta.ObjectMeta{
 					Name:      "nsm-service-1",
 					Namespace: nsmTestNamespace,
 				},
@@ -190,7 +190,6 @@ func TestCRDValidation(t *testing.T) {
 			expectFail: true,
 		},
 	}
-
 	for _, test := range testsNS {
 		_, err := crdClient.Networkservice().NetworkServices(nsmTestNamespace).Create(&test.ns)
 		if err != nil {
@@ -205,4 +204,131 @@ func TestCRDValidation(t *testing.T) {
 			}
 		}
 	}
+
+	testsEP := []struct {
+		testName   string
+		ns         v1.NetworkServiceEndpoint
+		expectFail bool
+	}{
+		{
+			testName: "Network Service Endpoint All Good",
+			ns: v1.NetworkServiceEndpoint{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-service-endpoint-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkServiceEndpoint{
+					Name: "nsm-service-endpoint-1",
+					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+				},
+			},
+			expectFail: false,
+		},
+		{
+			testName: "Network Service Endpoint incorrect name",
+			ns: v1.NetworkServiceEndpoint{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-serv%ice-endpoint-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkServiceEndpoint{
+					Name: "nsm-service-endpoint-1",
+					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+				},
+			},
+			expectFail: true,
+		},
+		{
+			testName: "Network Service Endpoint incorrect UUID",
+			ns: v1.NetworkServiceEndpoint{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-service-endpoint-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkServiceEndpoint{
+					Name: "nsm-service-1",
+					Uuid: "81a6688-4052-46d3-989-742da5a04b70",
+				},
+			},
+			expectFail: true,
+		},
+	}
+	for _, test := range testsEP {
+		_, err := crdClient.Networkservice().NetworkServiceEndpoints(nsmTestNamespace).Create(&test.ns)
+		if err != nil {
+			if !test.expectFail {
+				t.Errorf("Test '%s' is supposed to succeed but fail with error: %+v", test.testName, err)
+				continue
+			}
+		} else {
+			if test.expectFail {
+				t.Errorf("Test '%s' is supposed to fail but succeeded.", test.testName)
+				continue
+			}
+		}
+	}
+
+	testsCH := []struct {
+		testName   string
+		ns         v1.NetworkServiceChannel
+		expectFail bool
+	}{
+		{
+			testName: "Network Service Channel All Good",
+			ns: v1.NetworkServiceChannel{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-service-channel-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkService_NetmeshChannel{
+					Name:    "nsm-service-channel-1",
+					Payload: "IPv4",
+				},
+			},
+			expectFail: false,
+		},
+		{
+			testName: "Network Service Channel incorrect name",
+			ns: v1.NetworkServiceChannel{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-serv%ice-channel-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkService_NetmeshChannel{
+					Name:    "nsm-service-endpoint-1",
+					Payload: "IPv4",
+				},
+			},
+			expectFail: true,
+		},
+		{
+			testName: "Network Service Channel incorrect Payload",
+			ns: v1.NetworkServiceChannel{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-service-channel-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkService_NetmeshChannel{
+					Name:    "nsm-service-1",
+					Payload: "IP%v4%",
+				},
+			},
+			expectFail: true,
+		},
+	}
+	for _, test := range testsCH {
+		_, err := crdClient.Networkservice().NetworkServiceChannels(nsmTestNamespace).Create(&test.ns)
+		if err != nil {
+			if !test.expectFail {
+				t.Errorf("Test '%s' is supposed to succeed but fail with error: %+v", test.testName, err)
+				continue
+			}
+		} else {
+			if test.expectFail {
+				t.Errorf("Test '%s' is supposed to fail but succeeded.", test.testName)
+				continue
+			}
+		}
+	}
+
 }
