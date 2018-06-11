@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/workqueue"
 
 	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/flavors/local"
@@ -72,15 +71,6 @@ type Plugin struct {
 	informerNSE cache.SharedIndexInformer
 	informerNSC cache.SharedIndexInformer
 }
-
-var (
-	// queue is a queue of resources to be processed. It performs exponential
-	// backoff rate limiting, with a minimum retry period of 5 seconds and a
-	// maximum of 1 minute.
-	queueNS  = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
-	queueNSC = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
-	queueNSE = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
-)
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
@@ -278,7 +268,7 @@ func informerNetworkServices(plugin *Plugin) {
 	plugin.Log.Info("NetworkService Informer is ready")
 
 	// Read forever from the work queue
-	networkserviceWork(plugin)
+	workforever(plugin, queueNS, plugin.stopChNS)
 }
 
 func informerNetworkServiceChannels(plugin *Plugin) {
@@ -316,7 +306,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 	plugin.Log.Info("NetworkServiceChannel Informer is ready")
 
 	// Read forever from the work queue
-	networkservicechannelWork(plugin)
+	workforever(plugin, queueNSC, plugin.stopChNSC)
 }
 
 func informerNetworkServiceEndpoints(plugin *Plugin) {
@@ -354,7 +344,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 	plugin.Log.Info("NetworkServiceEndpoint Informer is ready")
 
 	// Read forever from the work queue
-	networkserviceendpointWork(plugin)
+	workforever(plugin, queueNSE, plugin.stopChNSE)
 }
 
 // AfterInit This will create all of the CRDs for NetworkServiceMesh.
