@@ -45,6 +45,7 @@ kubectl get nodes
 kubectl version
 kubectl api-versions
 kubectl label --overwrite --all=true nodes app=networkservice-node
+
 kubectl create -f conf/sample/networkservice-daemonset.yaml
 
 # Wait til settles
@@ -64,8 +65,9 @@ kubectl create -f conf/sample/networkservice-channel.yaml
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 kubectl create -f conf/sample/networkservice.yaml
 kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
+
 # Need to get kubeconfig full path
-k8sconfig=$(pwd $HOME)'/.kube/config'
+k8sconfig=$HOME'/.kube/config'
 go test ./plugins/crd/... -v --kube-config=$k8sconfig
 )
 exit_code=$?
