@@ -64,6 +64,9 @@ kubectl create -f conf/sample/networkservice-channel.yaml
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 kubectl create -f conf/sample/networkservice.yaml
 kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
+# Need to get kubeconfig full path
+k8sconfig=$(pwd $HOME)'/.kube/config'
+go test ./plugins/crd/... -v --kube-config=$k8sconfig
 )
 exit_code=$?
 [[ ${exit_code} == 0 ]] && echo "TESTS: PASS" || echo "TESTS: FAIL"
