@@ -49,7 +49,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, stopCH c
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
 			plugin.Log.Error("shutdown signaled, closing stopChNS")
-			stopCH <- struct{}{}
+			close(stopCH)
 			return
 		}
 
