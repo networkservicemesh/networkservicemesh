@@ -18,10 +18,7 @@ package netmeshplugincrd
 
 import (
 	"flag"
-	"fmt"
-	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
@@ -67,103 +64,25 @@ func k8sClient(kc string) (*kubernetes.Clientset, *apiextcs.Clientset, *networks
 }
 
 func setupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error {
-	crds := []struct {
-		name     string
-		plural   string
-		fullname string
-	}{
-		{name: reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name(), plural: v1.NSMEPPlural, fullname: v1.FullNSMEPName},
-		{name: reflect.TypeOf(v1.NetworkServiceChannel{}).Name(), plural: v1.NSMChannelPlural, fullname: v1.FullNSMChannelName},
-		{name: reflect.TypeOf(v1.NetworkService{}).Name(), plural: v1.NSMPlural, fullname: v1.FullNSMName},
-	}
-	plugin := Plugin{
-		k8sClientset: k8s,
-		apiclientset: apiextClient,
-	}
 	// Setting up testing namespace
 	namespace := corev1.Namespace{
 		ObjectMeta: meta.ObjectMeta{
 			Name: nsmTestNamespace,
 		},
 	}
-	if _, err := k8s.CoreV1().Namespaces().Create(&namespace); err != nil {
-		return err
-	}
-	// Need to wait until it appears
-	timeout := time.After(60 * time.Second)
-	tick := time.Tick(5 * time.Second)
-	_, err := k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
-	for err != nil {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for %s namespace to be created", nsmTestNamespace)
-		case <-tick:
-			_, err = k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
-		}
+	_, err := k8s.CoreV1().Namespaces().Get(namespace.ObjectMeta.Name, meta.GetOptions{})
+	if err == nil {
+		return nil
 	}
 
-	// Creating CRD definitions
-	for _, crd := range crds {
-		err := createCRD(&plugin, crd.fullname,
-			v1.NSMGroup,
-			v1.NSMGroupVersion,
-			crd.plural,
-			crd.name)
-		if err != nil {
-			return err
-		}
-		// Need to wait until it appears
-		timeout := time.After(10 * time.Second)
-		tick := time.Tick(2 * time.Second)
-		_, err = apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.fullname, meta.GetOptions{})
-		for err != nil {
-			select {
-			case <-timeout:
-				return fmt.Errorf("timeout waiting for %s crd to be created", crd.fullname)
-			case <-tick:
-				_, err = apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.fullname, meta.GetOptions{})
-			}
-		}
+	if _, err := k8s.CoreV1().Namespaces().Create(&namespace); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func cleanupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error {
-
-	crds := []struct {
-		name     string
-		plural   string
-		fullname string
-	}{
-		{name: reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name(), plural: v1.NSMEPPlural, fullname: v1.FullNSMEPName},
-		{name: reflect.TypeOf(v1.NetworkServiceChannel{}).Name(), plural: v1.NSMChannelPlural, fullname: v1.FullNSMChannelName},
-		{name: reflect.TypeOf(v1.NetworkService{}).Name(), plural: v1.NSMPlural, fullname: v1.FullNSMName},
-	}
-	for _, crd := range crds {
-		// Check if CRD already exists
-		_, err := apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.fullname, meta.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			// If not go to the next one
-			continue
-		}
-		// Need to clean it up
-		if err = apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(crd.fullname, &meta.DeleteOptions{}); err != nil {
-			return err
-		}
-		// Need to wait until it is really gone
-		timeout := time.After(10 * time.Second)
-		tick := time.Tick(2 * time.Second)
-		_, err = apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.fullname, meta.GetOptions{})
-		for !apierrors.IsNotFound(err) {
-			select {
-			case <-timeout:
-				return fmt.Errorf("timeout waiting for %s crd to be deleted", crd.fullname)
-			case <-tick:
-				_, err = apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.fullname, meta.GetOptions{})
-			}
-		}
-	}
 
 	_, err := k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
 	if apierrors.IsNotFound(err) {
@@ -172,18 +91,6 @@ func cleanupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) err
 	}
 	if err := k8s.CoreV1().Namespaces().Delete(nsmTestNamespace, &meta.DeleteOptions{}); err != nil {
 		return err
-	}
-	// Need to wait until it is really gone
-	timeout := time.After(60 * time.Second)
-	tick := time.Tick(5 * time.Second)
-	_, err = k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
-	for !apierrors.IsNotFound(err) {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for %s namespace to be deleted", nsmTestNamespace)
-		case <-tick:
-			_, err = k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
-		}
 	}
 
 	return nil
@@ -197,11 +104,6 @@ func TestCRDValidation(t *testing.T) {
 	k8sClient, apiextClient, crdClient, err := k8sClient(kubeconfig)
 	if err != nil {
 		t.Skipf("Fail to get k8s client with error: %+v", err)
-	}
-	// Do unconditional cleanup of CRDs which could have been previously defined
-	err = cleanupEnv(k8sClient, apiextClient)
-	if err != nil {
-		t.Skipf("Fail to cleanup test environment before running tests with error: %+v", err)
 	}
 	if err := setupEnv(k8sClient, apiextClient); err != nil {
 		t.Errorf("Fail to setup test environment with error: %+v", err)
