@@ -21,6 +21,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/flavors/rpc"
 	"github.com/ligato/networkservicemesh/plugins/crd"
+	"github.com/ligato/networkservicemesh/plugins/handler"
 	"github.com/ligato/networkservicemesh/plugins/netmesh"
 )
 
@@ -59,6 +60,7 @@ type FlavorNetmesh struct {
 	// and namespaces.
 	Netmesh netmesh.Plugin
 	CRD     netmeshplugincrd.Plugin
+	Handler handler.Plugin
 
 	injected bool
 }
@@ -86,6 +88,9 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 	f.Netmesh.StatusMonitor = &f.StatusCheck // StatusCheck included in local.FlavorLocal
 	f.CRD.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmeshcrd")
 	f.CRD.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
+	f.Handler.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmeshhandler")
+	f.Handler.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
+	f.CRD.HandlerAPI = &f.Handler
 
 	return true
 }
