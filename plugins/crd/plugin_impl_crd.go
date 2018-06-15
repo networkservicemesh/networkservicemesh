@@ -258,7 +258,7 @@ func informerNetworkServices(plugin *Plugin) {
 	plugin.Log.Info("NetworkService Informer is ready")
 
 	// Read forever from the work queue
-	workforever(plugin, queueNS, plugin.stopChNS)
+	workforever(plugin, queueNS, plugin.informerNS, plugin.stopChNS)
 }
 
 func informerNetworkServiceChannels(plugin *Plugin) {
@@ -296,7 +296,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 	plugin.Log.Info("NetworkServiceChannel Informer is ready")
 
 	// Read forever from the work queue
-	workforever(plugin, queueNSC, plugin.stopChNSC)
+	workforever(plugin, queueNSC, plugin.informerNSC, plugin.stopChNSC)
 }
 
 func informerNetworkServiceEndpoints(plugin *Plugin) {
@@ -334,7 +334,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 	plugin.Log.Info("NetworkServiceEndpoint Informer is ready")
 
 	// Read forever from the work queue
-	workforever(plugin, queueNSE, plugin.stopChNSE)
+	workforever(plugin, queueNSE, plugin.informerNSE, plugin.stopChNSE)
 }
 
 // AfterInit This will create all of the CRDs for NetworkServiceMesh.
