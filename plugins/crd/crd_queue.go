@@ -41,7 +41,7 @@ var (
 // This file contains the work queue backends for each of the CRDs we create in the
 // plugin AfterInit() call.
 
-func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, stopCH chan struct{}) {
+func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer cache.SharedIndexInformer, stopCH chan struct{}) {
 	for {
 		// We read a message off the queue ...
 		key, shutdown := queue.Get()
@@ -82,7 +82,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, stopCH c
 			// Retrieve the latest version in the cache of this NetworkService. By using
 			// GetByKey() we are able to determine if the item exists, and thus if it was
 			// added or deleted from the queue, and process appropriately
-			item, exists, err := plugin.informerNS.GetIndexer().GetByKey(strKey)
+			item, exists, err := informer.GetIndexer().GetByKey(strKey)
 
 			if err != nil {
 				if queue.NumRequeues(key) < QueueRetryCount {
