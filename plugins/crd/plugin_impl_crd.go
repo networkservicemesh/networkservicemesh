@@ -24,6 +24,7 @@ import (
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -219,6 +220,9 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 		},
 	}
 	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
+	if apierrors.IsAlreadyExists(cserr) {
+		return nil
+	}
 
 	return cserr
 }
