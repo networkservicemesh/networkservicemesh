@@ -23,9 +23,10 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"os"
+
 	"github.com/ligato/networkservicemesh/deviceplugin"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-	"os"
 )
 
 const (
@@ -45,7 +46,7 @@ type NSMDevice struct {
 }
 
 const (
-	resourceName    = "nsm.ligato.io"
+	resourceName    = "nsm.ligato.io/socket"
 	serverSock      = pluginapi.DevicePluginPath + "nsm.ligato.io.sock"
 	initDeviceCount = 10
 )
