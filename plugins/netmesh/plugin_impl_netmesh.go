@@ -78,7 +78,7 @@ func (plugin *Plugin) Init() error {
 // the kvdbsync is fully initialized and ready for publishing when a k8s
 // notification comes.
 func (plugin *Plugin) AfterInit() error {
-	err := nsmdp.NewNSMDevicePlugin()
+	err := nsmdp.NewNSMDevicePlugin(plugin.Log)
 
 	return err
 }
