@@ -20,7 +20,6 @@
 package nsmdp
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -242,10 +241,6 @@ func newNSMClientEndpoints() *nsmClientEndpoints {
 
 // NewNSMDevicePlugin registers and starts Kubelet's device plugin
 func NewNSMDevicePlugin() error {
-	// flag here is just to be able tro initialize glog for debugging
-	flag.Set("logtostderr", "true")
-	flag.Parse()
-
 	nsm := newNSMClientEndpoints()
 	if err := startDeviceServer(nsm); err != nil {
 		return err
