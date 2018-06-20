@@ -132,10 +132,12 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					stopChannel: make(chan bool),
 					allocated:   true,
 				}
-				os.MkdirAll(mount.HostPath, folderMask)
-				client := n.nsmSockets[id]
-				go startClientServer(&client, n.logger)
-				mounts = append(mounts, mount)
+				if err := os.MkdirAll(mount.HostPath, folderMask); err == nil {
+					// Starting Client's gRPC server and managed to create its host path.
+					client := n.nsmSockets[id]
+					go startClientServer(&client, n.logger)
+					mounts = append(mounts, mount)
+				}
 			}
 		}
 		response := pluginapi.ContainerAllocateResponse{
@@ -208,7 +210,9 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, serverSock)
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
-		os.Remove(listenEndpoint)
+		if err := os.Remove(listenEndpoint); err != nil {
+			return err
+		}
 	}
 
 	sock, err := net.Listen("unix", listenEndpoint)
