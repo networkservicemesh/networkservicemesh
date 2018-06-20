@@ -1,10 +1,16 @@
+sudo: required
+
 language: go
-service: docker
+service: 
+  - docker
 
 go:
   - "1.10.x"
 
 go_import_path: github.com/ligato/networkservicemesh
+
+before_script:
+- sudo mount --make-rshared /
 
 script:
 - ./scripts/verify-codegen.sh
