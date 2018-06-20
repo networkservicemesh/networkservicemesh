@@ -15,6 +15,20 @@ spec:
         - name: netmesh
           image: ligato/networkservicemesh/netmesh
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: kubelet-socket
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: nsm-socket
+            mountPath: /var/lib/networkservicemesh
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet/device-plugins
+            type: DirectoryOrCreate
+          name: kubelet-socket
+        - hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+          name: nsm-socket
 
 ---
 apiVersion: v1
