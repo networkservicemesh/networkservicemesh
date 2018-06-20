@@ -40,6 +40,8 @@ const (
 	resourceName    = "nsm.ligato.io/socket"
 	serverSock      = "nsm.ligato.io.sock"
 	initDeviceCount = 10
+	socketMask      = 0077
+	folderMask      = 0777
 )
 
 type nsmSocket struct {
@@ -56,49 +58,48 @@ type nsmClientEndpoints struct {
 
 // Define functions needed to meet the Kubernetes DevicePlugin API
 func (n *nsmClientEndpoints) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
-	n.logger.Infof(" GetDevicePluginOptions was called.")
+	n.logger.Infof("GetDevicePluginOptions was called.")
 	return &pluginapi.DevicePluginOptions{}, nil
 }
 
 func startClientServer(client *nsmSocket, logger logging.PluginLogger) {
-	logger.Infof(" startClientServer was called with socket: %s", client.socketPath)
 	listenEndpoint := client.socketPath
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
 		os.Remove(listenEndpoint)
 	}
 	if err != nil && !os.IsNotExist(err) {
-		logger.Infof(" failure stat of socket file %s with error: %+v", client.socketPath, err)
+		logger.Errorf("failure stat of socket file %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 		return
 	}
 
-	unix.Umask(0077)
+	unix.Umask(socketMask)
 	sock, err := net.Listen("unix", listenEndpoint)
 	if err != nil {
-		logger.Infof(" failure to listen on socket %s with error: %+v", client.socketPath, err)
+		logger.Errorf("failure to listen on socket %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 		return
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 
-	logger.Infof(" Starting Client gRPC server listening on socket: %s", serverSock)
+	logger.Infof("Starting Client gRPC server listening on socket: %s", serverSock)
 	go grpcServer.Serve(sock)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	conn, err := dial(ctx, listenEndpoint)
 	if err != nil {
-		logger.Infof("failure to communicate with the socket %s with error: %+v", client.socketPath, err)
+		logger.Errorf("failure to communicate with the socket %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 	}
 	defer conn.Close()
 	defer cancel()
-	logger.Infof(" Client Server socket: %s is operational", listenEndpoint)
+	logger.Infof("Client Server socket: %s is operational", listenEndpoint)
 
 	// Wait for shutdown
 	select {
 	case <-client.stopChannel:
-		logger.Infof(" Server for socket %s received shutdown request", client.socketPath)
+		logger.Infof("Server for socket %s received shutdown request", client.socketPath)
 	}
 	client.allocated = false
 	client.stopChannel <- true
@@ -112,7 +113,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 		for _, id := range req.DevicesIDs {
 			if _, ok := n.nsmSockets[id]; ok {
 				if n.nsmSockets[id].allocated {
-					// Socket has been previsously used, since we did noy get notification from
+					// Socket has been previsously used, since we did not get notification from
 					// kubelet when POD using this socket went down, gRPC client's server
 					// needs to be stopped.
 					n.nsmSockets[id].stopChannel <- true
@@ -131,8 +132,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					stopChannel: make(chan bool),
 					allocated:   true,
 				}
-				n.logger.Infof(" At this point ready to start Client's gRPC server on socket: %s", n.nsmSockets[id].socketPath)
-				os.MkdirAll(mount.HostPath, 0777)
+				os.MkdirAll(mount.HostPath, folderMask)
 				client := n.nsmSockets[id]
 				go startClientServer(&client, n.logger)
 				mounts = append(mounts, mount)
@@ -147,7 +147,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 }
 
 func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	n.logger.Infof(" ListAndWatch was called with s: %+v", s)
+	n.logger.Infof("ListAndWatch was called with s: %+v", s)
 	for {
 		resp := new(pluginapi.ListAndWatchResponse)
 		for _, dev := range n.nsmSockets {
@@ -162,7 +162,7 @@ func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 }
 
 func (n *nsmClientEndpoints) PreStartContainer(context.Context, *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
-	n.logger.Infof(" PreStartContainer was called.")
+	n.logger.Infof("PreStartContainer was called.")
 	return &pluginapi.PreStartContainerResponse{}, nil
 }
 
@@ -218,7 +218,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
-	nsm.logger.Infof(" Starting gRPC server listening on socket: %s", serverSock)
+	nsm.logger.Infof("Starting Device Plugin's gRPC server listening on socket: %s", serverSock)
 	go grpcServer.Serve(sock)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -228,7 +228,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	}
 	defer conn.Close()
 	defer cancel()
-	nsm.logger.Infof(" Socket: %s is operational", listenEndpoint)
+	nsm.logger.Infof("Socket: %s is operational", listenEndpoint)
 	return nil
 }
 

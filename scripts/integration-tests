@@ -32,6 +32,7 @@ curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${KUB
 # In case if a failure, collecting some evidence for further debugging
 #
 function error_collection {
+echo "=====> ERROR: Timed out waiting for NSM daemonset to start"
 kubectl get pods --all-namespaces
 nsm=$(kubectl get pods --all-namespaces | grep networkservice | awk '{print $2}')
 namespace=$(kubectl get pods --all-namespaces | grep networkservice | awk '{print $1}')
