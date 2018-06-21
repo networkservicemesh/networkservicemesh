@@ -34,12 +34,18 @@ message SRIOV {
 // Interface specific parameters go here.
 }
 
+message HWInterface {
+    Metadata metadata = 1;
+// Interface specific parameters go here.
+}
+
 enum InterfaceType {
     NOT_SPECIFIED_TYPE = 0;
     KERNEL_INTERFACE = 1;
     VHOST_INTERFACE = 2;
     MEM_INTERFACE = 3;
     SRIOV_INTERFACE = 4;
+    HW_INTERFACE = 5;
   }
 
 enum InterfacePreference {
@@ -76,6 +82,8 @@ message ConnectionRequest {
     MemInterface mem_interface = 8;
 
     SRIOV sriov_interface = 9;
+
+    HWInterface hw_interface = 10;
 }
 
 message ConnectionParameters {
@@ -102,6 +110,8 @@ message ConnectionAccept {
          MemInterface mem_interface = 6;
 
          SRIOV sriov_interface = 7;
+
+         HWInterface hw_interface = 8;
     }
 }
 
