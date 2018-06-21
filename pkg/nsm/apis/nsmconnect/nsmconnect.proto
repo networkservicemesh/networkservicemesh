@@ -14,6 +14,16 @@ message Metadata {
     Label labels = 3;
 }
 
+message NetworkInterface {
+    oneof interface {
+        KernelInterface kernel_interface = 1;
+        VhostUserInterface vhost_interface = 2;
+        MemInterface mem_interface = 3;
+        SRIOV srvio_interface = 4;
+        HWInterface hw_interface = 5;
+    }
+}
+
 message KernelInterface {
    Metadata metadata = 1;
 // Interface specific parameters go here.
@@ -39,29 +49,6 @@ message HWInterface {
 // Interface specific parameters go here.
 }
 
-enum InterfaceType {
-    NOT_SPECIFIED_TYPE = 0;
-    KERNEL_INTERFACE = 1;
-    VHOST_INTERFACE = 2;
-    MEM_INTERFACE = 3;
-    SRIOV_INTERFACE = 4;
-    HW_INTERFACE = 5;
-  }
-
-enum InterfacePreference {
-    NOT_SPECIFIED_PREF = 0;
-    FIRST = 1;
-    SECOND = 2;
-    THIRD = 3;
-    FORTH = 4;
-    FIFTH = 5;
-}
-
-message MechanismType {
-    InterfaceType type = 1;
-    InterfacePreference preference = 2;
-  }
-
 // ConnectionRequest is sent by a client or NSEP to build a connection.
 message ConnectionRequest {
 // Since connection request will trigger certain actions
@@ -73,17 +60,7 @@ message ConnectionRequest {
     
     string network_service_name = 3;
 
-    repeated MechanismType type = 4;
-
-    KernelInterface kernel_interface = 6;
-
-    VhostUserInterface vhost_user_interface = 7;
-
-    MemInterface mem_interface = 8;
-
-    SRIOV sriov_interface = 9;
-
-    HWInterface hw_interface = 10;
+    repeated NetworkInterface network_interface = 4;
 }
 
 message ConnectionParameters {
@@ -102,17 +79,7 @@ message ConnectionAccept {
 
     ConnectionParameters connection_parameters = 3;
 
-    oneof accepted_interface {
-         KernelInterface kernel_interface = 4;
-
-         VhostUserInterface vhost_user_interface = 5;
-
-         MemInterface mem_interface = 6;
-
-         SRIOV sriov_interface = 7;
-
-         HWInterface hw_interface = 8;
-    }
+    NetworkInterface accepted_interface = 4;
 }
 
 // DiscoveryRequest requests NSM to send back all available/known NetworkServices
