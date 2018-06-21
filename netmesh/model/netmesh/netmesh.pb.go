@@ -30,7 +30,7 @@ func (m *NetworkServiceEndpoint) Reset()         { *m = NetworkServiceEndpoint{}
 func (m *NetworkServiceEndpoint) String() string { return proto.CompactTextString(m) }
 func (*NetworkServiceEndpoint) ProtoMessage()    {}
 func (*NetworkServiceEndpoint) Descriptor() ([]byte, []int) {
-	return fileDescriptor_netmesh_78de356a23076642, []int{0}
+	return fileDescriptor_netmesh_1620b6fda8ee5cf6, []int{0}
 }
 func (m *NetworkServiceEndpoint) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NetworkServiceEndpoint.Unmarshal(m, b)
@@ -78,7 +78,7 @@ func (m *NetworkService) Reset()         { *m = NetworkService{} }
 func (m *NetworkService) String() string { return proto.CompactTextString(m) }
 func (*NetworkService) ProtoMessage()    {}
 func (*NetworkService) Descriptor() ([]byte, []int) {
-	return fileDescriptor_netmesh_78de356a23076642, []int{1}
+	return fileDescriptor_netmesh_1620b6fda8ee5cf6, []int{1}
 }
 func (m *NetworkService) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NetworkService.Unmarshal(m, b)
@@ -138,7 +138,7 @@ func (m *NetworkService_NetmeshChannel) Reset()         { *m = NetworkService_Ne
 func (m *NetworkService_NetmeshChannel) String() string { return proto.CompactTextString(m) }
 func (*NetworkService_NetmeshChannel) ProtoMessage()    {}
 func (*NetworkService_NetmeshChannel) Descriptor() ([]byte, []int) {
-	return fileDescriptor_netmesh_78de356a23076642, []int{1, 1}
+	return fileDescriptor_netmesh_1620b6fda8ee5cf6, []int{1, 1}
 }
 func (m *NetworkService_NetmeshChannel) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NetworkService_NetmeshChannel.Unmarshal(m, b)
@@ -179,9 +179,9 @@ func init() {
 	proto.RegisterType((*NetworkService_NetmeshChannel)(nil), "netmesh.NetworkService.NetmeshChannel")
 }
 
-func init() { proto.RegisterFile("netmesh.proto", fileDescriptor_netmesh_78de356a23076642) }
+func init() { proto.RegisterFile("netmesh.proto", fileDescriptor_netmesh_1620b6fda8ee5cf6) }
 
-var fileDescriptor_netmesh_78de356a23076642 = []byte{
+var fileDescriptor_netmesh_1620b6fda8ee5cf6 = []byte{
 	// 234 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcd, 0x4b, 0x2d, 0xc9,
 	0x4d, 0x2d, 0xce, 0xd0, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x87, 0x72, 0x95, 0x1c, 0xb8,
