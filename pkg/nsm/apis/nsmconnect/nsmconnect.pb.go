@@ -24,67 +24,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type InterfaceType int32
-
-const (
-	InterfaceType_kernel_interface InterfaceType = 0
-	InterfaceType_vhost_user       InterfaceType = 1
-	InterfaceType_memif            InterfaceType = 2
-	InterfaceType_sriov            InterfaceType = 3
-)
-
-var InterfaceType_name = map[int32]string{
-	0: "kernel_interface",
-	1: "vhost_user",
-	2: "memif",
-	3: "sriov",
-}
-var InterfaceType_value = map[string]int32{
-	"kernel_interface": 0,
-	"vhost_user":       1,
-	"memif":            2,
-	"sriov":            3,
-}
-
-func (x InterfaceType) String() string {
-	return proto.EnumName(InterfaceType_name, int32(x))
-}
-func (InterfaceType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{0}
-}
-
-type InterfacePreference int32
-
-const (
-	InterfacePreference_first  InterfacePreference = 0
-	InterfacePreference_second InterfacePreference = 1
-	InterfacePreference_third  InterfacePreference = 2
-	InterfacePreference_forth  InterfacePreference = 3
-	InterfacePreference_fifth  InterfacePreference = 4
-)
-
-var InterfacePreference_name = map[int32]string{
-	0: "first",
-	1: "second",
-	2: "third",
-	3: "forth",
-	4: "fifth",
-}
-var InterfacePreference_value = map[string]int32{
-	"first":  0,
-	"second": 1,
-	"third":  2,
-	"forth":  3,
-	"fifth":  4,
-}
-
-func (x InterfacePreference) String() string {
-	return proto.EnumName(InterfacePreference_name, int32(x))
-}
-func (InterfacePreference) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{1}
-}
-
 type Label struct {
 	Selector             map[string]string `protobuf:"bytes,1,rep,name=selector,proto3" json:"selector,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
@@ -96,7 +35,7 @@ func (m *Label) Reset()         { *m = Label{} }
 func (m *Label) String() string { return proto.CompactTextString(m) }
 func (*Label) ProtoMessage()    {}
 func (*Label) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{0}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{0}
 }
 func (m *Label) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Label.Unmarshal(m, b)
@@ -136,7 +75,7 @@ func (m *Metadata) Reset()         { *m = Metadata{} }
 func (m *Metadata) String() string { return proto.CompactTextString(m) }
 func (*Metadata) ProtoMessage()    {}
 func (*Metadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{1}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{1}
 }
 func (m *Metadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Metadata.Unmarshal(m, b)
@@ -177,6 +116,242 @@ func (m *Metadata) GetLabels() *Label {
 	return nil
 }
 
+type NetworkInterface struct {
+	// Types that are valid to be assigned to Interface:
+	//	*NetworkInterface_KernelInterface
+	//	*NetworkInterface_VhostInterface
+	//	*NetworkInterface_MemInterface
+	//	*NetworkInterface_SrvioInterface
+	//	*NetworkInterface_HwInterface
+	Interface            isNetworkInterface_Interface `protobuf_oneof:"interface"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
+}
+
+func (m *NetworkInterface) Reset()         { *m = NetworkInterface{} }
+func (m *NetworkInterface) String() string { return proto.CompactTextString(m) }
+func (*NetworkInterface) ProtoMessage()    {}
+func (*NetworkInterface) Descriptor() ([]byte, []int) {
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{2}
+}
+func (m *NetworkInterface) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NetworkInterface.Unmarshal(m, b)
+}
+func (m *NetworkInterface) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NetworkInterface.Marshal(b, m, deterministic)
+}
+func (dst *NetworkInterface) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NetworkInterface.Merge(dst, src)
+}
+func (m *NetworkInterface) XXX_Size() int {
+	return xxx_messageInfo_NetworkInterface.Size(m)
+}
+func (m *NetworkInterface) XXX_DiscardUnknown() {
+	xxx_messageInfo_NetworkInterface.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NetworkInterface proto.InternalMessageInfo
+
+type isNetworkInterface_Interface interface {
+	isNetworkInterface_Interface()
+}
+
+type NetworkInterface_KernelInterface struct {
+	KernelInterface *KernelInterface `protobuf:"bytes,1,opt,name=kernel_interface,json=kernelInterface,proto3,oneof"`
+}
+type NetworkInterface_VhostInterface struct {
+	VhostInterface *VhostUserInterface `protobuf:"bytes,2,opt,name=vhost_interface,json=vhostInterface,proto3,oneof"`
+}
+type NetworkInterface_MemInterface struct {
+	MemInterface *MemInterface `protobuf:"bytes,3,opt,name=mem_interface,json=memInterface,proto3,oneof"`
+}
+type NetworkInterface_SrvioInterface struct {
+	SrvioInterface *SRIOV `protobuf:"bytes,4,opt,name=srvio_interface,json=srvioInterface,proto3,oneof"`
+}
+type NetworkInterface_HwInterface struct {
+	HwInterface *HWInterface `protobuf:"bytes,5,opt,name=hw_interface,json=hwInterface,proto3,oneof"`
+}
+
+func (*NetworkInterface_KernelInterface) isNetworkInterface_Interface() {}
+func (*NetworkInterface_VhostInterface) isNetworkInterface_Interface()  {}
+func (*NetworkInterface_MemInterface) isNetworkInterface_Interface()    {}
+func (*NetworkInterface_SrvioInterface) isNetworkInterface_Interface()  {}
+func (*NetworkInterface_HwInterface) isNetworkInterface_Interface()     {}
+
+func (m *NetworkInterface) GetInterface() isNetworkInterface_Interface {
+	if m != nil {
+		return m.Interface
+	}
+	return nil
+}
+
+func (m *NetworkInterface) GetKernelInterface() *KernelInterface {
+	if x, ok := m.GetInterface().(*NetworkInterface_KernelInterface); ok {
+		return x.KernelInterface
+	}
+	return nil
+}
+
+func (m *NetworkInterface) GetVhostInterface() *VhostUserInterface {
+	if x, ok := m.GetInterface().(*NetworkInterface_VhostInterface); ok {
+		return x.VhostInterface
+	}
+	return nil
+}
+
+func (m *NetworkInterface) GetMemInterface() *MemInterface {
+	if x, ok := m.GetInterface().(*NetworkInterface_MemInterface); ok {
+		return x.MemInterface
+	}
+	return nil
+}
+
+func (m *NetworkInterface) GetSrvioInterface() *SRIOV {
+	if x, ok := m.GetInterface().(*NetworkInterface_SrvioInterface); ok {
+		return x.SrvioInterface
+	}
+	return nil
+}
+
+func (m *NetworkInterface) GetHwInterface() *HWInterface {
+	if x, ok := m.GetInterface().(*NetworkInterface_HwInterface); ok {
+		return x.HwInterface
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*NetworkInterface) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _NetworkInterface_OneofMarshaler, _NetworkInterface_OneofUnmarshaler, _NetworkInterface_OneofSizer, []interface{}{
+		(*NetworkInterface_KernelInterface)(nil),
+		(*NetworkInterface_VhostInterface)(nil),
+		(*NetworkInterface_MemInterface)(nil),
+		(*NetworkInterface_SrvioInterface)(nil),
+		(*NetworkInterface_HwInterface)(nil),
+	}
+}
+
+func _NetworkInterface_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*NetworkInterface)
+	// interface
+	switch x := m.Interface.(type) {
+	case *NetworkInterface_KernelInterface:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.KernelInterface); err != nil {
+			return err
+		}
+	case *NetworkInterface_VhostInterface:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.VhostInterface); err != nil {
+			return err
+		}
+	case *NetworkInterface_MemInterface:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.MemInterface); err != nil {
+			return err
+		}
+	case *NetworkInterface_SrvioInterface:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.SrvioInterface); err != nil {
+			return err
+		}
+	case *NetworkInterface_HwInterface:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.HwInterface); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("NetworkInterface.Interface has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _NetworkInterface_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*NetworkInterface)
+	switch tag {
+	case 1: // interface.kernel_interface
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(KernelInterface)
+		err := b.DecodeMessage(msg)
+		m.Interface = &NetworkInterface_KernelInterface{msg}
+		return true, err
+	case 2: // interface.vhost_interface
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(VhostUserInterface)
+		err := b.DecodeMessage(msg)
+		m.Interface = &NetworkInterface_VhostInterface{msg}
+		return true, err
+	case 3: // interface.mem_interface
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(MemInterface)
+		err := b.DecodeMessage(msg)
+		m.Interface = &NetworkInterface_MemInterface{msg}
+		return true, err
+	case 4: // interface.srvio_interface
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(SRIOV)
+		err := b.DecodeMessage(msg)
+		m.Interface = &NetworkInterface_SrvioInterface{msg}
+		return true, err
+	case 5: // interface.hw_interface
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(HWInterface)
+		err := b.DecodeMessage(msg)
+		m.Interface = &NetworkInterface_HwInterface{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _NetworkInterface_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*NetworkInterface)
+	// interface
+	switch x := m.Interface.(type) {
+	case *NetworkInterface_KernelInterface:
+		s := proto.Size(x.KernelInterface)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *NetworkInterface_VhostInterface:
+		s := proto.Size(x.VhostInterface)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *NetworkInterface_MemInterface:
+		s := proto.Size(x.MemInterface)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *NetworkInterface_SrvioInterface:
+		s := proto.Size(x.SrvioInterface)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *NetworkInterface_HwInterface:
+		s := proto.Size(x.HwInterface)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
 type KernelInterface struct {
 	Metadata             *Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
@@ -188,7 +363,7 @@ func (m *KernelInterface) Reset()         { *m = KernelInterface{} }
 func (m *KernelInterface) String() string { return proto.CompactTextString(m) }
 func (*KernelInterface) ProtoMessage()    {}
 func (*KernelInterface) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{2}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{3}
 }
 func (m *KernelInterface) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KernelInterface.Unmarshal(m, b)
@@ -226,7 +401,7 @@ func (m *VhostUserInterface) Reset()         { *m = VhostUserInterface{} }
 func (m *VhostUserInterface) String() string { return proto.CompactTextString(m) }
 func (*VhostUserInterface) ProtoMessage()    {}
 func (*VhostUserInterface) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{3}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{4}
 }
 func (m *VhostUserInterface) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VhostUserInterface.Unmarshal(m, b)
@@ -264,7 +439,7 @@ func (m *MemInterface) Reset()         { *m = MemInterface{} }
 func (m *MemInterface) String() string { return proto.CompactTextString(m) }
 func (*MemInterface) ProtoMessage()    {}
 func (*MemInterface) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{4}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{5}
 }
 func (m *MemInterface) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MemInterface.Unmarshal(m, b)
@@ -302,7 +477,7 @@ func (m *SRIOV) Reset()         { *m = SRIOV{} }
 func (m *SRIOV) String() string { return proto.CompactTextString(m) }
 func (*SRIOV) ProtoMessage()    {}
 func (*SRIOV) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{5}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{6}
 }
 func (m *SRIOV) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SRIOV.Unmarshal(m, b)
@@ -329,110 +504,63 @@ func (m *SRIOV) GetMetadata() *Metadata {
 	return nil
 }
 
-type MechanismType struct {
-	Type                 InterfaceType       `protobuf:"varint,1,opt,name=type,proto3,enum=nsmconnect.InterfaceType" json:"type,omitempty"`
-	Preference           InterfacePreference `protobuf:"varint,2,opt,name=preference,proto3,enum=nsmconnect.InterfacePreference" json:"preference,omitempty"`
+type HWInterface struct {
+	Metadata             *Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *HWInterface) Reset()         { *m = HWInterface{} }
+func (m *HWInterface) String() string { return proto.CompactTextString(m) }
+func (*HWInterface) ProtoMessage()    {}
+func (*HWInterface) Descriptor() ([]byte, []int) {
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{7}
+}
+func (m *HWInterface) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HWInterface.Unmarshal(m, b)
+}
+func (m *HWInterface) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HWInterface.Marshal(b, m, deterministic)
+}
+func (dst *HWInterface) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HWInterface.Merge(dst, src)
+}
+func (m *HWInterface) XXX_Size() int {
+	return xxx_messageInfo_HWInterface.Size(m)
+}
+func (m *HWInterface) XXX_DiscardUnknown() {
+	xxx_messageInfo_HWInterface.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HWInterface proto.InternalMessageInfo
+
+func (m *HWInterface) GetMetadata() *Metadata {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
+// ConnectionRequest is sent by a client or NSEP to build a connection.
+type ConnectionRequest struct {
+	// Since connection request will trigger certain actions
+	// executed by NSM for a client to address idempotency, request_id
+	// will be tracked.
+	RequestId            string              `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Metadata             *Metadata           `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	NetworkServiceName   string              `protobuf:"bytes,3,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	NetworkInterface     []*NetworkInterface `protobuf:"bytes,4,rep,name=network_interface,json=networkInterface,proto3" json:"network_interface,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
-}
-
-func (m *MechanismType) Reset()         { *m = MechanismType{} }
-func (m *MechanismType) String() string { return proto.CompactTextString(m) }
-func (*MechanismType) ProtoMessage()    {}
-func (*MechanismType) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{6}
-}
-func (m *MechanismType) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MechanismType.Unmarshal(m, b)
-}
-func (m *MechanismType) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MechanismType.Marshal(b, m, deterministic)
-}
-func (dst *MechanismType) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MechanismType.Merge(dst, src)
-}
-func (m *MechanismType) XXX_Size() int {
-	return xxx_messageInfo_MechanismType.Size(m)
-}
-func (m *MechanismType) XXX_DiscardUnknown() {
-	xxx_messageInfo_MechanismType.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MechanismType proto.InternalMessageInfo
-
-func (m *MechanismType) GetType() InterfaceType {
-	if m != nil {
-		return m.Type
-	}
-	return InterfaceType_kernel_interface
-}
-
-func (m *MechanismType) GetPreference() InterfacePreference {
-	if m != nil {
-		return m.Preference
-	}
-	return InterfacePreference_first
-}
-
-type AffinityPreference struct {
-	Predicate            string   `protobuf:"bytes,1,opt,name=predicate,proto3" json:"predicate,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *AffinityPreference) Reset()         { *m = AffinityPreference{} }
-func (m *AffinityPreference) String() string { return proto.CompactTextString(m) }
-func (*AffinityPreference) ProtoMessage()    {}
-func (*AffinityPreference) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{7}
-}
-func (m *AffinityPreference) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_AffinityPreference.Unmarshal(m, b)
-}
-func (m *AffinityPreference) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_AffinityPreference.Marshal(b, m, deterministic)
-}
-func (dst *AffinityPreference) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AffinityPreference.Merge(dst, src)
-}
-func (m *AffinityPreference) XXX_Size() int {
-	return xxx_messageInfo_AffinityPreference.Size(m)
-}
-func (m *AffinityPreference) XXX_DiscardUnknown() {
-	xxx_messageInfo_AffinityPreference.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AffinityPreference proto.InternalMessageInfo
-
-func (m *AffinityPreference) GetPredicate() string {
-	if m != nil {
-		return m.Predicate
-	}
-	return ""
-}
-
-type ConnectionRequest struct {
-	Metadata             *Metadata             `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	NetworkServiceName   string                `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
-	Type                 []*MechanismType      `protobuf:"bytes,3,rep,name=type,proto3" json:"type,omitempty"`
-	Predicate            []*AffinityPreference `protobuf:"bytes,4,rep,name=predicate,proto3" json:"predicate,omitempty"`
-	DeviceClaim          string                `protobuf:"bytes,5,opt,name=device_claim,json=deviceClaim,proto3" json:"device_claim,omitempty"`
-	KernelInterface      *KernelInterface      `protobuf:"bytes,6,opt,name=kernel_interface,json=kernelInterface,proto3" json:"kernel_interface,omitempty"`
-	VhostUserInterface   *VhostUserInterface   `protobuf:"bytes,7,opt,name=vhost_user_interface,json=vhostUserInterface,proto3" json:"vhost_user_interface,omitempty"`
-	MemInterface         *MemInterface         `protobuf:"bytes,8,opt,name=mem_interface,json=memInterface,proto3" json:"mem_interface,omitempty"`
-	SriovInterface       *SRIOV                `protobuf:"bytes,9,opt,name=sriov_interface,json=sriovInterface,proto3" json:"sriov_interface,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
-	XXX_unrecognized     []byte                `json:"-"`
-	XXX_sizecache        int32                 `json:"-"`
 }
 
 func (m *ConnectionRequest) Reset()         { *m = ConnectionRequest{} }
 func (m *ConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*ConnectionRequest) ProtoMessage()    {}
 func (*ConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{8}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{8}
 }
 func (m *ConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionRequest.Unmarshal(m, b)
@@ -452,6 +580,13 @@ func (m *ConnectionRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ConnectionRequest proto.InternalMessageInfo
 
+func (m *ConnectionRequest) GetRequestId() string {
+	if m != nil {
+		return m.RequestId
+	}
+	return ""
+}
+
 func (m *ConnectionRequest) GetMetadata() *Metadata {
 	if m != nil {
 		return m.Metadata
@@ -466,51 +601,9 @@ func (m *ConnectionRequest) GetNetworkServiceName() string {
 	return ""
 }
 
-func (m *ConnectionRequest) GetType() []*MechanismType {
+func (m *ConnectionRequest) GetNetworkInterface() []*NetworkInterface {
 	if m != nil {
-		return m.Type
-	}
-	return nil
-}
-
-func (m *ConnectionRequest) GetPredicate() []*AffinityPreference {
-	if m != nil {
-		return m.Predicate
-	}
-	return nil
-}
-
-func (m *ConnectionRequest) GetDeviceClaim() string {
-	if m != nil {
-		return m.DeviceClaim
-	}
-	return ""
-}
-
-func (m *ConnectionRequest) GetKernelInterface() *KernelInterface {
-	if m != nil {
-		return m.KernelInterface
-	}
-	return nil
-}
-
-func (m *ConnectionRequest) GetVhostUserInterface() *VhostUserInterface {
-	if m != nil {
-		return m.VhostUserInterface
-	}
-	return nil
-}
-
-func (m *ConnectionRequest) GetMemInterface() *MemInterface {
-	if m != nil {
-		return m.MemInterface
-	}
-	return nil
-}
-
-func (m *ConnectionRequest) GetSriovInterface() *SRIOV {
-	if m != nil {
-		return m.SriovInterface
+		return m.NetworkInterface
 	}
 	return nil
 }
@@ -527,7 +620,7 @@ func (m *ConnectionParameters) Reset()         { *m = ConnectionParameters{} }
 func (m *ConnectionParameters) String() string { return proto.CompactTextString(m) }
 func (*ConnectionParameters) ProtoMessage()    {}
 func (*ConnectionParameters) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{9}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{9}
 }
 func (m *ConnectionParameters) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionParameters.Unmarshal(m, b)
@@ -561,24 +654,25 @@ func (m *ConnectionParameters) GetRoute() []string {
 	return nil
 }
 
+// ConnectionAccept is sent back by NSM as a reply to ConnectionRequest
+// accepted true will indicate that the connection is accepted, otherwise false
+// indicates that connection was refused and admission_error will provide details
+// why connection was refused.
 type ConnectionAccept struct {
-	Accepted             bool                `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	AdmissionError       string              `protobuf:"bytes,2,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
-	AcceptedType         []*MechanismType    `protobuf:"bytes,3,rep,name=accepted_type,json=acceptedType,proto3" json:"accepted_type,omitempty"`
-	KernelInterface      *KernelInterface    `protobuf:"bytes,4,opt,name=kernel_interface,json=kernelInterface,proto3" json:"kernel_interface,omitempty"`
-	VhostUserInterface   *VhostUserInterface `protobuf:"bytes,5,opt,name=vhost_user_interface,json=vhostUserInterface,proto3" json:"vhost_user_interface,omitempty"`
-	MemInterface         *MemInterface       `protobuf:"bytes,6,opt,name=mem_interface,json=memInterface,proto3" json:"mem_interface,omitempty"`
-	SriovInterface       *SRIOV              `protobuf:"bytes,7,opt,name=sriov_interface,json=sriovInterface,proto3" json:"sriov_interface,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
+	Accepted             bool                  `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string                `protobuf:"bytes,2,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
+	ConnectionParameters *ConnectionParameters `protobuf:"bytes,3,opt,name=connection_parameters,json=connectionParameters,proto3" json:"connection_parameters,omitempty"`
+	AcceptedInterface    *NetworkInterface     `protobuf:"bytes,4,opt,name=accepted_interface,json=acceptedInterface,proto3" json:"accepted_interface,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
 }
 
 func (m *ConnectionAccept) Reset()         { *m = ConnectionAccept{} }
 func (m *ConnectionAccept) String() string { return proto.CompactTextString(m) }
 func (*ConnectionAccept) ProtoMessage()    {}
 func (*ConnectionAccept) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{10}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{10}
 }
 func (m *ConnectionAccept) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionAccept.Unmarshal(m, b)
@@ -612,41 +706,21 @@ func (m *ConnectionAccept) GetAdmissionError() string {
 	return ""
 }
 
-func (m *ConnectionAccept) GetAcceptedType() []*MechanismType {
+func (m *ConnectionAccept) GetConnectionParameters() *ConnectionParameters {
 	if m != nil {
-		return m.AcceptedType
+		return m.ConnectionParameters
 	}
 	return nil
 }
 
-func (m *ConnectionAccept) GetKernelInterface() *KernelInterface {
+func (m *ConnectionAccept) GetAcceptedInterface() *NetworkInterface {
 	if m != nil {
-		return m.KernelInterface
+		return m.AcceptedInterface
 	}
 	return nil
 }
 
-func (m *ConnectionAccept) GetVhostUserInterface() *VhostUserInterface {
-	if m != nil {
-		return m.VhostUserInterface
-	}
-	return nil
-}
-
-func (m *ConnectionAccept) GetMemInterface() *MemInterface {
-	if m != nil {
-		return m.MemInterface
-	}
-	return nil
-}
-
-func (m *ConnectionAccept) GetSriovInterface() *SRIOV {
-	if m != nil {
-		return m.SriovInterface
-	}
-	return nil
-}
-
+// DiscoveryRequest requests NSM to send back all available/known NetworkServices
 type DiscoveryRequest struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -657,7 +731,7 @@ func (m *DiscoveryRequest) Reset()         { *m = DiscoveryRequest{} }
 func (m *DiscoveryRequest) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryRequest) ProtoMessage()    {}
 func (*DiscoveryRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{11}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{11}
 }
 func (m *DiscoveryRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryRequest.Unmarshal(m, b)
@@ -677,6 +751,7 @@ func (m *DiscoveryRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DiscoveryRequest proto.InternalMessageInfo
 
+// DiscoveryRespons carries a list of all available/known to NSM NetworkServices
 type DiscoveryResponse struct {
 	NetworkService       []*netmesh.NetworkService `protobuf:"bytes,1,rep,name=network_service,json=networkService,proto3" json:"network_service,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
@@ -688,7 +763,7 @@ func (m *DiscoveryResponse) Reset()         { *m = DiscoveryResponse{} }
 func (m *DiscoveryResponse) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryResponse) ProtoMessage()    {}
 func (*DiscoveryResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_c4c63784e192d793, []int{12}
+	return fileDescriptor_nsmconnect_2f71d502d0e08e44, []int{12}
 }
 func (m *DiscoveryResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryResponse.Unmarshal(m, b)
@@ -719,19 +794,17 @@ func init() {
 	proto.RegisterType((*Label)(nil), "nsmconnect.Label")
 	proto.RegisterMapType((map[string]string)(nil), "nsmconnect.Label.SelectorEntry")
 	proto.RegisterType((*Metadata)(nil), "nsmconnect.Metadata")
+	proto.RegisterType((*NetworkInterface)(nil), "nsmconnect.NetworkInterface")
 	proto.RegisterType((*KernelInterface)(nil), "nsmconnect.KernelInterface")
 	proto.RegisterType((*VhostUserInterface)(nil), "nsmconnect.VhostUserInterface")
 	proto.RegisterType((*MemInterface)(nil), "nsmconnect.MemInterface")
 	proto.RegisterType((*SRIOV)(nil), "nsmconnect.SRIOV")
-	proto.RegisterType((*MechanismType)(nil), "nsmconnect.MechanismType")
-	proto.RegisterType((*AffinityPreference)(nil), "nsmconnect.AffinityPreference")
+	proto.RegisterType((*HWInterface)(nil), "nsmconnect.HWInterface")
 	proto.RegisterType((*ConnectionRequest)(nil), "nsmconnect.ConnectionRequest")
 	proto.RegisterType((*ConnectionParameters)(nil), "nsmconnect.ConnectionParameters")
 	proto.RegisterType((*ConnectionAccept)(nil), "nsmconnect.ConnectionAccept")
 	proto.RegisterType((*DiscoveryRequest)(nil), "nsmconnect.DiscoveryRequest")
 	proto.RegisterType((*DiscoveryResponse)(nil), "nsmconnect.DiscoveryResponse")
-	proto.RegisterEnum("nsmconnect.InterfaceType", InterfaceType_name, InterfaceType_value)
-	proto.RegisterEnum("nsmconnect.InterfacePreference", InterfacePreference_name, InterfacePreference_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -839,61 +912,54 @@ var _ClientConnection_serviceDesc = grpc.ServiceDesc{
 	Metadata: "nsmconnect.proto",
 }
 
-func init() { proto.RegisterFile("nsmconnect.proto", fileDescriptor_nsmconnect_c4c63784e192d793) }
+func init() { proto.RegisterFile("nsmconnect.proto", fileDescriptor_nsmconnect_2f71d502d0e08e44) }
 
-var fileDescriptor_nsmconnect_c4c63784e192d793 = []byte{
-	// 844 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0x5f, 0x6f, 0xdb, 0x36,
-	0x10, 0xaf, 0xe3, 0x3f, 0x71, 0x2e, 0xb1, 0xad, 0x70, 0x06, 0xe6, 0x7a, 0xed, 0x96, 0xe9, 0x65,
-	0x59, 0x81, 0xb9, 0x85, 0xf7, 0xb2, 0xb5, 0xfb, 0xd3, 0x22, 0x6b, 0xb0, 0xa2, 0x4b, 0x1b, 0x28,
-	0x6b, 0x5f, 0x0d, 0x45, 0x3a, 0xc7, 0x44, 0x24, 0x52, 0x23, 0x69, 0x0f, 0x7e, 0x1a, 0xf6, 0x3d,
-	0xf6, 0x11, 0xf6, 0xba, 0xef, 0x37, 0x90, 0xa2, 0x24, 0xca, 0xce, 0x80, 0xae, 0xe9, 0x93, 0xc8,
-	0xe3, 0xfd, 0x7e, 0x3c, 0xde, 0xfd, 0xee, 0x6c, 0xf0, 0x98, 0x4c, 0x23, 0xce, 0x18, 0x46, 0x6a,
-	0x92, 0x09, 0xae, 0x38, 0x81, 0xca, 0x32, 0xfe, 0xf9, 0x8a, 0xaa, 0xc5, 0xf2, 0x72, 0x12, 0xf1,
-	0xf4, 0x61, 0x42, 0xaf, 0x42, 0xc5, 0x1f, 0x32, 0x54, 0xbf, 0x73, 0x71, 0x2d, 0x51, 0xac, 0x68,
-	0x84, 0x29, 0xca, 0x85, 0x36, 0x99, 0x6f, 0xca, 0x63, 0x4c, 0xca, 0x9d, 0xfd, 0xe6, 0xac, 0xfe,
-	0x9f, 0x0d, 0x68, 0xff, 0x12, 0x5e, 0x62, 0x42, 0x9e, 0x40, 0x57, 0x62, 0x82, 0x91, 0xe2, 0x62,
-	0xd4, 0x38, 0x6a, 0x1e, 0xef, 0x4f, 0x3f, 0x9b, 0x38, 0x41, 0x18, 0xa7, 0xc9, 0x85, 0xf5, 0x78,
-	0xce, 0x94, 0x58, 0x07, 0x25, 0x60, 0xfc, 0x04, 0x7a, 0xb5, 0x23, 0xe2, 0x41, 0xf3, 0x1a, 0xd7,
-	0xa3, 0xc6, 0x51, 0xe3, 0x78, 0x2f, 0xd0, 0x4b, 0x32, 0x84, 0xf6, 0x2a, 0x4c, 0x96, 0x38, 0xda,
-	0x31, 0xb6, 0x7c, 0xf3, 0x78, 0xe7, 0x9b, 0x86, 0x7f, 0x05, 0xdd, 0x33, 0x54, 0x61, 0x1c, 0xaa,
-	0x90, 0x10, 0x68, 0xb1, 0x30, 0x45, 0x0b, 0x34, 0x6b, 0x72, 0x0f, 0xf6, 0xf4, 0x57, 0x66, 0x61,
-	0x54, 0xa0, 0x2b, 0x03, 0xf9, 0x12, 0x3a, 0x89, 0x8e, 0x4d, 0x8e, 0x9a, 0x47, 0x8d, 0xe3, 0xfd,
-	0xe9, 0xe1, 0x56, 0xd4, 0x81, 0x75, 0xf0, 0x4f, 0x60, 0xf0, 0x12, 0x05, 0xc3, 0xe4, 0x05, 0x53,
-	0x28, 0xe6, 0x1a, 0xfd, 0x08, 0xba, 0xa9, 0xbd, 0xdb, 0xdc, 0xb9, 0x3f, 0x1d, 0xba, 0xf8, 0x22,
-	0xae, 0xa0, 0xf4, 0xf2, 0x4f, 0x81, 0xbc, 0x5d, 0x70, 0xa9, 0xde, 0x48, 0x14, 0xb7, 0xe1, 0x79,
-	0x0a, 0x07, 0x67, 0x98, 0xde, 0x86, 0xe1, 0x5b, 0x68, 0x5f, 0x04, 0x2f, 0x5e, 0xbf, 0x7d, 0x0f,
-	0xe8, 0x1f, 0xd0, 0x3b, 0xc3, 0x68, 0x11, 0x32, 0x2a, 0xd3, 0x5f, 0xd7, 0x19, 0x92, 0xaf, 0xa0,
-	0xa5, 0xd6, 0x59, 0x9e, 0xf7, 0xfe, 0xf4, 0xae, 0x0b, 0x2f, 0x43, 0xd4, 0x8e, 0x81, 0x71, 0x23,
-	0x3f, 0x02, 0x64, 0x02, 0xe7, 0x28, 0x90, 0xd9, 0x9a, 0xf4, 0xeb, 0x72, 0x29, 0x41, 0xe7, 0xa5,
-	0x5b, 0xe0, 0x40, 0xfc, 0x29, 0x90, 0x67, 0xf3, 0x39, 0x65, 0x54, 0xad, 0x2b, 0x0f, 0x5d, 0xe9,
-	0x4c, 0x60, 0x4c, 0xa3, 0x50, 0x15, 0x12, 0xa8, 0x0c, 0xfe, 0x5f, 0x2d, 0x38, 0x3c, 0xc9, 0xf9,
-	0x29, 0x67, 0x01, 0xfe, 0xb6, 0x44, 0xa9, 0xfe, 0xff, 0xe3, 0xc9, 0x23, 0x18, 0xda, 0x6e, 0x99,
-	0xd9, 0x76, 0x99, 0x19, 0xcd, 0xe5, 0xd2, 0x22, 0xf6, 0xec, 0x22, 0x3f, 0x7a, 0xa5, 0x15, 0x58,
-	0x64, 0xa7, 0x69, 0xfa, 0xe2, 0x6e, 0x9d, 0xdf, 0x49, 0xa3, 0xcd, 0xce, 0x77, 0xee, 0x33, 0x5a,
-	0x06, 0xf3, 0xa9, 0x8b, 0xd9, 0x7e, 0xb9, 0xf3, 0x4c, 0xf2, 0x39, 0x1c, 0xc4, 0x68, 0xa2, 0x8a,
-	0x92, 0x90, 0xa6, 0xa3, 0xb6, 0x09, 0x6b, 0x3f, 0xb7, 0x9d, 0x68, 0x13, 0x39, 0x05, 0xef, 0xda,
-	0x08, 0x79, 0x46, 0x8b, 0x3c, 0x8f, 0x3a, 0xe6, 0xed, 0x9f, 0xb8, 0xf7, 0x6c, 0x88, 0x3d, 0x18,
-	0x5c, 0x6f, 0xa8, 0xff, 0x1c, 0x86, 0x2b, 0xad, 0xe5, 0xd9, 0x52, 0xa2, 0x70, 0xb8, 0x76, 0x0d,
-	0x57, 0x2d, 0xe6, 0x6d, 0xcd, 0x07, 0x64, 0xb5, 0xdd, 0x07, 0xdf, 0x43, 0x2f, 0xc5, 0xd4, 0xa1,
-	0xea, 0x1a, 0xaa, 0x51, 0x3d, 0x65, 0x95, 0xec, 0x83, 0x83, 0xd4, 0x6d, 0x82, 0xc7, 0x30, 0x90,
-	0x82, 0xf2, 0x95, 0x43, 0xb0, 0xb7, 0xdd, 0xd5, 0x46, 0xf5, 0x41, 0xdf, 0x78, 0x96, 0x58, 0xff,
-	0x14, 0x86, 0x95, 0x3a, 0xce, 0x43, 0x11, 0xa6, 0xa8, 0x50, 0x48, 0x32, 0x82, 0xdd, 0x30, 0x8e,
-	0x05, 0x4a, 0x69, 0x25, 0x55, 0x6c, 0xf5, 0x48, 0x12, 0x7c, 0xa9, 0x74, 0xe5, 0x9b, 0x7a, 0x24,
-	0x99, 0x8d, 0xff, 0x77, 0x13, 0xbc, 0x8a, 0xe8, 0x59, 0x14, 0x61, 0xa6, 0xc8, 0x18, 0xba, 0xa1,
-	0x59, 0x61, 0x6c, 0x58, 0xba, 0x41, 0xb9, 0x27, 0x5f, 0xc0, 0x20, 0x8c, 0x53, 0x2a, 0x25, 0xe5,
-	0x6c, 0x86, 0x42, 0x70, 0x61, 0xa5, 0xd4, 0x2f, 0xcd, 0xcf, 0xb5, 0x95, 0xfc, 0x00, 0xbd, 0x02,
-	0x34, 0x7b, 0x37, 0x3d, 0x1d, 0x14, 0xfe, 0xa6, 0x49, 0x6f, 0x2a, 0x7b, 0xeb, 0x03, 0x96, 0xbd,
-	0xfd, 0xe1, 0xca, 0xde, 0xb9, 0x6d, 0xd9, 0x77, 0xdf, 0xb5, 0xec, 0x04, 0xbc, 0x9f, 0xa8, 0x8c,
-	0xf8, 0x0a, 0xc5, 0xda, 0xce, 0x04, 0xff, 0x0d, 0x1c, 0x3a, 0x36, 0x99, 0x71, 0x26, 0x91, 0x3c,
-	0x85, 0xc1, 0x46, 0xdb, 0xdb, 0xdf, 0xb9, 0x8f, 0x27, 0xc5, 0x6f, 0xe2, 0xab, 0x5a, 0xeb, 0x07,
-	0xfd, 0xfa, 0x28, 0x78, 0xf0, 0x12, 0x7a, 0xb5, 0x61, 0x48, 0x86, 0xdb, 0x05, 0xf1, 0xee, 0x90,
-	0x3e, 0x40, 0x95, 0x5e, 0xaf, 0x41, 0xf6, 0xa0, 0x9d, 0x62, 0x4a, 0xe7, 0xde, 0x8e, 0x5e, 0x9a,
-	0xf0, 0xbd, 0xe6, 0x83, 0x33, 0xf8, 0xe8, 0x86, 0x21, 0xa9, 0x3d, 0xe6, 0x54, 0x48, 0xe5, 0xdd,
-	0x21, 0x00, 0x1d, 0x89, 0x11, 0x67, 0x71, 0xce, 0xa1, 0x16, 0x54, 0xc4, 0x39, 0xc7, 0x9c, 0x0b,
-	0xb5, 0xf0, 0x9a, 0xb9, 0xf3, 0x5c, 0x2d, 0xbc, 0xd6, 0xf4, 0x9f, 0x06, 0x78, 0x27, 0x09, 0x45,
-	0xa6, 0x2a, 0xed, 0x92, 0x73, 0x38, 0xb4, 0x29, 0x71, 0x8c, 0xf7, 0xdd, 0x9c, 0x6e, 0xcd, 0xd3,
-	0xf1, 0xbd, 0x9b, 0x8f, 0x6d, 0x1f, 0xbc, 0x06, 0xcf, 0x3a, 0x96, 0x09, 0x26, 0x35, 0xc4, 0x66,
-	0x2d, 0xc6, 0xf7, 0xff, 0xe3, 0x34, 0xaf, 0xca, 0x65, 0xc7, 0xfc, 0x0f, 0xf9, 0xfa, 0xdf, 0x00,
-	0x00, 0x00, 0xff, 0xff, 0x2b, 0x5b, 0x28, 0x09, 0xf1, 0x08, 0x00, 0x00,
+var fileDescriptor_nsmconnect_2f71d502d0e08e44 = []byte{
+	// 721 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x55, 0xcd, 0x6e, 0xda, 0x4a,
+	0x14, 0xbe, 0x86, 0x90, 0x0b, 0x87, 0x24, 0x98, 0x11, 0x57, 0x41, 0xdc, 0xe4, 0x5e, 0xe4, 0x4d,
+	0xd3, 0x0d, 0x89, 0xe8, 0xa6, 0x6d, 0x2a, 0x25, 0x6d, 0x9a, 0x08, 0x94, 0xe6, 0x47, 0x8e, 0x92,
+	0x2e, 0x91, 0x63, 0x4e, 0x83, 0x85, 0xed, 0xa1, 0x33, 0x03, 0x51, 0x96, 0x7d, 0xa8, 0x3e, 0x50,
+	0x1f, 0xa1, 0xeb, 0x6e, 0xaa, 0x19, 0x0f, 0x66, 0x0c, 0xb4, 0xaa, 0x58, 0x79, 0xce, 0xcf, 0xf7,
+	0x9d, 0x39, 0xdf, 0x70, 0x0e, 0x60, 0xc7, 0x3c, 0xf2, 0x69, 0x1c, 0xa3, 0x2f, 0x5a, 0x23, 0x46,
+	0x05, 0x25, 0x30, 0xf3, 0x34, 0x3a, 0x0f, 0x81, 0x18, 0x8c, 0xef, 0x5b, 0x3e, 0x8d, 0xf6, 0xc3,
+	0xe0, 0xc1, 0x13, 0x74, 0x3f, 0x46, 0xf1, 0x48, 0xd9, 0x90, 0x23, 0x9b, 0x04, 0x3e, 0x46, 0xc8,
+	0x07, 0xd2, 0xa5, 0xbe, 0x11, 0xed, 0x63, 0x98, 0x5a, 0xfa, 0x9b, 0xb0, 0x3a, 0x5f, 0x2c, 0x28,
+	0x7c, 0xf0, 0xee, 0x31, 0x24, 0x87, 0x50, 0xe4, 0x18, 0xa2, 0x2f, 0x28, 0xab, 0x5b, 0xcd, 0xfc,
+	0x5e, 0xb9, 0xfd, 0x7f, 0xcb, 0xb8, 0x84, 0x4a, 0x6a, 0xdd, 0xe8, 0x8c, 0xd3, 0x58, 0xb0, 0x27,
+	0x37, 0x05, 0x34, 0x0e, 0x61, 0x33, 0x13, 0x22, 0x36, 0xe4, 0x87, 0xf8, 0x54, 0xb7, 0x9a, 0xd6,
+	0x5e, 0xc9, 0x95, 0x47, 0x52, 0x83, 0xc2, 0xc4, 0x0b, 0xc7, 0x58, 0xcf, 0x29, 0x5f, 0x62, 0xbc,
+	0xce, 0xbd, 0xb4, 0x9c, 0x07, 0x28, 0x5e, 0xa0, 0xf0, 0xfa, 0x9e, 0xf0, 0x08, 0x81, 0xb5, 0xd8,
+	0x8b, 0x50, 0x03, 0xd5, 0x99, 0xec, 0x40, 0x49, 0x7e, 0xf9, 0xc8, 0xf3, 0xa7, 0xe8, 0x99, 0x83,
+	0x3c, 0x87, 0xf5, 0x50, 0xde, 0x8d, 0xd7, 0xf3, 0x4d, 0x6b, 0xaf, 0xdc, 0xae, 0x2e, 0xdc, 0xda,
+	0xd5, 0x09, 0xce, 0xf7, 0x1c, 0xd8, 0x97, 0x89, 0x4e, 0xdd, 0x58, 0x20, 0xfb, 0x24, 0xf1, 0x1d,
+	0xb0, 0x87, 0xc8, 0x62, 0x0c, 0x7b, 0xc1, 0xd4, 0xa7, 0xaa, 0x97, 0xdb, 0xff, 0x9a, 0x4c, 0xe7,
+	0x2a, 0x27, 0x85, 0x75, 0xfe, 0x72, 0x2b, 0xc3, 0xac, 0x8b, 0x74, 0xa1, 0x32, 0x19, 0x50, 0x2e,
+	0x0c, 0xa2, 0x9c, 0x22, 0xfa, 0xcf, 0x24, 0xba, 0x93, 0x29, 0xb7, 0x1c, 0x99, 0xc9, 0xb5, 0xa5,
+	0x80, 0x33, 0xaa, 0x23, 0xd8, 0x8c, 0x30, 0x32, 0x88, 0x92, 0xde, 0xea, 0x26, 0xd1, 0x05, 0x46,
+	0x26, 0xc5, 0x46, 0x64, 0xd8, 0xe4, 0x0d, 0x54, 0x38, 0x9b, 0x04, 0xd4, 0xa0, 0x58, 0x5b, 0x94,
+	0xe7, 0xc6, 0xed, 0x5e, 0xdd, 0xc9, 0xf2, 0x2a, 0xd7, 0x44, 0x6f, 0x0c, 0x1e, 0x0d, 0x68, 0x41,
+	0x41, 0xb7, 0x4d, 0x68, 0xe7, 0xa3, 0x59, 0xbc, 0x3c, 0x78, 0x4c, 0xcd, 0x77, 0x65, 0x28, 0xa5,
+	0x50, 0xe7, 0x04, 0x2a, 0x73, 0xd2, 0x91, 0x03, 0x28, 0x46, 0xfa, 0xbd, 0xb5, 0xd2, 0xb5, 0x6c,
+	0x5f, 0x49, 0xcc, 0x4d, 0xb3, 0x9c, 0x33, 0x20, 0x8b, 0xb2, 0xad, 0xc0, 0x73, 0x0c, 0x1b, 0xa6,
+	0x6a, 0x2b, 0x30, 0xbc, 0x82, 0x82, 0x12, 0x6d, 0x05, 0xe8, 0x11, 0x94, 0x0d, 0xd1, 0x56, 0x20,
+	0xf8, 0x66, 0x41, 0xf5, 0x24, 0x09, 0x07, 0x34, 0x76, 0xf1, 0xf3, 0x18, 0xb9, 0x20, 0xbb, 0x00,
+	0x2c, 0x39, 0xf6, 0x82, 0xbe, 0x9e, 0x9b, 0x92, 0xf6, 0x74, 0xfb, 0x99, 0x32, 0xb9, 0x3f, 0x29,
+	0x43, 0x0e, 0xa0, 0xa6, 0x97, 0x49, 0x4f, 0x6f, 0x93, 0x9e, 0x1a, 0xc9, 0xbc, 0xa2, 0x26, 0x3a,
+	0x76, 0x93, 0x84, 0x2e, 0xe5, 0x80, 0x76, 0xa1, 0x3a, 0x45, 0x98, 0x3f, 0x37, 0xb9, 0x43, 0x76,
+	0xcc, 0x62, 0xf3, 0xb3, 0xe7, 0xda, 0xf1, 0x9c, 0xc7, 0x39, 0x83, 0xda, 0xac, 0xc5, 0x6b, 0x8f,
+	0x79, 0x11, 0x0a, 0x64, 0x9c, 0xd4, 0xe1, 0x6f, 0xaf, 0xdf, 0x67, 0xc8, 0xb9, 0x6e, 0x71, 0x6a,
+	0xca, 0xbd, 0xc2, 0xe8, 0x58, 0xc8, 0x59, 0xcb, 0xcb, 0xbd, 0xa2, 0x0c, 0xe7, 0x87, 0x05, 0xf6,
+	0x8c, 0xe8, 0xad, 0xef, 0xe3, 0x48, 0x90, 0x06, 0x14, 0x3d, 0x75, 0xc2, 0x44, 0xa8, 0xa2, 0x9b,
+	0xda, 0xe4, 0x19, 0x54, 0xbc, 0x7e, 0x14, 0x70, 0x1e, 0xd0, 0xb8, 0x87, 0x8c, 0x51, 0xa6, 0x57,
+	0xcd, 0x56, 0xea, 0x3e, 0x95, 0x5e, 0x72, 0x0b, 0xff, 0xf8, 0x29, 0x71, 0x6f, 0x94, 0x5e, 0x51,
+	0x8f, 0x68, 0xd3, 0x6c, 0x78, 0x59, 0x2b, 0x6e, 0xcd, 0x5f, 0xd6, 0xe0, 0x39, 0x90, 0xe9, 0x5d,
+	0x16, 0x66, 0xf6, 0xf7, 0x22, 0x56, 0xa7, 0xb8, 0x99, 0x8a, 0x04, 0xec, 0xf7, 0x01, 0xf7, 0xe9,
+	0x04, 0xd9, 0x93, 0xfe, 0x9d, 0x38, 0xb7, 0x50, 0x35, 0x7c, 0x7c, 0x44, 0x63, 0x8e, 0xe4, 0x18,
+	0x2a, 0x73, 0x6f, 0xad, 0x77, 0xff, 0x76, 0x6b, 0xfa, 0x3f, 0x71, 0x99, 0x79, 0x6f, 0x77, 0x2b,
+	0xfb, 0xfe, 0xed, 0xaf, 0x52, 0xe8, 0x30, 0xc0, 0x58, 0xcc, 0x9a, 0x25, 0xd7, 0x50, 0xd5, 0x65,
+	0x0d, 0xe7, 0xee, 0x72, 0x65, 0x74, 0x62, 0x63, 0x67, 0x79, 0x58, 0x3f, 0xdd, 0x15, 0xd8, 0x3a,
+	0x31, 0x6d, 0x82, 0x64, 0x10, 0xf3, 0xfd, 0x36, 0x76, 0x7f, 0x11, 0x4d, 0x3a, 0xbf, 0x5f, 0x57,
+	0xff, 0x7f, 0x2f, 0x7e, 0x06, 0x00, 0x00, 0xff, 0xff, 0x37, 0xc3, 0x76, 0xd7, 0x69, 0x07, 0x00,
+	0x00,
 }
