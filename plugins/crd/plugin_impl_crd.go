@@ -234,7 +234,6 @@ func informerNetworkServices(plugin *Plugin) {
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: networkserviceEnqueue,
 			UpdateFunc: func(old, cur interface{}) {
-				// This is where we'd ideally call handler.ObjectUpdated()
 				if !reflect.DeepEqual(old, cur) {
 					networkserviceEnqueue(cur)
 				}
@@ -251,7 +250,6 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: networkservicechannelEnqueue,
 			UpdateFunc: func(old, cur interface{}) {
-				// This is where we'd ideally call handler.ObjectUpdated()
 				if !reflect.DeepEqual(old, cur) {
 					networkservicechannelEnqueue(cur)
 				}
@@ -268,7 +266,6 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: networkserviceendpointEnqueue,
 			UpdateFunc: func(old, cur interface{}) {
-				// This is where we'd ideally call handler.ObjectUpdated()
 				if !reflect.DeepEqual(old, cur) {
 					networkserviceendpointEnqueue(cur)
 				}

@@ -88,9 +88,9 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 	f.Netmesh.StatusMonitor = &f.StatusCheck // StatusCheck included in local.FlavorLocal
 	f.CRD.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmeshcrd")
 	f.CRD.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
+	f.CRD.HandlerAPI = &f.Handler
 	f.Handler.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmeshhandler")
 	f.Handler.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
-	f.CRD.HandlerAPI = &f.Handler
 
 	return true
 }
