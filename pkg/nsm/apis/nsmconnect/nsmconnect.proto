@@ -75,13 +75,15 @@ message ConnectionRequest {
 
     repeated AffinityPreference predicate = 5;
 
-    KernelInterface kernel_interface = 6;
+    string device_claim = 6;
 
-    VhostUserInterface vhost_user_interface = 7;
+    KernelInterface kernel_interface = 7;
 
-    MemInterface mem_interface = 8;
+    VhostUserInterface vhost_user_interface = 8;
 
-    SRIOV sriov_interface = 9;
+    MemInterface mem_interface = 9;
+
+    SRIOV sriov_interface = 10;
 }
 
 message ConnectionParameters {
