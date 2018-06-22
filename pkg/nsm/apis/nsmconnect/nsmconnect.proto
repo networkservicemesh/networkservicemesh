@@ -35,20 +35,18 @@ message SRIOV {
 }
 
 enum InterfaceType {
-    not_specified_type = 0;
-    kernel_interface = 1;
-    vhost_user = 2;
-    memif = 3;
-    sriov = 4;
+    kernel_interface = 0;
+    vhost_user = 1;
+    memif = 2;
+    sriov = 3;
   }
 
 enum InterfacePreference {
-    not_specified_pref = 0;
-    first = 1;
-    second = 2;
-    third = 3;
-    forth = 4;
-    fifth = 5;
+    first = 0;
+    second = 1;
+    third = 2;
+    forth = 3;
+    fifth = 4;
 }
 
 message MechanismType {
