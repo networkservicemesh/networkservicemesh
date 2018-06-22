@@ -60,7 +60,6 @@ message AffinityPreference {
     string predicate = 1;
 }
 
-// ConnectionRequest is sent by a client or NSEP to build a connection.
 message ConnectionRequest {
 // Since connection request will trigger certain actions
 // executed by NSM for a client to address idempotency, request_id
@@ -91,33 +90,25 @@ message ConnectionParameters {
     repeated string route = 2;
 }
 
-// ConnectionAccept is sent back by NSM as a reply to ConnectionRequest
-// accepted true will indicate that the connection is accepted, otherwise false
-// indicates that connection was refused and admission_error will provide details
-// why connection was refused.
 message ConnectionAccept {
     bool accepted = 1;
 
     string admission_error = 2;
 
-    ConnectionParameters connection_parameters = 3;
+    repeated MechanismType accepted_type = 3;
 
-    repeated MechanismType accepted_type = 4;
+    KernelInterface kernel_interface = 4;
 
-    KernelInterface kernel_interface = 5;
+    VhostUserInterface vhost_user_interface = 5;
 
-    VhostUserInterface vhost_user_interface = 6;
+    MemInterface mem_interface = 6;
 
-    MemInterface mem_interface = 7;
-
-    SRIOV sriov_interface = 8;
+    SRIOV sriov_interface = 7;
 }
 
-// DiscoveryRequest requests NSM to send back all available/known NetworkServices
 message DiscoveryRequest {
 }
 
-// DiscoveryRespons carries a list of all available/known to NSM NetworkServices
 message DiscoveryResponse {
     repeated  netmesh.NetworkService network_service = 1;
 }
