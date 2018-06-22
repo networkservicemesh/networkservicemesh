@@ -59,28 +59,24 @@ message AffinityPreference {
 }
 
 message ConnectionRequest {
-// Since connection request will trigger certain actions
-// executed by NSM for a client to address idempotency, request_id
-// will be tracked.
-    string request_id = 1;
 
-    Metadata metadata = 2;
+    Metadata metadata = 1;
     
-    string network_service_name = 3;
+    string network_service_name = 2;
 
-    repeated MechanismType type = 4;
+    repeated MechanismType type = 3;
 
-    repeated AffinityPreference predicate = 5;
+    repeated AffinityPreference predicate = 4;
 
-    string device_claim = 6;
+    string device_claim = 5;
 
-    KernelInterface kernel_interface = 7;
+    KernelInterface kernel_interface = 6;
 
-    VhostUserInterface vhost_user_interface = 8;
+    VhostUserInterface vhost_user_interface = 7;
 
-    MemInterface mem_interface = 9;
+    MemInterface mem_interface = 8;
 
-    SRIOV sriov_interface = 10;
+    SRIOV sriov_interface = 9;
 }
 
 message ConnectionParameters {
