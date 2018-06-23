@@ -15,6 +15,7 @@
 package v1
 
 import (
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
@@ -31,6 +32,12 @@ const (
 	NSMPlural          string = "networkservices"
 	FullNSMName        string = NSMPlural + "." + NSMGroup
 )
+
+var CRDVersions = []apiextv1beta1.CustomResourceDefinitionVersion{{
+	Name:    NSMGroupVersion,
+	Served:  true,
+	Storage: true,
+}}
 
 // NetworkServiceEndpoint CRD
 // +genclient

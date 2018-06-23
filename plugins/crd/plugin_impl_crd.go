@@ -191,7 +191,7 @@ func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation 
 }
 
 // Create the CRD resource, ignore error if it already exists
-func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) error {
+func createCRD(plugin *Plugin, FullName, Group string, Versions []apiextv1beta1.CustomResourceDefinitionVersion, Plural, Name string) error {
 
 	var validation *apiextv1beta1.CustomResourceValidation
 	switch Name {
@@ -207,9 +207,9 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 	crd := &apiextv1beta1.CustomResourceDefinition{
 		ObjectMeta: meta.ObjectMeta{Name: FullName},
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Group:   Group,
-			Version: Version,
-			Scope:   apiextv1beta1.NamespaceScoped,
+			Group:    Group,
+			Versions: Versions,
+			Scope:    apiextv1beta1.NamespaceScoped,
 			Names: apiextv1beta1.CustomResourceDefinitionNames{
 				Plural: Plural,
 				Kind:   Name,
@@ -294,7 +294,7 @@ func (plugin *Plugin) AfterInit() error {
 	crdname = reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name()
 	err = createCRD(plugin, v1.FullNSMEPName,
 		v1.NSMGroup,
-		v1.NSMGroupVersion,
+		v1.CRDVersions,
 		v1.NSMEPPlural,
 		crdname)
 
@@ -306,7 +306,7 @@ func (plugin *Plugin) AfterInit() error {
 	crdname = reflect.TypeOf(v1.NetworkServiceChannel{}).Name()
 	err = createCRD(plugin, v1.FullNSMChannelName,
 		v1.NSMGroup,
-		v1.NSMGroupVersion,
+		v1.CRDVersions,
 		v1.NSMChannelPlural,
 		crdname)
 
@@ -318,7 +318,7 @@ func (plugin *Plugin) AfterInit() error {
 	crdname = reflect.TypeOf(v1.NetworkService{}).Name()
 	err = createCRD(plugin, v1.FullNSMName,
 		v1.NSMGroup,
-		v1.NSMGroupVersion,
+		v1.CRDVersions,
 		v1.NSMPlural,
 		crdname)
 
