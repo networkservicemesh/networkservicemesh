@@ -15,12 +15,9 @@
 package objectstore
 
 import (
-	"sync"
-
 	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 )
 
 // Plugin is the base plugin object for this CRD handler
@@ -84,57 +81,4 @@ type meta struct {
 // TODO add NetworkServiceEndpoint and NetworkServiceChannel
 type ObjectStore struct {
 	NetworkServicesStore
-}
-
-// NetworkServicesStore map stores all discovered Network Service Object
-// with a key composed of a name and a namespace
-type NetworkServicesStore struct {
-	Store map[meta]*netmesh.NetworkService
-	sync.RWMutex
-}
-
-// NewNetworkServicesStore instantiates a new instance of a global
-// NetworkServices store. It must be initialized before any controllers start.
-func NewNetworkServicesStore() *NetworkServicesStore {
-	return &NetworkServicesStore{
-		Store: map[meta]*netmesh.NetworkService{}}
-}
-
-// Add method adds descovered NetworkService if it does not
-// already exit in the store.
-func (n *NetworkServicesStore) Add(ns *netmesh.NetworkService) {
-	n.Lock()
-	defer n.Unlock()
-
-	key := meta{
-		name: ns.Name,
-		// TODO replace it with namespace
-		namespace: ns.Uuid,
-	}
-	if _, ok := n.Store[key]; !ok {
-		// Not in the store, adding it.
-		n.Store[key] = ns
-	}
-}
-
-// Delete method deletes removed NetworkService object from the store.
-func (n *NetworkServicesStore) Delete(key meta) {
-	n.Lock()
-	defer n.Unlock()
-
-	if _, ok := n.Store[key]; ok {
-		delete(n.Store, key)
-	}
-}
-
-// List method lists all known NetworkService objects.
-func (n *NetworkServicesStore) List() []*netmesh.NetworkService {
-	n.Lock()
-	defer n.Unlock()
-	networkServices := []*netmesh.NetworkService{}
-	for _, ns := range n.Store {
-		networkServices = append(networkServices, ns)
-	}
-
-	return networkServices
 }
