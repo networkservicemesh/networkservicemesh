@@ -30,9 +30,9 @@ import (
 const QueueRetryCount = 5
 
 var (
-	// queue is a queue of resources to be processed. It performs exponential
-	// backoff rate limiting, with a minimum retry period of 5 seconds and a
-	// maximum of 1 minute.
+	// These are queues of resources to be processed. They each performs
+	// exponential backoff rate limiting, with a minimum retry period of 5
+	// seconds and a maximum of 1 minute.
 	queueNS  = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
 	queueNSC = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
 	queueNSE = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
@@ -99,10 +99,10 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			// Verify if this was a delete vs. an add/update
 			if !exists {
 				plugin.Log.Infof("Object (%s) deleted from queue", name)
+				plugin.HandlerAPI.ObjectDeleted(item)
 			} else {
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-				plugin.Log.Infof("Object found: %s", item)
-				plugin.Log.Infof("Finished processing '%s/%s' successfully! Removing from queue.", namespace, name)
+				plugin.HandlerAPI.ObjectCreated(item)
 			}
 
 			// As we managed to process this successfully, we can forget it

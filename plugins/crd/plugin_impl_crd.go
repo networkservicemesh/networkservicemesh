@@ -38,6 +38,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
+	"github.com/ligato/networkservicemesh/plugins/handler"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
@@ -70,11 +71,12 @@ type Plugin struct {
 	informerNSC cache.SharedIndexInformer
 }
 
-// Deps defines dependencies of netmesh plugin.
+// Deps defines dependencies of CRD plugin.
 type Deps struct {
 	local.PluginInfraDeps
 	// Kubeconfig with k8s cluster address and access credentials to use.
 	KubeConfig config.PluginConfig
+	HandlerAPI handler.API
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
