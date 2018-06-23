@@ -39,6 +39,7 @@ func (p *Plugin) Init() error {
 	p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan struct{})
 
+	p.Log.Info("><SB> Object store plugin has been initialized.")
 	return nil
 }
 
