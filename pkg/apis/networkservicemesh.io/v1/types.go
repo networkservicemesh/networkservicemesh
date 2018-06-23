@@ -22,14 +22,14 @@ import (
 
 // Constants to register CRDs for our resources
 const (
-	NSMGroup           string = "networkservicemesh.io"
-	NSMGroupVersion    string = "v1"
-	NSMEPPlural        string = "networkserviceendpoints"
-	FullNSMEPName      string = NSMEPPlural + "." + NSMGroup
-	NSMChannelPlural   string = "networkservicechannels"
-	FullNSMChannelName string = NSMChannelPlural + "." + NSMGroup
-	NSMPlural          string = "networkservices"
-	FullNSMName        string = NSMPlural + "." + NSMGroup
+	NSMGroup           = "networkservicemesh.io"
+	NSMGroupVersion    = "v1"
+	NSMEPPlural        = "networkserviceendpoints"
+	FullNSMEPName      = NSMEPPlural + "." + NSMGroup
+	NSMChannelPlural   = "networkservicechannels"
+	FullNSMChannelName = NSMChannelPlural + "." + NSMGroup
+	NSMPlural          = "networkservices"
+	FullNSMName        = NSMPlural + "." + NSMGroup
 )
 
 // NetworkServiceEndpoint CRD
