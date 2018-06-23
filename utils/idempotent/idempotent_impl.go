@@ -19,8 +19,8 @@
 package idempotent
 
 import (
-	"sync"
 	"errors"
+	"sync"
 )
 
 const (

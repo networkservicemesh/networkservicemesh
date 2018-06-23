@@ -65,7 +65,7 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 		expectedCloseErrorMatcher = Equal(expectedCloseErr)
 	}
 
-	_,ok := interface{}(p).(idempotent.Interface)
+	_, ok := interface{}(p).(idempotent.Interface)
 	Expect(ok).To(BeTrue())
 	Expect(p.IsClosed()).To(BeFalse())
 	Expect(p.IsIdempotent()).To(BeTrue())
@@ -102,7 +102,7 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 	err = p.Init()
 	Expect(err).ToNot(BeNil())
 	Expect(err.Error()).To(Equal(idempotent.ReinitErrorStr)) // Confirm we get a ReinitErrorStr
-	Expect(p.RefCount).To(Equal(0))        // See plugin.init() wasn't called again
+	Expect(p.RefCount).To(Equal(0))                          // See plugin.init() wasn't called again
 	Expect(p.IsClosed()).To(BeTrue())
 
 }
