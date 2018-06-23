@@ -41,9 +41,8 @@ func (n *NetworkServicesStore) Add(ns *netmesh.NetworkService) {
 	defer n.Unlock()
 
 	key := meta{
-		name: ns.Name,
-		// TODO replace it with namespace
-		namespace: ns.Uuid,
+		name:      ns.Metadata.Name,
+		namespace: ns.Metadata.Namespace,
 	}
 	if _, ok := n.NetworkService[key]; !ok {
 		// Not in the store, adding it.
