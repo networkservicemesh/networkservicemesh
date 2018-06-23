@@ -61,6 +61,7 @@ type FlavorNetmesh struct {
 	// and namespaces.
 	Netmesh     netmesh.Plugin
 	CRD         netmeshplugincrd.Plugin
+	Handler     handler.Plugin
 	ObjectStore objectstore.Plugin
 
 	injected bool
