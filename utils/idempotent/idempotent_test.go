@@ -68,6 +68,7 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 	_,ok := interface{}(p).(idempotent.Interface)
 	Expect(ok).To(BeTrue())
 	Expect(p.IsClosed()).To(BeFalse())
+	Expect(p.IsIdempotent()).To(BeTrue())
 
 	// Init
 	err := p.Init()

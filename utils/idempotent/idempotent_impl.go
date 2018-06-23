@@ -38,6 +38,11 @@ type Impl struct {
 
 // IsIdempotent returns true if the object is idempotent
 // Its mostly used as a marker to match the IdemPotent interface
+func (i *Impl) IsIdempotent() bool {
+	return true
+}
+
+// IsClosed returns true if an Idempotent plugin is *truely* closed
 func (i *Impl) IsClosed() bool {
 	i.refCountMutex.Lock()
 	defer i.refCountMutex.Unlock()
