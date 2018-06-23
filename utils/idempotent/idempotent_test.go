@@ -50,12 +50,6 @@ func (plugin *Plugin) close() error {
 	return plugin.CloseErr
 }
 
-func TestIdempotentImpl_IsIdempotent(t *testing.T) {
-	RegisterTestingT(t)
-	i := &idempotent.Impl{}
-	Expect(i.IsIdempotent()).To(BeTrue())
-}
-
 func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr error) {
 	RegisterTestingT(t)
 	p := &Plugin{
@@ -73,7 +67,7 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 
 	_,ok := interface{}(p).(idempotent.Interface)
 	Expect(ok).To(BeTrue())
-	Expect(p.IsIdempotent()).To(BeTrue())
+	Expect(p.IsClosed()).To(BeFalse())
 
 	// Init
 	err := p.Init()
@@ -89,22 +83,26 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 	err = p.Close()
 	Expect(err).To(BeNil())         // See a nil error, because p.close() wasn't called
 	Expect(p.RefCount).To(Equal(1)) // See plugin.close() wasn't called
+	Expect(p.IsClosed()).To(BeFalse())
 
 	// Close again
 	err = p.Close()
 	Expect(err).To(expectedCloseErrorMatcher) // See the correct close error
 	Expect(p.RefCount).To(Equal(0))           // See p.close() was called
+	Expect(p.IsClosed()).To(BeTrue())
 
 	// Close even though p.close() was already been called
 	err = p.Close()
 	Expect(err).To(expectedCloseErrorMatcher) // See the correct close error, even though p.close() wasn't called again
 	Expect(p.RefCount).To(Equal(0))           // See p.close() was called
+	Expect(p.IsClosed()).To(BeTrue())
 
 	// Try to re-init after true Close()
 	err = p.Init()
 	Expect(err).ToNot(BeNil())
 	Expect(err.Error()).To(Equal(idempotent.ReinitErrorStr)) // Confirm we get a ReinitErrorStr
 	Expect(p.RefCount).To(Equal(0))        // See plugin.init() wasn't called again
+	Expect(p.IsClosed()).To(BeTrue())
 
 }
 

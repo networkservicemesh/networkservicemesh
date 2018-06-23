@@ -19,5 +19,5 @@
 package idempotent
 
 type Interface interface {
-	IsIdempotent() bool
+	IsClosed() bool
 }
