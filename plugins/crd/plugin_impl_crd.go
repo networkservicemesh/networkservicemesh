@@ -112,16 +112,16 @@ func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
 				"spec": apiextv1beta1.JSONSchemaProps{
 					Required: []string{"metadata"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"metadata": apiextv1beta1.JSONSchemaProps{
+						"metadata": {
 							Required: []string{"name"},
 							Properties: map[string]apiextv1beta1.JSONSchemaProps{
-								"name": apiextv1beta1.JSONSchemaProps{
+								"name": {
 									Type:        "string",
 									MaxLength:   &maxLength,
 									Description: "NetworkServiceEndpoints Name",
 									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 								},
-								"namespace": apiextv1beta1.JSONSchemaProps{
+								"namespace": {
 									Type:        "string",
 									MaxLength:   &maxLength,
 									Description: "NetworkServiceEndpoints Namespace",
@@ -146,16 +146,16 @@ func networkServiceEndpointsValidation() *apiextv1beta1.CustomResourceValidation
 				"spec": apiextv1beta1.JSONSchemaProps{
 					Required: []string{"metadata"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"metadata": apiextv1beta1.JSONSchemaProps{
+						"metadata": {
 							Required: []string{"name"},
 							Properties: map[string]apiextv1beta1.JSONSchemaProps{
-								"name": apiextv1beta1.JSONSchemaProps{
+								"name": {
 									Type:        "string",
 									MaxLength:   &maxLength,
 									Description: "NetworkServiceEndpoints Name",
 									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 								},
-								"namespace": apiextv1beta1.JSONSchemaProps{
+								"namespace": {
 									Type:        "string",
 									MaxLength:   &maxLength,
 									Description: "NetworkServiceEndpoints Namespace",
@@ -180,16 +180,16 @@ func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation 
 				"spec": apiextv1beta1.JSONSchemaProps{
 					Required: []string{"metadata"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"metadata": apiextv1beta1.JSONSchemaProps{
+						"metadata": {
 							Required: []string{"name"},
 							Properties: map[string]apiextv1beta1.JSONSchemaProps{
-								"name": apiextv1beta1.JSONSchemaProps{
+								"name": {
 									Type:        "string",
 									MaxLength:   &maxLength,
 									Description: "NetworkServiceEndpoints Name",
 									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
 								},
-								"namespace": apiextv1beta1.JSONSchemaProps{
+								"namespace": {
 									Type:        "string",
 									MaxLength:   &maxLength,
 									Description: "NetworkServiceEndpoints Namespace",
