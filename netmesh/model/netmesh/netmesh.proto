@@ -21,19 +21,26 @@ syntax = "proto3";
 
 package netmesh;
 
-message NetworkServiceEndpoint {
+message Label {
+    map<string ,string> selector = 1;
+}
+
+message Metadata {
     string name = 1;
-    string uuid = 2;
+    string namespace = 2;
+    Label labels = 3;
+}
+
+message NetworkServiceEndpoint {
+    Metadata metadata = 1;
 };
 
 message NetworkService {
-    string name = 1;
-    string uuid = 2;
-    map<string ,string> selector = 3;
+    Metadata metadata = 1;
 
     message NetmeshChannel {
-        string name = 1;
+        Metadata metadata = 1;
         string payload = 2;
     };
-    repeated NetmeshChannel channels = 4;
+    repeated NetmeshChannel channels = 2;
 };

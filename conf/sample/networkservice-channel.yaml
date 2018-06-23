@@ -3,5 +3,6 @@ kind: NetworkServiceChannel
 metadata:
   name: gold-ethernet
 spec:
-  name: gold-ethernet
+  metadata:
+    name: gold-ethernet
   payload: ethernet

@@ -3,7 +3,9 @@ kind: NetworkService
 metadata:
   name: gold-network
 spec:
-  name: gold-network
+  metadata:
+    name: gold-network
+    namespace: namespace-1
   channels:
     - name: 'gold-ethernet'
   selector: 
