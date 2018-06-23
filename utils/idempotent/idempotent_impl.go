@@ -20,6 +20,11 @@ package idempotent
 
 import (
 	"sync"
+	"errors"
+)
+
+const (
+	ReinitErrorStr = "True Close() has already occurred, plugin can no longer be Init() ed"
 )
 
 // IdemPotentImpl implements methods for wrapping Init() and Close() such that
@@ -41,6 +46,9 @@ func (i *Impl) IsIdempotent() bool {
 func (i *Impl) IdempotentInit(init func() error) error {
 	i.refCountMutex.Lock()
 	defer i.refCountMutex.Unlock()
+	if i.refCount < 0 { // i.refCount < 0 means we are terminally closed and no longer Init-able
+		return errors.New(ReinitErrorStr)
+	}
 	i.refCount++
 	if i.refCount == 1 {
 		i.initErr = init()
@@ -53,9 +61,13 @@ func (i *Impl) IdempotentInit(init func() error) error {
 func (i *Impl) IdempotentClose(close func() error) (err error) {
 	i.refCountMutex.Lock()
 	defer i.refCountMutex.Unlock()
+	if i.refCount < 0 { // i.refCount < 0 means we are terminally closed and no longer Init-able
+		return i.closeErr
+	}
 	i.refCount--
 	if i.refCount == 0 {
 		i.closeErr = close()
+		i.refCount-- // Make sure refcount < 0
 	}
 	return i.closeErr
 }
