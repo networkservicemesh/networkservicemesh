@@ -39,7 +39,7 @@ message NetworkService {
     Metadata metadata = 1;
 
     message NetmeshChannel {
-        string name = 1;
+        Metadata metadata = 1;
         string payload = 2;
     };
     repeated NetmeshChannel channels = 2;
