@@ -18,12 +18,32 @@ import (
 	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 )
+
+// meta is used as a key for each NetworkService object
+type meta struct {
+	name      string
+	namespace string
+}
+
+// ObjectStore stores information about all objects learned by CRDs controller
+// TODO add NetworkServiceEndpoint and NetworkServiceChannel
+type ObjectStore struct {
+	*NetworkServicesStore
+}
+
+func newObjectStore() *ObjectStore {
+	objectStore := &ObjectStore{}
+	objectStore.NetworkServicesStore = newNetworkServicesStore()
+	// TODO add initialization of NetworkServiceEndpoint and NetworkServiceChannel
+	return objectStore
+}
 
 // Plugin is the base plugin object for this CRD handler
 type Plugin struct {
 	Deps
-
+	Objects      *ObjectStore
 	pluginStopCh chan struct{}
 }
 
@@ -33,11 +53,12 @@ type Deps struct {
 	KubeConfig config.PluginConfig
 }
 
-// Init builds K8s client-set based on the supplied kubeconfig and initializes
-// all reflectors.
+// Init initializes ObjectStore
 func (p *Plugin) Init() error {
 	p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan struct{})
+
+	p.Objects = newObjectStore()
 
 	p.Log.Info("><SB> Object store plugin has been initialized.")
 	return nil
@@ -59,27 +80,43 @@ func (p *Plugin) Close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectCreated: %s", obj)
+	p.Log.Infof("ObjectStore.ObjectCreated: %s", obj)
+
+	switch obj.(type) {
+	case netmesh.NetworkService:
+		ns := obj.(netmesh.NetworkService)
+		p.Objects.NetworkServicesStore.Add(&ns)
+	case netmesh.NetworkServiceEndpoint:
+	case netmesh.NetworkService_NetmeshChannel:
+	}
+}
+
+// ListNetworkServices lists all stored NetworkService objects
+func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
+	p.Log.Info("ObjectStore.ListNetworkServices.")
+	return p.Objects.NetworkServicesStore.List()
+}
+
+// ListNetworkServiceEndpoints lists all stored NetworkService objects
+func (p *Plugin) ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint {
+	p.Log.Info("ObjectStore.ListNetworkServiceEndpoints.")
+
+	return nil
+}
+
+// ListNetworkServiceChannels lists all stored NetworkService objects
+func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel {
+	p.Log.Info("ObjectStore.ListNetworkServiceChannels.")
+
+	return nil
 }
 
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectDeleted: %s", obj)
+	p.Log.Infof("ObjectStore.ObjectDeleted: %s", obj)
 }
 
 // ObjectUpdated is called when an object is updated
 func (p *Plugin) ObjectUpdated(objOld, objNew interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectUpdated: %s", objNew)
-}
-
-// meta is used as a key for each NetworkService object
-type meta struct {
-	name      string
-	namespace string
-}
-
-// ObjectStore stores information about all objects learned by CRDs controller
-// TODO add NetworkServiceEndpoint and NetworkServiceChannel
-type ObjectStore struct {
-	NetworkServicesStore
+	p.Log.Infof("ObjectStore.ObjectUpdated: %s", objNew)
 }

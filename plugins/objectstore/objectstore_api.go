@@ -14,9 +14,16 @@
 
 package objectstore
 
+import (
+	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+)
+
 // API is the interface to a ObjectStore handler plugin
 type API interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
 	ObjectUpdated(objOld, objNew interface{})
+	ListNetworkServices() []*netmesh.NetworkService
+	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint
+	ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel
 }

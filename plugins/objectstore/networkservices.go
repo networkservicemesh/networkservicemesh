@@ -23,15 +23,15 @@ import (
 // NetworkServicesStore map stores all discovered Network Service Object
 // with a key composed of a name and a namespace
 type NetworkServicesStore struct {
-	Store map[meta]*netmesh.NetworkService
+	NetworkService map[meta]*netmesh.NetworkService
 	sync.RWMutex
 }
 
 // NewNetworkServicesStore instantiates a new instance of a global
 // NetworkServices store. It must be initialized before any controllers start.
-func NewNetworkServicesStore() *NetworkServicesStore {
+func newNetworkServicesStore() *NetworkServicesStore {
 	return &NetworkServicesStore{
-		Store: map[meta]*netmesh.NetworkService{}}
+		NetworkService: map[meta]*netmesh.NetworkService{}}
 }
 
 // Add method adds descovered NetworkService if it does not
@@ -45,9 +45,9 @@ func (n *NetworkServicesStore) Add(ns *netmesh.NetworkService) {
 		// TODO replace it with namespace
 		namespace: ns.Uuid,
 	}
-	if _, ok := n.Store[key]; !ok {
+	if _, ok := n.NetworkService[key]; !ok {
 		// Not in the store, adding it.
-		n.Store[key] = ns
+		n.NetworkService[key] = ns
 	}
 }
 
@@ -56,8 +56,8 @@ func (n *NetworkServicesStore) Delete(key meta) {
 	n.Lock()
 	defer n.Unlock()
 
-	if _, ok := n.Store[key]; ok {
-		delete(n.Store, key)
+	if _, ok := n.NetworkService[key]; ok {
+		delete(n.NetworkService, key)
 	}
 }
 
@@ -66,7 +66,7 @@ func (n *NetworkServicesStore) List() []*netmesh.NetworkService {
 	n.Lock()
 	defer n.Unlock()
 	networkServices := []*netmesh.NetworkService{}
-	for _, ns := range n.Store {
+	for _, ns := range n.NetworkService {
 		networkServices = append(networkServices, ns)
 	}
 
