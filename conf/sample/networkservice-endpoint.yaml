@@ -3,4 +3,5 @@ kind: NetworkServiceEndpoint
 metadata:
   name: gold-endpoint-1
 spec:
-  name: gold-endpoint-1
+  metadata:
+    name: gold-endpoint-1

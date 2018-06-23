@@ -127,8 +127,10 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService{
-					Name: "nsm-service-1",
-					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-1",
+						Namespace: "nsm-service-1-namespace",
+					},
 				},
 			},
 			expectFail: false,
@@ -141,22 +143,26 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService{
-					Name: "nsm-service-1",
-					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-serv%ice-1",
+						Namespace: "nsm-service-1-namespace",
+					},
 				},
 			},
 			expectFail: true,
 		},
 		{
-			testName: "Network Service incorrect UUID",
+			testName: "Network Service incorrect namespace",
 			ns: v1.NetworkService{
 				ObjectMeta: meta.ObjectMeta{
 					Name:      "nsm-service-1",
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService{
-					Name: "nsm-service-1",
-					Uuid: "81a6688-4052-46d3-989-742da5a04b70",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-1",
+						Namespace: "nsm-service-1-$namespace",
+					},
 				},
 			},
 			expectFail: true,
@@ -190,8 +196,10 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkServiceEndpoint{
-					Name: "nsm-service-endpoint-1",
-					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-endpoint-1",
+						Namespace: "nsm-service-endpoint-1-namespace",
+					},
 				},
 			},
 			expectFail: false,
@@ -204,22 +212,26 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkServiceEndpoint{
-					Name: "nsm-service-endpoint-1",
-					Uuid: "81a66881-4052-46d3-9890-742da5a04b70",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-%endpoint-1",
+						Namespace: "nsm-service-endpoint-1-namespace",
+					},
 				},
 			},
 			expectFail: true,
 		},
 		{
-			testName: "Network Service Endpoint incorrect UUID",
+			testName: "Network Service Endpoint incorrect namespace",
 			ns: v1.NetworkServiceEndpoint{
 				ObjectMeta: meta.ObjectMeta{
 					Name:      "nsm-service-endpoint-1",
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkServiceEndpoint{
-					Name: "nsm-service-1",
-					Uuid: "81a6688-4052-46d3-989-742da5a04b70",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-endpoint-1",
+						Namespace: "nsm-service-endpoint-1-name$space",
+					},
 				},
 			},
 			expectFail: true,
@@ -253,8 +265,10 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService_NetmeshChannel{
-					Name:    "nsm-service-channel-1",
-					Payload: "IPv4",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-channel-1",
+						Namespace: "nsm-service-channel-1-namespace",
+					},
 				},
 			},
 			expectFail: false,
@@ -267,8 +281,26 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService_NetmeshChannel{
-					Name:    "nsm-service-endpoint-1",
-					Payload: "IPv4",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-c%h&annel-1",
+						Namespace: "nsm-service-channel-1-namespace",
+					},
+				},
+			},
+			expectFail: true,
+		},
+		{
+			testName: "Network Service Channel incorrect namespace",
+			ns: v1.NetworkServiceChannel{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "nsm-service-channel-1",
+					Namespace: nsmTestNamespace,
+				},
+				Spec: netmesh.NetworkService_NetmeshChannel{
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-channel-1",
+						Namespace: "nsm-service-cha&nnel-1-namespace",
+					},
 				},
 			},
 			expectFail: true,
@@ -281,7 +313,10 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService_NetmeshChannel{
-					Name:    "nsm-service-1",
+					Metadata: &netmesh.Metadata{
+						Name:      "nsm-service-channel-1",
+						Namespace: "nsm-service-channel-1-namespace",
+					},
 					Payload: "IP%v4%",
 				},
 			},
