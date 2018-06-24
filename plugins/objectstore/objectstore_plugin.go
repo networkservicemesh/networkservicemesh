@@ -33,6 +33,14 @@ type ObjectStore struct {
 	*NetworkServicesStore
 }
 
+// sharedPlugin is used to provide access to ObjectStore to other plugins
+var sharedPlugin *Plugin
+
+// SharedPlugin returns a pointer to the actual plugin struct
+func SharedPlugin() *Plugin {
+	return sharedPlugin
+}
+
 func newObjectStore() *ObjectStore {
 	objectStore := &ObjectStore{}
 	objectStore.NetworkServicesStore = newNetworkServicesStore()
@@ -42,8 +50,8 @@ func newObjectStore() *ObjectStore {
 
 // Plugin is the base plugin object for this CRD handler
 type Plugin struct {
+	Objects *ObjectStore
 	Deps
-	Objects      *ObjectStore
 	pluginStopCh chan struct{}
 	idempotent.Impl
 }
@@ -64,6 +72,7 @@ func (p *Plugin) init() error {
 
 	p.Objects = newObjectStore()
 
+	sharedPlugin = p
 	p.Log.Info("><SB> Object store plugin has been initialized.")
 	return nil
 }

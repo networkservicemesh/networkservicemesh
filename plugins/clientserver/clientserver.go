@@ -15,8 +15,13 @@
 package clientserver
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
 )
 
 // Plugin is the base plugin object for this CRD handler
@@ -43,9 +48,10 @@ func (p *Plugin) Init() error {
 func (p *Plugin) AfterInit() error {
 	p.Log.Info("AfterInit")
 	var err error
+	objectStore := objectstore.SharedPlugin()
 	go func() {
-		err := ObjectStoreCommunicator(p)
-		p.Log.Errorf("ClientServer.AfterInit failed to start ObjectStoreCommunicator with error: %+v", err)
+		ObjectStoreCommunicator(p, objectStore)
+		// p.Log.Errorf("ClientServer.AfterInit failed to start ObjectStoreCommunicator with error: %+v", err)
 	}()
 	return err
 }
@@ -58,7 +64,23 @@ func (p *Plugin) Close() error {
 }
 
 // ObjectStoreCommunicator is used to communicate with ObjectStore
-func ObjectStoreCommunicator(p *Plugin) error {
-
-	return nil
+func ObjectStoreCommunicator(p *Plugin, objectStore *objectstore.Plugin) {
+	ns := netmesh.NetworkService{
+		Metadata: &netmesh.Metadata{},
+	}
+	for i := 0; i < 5; i++ {
+		ns = netmesh.NetworkService{
+			Metadata: &netmesh.Metadata{
+				Name:      "Network" + fmt.Sprintf("-%d", i),
+				Namespace: "default",
+			},
+		}
+		objectStore.ObjectCreated(ns)
+	}
+	for {
+		for _, n := range objectStore.ListNetworkServices() {
+			p.Log.Infof("%+v", n)
+		}
+		time.Sleep(1 * time.Minute)
+	}
 }

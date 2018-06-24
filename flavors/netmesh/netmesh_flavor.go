@@ -104,7 +104,7 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 
 	// (sbezverk) For testing purposes, the goal is to use methods published by ObjectStore
 	// to populate its data structures and request list of all elements
-	f.ObjectStore.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("clientserver")
+	f.ClientServer.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("clientserver")
 
 	return true
 }
