@@ -335,6 +335,7 @@
     "credentials",
     "encoding",
     "encoding/proto",
+    "examples/helloworld/helloworld",
     "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "internal",
@@ -570,6 +571,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4a5e6ea2a0fa2fec023ba21d15d91676434a6375642834cf41da7ae3396836ca"
+  inputs-digest = "6ae9916530f879f5568b25635e666816fbba443511d7994a4024d9ba65b346cd"
   solver-name = "gps-cdcl"
   solver-version = 1

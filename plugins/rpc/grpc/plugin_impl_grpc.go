@@ -33,11 +33,28 @@ func (plugin *Plugin) init() error {
 	if err != nil {
 		return err
 	}
-	// Init dependencies
+	err = idempotent.SafeInit(plugin.Deps.HTTP)
+	if err != nil {
+		return err
+	}
 	err = plugin.Plugin.AfterInit()
 	return err
 }
 
 func (plugin *Plugin) Close() error {
 	return plugin.IdempotentClose(plugin.Plugin.Close)
+}
+
+func (plugin *Plugin) close() error {
+	// Its important that both of plugin and plugin.Deps.HTTP are closed
+	err := plugin.IdempotentClose(plugin.close)
+	// plugin must be closed before we can close its dependency
+	httpErr := idempotent.SafeClose(plugin.Deps.HTTP)
+	if err != nil {
+		return err
+	}
+	if httpErr != nil {
+		return httpErr
+	}
+	return nil
 }

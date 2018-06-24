@@ -22,32 +22,41 @@ import (
 	"sync"
 )
 
-var sharedPlugin *Plugin
-var once sync.Once
+type sharedKey struct {
+	grpc.Deps
+	grpc.Config
+}
 
-func SharedPlugin() *Plugin {
-	once.Do(func() {
-		sharedPlugin = NewPlugin()
-	})
-	return sharedPlugin
+var sharedPlugins sync.Map
+
+func SharedPlugin(opts ...Option) *Plugin {
+	plugin := NewPlugin(opts...)
+	key := &sharedKey{
+		plugin.Deps,
+		*plugin.Config,
+	}
+	p, _ := sharedPlugins.LoadOrStore(key, plugin)
+	return p.(*Plugin)
 }
 
 func NewPlugin(opts ...Option) *Plugin {
-	p := &Plugin{}
+	p := &Plugin{Plugin: &grpc.Plugin{}}
 
 	for _, o := range opts {
 		o(p)
 	}
 
-	deps := &p.Deps
-	if deps.PluginName == "" {
-		deps.PluginName = "GRPC"
+	if p.Plugin == nil {
+		p.Plugin = &grpc.Plugin{}
 	}
-	if deps.Log == nil {
-		deps.Log = logging.ForPlugin(string(deps.PluginName), logrus.NewLogRegistry())
+	if p.Plugin.Deps.PluginName == "" {
+		p.Plugin.Deps.PluginName = "GRPC"
 	}
-	if deps.PluginConfig == nil {
-		deps.PluginConfig = config.ForPlugin(string(deps.PluginName))
+	if p.Plugin.Deps.Log == nil {
+		p.Plugin.Deps.Log = logging.ForPlugin(string(p.Plugin.Deps.PluginName), logrus.NewLogRegistry())
+	}
+	if p.Plugin.Deps.PluginConfig == nil {
+		p.Plugin.Deps.PluginConfig = config.ForPlugin(string(p.Plugin.Deps.PluginName))
 	}
 
 	return p
