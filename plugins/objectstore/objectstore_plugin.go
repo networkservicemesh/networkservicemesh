@@ -15,10 +15,10 @@
 package objectstore
 
 import (
-	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
 // meta is used as a key for each NetworkService object
@@ -45,16 +45,20 @@ type Plugin struct {
 	Deps
 	Objects      *ObjectStore
 	pluginStopCh chan struct{}
+	idempotent.Impl
 }
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
 	local.PluginInfraDeps
-	KubeConfig config.PluginConfig
 }
 
-// Init initializes ObjectStore
+// Init initializes ObjectStore plugin
 func (p *Plugin) Init() error {
+	return p.IdempotentInit(p.init)
+}
+
+func (p *Plugin) init() error {
 	p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan struct{})
 
@@ -73,8 +77,11 @@ func (p *Plugin) AfterInit() error {
 
 // Close is called when the plugin is being stopped
 func (p *Plugin) Close() error {
-	p.Log.Info("Close")
+	return p.IdempotentClose(p.close)
+}
 
+func (p *Plugin) close() error {
+	p.Log.Info("Close")
 	return nil
 }
 
