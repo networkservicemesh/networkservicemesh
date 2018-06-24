@@ -40,24 +40,13 @@ func SharedPlugin(opts ...Option) *Plugin {
 }
 
 func NewPlugin(opts ...Option) *Plugin {
-	p := &Plugin{Plugin: &grpc.Plugin{}}
+	p := &Plugin{}
 
 	for _, o := range opts {
 		o(p)
 	}
 
-	if p.Plugin == nil {
-		p.Plugin = &grpc.Plugin{}
-	}
-	if p.Plugin.Deps.PluginName == "" {
-		p.Plugin.Deps.PluginName = "GRPC"
-	}
-	if p.Plugin.Deps.Log == nil {
-		p.Plugin.Deps.Log = logging.ForPlugin(string(p.Plugin.Deps.PluginName), logrus.NewLogRegistry())
-	}
-	if p.Plugin.Deps.PluginConfig == nil {
-		p.Plugin.Deps.PluginConfig = config.ForPlugin(string(p.Plugin.Deps.PluginName))
-	}
+	DefaultDeps()(p)
 
 	return p
 }
@@ -71,6 +60,21 @@ func UseDeps(deps grpc.Deps) Option {
 		d.Log = deps.Log
 		d.PluginConfig = deps.PluginConfig
 		d.HTTP = deps.HTTP
+	}
+}
+
+func DefaultDeps() Option {
+	return func(p *Plugin) {
+		d := &p.Deps
+		if d.PluginName == "" {
+			d.PluginName = "GRPC"
+		}
+		if d.Log == nil {
+			d.Log = logging.ForPlugin(string(d.PluginName), logrus.NewLogRegistry())
+		}
+		if d.PluginConfig == nil {
+			d.PluginConfig = config.ForPlugin(string(p.Plugin.Deps.PluginName))
+		}
 	}
 }
 

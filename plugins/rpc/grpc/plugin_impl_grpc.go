@@ -21,7 +21,7 @@ import (
 
 type Plugin struct {
 	idempotent.Impl
-	*grpc.Plugin
+	grpc.Plugin
 }
 
 func (plugin *Plugin) Init() error {
