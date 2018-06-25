@@ -315,7 +315,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 
 	plugin.informerNSC = plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Informer()
 	// we add a new event handler, watching for changes to API resources.
-	plugin.informerNS.AddEventHandler(
+	plugin.informerNSC.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				var newEvent handler.NsmEvent
@@ -377,7 +377,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 
 	plugin.informerNSE = plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Informer()
 	// we add a new event handler, watching for changes to API resources.
-	plugin.informerNS.AddEventHandler(
+	plugin.informerNSE.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				var newEvent handler.NsmEvent

@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/plugins/handler"
 )
 
@@ -97,14 +96,6 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 
 			// Verify if this was a delete vs. an add/update
 			if !exists {
-				switch item.(type) {
-				case v1.NetworkService:
-					plugin.Log.Info("FOUND NetworkService ITEM TYPE")
-				case v1.NetworkServiceChannel:
-					plugin.Log.Info("FOUND NetworkServiceChannel ITEM TYPE")
-				case v1.NetworkServiceEndpoint:
-					plugin.Log.Info("FOUND NetworkServiceEndpoint ITEM TYPE")
-				}
 				plugin.Log.Infof("Object (%s) deleted from queue", name)
 				plugin.HandlerAPI.ObjectDeleted(item, newEvent.(handler.NsmEvent))
 			} else {
