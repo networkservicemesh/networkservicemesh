@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	"github.com/ligato/networkservicemesh/plugins/handler"
 )
 
 // QueueRetryCount is the max number of times to retry processing a failed item
@@ -46,7 +47,7 @@ var (
 func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer cache.SharedIndexInformer, stopCH chan struct{}) {
 	for {
 		// We read a message off the queue ...
-		key, shutdown := queue.Get()
+		newEvent, shutdown := queue.Get()
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
@@ -59,15 +60,12 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 		// simply discard it as invalid data and log a message.
 		var strKey string
 		var ok bool
-		if strKey, ok = key.(string); !ok {
-			runtime.HandleError(fmt.Errorf("key in queue should be of type string but got %T. discarding", key))
-			return
-		}
+		strKey = newEvent.(handler.NsmEvent).KeyCur
 
 		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
-			defer queue.Done(key)
+			defer queue.Done(newEvent)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
@@ -75,7 +73,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			if err != nil {
 				// This is a soft-error
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				queue.Forget(key)
+				queue.Forget(newEvent)
 				return
 			}
 
@@ -89,12 +87,12 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			if err != nil {
 				if queue.NumRequeues(key) < QueueRetryCount {
 					plugin.Log.Errorf("Requeueing after error processing item with key %s, error %v", key, err)
-					queue.AddRateLimited(key)
+					queue.AddRateLimited(newEvent)
 					return
 				}
 
 				plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
-				queue.Forget(key)
+				queue.Forget(newEvent)
 				return
 			}
 
@@ -109,15 +107,15 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 					plugin.Log.Info("FOUND NetworkServiceEndpoint ITEM TYPE")
 				}
 				plugin.Log.Infof("Object (%s) deleted from queue", name)
-				plugin.HandlerAPI.ObjectDeleted(item)
+				plugin.HandlerAPI.ObjectDeleted(item, newEvent.(handler.NsmEvent))
 			} else {
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-				plugin.HandlerAPI.ObjectCreated(item)
+				plugin.HandlerAPI.ObjectCreated(item, newEvent.(handler.NsmEvent))
 			}
 
 			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
-			queue.Forget(key)
+			queue.Forget(newEvent)
 		}(strKey)
 	}
 }

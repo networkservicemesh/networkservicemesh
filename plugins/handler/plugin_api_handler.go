@@ -14,9 +14,22 @@
 
 package handler
 
+const (
+	NetworkServiceResource         = "networkservice"
+	NetworkServiceChannelResource  = "networkservicechannel"
+	NetworkServiceEndpointResource = "networkserviceendpoint"
+)
+
+type NsmEvent struct {
+	KeyOld       string
+	KeyCur       string
+	EventType    string
+	ResourceType string
+}
+
 // API is the interface to a CRD handler plugin
 type API interface {
-	ObjectCreated(obj interface{})
-	ObjectDeleted(obj interface{})
-	ObjectUpdated(objOld, objNew interface{})
+	ObjectCreated(obj interface{}, event NsmEvent)
+	ObjectDeleted(obj interface{}, event NsmEvent)
+	ObjectUpdated(objOld, objNew interface{}, event NsmEvent)
 }
