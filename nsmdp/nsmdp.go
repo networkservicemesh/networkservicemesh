@@ -66,7 +66,9 @@ func startClientServer(client *nsmSocket, logger logging.PluginLogger) {
 	listenEndpoint := client.socketPath
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
-		os.Remove(listenEndpoint)
+		if err := os.Remove(listenEndpoint); err != nil {
+			logger.Error("Cannot remove listen endpoint", listenEndpoint, err)
+		}
 	}
 	if err != nil && !os.IsNotExist(err) {
 		logger.Errorf("failure stat of socket file %s with error: %+v", client.socketPath, err)
@@ -84,7 +86,11 @@ func startClientServer(client *nsmSocket, logger logging.PluginLogger) {
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 
 	logger.Infof("Starting Client gRPC server listening on socket: %s", serverSock)
-	go grpcServer.Serve(sock)
+	go func() {
+		if err := grpcServer.Serve(sock); err != nil {
+			logger.Fatalln("unable to start client grpc server: ", serverSock, err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	conn, err := dial(ctx, listenEndpoint)
@@ -223,7 +229,11 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
 	nsm.logger.Infof("Starting Device Plugin's gRPC server listening on socket: %s", serverSock)
-	go grpcServer.Serve(sock)
+	go func() {
+		if err := grpcServer.Serve(sock); err != nil {
+			nsm.logger.Error("failed to start device plugin grpc server", listenEndpoint, err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	conn, err := dial(ctx, listenEndpoint)
