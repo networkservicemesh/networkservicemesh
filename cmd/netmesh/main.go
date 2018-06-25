@@ -15,11 +15,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/ligato/cn-infra/core"
 	"github.com/ligato/networkservicemesh/flavors/netmesh"
+	"log"
 )
 
 // netmesh main entry point.
@@ -27,7 +25,6 @@ func main() {
 	// netmesh is a CN-infra based agent.
 	agentVar := netmesh.NewAgent()
 	if err := core.EventLoopWithInterrupt(agentVar, nil); err != nil {
-		fmt.Printf("Failed to start core agent in network mesh service err: %v\n", err)
-		os.Exit(1)
+		log.Fatalln("Failed to start core agent in network mesh service err:", err)
 	}
 }
