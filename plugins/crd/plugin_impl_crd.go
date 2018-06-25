@@ -324,7 +324,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				newEvent.EventType = "create"
 				newEvent.ResourceType = handler.NetworkServiceChannelResource
 				if err == nil {
-					queueNS.Add(newEvent)
+					queueNSC.Add(newEvent)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
@@ -335,7 +335,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				newEvent.EventType = "update"
 				newEvent.ResourceType = handler.NetworkServiceChannelResource
 				if err1 == nil && err2 == nil {
-					queueNS.Add(newEvent)
+					queueNSC.Add(newEvent)
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
@@ -345,7 +345,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				newEvent.EventType = "delete"
 				newEvent.ResourceType = handler.NetworkServiceChannelResource
 				if err == nil {
-					queueNS.Add(newEvent)
+					queueNSC.Add(newEvent)
 				}
 			},
 		},
@@ -386,7 +386,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				newEvent.EventType = "create"
 				newEvent.ResourceType = handler.NetworkServiceEndpointResource
 				if err == nil {
-					queueNS.Add(newEvent)
+					queueNSE.Add(newEvent)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
@@ -397,7 +397,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				newEvent.EventType = "update"
 				newEvent.ResourceType = handler.NetworkServiceEndpointResource
 				if err1 == nil && err2 == nil {
-					queueNS.Add(newEvent)
+					queueNSE.Add(newEvent)
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
@@ -407,7 +407,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				newEvent.EventType = "delete"
 				newEvent.ResourceType = handler.NetworkServiceEndpointResource
 				if err == nil {
-					queueNS.Add(newEvent)
+					queueNSE.Add(newEvent)
 				}
 			},
 		},
