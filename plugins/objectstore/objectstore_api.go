@@ -18,8 +18,8 @@ import (
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 )
 
-// API is the interface to a ObjectStore handler plugin
-type API interface {
+// Interface is the interface to a ObjectStore handler plugin
+type Interface interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
 	ObjectUpdated(objOld, objNew interface{})

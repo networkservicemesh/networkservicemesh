@@ -22,21 +22,21 @@ import (
 
 // NetworkServicesStore map stores all discovered Network Service Object
 // with a key composed of a name and a namespace
-type NetworkServicesStore struct {
-	NetworkService map[meta]*netmesh.NetworkService
+type networkServicesStore struct {
+	networkService map[meta]*netmesh.NetworkService
 	sync.RWMutex
 }
 
 // NewNetworkServicesStore instantiates a new instance of a global
 // NetworkServices store. It must be initialized before any controllers start.
-func newNetworkServicesStore() *NetworkServicesStore {
-	return &NetworkServicesStore{
-		NetworkService: map[meta]*netmesh.NetworkService{}}
+func newNetworkServicesStore() *networkServicesStore {
+	return &networkServicesStore{
+		networkService: map[meta]*netmesh.NetworkService{}}
 }
 
 // Add method adds descovered NetworkService if it does not
 // already exit in the store.
-func (n *NetworkServicesStore) Add(ns *netmesh.NetworkService) {
+func (n *networkServicesStore) Add(ns *netmesh.NetworkService) {
 	n.Lock()
 	defer n.Unlock()
 
@@ -44,28 +44,28 @@ func (n *NetworkServicesStore) Add(ns *netmesh.NetworkService) {
 		name:      ns.Metadata.Name,
 		namespace: ns.Metadata.Namespace,
 	}
-	if _, ok := n.NetworkService[key]; !ok {
+	if _, ok := n.networkService[key]; !ok {
 		// Not in the store, adding it.
-		n.NetworkService[key] = ns
+		n.networkService[key] = ns
 	}
 }
 
 // Delete method deletes removed NetworkService object from the store.
-func (n *NetworkServicesStore) Delete(key meta) {
+func (n *networkServicesStore) Delete(key meta) {
 	n.Lock()
 	defer n.Unlock()
 
-	if _, ok := n.NetworkService[key]; ok {
-		delete(n.NetworkService, key)
+	if _, ok := n.networkService[key]; ok {
+		delete(n.networkService, key)
 	}
 }
 
 // List method lists all known NetworkService objects.
-func (n *NetworkServicesStore) List() []*netmesh.NetworkService {
+func (n *networkServicesStore) List() []*netmesh.NetworkService {
 	n.Lock()
 	defer n.Unlock()
 	networkServices := []*netmesh.NetworkService{}
-	for _, ns := range n.NetworkService {
+	for _, ns := range n.networkService {
 		networkServices = append(networkServices, ns)
 	}
 

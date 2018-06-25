@@ -64,7 +64,7 @@ func (p *Plugin) Close() error {
 }
 
 // ObjectStoreCommunicator is used to communicate with ObjectStore
-func ObjectStoreCommunicator(p *Plugin, objectStore *objectstore.Plugin) {
+func ObjectStoreCommunicator(p *Plugin, objectStore objectstore.Interface) {
 	ns := netmesh.NetworkService{
 		Metadata: &netmesh.Metadata{},
 	}

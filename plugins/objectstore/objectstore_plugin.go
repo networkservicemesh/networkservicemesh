@@ -29,28 +29,28 @@ type meta struct {
 
 // ObjectStore stores information about all objects learned by CRDs controller
 // TODO add NetworkServiceEndpoint and NetworkServiceChannel
-type ObjectStore struct {
-	*NetworkServicesStore
+type objectStore struct {
+	*networkServicesStore
 }
 
 // sharedPlugin is used to provide access to ObjectStore to other plugins
 var sharedPlugin *Plugin
 
 // SharedPlugin returns a pointer to the actual plugin struct
-func SharedPlugin() *Plugin {
+func SharedPlugin() Interface {
 	return sharedPlugin
 }
 
-func newObjectStore() *ObjectStore {
-	objectStore := &ObjectStore{}
-	objectStore.NetworkServicesStore = newNetworkServicesStore()
+func newObjectStore() *objectStore {
+	objectStore := &objectStore{}
+	objectStore.networkServicesStore = newNetworkServicesStore()
 	// TODO add initialization of NetworkServiceEndpoint and NetworkServiceChannel
 	return objectStore
 }
 
 // Plugin is the base plugin object for this CRD handler
 type Plugin struct {
-	Objects *ObjectStore
+	objects *objectStore
 	Deps
 	pluginStopCh chan struct{}
 	idempotent.Impl
@@ -70,7 +70,7 @@ func (p *Plugin) init() error {
 	p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan struct{})
 
-	p.Objects = newObjectStore()
+	p.objects = newObjectStore()
 
 	sharedPlugin = p
 	p.Log.Info("><SB> Object store plugin has been initialized.")
@@ -101,7 +101,7 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 	switch obj.(type) {
 	case netmesh.NetworkService:
 		ns := obj.(netmesh.NetworkService)
-		p.Objects.NetworkServicesStore.Add(&ns)
+		p.objects.networkServicesStore.Add(&ns)
 	case netmesh.NetworkServiceEndpoint:
 	case netmesh.NetworkService_NetmeshChannel:
 	}
@@ -110,7 +110,7 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 // ListNetworkServices lists all stored NetworkService objects
 func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 	p.Log.Info("ObjectStore.ListNetworkServices.")
-	return p.Objects.NetworkServicesStore.List()
+	return p.objects.networkServicesStore.List()
 }
 
 // ListNetworkServiceEndpoints lists all stored NetworkService objects
