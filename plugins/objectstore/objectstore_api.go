@@ -15,7 +15,14 @@
 package objectstore
 
 import (
+	"time"
+
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+)
+
+const (
+	// ObjectStoreReadyInterval defines readiness retry interval
+	ObjectStoreReadyInterval = time.Second * 10
 )
 
 // Interface is the interface to a ObjectStore handler plugin

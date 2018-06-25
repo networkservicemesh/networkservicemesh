@@ -40,7 +40,6 @@ func (p *Plugin) Init() error {
 	p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan struct{})
 
-	p.Log.Info("><SB> Clinet Server plugin has been initialized.")
 	return nil
 }
 
@@ -48,7 +47,22 @@ func (p *Plugin) Init() error {
 func (p *Plugin) AfterInit() error {
 	p.Log.Info("AfterInit")
 	var err error
-	objectStore := objectstore.SharedPlugin()
+	var objectStore objectstore.Interface
+
+	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
+	defer ticker.Stop()
+	// Loop to wait for the initialization of ObjectStore
+	ready := false
+	for !ready {
+		select {
+		case <-ticker.C:
+			if objectStore = objectstore.SharedPlugin(); objectStore != nil {
+				ready = true
+				ticker.Stop()
+			}
+		}
+	}
+
 	go func() {
 		ObjectStoreCommunicator(p, objectStore)
 		// p.Log.Errorf("ClientServer.AfterInit failed to start ObjectStoreCommunicator with error: %+v", err)
