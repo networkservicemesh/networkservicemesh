@@ -59,13 +59,15 @@ func (p *Plugin) AfterInit() error {
 			if objectStore = objectstore.SharedPlugin(); objectStore != nil {
 				ready = true
 				ticker.Stop()
+				p.Log.Info("ObjectStore is ready, starting Consumer...")
+			} else {
+				p.Log.Info("ObjectStore is NOT ready, waiting...")
 			}
 		}
 	}
 
 	go func() {
 		ObjectStoreCommunicator(p, objectStore)
-		// p.Log.Errorf("ClientServer.AfterInit failed to start ObjectStoreCommunicator with error: %+v", err)
 	}()
 	return err
 }
@@ -93,7 +95,7 @@ func ObjectStoreCommunicator(p *Plugin, objectStore objectstore.Interface) {
 	}
 	for {
 		for _, n := range objectStore.ListNetworkServices() {
-			p.Log.Infof("%+v", n)
+			p.Log.Infof("NetworkService: %s/%s", n.Metadata.Namespace, n.Metadata.Name)
 		}
 		time.Sleep(1 * time.Minute)
 	}

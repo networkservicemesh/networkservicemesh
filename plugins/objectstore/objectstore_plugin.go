@@ -69,11 +69,9 @@ func (p *Plugin) Init() error {
 func (p *Plugin) init() error {
 	p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan struct{})
-
 	p.objects = newObjectStore()
-
 	sharedPlugin = p
-	p.Log.Info("><SB> Object store plugin has been initialized.")
+
 	return nil
 }
 
@@ -113,26 +111,14 @@ func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 	return p.objects.networkServicesStore.List()
 }
 
-// ListNetworkServiceEndpoints lists all stored NetworkService objects
-func (p *Plugin) ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint {
-	p.Log.Info("ObjectStore.ListNetworkServiceEndpoints.")
-
-	return nil
-}
-
-// ListNetworkServiceChannels lists all stored NetworkService objects
-func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel {
-	p.Log.Info("ObjectStore.ListNetworkServiceChannels.")
-
-	return nil
-}
-
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
 	p.Log.Infof("ObjectStore.ObjectDeleted: %s", obj)
-}
-
-// ObjectUpdated is called when an object is updated
-func (p *Plugin) ObjectUpdated(objOld, objNew interface{}) {
-	p.Log.Infof("ObjectStore.ObjectUpdated: %s", objNew)
+	switch obj.(type) {
+	case netmesh.NetworkService:
+		ns := obj.(netmesh.NetworkService)
+		p.objects.networkServicesStore.Delete(meta{name: ns.Metadata.Name, namespace: ns.Metadata.Namespace})
+	case netmesh.NetworkServiceEndpoint:
+	case netmesh.NetworkService_NetmeshChannel:
+	}
 }
