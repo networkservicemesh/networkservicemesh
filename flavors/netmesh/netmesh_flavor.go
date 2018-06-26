@@ -23,6 +23,7 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/crd"
 	"github.com/ligato/networkservicemesh/plugins/handler"
 	"github.com/ligato/networkservicemesh/plugins/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
 )
 
 const (
@@ -58,11 +59,11 @@ type FlavorNetmesh struct {
 	*rpc.FlavorRPC
 	// Kubernetes State Reflector plugin works as a reflector for policies, pods
 	// and namespaces.
-	Netmesh netmesh.Plugin
-	CRD     netmeshplugincrd.Plugin
-	Handler handler.Plugin
-
-	injected bool
+	Netmesh     netmesh.Plugin
+	CRD         netmeshplugincrd.Plugin
+	Handler     handler.Plugin
+	ObjectStore objectstore.Plugin
+	injected    bool
 }
 
 // Inject sets inter-plugin references.
@@ -91,6 +92,9 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 	f.CRD.HandlerAPI = &f.Handler
 	f.Handler.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmeshhandler")
 	f.Handler.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
+
+	// ObjectStore plugin
+	f.ObjectStore.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("objectstore")
 
 	return true
 }
