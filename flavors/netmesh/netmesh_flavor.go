@@ -20,7 +20,6 @@ import (
 	"github.com/ligato/cn-infra/core"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/flavors/rpc"
-	"github.com/ligato/networkservicemesh/plugins/clientserver"
 	"github.com/ligato/networkservicemesh/plugins/crd"
 	"github.com/ligato/networkservicemesh/plugins/handler"
 	"github.com/ligato/networkservicemesh/plugins/netmesh"
@@ -64,12 +63,7 @@ type FlavorNetmesh struct {
 	CRD         netmeshplugincrd.Plugin
 	Handler     handler.Plugin
 	ObjectStore objectstore.Plugin
-
-	// (sbezverk) For testing purposes, the goal is to use methods published by ObjectStore
-	// to populate its data structures and request list of all elements
-	ClientServer clientserver.Plugin
-
-	injected bool
+	injected    bool
 }
 
 // Inject sets inter-plugin references.
@@ -101,10 +95,6 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 
 	// ObjectStore plugin
 	f.ObjectStore.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("objectstore")
-
-	// (sbezverk) For testing purposes, the goal is to use methods published by ObjectStore
-	// to populate its data structures and request list of all elements
-	f.ClientServer.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("clientserver")
 
 	return true
 }
