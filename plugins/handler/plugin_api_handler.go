@@ -18,6 +18,9 @@ const (
 	NetworkServiceResource         = "networkservice"
 	NetworkServiceChannelResource  = "networkservicechannel"
 	NetworkServiceEndpointResource = "networkserviceendpoint"
+	HandlerCreate                  = "create"
+	HandlerDelete                  = "delete"
+	HandlerUpdate                  = "update"
 )
 
 type NsmEvent struct {
