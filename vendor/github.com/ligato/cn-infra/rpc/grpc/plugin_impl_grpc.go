@@ -34,7 +34,7 @@ import (
 type Plugin struct {
 	Deps
 	// Stored GRPC config (used in example)
-	grpcCfg *Config
+	*Config
 	// GRPC server instance
 	grpcServer *grpc.Server
 	// Used mainly for testing purposes
@@ -57,8 +57,8 @@ type Deps struct {
 func (plugin *Plugin) Init() error {
 	var err error
 	// Get GRPC configuration file
-	if plugin.grpcCfg == nil {
-		plugin.grpcCfg, err = plugin.getGrpcConfig()
+	if plugin.Config == nil {
+		plugin.Config, err = plugin.getGrpcConfig()
 		if err != nil || plugin.disabled {
 			return err
 		}
@@ -67,11 +67,11 @@ func (plugin *Plugin) Init() error {
 	// Prepare GRPC server
 	if plugin.grpcServer == nil {
 		var opts []grpc.ServerOption
-		if plugin.grpcCfg.MaxConcurrentStreams > 0 {
-			opts = append(opts, grpc.MaxConcurrentStreams(plugin.grpcCfg.MaxConcurrentStreams))
+		if plugin.Config.MaxConcurrentStreams > 0 {
+			opts = append(opts, grpc.MaxConcurrentStreams(plugin.Config.MaxConcurrentStreams))
 		}
-		if plugin.grpcCfg.MaxMsgSize > 0 {
-			opts = append(opts, grpc.MaxMsgSize(plugin.grpcCfg.MaxMsgSize))
+		if plugin.Config.MaxMsgSize > 0 {
+			opts = append(opts, grpc.MaxMsgSize(plugin.Config.MaxMsgSize))
 		}
 
 		plugin.grpcServer = grpc.NewServer(opts...)
@@ -80,10 +80,10 @@ func (plugin *Plugin) Init() error {
 
 	// Start GRPC listener
 	if plugin.listenAndServe != nil {
-		plugin.netListener, err = plugin.listenAndServe(*plugin.grpcCfg, plugin.grpcServer)
+		plugin.netListener, err = plugin.listenAndServe(*plugin.Config, plugin.grpcServer)
 	} else {
-		plugin.Log.Info("Listening GRPC on tcp://", plugin.grpcCfg.Endpoint)
-		plugin.netListener, err = ListenAndServeGRPC(plugin.grpcCfg, plugin.grpcServer)
+		plugin.Log.Info("Listening GRPC on tcp://", plugin.Config.Endpoint)
+		plugin.netListener, err = ListenAndServeGRPC(plugin.Config, plugin.grpcServer)
 	}
 
 	return err
