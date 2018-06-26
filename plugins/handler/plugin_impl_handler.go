@@ -88,5 +88,5 @@ func (p *Plugin) ObjectDeleted(obj interface{}, event NsmEvent) {
 
 // ObjectUpdated is called when an object is updated
 func (p *Plugin) ObjectUpdated(objOld, objNew interface{}, event NsmEvent) {
-	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", objNew, event)
+	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", objOld, objNew, event)
 }
