@@ -11,6 +11,12 @@ spec:
         - name: nsm-init
           image: ligato/networkservicemesh/nsm-init:latest
           imagePullPolicy: Always
+          volumeMounts:
+          args:
+          - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
       containers:
         - image: alpine
           name: nsm-client
@@ -20,9 +26,11 @@ spec:
             - |
               while true; do ( echo "Doing nothing"; sleep 30; ) done
           imagePullPolicy: Always
-          resources:
-            limits:
-              nsm.ligato.io/socket: 1
+      volumes:
+      - hostPath:
+          path: /var/lib/networkservicemesh
+          type: DirectoryOrCreate
+        name: nsm-socket
 metadata:
    name: nsm-client
    namespace: default
