@@ -21,8 +21,7 @@ const (
 )
 
 type NsmEvent struct {
-	KeyOld       string
-	KeyCur       string
+	Key          string
 	EventType    string
 	ResourceType string
 }

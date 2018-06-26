@@ -58,7 +58,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 		// Convert the queue item into a string. If it's not a string, we'll
 		// simply discard it as invalid data and log a message.
 		var strKey string
-		strKey = newEvent.(handler.NsmEvent).KeyCur
+		strKey = newEvent.(handler.NsmEvent).Key
 
 		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
