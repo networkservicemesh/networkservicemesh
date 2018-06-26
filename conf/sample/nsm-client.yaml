@@ -1,0 +1,27 @@
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nsm-client
+    spec:
+      initContainers:
+        - name: nsm-init
+          image: ligato/networkservicemesh/nsm-init:latest
+          imagePullPolicy: Always
+      containers:
+        - image: alpine
+          name: nsm-client
+          command:
+            - /bin/sh
+            - -xec
+            - |
+              while true; do ( echo "Doing nothing"; sleep 30; ) done
+          imagePullPolicy: Always
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+metadata:
+   name: nsm-client
+   namespace: default
