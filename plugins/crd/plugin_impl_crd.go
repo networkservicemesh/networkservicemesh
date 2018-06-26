@@ -266,7 +266,7 @@ func informerNetworkServices(plugin *Plugin) {
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				if reflect.DeepEqual(old, cur) {
+				if !reflect.DeepEqual(old, cur) {
 					// For an update event, we delete the old and add the current
 					var newEventOld, newEventCur handler.NsmEvent
 					var err error
@@ -336,7 +336,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				if reflect.DeepEqual(old, cur) {
+				if !reflect.DeepEqual(old, cur) {
 					// For an update event, we delete the old and add the current
 					var newEventOld, newEventCur handler.NsmEvent
 					var err error
@@ -406,7 +406,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				if reflect.DeepEqual(old, cur) {
+				if !reflect.DeepEqual(old, cur) {
 					// For an update event, we delete the old and add the current
 					var newEventOld, newEventCur handler.NsmEvent
 					var err error
