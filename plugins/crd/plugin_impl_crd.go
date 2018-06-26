@@ -59,13 +59,11 @@ type Plugin struct {
 	stopChNS  chan struct{}
 	stopChNSE chan struct{}
 	stopChNSC chan struct{}
-	// sharedFactory's are shared informer factorys used as a cache for
-	// items in the API server. They saves each informer listing and watch the
+	// sharedFactory is a shared informer factory used as a cache for
+	// items in the API server. It saves each informer listing and watches the
 	// same resources independently of each other, thus providing more up to
 	// date results with less 'effort'
-	sharedFactoryNS  factory.SharedInformerFactory
-	sharedFactoryNSE factory.SharedInformerFactory
-	sharedFactoryNSC factory.SharedInformerFactory
+	sharedFactory factory.SharedInformerFactory
 
 	// Informer factories per CRD object
 	informerNS  cache.SharedIndexInformer
@@ -245,22 +243,16 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 }
 
 func informerNetworkServices(plugin *Plugin) {
-	// We use a shared informer from the informer factory, to save calls to the
-	// API as we grow our application and so state is consistent between our
-	// control loops. We set a resync period of 30 seconds, in case any
-	// create/replace/update/delete operations are missed when watching
-	plugin.sharedFactoryNS = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
-
-	plugin.informerNS = plugin.sharedFactoryNS.Networkservice().V1().NetworkServices().Informer()
+	plugin.informerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Informer()
 	// We add a new event handler, watching for changes to API resources.
 	plugin.informerNS.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				var newEvent handler.NsmEvent
 				var err error
-				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = handler.NetworkServiceResource
+				newEvent.ResourceType = obj.(v1.NetworkService)
 				if err == nil {
 					queueNS.Add(newEvent)
 				}
@@ -272,13 +264,13 @@ func informerNetworkServices(plugin *Plugin) {
 					var err error
 					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
 					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = handler.NetworkServiceResource
+					newEventOld.ResourceType = old.(v1.NetworkService)
 					if err == nil {
 						queueNS.Add(newEventOld)
 					}
-					newEventCur.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(cur)
+					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
 					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = handler.NetworkServiceResource
+					newEventCur.ResourceType = cur.(v1.NetworkService)
 					if err == nil {
 						queueNS.Add(newEventCur)
 					}
@@ -289,48 +281,26 @@ func informerNetworkServices(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = handler.NetworkServiceResource
+				newEvent.ResourceType = obj.(v1.NetworkService)
 				if err == nil {
 					queueNS.Add(newEvent)
 				}
 			},
 		},
 	)
-
-	// Start the informer. This will cause it to begin receiving updates from
-	// the configured API server and firing event handlers in response.
-	plugin.sharedFactoryNS.Start(plugin.stopChNS)
-	plugin.Log.Info("Started NetworkService informer factory.")
-
-	// Wait for the informer cache to finish performing it's initial sync of
-	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced) {
-		plugin.Log.Error("Error waiting for informer cache to sync")
-	}
-
-	plugin.Log.Info("NetworkService Informer is ready")
-
-	// Read forever from the work queue
-	workforever(plugin, queueNS, plugin.informerNS, plugin.stopChNS)
 }
 
 func informerNetworkServiceChannels(plugin *Plugin) {
-	// We use a shared informer from the informer factory, to save calls to the
-	// API as we grow our application and so state is consistent between our
-	// control loops. We set a resync period of 30 seconds, in case any
-	// create/replace/update/delete operations are missed when watching
-	plugin.sharedFactoryNSC = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
-
-	plugin.informerNSC = plugin.sharedFactoryNSC.Networkservice().V1().NetworkServiceChannels().Informer()
+	plugin.informerNSC = plugin.sharedFactory.Networkservice().V1().NetworkServiceChannels().Informer()
 	// we add a new event handler, watching for changes to API resources.
 	plugin.informerNSC.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				var newEvent handler.NsmEvent
 				var err error
-				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = handler.NetworkServiceChannelResource
+				newEvent.ResourceType = obj.(v1.NetworkServiceChannel)
 				if err == nil {
 					queueNSC.Add(newEvent)
 				}
@@ -342,13 +312,13 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 					var err error
 					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
 					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = handler.NetworkServiceChannelResource
+					newEventOld.ResourceType = old.(v1.NetworkServiceChannel)
 					if err == nil {
 						queueNSC.Add(newEventOld)
 					}
-					newEventCur.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(cur)
+					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
 					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = handler.NetworkServiceChannelResource
+					newEventCur.ResourceType = cur.(v1.NetworkServiceChannel)
 					if err == nil {
 						queueNSC.Add(newEventCur)
 					}
@@ -359,48 +329,26 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = handler.NetworkServiceChannelResource
+				newEvent.ResourceType = obj.(v1.NetworkServiceChannel)
 				if err == nil {
 					queueNSC.Add(newEvent)
 				}
 			},
 		},
 	)
-
-	// Start the informer. This will cause it to begin receiving updates from
-	// the configured API server and firing event handlers in response.
-	plugin.sharedFactoryNSC.Start(plugin.stopChNSC)
-	plugin.Log.Info("Started NetworkServiceChannel informer factory.")
-
-	// Wait for the informer cache to finish performing it's initial sync of
-	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNSC, plugin.informerNSC.HasSynced) {
-		plugin.Log.Errorf("Error waiting for informer cache to sync")
-	}
-
-	plugin.Log.Info("NetworkServiceChannel Informer is ready")
-
-	// Read forever from the work queue
-	workforever(plugin, queueNSC, plugin.informerNSC, plugin.stopChNSC)
 }
 
 func informerNetworkServiceEndpoints(plugin *Plugin) {
-	// We use a shared informer from the informer factory, to save calls to the
-	// API as we grow our application and so state is consistent between our
-	// control loops. We set a resync period of 30 seconds, in case any
-	// create/replace/update/delete operations are missed when watching
-	plugin.sharedFactoryNSE = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
-
-	plugin.informerNSE = plugin.sharedFactoryNSE.Networkservice().V1().NetworkServiceEndpoints().Informer()
+	plugin.informerNSE = plugin.sharedFactory.Networkservice().V1().NetworkServiceEndpoints().Informer()
 	// we add a new event handler, watching for changes to API resources.
 	plugin.informerNSE.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				var newEvent handler.NsmEvent
 				var err error
-				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = handler.NetworkServiceEndpointResource
+				newEvent.ResourceType = obj.(v1.NetworkServiceEndpoint)
 				if err == nil {
 					queueNSE.Add(newEvent)
 				}
@@ -412,13 +360,13 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 					var err error
 					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
 					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = handler.NetworkServiceEndpointResource
+					newEventOld.ResourceType = old.(v1.NetworkServiceEndpoint)
 					if err == nil {
 						queueNSE.Add(newEventOld)
 					}
-					newEventCur.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(cur)
+					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
 					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = handler.NetworkServiceEndpointResource
+					newEventCur.ResourceType = cur.(v1.NetworkServiceEndpoint)
 					if err == nil {
 						queueNSE.Add(newEventCur)
 					}
@@ -429,29 +377,13 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = handler.NetworkServiceEndpointResource
+				newEvent.ResourceType = obj.(v1.NetworkServiceEndpoint)
 				if err == nil {
 					queueNSE.Add(newEvent)
 				}
 			},
 		},
 	)
-
-	// Start the informer. This will cause it to begin receiving updates from
-	// the configured API server and firing event handlers in response.
-	plugin.sharedFactoryNSE.Start(plugin.stopChNSE)
-	plugin.Log.Info("Started NetworkServiceEndpoints informer factory.")
-
-	// Wait for the informer cache to finish performing it's initial sync of
-	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNSE, plugin.informerNSE.HasSynced) {
-		plugin.Log.Errorf("Error waiting for informer cache to sync")
-	}
-
-	plugin.Log.Info("NetworkServiceEndpoint Informer is ready")
-
-	// Read forever from the work queue
-	workforever(plugin, queueNSE, plugin.informerNSE, plugin.stopChNSE)
 }
 
 // AfterInit This will create all of the CRDs for NetworkServiceMesh.
@@ -508,9 +440,33 @@ func (plugin *Plugin) AfterInit() error {
 		return err
 	}
 
-	go informerNetworkServices(plugin)
-	go informerNetworkServiceChannels(plugin)
-	go informerNetworkServiceEndpoints(plugin)
+	// We use a shared informer from the informer factory, to save calls to the
+	// API as we grow our application and so state is consistent between our
+	// control loops. We set a resync period of 30 seconds, in case any
+	// create/replace/update/delete operations are missed when watching
+	plugin.sharedFactory = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
+
+	informerNetworkServices(plugin)
+	informerNetworkServiceChannels(plugin)
+	informerNetworkServiceEndpoints(plugin)
+
+	// Start the informer. This will cause it to begin receiving updates from
+	// the configured API server and firing event handlers in response.
+	plugin.sharedFactory.Start(plugin.stopChNS)
+	plugin.Log.Info("Started NetworkService informer factory.")
+
+	// Wait for the informer cache to finish performing it's initial sync of
+	// resources
+	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced) {
+		plugin.Log.Error("Error waiting for informer cache to sync")
+	}
+
+	plugin.Log.Info("NetworkService Informer is ready")
+
+	// Read forever from the work queue
+	go workforever(plugin, queueNS, plugin.informerNS, plugin.stopChNS)
+	go workforever(plugin, queueNSC, plugin.informerNSC, plugin.stopChNSC)
+	go workforever(plugin, queueNSE, plugin.informerNSE, plugin.stopChNSE)
 
 	return nil
 }
