@@ -252,7 +252,7 @@ func informerNetworkServices(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = obj.(v1.NetworkService)
+				newEvent.ResourceType = handler.NetworkServiceResource
 				if err == nil {
 					queueNS.Add(newEvent)
 				}
@@ -264,13 +264,13 @@ func informerNetworkServices(plugin *Plugin) {
 					var err error
 					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
 					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = old.(v1.NetworkService)
+					newEventOld.ResourceType = handler.NetworkServiceResource
 					if err == nil {
 						queueNS.Add(newEventOld)
 					}
 					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
 					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = cur.(v1.NetworkService)
+					newEventCur.ResourceType = handler.NetworkServiceResource
 					if err == nil {
 						queueNS.Add(newEventCur)
 					}
@@ -281,7 +281,7 @@ func informerNetworkServices(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = obj.(v1.NetworkService)
+				newEvent.ResourceType = handler.NetworkServiceResource
 				if err == nil {
 					queueNS.Add(newEvent)
 				}
@@ -300,7 +300,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = obj.(v1.NetworkServiceChannel)
+				newEvent.ResourceType = handler.NetworkServiceChannelResource
 				if err == nil {
 					queueNSC.Add(newEvent)
 				}
@@ -312,13 +312,13 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 					var err error
 					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
 					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = old.(v1.NetworkServiceChannel)
+					newEventOld.ResourceType = handler.NetworkServiceChannelResource
 					if err == nil {
 						queueNSC.Add(newEventOld)
 					}
 					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
 					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = cur.(v1.NetworkServiceChannel)
+					newEventCur.ResourceType = handler.NetworkServiceChannelResource
 					if err == nil {
 						queueNSC.Add(newEventCur)
 					}
@@ -329,7 +329,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = obj.(v1.NetworkServiceChannel)
+				newEvent.ResourceType = handler.NetworkServiceChannelResource
 				if err == nil {
 					queueNSC.Add(newEvent)
 				}
@@ -348,7 +348,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = obj.(v1.NetworkServiceEndpoint)
+				newEvent.ResourceType = handler.NetworkServiceEndpointResource
 				if err == nil {
 					queueNSE.Add(newEvent)
 				}
@@ -360,13 +360,13 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 					var err error
 					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
 					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = old.(v1.NetworkServiceEndpoint)
+					newEventOld.ResourceType = handler.NetworkServiceEndpointResource
 					if err == nil {
 						queueNSE.Add(newEventOld)
 					}
 					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
 					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = cur.(v1.NetworkServiceEndpoint)
+					newEventCur.ResourceType = handler.NetworkServiceEndpointResource
 					if err == nil {
 						queueNSE.Add(newEventCur)
 					}
@@ -377,7 +377,7 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 				var err error
 				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = obj.(v1.NetworkServiceEndpoint)
+				newEvent.ResourceType = handler.NetworkServiceEndpointResource
 				if err == nil {
 					queueNSE.Add(newEvent)
 				}

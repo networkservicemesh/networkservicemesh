@@ -26,7 +26,7 @@ const (
 type NsmEvent struct {
 	Key          string
 	EventType    string
-	ResourceType interface{}
+	ResourceType string
 }
 
 // API is the interface to a CRD handler plugin
