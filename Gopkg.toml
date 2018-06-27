@@ -73,3 +73,7 @@ required = [
     name = "k8s.io/code-generator"
     unused-packages = false
     go-tests = false
+
+[[constraint]]
+  name = "github.com/vishvananda/netlink"
+  version = "1.0.0"
