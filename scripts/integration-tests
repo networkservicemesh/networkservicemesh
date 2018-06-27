@@ -65,19 +65,23 @@ set -x
 #
 function error_collection {
 echo "=====> ERROR: Timed out waiting for NSM daemonset to start"
-kubectl get pods --all-namespaces
+kubectl describe node || true
+kubectl get pods --all-namespaces || true
 nsm=$(kubectl get pods --all-namespaces | grep networkservice | awk '{print $2}')
 namespace=$(kubectl get pods --all-namespaces | grep networkservice | awk '{print $1}')
 if [[ "x$nsm" != "x" ]]; then 
-   kubectl describe pod $nsm -n $namespace
-   kubectl logs $nsm -n $namespace
-   kubectl logs $nsm -n $namespace -p
+   kubectl describe pod $nsm -n $namespace || true
+   kubectl logs $nsm -n $namespace || true
+   kubectl logs $nsm -n $namespace -p || true
 fi
 nsm_client=$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')
+echo "\>\<SB\>" $nsm_client
 if [[ "x$nsm_client" != "x" ]]; then 
-   kubectl describe pod $nsm_client -n $namespace
-   kubectl logs $nsm_client -n $namespace
-   kubectl logs $nsm_client -n $namespace -p
+   kubectl describe pod $nsm_client -n $namespace || true
+   kubectl logs $nsm_client -n $namespace nsm-init || true
+   kubectl logs $nsm_client -n $namespace nsm-client || true
+   kubectl logs $nsm_client -n $namespace nsm-init -p || true
+   kubectl logs $nsm_client -n $namespace nsm-client -p || true
 fi
 sudo docker images
 exit 1

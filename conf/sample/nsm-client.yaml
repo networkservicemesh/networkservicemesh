@@ -9,8 +9,8 @@ spec:
     spec:
       initContainers:
         - name: nsm-init
-          image: ligato/networkservicemesh/nsm-init
-          imagePullPolicy: Always
+          image: ligato/networkservicemesh/nsm-init:latest
+          imagePullPolicy: IfNotPresent
           volumeMounts:
           args:
           - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
@@ -25,7 +25,7 @@ spec:
             - -xec
             - |
               while true; do ( echo "Doing nothing"; sleep 30; ) done
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
       volumes:
       - hostPath:
           path: /var/lib/networkservicemesh
