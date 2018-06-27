@@ -19,12 +19,14 @@ import (
 	"flag"
 	"net"
 	"os"
+	"path"
 	"time"
 
 	"github.com/vishvananda/netns"
 
-	"github.com/golang/glog"
+	"github.com/ligato/networkservicemesh/nsmdp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"google.golang.org/grpc"
 )
@@ -35,7 +37,8 @@ const (
 )
 
 var (
-	clientSocket = flag.String("nsm-socket", "/var/lib/networkservicemesh/nsm.ligato.io.sock", "Location of NSM process client access socket")
+	clientSocketPath     = path.Join(nsmdp.SocketBaseDir, nsmdp.ServerSock)
+	clientSocketUserPath = flag.String("nsm-socket", "", "Location of NSM process client access socket")
 )
 
 func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
@@ -52,46 +55,50 @@ func main() {
 	flag.Parse()
 	flag.Set("logtostderr", "true")
 
-	// Checking if NSM Client socket exists and of not crash init container
-	_, err := os.Stat(*clientSocket)
+	// Checking if nsm client socket exists and of not crash init container
+	clientSocket := clientSocketPath
+	if clientSocketUserPath != nil {
+		clientSocket = *clientSocketUserPath
+	}
+	_, err := os.Stat(clientSocket)
 	if err != nil {
-		glog.Errorf("NSM Client: Failure to access NSM socket at %s with error: %+v, existing...", *clientSocket, err)
+		logrus.Errorf("nsm client: failure to access nsm socket at %s with error: %+v, existing...", clientSocket, err)
 		os.Exit(1)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
-	conn, err := dial(ctx, *clientSocket)
+	conn, err := dial(ctx, clientSocket)
 	if err != nil {
-		glog.Errorf("NSM Client: Failure to communicate with the socket %s with error: %+v", *clientSocket, err)
+		logrus.Errorf("nsm client: failure to communicate with the socket %s with error: %+v", clientSocket, err)
 		os.Exit(1)
 	}
 	nsmClient := nsmconnect.NewClientConnectionClient(conn)
 	defer conn.Close()
 	defer cancel()
-	glog.Infof("NSM Client: Connection to NSM server on socket: %s succeeded.", *clientSocket)
-	glog.Infof("NSM Client: Client API %+v", nsmClient)
+	logrus.Infof("nsm client: connection to nsm server on socket: %s succeeded.", clientSocket)
+	logrus.Infof("nsm client: client api %+v", nsmClient)
 	// Init related activities start here
 
 	currentNamespace, err := netns.Get()
 	if err != nil {
-		glog.Errorf("NSM Client: Failure to get Pod's namespace with error: %+v", err)
+		logrus.Errorf("nsm client: failure to get pod's namespace with error: %+v", err)
 		os.Exit(1)
 	}
-	glog.Infof("NSM Client: Pod's namespace is [%s]", currentNamespace.String())
+	logrus.Infof("nsm client: pod's namespace is [%s]", currentNamespace.String())
 	namespaceHandle, err := netlink.NewHandleAt(currentNamespace)
 	if err != nil {
-		glog.Errorf("NSM Client: Failure to get Pod's handle with error: %+v", err)
+		logrus.Errorf("nsm client: failure to get pod's handle with error: %+v", err)
 		os.Exit(1)
 	}
 	interfaces, err := namespaceHandle.LinkList()
 	if err != nil {
-		glog.Errorf("NSM Client: Failure to get Pod's interfaces with error: %+v", err)
+		logrus.Errorf("nsm client: pailure to get pod's interfaces with error: %+v", err)
 	}
-	glog.Info("NSM Client: Pod's interfaces:")
+	logrus.Info("nsm client: pod's interfaces:")
 	for _, intf := range interfaces {
-		glog.Infof("\t\tName: %s Type: %s", intf.Attrs().Name, intf.Type())
+		logrus.Infof("Name: %s Type: %s", intf.Attrs().Name, intf.Type())
 	}
 	// Init related activities ends here
-	glog.Info("NSM Client: Initialization is completed successfully, exiting...")
+	logrus.Info("nsm client: initialization is completed successfully, exiting...")
 	os.Exit(0)
 }
