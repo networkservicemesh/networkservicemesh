@@ -36,9 +36,11 @@ import (
 )
 
 const (
-	socketBaseDir   = "/var/lib/networkservicemesh/"
-	resourceName    = "nsm.ligato.io/socket"
-	serverSock      = "nsm.ligato.io.sock"
+	// SocketBaseDir defines the location of NSM client socket
+	SocketBaseDir = "/var/lib/networkservicemesh/"
+	resourceName  = "nsm.ligato.io/socket"
+	// ServerSock defines the name of NSM client socket
+	ServerSock      = "nsm.ligato.io.sock"
 	initDeviceCount = 10
 	socketMask      = 0077
 	folderMask      = 0777
@@ -85,10 +87,10 @@ func startClientServer(client *nsmSocket, logger logging.PluginLogger) {
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 
-	logger.Infof("Starting Client gRPC server listening on socket: %s", serverSock)
+	logger.Infof("Starting Client gRPC server listening on socket: %s", ServerSock)
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			logger.Fatalln("unable to start client grpc server: ", serverSock, err)
+			logger.Fatalln("unable to start client grpc server: ", ServerSock, err)
 		}
 	}()
 
@@ -128,13 +130,13 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					close(n.nsmSockets[id].stopChannel)
 				}
 				mount := &pluginapi.Mount{
-					ContainerPath: socketBaseDir,
-					HostPath:      path.Join(socketBaseDir, fmt.Sprintf("nsm-%s", id)),
+					ContainerPath: SocketBaseDir,
+					HostPath:      path.Join(SocketBaseDir, fmt.Sprintf("nsm-%s", id)),
 					ReadOnly:      false,
 				}
 				n.nsmSockets[id] = nsmSocket{
 					device:      &pluginapi.Device{ID: id, Health: pluginapi.Healthy},
-					socketPath:  path.Join(mount.HostPath, serverSock),
+					socketPath:  path.Join(mount.HostPath, ServerSock),
 					stopChannel: make(chan bool),
 					allocated:   true,
 				}
@@ -187,7 +189,7 @@ func Register(kubeletEndpoint string) error {
 	client := pluginapi.NewRegistrationClient(conn)
 	reqt := &pluginapi.RegisterRequest{
 		Version:      pluginapi.Version,
-		Endpoint:     serverSock,
+		Endpoint:     ServerSock,
 		ResourceName: resourceName,
 	}
 
@@ -213,7 +215,7 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 
 func startDeviceServer(nsm *nsmClientEndpoints) error {
 	// Initial socket clean up
-	listenEndpoint := path.Join(pluginapi.DevicePluginPath, serverSock)
+	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
 		if err := os.Remove(listenEndpoint); err != nil {
@@ -228,7 +230,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
-	nsm.logger.Infof("Starting Device Plugin's gRPC server listening on socket: %s", serverSock)
+	nsm.logger.Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			nsm.logger.Error("failed to start device plugin grpc server", listenEndpoint, err)

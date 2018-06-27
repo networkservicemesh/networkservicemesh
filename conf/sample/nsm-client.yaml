@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nsm-client
+    spec:
+      initContainers:
+        - name: nsm-init
+          image: ligato/networkservicemesh/nsm-init:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN"]
+          args:
+          - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+      containers:
+        - image: alpine
+          name: nsm-client
+          command:
+            - /bin/sh
+            - -xec
+            - |
+              while true; do ( echo "Doing nothing"; sleep 30; ) done
+          imagePullPolicy: IfNotPresent
+      volumes:
+      - hostPath:
+          path: /var/lib/networkservicemesh
+          type: DirectoryOrCreate
+        name: nsm-socket
+metadata:
+   name: nsm-client
+   namespace: default
