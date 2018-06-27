@@ -18,18 +18,29 @@ package netmeshplugincrd
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-
-	"github.com/ligato/networkservicemesh/plugins/handler"
 )
 
 // QueueRetryCount is the max number of times to retry processing a failed item
 // from the workqueue.
 const QueueRetryCount = 5
+
+const (
+	create = iota
+	delete
+	update
+)
+
+type objectMessage struct {
+	operation int
+	key       string
+	obj       interface{}
+}
 
 var (
 	// These are queues of resources to be processed. They each performs
@@ -46,7 +57,7 @@ var (
 func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer cache.SharedIndexInformer, stopCH chan struct{}) {
 	for {
 		// We read a message off the queue ...
-		newEvent, shutdown := queue.Get()
+		message, shutdown := queue.Get()
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
@@ -58,12 +69,12 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 		// Convert the queue item into a string. If it's not a string, we'll
 		// simply discard it as invalid data and log a message.
 		var strKey string
-		strKey = newEvent.(handler.NsmEvent).Key
+		strKey = message.(objectMessage).key
 
 		// We define a function here to process a queue item, so that we can
 		// use 'defer' to make sure the message is marked as Done on the queue
 		func(key string) {
-			defer queue.Done(newEvent)
+			defer queue.Done(message)
 
 			// Attempt to split the 'key' into namespace and object name
 			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
@@ -71,7 +82,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			if err != nil {
 				// This is a soft-error
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				queue.Forget(newEvent)
+				queue.Forget(message)
 				return
 			}
 
@@ -85,27 +96,41 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			if err != nil {
 				if queue.NumRequeues(key) < QueueRetryCount {
 					plugin.Log.Errorf("Requeueing after error processing item with key %s, error %v", key, err)
-					queue.AddRateLimited(newEvent)
+					queue.AddRateLimited(message)
 					return
 				}
 
 				plugin.Log.Errorf("Failed processing item with key %s, error %v, no more retries", key, err)
-				queue.Forget(newEvent)
+				queue.Forget(message)
 				return
 			}
 
 			// Verify if this was a delete vs. an add/update
 			if !exists {
+				// If the object was deleted, it's no longer in the cache, so we'll use the copy
+				// we made before adding it to our work queue.
 				plugin.Log.Infof("Object (%s) deleted from queue", name)
-				plugin.HandlerAPI.ObjectDeleted(item, newEvent.(handler.NsmEvent))
+				plugin.HandlerAPI.ObjectDeleted(message.(objectMessage).obj)
 			} else {
-				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-				plugin.HandlerAPI.ObjectCreated(item, newEvent.(handler.NsmEvent))
+				// Check if this is a create or update operation
+				switch message.(objectMessage).operation {
+				case create:
+					// Verify and log if the informer cached version of the object is different than the
+					// copy we made
+					if !reflect.DeepEqual(message.(objectMessage).obj, item) {
+						plugin.Log.Errorf("Informer cached version of object (%s/%s) different than worker queue version", namespace, name)
+					}
+					plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+					plugin.HandlerAPI.ObjectCreated(message.(objectMessage).obj)
+				case update:
+					plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+					plugin.HandlerAPI.ObjectCreated(message.(objectMessage).obj)
+				}
 			}
 
 			// As we managed to process this successfully, we can forget it
 			// from the work queue altogether.
-			queue.Forget(newEvent)
+			queue.Forget(message)
 		}(strKey)
 	}
 }

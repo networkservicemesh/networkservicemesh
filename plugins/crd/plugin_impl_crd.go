@@ -248,42 +248,42 @@ func informerNetworkServices(plugin *Plugin) {
 	plugin.informerNS.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				var newEvent handler.NsmEvent
+				var message objectMessage
 				var err error
-				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
-				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = handler.NetworkServiceResource
+				message.key, err = cache.MetaNamespaceKeyFunc(obj)
+				message.operation = create
+				message.obj = obj
 				if err == nil {
-					queueNS.Add(newEvent)
+					queueNS.Add(message)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
 				if !reflect.DeepEqual(old, cur) {
 					// For an update event, we delete the old and add the current
-					var newEventOld, newEventCur handler.NsmEvent
+					var messageOld, messageCur objectMessage
 					var err error
-					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
-					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = handler.NetworkServiceResource
+					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
+					messageOld.operation = delete
+					messageOld.obj = old
 					if err == nil {
-						queueNS.Add(newEventOld)
+						queueNS.Add(messageOld)
 					}
-					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
-					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = handler.NetworkServiceResource
+					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
+					messageCur.operation = create
+					messageCur.obj = cur
 					if err == nil {
-						queueNS.Add(newEventCur)
+						queueNS.Add(messageCur)
 					}
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
-				var newEvent handler.NsmEvent
+				var message objectMessage
 				var err error
-				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = handler.NetworkServiceResource
+				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				message.operation = delete
+				message.obj = obj
 				if err == nil {
-					queueNS.Add(newEvent)
+					queueNS.Add(message)
 				}
 			},
 		},
@@ -296,42 +296,42 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 	plugin.informerNSC.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				var newEvent handler.NsmEvent
+				var message objectMessage
 				var err error
-				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
-				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = handler.NetworkServiceChannelResource
+				message.key, err = cache.MetaNamespaceKeyFunc(obj)
+				message.operation = create
+				message.obj = obj
 				if err == nil {
-					queueNSC.Add(newEvent)
+					queueNSC.Add(message)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
 				if !reflect.DeepEqual(old, cur) {
 					// For an update event, we delete the old and add the current
-					var newEventOld, newEventCur handler.NsmEvent
+					var messageOld, messageCur objectMessage
 					var err error
-					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
-					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = handler.NetworkServiceChannelResource
+					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
+					messageOld.operation = delete
+					messageOld.obj = old
 					if err == nil {
-						queueNSC.Add(newEventOld)
+						queueNSC.Add(messageOld)
 					}
-					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
-					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = handler.NetworkServiceChannelResource
+					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
+					messageCur.operation = create
+					messageCur.obj = cur
 					if err == nil {
-						queueNSC.Add(newEventCur)
+						queueNSC.Add(messageCur)
 					}
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
-				var newEvent handler.NsmEvent
+				var message objectMessage
 				var err error
-				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = handler.NetworkServiceChannelResource
+				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				message.operation = delete
+				message.obj = obj
 				if err == nil {
-					queueNSC.Add(newEvent)
+					queueNSC.Add(message)
 				}
 			},
 		},
@@ -344,42 +344,42 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 	plugin.informerNSE.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				var newEvent handler.NsmEvent
+				var message objectMessage
 				var err error
-				newEvent.Key, err = cache.MetaNamespaceKeyFunc(obj)
-				newEvent.EventType = handler.HandlerCreate
-				newEvent.ResourceType = handler.NetworkServiceEndpointResource
+				message.key, err = cache.MetaNamespaceKeyFunc(obj)
+				message.operation = create
+				message.obj = obj
 				if err == nil {
-					queueNSE.Add(newEvent)
+					queueNSE.Add(message)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
 				if !reflect.DeepEqual(old, cur) {
 					// For an update event, we delete the old and add the current
-					var newEventOld, newEventCur handler.NsmEvent
+					var messageOld, messageCur objectMessage
 					var err error
-					newEventOld.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
-					newEventOld.EventType = handler.HandlerDelete
-					newEventOld.ResourceType = handler.NetworkServiceEndpointResource
+					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
+					messageOld.operation = delete
+					messageOld.obj = old
 					if err == nil {
-						queueNSE.Add(newEventOld)
+						queueNSE.Add(messageOld)
 					}
-					newEventCur.Key, err = cache.MetaNamespaceKeyFunc(cur)
-					newEventCur.EventType = handler.HandlerCreate
-					newEventCur.ResourceType = handler.NetworkServiceEndpointResource
+					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
+					messageCur.operation = create
+					messageCur.obj = cur
 					if err == nil {
-						queueNSE.Add(newEventCur)
+						queueNSE.Add(messageCur)
 					}
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
-				var newEvent handler.NsmEvent
+				var message objectMessage
 				var err error
-				newEvent.Key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				newEvent.EventType = handler.HandlerDelete
-				newEvent.ResourceType = handler.NetworkServiceEndpointResource
+				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				message.operation = delete
+				message.obj = obj
 				if err == nil {
-					queueNSE.Add(newEvent)
+					queueNSE.Add(message)
 				}
 			},
 		},

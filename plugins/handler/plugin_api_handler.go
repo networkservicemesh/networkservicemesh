@@ -23,15 +23,9 @@ const (
 	HandlerUpdate                  = "update"
 )
 
-type NsmEvent struct {
-	Key          string
-	EventType    string
-	ResourceType string
-}
-
 // API is the interface to a CRD handler plugin
 type API interface {
-	ObjectCreated(obj interface{}, event NsmEvent)
-	ObjectDeleted(obj interface{}, event NsmEvent)
-	ObjectUpdated(objOld, objNew interface{}, event NsmEvent)
+	ObjectCreated(obj interface{})
+	ObjectDeleted(obj interface{})
+	ObjectUpdated(objOld, objNew interface{})
 }
