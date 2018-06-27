@@ -17,11 +17,9 @@
 package netmeshplugincrd
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -105,6 +103,8 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 				return
 			}
 
+			plugin.Log.Infof("Found object of type: %T", reflect.TypeOf(message.(objectMessage).obj))
+
 			// Verify if this was a delete vs. an add/update
 			if !exists {
 				// If the object was deleted, it's no longer in the cache, so we'll use the copy
@@ -133,55 +133,4 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			queue.Forget(message)
 		}(strKey)
 	}
-}
-
-// networkserviceEnqeue will add an object 'obj' into the workqueue. The object being added
-// must be of type metav1.Object, metav1.ObjectAccessor or cache.ExplicitKey.
-func networkserviceEnqueue(obj interface{}) {
-	// DeletionHandlingMetaNamespaceKeyFunc will convert an object into a
-	// 'namespace/name' string. We do this because our item may be processed
-	// much later than now, and so we want to ensure it gets a fresh copy of
-	// the resource when it starts. Also, this allows us to keep adding the
-	// same item into the work queue without duplicates building up.
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("error obtaining key for object being enqueue: %s", err.Error()))
-		return
-	}
-	// Add the item to the queue
-	queueNS.Add(key)
-}
-
-// networkserviceChannelEnqueue will add an object 'obj' into the workqueue. The object being added
-// must be of type metav1.Object, metav1.ObjectAccessor or cache.ExplicitKey.
-func networkservicechannelEnqueue(obj interface{}) {
-	// DeletionHandlingMetaNamespaceKeyFunc will convert an object into a
-	// 'namespace/name' string. We do this because our item may be processed
-	// much later than now, and so we want to ensure it gets a fresh copy of
-	// the resource when it starts. Also, this allows us to keep adding the
-	// same item into the work queue without duplicates building up.
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("error obtaining key for object being enqueue: %s", err.Error()))
-		return
-	}
-	// Add the item to the queue
-	queueNSC.Add(key)
-}
-
-// networkserviceEndpointEnqueue will add an object 'obj' into the workqueue. The object being added
-// must be of type metav1.Object, metav1.ObjectAccessor or cache.ExplicitKey.
-func networkserviceendpointEnqueue(obj interface{}) {
-	// DeletionHandlingMetaNamespaceKeyFunc will convert an object into a
-	// 'namespace/name' string. We do this because our item may be processed
-	// much later than now, and so we want to ensure it gets a fresh copy of
-	// the resource when it starts. Also, this allows us to keep adding the
-	// same item into the work queue without duplicates building up.
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("error obtaining key for object being enqueue: %s", err.Error()))
-		return
-	}
-	// Add the item to the queue
-	queueNSE.Add(key)
 }
