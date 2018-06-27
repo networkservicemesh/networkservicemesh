@@ -21,8 +21,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/vishvananda/netns"
+
 	"github.com/golang/glog"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/vishvananda/netlink"
 	"google.golang.org/grpc"
 )
 
@@ -69,6 +72,25 @@ func main() {
 	glog.Infof("NSM Client: Client API %+v", nsmClient)
 	// Init related activities start here
 
+	currentNamespace, err := netns.Get()
+	if err != nil {
+		glog.Errorf("NSM Client: Failure to get Pod's namespace with error: %+v", err)
+		os.Exit(1)
+	}
+	glog.Infof("NSM Client: Pod's namespace is [%s]", currentNamespace.String())
+	namespaceHandle, err := netlink.NewHandleAt(currentNamespace)
+	if err != nil {
+		glog.Errorf("NSM Client: Failure to get Pod's handle with error: %+v", err)
+		os.Exit(1)
+	}
+	interfaces, err := namespaceHandle.LinkList()
+	if err != nil {
+		glog.Errorf("NSM Client: Failure to get Pod's interfaces with error: %+v", err)
+	}
+	glog.Info("NSM Client: Pod's interfaces:")
+	for _, intf := range interfaces {
+		glog.Infof("\t\tName: %s Type: %s", intf.Attrs().Name, intf.Type())
+	}
 	// Init related activities ends here
 	glog.Info("NSM Client: Initialization is completed successfully, exiting...")
 	os.Exit(0)

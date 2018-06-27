@@ -11,7 +11,10 @@ spec:
         - name: nsm-init
           image: ligato/networkservicemesh/nsm-init:latest
           imagePullPolicy: IfNotPresent
-          volumeMounts:
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN"]
           args:
           - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
           resources:
