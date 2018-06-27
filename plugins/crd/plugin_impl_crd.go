@@ -247,13 +247,45 @@ func informerNetworkServices(plugin *Plugin) {
 	// We add a new event handler, watching for changes to API resources.
 	plugin.informerNS.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: networkserviceEnqueue,
-			UpdateFunc: func(old, cur interface{}) {
-				if !reflect.DeepEqual(old, cur) {
-					networkserviceEnqueue(cur)
+			AddFunc: func(obj interface{}) {
+				var message objectMessage
+				var err error
+				message.key, err = cache.MetaNamespaceKeyFunc(obj)
+				message.operation = create
+				message.obj = obj
+				if err == nil {
+					queueNS.Add(message)
 				}
 			},
-			DeleteFunc: networkserviceEnqueue,
+			UpdateFunc: func(old, cur interface{}) {
+				if !reflect.DeepEqual(old, cur) {
+					// For an update event, we delete the old and add the current
+					var messageOld, messageCur objectMessage
+					var err error
+					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
+					messageOld.operation = delete
+					messageOld.obj = old
+					if err == nil {
+						queueNS.Add(messageOld)
+					}
+					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
+					messageCur.operation = create
+					messageCur.obj = cur
+					if err == nil {
+						queueNS.Add(messageCur)
+					}
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				var message objectMessage
+				var err error
+				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				message.operation = delete
+				message.obj = obj
+				if err == nil {
+					queueNS.Add(message)
+				}
+			},
 		},
 	)
 }
@@ -263,13 +295,45 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 	// we add a new event handler, watching for changes to API resources.
 	plugin.informerNSC.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: networkservicechannelEnqueue,
-			UpdateFunc: func(old, cur interface{}) {
-				if !reflect.DeepEqual(old, cur) {
-					networkservicechannelEnqueue(cur)
+			AddFunc: func(obj interface{}) {
+				var message objectMessage
+				var err error
+				message.key, err = cache.MetaNamespaceKeyFunc(obj)
+				message.operation = create
+				message.obj = obj
+				if err == nil {
+					queueNSC.Add(message)
 				}
 			},
-			DeleteFunc: networkservicechannelEnqueue,
+			UpdateFunc: func(old, cur interface{}) {
+				if !reflect.DeepEqual(old, cur) {
+					// For an update event, we delete the old and add the current
+					var messageOld, messageCur objectMessage
+					var err error
+					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
+					messageOld.operation = delete
+					messageOld.obj = old
+					if err == nil {
+						queueNSC.Add(messageOld)
+					}
+					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
+					messageCur.operation = create
+					messageCur.obj = cur
+					if err == nil {
+						queueNSC.Add(messageCur)
+					}
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				var message objectMessage
+				var err error
+				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				message.operation = delete
+				message.obj = obj
+				if err == nil {
+					queueNSC.Add(message)
+				}
+			},
 		},
 	)
 }
@@ -279,13 +343,45 @@ func informerNetworkServiceEndpoints(plugin *Plugin) {
 	// we add a new event handler, watching for changes to API resources.
 	plugin.informerNSE.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: networkserviceendpointEnqueue,
-			UpdateFunc: func(old, cur interface{}) {
-				if !reflect.DeepEqual(old, cur) {
-					networkserviceendpointEnqueue(cur)
+			AddFunc: func(obj interface{}) {
+				var message objectMessage
+				var err error
+				message.key, err = cache.MetaNamespaceKeyFunc(obj)
+				message.operation = create
+				message.obj = obj
+				if err == nil {
+					queueNSE.Add(message)
 				}
 			},
-			DeleteFunc: networkserviceendpointEnqueue,
+			UpdateFunc: func(old, cur interface{}) {
+				if !reflect.DeepEqual(old, cur) {
+					// For an update event, we delete the old and add the current
+					var messageOld, messageCur objectMessage
+					var err error
+					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
+					messageOld.operation = delete
+					messageOld.obj = old
+					if err == nil {
+						queueNSE.Add(messageOld)
+					}
+					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
+					messageCur.operation = create
+					messageCur.obj = cur
+					if err == nil {
+						queueNSE.Add(messageCur)
+					}
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				var message objectMessage
+				var err error
+				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				message.operation = delete
+				message.obj = obj
+				if err == nil {
+					queueNSE.Add(message)
+				}
+			},
 		},
 	)
 }
@@ -359,10 +455,16 @@ func (plugin *Plugin) AfterInit() error {
 	plugin.sharedFactory.Start(plugin.stopChNS)
 	plugin.Log.Info("Started NetworkService informer factory.")
 
-	// Wait for the informer cache to finish performing it's initial sync of
+	// Wait for the informer caches to finish performing it's initial sync of
 	// resources
 	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced) {
-		plugin.Log.Error("Error waiting for informer cache to sync")
+		plugin.Log.Error("Error waiting for NetworkService informer cache to sync")
+	}
+	if !cache.WaitForCacheSync(plugin.stopChNSC, plugin.informerNSC.HasSynced) {
+		plugin.Log.Error("Error waiting for NetworkServiceChannel informer cache to sync")
+	}
+	if !cache.WaitForCacheSync(plugin.stopChNSE, plugin.informerNSE.HasSynced) {
+		plugin.Log.Error("Error waiting for NetworkServiceEndpoint informer cache to sync")
 	}
 
 	plugin.Log.Info("NetworkService Informer is ready")
