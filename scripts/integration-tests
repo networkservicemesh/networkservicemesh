@@ -73,6 +73,13 @@ if [[ "x$nsm" != "x" ]]; then
    kubectl logs $nsm -n $namespace
    kubectl logs $nsm -n $namespace -p
 fi
+nsm_client=$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')
+if [[ "x$nsm_client" != "x" ]]; then 
+   kubectl describe pod $nsm_client -n $namespace
+   kubectl logs $nsm_client -n $namespace
+   kubectl logs $nsm_client -n $namespace -p
+fi
+sudo docker images
 exit 1
 }
 

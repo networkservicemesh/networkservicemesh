@@ -9,7 +9,7 @@ spec:
     spec:
       initContainers:
         - name: nsm-init
-          image: ligato/networkservicemesh/nsm-init:latest
+          image: ligato/networkservicemesh/nsm-init
           imagePullPolicy: Always
           volumeMounts:
           args:
