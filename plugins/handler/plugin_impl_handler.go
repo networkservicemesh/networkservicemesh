@@ -78,15 +78,15 @@ func (p *Plugin) Close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectCreated: %s", obj)
+	p.Log.Infof("LogCrdHandler.ObjectCreated: ", obj)
 }
 
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectDeleted: %s", obj)
+	p.Log.Infof("LogCrdHandler.ObjectDeleted: ", obj)
 }
 
 // ObjectUpdated is called when an object is updated
 func (p *Plugin) ObjectUpdated(objOld, objNew interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectUpdated: %s", objNew)
+	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", objOld, objNew)
 }
