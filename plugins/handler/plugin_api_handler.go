@@ -14,15 +14,6 @@
 
 package handler
 
-const (
-	NetworkServiceResource         = "networkservice"
-	NetworkServiceChannelResource  = "networkservicechannel"
-	NetworkServiceEndpointResource = "networkserviceendpoint"
-	HandlerCreate                  = "create"
-	HandlerDelete                  = "delete"
-	HandlerUpdate                  = "update"
-)
-
 // API is the interface to a CRD handler plugin
 type API interface {
 	ObjectCreated(obj interface{})
