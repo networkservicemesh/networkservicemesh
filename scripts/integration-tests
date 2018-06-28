@@ -105,6 +105,10 @@ kubectl version
 kubectl api-versions
 kubectl label --overwrite --all=true nodes app=networkservice-node
 kubectl create -f conf/sample/networkservice-daemonset.yaml
+#
+# Now let's wait for all pods to get into running state
+#
+wait_for_pods default
 
 # Wait til settles
 echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
@@ -123,10 +127,6 @@ kubectl create -f conf/sample/networkservice-channel.yaml
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 kubectl create -f conf/sample/networkservice.yaml
 kubectl create -f conf/sample/nsm-client.yaml
-#
-# Now let's wait for all pods to get into running state
-#
-wait_for_pods default
 kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
 # Need to get kubeconfig full path
