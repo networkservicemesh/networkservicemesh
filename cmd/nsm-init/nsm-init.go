@@ -16,11 +16,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/vishvananda/netns"
@@ -32,6 +33,7 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -50,8 +52,8 @@ var (
 )
 
 type networkService struct {
-	name             string
-	serviceInterface []*nsmconnect.Interface
+	Name             string                 `json:"name" yaml:"name"`
+	ServiceInterface []nsmconnect.Interface `json:"serviceInterface" yaml:"serviceInterface"`
 }
 
 func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
@@ -123,15 +125,16 @@ func applyRequiredConfig(ns []*networkService) error {
 
 func parseConfigMap(cm *v1.ConfigMap) ([]*networkService, error) {
 	nSs := []*networkService{}
-	for key, val := range cm.Data {
-		ns := networkService{}
-		err := json.Unmarshal([]byte(val), &ns)
-		if err != nil {
-			logrus.Errorf("corrupted value of key: %s, failed with error: %v", key, err)
-			continue
-		}
-		nSs = append(nSs, &ns)
+	rawData, ok := cm.Data["networkService"]
+	if !ok {
+		return nil, fmt.Errorf("missing required key 'networkService:'")
 	}
+	sr := strings.NewReader(rawData)
+	decoder := yaml.NewYAMLOrJSONDecoder(sr, 512)
+	if err := decoder.Decode(&nSs); err != nil {
+		logrus.Errorf("decoding %+v failed with error: %v", rawData, err)
+	}
+
 	return nSs, nil
 }
 

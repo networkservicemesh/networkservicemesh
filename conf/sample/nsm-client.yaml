@@ -1,3 +1,66 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: nsm-client-init
+  name: nsm-client-init
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: nsm-client-init
+  name: nsm-client-init
+  namespace: default
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: nsm-client-init
+  name: nsm-client-init
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nsm-client-init
+subjects:
+- kind: ServiceAccount
+  name: nsm-client-init
+---
+apiVersion: v1
+data:
+  networkService: |
+    - name: network-service-1
+      serviceInterface:
+      - type: 0
+        preference: 1
+        metadata:
+          name: interface-1
+      - type: 2
+        preference: 3
+        metadata:
+          name: interface-2
+    - name: network-service-2
+      serviceInterface:
+      - type: 0
+        preference: 1
+        metadata:
+          name: interface-3
+kind: ConfigMap
+metadata:
+  name: client-network-services
+  namespace: default
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 spec:
@@ -7,6 +70,7 @@ spec:
       labels:
         app: nsm-client
     spec:
+      serviceAccount: nsm-client-init
       initContainers:
         - name: nsm-init
           image: ligato/networkservicemesh/nsm-init:latest
@@ -17,6 +81,7 @@ spec:
               add: ["NET_ADMIN"]
           args:
           - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
+          - --configmap-name=client-network-services
           resources:
             limits:
               nsm.ligato.io/socket: 1
