@@ -16,10 +16,13 @@ package handler
 
 import (
 	"fmt"
+	"reflect"
+	"time"
 
 	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -32,6 +35,7 @@ type Plugin struct {
 	pluginStopCh    chan struct{}
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
+	objectStore     objectstore.Interface
 }
 
 // Deps defines dependencies of netmesh plugin.
@@ -66,6 +70,23 @@ func (p *Plugin) Init() error {
 func (p *Plugin) AfterInit() error {
 	p.Log.Info("AfterInit")
 
+	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
+	defer ticker.Stop()
+	// Wait for objectstore to initialize
+	ready := false
+	for !ready {
+		select {
+		case <-ticker.C:
+			if p.objectStore = objectstore.SharedPlugin(); p.objectStore != nil {
+				ready = true
+				ticker.Stop()
+				p.Log.Info("ObjectStore is ready, starting Consumer")
+			} else {
+				p.Log.Info("ObjectStore is not ready, waiting")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -78,15 +99,19 @@ func (p *Plugin) Close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectCreated: ", obj)
+	p.Log.Infof("LogCrdHandler.ObjectCreated: ", reflect.TypeOf(obj), obj)
+	p.objectStore.ObjectCreated(obj)
 }
 
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectDeleted: ", obj)
+	p.Log.Infof("LogCrdHandler.ObjectDeleted: ", reflect.TypeOf(obj), obj)
+	p.objectStore.ObjectDeleted(obj)
 }
 
 // ObjectUpdated is called when an object is updated
-func (p *Plugin) ObjectUpdated(objOld, objNew interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", objOld, objNew)
+func (p *Plugin) ObjectUpdated(old, cur interface{}) {
+	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", reflect.TypeOf(old), reflect.TypeOf(cur), old, cur)
+	p.objectStore.ObjectDeleted(old)
+	p.objectStore.ObjectCreated(cur)
 }
