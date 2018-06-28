@@ -1,0 +1,22 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: sidecar-injector-webhook-cfg
+  labels:
+    app: sidecar-injector
+webhooks:
+  - name: sidecar-injector.nsm.ligato.io
+    clientConfig:
+      service:
+        name: sidecar-injector-webhook-svc
+        namespace: default
+        path: "/mutate"
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1EVXhOVEExTWpjek4xb1hEVEk0TURVeE1qQTFNamN6TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtyCm16QitEOTZDQit4V2lPZ0JLbXJBd1IweFh4dnJoR2t5R3NIa1JrZ3UxVG1HVUI1ZXJZZ2FKL21PT0xEQWVkdTIKU3Jna0NXcTFOcUxwd0NBV2xydXloYlpnei9pRXhVT1pvRnlqUXFpOS85emdIWGlpQVpqekpidktRR2RaMC96cQpwTUtjQWZLZHFiYTl2N0VKbUs3clcvdndYRU55Uk5seEdFbkJVYSs3b0t6VEgrVWU3N29sWEdocm54Sm5WdHhoCnJsSGtrSUhOdy9Rek5WcWsxYlBaMWdZcFVvdjVPMk5WMWFRTVB6OGdBL3A0dVF6SjY0b3F6L1ZVOUE0RmNybkYKS1hJQ3lwZUFCNVFHTmxmRGlaN0NUcVRNc3d6M1BjUm5ieWlJNEpRTVVQTmpKdW1WVnhPUEM4cVkrcHdaYTdrcAprRHlkR0F4aGNHUEIzays0Q2kwQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFISkkzWGFuK0JBYm5nN05Va0F2SlgyOU4zT0oKNTFZYnBQcVc1MmN6RUYxVDJCTUJ3Ynpoa2xON1M1S0gybVMrWXdHUjk0Snp6N3lrY3ZRd2RXUW1hcEErTHg3WApKc1hmNGt2Q2syVEpTdVJRTUVKVlA0UDlja1ZHRmpRZ29XK1ZXWUtXbjBBUlVRUDFsQlpvSGxGbThHV0xRYTNlClN5WEoxS0dWbHhtczBPMGJxdVZ3eXRPQ3lMcWE2U0JwQlh2bnd2N2FtQmtpTE1ydXpHcG1UU2g5RGRKeERjcnEKZ0NFUkttNnlOS3FrZWxpZHBqZzYwODBDUE1uOCtuUWE4WndaRXg5WUNWZUdFcVJOWG5HanNsSDEyanJjMSs3SQp4UStmMTgya1R5d2FQTmlaQUt1SG9tTk8yNXdrbFJJNjlJSHNSb2JvSlhyUXcwR1lVaVg1ckVOZS9pRT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    namespaceSelector:
+      matchLabels:
+        sidecar-injector: enabled
