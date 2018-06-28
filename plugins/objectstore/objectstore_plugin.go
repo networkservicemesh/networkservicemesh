@@ -18,6 +18,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
@@ -97,11 +98,11 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 	p.Log.Infof("ObjectStore.ObjectCreated: %s", obj)
 
 	switch obj.(type) {
-	case netmesh.NetworkService:
-		ns := obj.(netmesh.NetworkService)
+	case *v1.NetworkService:
+		ns := obj.(*v1.NetworkService).Spec
 		p.objects.networkServicesStore.Add(&ns)
-	case netmesh.NetworkServiceEndpoint:
-	case netmesh.NetworkService_NetmeshChannel:
+	case *v1.NetworkServiceChannel:
+	case *v1.NetworkServiceEndpoint:
 	}
 }
 
@@ -115,10 +116,10 @@ func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 func (p *Plugin) ObjectDeleted(obj interface{}) {
 	p.Log.Infof("ObjectStore.ObjectDeleted: %s", obj)
 	switch obj.(type) {
-	case netmesh.NetworkService:
-		ns := obj.(netmesh.NetworkService)
+	case *v1.NetworkService:
+		ns := obj.(*v1.NetworkService).Spec
 		p.objects.networkServicesStore.Delete(meta{name: ns.Metadata.Name, namespace: ns.Metadata.Namespace})
-	case netmesh.NetworkServiceEndpoint:
-	case netmesh.NetworkService_NetmeshChannel:
+	case *v1.NetworkServiceChannel:
+	case *v1.NetworkServiceEndpoint:
 	}
 }
