@@ -26,6 +26,7 @@ import (
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -38,6 +39,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
+	nsv1 "github.com/ligato/networkservicemesh/pkg/client/listers/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/plugins/handler"
 )
 
@@ -64,6 +66,12 @@ type Plugin struct {
 	// same resources independently of each other, thus providing more up to
 	// date results with less 'effort'
 	sharedFactory factory.SharedInformerFactory
+
+	// listerNS, listerNSC, and listerNSE are listers to list resources in the
+	// shared cache.
+	listerNS  nsv1.NetworkServiceLister
+	listerNSC nsv1.NetworkServiceChannelLister
+	listerNSE nsv1.NetworkServiceEndpointLister
 
 	// Informer factories per CRD object
 	informerNS  cache.SharedIndexInformer
@@ -244,6 +252,7 @@ func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) er
 
 func informerNetworkServices(plugin *Plugin) {
 	plugin.informerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Informer()
+	plugin.listerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Lister()
 	// We add a new event handler, watching for changes to API resources.
 	plugin.informerNS.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -292,6 +301,7 @@ func informerNetworkServices(plugin *Plugin) {
 
 func informerNetworkServiceChannels(plugin *Plugin) {
 	plugin.informerNSC = plugin.sharedFactory.Networkservice().V1().NetworkServiceChannels().Informer()
+	plugin.listerNSC = plugin.sharedFactory.Networkservice().V1().NetworkServiceChannels().Lister()
 	// we add a new event handler, watching for changes to API resources.
 	plugin.informerNSC.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -340,6 +350,7 @@ func informerNetworkServiceChannels(plugin *Plugin) {
 
 func informerNetworkServiceEndpoints(plugin *Plugin) {
 	plugin.informerNSE = plugin.sharedFactory.Networkservice().V1().NetworkServiceEndpoints().Informer()
+	plugin.listerNSE = plugin.sharedFactory.Networkservice().V1().NetworkServiceEndpoints().Lister()
 	// we add a new event handler, watching for changes to API resources.
 	plugin.informerNSE.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -482,4 +493,22 @@ func (plugin *Plugin) Close() error {
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
 	return nil
+}
+
+// ListNetworkServices will return a list of all NetworkServices
+// stored in the shared informer cache
+func (plugin *Plugin) ListNetworkServices(selector labels.Selector) (ret []*v1.NetworkService, err error) {
+	return plugin.listerNS.List(selector)
+}
+
+// ListNetworkServiceChannels will return a list of all NetworkServiceChannels
+// stored in the shared informer cache
+func (plugin *Plugin) ListNetworkServiceChannels(selector labels.Selector) (ret []*v1.NetworkServiceChannel, err error) {
+	return plugin.listerNSC.List(selector)
+}
+
+// ListNetworkServiceEndpoints will return a list of all NetworkServiceEndpoints
+// stored in the shared informer cache
+func (plugin *Plugin) ListNetworkServiceEndpoints(selector labels.Selector) (ret []*v1.NetworkServiceEndpoint, err error) {
+	return plugin.listerNSE.List(selector)
 }
