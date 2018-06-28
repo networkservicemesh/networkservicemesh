@@ -453,21 +453,14 @@ func (plugin *Plugin) AfterInit() error {
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
 	plugin.sharedFactory.Start(plugin.stopChNS)
-	plugin.Log.Info("Started NetworkService informer factory.")
+	plugin.Log.Info("Started shared informer factory.")
 
 	// Wait for the informer caches to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced) {
-		plugin.Log.Error("Error waiting for NetworkService informer cache to sync")
+	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced, plugin.informerNSC.HasSynced, plugin.informerNSE.HasSynced) {
+		plugin.Log.Error("Error waiting for informer cache to sync")
 	}
-	if !cache.WaitForCacheSync(plugin.stopChNSC, plugin.informerNSC.HasSynced) {
-		plugin.Log.Error("Error waiting for NetworkServiceChannel informer cache to sync")
-	}
-	if !cache.WaitForCacheSync(plugin.stopChNSE, plugin.informerNSE.HasSynced) {
-		plugin.Log.Error("Error waiting for NetworkServiceEndpoint informer cache to sync")
-	}
-
-	plugin.Log.Info("NetworkService Informer is ready")
+	plugin.Log.Info("Informer cache is ready")
 
 	// Read forever from the work queue
 	go workforever(plugin, queueNS, plugin.informerNS, plugin.stopChNS)
