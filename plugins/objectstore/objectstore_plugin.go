@@ -32,6 +32,8 @@ type meta struct {
 // TODO add NetworkServiceEndpoint and NetworkServiceChannel
 type objectStore struct {
 	*networkServicesStore
+	*networkServiceChannelsStore
+	*networkServiceEndpointsStore
 }
 
 // sharedPlugin is used to provide access to ObjectStore to other plugins
@@ -45,6 +47,8 @@ func SharedPlugin() Interface {
 func newObjectStore() *objectStore {
 	objectStore := &objectStore{}
 	objectStore.networkServicesStore = newNetworkServicesStore()
+	objectStore.networkServiceChannelsStore = newNetworkServiceChannelsStore()
+	objectStore.networkServiceEndpointsStore = newNetworkServiceEndpointsStore()
 	// TODO add initialization of NetworkServiceEndpoint and NetworkServiceChannel
 	return objectStore
 }
@@ -102,7 +106,11 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 		ns := obj.(*v1.NetworkService).Spec
 		p.objects.networkServicesStore.Add(&ns)
 	case *v1.NetworkServiceChannel:
+		nsc := obj.(*v1.NetworkServiceChannel).Spec
+		p.objects.networkServiceChannelsStore.Add(&nsc)
 	case *v1.NetworkServiceEndpoint:
+		nse := obj.(*v1.NetworkServiceEndpoint).Spec
+		p.objects.networkServiceEndpointsStore.Add(&nse)
 	}
 }
 
@@ -110,6 +118,18 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 	p.Log.Info("ObjectStore.ListNetworkServices.")
 	return p.objects.networkServicesStore.List()
+}
+
+// ListNetworkServiceChannels lists all stored NetworkServiceChannel objects
+func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel {
+	p.Log.Info("ObjectStore.ListNetworkServiceChannels")
+	return p.objects.networkServiceChannelsStore.List()
+}
+
+// ListNetworkServiceEndpoints lists all stored NetworkServiceEndpoint objects
+func (p *Plugin) ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint {
+	p.Log.Info("ObjectStore.ListNetworkServiceEndpoints")
+	return p.objects.networkServiceEndpointsStore.List()
 }
 
 // ObjectDeleted is called when an object is deleted
@@ -120,6 +140,10 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 		ns := obj.(*v1.NetworkService).Spec
 		p.objects.networkServicesStore.Delete(meta{name: ns.Metadata.Name, namespace: ns.Metadata.Namespace})
 	case *v1.NetworkServiceChannel:
+		nsc := obj.(*v1.NetworkServiceChannel).Spec
+		p.objects.networkServiceChannelsStore.Delete(meta{name: nsc.Metadata.Name, namespace: nsc.Metadata.Namespace})
 	case *v1.NetworkServiceEndpoint:
+		nse := obj.(*v1.NetworkServiceEndpoint).Spec
+		p.objects.networkServiceEndpointsStore.Delete(meta{name: nse.Metadata.Name, namespace: nse.Metadata.Namespace})
 	}
 }
