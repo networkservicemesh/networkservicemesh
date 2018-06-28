@@ -205,10 +205,9 @@ func main() {
 	// Init related activities start here
 
 	if err := applyRequiredConfig(ns); err != nil {
-		logrus.Infof("nsm client: initialization failed, exiting...", err)
+		logrus.Fatalf("nsm client: initialization failed, exiting...", err)
 		os.Exit(1)
 	}
 	// Init related activities ends here
 	logrus.Info("nsm client: initialization is completed successfully, exiting...")
-	os.Exit(0)
 }
