@@ -16,10 +16,12 @@ package handler
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/ligato/cn-infra/config"
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -78,15 +80,39 @@ func (p *Plugin) Close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectCreated: ", obj)
+	p.Log.Infof("LogCrdHandler.ObjectCreated: ", reflect.TypeOf(obj), obj)
+	switch objtype := obj.(type) {
+	case *v1.NetworkService:
+		p.Log.Infof("Found object of type %T", objtype)
+	case *v1.NetworkServiceChannel:
+		p.Log.Infof("Found object of type %T", objtype)
+	case *v1.NetworkServiceEndpoint:
+		p.Log.Infof("Found object of type %T", objtype)
+	}
 }
 
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectDeleted: ", obj)
+	p.Log.Infof("LogCrdHandler.ObjectDeleted: ", reflect.TypeOf(obj), obj)
+	switch objtype := obj.(type) {
+	case *v1.NetworkService:
+		p.Log.Infof("Found object of type %T", objtype)
+	case *v1.NetworkServiceChannel:
+		p.Log.Infof("Found object of type %T", objtype)
+	case *v1.NetworkServiceEndpoint:
+		p.Log.Infof("Found object of type %T", objtype)
+	}
 }
 
 // ObjectUpdated is called when an object is updated
-func (p *Plugin) ObjectUpdated(objOld, objNew interface{}) {
-	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", objOld, objNew)
+func (p *Plugin) ObjectUpdated(old, cur interface{}) {
+	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", reflect.TypeOf(old), reflect.TypeOf(cur), old, cur)
+	switch objtype := old.(type) {
+	case *v1.NetworkService:
+		p.Log.Infof("Found object of type %T", objtype)
+	case *v1.NetworkServiceChannel:
+		p.Log.Infof("Found object of type %T", objtype)
+	case *v1.NetworkServiceEndpoint:
+		p.Log.Infof("Found object of type %T", objtype)
+	}
 }
