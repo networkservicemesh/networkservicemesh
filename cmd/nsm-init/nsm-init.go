@@ -133,6 +133,7 @@ func parseConfigMap(cm *v1.ConfigMap) ([]*networkService, error) {
 	decoder := yaml.NewYAMLOrJSONDecoder(sr, 512)
 	if err := decoder.Decode(&nSs); err != nil {
 		logrus.Errorf("decoding %+v failed with error: %v", rawData, err)
+		return nil, err
 	}
 
 	return nSs, nil
