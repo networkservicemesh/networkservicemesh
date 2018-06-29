@@ -29,7 +29,6 @@ type meta struct {
 }
 
 // ObjectStore stores information about all objects learned by CRDs controller
-// TODO add NetworkServiceEndpoint and NetworkServiceChannel
 type objectStore struct {
 	*networkServicesStore
 	*networkServiceChannelsStore
@@ -49,7 +48,6 @@ func newObjectStore() *objectStore {
 	objectStore.networkServicesStore = newNetworkServicesStore()
 	objectStore.networkServiceChannelsStore = newNetworkServiceChannelsStore()
 	objectStore.networkServiceEndpointsStore = newNetworkServiceEndpointsStore()
-	// TODO add initialization of NetworkServiceEndpoint and NetworkServiceChannel
 	return objectStore
 }
 
