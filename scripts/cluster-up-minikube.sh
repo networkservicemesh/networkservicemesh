@@ -27,7 +27,7 @@ export KUBECONFIG=$HOME/.kube/config
 export PATH=${PATH}:${GOPATH:?}/bin
 
 MINIKUBE_VERSION=v0.28.0
-KUBERNETES_VERSION=v1.11.0
+KUBERNETES_VERSION=v1.10.0
 
 install_bin() {
     local exe=${1:?}
