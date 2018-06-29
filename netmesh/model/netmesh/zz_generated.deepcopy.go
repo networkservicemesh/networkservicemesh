@@ -52,12 +52,8 @@ func (in *Metadata) DeepCopyInto(out *Metadata) {
 	*out = *in
 	if in.Labels != nil {
 		in, out := &in.Labels, &out.Labels
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(Label)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(Label)
+		(*in).DeepCopyInto(*out)
 	}
 	out.XXX_NoUnkeyedLiteral = in.XXX_NoUnkeyedLiteral
 	if in.XXX_unrecognized != nil {
@@ -83,23 +79,17 @@ func (in *NetworkService) DeepCopyInto(out *NetworkService) {
 	*out = *in
 	if in.Metadata != nil {
 		in, out := &in.Metadata, &out.Metadata
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(Metadata)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(Metadata)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Channels != nil {
 		in, out := &in.Channels, &out.Channels
 		*out = make([]*NetworkService_NetmeshChannel, len(*in))
 		for i := range *in {
-			if val := (*in)[i]; val == nil {
-				(*out)[i] = nil
-			} else {
-				x := new(NetworkService_NetmeshChannel)
-				(*out)[i] = x
-				val.DeepCopyInto(x)
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(NetworkService_NetmeshChannel)
+				(*in).DeepCopyInto(*out)
 			}
 		}
 	}
@@ -127,12 +117,8 @@ func (in *NetworkServiceEndpoint) DeepCopyInto(out *NetworkServiceEndpoint) {
 	*out = *in
 	if in.Metadata != nil {
 		in, out := &in.Metadata, &out.Metadata
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(Metadata)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(Metadata)
+		(*in).DeepCopyInto(*out)
 	}
 	out.XXX_NoUnkeyedLiteral = in.XXX_NoUnkeyedLiteral
 	if in.XXX_unrecognized != nil {
@@ -158,12 +144,8 @@ func (in *NetworkService_NetmeshChannel) DeepCopyInto(out *NetworkService_Netmes
 	*out = *in
 	if in.Metadata != nil {
 		in, out := &in.Metadata, &out.Metadata
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(Metadata)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(Metadata)
+		(*in).DeepCopyInto(*out)
 	}
 	out.XXX_NoUnkeyedLiteral = in.XXX_NoUnkeyedLiteral
 	if in.XXX_unrecognized != nil {
