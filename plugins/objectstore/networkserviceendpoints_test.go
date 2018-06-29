@@ -36,10 +36,6 @@ func TestEndpointStore(t *testing.T) {
 	endpoints.networkServiceEndpointsStore = newNetworkServiceEndpointsStore()
 
 	nse := netmesh.NetworkServiceEndpoint{
-		Metadata: &netmesh.Metadata{},
-	}
-
-	nse = netmesh.NetworkServiceEndpoint{
 		Metadata: &netmesh.Metadata{
 			Name:      epTestName,
 			Namespace: epTestNamespace,

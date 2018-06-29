@@ -36,10 +36,6 @@ func TestNetworkServiceStore(t *testing.T) {
 	networkservices.networkServicesStore = newNetworkServicesStore()
 
 	ns := netmesh.NetworkService{
-		Metadata: &netmesh.Metadata{},
-	}
-
-	ns = netmesh.NetworkService{
 		Metadata: &netmesh.Metadata{
 			Name:      nsTestName,
 			Namespace: nsTestNamespace,
