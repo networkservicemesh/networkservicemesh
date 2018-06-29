@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func TestGetClusterConfig(t *testing.T) {
+func TestParseNSMClientConfig(t *testing.T) {
 	tests := []struct {
 		testName                string
 		configMapName           *v1.ConfigMap
