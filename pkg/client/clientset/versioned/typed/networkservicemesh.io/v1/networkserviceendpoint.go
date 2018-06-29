@@ -19,7 +19,7 @@ package v1
 import (
 	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	scheme "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -36,11 +36,11 @@ type NetworkServiceEndpointInterface interface {
 	Create(*v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
 	Update(*v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
 	UpdateStatus(*v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.NetworkServiceEndpoint, error)
-	List(opts meta_v1.ListOptions) (*v1.NetworkServiceEndpointList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.NetworkServiceEndpoint, error)
+	List(opts metav1.ListOptions) (*v1.NetworkServiceEndpointList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.NetworkServiceEndpoint, err error)
 	NetworkServiceEndpointExpansion
 }
@@ -60,7 +60,7 @@ func newNetworkServiceEndpoints(c *NetworkserviceV1Client, namespace string) *ne
 }
 
 // Get takes name of the networkServiceEndpoint, and returns the corresponding networkServiceEndpoint object, and an error if there is any.
-func (c *networkServiceEndpoints) Get(name string, options meta_v1.GetOptions) (result *v1.NetworkServiceEndpoint, err error) {
+func (c *networkServiceEndpoints) Get(name string, options metav1.GetOptions) (result *v1.NetworkServiceEndpoint, err error) {
 	result = &v1.NetworkServiceEndpoint{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -73,7 +73,7 @@ func (c *networkServiceEndpoints) Get(name string, options meta_v1.GetOptions) (
 }
 
 // List takes label and field selectors, and returns the list of NetworkServiceEndpoints that match those selectors.
-func (c *networkServiceEndpoints) List(opts meta_v1.ListOptions) (result *v1.NetworkServiceEndpointList, err error) {
+func (c *networkServiceEndpoints) List(opts metav1.ListOptions) (result *v1.NetworkServiceEndpointList, err error) {
 	result = &v1.NetworkServiceEndpointList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -85,7 +85,7 @@ func (c *networkServiceEndpoints) List(opts meta_v1.ListOptions) (result *v1.Net
 }
 
 // Watch returns a watch.Interface that watches the requested networkServiceEndpoints.
-func (c *networkServiceEndpoints) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *networkServiceEndpoints) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
@@ -136,7 +136,7 @@ func (c *networkServiceEndpoints) UpdateStatus(networkServiceEndpoint *v1.Networ
 }
 
 // Delete takes name of the networkServiceEndpoint and deletes it. Returns an error if one occurs.
-func (c *networkServiceEndpoints) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *networkServiceEndpoints) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkserviceendpoints").
@@ -147,7 +147,7 @@ func (c *networkServiceEndpoints) Delete(name string, options *meta_v1.DeleteOpt
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *networkServiceEndpoints) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *networkServiceEndpoints) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkserviceendpoints").
