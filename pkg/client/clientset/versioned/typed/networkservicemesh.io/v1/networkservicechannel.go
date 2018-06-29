@@ -19,7 +19,7 @@ package v1
 import (
 	v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	scheme "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -36,11 +36,11 @@ type NetworkServiceChannelInterface interface {
 	Create(*v1.NetworkServiceChannel) (*v1.NetworkServiceChannel, error)
 	Update(*v1.NetworkServiceChannel) (*v1.NetworkServiceChannel, error)
 	UpdateStatus(*v1.NetworkServiceChannel) (*v1.NetworkServiceChannel, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.NetworkServiceChannel, error)
-	List(opts meta_v1.ListOptions) (*v1.NetworkServiceChannelList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.NetworkServiceChannel, error)
+	List(opts metav1.ListOptions) (*v1.NetworkServiceChannelList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.NetworkServiceChannel, err error)
 	NetworkServiceChannelExpansion
 }
@@ -60,7 +60,7 @@ func newNetworkServiceChannels(c *NetworkserviceV1Client, namespace string) *net
 }
 
 // Get takes name of the networkServiceChannel, and returns the corresponding networkServiceChannel object, and an error if there is any.
-func (c *networkServiceChannels) Get(name string, options meta_v1.GetOptions) (result *v1.NetworkServiceChannel, err error) {
+func (c *networkServiceChannels) Get(name string, options metav1.GetOptions) (result *v1.NetworkServiceChannel, err error) {
 	result = &v1.NetworkServiceChannel{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -73,7 +73,7 @@ func (c *networkServiceChannels) Get(name string, options meta_v1.GetOptions) (r
 }
 
 // List takes label and field selectors, and returns the list of NetworkServiceChannels that match those selectors.
-func (c *networkServiceChannels) List(opts meta_v1.ListOptions) (result *v1.NetworkServiceChannelList, err error) {
+func (c *networkServiceChannels) List(opts metav1.ListOptions) (result *v1.NetworkServiceChannelList, err error) {
 	result = &v1.NetworkServiceChannelList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -85,7 +85,7 @@ func (c *networkServiceChannels) List(opts meta_v1.ListOptions) (result *v1.Netw
 }
 
 // Watch returns a watch.Interface that watches the requested networkServiceChannels.
-func (c *networkServiceChannels) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *networkServiceChannels) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
@@ -136,7 +136,7 @@ func (c *networkServiceChannels) UpdateStatus(networkServiceChannel *v1.NetworkS
 }
 
 // Delete takes name of the networkServiceChannel and deletes it. Returns an error if one occurs.
-func (c *networkServiceChannels) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *networkServiceChannels) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkservicechannels").
@@ -147,7 +147,7 @@ func (c *networkServiceChannels) Delete(name string, options *meta_v1.DeleteOpti
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *networkServiceChannels) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *networkServiceChannels) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkservicechannels").

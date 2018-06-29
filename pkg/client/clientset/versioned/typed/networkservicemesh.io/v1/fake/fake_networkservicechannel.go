@@ -17,7 +17,7 @@
 package fake
 
 import (
-	networkservicemesh_io_v1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	networkservicemeshiov1 "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -37,20 +37,20 @@ var networkservicechannelsResource = schema.GroupVersionResource{Group: "network
 var networkservicechannelsKind = schema.GroupVersionKind{Group: "networkservice.mesh", Version: "v1", Kind: "NetworkServiceChannel"}
 
 // Get takes name of the networkServiceChannel, and returns the corresponding networkServiceChannel object, and an error if there is any.
-func (c *FakeNetworkServiceChannels) Get(name string, options v1.GetOptions) (result *networkservicemesh_io_v1.NetworkServiceChannel, err error) {
+func (c *FakeNetworkServiceChannels) Get(name string, options v1.GetOptions) (result *networkservicemeshiov1.NetworkServiceChannel, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(networkservicechannelsResource, c.ns, name), &networkservicemesh_io_v1.NetworkServiceChannel{})
+		Invokes(testing.NewGetAction(networkservicechannelsResource, c.ns, name), &networkservicemeshiov1.NetworkServiceChannel{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*networkservicemesh_io_v1.NetworkServiceChannel), err
+	return obj.(*networkservicemeshiov1.NetworkServiceChannel), err
 }
 
 // List takes label and field selectors, and returns the list of NetworkServiceChannels that match those selectors.
-func (c *FakeNetworkServiceChannels) List(opts v1.ListOptions) (result *networkservicemesh_io_v1.NetworkServiceChannelList, err error) {
+func (c *FakeNetworkServiceChannels) List(opts v1.ListOptions) (result *networkservicemeshiov1.NetworkServiceChannelList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(networkservicechannelsResource, networkservicechannelsKind, c.ns, opts), &networkservicemesh_io_v1.NetworkServiceChannelList{})
+		Invokes(testing.NewListAction(networkservicechannelsResource, networkservicechannelsKind, c.ns, opts), &networkservicemeshiov1.NetworkServiceChannelList{})
 
 	if obj == nil {
 		return nil, err
@@ -60,8 +60,8 @@ func (c *FakeNetworkServiceChannels) List(opts v1.ListOptions) (result *networks
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &networkservicemesh_io_v1.NetworkServiceChannelList{}
-	for _, item := range obj.(*networkservicemesh_io_v1.NetworkServiceChannelList).Items {
+	list := &networkservicemeshiov1.NetworkServiceChannelList{ListMeta: obj.(*networkservicemeshiov1.NetworkServiceChannelList).ListMeta}
+	for _, item := range obj.(*networkservicemeshiov1.NetworkServiceChannelList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -77,43 +77,43 @@ func (c *FakeNetworkServiceChannels) Watch(opts v1.ListOptions) (watch.Interface
 }
 
 // Create takes the representation of a networkServiceChannel and creates it.  Returns the server's representation of the networkServiceChannel, and an error, if there is any.
-func (c *FakeNetworkServiceChannels) Create(networkServiceChannel *networkservicemesh_io_v1.NetworkServiceChannel) (result *networkservicemesh_io_v1.NetworkServiceChannel, err error) {
+func (c *FakeNetworkServiceChannels) Create(networkServiceChannel *networkservicemeshiov1.NetworkServiceChannel) (result *networkservicemeshiov1.NetworkServiceChannel, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(networkservicechannelsResource, c.ns, networkServiceChannel), &networkservicemesh_io_v1.NetworkServiceChannel{})
+		Invokes(testing.NewCreateAction(networkservicechannelsResource, c.ns, networkServiceChannel), &networkservicemeshiov1.NetworkServiceChannel{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*networkservicemesh_io_v1.NetworkServiceChannel), err
+	return obj.(*networkservicemeshiov1.NetworkServiceChannel), err
 }
 
 // Update takes the representation of a networkServiceChannel and updates it. Returns the server's representation of the networkServiceChannel, and an error, if there is any.
-func (c *FakeNetworkServiceChannels) Update(networkServiceChannel *networkservicemesh_io_v1.NetworkServiceChannel) (result *networkservicemesh_io_v1.NetworkServiceChannel, err error) {
+func (c *FakeNetworkServiceChannels) Update(networkServiceChannel *networkservicemeshiov1.NetworkServiceChannel) (result *networkservicemeshiov1.NetworkServiceChannel, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(networkservicechannelsResource, c.ns, networkServiceChannel), &networkservicemesh_io_v1.NetworkServiceChannel{})
+		Invokes(testing.NewUpdateAction(networkservicechannelsResource, c.ns, networkServiceChannel), &networkservicemeshiov1.NetworkServiceChannel{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*networkservicemesh_io_v1.NetworkServiceChannel), err
+	return obj.(*networkservicemeshiov1.NetworkServiceChannel), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeNetworkServiceChannels) UpdateStatus(networkServiceChannel *networkservicemesh_io_v1.NetworkServiceChannel) (*networkservicemesh_io_v1.NetworkServiceChannel, error) {
+func (c *FakeNetworkServiceChannels) UpdateStatus(networkServiceChannel *networkservicemeshiov1.NetworkServiceChannel) (*networkservicemeshiov1.NetworkServiceChannel, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(networkservicechannelsResource, "status", c.ns, networkServiceChannel), &networkservicemesh_io_v1.NetworkServiceChannel{})
+		Invokes(testing.NewUpdateSubresourceAction(networkservicechannelsResource, "status", c.ns, networkServiceChannel), &networkservicemeshiov1.NetworkServiceChannel{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*networkservicemesh_io_v1.NetworkServiceChannel), err
+	return obj.(*networkservicemeshiov1.NetworkServiceChannel), err
 }
 
 // Delete takes name of the networkServiceChannel and deletes it. Returns an error if one occurs.
 func (c *FakeNetworkServiceChannels) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(networkservicechannelsResource, c.ns, name), &networkservicemesh_io_v1.NetworkServiceChannel{})
+		Invokes(testing.NewDeleteAction(networkservicechannelsResource, c.ns, name), &networkservicemeshiov1.NetworkServiceChannel{})
 
 	return err
 }
@@ -122,17 +122,17 @@ func (c *FakeNetworkServiceChannels) Delete(name string, options *v1.DeleteOptio
 func (c *FakeNetworkServiceChannels) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(networkservicechannelsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &networkservicemesh_io_v1.NetworkServiceChannelList{})
+	_, err := c.Fake.Invokes(action, &networkservicemeshiov1.NetworkServiceChannelList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched networkServiceChannel.
-func (c *FakeNetworkServiceChannels) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *networkservicemesh_io_v1.NetworkServiceChannel, err error) {
+func (c *FakeNetworkServiceChannels) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *networkservicemeshiov1.NetworkServiceChannel, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(networkservicechannelsResource, c.ns, name, data, subresources...), &networkservicemesh_io_v1.NetworkServiceChannel{})
+		Invokes(testing.NewPatchSubresourceAction(networkservicechannelsResource, c.ns, name, data, subresources...), &networkservicemeshiov1.NetworkServiceChannel{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*networkservicemesh_io_v1.NetworkServiceChannel), err
+	return obj.(*networkservicemeshiov1.NetworkServiceChannel), err
 }

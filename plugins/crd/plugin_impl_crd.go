@@ -111,7 +111,7 @@ func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
 	validation := &apiextv1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": apiextv1beta1.JSONSchemaProps{
+				"spec": {
 					Required: []string{"metadata"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"metadata": {
@@ -145,7 +145,7 @@ func networkServiceEndpointsValidation() *apiextv1beta1.CustomResourceValidation
 	validation := &apiextv1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": apiextv1beta1.JSONSchemaProps{
+				"spec": {
 					Required: []string{"metadata"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"metadata": {
@@ -179,7 +179,7 @@ func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation 
 	validation := &apiextv1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": apiextv1beta1.JSONSchemaProps{
+				"spec": {
 					Required: []string{"metadata"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"metadata": {
