@@ -126,12 +126,11 @@ kubectl create -f conf/sample/networkservice-channel.yaml
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 kubectl create -f conf/sample/networkservice.yaml
 kubectl create -f conf/sample/nsm-client.yaml
-kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 #
 # Now let's wait for netmesh daemonset and nsm-cient pods to get into running state
 #
 wait_for_pods default
-
+kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 # Need to get kubeconfig full path
 # NOTE: Disable this for now until we fix the timing issue
 K8SCONFIG=$HOME/.kube/config
