@@ -237,7 +237,7 @@ func getNetworkServices(nsmClient nsmconnect.ClientConnectionClient) ([]*netmesh
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("nsm client: Discovery request did not succeed within 60 seconds, last known error: %+v", err)
+			return nil, fmt.Errorf("nsm client: Discovery request did not succeed within %d seconds, last known error: %+v", clientConnectionTimeout, err)
 		case <-ticker.C:
 			resp, err := nsmClient.RequestDiscovery(ctx, &nsmconnect.DiscoveryRequest{})
 			if err == nil {
