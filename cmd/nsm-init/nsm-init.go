@@ -43,6 +43,8 @@ import (
 const (
 	// clientConnectionTimeout defines time the client waits for establishing connection with the server
 	clientConnectionTimeout = time.Second * 60
+	// clientConnectionTimeout defines retry interval for establishing connection with the server
+	clientConnectionRetry = time.Second * 2
 )
 
 var (
@@ -230,7 +232,7 @@ func getNetworkServices(nsmClient nsmconnect.ClientConnectionClient) ([]*netmesh
 	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
 	defer cancel()
 	// Wait for ObjectStore to be ready
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(clientConnectionRetry)
 	defer ticker.Stop()
 	// Wait for objectstore to initialize
 	var err error
@@ -243,7 +245,7 @@ func getNetworkServices(nsmClient nsmconnect.ClientConnectionClient) ([]*netmesh
 			if err == nil {
 				return resp.NetworkService, nil
 			}
-			logrus.Infof("nsm client: Discovery request failed with: %+v, re-attempting in 2 seconds", err)
+			logrus.Infof("nsm client: Discovery request failed with: %+v, re-attempting in %d seconds", err, clientConnectionRetry)
 		}
 	}
 }
