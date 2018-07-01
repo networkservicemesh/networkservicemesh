@@ -217,7 +217,7 @@ func main() {
 		logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
 		os.Exit(0)
 	}
-	logrus.Info("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
+	logrus.Infof("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
 	if err := applyRequiredConfig(ns); err != nil {
 		logrus.Fatalf("nsm client: initialization failed, exiting...", err)
 		os.Exit(1)
