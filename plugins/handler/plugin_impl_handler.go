@@ -71,7 +71,7 @@ func (p *Plugin) AfterInit() error {
 	p.Log.Info("AfterInit")
 
 	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
-	timeout := time.After(time.Second * 60)
+	timeout := time.After(objectstore.ObjectStoreReadyTimeout)
 	defer ticker.Stop()
 	// Wait for objectstore to initialize
 	ready := false

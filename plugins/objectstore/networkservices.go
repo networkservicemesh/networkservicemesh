@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/sirupsen/logrus"
 )
 
 // NetworkServicesStore map stores all discovered Network Service Object
@@ -48,6 +49,7 @@ func (n *networkServicesStore) Add(ns *netmesh.NetworkService) {
 		// Not in the store, adding it.
 		n.networkService[key] = ns
 	}
+	logrus.Infof("objectstore: NetworkService was added, %s/%s, total number of elements: %d", ns.Metadata.Namespace, ns.Metadata.Name, len(n.networkService))
 }
 
 // Delete method deletes removed NetworkService object from the store.
@@ -68,6 +70,6 @@ func (n *networkServicesStore) List() []*netmesh.NetworkService {
 	for _, ns := range n.networkService {
 		networkServices = append(networkServices, ns)
 	}
-
+	logrus.Infof("objectstore: NetworkService List was called, total number of elements: %d", len(n.networkService))
 	return networkServices
 }

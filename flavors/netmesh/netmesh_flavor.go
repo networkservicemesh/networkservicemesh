@@ -21,7 +21,7 @@ import (
 	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/flavors/rpc"
 	"github.com/ligato/networkservicemesh/plugins/crd"
-	"github.com/ligato/networkservicemesh/plugins/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 )
 
@@ -58,7 +58,7 @@ type FlavorNetmesh struct {
 	*rpc.FlavorRPC
 	// Kubernetes State Reflector plugin works as a reflector for policies, pods
 	// and namespaces.
-	Netmesh     netmesh.Plugin
+	NSMServer   nsmserver.Plugin
 	CRD         netmeshplugincrd.Plugin
 	ObjectStore objectstore.Plugin
 	injected    bool
@@ -81,10 +81,8 @@ func (f *FlavorNetmesh) Inject() (allReadyInjected bool) {
 	}
 	f.FlavorRPC.Inject()
 
-	f.Netmesh.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmesh")
+	f.NSMServer.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("nsmserver")
 	// Reuse ForPlugin to define configuration file for 3rd party library (k8s client).
-	f.Netmesh.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
-	f.Netmesh.StatusMonitor = &f.StatusCheck // StatusCheck included in local.FlavorLocal
 	f.CRD.Deps.PluginInfraDeps = *f.FlavorLocal.InfraDeps("netmeshcrd")
 	f.CRD.Deps.KubeConfig = config.ForPlugin("kube", KubeConfigAdmin, KubeConfigUsage)
 
