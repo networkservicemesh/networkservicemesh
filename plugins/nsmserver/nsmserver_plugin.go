@@ -29,9 +29,9 @@ import (
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
 // data store.
 type Plugin struct {
-	nsmClientEndpoints nsmClientEndpoints
 	Deps
-	pluginStopCh chan bool
+	nsmClientEndpoints nsmClientEndpoints
+	pluginStopCh       chan bool
 	idempotent.Impl
 }
 
