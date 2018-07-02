@@ -17,7 +17,7 @@ script:
 - docker build -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
 - docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 - docker build -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
-- ./scripts/integration-tests minikube
+- ./scripts/travis-integration-tests.sh minikube
 
 notifications:
   irc:
