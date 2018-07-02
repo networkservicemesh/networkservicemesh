@@ -75,7 +75,6 @@ if [[ "x$nsm" != "x" ]]; then
    kubectl logs $nsm -n $namespace -p || true
 fi
 nsm_client=$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')
-echo "\>\<SB\>" $nsm_client
 if [[ "x$nsm_client" != "x" ]]; then 
    kubectl describe pod $nsm_client -n $namespace || true
    kubectl logs $nsm_client -n $namespace nsm-init || true
@@ -118,16 +117,30 @@ until kubectl get crd | grep networkservicemesh.io ; do
     sleep 2
 done
 
-kubectl get nodes
-kubectl get pods
-kubectl get crd
-kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
-
+#
+# Since daemonset is up and running, creating CRD resources
+#
 kubectl create -f conf/sample/networkservice-channel.yaml
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 kubectl create -f conf/sample/networkservice.yaml
+kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
+#
+# Starting nsm client pod
+#
 kubectl create -f conf/sample/nsm-client.yaml
-kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
+#
+# Now let's wait for nsm-cient pod to get into running state
+#
+wait_for_pods default
+
+#
+# Final log colelction
+#
+kubectl get nodes
+kubectl get pods
+kubectl get crd
+kubectl logs $(kubectl get pods -o name | grep nsm-client ) -c nsm-init
+kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
 # Need to get kubeconfig full path
 # NOTE: Disable this for now until we fix the timing issue
