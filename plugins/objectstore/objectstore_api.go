@@ -22,7 +22,9 @@ import (
 
 const (
 	// ObjectStoreReadyInterval defines readiness retry interval
-	ObjectStoreReadyInterval = time.Second * 10
+	ObjectStoreReadyInterval = time.Second * 1
+	// ObjectStoreReadyTimeout defines readiness timeout
+	ObjectStoreReadyTimeout = time.Second * 5
 )
 
 // Interface is the interface to a ObjectStore handler plugin
