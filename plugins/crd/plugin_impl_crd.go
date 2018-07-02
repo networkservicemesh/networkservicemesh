@@ -36,6 +36,7 @@ import (
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 	"github.com/ligato/networkservicemesh/plugins/handler"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -67,6 +68,8 @@ type Plugin struct {
 	informerNS  cache.SharedIndexInformer
 	informerNSE cache.SharedIndexInformer
 	informerNSC cache.SharedIndexInformer
+	// objectStore is interface to access ObjectStore
+	objectStore objectstore.Interface
 }
 
 // Deps defines dependencies of CRD plugin.
@@ -202,6 +205,25 @@ func (plugin *Plugin) AfterInit() error {
 	if err != nil {
 		plugin.Log.Error("Error initializing NetworkService CRD")
 		return err
+	}
+	// Wait for objectstore to initialize
+	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
+	timeout := time.After(time.Second * 60)
+	defer ticker.Stop()
+	ready := false
+	for !ready {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for ObjectStore")
+		case <-ticker.C:
+			if plugin.objectStore = objectstore.SharedPlugin(); plugin.objectStore != nil {
+				ready = true
+				ticker.Stop()
+				plugin.Log.Info("ObjectStore is ready, starting Consumer")
+			} else {
+				plugin.Log.Info("ObjectStore is not ready, waiting")
+			}
+		}
 	}
 
 	// We use a shared informer from the informer factory, to save calls to the

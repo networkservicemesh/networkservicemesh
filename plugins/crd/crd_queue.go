@@ -110,7 +110,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 				// If the object was deleted, it's no longer in the cache, so we'll use the copy
 				// we made before adding it to our work queue.
 				plugin.Log.Infof("Object (%s) deleted from queue", name)
-				plugin.HandlerAPI.ObjectDeleted(message.(objectMessage).obj)
+				plugin.objectStore.ObjectDeleted(message.(objectMessage).obj)
 			} else {
 				// Check if this is a create or update operation
 				switch message.(objectMessage).operation {
@@ -121,10 +121,10 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 						plugin.Log.Errorf("Informer cached version of object (%s/%s) different than worker queue version", namespace, name)
 					}
 					plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-					plugin.HandlerAPI.ObjectCreated(message.(objectMessage).obj)
+					plugin.objectStore.ObjectCreated(message.(objectMessage).obj)
 				case update:
 					plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-					plugin.HandlerAPI.ObjectCreated(message.(objectMessage).obj)
+					plugin.objectStore.ObjectCreated(message.(objectMessage).obj)
 				}
 			}
 
