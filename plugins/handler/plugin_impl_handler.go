@@ -71,11 +71,14 @@ func (p *Plugin) AfterInit() error {
 	p.Log.Info("AfterInit")
 
 	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
+	timeout := time.After(time.Second * 60)
 	defer ticker.Stop()
 	// Wait for objectstore to initialize
 	ready := false
 	for !ready {
 		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for ObjectStore")
 		case <-ticker.C:
 			if p.objectStore = objectstore.SharedPlugin(); p.objectStore != nil {
 				ready = true

@@ -22,10 +22,7 @@ import (
 	"sync"
 	"time"
 
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -39,6 +36,8 @@ import (
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 	"github.com/ligato/networkservicemesh/plugins/handler"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"k8s.io/client-go/util/workqueue"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
@@ -69,6 +68,8 @@ type Plugin struct {
 	informerNS  cache.SharedIndexInformer
 	informerNSE cache.SharedIndexInformer
 	informerNSC cache.SharedIndexInformer
+	// objectStore is interface to access ObjectStore
+	objectStore objectstore.Interface
 }
 
 // Deps defines dependencies of CRD plugin.
@@ -105,147 +106,9 @@ func (plugin *Plugin) Init() error {
 	return nil
 }
 
-// networkServiceValidation generates OpenAPIV3 validator for NetworkService CRD
-func networkServiceValidation() *apiextv1beta1.CustomResourceValidation {
-	maxLength := int64(64)
-	validation := &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
-			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": {
-					Required: []string{"metadata"},
-					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"metadata": {
-							Required: []string{"name"},
-							Properties: map[string]apiextv1beta1.JSONSchemaProps{
-								"name": {
-									Type:        "string",
-									MaxLength:   &maxLength,
-									Description: "NetworkServiceEndpoints Name",
-									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
-								},
-								"namespace": {
-									Type:        "string",
-									MaxLength:   &maxLength,
-									Description: "NetworkServiceEndpoints Namespace",
-									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return validation
-}
-
-// networkServiceEndpointsValidation generates OpenAPIV3 validator for NetworkServiceEndpoints CRD
-func networkServiceEndpointsValidation() *apiextv1beta1.CustomResourceValidation {
-	maxLength := int64(64)
-	validation := &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
-			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": {
-					Required: []string{"metadata"},
-					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"metadata": {
-							Required: []string{"name"},
-							Properties: map[string]apiextv1beta1.JSONSchemaProps{
-								"name": {
-									Type:        "string",
-									MaxLength:   &maxLength,
-									Description: "NetworkServiceEndpoints Name",
-									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
-								},
-								"namespace": {
-									Type:        "string",
-									MaxLength:   &maxLength,
-									Description: "NetworkServiceEndpoints Namespace",
-									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return validation
-}
-
-// networkServiceChannels generates OpenAPIV3 validator for NetworkServiceChannels CRD
-func networkServiceChannelsValidation() *apiextv1beta1.CustomResourceValidation {
-	maxLength := int64(64)
-	validation := &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
-			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": {
-					Required: []string{"metadata"},
-					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"metadata": {
-							Required: []string{"name"},
-							Properties: map[string]apiextv1beta1.JSONSchemaProps{
-								"name": {
-									Type:        "string",
-									MaxLength:   &maxLength,
-									Description: "NetworkServiceEndpoints Name",
-									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
-								},
-								"namespace": {
-									Type:        "string",
-									MaxLength:   &maxLength,
-									Description: "NetworkServiceEndpoints Namespace",
-									Pattern:     `^[a-zA-Z0-9]+[\-a-zA-Z0-9]*$`,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return validation
-}
-
-// Create the CRD resource, ignore error if it already exists
-func createCRD(plugin *Plugin, FullName, Group, Version, Plural, Name string) error {
-
-	var validation *apiextv1beta1.CustomResourceValidation
-	switch Name {
-	case "NetworkService":
-		validation = networkServiceValidation()
-	case "NetworkServiceEndpoints":
-		validation = networkServiceEndpointsValidation()
-	case "NetworkServiceChannels":
-		validation = networkServiceChannelsValidation()
-	default:
-		validation = &apiextv1beta1.CustomResourceValidation{}
-	}
-	crd := &apiextv1beta1.CustomResourceDefinition{
-		ObjectMeta: meta.ObjectMeta{Name: FullName},
-		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Group:   Group,
-			Version: Version,
-			Scope:   apiextv1beta1.NamespaceScoped,
-			Names: apiextv1beta1.CustomResourceDefinitionNames{
-				Plural: Plural,
-				Kind:   Name,
-			},
-			Validation: validation,
-		},
-	}
-	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-	if apierrors.IsAlreadyExists(cserr) {
-		return nil
-	}
-
-	return cserr
-}
-
-func informerNetworkServices(plugin *Plugin) {
-	plugin.informerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Informer()
+func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimitingInterface) {
 	// We add a new event handler, watching for changes to API resources.
-	plugin.informerNS.AddEventHandler(
+	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				var message objectMessage
@@ -254,7 +117,7 @@ func informerNetworkServices(plugin *Plugin) {
 				message.operation = create
 				message.obj = obj
 				if err == nil {
-					queueNS.Add(message)
+					queue.Add(message)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
@@ -266,13 +129,13 @@ func informerNetworkServices(plugin *Plugin) {
 					messageOld.operation = delete
 					messageOld.obj = old
 					if err == nil {
-						queueNS.Add(messageOld)
+						queue.Add(messageOld)
 					}
 					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
 					messageCur.operation = create
 					messageCur.obj = cur
 					if err == nil {
-						queueNS.Add(messageCur)
+						queue.Add(messageCur)
 					}
 				}
 			},
@@ -283,103 +146,7 @@ func informerNetworkServices(plugin *Plugin) {
 				message.operation = delete
 				message.obj = obj
 				if err == nil {
-					queueNS.Add(message)
-				}
-			},
-		},
-	)
-}
-
-func informerNetworkServiceChannels(plugin *Plugin) {
-	plugin.informerNSC = plugin.sharedFactory.Networkservice().V1().NetworkServiceChannels().Informer()
-	// we add a new event handler, watching for changes to API resources.
-	plugin.informerNSC.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				var message objectMessage
-				var err error
-				message.key, err = cache.MetaNamespaceKeyFunc(obj)
-				message.operation = create
-				message.obj = obj
-				if err == nil {
-					queueNSC.Add(message)
-				}
-			},
-			UpdateFunc: func(old, cur interface{}) {
-				if !reflect.DeepEqual(old, cur) {
-					// For an update event, we delete the old and add the current
-					var messageOld, messageCur objectMessage
-					var err error
-					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
-					messageOld.operation = delete
-					messageOld.obj = old
-					if err == nil {
-						queueNSC.Add(messageOld)
-					}
-					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
-					messageCur.operation = create
-					messageCur.obj = cur
-					if err == nil {
-						queueNSC.Add(messageCur)
-					}
-				}
-			},
-			DeleteFunc: func(obj interface{}) {
-				var message objectMessage
-				var err error
-				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				message.operation = delete
-				message.obj = obj
-				if err == nil {
-					queueNSC.Add(message)
-				}
-			},
-		},
-	)
-}
-
-func informerNetworkServiceEndpoints(plugin *Plugin) {
-	plugin.informerNSE = plugin.sharedFactory.Networkservice().V1().NetworkServiceEndpoints().Informer()
-	// we add a new event handler, watching for changes to API resources.
-	plugin.informerNSE.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				var message objectMessage
-				var err error
-				message.key, err = cache.MetaNamespaceKeyFunc(obj)
-				message.operation = create
-				message.obj = obj
-				if err == nil {
-					queueNSE.Add(message)
-				}
-			},
-			UpdateFunc: func(old, cur interface{}) {
-				if !reflect.DeepEqual(old, cur) {
-					// For an update event, we delete the old and add the current
-					var messageOld, messageCur objectMessage
-					var err error
-					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
-					messageOld.operation = delete
-					messageOld.obj = old
-					if err == nil {
-						queueNSE.Add(messageOld)
-					}
-					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
-					messageCur.operation = create
-					messageCur.obj = cur
-					if err == nil {
-						queueNSE.Add(messageCur)
-					}
-				}
-			},
-			DeleteFunc: func(obj interface{}) {
-				var message objectMessage
-				var err error
-				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				message.operation = delete
-				message.obj = obj
-				if err == nil {
-					queueNSE.Add(message)
+					queue.Add(message)
 				}
 			},
 		},
@@ -439,6 +206,25 @@ func (plugin *Plugin) AfterInit() error {
 		plugin.Log.Error("Error initializing NetworkService CRD")
 		return err
 	}
+	// Wait for objectstore to initialize
+	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
+	timeout := time.After(time.Second * 60)
+	defer ticker.Stop()
+	ready := false
+	for !ready {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for ObjectStore")
+		case <-ticker.C:
+			if plugin.objectStore = objectstore.SharedPlugin(); plugin.objectStore != nil {
+				ready = true
+				ticker.Stop()
+				plugin.Log.Info("ObjectStore is ready, starting Consumer")
+			} else {
+				plugin.Log.Info("ObjectStore is not ready, waiting")
+			}
+		}
+	}
 
 	// We use a shared informer from the informer factory, to save calls to the
 	// API as we grow our application and so state is consistent between our
@@ -446,9 +232,12 @@ func (plugin *Plugin) AfterInit() error {
 	// create/replace/update/delete operations are missed when watching
 	plugin.sharedFactory = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
 
-	informerNetworkServices(plugin)
-	informerNetworkServiceChannels(plugin)
-	informerNetworkServiceEndpoints(plugin)
+	plugin.informerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Informer()
+	setupInformer(plugin.informerNS, queueNS)
+	plugin.informerNSC = plugin.sharedFactory.Networkservice().V1().NetworkServiceChannels().Informer()
+	setupInformer(plugin.informerNSC, queueNSC)
+	plugin.informerNSE = plugin.sharedFactory.Networkservice().V1().NetworkServiceEndpoints().Informer()
+	setupInformer(plugin.informerNSE, queueNSE)
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
