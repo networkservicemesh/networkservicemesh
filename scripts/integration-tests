@@ -123,7 +123,7 @@ done
 kubectl create -f conf/sample/networkservice-channel.yaml
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 kubectl create -f conf/sample/networkservice.yaml
-
+kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
 #
 # Starting nsm client pod
 #
@@ -139,7 +139,7 @@ wait_for_pods default
 kubectl get nodes
 kubectl get pods
 kubectl get crd
-kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
+kubectl logs $(kubectl get pods -o name | grep nsm-client ) -c nsm-init
 kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
 # Need to get kubeconfig full path
