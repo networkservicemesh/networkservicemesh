@@ -28,7 +28,7 @@ curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${KUB
 	chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
 . scripts/cluster_common.bash
-. scripts/integration-test-helpers.sh
+. scripts/integration-tests.sh
 
 # Create the 'minikube' or 'dind' cluster
 create_k8s_cluster ${TEST_CONTEXT}
@@ -40,7 +40,7 @@ kubectl() {
 }
 
 # run_tests returns an error on failure
-$(run_tests)
+run_tests
 
 exit_code=$?
 [[ ${exit_code} == 0 ]] && echo "TESTS: PASS" || echo "TESTS: FAIL"

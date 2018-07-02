@@ -15,14 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Default kubernetes context - if it's "dind" or "minikube" will
-# try to bring up a local (dockerized) cluster
-test -n "${TRAVIS_K8S_CONTEXT}" && set -- ${TRAVIS_K8S_CONTEXT}
+. scripts/integration-tests.sh
 
-. scripts/integration-test-helpers.sh
+# Verify the image exists
+if [ "x$(docker images|grep ligato/networkservicemesh/netmesh)" == "x" ]
+then
+    echo "Docker image ligato/networkservicemesh/netmesh not found"
+    echo "Please build the image before running integration tests"
+    exit 0
+fi
+if [ "x$(docker images|grep ligato/networkservicemesh/nsm-init)" == "x" ]
+then
+    echo "Docker image ligato/networkservicemesh/nsm-init not found"
+    echo "Please build the image before running integration tests"
+    exit 0
+fi
 
 # run_tests returns an error on failure
-$(run_tests)
+run_tests
 
 exit_code=$?
 [[ ${exit_code} == 0 ]] && echo "TESTS: PASS" || echo "TESTS: FAIL"

@@ -32,13 +32,23 @@ function run_tests() {
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
     typeset -i cnt=120
-    until kubectl get crd | grep networkservicemesh.io ; do
+    until kubectl get crd | grep networkservicechannels.networkservicemesh.io ; do
+        ((cnt=cnt-1)) || error_collection
+        sleep 2
+    done
+    typeset -i cnt=120
+    until kubectl get crd | grep networkserviceendpoints.networkservicemesh.io ; do
+        ((cnt=cnt-1)) || error_collection
+        sleep 2
+    done
+    typeset -i cnt=120
+    until kubectl get crd | grep networkservices.networkservicemesh.io ; do
         ((cnt=cnt-1)) || error_collection
         sleep 2
     done
 
     #
-    # Since daemonset is up and running, creating CRD resources
+    # Since daemonset is up and running, create CRD resources
     #
     kubectl create -f conf/sample/networkservice-channel.yaml
     kubectl create -f conf/sample/networkservice-endpoint.yaml
@@ -56,7 +66,7 @@ function run_tests() {
     wait_for_pods default
 
     #
-    # Final log colelction
+    # Final log collection
     #
     kubectl get nodes
     kubectl get pods
@@ -69,6 +79,7 @@ function run_tests() {
     K8SCONFIG=$HOME/.kube/config
     go test ./plugins/crd/... -v --kube-config=$K8SCONFIG
 
+    # We're all good now
     return 0
 }
 
