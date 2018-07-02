@@ -26,8 +26,9 @@ import (
 
 	"github.com/vishvananda/netns"
 
-	"github.com/ligato/networkservicemesh/nsmdp"
+	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"google.golang.org/grpc"
@@ -42,10 +43,12 @@ import (
 const (
 	// clientConnectionTimeout defines time the client waits for establishing connection with the server
 	clientConnectionTimeout = time.Second * 60
+	// clientConnectionTimeout defines retry interval for establishing connection with the server
+	clientConnectionRetry = time.Second * 2
 )
 
 var (
-	clientSocketPath     = path.Join(nsmdp.SocketBaseDir, nsmdp.ServerSock)
+	clientSocketPath     = path.Join(nsmserver.SocketBaseDir, nsmserver.ServerSock)
 	clientSocketUserPath = flag.String("nsm-socket", "", "Location of NSM process client access socket")
 	configMapName        = flag.String("configmap-name", "", "Name of a ConfigMap with requested configuration.")
 	kubeconfig           = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
@@ -192,22 +195,57 @@ func main() {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
+	defer cancel()
 	conn, err := dial(ctx, clientSocket)
 	if err != nil {
 		logrus.Errorf("nsm client: failure to communicate with the socket %s with error: %+v", clientSocket, err)
 		os.Exit(1)
 	}
-	nsmClient := nsmconnect.NewClientConnectionClient(conn)
 	defer conn.Close()
-	defer cancel()
 	logrus.Infof("nsm client: connection to nsm server on socket: %s succeeded.", clientSocket)
-	logrus.Infof("nsm client: client api %+v", nsmClient)
-	// Init related activities start here
 
+	// Init related activities start here
+	nsmClient := nsmconnect.NewClientConnectionClient(conn)
+	// Getting list of available NetworkServices on local NSM server
+
+	availablaNetworkServices, err := getNetworkServices(nsmClient)
+	if err != nil {
+		logrus.Fatalf("nsm client: failed to get a list of NetworkServices from NSM, exiting...", err)
+		os.Exit(1)
+	}
+
+	if len(availablaNetworkServices) == 0 {
+		// Since local NSM has no any NetworkServices, then there is nothing to configure for the client
+		logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
+		os.Exit(0)
+	}
+	logrus.Infof("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
 	if err := applyRequiredConfig(ns); err != nil {
 		logrus.Fatalf("nsm client: initialization failed, exiting...", err)
 		os.Exit(1)
 	}
 	// Init related activities ends here
 	logrus.Info("nsm client: initialization is completed successfully, exiting...")
+}
+
+func getNetworkServices(nsmClient nsmconnect.ClientConnectionClient) ([]*netmesh.NetworkService, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
+	defer cancel()
+	// Wait for ObjectStore to be ready
+	ticker := time.NewTicker(clientConnectionRetry)
+	defer ticker.Stop()
+	// Wait for objectstore to initialize
+	var err error
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("nsm client: Discovery request did not succeed within %d seconds, last known error: %+v", clientConnectionTimeout, err)
+		case <-ticker.C:
+			resp, err := nsmClient.RequestDiscovery(ctx, &nsmconnect.DiscoveryRequest{})
+			if err == nil {
+				return resp.NetworkService, nil
+			}
+			logrus.Infof("nsm client: Discovery request failed with: %+v, re-attempting in %d seconds", err, clientConnectionRetry)
+		}
+	}
 }

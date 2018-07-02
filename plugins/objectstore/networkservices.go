@@ -68,6 +68,5 @@ func (n *networkServicesStore) List() []*netmesh.NetworkService {
 	for _, ns := range n.networkService {
 		networkServices = append(networkServices, ns)
 	}
-
 	return networkServices
 }
