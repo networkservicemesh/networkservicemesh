@@ -89,7 +89,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			// Retrieve the latest version in the cache of this NetworkService. By using
 			// GetByKey() we are able to determine if the item exists, and thus if it was
 			// added or deleted from the queue, and process appropriately
-			item, exists, err := informer.GetIndexer().GetByKey(strKey)
+			item, _, err := informer.GetIndexer().GetByKey(strKey)
 
 			if err != nil {
 				if queue.NumRequeues(key) < QueueRetryCount {
@@ -104,28 +104,19 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			}
 
 			plugin.Log.Infof("Found object of type: %T", reflect.TypeOf(message.(objectMessage).obj))
-
-			// Verify if this was a delete vs. an add/update
-			if !exists {
-				// If the object was deleted, it's no longer in the cache, so we'll use the copy
-				// we made before adding it to our work queue.
-				plugin.Log.Infof("Object (%s) deleted from queue", name)
-				plugin.HandlerAPI.ObjectDeleted(message.(objectMessage).obj)
-			} else {
-				// Check if this is a create or update operation
-				switch message.(objectMessage).operation {
-				case create:
-					// Verify and log if the informer cached version of the object is different than the
-					// copy we made
-					if !reflect.DeepEqual(message.(objectMessage).obj, item) {
-						plugin.Log.Errorf("Informer cached version of object (%s/%s) different than worker queue version", namespace, name)
-					}
-					plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-					plugin.HandlerAPI.ObjectCreated(message.(objectMessage).obj)
-				case update:
-					plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-					plugin.HandlerAPI.ObjectCreated(message.(objectMessage).obj)
+			// Check if this is a create or delete operation
+			switch message.(objectMessage).operation {
+			case create:
+				// Verify and log if the informer cached version of the object is different than the
+				// copy we made
+				if !reflect.DeepEqual(message.(objectMessage).obj, item) {
+					plugin.Log.Errorf("Informer cached version of object (%s/%s) different than worker queue version", namespace, name)
 				}
+				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+				plugin.objectStore.ObjectCreated(message.(objectMessage).obj)
+			case delete:
+				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+				plugin.objectStore.ObjectDeleted(message.(objectMessage).obj)
 			}
 
 			// As we managed to process this successfully, we can forget it
