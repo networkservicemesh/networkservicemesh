@@ -117,20 +117,31 @@ until kubectl get crd | grep networkservicemesh.io ; do
     sleep 2
 done
 
+#
+# Since daemonset is up and running, creating CRD resources
+#
+kubectl create -f conf/sample/networkservice-channel.yaml
+kubectl create -f conf/sample/networkservice-endpoint.yaml
+kubectl create -f conf/sample/networkservice.yaml
+
+#
+# Starting nsm client pod
+#
+kubectl create -f conf/sample/nsm-client.yaml
+#
+# Now let's wait for nsm-cient pod to get into running state
+#
+wait_for_pods default
+
+#
+# Final log colelction
+#
 kubectl get nodes
 kubectl get pods
 kubectl get crd
 kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
+kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
-kubectl create -f conf/sample/networkservice-channel.yaml
-kubectl create -f conf/sample/networkservice-endpoint.yaml
-kubectl create -f conf/sample/networkservice.yaml
-kubectl create -f conf/sample/nsm-client.yaml
-#
-# Now let's wait for netmesh daemonset and nsm-cient pods to get into running state
-#
-wait_for_pods default
-kubectl get pod,crd,NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 # Need to get kubeconfig full path
 # NOTE: Disable this for now until we fix the timing issue
 K8SCONFIG=$HOME/.kube/config
