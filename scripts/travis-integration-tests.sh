@@ -15,35 +15,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -xe
+
 # Default kubernetes context - if it's "dind" or "minikube" will
 # try to bring up a local (dockerized) cluster
-test -n "${TRAVIS_K8S_CONTEXT}" && set -- ${TRAVIS_K8S_CONTEXT}
+test -n "${TRAVIS_K8S_CONTEXT}" && set -- "${TRAVIS_K8S_CONTEXT}"
 
 export TEST_CONTEXT=${1:?}
 
 KUBECTL_VERSION=v1.11.0
 
 # Install kubectl
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
-	chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
+	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
 
-. scripts/cluster_common.bash
+. scripts/cluster_common.sh
 . scripts/integration-tests.sh
 
 # Create the 'minikube' or 'dind' cluster
-create_k8s_cluster ${TEST_CONTEXT}
+create_k8s_cluster "${TEST_CONTEXT}"
+exit_code=$?
+if [ "${exit_code}" != "0" ]
+then
+    echo "TESTS: FAIL"
+    kubectl get pod --namespace=kube-system -lapp=kubernetes-dashboard
+    exit "${exit_code}"
+fi
 
 # Just exercising some kubectl-s
-KUBECTL_BIN=$(which kubectl)
+KUBECTL_BIN=$(command -v kubectl)
 kubectl() {
-    ${KUBECTL_BIN:?} --context=${TEST_CONTEXT} "${@}"
+    "${KUBECTL_BIN:?}" --context="${TEST_CONTEXT}" "${@}"
 }
 
 # run_tests returns an error on failure
 run_tests
-
 exit_code=$?
-[[ ${exit_code} == 0 ]] && echo "TESTS: PASS" || echo "TESTS: FAIL"
+if [ "${exit_code}" == "0" ] ; then
+    echo "TESTS: PASS"
+else
+    error_collection
+    echo "TESTS: FAIL"
+fi
+
+set +x
 exit ${exit_code}
 
 # vim: sw=4 ts=4 et si

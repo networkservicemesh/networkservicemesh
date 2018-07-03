@@ -1,4 +1,4 @@
-
+#!/bin/bash
 # Copyright (c) 2016-2017 Bitnami
 # Copyright (c) 2018 Cisco and/or its affiliates.
 #
@@ -18,9 +18,9 @@
 create_k8s_cluster() {
     local ctx=${1:?}
     # Start a k8s cluster (minikube, dind) if not running
-    kubectl api-versions --context=${ctx} >& /dev/null || {
-        cluster_up=./scripts/cluster-up-${ctx}.sh
-        test -f ${cluster_up} || {
+    kubectl api-versions --context="${ctx}" >& /dev/null || {
+        cluster_up=./scripts/cluster-up-"${ctx}".sh
+        test -f "${cluster_up}" || {
             echo "FATAL: bringing up k8s cluster '${ctx}' not supported"
             exit 255
         }
@@ -31,8 +31,8 @@ fixup_rbac() {
     local ctx=${1:?}
     # As of ~Sept/2017 both RBAC'd dind and minikube seem to be missing rules to
     # make kube-dns work properly add some (granted) broad ones:
-    kubectl --context=${ctx} get clusterrolebinding kube-dns-admin && return 0
-    kubectl --context=${ctx} create clusterrolebinding kube-dns-admin --serviceaccount=kube-system:default --clusterrole=cluster-admin
+    kubectl --context="${ctx}" get clusterrolebinding kube-dns-admin && return 0
+    kubectl --context="${ctx}" create clusterrolebinding kube-dns-admin --serviceaccount=kube-system:default --clusterrole=cluster-admin
 }
 
 # Print ingress IP on stdout

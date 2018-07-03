@@ -17,6 +17,8 @@
 
 . scripts/integration-tests.sh
 
+set -xe
+
 # Verify the image exists
 if [ "x$(docker images|grep ligato/networkservicemesh/netmesh)" == "x" ]
 then
@@ -33,9 +35,15 @@ fi
 
 # run_tests returns an error on failure
 run_tests
-
 exit_code=$?
-[[ ${exit_code} == 0 ]] && echo "TESTS: PASS" || echo "TESTS: FAIL"
+if [ "${exit_code}" == "0" ] ; then
+    echo "TESTS: PASS"
+else
+    error_collection
+    echo "TESTS: FAIL"
+fi
+
+set +x
 exit ${exit_code}
 
 # vim: sw=4 ts=4 et si

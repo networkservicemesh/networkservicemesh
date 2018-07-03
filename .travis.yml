@@ -13,6 +13,7 @@ before_script:
 - sudo mount --make-rshared /
 
 script:
+- shellcheck scripts/*.sh
 - ./scripts/verify-codegen.sh
 - docker build -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
 - docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .

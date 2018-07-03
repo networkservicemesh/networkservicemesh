@@ -18,7 +18,6 @@
 . scripts/integration-test-helpers.sh
 
 function run_tests() {
-    set -xe
     kubectl get nodes
     kubectl version
     kubectl api-versions
@@ -28,22 +27,25 @@ function run_tests() {
     # Now let's wait for all pods to get into running state
     #
     wait_for_pods default
+    exit_code=$?
+    [[ ${exit_code} != 0 ]] && return ${exit_code}
+
 
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
-    typeset -i cnt=120
+    typeset -i cnt=240
     until kubectl get crd | grep networkservicechannels.networkservicemesh.io ; do
-        ((cnt=cnt-1)) || error_collection
+        ((cnt=cnt-1)) || return 1
         sleep 2
     done
-    typeset -i cnt=120
+    typeset -i cnt=240
     until kubectl get crd | grep networkserviceendpoints.networkservicemesh.io ; do
-        ((cnt=cnt-1)) || error_collection
+        ((cnt=cnt-1)) || return 1
         sleep 2
     done
-    typeset -i cnt=120
+    typeset -i cnt=240
     until kubectl get crd | grep networkservices.networkservicemesh.io ; do
-        ((cnt=cnt-1)) || error_collection
+        ((cnt=cnt-1)) || return 1
         sleep 2
     done
 
@@ -53,7 +55,7 @@ function run_tests() {
     kubectl create -f conf/sample/networkservice-channel.yaml
     kubectl create -f conf/sample/networkservice-endpoint.yaml
     kubectl create -f conf/sample/networkservice.yaml
-    kubectl logs $(kubectl get pods -o name | sed -e 's/.*\///')
+    kubectl logs "$(kubectl get pods -o name | sed -e 's/.*\///')"
 
     #
     # Starting nsm client pod
@@ -64,6 +66,10 @@ function run_tests() {
     # Now let's wait for nsm-cient pod to get into running state
     #
     wait_for_pods default
+    exit_ret=$?
+    if [ "${exit_ret}" != "0" ] ; then
+        return "${exit_ret}"
+    fi
 
     #
     # Final log collection
@@ -71,13 +77,13 @@ function run_tests() {
     kubectl get nodes
     kubectl get pods
     kubectl get crd
-    kubectl logs $(kubectl get pods -o name | grep nsm-client ) -c nsm-init
+    kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
     kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
     # Need to get kubeconfig full path
     # NOTE: Disable this for now until we fix the timing issue
-    K8SCONFIG=$HOME/.kube/config
-    go test ./plugins/crd/... -v --kube-config=$K8SCONFIG
+    K8SCONFIG="$HOME"/.kube/config
+    go test ./plugins/crd/... -v --kube-config="$K8SCONFIG"
 
     # We're all good now
     return 0
