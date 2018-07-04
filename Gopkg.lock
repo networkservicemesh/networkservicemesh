@@ -517,6 +517,7 @@
   digest = "1:34ffbf9ed5e63a11e4e0aaab597dc36c552da8b5b6bd49d8f73dadd4afd7e677"
   name = "k8s.io/api"
   packages = [
+    "admission/v1beta1",
     "admissionregistration/v1alpha1",
     "admissionregistration/v1beta1",
     "apps/v1",
