@@ -14,9 +14,21 @@
 
 package handler
 
+import (
+	"github.com/ligato/cn-infra/core"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
+)
+
 // API is the interface to a CRD handler plugin
 type API interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
 	ObjectUpdated(objOld, objNew interface{})
+}
+
+// APIPlugin is the API interface plus the plugin interface
+type APIPlugin interface {
+	API
+	core.Plugin
+	idempotent.Interface
 }

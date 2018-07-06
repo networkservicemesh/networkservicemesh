@@ -19,10 +19,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ligato/cn-infra/config"
-	"github.com/ligato/cn-infra/flavors/local"
-	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
+
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -30,6 +31,7 @@ import (
 
 // Plugin is the base plugin object for this CRD handler
 type Plugin struct {
+	idempotent.Impl
 	Deps
 
 	pluginStopCh    chan struct{}
@@ -40,20 +42,27 @@ type Plugin struct {
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
-	local.PluginInfraDeps
-	KubeConfig config.PluginConfig
+	Name       string
+	Log        logger.FieldLoggerPlugin
+	Cmd        *cobra.Command
+	KubeConfig string // Fetch kubeconfig file from --kube
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (p *Plugin) Init() error {
-	var err error
-	p.Log.SetLevel(logging.DebugLevel)
+	return p.IdempotentInit(p.init)
+}
+
+func (p *Plugin) init() error {
+	err := p.Log.Init()
+	if err != nil {
+		return err
+	}
 	p.pluginStopCh = make(chan struct{})
 
-	kubeconfig := p.KubeConfig.GetConfigName()
-	p.Log.WithField("kubeconfig", kubeconfig).Info("Loading kubernetes client config")
-	p.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	p.Log.WithField("kubeconfig", p.KubeConfig).Info("Loading kubernetes client config")
+	p.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", p.KubeConfig)
 	if err != nil {
 		return fmt.Errorf("failed to build kubernetes client config: %s", err)
 	}
@@ -95,9 +104,13 @@ func (p *Plugin) AfterInit() error {
 
 // Close is called when the plugin is being stopped
 func (p *Plugin) Close() error {
+	return p.IdempotentClose(p.close)
+}
+
+func (p *Plugin) close() error {
 	p.Log.Info("Close")
 
-	return nil
+	return p.Log.Close()
 }
 
 // ObjectCreated is called when an object is created

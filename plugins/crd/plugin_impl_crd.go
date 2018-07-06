@@ -22,27 +22,29 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/ligato/cn-infra/config"
-	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/health/statuscheck"
-	"github.com/ligato/cn-infra/logging"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 	"github.com/ligato/networkservicemesh/plugins/handler"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"k8s.io/client-go/util/workqueue"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
 // data store.
 type Plugin struct {
+	idempotent.Impl
 	Deps
 
 	pluginStopCh    chan struct{}
@@ -74,22 +76,28 @@ type Plugin struct {
 
 // Deps defines dependencies of CRD plugin.
 type Deps struct {
-	local.PluginInfraDeps
+	Name string
+	Log  logger.FieldLoggerPlugin
+	Cmd  *cobra.Command
 	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig config.PluginConfig
-	HandlerAPI handler.API
+	KubeConfig string
+	HandlerAPI handler.APIPlugin
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (plugin *Plugin) Init() error {
-	var err error
-	plugin.Log.SetLevel(logging.DebugLevel)
+	return plugin.IdempotentInit(plugin.init)
+}
+func (plugin *Plugin) init() error {
+	err := plugin.Log.Init()
+	if err != nil {
+		return err
+	}
 	plugin.pluginStopCh = make(chan struct{})
 
-	kubeconfig := plugin.KubeConfig.GetConfigName()
-	plugin.Log.WithField("kubeconfig", kubeconfig).Info("Loading kubernetes client config")
-	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
+	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", plugin.KubeConfig)
 	if err != nil {
 		return fmt.Errorf("failed to build kubernetes client config: %s", err)
 	}
@@ -261,6 +269,10 @@ func (plugin *Plugin) AfterInit() error {
 
 // Close stops all reflectors.
 func (plugin *Plugin) Close() error {
+	return plugin.IdempotentClose(plugin.close)
+}
+
+func (plugin *Plugin) close() error {
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
 	return nil
