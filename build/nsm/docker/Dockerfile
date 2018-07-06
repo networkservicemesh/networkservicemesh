@@ -8,4 +8,4 @@ RUN ./scripts/build.sh --race-test-disabled
 FROM alpine as runtime
 COPY --from=build /go/bin/netmesh /go/bin/netmesh
 RUN mkdir -p /var/lib/kubelet/device-plugins
-ENTRYPOINT ["/go/bin/netmesh", "-microservice-label=netmesh", "-kube-config=/conf/kube.conf", "-http-config=/conf/http.conf"]
+ENTRYPOINT ["/go/bin/netmesh", "-kube-config=/conf/kube.conf"]

@@ -26,7 +26,7 @@ const (
 	// DefaultName of the netmeshplugincrd.Plugin
 	DefaultName = "netmeshplugincrd"
 	// KubeConfigFlagName - Cmd line flag for specifying kubeconfig filename
-	KubeConfigFlagName = "kube"
+	KubeConfigFlagName = "kube-config"
 	// KubeConfigFlagDefault - default value of KubeConfig
 	KubeConfigFlagDefault = "/etc/kubernetes/admin.conf"
 	// KubeConfigFlagUsage - usage for flag for specifying kubeconfig filename
