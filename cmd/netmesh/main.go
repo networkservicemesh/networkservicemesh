@@ -17,10 +17,14 @@ package main
 import (
 	"github.com/ligato/networkservicemesh/plugins/interupthandler"
 	"github.com/ligato/networkservicemesh/plugins/nsmcommand"
+	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/spf13/cobra"
 )
 
 // netmesh main entry point.
 func main() {
+	cmd := &cobra.Command{Use: "netmesh"}
+	command.SetRootCmd(cmd)
 	nsm := nsmcommand.NewPlugin()
 	interupt := interupthandler.Wrap(nsm)
 	interupt.Init()
