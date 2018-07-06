@@ -20,6 +20,8 @@ import (
 
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/spf13/cobra"
 
 	"github.com/ligato/networkservicemesh/plugins/crd"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -81,6 +83,7 @@ func UseDeps(deps *Deps) Option {
 		d := &p.Deps
 		d.Name = deps.Name
 		d.Log = deps.Log
+		d.Cmd = deps.Cmd
 		d.CRD = deps.CRD
 		d.NSMServer = deps.NSMServer
 		d.ObjectStore = deps.ObjectStore
@@ -97,6 +100,11 @@ func DefaultDeps() Option {
 		}
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
+		}
+		if d.Cmd == nil {
+			// TODO: Add more to the Cobra command declaration
+			rootCmd := &cobra.Command{Use: p.Deps.Name}
+			command.SetRootCmd(rootCmd)
 		}
 		if d.CRD == nil {
 			d.CRD = netmeshplugincrd.SharedPlugin()

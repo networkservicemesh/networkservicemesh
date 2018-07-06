@@ -19,12 +19,14 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/spf13/cobra"
 )
 
 // Deps - dependencies for Plugin
 type Deps struct {
 	Name        string
 	Log         logger.FieldLoggerPlugin
+	Cmd         *cobra.Command
 	NSMServer   nsmserver.PluginAPI
 	CRD         netmeshplugincrd.PluginAPI
 	ObjectStore objectstore.PluginAPI

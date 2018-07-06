@@ -15,9 +15,7 @@
 package nsmcommand
 
 import (
-	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
-	"github.com/spf13/cobra"
 )
 
 // Plugin for nsmcommand
@@ -32,11 +30,12 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	// TODO: Add more to the Cobra command declaration
-	rootCmd := &cobra.Command{Use: p.Deps.Name}
-	command.SetRootCmd(rootCmd)
+	err := p.Cmd.Execute()
+	if err != nil {
+		return err
+	}
 	// TODO: Figure out correct order of initialization
-	err := p.Deps.Log.Init()
+	err = p.Deps.Log.Init()
 	if err != nil {
 		return err
 	}
