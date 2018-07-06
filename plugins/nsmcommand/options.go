@@ -27,7 +27,7 @@ import (
 
 const (
 	// DefaultName of the nsmcommand.Plugin
-	DefaultName = "nsm"
+	DefaultName = "netmesh"
 )
 
 // Option acts on a Plugin in order to set its Deps or Config
