@@ -15,9 +15,13 @@ A Network Service Mesh is an extension of the Service Mesh concept common in app
 
 ## Build
 
-See [BUILD.md](BUILD.md) for build instructions.
+See [docs/BUILD.md](BUILD.md) for build instructions.
 
-## Getting Involved
+## Use
+
+See [docs/MINIKUBE.md](MINIKUBE.md) for setting up a simple test or development environment.
+
+## Get Involved
 
 We encourage discussion on our mailing list and IRC channel and accept pull requests.
 
