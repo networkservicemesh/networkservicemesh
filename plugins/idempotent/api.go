@@ -12,20 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logger
+package idempotent
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/idempotent"
-	"github.com/sirupsen/logrus"
+	"github.com/ligato/cn-infra/core"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
-// FieldLogger is a simple wrapper around logrus.FieldLogger
-type FieldLogger interface {
-	logrus.FieldLogger
-}
-
-// FieldLoggerPlugin is a FieldLogger and a Plugin
-type FieldLoggerPlugin interface {
-	idempotent.PluginAPI
-	FieldLogger
+// PluginAPI is the API for an idempotent Plugin
+type PluginAPI interface {
+	core.Plugin
+	idempotent.Interface
 }
