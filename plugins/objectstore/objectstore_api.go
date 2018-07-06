@@ -32,6 +32,6 @@ type Interface interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
 	ListNetworkServices() []*netmesh.NetworkService
-	ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel
+	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
 	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint
 }

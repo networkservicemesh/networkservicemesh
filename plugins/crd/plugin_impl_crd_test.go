@@ -264,7 +264,7 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
+				Spec: netmesh.NetworkServiceChannel{
 					Metadata: &netmesh.Metadata{
 						Name:      "nsm-service-channel-1",
 						Namespace: "nsm-service-channel-1-namespace",
@@ -280,7 +280,7 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-serv%ice-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
+				Spec: netmesh.NetworkServiceChannel{
 					Metadata: &netmesh.Metadata{
 						Name:      "nsm-service-c%h&annel-1",
 						Namespace: "nsm-service-channel-1-namespace",
@@ -296,7 +296,7 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
+				Spec: netmesh.NetworkServiceChannel{
 					Metadata: &netmesh.Metadata{
 						Name:      "nsm-service-channel-1",
 						Namespace: "nsm-service-cha&nnel-1-namespace",
@@ -312,7 +312,7 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
+				Spec: netmesh.NetworkServiceChannel{
 					Metadata: &netmesh.Metadata{
 						Name:      "nsm-service-channel-1",
 						Namespace: "nsm-service-channel-1-namespace",
