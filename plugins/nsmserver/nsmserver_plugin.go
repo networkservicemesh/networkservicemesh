@@ -48,12 +48,15 @@ func (p *Plugin) Init() error {
 func (p *Plugin) init() error {
 	// p.Log.SetLevel(logging.DebugLevel)
 	p.pluginStopCh = make(chan bool)
-
-	return p.Log.Init()
+	err := p.Log.Init()
+	if err != nil {
+		return err
+	}
+	return p.afterInit()
 }
 
-// AfterInit is called after all plugins are initialized
-func (p *Plugin) AfterInit() error {
+// afterInit is called after all plugins are initialized
+func (p *Plugin) afterInit() error {
 	var os objectstore.Interface
 	// Wait for ObjectStore to be ready
 	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)

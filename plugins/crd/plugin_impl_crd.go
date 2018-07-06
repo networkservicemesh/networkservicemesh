@@ -111,7 +111,7 @@ func (plugin *Plugin) init() error {
 	plugin.stopChNSC = make(chan struct{})
 	plugin.stopChNSE = make(chan struct{})
 
-	return nil
+	return plugin.afterInit()
 }
 
 func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimitingInterface) {
@@ -161,8 +161,8 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 	)
 }
 
-// AfterInit This will create all of the CRDs for NetworkServiceMesh.
-func (plugin *Plugin) AfterInit() error {
+// afterInit This will create all of the CRDs for NetworkServiceMesh.
+func (plugin *Plugin) afterInit() error {
 	var err error
 	var crdname string
 

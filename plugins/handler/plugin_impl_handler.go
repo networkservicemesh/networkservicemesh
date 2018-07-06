@@ -72,11 +72,11 @@ func (p *Plugin) init() error {
 		return fmt.Errorf("failed to build kubernetes client: %s", err)
 	}
 
-	return nil
+	return p.afterInit()
 }
 
-// AfterInit is called for post init processing
-func (p *Plugin) AfterInit() error {
+// afterInit is called for post init processing
+func (p *Plugin) afterInit() error {
 	p.Log.Info("AfterInit")
 
 	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
