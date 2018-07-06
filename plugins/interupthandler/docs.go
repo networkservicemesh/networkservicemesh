@@ -12,17 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
-
-import (
-	"github.com/ligato/networkservicemesh/plugins/interupthandler"
-	"github.com/ligato/networkservicemesh/plugins/nsmcommand"
-)
-
-// netmesh main entry point.
-func main() {
-	nsm := nsmcommand.NewPlugin()
-	interupt := interupthandler.Wrap(nsm)
-	interupt.Init()
-	interupt.Wait()
-}
+package interupthandler

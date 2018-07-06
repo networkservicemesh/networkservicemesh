@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package interupthandler
 
-import (
-	"github.com/ligato/networkservicemesh/plugins/interupthandler"
-	"github.com/ligato/networkservicemesh/plugins/nsmcommand"
-)
+import "github.com/ligato/networkservicemesh/plugins/idempotent"
 
-// netmesh main entry point.
-func main() {
-	nsm := nsmcommand.NewPlugin()
-	interupt := interupthandler.Wrap(nsm)
-	interupt.Init()
-	interupt.Wait()
+// Wrap returns a new interupthandler.Plugin that wraps the supplied plugin
+// When Init() is called, it Init()'s the Wrapped plugin and sets up an
+// InteruptHandler to Close the Plugin should an interupt be received
+func Wrap(p idempotent.PluginAPI) *Plugin {
+	return &Plugin{
+		Deps: Deps{
+			Wrap: p,
+		},
+	}
 }
