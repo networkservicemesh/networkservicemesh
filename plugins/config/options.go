@@ -51,12 +51,6 @@ var sharedPluginLock sync.Mutex
 
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
-	p := newPlugin(opts...)
-	sharedPlugins = append(sharedPlugins, p)
-	return p
-}
-
-func newPlugin(opts ...Option) *Plugin {
 	p := &Plugin{}
 	for _, o := range opts {
 		o(p)
@@ -69,7 +63,7 @@ func newPlugin(opts ...Option) *Plugin {
 // SharedPlugin provides a single shared Plugin that has the same Deps/Config as would result
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
-	p := newPlugin(opts...) // Use Options to construct Deps/Config
+	p := NewPlugin(opts...) // Use Options to construct Deps/Config
 	sharedPluginLock.Lock()
 	defer sharedPluginLock.Unlock()
 	_, plug := p.findSharedPlugin()

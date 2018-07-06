@@ -42,14 +42,16 @@ func (p *Plugin) init() error {
 	signal.Notify(sigChan, os.Interrupt)
 	signal.Notify(sigChan, syscall.SIGTERM)
 	p.doneCh = make(chan struct{})
-	p.Deps.Wrap.Init()
-	go func() {
-		select {
-		case <-sigChan:
-		}
-		p.Close()
-	}()
-	return nil
+	err := p.Deps.Wrap.Init()
+	if err == nil {
+		go func() {
+			select {
+			case <-sigChan:
+			}
+			p.Close()
+		}()
+	}
+	return err
 }
 
 // Close Plugin

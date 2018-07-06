@@ -47,7 +47,7 @@ func (p *Plugin) Init() error {
 
 func (p *Plugin) init() error {
 	// p.Log.SetLevel(logging.DebugLevel)
-	p.pluginStopCh = make(chan bool)
+	p.pluginStopCh = make(chan bool, 1)
 	err := p.Log.Init()
 	if err != nil {
 		return err
