@@ -65,6 +65,10 @@ func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect
 	return resp, nil
 }
 
+func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
+	return nil, status.Error(codes.InvalidArgument, "Not Implemented...")
+}
+
 // Define functions needed to meet the Kubernetes DevicePlugin API
 func (n *nsmClientEndpoints) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
 	n.logger.Infof("GetDevicePluginOptions was called.")

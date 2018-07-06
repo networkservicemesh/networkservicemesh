@@ -35,7 +35,7 @@ func TestChannelStore(t *testing.T) {
 	channels := &channelStore{}
 	channels.networkServiceChannelsStore = newNetworkServiceChannelsStore()
 
-	nsc := netmesh.NetworkService_NetmeshChannel{
+	nsc := netmesh.NetworkServiceChannel{
 		Metadata: &netmesh.Metadata{
 			Name:      chTestName,
 			Namespace: chTestNamespace,

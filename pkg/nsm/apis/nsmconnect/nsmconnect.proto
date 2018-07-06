@@ -84,7 +84,18 @@ message DiscoveryResponse {
     repeated  netmesh.NetworkService network_service = 1;
 }
 
+// ChannelAdvertiseRequest used by NSE to advertise its available channels
+message ChannelAdvertiseRequest {
+    repeated netmesh.NetworkServiceChannel netmesh_channel = 1;
+}
+
+// ChannelAdvertiseResponse used by NSM to confirm if Channel Object has been created successfully
+message ChannelAdvertiseResponse {
+    bool success = 1;
+}
+
 service ClientConnection {
-    rpc RequestConnection(ConnectionRequest) returns(ConnectionAccept);
-    rpc RequestDiscovery(DiscoveryRequest) returns(DiscoveryResponse);
+    rpc RequestConnection (ConnectionRequest) returns (ConnectionAccept);
+    rpc RequestDiscovery (DiscoveryRequest) returns (DiscoveryResponse);
+    rpc RequestAdvertiseChannel (ChannelAdvertiseRequest) returns (ChannelAdvertiseResponse);
 }
