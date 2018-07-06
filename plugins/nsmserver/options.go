@@ -89,7 +89,7 @@ func DefaultDeps() Option {
 			d.Name = DefaultName
 		}
 		if d.Log == nil {
-			d.Log = logger.SharedPlugin(logger.UseDeps(&logger.Deps{Name: d.Name}))
+			d.Log = logger.ByName(d.Name)
 		}
 	}
 }

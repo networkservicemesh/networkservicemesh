@@ -81,6 +81,12 @@ func (p *Plugin) findSharedPlugin() (int, *Plugin) {
 	return -1, nil
 }
 
+// ByName - If you just want a logger with a custom name and the rest of options
+// defaulted, this small convenience method will do that for you
+func ByName(name string) *Plugin {
+	return SharedPlugin(UseDeps(&Deps{Name: name}))
+}
+
 // UseDeps creates an Option to set the Deps for a Plugin
 func UseDeps(deps *Deps) Option {
 	return func(p *Plugin) {
