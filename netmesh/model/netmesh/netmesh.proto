@@ -31,16 +31,16 @@ message Metadata {
     Label labels = 3;
 }
 
+message NetworkServiceChannel {
+    Metadata metadata = 1;
+    string payload = 2;
+}
+
 message NetworkServiceEndpoint {
     Metadata metadata = 1;
-};
+}
 
 message NetworkService {
     Metadata metadata = 1;
-
-    message NetmeshChannel {
-        Metadata metadata = 1;
-        string payload = 2;
-    };
-    repeated NetmeshChannel channels = 2;
-};
+    repeated NetworkServiceChannel channel = 2;
+}
