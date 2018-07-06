@@ -64,8 +64,8 @@ type NetworkServiceEndpointList struct {
 type NetworkServiceChannel struct {
 	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata,omitempty"`
-	Spec            netmesh.NetworkService_NetmeshChannel `json:"spec"`
-	Status          NetworkServiceChannelStatus           `json:"status,omitempty"`
+	Spec            netmesh.NetworkServiceChannel `json:"spec"`
+	Status          NetworkServiceChannelStatus   `json:"status,omitempty"`
 }
 
 // NetworkServiceChannelStatus is the status schema for this CRD

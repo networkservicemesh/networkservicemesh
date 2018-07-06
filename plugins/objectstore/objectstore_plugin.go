@@ -119,7 +119,7 @@ func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 }
 
 // ListNetworkServiceChannels lists all stored NetworkServiceChannel objects
-func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel {
+func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel {
 	p.Log.Info("ObjectStore.ListNetworkServiceChannels")
 	return p.objects.networkServiceChannelsStore.List()
 }
