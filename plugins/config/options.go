@@ -19,9 +19,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/utils/command"
-	"github.com/spf13/viper"
 	"reflect"
+
+	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -60,6 +62,7 @@ func newPlugin(opts ...Option) *Plugin {
 		o(p)
 	}
 	DefaultDeps()(p)
+	addFlags(p)
 	return p
 }
 
@@ -114,40 +117,41 @@ func DefaultDeps() Option {
 			}
 			d.DefaultConfig = &Config{}
 		}
-
-		// DefaultConfig and ProgrammedConfig intentionally left as nil
-
-		// Setup Viper instance
-		p.Viper = viper.New()
-
-		// Bind to global config file if one is offered
-		flagName := GlobalConfigFileFlag
-		flagDefault := d.Cmd.Name() + DefaultConfigFileSuffix
-		flagUsage := ConfigFileUsagePrefix + d.Cmd.Name()
-		flag := d.Cmd.Flags().Lookup(flagName)
-		if flag == nil {
-			d.Cmd.Flags().String(flagName, flagDefault, flagUsage)
-		}
-		p.Viper.BindPFlag(flagName, d.Cmd.Flags().Lookup(flagName))
-		p.Viper.SetConfigFile(p.Viper.GetString(flagName))
-
-		// Bind to global config dir if one is offered
-		flagName = GlobalConfigPathFlag
-		// TODO put more thought into default config path
-		flagDefault = "/etc/" + d.Cmd.Name()
-		executable, _ := os.Executable()
-		executableDir := filepath.Dir(executable)
-		flagDefault = flagDefault + ":" + executableDir
-		flagDefault = flagDefault + ":."
-		flagUsage = ConfigPathUsagePrefix + d.Cmd.Name()
-		flag = d.Cmd.Flags().Lookup(flagName)
-		if flag == nil {
-			d.Cmd.Flags().String(flagName, flagDefault, flagUsage)
-		}
-		p.Viper.BindPFlag(flagName, d.Cmd.Flags().Lookup(flagName))
-		p.Viper.SetConfigFile(p.Viper.GetString(flagName))
-
-		// TODO add support for getting more specific per 'p.Name' config
-		// files
+		// DefaultConfig intentionally left as nil
 	}
+}
+
+func addFlags(p *Plugin) {
+	d := &p.Deps
+	// Setup Viper instance
+	p.Viper = viper.New()
+
+	// Bind to global config file if one is offered
+	flagName := GlobalConfigFileFlag
+	flagDefault := d.Cmd.Name() + DefaultConfigFileSuffix
+	flagUsage := ConfigFileUsagePrefix + d.Cmd.Name()
+	addFlag(d.Cmd, p.Viper, flagName, flagDefault, flagUsage)
+
+	// Bind to global config dir if one is offered
+	flagName = GlobalConfigPathFlag
+	// TODO put more thought into default config path
+	flagDefault = "/etc/" + d.Cmd.Name()
+	executable, _ := os.Executable()
+	executableDir := filepath.Dir(executable)
+	flagDefault = flagDefault + ":" + executableDir
+	flagDefault = flagDefault + ":."
+	flagUsage = ConfigPathUsagePrefix + d.Cmd.Name()
+	addFlag(d.Cmd, p.Viper, flagName, flagDefault, flagUsage)
+	p.Viper.SetConfigFile(p.Viper.GetString(flagName))
+
+	// TODO add support for getting more specific per 'p.Name' config
+	// files
+}
+
+func addFlag(cmd *cobra.Command, viper *viper.Viper, flagName string, flagDefault string, flagUsage string) {
+	flag := cmd.Flags().Lookup(flagName)
+	if flag == nil {
+		cmd.Flags().String(flagName, flagDefault, flagUsage)
+	}
+	viper.BindPFlag(flagName, cmd.Flags().Lookup(flagName))
 }
