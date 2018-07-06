@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ligato/cn-infra/flavors/local"
-	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
@@ -37,7 +36,8 @@ type Plugin struct {
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
-	local.PluginInfraDeps
+	Name string
+	Log  logger.FieldLoggerPlugin
 }
 
 // Init initializes ObjectStore plugin
@@ -46,7 +46,8 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	p.Log.SetLevel(logging.DebugLevel)
+	// p.Log.SetLevel(logging.DebugLevel)
+	p.Log.Init()
 	p.pluginStopCh = make(chan bool)
 
 	return nil
@@ -91,6 +92,7 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
+	p.Log.Close()
 	p.pluginStopCh <- true
 	return nil
 }
