@@ -81,7 +81,7 @@ type Deps struct {
 	Cmd  *cobra.Command
 	// Kubeconfig with k8s cluster address and access credentials to use.
 	KubeConfig string
-	HandlerAPI handler.APIPlugin
+	HandlerAPI handler.PluginAPI
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes

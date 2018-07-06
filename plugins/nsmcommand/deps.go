@@ -12,21 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package handler
+package nsmcommand
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/idempotent"
+	"github.com/ligato/networkservicemesh/plugins/crd"
+	"github.com/ligato/networkservicemesh/plugins/logger"
+	"github.com/ligato/networkservicemesh/plugins/nsmserver"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
 )
 
-// API is the interface to a CRD handler plugin
-type API interface {
-	ObjectCreated(obj interface{})
-	ObjectDeleted(obj interface{})
-	ObjectUpdated(objOld, objNew interface{})
-}
-
-// PluginAPI is the API interface plus the plugin interface
-type PluginAPI interface {
-	API
-	idempotent.PluginAPI
+// Deps - dependencies for Plugin
+type Deps struct {
+	Name        string
+	Log         logger.FieldLoggerPlugin
+	NSMServer   nsmserver.PluginAPI
+	CRD         netmeshplugincrd.PluginAPI
+	ObjectStore objectstore.PluginAPI
 }
