@@ -47,10 +47,9 @@ func (p *Plugin) Init() error {
 
 func (p *Plugin) init() error {
 	// p.Log.SetLevel(logging.DebugLevel)
-	p.Log.Init()
 	p.pluginStopCh = make(chan bool)
 
-	return nil
+	return p.Log.Init()
 }
 
 // AfterInit is called after all plugins are initialized
@@ -92,7 +91,6 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
-	p.Log.Close()
 	p.pluginStopCh <- true
-	return nil
+	return p.Log.Close()
 }
