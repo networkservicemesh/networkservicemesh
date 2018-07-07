@@ -22,8 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spf13/cobra"
-
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -37,6 +35,7 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/handler"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -78,7 +77,6 @@ type Plugin struct {
 type Deps struct {
 	Name string
 	Log  logger.FieldLoggerPlugin
-	Cmd  *cobra.Command
 	// Kubeconfig with k8s cluster address and access credentials to use.
 	KubeConfig string
 	HandlerAPI handler.PluginAPI
@@ -94,6 +92,7 @@ func (plugin *Plugin) init() error {
 	if err != nil {
 		return err
 	}
+	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
 	plugin.pluginStopCh = make(chan struct{})
 
 	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")

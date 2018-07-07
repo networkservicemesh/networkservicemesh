@@ -84,7 +84,6 @@ func UseDeps(deps *Deps) Option {
 		d := &p.Deps
 		d.Name = deps.Name
 		d.Log = deps.Log
-		d.Cmd = deps.Cmd
 		d.KubeConfig = deps.KubeConfig
 	}
 }
@@ -100,17 +99,13 @@ func DefaultDeps() Option {
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
 		}
-		if d.Cmd == nil {
-			d.Cmd = command.RootCmd()
-		}
 		if d.KubeConfig == "" {
-			flag := d.Cmd.Flags().Lookup(KubeConfigFlagName)
+			cmd := command.RootCmd()
+			flag := cmd.Flags().Lookup(KubeConfigFlagName)
 			if flag == nil {
-				d.Cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
-				flag = d.Cmd.Flags().Lookup(KubeConfigFlagName)
+				cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
+				flag = cmd.Flags().Lookup(KubeConfigFlagName)
 			}
-			// TODO: This is misplaced... it should be in Init()... but its a Dep, hmm... what to do
-			d.KubeConfig = flag.Value.String()
 		}
 	}
 }
