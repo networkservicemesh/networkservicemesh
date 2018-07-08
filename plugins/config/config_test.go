@@ -32,8 +32,8 @@ func TestLoadConfigDefault(t *testing.T) {
 	Expect(plugin.Deps.Cmd).To(Equal(cmd))
 	err := plugin.Init()
 	Expect(err).To(BeNil())
-	config := plugin.LoadConfig()
-	Expect(config).NotTo(BeNil())
+	c := plugin.LoadConfig()
+	Expect(c).NotTo(BeNil())
 	err = plugin.Close()
 	Expect(err).To(BeNil())
 }
@@ -56,8 +56,8 @@ func TestLoadConfigNonDefault(t *testing.T) {
 	Expect(plugin.Deps.Cmd).To(Equal(cmd2))
 	err := plugin.Init()
 	Expect(err).To(BeNil())
-	config := plugin.LoadConfig()
-	Expect(config).To(Equal(dcfg))
+	c := plugin.LoadConfig()
+	Expect(c).To(Equal(dcfg))
 	err = plugin.Close()
 	Expect(err).To(BeNil())
 }
@@ -121,9 +121,9 @@ func TestLoadConfigFile(t *testing.T) {
 	Expect(plugin.Deps.Cmd).To(Equal(cmd))
 	err := plugin.Init()
 	Expect(err).To(BeNil())
-	config := plugin.LoadConfig().(*Config1)
-	Expect(config.One).To(Equal("OneValue"))
-	Expect(config.Two).To(Equal("TwoValue"))
+	c := plugin.LoadConfig().(*Config1)
+	Expect(c.One).To(Equal("OneValue"))
+	Expect(c.Two).To(Equal("TwoValue"))
 
 }
 
@@ -143,8 +143,8 @@ func TestLoadConfigFileMissingKey(t *testing.T) {
 	Expect(plugin.Deps.Cmd).To(Equal(cmd))
 	err := plugin.Init()
 	Expect(err).To(BeNil())
-	config := plugin.LoadConfig().(*Config1)
-	Expect(config.One).To(Equal(dcfg.One))
-	Expect(config.Two).To(Equal(dcfg.Two))
+	c := plugin.LoadConfig().(*Config1)
+	Expect(c.One).To(Equal(dcfg.One))
+	Expect(c.Two).To(Equal(dcfg.Two))
 
 }
