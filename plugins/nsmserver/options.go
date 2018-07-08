@@ -18,6 +18,8 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
+
 	"github.com/ligato/networkservicemesh/plugins/logger"
 )
 
@@ -71,6 +73,7 @@ func UseDeps(deps *Deps) Option {
 		d := &p.Deps
 		d.Name = deps.Name
 		d.Log = deps.Log
+		d.ObjectStore = deps.ObjectStore
 	}
 }
 
@@ -84,6 +87,9 @@ func DefaultDeps() Option {
 		}
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
+		}
+		if d.ObjectStore == nil {
+			d.ObjectStore = objectstore.SharedPlugin()
 		}
 	}
 }
