@@ -29,9 +29,9 @@ import (
 const QueueRetryCount = 5
 
 const (
-	create = iota
-	delete
-	update
+	createOp = iota
+	deleteOp
+	updateOp
 )
 
 type objectMessage struct {
@@ -106,7 +106,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			plugin.Log.Infof("Found object of type: %T", reflect.TypeOf(message.(objectMessage).obj))
 			// Check if this is a create or delete operation
 			switch message.(objectMessage).operation {
-			case create:
+			case createOp:
 				// Verify and log if the informer cached version of the object is different than the
 				// copy we made
 				if !reflect.DeepEqual(message.(objectMessage).obj, item) {
@@ -114,7 +114,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 				}
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
 				plugin.objectStore.ObjectCreated(message.(objectMessage).obj)
-			case delete:
+			case deleteOp:
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
 				plugin.objectStore.ObjectDeleted(message.(objectMessage).obj)
 			}
