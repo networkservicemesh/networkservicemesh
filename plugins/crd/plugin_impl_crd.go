@@ -78,8 +78,9 @@ type Deps struct {
 	Name string
 	Log  logger.FieldLoggerPlugin
 	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig string
-	HandlerAPI handler.PluginAPI
+	KubeConfig  string
+	Handler     handler.PluginAPI
+	ObjectStore objectstore.PluginAPI
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -89,6 +90,14 @@ func (plugin *Plugin) Init() error {
 }
 func (plugin *Plugin) init() error {
 	err := plugin.Log.Init()
+	if err != nil {
+		return err
+	}
+	err = plugin.Handler.Init()
+	if err != nil {
+		return err
+	}
+	err = plugin.ObjectStore.Init()
 	if err != nil {
 		return err
 	}
@@ -216,25 +225,6 @@ func (plugin *Plugin) afterInit() error {
 	if err != nil {
 		plugin.Log.Error("Error initializing NetworkService CRD")
 		return err
-	}
-	// Wait for objectstore to initialize
-	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
-	timeout := time.After(time.Second * 60)
-	defer ticker.Stop()
-	ready := false
-	for !ready {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for ObjectStore")
-		case <-ticker.C:
-			if plugin.objectStore = objectstore.SharedPlugin(); plugin.objectStore != nil {
-				ready = true
-				ticker.Stop()
-				plugin.Log.Info("ObjectStore is ready, starting Consumer")
-			} else {
-				plugin.Log.Info("ObjectStore is not ready, waiting")
-			}
-		}
 	}
 
 	// We use a shared informer from the informer factory, to save calls to the

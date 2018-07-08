@@ -18,6 +18,10 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
+
+	"github.com/ligato/networkservicemesh/plugins/handler"
+
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/command"
 )
@@ -84,6 +88,8 @@ func UseDeps(deps *Deps) Option {
 		d := &p.Deps
 		d.Name = deps.Name
 		d.Log = deps.Log
+		d.Handler = deps.Handler
+		d.ObjectStore = deps.ObjectStore
 		d.KubeConfig = deps.KubeConfig
 	}
 }
@@ -98,6 +104,12 @@ func DefaultDeps() Option {
 		}
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
+		}
+		if d.Handler == nil {
+			d.Handler = handler.SharedPlugin()
+		}
+		if d.ObjectStore == nil {
+			d.ObjectStore = objectstore.SharedPlugin()
 		}
 		if d.KubeConfig == "" {
 			cmd := command.RootCmd()

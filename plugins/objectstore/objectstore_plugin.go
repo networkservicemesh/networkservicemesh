@@ -68,13 +68,6 @@ func (p *Plugin) init() error {
 	}
 	p.pluginStopCh = make(chan struct{})
 	p.objects = newObjectStore()
-	return p.afterInit()
-}
-
-// afterInit is called for post init processing
-func (p *Plugin) afterInit() error {
-	p.Log.Info("AfterInit")
-
 	return nil
 }
 
