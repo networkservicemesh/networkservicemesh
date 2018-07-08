@@ -18,8 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")/..
-SCRIPT_BASE=${SCRIPT_ROOT}/../..
+SCRIPT_ROOT=$(dirname "${BASH_SOURCE[@]}")/..
 
 DIFFROOT="${SCRIPT_ROOT}/pkg"
 TMP_DIFFROOT="${SCRIPT_ROOT}/_tmp/pkg"
@@ -50,4 +49,4 @@ fi
 
 # smoke test
 echo "Smoke testing pkg by compiling..."
-go build ${SCRIPT_ROOT}/pkg/...
+go build "${SCRIPT_ROOT}/pkg/..."
