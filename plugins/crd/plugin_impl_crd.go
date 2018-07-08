@@ -69,8 +69,6 @@ type Plugin struct {
 	informerNS  cache.SharedIndexInformer
 	informerNSE cache.SharedIndexInformer
 	informerNSC cache.SharedIndexInformer
-	// objectStore is interface to access ObjectStore
-	objectStore objectstore.Interface
 }
 
 // Deps defines dependencies of CRD plugin.
