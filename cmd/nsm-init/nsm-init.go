@@ -127,7 +127,7 @@ func applyRequiredConfig(ns []*networkService) error {
 }
 
 func parseConfigMap(cm *v1.ConfigMap) ([]*networkService, error) {
-	nSs := []*networkService{}
+	nSs := make([]*networkService, 0)
 	rawData, ok := cm.Data["networkService"]
 	if !ok {
 		return nil, fmt.Errorf("missing required key 'networkService:'")
