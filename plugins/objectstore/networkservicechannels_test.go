@@ -29,8 +29,6 @@ const (
 	chTestNamespace = "default"
 )
 
-var channels *channelStore
-
 func TestChannelStore(t *testing.T) {
 	channels := &channelStore{}
 	channels.networkServiceChannelsStore = newNetworkServiceChannelsStore()

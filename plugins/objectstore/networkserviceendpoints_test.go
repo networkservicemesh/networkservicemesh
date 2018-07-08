@@ -29,8 +29,6 @@ const (
 	epTestNamespace = "default"
 )
 
-var endpoints *endpointStore
-
 func TestEndpointStore(t *testing.T) {
 	endpoints := &endpointStore{}
 	endpoints.networkServiceEndpointsStore = newNetworkServiceEndpointsStore()
