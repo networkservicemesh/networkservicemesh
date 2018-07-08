@@ -64,7 +64,7 @@ func (n *networkServicesStore) Delete(key meta) {
 func (n *networkServicesStore) List() []*netmesh.NetworkService {
 	n.Lock()
 	defer n.Unlock()
-	networkServices := []*netmesh.NetworkService{}
+	networkServices := make([]*netmesh.NetworkService, 0)
 	for _, ns := range n.networkService {
 		networkServices = append(networkServices, ns)
 	}
