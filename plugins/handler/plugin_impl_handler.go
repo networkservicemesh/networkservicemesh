@@ -67,11 +67,7 @@ func (p *Plugin) init() error {
 	p.Log.WithField("kubeconfig", p.KubeConfig).Info("Loading kubernetes client config")
 	p.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", p.KubeConfig)
 	if err != nil {
-		p.Log.Infof("Failed to build kubernetes client config, will try cluster config.  err: %s", err)
-		p.k8sClientConfig, err = rest.InClusterConfig()
-		if err != nil {
-			return fmt.Errorf("Failed to build kubernetes client config from rest.InClusterConfig(): %s", err)
-		}
+		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
 	}
 
 	p.k8sClientset, err = kubernetes.NewForConfig(p.k8sClientConfig)

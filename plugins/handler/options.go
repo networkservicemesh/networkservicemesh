@@ -29,7 +29,7 @@ const (
 	// KubeConfigFlagName - Cmd line flag for specifying kubeconfig filename
 	KubeConfigFlagName = "kube"
 	// KubeConfigFlagDefault - default value of KubeConfig
-	KubeConfigFlagDefault = "/etc/kubernetes/admin.conf"
+	KubeConfigFlagDefault = ""
 	// KubeConfigFlagUsage - usage for flag for specifying kubeconfig filename
 	KubeConfigFlagUsage = "Path to the kubeconfig file to use for the client connection to K8s cluster"
 )
