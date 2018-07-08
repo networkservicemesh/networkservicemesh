@@ -63,7 +63,7 @@ func k8sClient(kc string) (*kubernetes.Clientset, *apiextcs.Clientset, *networks
 	return kubeClient, apiextClient, crdClient, nil
 }
 
-func setupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error {
+func setupEnv(k8s *kubernetes.Clientset, _ *apiextcs.Clientset) error {
 	// Setting up testing namespace
 	namespace := corev1.Namespace{
 		ObjectMeta: meta.ObjectMeta{
@@ -82,7 +82,7 @@ func setupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error
 	return nil
 }
 
-func cleanupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error {
+func cleanupEnv(k8s *kubernetes.Clientset, _ *apiextcs.Clientset) error {
 
 	_, err := k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
 	if apierrors.IsNotFound(err) {
