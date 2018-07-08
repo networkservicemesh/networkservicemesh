@@ -29,8 +29,6 @@ const (
 	nsTestNamespace = "default"
 )
 
-var networkservices *networkserviceStore
-
 func TestNetworkServiceStore(t *testing.T) {
 	networkservices := &networkserviceStore{}
 	networkservices.networkServicesStore = newNetworkServicesStore()
