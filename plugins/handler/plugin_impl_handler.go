@@ -55,12 +55,12 @@ func (p *Plugin) Init() error {
 	p.Log.WithField("kubeconfig", kubeconfig).Info("Loading kubernetes client config")
 	p.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
+		return fmt.Errorf("failed to build kubernetes client config: %s", err)
 	}
 
 	p.k8sClientset, err = kubernetes.NewForConfig(p.k8sClientConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client: %s", err)
+		return fmt.Errorf("failed to build kubernetes client: %s", err)
 	}
 
 	return nil
