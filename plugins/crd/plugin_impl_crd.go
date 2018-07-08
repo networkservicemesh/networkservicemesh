@@ -268,5 +268,17 @@ func (plugin *Plugin) Close() error {
 func (plugin *Plugin) close() error {
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
+	err := plugin.Deps.ObjectStore.Close()
+	if err != nil {
+		return err
+	}
+	err = plugin.Deps.Handler.Close()
+	if err != nil {
+		return err
+	}
+	err = plugin.Deps.Log.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }

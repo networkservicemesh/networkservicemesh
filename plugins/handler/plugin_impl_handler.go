@@ -54,11 +54,15 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
+	p.pluginStopCh = make(chan struct{})
 	err := p.Log.Init()
 	if err != nil {
 		return err
 	}
-	p.pluginStopCh = make(chan struct{})
+	err = p.Deps.ObjectStore.Init()
+	if err != nil {
+		return err
+	}
 
 	p.Log.WithField("kubeconfig", p.KubeConfig).Info("Loading kubernetes client config")
 	p.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", p.KubeConfig)
@@ -85,8 +89,16 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
+	err := p.Log.Close()
+	if err != nil {
+		return err
+	}
+	err = p.ObjectStore.Close()
+	if err != nil {
+		return err
+	}
 
-	return p.Log.Close()
+	return err
 }
 
 // ObjectCreated is called when an object is created
