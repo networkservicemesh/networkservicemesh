@@ -17,7 +17,6 @@ package handler
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 
@@ -37,15 +36,15 @@ type Plugin struct {
 	pluginStopCh    chan struct{}
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
-	objectStore     objectstore.Interface
 }
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
-	Name       string
-	Log        logger.FieldLoggerPlugin
-	Cmd        *cobra.Command
-	KubeConfig string // Fetch kubeconfig file from --kube
+	Name        string
+	Log         logger.FieldLoggerPlugin
+	Cmd         *cobra.Command
+	KubeConfig  string // Fetch kubeconfig file from --kube-config
+	ObjectStore objectstore.PluginAPI
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -72,33 +71,6 @@ func (p *Plugin) init() error {
 		return fmt.Errorf("failed to build kubernetes client: %s", err)
 	}
 
-	return p.afterInit()
-}
-
-// afterInit is called for post init processing
-func (p *Plugin) afterInit() error {
-	p.Log.Info("AfterInit")
-
-	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
-	timeout := time.After(objectstore.ObjectStoreReadyTimeout)
-	defer ticker.Stop()
-	// Wait for objectstore to initialize
-	ready := false
-	for !ready {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for ObjectStore")
-		case <-ticker.C:
-			if p.objectStore = objectstore.SharedPlugin(); p.objectStore != nil {
-				ready = true
-				ticker.Stop()
-				p.Log.Info("ObjectStore is ready, starting Consumer")
-			} else {
-				p.Log.Info("ObjectStore is not ready, waiting")
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -116,18 +88,18 @@ func (p *Plugin) close() error {
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
 	p.Log.Infof("LogCrdHandler.ObjectCreated: ", reflect.TypeOf(obj), obj)
-	p.objectStore.ObjectCreated(obj)
+	p.ObjectStore.ObjectCreated(obj)
 }
 
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
 	p.Log.Infof("LogCrdHandler.ObjectDeleted: ", reflect.TypeOf(obj), obj)
-	p.objectStore.ObjectDeleted(obj)
+	p.ObjectStore.ObjectDeleted(obj)
 }
 
 // ObjectUpdated is called when an object is updated
 func (p *Plugin) ObjectUpdated(old, cur interface{}) {
 	p.Log.Infof("LogCrdHandler.ObjectUpdated: ", reflect.TypeOf(old), reflect.TypeOf(cur), old, cur)
-	p.objectStore.ObjectDeleted(old)
-	p.objectStore.ObjectCreated(cur)
+	p.ObjectStore.ObjectDeleted(old)
+	p.ObjectStore.ObjectCreated(cur)
 }

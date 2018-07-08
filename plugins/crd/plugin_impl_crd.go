@@ -89,6 +89,7 @@ func (plugin *Plugin) Init() error {
 	return plugin.IdempotentInit(plugin.init)
 }
 func (plugin *Plugin) init() error {
+	plugin.pluginStopCh = make(chan struct{})
 	err := plugin.Log.Init()
 	if err != nil {
 		return err
@@ -102,7 +103,6 @@ func (plugin *Plugin) init() error {
 		return err
 	}
 	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
-	plugin.pluginStopCh = make(chan struct{})
 
 	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
 	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", plugin.KubeConfig)
