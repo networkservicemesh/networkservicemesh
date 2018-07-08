@@ -114,7 +114,7 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 				var message objectMessage
 				var err error
 				message.key, err = cache.MetaNamespaceKeyFunc(obj)
-				message.operation = create
+				message.operation = createOp
 				message.obj = obj
 				if err == nil {
 					queue.Add(message)
@@ -126,13 +126,13 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 					var messageOld, messageCur objectMessage
 					var err error
 					messageOld.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(old)
-					messageOld.operation = delete
+					messageOld.operation = deleteOp
 					messageOld.obj = old
 					if err == nil {
 						queue.Add(messageOld)
 					}
 					messageCur.key, err = cache.MetaNamespaceKeyFunc(cur)
-					messageCur.operation = create
+					messageCur.operation = createOp
 					messageCur.obj = cur
 					if err == nil {
 						queue.Add(messageCur)
@@ -143,7 +143,7 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 				var message objectMessage
 				var err error
 				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				message.operation = delete
+				message.operation = deleteOp
 				message.obj = obj
 				if err == nil {
 					queue.Add(message)
