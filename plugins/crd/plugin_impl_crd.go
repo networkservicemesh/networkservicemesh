@@ -91,12 +91,12 @@ func (plugin *Plugin) Init() error {
 	plugin.Log.WithField("kubeconfig", kubeconfig).Info("Loading kubernetes client config")
 	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
+		return fmt.Errorf("failed to build kubernetes client config: %s", err)
 	}
 
 	plugin.k8sClientset, err = kubernetes.NewForConfig(plugin.k8sClientConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client: %s", err)
+		return fmt.Errorf("failed to build kubernetes client: %s", err)
 	}
 
 	plugin.stopChNS = make(chan struct{})
