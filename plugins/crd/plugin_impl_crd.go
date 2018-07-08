@@ -98,7 +98,11 @@ func (plugin *Plugin) init() error {
 	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
 	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", plugin.KubeConfig)
 	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client config: %s", err)
+		plugin.Log.Infof("Failed to build kubernetes client config, will try cluster config.  err: %s", err)
+		plugin.k8sClientConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return fmt.Errorf("Failed to build kubernetes client config from rest.InClusterConfig(): %s", err)
+		}
 	}
 
 	plugin.k8sClientset, err = kubernetes.NewForConfig(plugin.k8sClientConfig)
