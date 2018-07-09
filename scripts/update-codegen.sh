@@ -17,10 +17,10 @@ echo "Calling ${CODEGEN_PKG}/generate-groups.sh"
   --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt"
 
 echo "Generating other deepcopy funcs"
-"${GOPATH}"/bin/deepcopy-gen \
-  --input-dirs ./netmesh/model/netmesh \
+${GOPATH}/bin/deepcopy-gen \
+  --input-dirs ./netmesh/model/netmesh ./pkg/nsm/apis/common \
   --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt" \
-  --bounding-dirs ./netmesh/model/netmesh \
+  --bounding-dirs ./netmesh/model/netmesh ./pkg/nsm/apis/common \
   -O zz_generated.deepcopy \
   -o "${GOPATH}/src"
 

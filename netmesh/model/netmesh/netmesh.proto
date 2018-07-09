@@ -21,26 +21,21 @@ syntax = "proto3";
 
 package netmesh;
 
-message Label {
-    map<string ,string> selector = 1;
-}
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
-message Metadata {
-    string name = 1;
-    string namespace = 2;
-    Label labels = 3;
-}
 
 message NetworkServiceChannel {
-    Metadata metadata = 1;
-    string payload = 2;
+    common.Metadata metadata = 1;
+    string network_service_name = 2;
+    string payload = 3;
+    repeated common.Interface interface = 4;
 }
 
 message NetworkServiceEndpoint {
-    Metadata metadata = 1;
+    common.Metadata metadata = 1;
 }
 
 message NetworkService {
-    Metadata metadata = 1;
+    common.Metadata metadata = 1;
     repeated NetworkServiceChannel channel = 2;
 }
