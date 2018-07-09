@@ -17,7 +17,7 @@ package objectstore
 import (
 	"time"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
