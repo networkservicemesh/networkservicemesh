@@ -15,8 +15,7 @@
 package logger
 
 import (
-	"github.com/ligato/cn-infra/core"
-	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/plugins/idempotent"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +26,6 @@ type FieldLogger interface {
 
 // FieldLoggerPlugin is a FieldLogger and a Plugin
 type FieldLoggerPlugin interface {
-	idempotent.Interface
-	core.Plugin
+	idempotent.PluginAPI
 	FieldLogger
 }

@@ -28,21 +28,22 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/ligato/cn-infra/config"
-	"github.com/ligato/cn-infra/flavors/local"
 	"github.com/ligato/cn-infra/health/statuscheck"
-	"github.com/ligato/cn-infra/logging"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 	"github.com/ligato/networkservicemesh/plugins/handler"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"k8s.io/client-go/util/workqueue"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
 // data store.
 type Plugin struct {
+	idempotent.Impl
 	Deps
 
 	pluginStopCh    chan struct{}
@@ -68,30 +69,43 @@ type Plugin struct {
 	informerNS  cache.SharedIndexInformer
 	informerNSE cache.SharedIndexInformer
 	informerNSC cache.SharedIndexInformer
-	// objectStore is interface to access ObjectStore
-	objectStore objectstore.Interface
 }
 
 // Deps defines dependencies of CRD plugin.
 type Deps struct {
-	local.PluginInfraDeps
+	Name string
+	Log  logger.FieldLoggerPlugin
 	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig config.PluginConfig
-	HandlerAPI handler.API
+	KubeConfig  string
+	Handler     handler.PluginAPI
+	ObjectStore objectstore.PluginAPI
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (plugin *Plugin) Init() error {
-	var err error
-	plugin.Log.SetLevel(logging.DebugLevel)
+	return plugin.IdempotentInit(plugin.init)
+}
+func (plugin *Plugin) init() error {
 	plugin.pluginStopCh = make(chan struct{})
-
-	kubeconfig := plugin.KubeConfig.GetConfigName()
-	plugin.Log.WithField("kubeconfig", kubeconfig).Info("Loading kubernetes client config")
-	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	err := plugin.Log.Init()
 	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client config: %s", err)
+		return err
+	}
+	err = plugin.Handler.Init()
+	if err != nil {
+		return err
+	}
+	err = plugin.ObjectStore.Init()
+	if err != nil {
+		return err
+	}
+	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
+
+	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
+	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", plugin.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
 	}
 
 	plugin.k8sClientset, err = kubernetes.NewForConfig(plugin.k8sClientConfig)
@@ -103,7 +117,7 @@ func (plugin *Plugin) Init() error {
 	plugin.stopChNSC = make(chan struct{})
 	plugin.stopChNSE = make(chan struct{})
 
-	return nil
+	return plugin.afterInit()
 }
 
 func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimitingInterface) {
@@ -153,8 +167,8 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 	)
 }
 
-// AfterInit This will create all of the CRDs for NetworkServiceMesh.
-func (plugin *Plugin) AfterInit() error {
+// afterInit This will create all of the CRDs for NetworkServiceMesh.
+func (plugin *Plugin) afterInit() error {
 	var err error
 	var crdname string
 
@@ -206,25 +220,6 @@ func (plugin *Plugin) AfterInit() error {
 		plugin.Log.Error("Error initializing NetworkService CRD")
 		return err
 	}
-	// Wait for objectstore to initialize
-	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
-	timeout := time.After(time.Second * 60)
-	defer ticker.Stop()
-	ready := false
-	for !ready {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for ObjectStore")
-		case <-ticker.C:
-			if plugin.objectStore = objectstore.SharedPlugin(); plugin.objectStore != nil {
-				ready = true
-				ticker.Stop()
-				plugin.Log.Info("ObjectStore is ready, starting Consumer")
-			} else {
-				plugin.Log.Info("ObjectStore is not ready, waiting")
-			}
-		}
-	}
 
 	// We use a shared informer from the informer factory, to save calls to the
 	// API as we grow our application and so state is consistent between our
@@ -261,7 +256,23 @@ func (plugin *Plugin) AfterInit() error {
 
 // Close stops all reflectors.
 func (plugin *Plugin) Close() error {
+	return plugin.IdempotentClose(plugin.close)
+}
+
+func (plugin *Plugin) close() error {
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
+	err := plugin.Deps.ObjectStore.Close()
+	if err != nil {
+		return err
+	}
+	err = plugin.Deps.Handler.Close()
+	if err != nil {
+		return err
+	}
+	err = plugin.Deps.Log.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }

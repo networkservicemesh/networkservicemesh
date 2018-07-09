@@ -12,21 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package handler
+package interupthandler
 
-import (
-	"github.com/ligato/networkservicemesh/plugins/idempotent"
-)
+import "github.com/ligato/networkservicemesh/plugins/idempotent"
 
-// API is the interface to a CRD handler plugin
-type API interface {
-	ObjectCreated(obj interface{})
-	ObjectDeleted(obj interface{})
-	ObjectUpdated(objOld, objNew interface{})
-}
-
-// PluginAPI is the API interface plus the plugin interface
-type PluginAPI interface {
-	API
-	idempotent.PluginAPI
+// Wrap returns a new interupthandler.Plugin that wraps the supplied plugin
+// When Init() is called, it Init()'s the Wrapped plugin and sets up an
+// InteruptHandler to Close the Plugin should an interupt be received
+func Wrap(p idempotent.PluginAPI) *Plugin {
+	return &Plugin{
+		Deps: Deps{
+			Wrap: p,
+		},
+	}
 }
