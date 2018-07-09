@@ -27,7 +27,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -115,7 +115,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 }
 
 // NewNSMDevicePlugin registers and starts Kubelet's device plugin
-func NewNSMDevicePlugin(logger logging.PluginLogger, os objectstore.Interface) error {
+func NewNSMDevicePlugin(logger logger.FieldLoggerPlugin, os objectstore.Interface) error {
 	nsm := &nsmClientEndpoints{
 		nsmSockets:  map[string]nsmSocket{},
 		logger:      logger,

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
 const (
@@ -34,4 +35,10 @@ type Interface interface {
 	ListNetworkServices() []*netmesh.NetworkService
 	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
 	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint
+}
+
+// PluginAPI - API for the Plugin
+type PluginAPI interface {
+	idempotent.PluginAPI
+	Interface
 }

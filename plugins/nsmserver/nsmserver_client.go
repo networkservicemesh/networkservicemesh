@@ -26,10 +26,10 @@ import (
 	"path"
 	"time"
 
-	"github.com/ligato/cn-infra/logging"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -40,7 +40,7 @@ import (
 
 type nsmClientEndpoints struct {
 	nsmSockets  map[string]nsmSocket
-	logger      logging.PluginLogger
+	logger      logger.FieldLoggerPlugin
 	objectStore objectstore.Interface
 }
 

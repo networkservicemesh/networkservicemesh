@@ -15,8 +15,7 @@
 package config
 
 import (
-	"github.com/ligato/cn-infra/core"
-	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
 // Config struct  this can literally be anything but use mapstruct:
@@ -31,6 +30,5 @@ type Loader interface {
 // LoaderPlugin is a Plugin that loads configs
 type LoaderPlugin interface {
 	Loader
-	core.Plugin
-	idempotent.Interface
+	idempotent.PluginAPI
 }
