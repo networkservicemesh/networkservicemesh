@@ -20,7 +20,7 @@ echo "Generating other deepcopy funcs"
 "${GOPATH}"/bin/deepcopy-gen \
   --input-dirs ./netmesh/model/netmesh --input-dirs ./pkg/nsm/apis/common \
   --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt" \
-  --bounding-dirs ./netmesh/model/netmesh --bounding-dirs ./pkg/nsm/apis/common \
+  --bounding-dirs ./pkg/nsm/apis/netmesh --bounding-dirs ./pkg/nsm/apis/common \
   -O zz_generated.deepcopy \
   -o "${GOPATH}/src"
 
