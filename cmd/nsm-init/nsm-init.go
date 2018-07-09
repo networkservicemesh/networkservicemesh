@@ -27,6 +27,7 @@ import (
 	"github.com/vishvananda/netns"
 
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
@@ -55,8 +56,8 @@ var (
 )
 
 type networkService struct {
-	Name             string                 `json:"name" yaml:"name"`
-	ServiceInterface []nsmconnect.Interface `json:"serviceInterface" yaml:"serviceInterface"`
+	Name             string             `json:"name" yaml:"name"`
+	ServiceInterface []common.Interface `json:"serviceInterface" yaml:"serviceInterface"`
 }
 
 func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
