@@ -17,25 +17,8 @@
 // shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
 // must be implemented by each plugin.
 
-syntax = "proto3";
+package common
 
-package netmesh;
-
-import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
-
-
-message NetworkServiceChannel {
-    common.Metadata metadata = 1;
-    string network_service_name = 2;
-    string payload = 3;
-    repeated common.Interface interface = 4;
-}
-
-message NetworkServiceEndpoint {
-    common.Metadata metadata = 1;
-}
-
-message NetworkService {
-    common.Metadata metadata = 1;
-    repeated NetworkServiceChannel channel = 2;
-}
+//go:generate protoc -I . common.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen=package,register
