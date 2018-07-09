@@ -44,12 +44,6 @@ var sharedPluginLock sync.Mutex
 
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
-	p := newPlugin(opts...)
-	sharedPlugins = append(sharedPlugins, p)
-	return p
-}
-
-func newPlugin(opts ...Option) *Plugin {
 	p := &Plugin{}
 	for _, o := range opts {
 		o(p)
@@ -61,7 +55,7 @@ func newPlugin(opts ...Option) *Plugin {
 // SharedPlugin provides a single shared Plugin that has the same Deps/Config as would result
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
-	p := newPlugin(opts...)
+	p := NewPlugin(opts...)
 	sharedPluginLock.Lock()
 	defer sharedPluginLock.Unlock()
 	_, plug := p.findSharedPlugin()
@@ -79,6 +73,12 @@ func (p *Plugin) findSharedPlugin() (int, *Plugin) {
 		}
 	}
 	return -1, nil
+}
+
+// ByName - If you just want a logger with a custom name and the rest of options
+// defaulted, this small convenience method will do that for you
+func ByName(name string) *Plugin {
+	return SharedPlugin(UseDeps(&Deps{Name: name}))
 }
 
 // UseDeps creates an Option to set the Deps for a Plugin

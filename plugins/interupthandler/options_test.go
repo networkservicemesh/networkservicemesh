@@ -12,21 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package interupthandler_test
 
 import (
+	"os"
+	"sync"
+	"syscall"
+	"testing"
+
 	"github.com/ligato/networkservicemesh/plugins/interupthandler"
-	"github.com/ligato/networkservicemesh/plugins/nsmcommand"
-	"github.com/ligato/networkservicemesh/utils/command"
-	"github.com/spf13/cobra"
+
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
-// netmesh main entry point.
-func main() {
-	cmd := &cobra.Command{Use: "netmesh"}
-	command.SetRootCmd(cmd)
-	nsm := nsmcommand.NewPlugin()
-	interupt := interupthandler.Wrap(nsm)
+type Plugin struct {
+	idempotent.Impl
+}
+
+func (p *Plugin) Init() error {
+	return p.IdempotentInit(p.init)
+}
+
+func (p *Plugin) init() error {
+	return nil
+}
+
+func (p *Plugin) Close() error {
+	return p.IdempotentClose(p.close)
+}
+
+func (p *Plugin) close() error {
+	return nil
+}
+
+func TestWrap(t *testing.T) {
+	plugin := &Plugin{}
+	interupt := interupthandler.Wrap(plugin)
 	interupt.Init()
-	interupt.Wait()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done() // Release the wg when we are done
+		interupt.Wait()
+	}()
+
+	// Send the signal
+	syscall.Kill(os.Getpid(), syscall.SIGINT)
+	wg.Wait()
 }

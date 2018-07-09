@@ -17,11 +17,12 @@ package logger_test
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"testing"
+
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"os"
-	"testing"
 )
 
 func TestLoggerDefaultDeps(t *testing.T) {
@@ -177,10 +178,12 @@ func TestUseConfig(t *testing.T) {
 
 func TestSharedPlugin(t *testing.T) {
 	RegisterTestingT(t)
+
+	// Check to make sure SharedPlugins are indeed shared
 	plugin1 := logger.SharedPlugin()
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := logger.SharedPlugin()
-	Expect(plugin2).To(Equal(plugin1))
+	Expect(plugin2 == plugin1).To(BeTrue())
 }
 
 type Hook struct{}
