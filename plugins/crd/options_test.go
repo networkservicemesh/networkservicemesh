@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netmeshplugincrd_test
+package crd_test
 
 import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
-	"github.com/ligato/networkservicemesh/plugins/crd"
 )
 
 func TestSharedPlugin(t *testing.T) {

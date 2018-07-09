@@ -104,7 +104,7 @@ func DefaultDeps() Option {
 			d.Log = logger.ByName(d.Name)
 		}
 		if d.CRD == nil {
-			d.CRD = netmeshplugincrd.SharedPlugin()
+			d.CRD = crd.SharedPlugin()
 		}
 		if d.NSMServer == nil {
 			d.NSMServer = nsmserver.SharedPlugin()
