@@ -73,19 +73,24 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 		nsNamespace := "default"
 		if c.Metadata.Namespace != "" {
 			nsNamespace = c.Metadata.Namespace
+		} else {
+			c.Metadata.Namespace = "default"
 		}
 
 		ns := n.objectStore.GetNetworkService(nsName, nsNamespace)
 		if ns != nil {
 			n.logger.Infof("Found existing NetworkService %s/%s in the Object Store, will add channel %s to its list of channels",
 				nsName, nsNamespace, c.Metadata.Name)
-			// TODO (sbezverk) code Channel adding logic here
+			// Since it was discovered that NetworkService Object exists, calling method to add the channel to NetworkService.
+			if err := n.objectStore.AddChannelToNetworkService(nsName, nsNamespace, c); err != nil {
+				n.logger.Error("failed to add channel %s/%s to network service %s with error: %+v", nsNamespace, nsName, c.Metadata.Name, err)
+				return &nsmconnect.ChannelAdvertiseResponse{Success: false}, err
+			}
+			n.logger.Infof("Channel %s/%s has been successfully added to network service %s/%s in the Object Store",
+				c.Metadata.Namespace, c.Metadata.Name, nsName, nsNamespace)
 		} else {
 			n.logger.Infof("NetworkService %s/%s is not found in the Object Store", nsName, nsNamespace)
 			// TODO (sbezverk) need to decide, should the new NetworkService object be created, or it is failure scenario?
-		}
-		for _, i := range c.Interface {
-			n.logger.Infof("Interface Name: %s Interface type: %s", i.Metadata.Name, i.Type)
 		}
 	}
 	return &nsmconnect.ChannelAdvertiseResponse{Success: true}, nil

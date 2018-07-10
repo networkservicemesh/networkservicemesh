@@ -100,8 +100,14 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 
 // GetNetworkService get NetworkService object for name and namespace specified
 func (p *Plugin) GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService {
-	p.Log.Info("ObjectStore.ListNetworkServices.")
+	p.Log.Info("ObjectStore.GetNetworkService.")
 	return p.objects.networkServicesStore.Get(nsName, nsNamespace)
+}
+
+// AddChannelToNetworkService adds a channel to Existing in the ObjectStore NetworkService object
+func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+	p.Log.Info("ObjectStore.AddChannelToNetworkService.")
+	return p.objects.networkServicesStore.AddChannel(nsName, nsNamespace, ch)
 }
 
 // ListNetworkServices lists all stored NetworkService objects

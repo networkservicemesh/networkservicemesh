@@ -102,9 +102,9 @@ func main() {
 
 	channel := netmesh.NetworkServiceChannel{
 		Metadata: &common.Metadata{
-			Name: "Channel-1",
+			Name: "gold-net-channel-1",
 		},
-		NetworkServiceName: "networkservice-1",
+		NetworkServiceName: "gold-network",
 		Payload:            "ipv4",
 		SocketLocation:     path.Join(nsePath, *nseSocketName),
 		Interface: []*common.Interface{
