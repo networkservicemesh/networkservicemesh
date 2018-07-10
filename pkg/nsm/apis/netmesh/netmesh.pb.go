@@ -20,10 +20,10 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type NetworkServiceChannel struct {
-	Metadata             *common.Metadata    `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	NetworkServiceName   string              `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
-	Payload              string              `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
-	Interface            []*common.Interface `protobuf:"bytes,4,rep,name=interface,proto3" json:"interface,omitempty"`
+	Metadata             *common.Metadata    `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+	NetworkServiceName   string              `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
+	Payload              string              `protobuf:"bytes,3,opt,name=payload" json:"payload,omitempty"`
+	Interface            []*common.Interface `protobuf:"bytes,4,rep,name=interface" json:"interface,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -82,7 +82,7 @@ func (m *NetworkServiceChannel) GetInterface() []*common.Interface {
 }
 
 type NetworkServiceEndpoint struct {
-	Metadata             *common.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Metadata             *common.Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -120,8 +120,8 @@ func (m *NetworkServiceEndpoint) GetMetadata() *common.Metadata {
 }
 
 type NetworkService struct {
-	Metadata             *common.Metadata         `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	Channel              []*NetworkServiceChannel `protobuf:"bytes,2,rep,name=channel,proto3" json:"channel,omitempty"`
+	Metadata             *common.Metadata         `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+	Channel              []*NetworkServiceChannel `protobuf:"bytes,2,rep,name=channel" json:"channel,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
