@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netmeshplugincrd
+package crd
 
 import "github.com/ligato/networkservicemesh/plugins/idempotent"
 
-// PluginAPI for netmeshplugincrd
+// PluginAPI for crd
 type PluginAPI interface {
 	idempotent.PluginAPI
 }

@@ -28,6 +28,6 @@ type Deps struct {
 	Log         logger.FieldLoggerPlugin
 	Cmd         *cobra.Command
 	NSMServer   nsmserver.PluginAPI
-	CRD         netmeshplugincrd.PluginAPI
+	CRD         crd.PluginAPI
 	ObjectStore objectstore.PluginAPI
 }
