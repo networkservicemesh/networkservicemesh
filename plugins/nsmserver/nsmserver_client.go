@@ -66,7 +66,14 @@ func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect
 }
 
 func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
-	return nil, status.Error(codes.InvalidArgument, "Not Implemented...")
+	n.logger.Printf("received Channel advertisement... %+v", cr)
+	for _, c := range cr.NetmeshChannel {
+		n.logger.Printf("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
+		for _, i := range c.Interface {
+			n.logger.Printf("Interface Name: %s Interface type: %s", i.Metadata.Name, i.Type)
+		}
+	}
+	return &nsmconnect.ChannelAdvertiseResponse{Success: true}, nil
 }
 
 // Define functions needed to meet the Kubernetes DevicePlugin API
