@@ -9,7 +9,7 @@ of a API calls flow for real NSE applications.
 Overview
 ------------
 NSE statically defines a channel, "Channel-1" and then advertises it to NSM. In 
-"Channel advertisement", nse also send information for an listening socket. This
+"Channel advertisement", nse also send information for a listening socket. This
 socket is used by NSM to connect to NSE in case of Connection Request call.
 
 Start
