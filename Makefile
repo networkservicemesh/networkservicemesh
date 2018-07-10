@@ -24,4 +24,5 @@ docker-build:
 	@docker build -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
 	@docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 	@docker build -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
+	@docker build -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
