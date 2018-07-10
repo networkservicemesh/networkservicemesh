@@ -80,7 +80,7 @@ func main() {
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
 	nsePath, _ := filepath.Split(clientSocket)
 	if err := socketCleanup(path.Join(nsePath, *nseSocketName)); err != nil {
-		logrus.Fatalf("nse: failure to cleanup stale sicket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
+		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
 	}
 	nse, err := net.Listen("unix", path.Join(nsePath, *nseSocketName))
 	grpcServer := grpc.NewServer()
