@@ -12,6 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+GOCMD=go
+GOFMT=${GOCMD} fmt
+GOGET=${GOCMD} get
+GOGENERATE=${GOCMD} generate
+GOINSTALL=${GOCMD} install
+GOTEST=${GOCMD} test
+
+#
+# The all target is what is used by the travis-ci system to build the Docker images
+# which are used to run the code in each run.
+#
 all: check verify docker-build
 
 check:
@@ -26,3 +37,23 @@ docker-build:
 	@docker build -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
 	@docker build -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
+#
+# The following targets are meant to be run when working with the code locally.
+#
+format:
+	@${GOFMT} ./...
+
+deps:
+	@${GOGET} -u github.com/golang/protobuf/protoc-gen-go
+
+generate:
+	@${GOGENERATE} ./...
+
+install:
+	@${GOINSTALL} ./...
+
+test:
+	@${GOTEST} ./... -cover
+
+test-race:
+	@${GOTEST} -race ./... -cover
