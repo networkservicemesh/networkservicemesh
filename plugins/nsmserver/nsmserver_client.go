@@ -66,7 +66,7 @@ func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect
 }
 
 func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
-	n.logger.Printf("received Channel advertisement... %+v", cr)
+	n.logger.Printf("received Channel advertisement...")
 	for _, c := range cr.NetmeshChannel {
 		n.logger.Printf("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
 		for _, i := range c.Interface {
