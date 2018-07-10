@@ -89,8 +89,8 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 			n.logger.Infof("Channel %s/%s has been successfully added to network service %s/%s in the Object Store",
 				c.Metadata.Namespace, c.Metadata.Name, nsName, nsNamespace)
 		} else {
-			n.logger.Infof("NetworkService %s/%s is not found in the Object Store", nsName, nsNamespace)
-			// TODO (sbezverk) need to decide, should the new NetworkService object be created, or it is failure scenario?
+			n.logger.Infof("NetworkService %s/%s is not found in the Object Store", nsNamespace, nsName)
+			return &nsmconnect.ChannelAdvertiseResponse{Success: false}, fmt.Errorf("NetworkService %s/%s is not found in the Object Store", nsNamespace, nsName)
 		}
 	}
 	return &nsmconnect.ChannelAdvertiseResponse{Success: true}, nil

@@ -58,10 +58,15 @@ function run_tests() {
     kubectl logs "$(kubectl get pods -o name | sed -e 's/.*\///')"
 
     #
-    # Starting nsm client pod
-    #
-    kubectl create -f conf/sample/nsm-client.yaml
+    # Starting nse pod which will advertise a channel for gold-network
+    # network service
     kubectl create -f conf/sample/nse.yaml
+    wait_for_pods default
+ 
+    #
+    # Starting nsm client pod, nsm-client pod should discover gold-network
+    # network service along with its channel and interface
+    kubectl create -f conf/sample/nsm-client.yaml
 
     #
     # Now let's wait for nsm-cient pod to get into running state
@@ -78,6 +83,7 @@ function run_tests() {
     kubectl get nodes
     kubectl get pods
     kubectl get crd
+    kubectl logs "$(kubectl get pods -o name | grep nse )"
     kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
     kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
