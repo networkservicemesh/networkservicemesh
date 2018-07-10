@@ -50,6 +50,23 @@ func (n *networkServicesStore) Add(ns *netmesh.NetworkService) {
 	}
 }
 
+// Get method returns NetworkService, if it does not
+// already it returns nil.
+func (n *networkServicesStore) Get(nsName string, nsNamespace string) *netmesh.NetworkService {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      nsName,
+		namespace: nsNamespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return nil
+	}
+	return ns
+}
+
 // Delete method deletes removed NetworkService object from the store.
 func (n *networkServicesStore) Delete(key meta) {
 	n.Lock()

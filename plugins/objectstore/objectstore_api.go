@@ -32,6 +32,7 @@ const (
 type Interface interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
+	GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService
 	ListNetworkServices() []*netmesh.NetworkService
 	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
 	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint

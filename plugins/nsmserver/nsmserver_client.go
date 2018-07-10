@@ -68,9 +68,24 @@ func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect
 func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
 	n.logger.Printf("received Channel advertisement...")
 	for _, c := range cr.NetmeshChannel {
-		n.logger.Printf("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
+		n.logger.Infof("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
+		nsName := c.NetworkServiceName
+		nsNamespace := "default"
+		if c.Metadata.Namespace != "" {
+			nsNamespace = c.Metadata.Namespace
+		}
+
+		ns := n.objectStore.GetNetworkService(nsName, nsNamespace)
+		if ns != nil {
+			n.logger.Infof("Found existing NetworkService %s/%s in the Object Store, will add channel %s to its list of channels",
+				nsName, nsNamespace, c.Metadata.Name)
+			// TODO (sbezverk) code Channel adding logic here
+		} else {
+			n.logger.Infof("NetworkService %s/%s is not found in the Object Store", nsName, nsNamespace)
+			// TODO (sbezverk) need to decide, should the new NetworkService object be created, or it is failure scenario?
+		}
 		for _, i := range c.Interface {
-			n.logger.Printf("Interface Name: %s Interface type: %s", i.Metadata.Name, i.Type)
+			n.logger.Infof("Interface Name: %s Interface type: %s", i.Metadata.Name, i.Type)
 		}
 	}
 	return &nsmconnect.ChannelAdvertiseResponse{Success: true}, nil

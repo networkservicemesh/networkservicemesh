@@ -98,6 +98,12 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 	}
 }
 
+// GetNetworkService get NetworkService object for name and namespace specified
+func (p *Plugin) GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService {
+	p.Log.Info("ObjectStore.ListNetworkServices.")
+	return p.objects.networkServicesStore.Get(nsName, nsNamespace)
+}
+
 // ListNetworkServices lists all stored NetworkService objects
 func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 	p.Log.Info("ObjectStore.ListNetworkServices.")
