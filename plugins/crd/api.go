@@ -16,7 +16,7 @@ package crd
 
 import "github.com/ligato/networkservicemesh/plugins/idempotent"
 
-// PluginAPI for netmeshplugincrd
+// PluginAPI for crd
 type PluginAPI interface {
 	idempotent.PluginAPI
 }

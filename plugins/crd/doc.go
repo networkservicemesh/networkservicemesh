@@ -1,2 +1,2 @@
-// Package netmeshplugincrd implements the CRD plugin for networkservicemesh
+// Package crd implements the CRD plugin for networkservicemesh
 package crd

@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	// DefaultName of the netmeshplugincrd.Plugin
-	DefaultName = "netmeshplugincrd"
+	// DefaultName of the crd.Plugin
+	DefaultName = "crd"
 	// KubeConfigFlagName - Cmd line flag for specifying kubeconfig filename
 	KubeConfigFlagName = "kube-config"
 	// KubeConfigFlagDefault - default value of KubeConfig

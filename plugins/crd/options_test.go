@@ -22,32 +22,32 @@ import (
 
 func TestSharedPlugin(t *testing.T) {
 	RegisterTestingT(t)
-	plugin1 := netmeshplugincrd.SharedPlugin()
+	plugin1 := crd.SharedPlugin()
 	Expect(plugin1).NotTo(BeNil())
-	plugin2 := netmeshplugincrd.SharedPlugin()
+	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).To(BeTrue())
 }
 
 func TestNewPluginNotShared(t *testing.T) {
 	RegisterTestingT(t)
-	plugin1 := netmeshplugincrd.NewPlugin()
+	plugin1 := crd.NewPlugin()
 	Expect(plugin1).NotTo(BeNil())
-	plugin2 := netmeshplugincrd.SharedPlugin()
+	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
 }
 
 func TestSharedPluginRemoveOnClose(t *testing.T) {
 	RegisterTestingT(t)
-	plugin1 := netmeshplugincrd.SharedPlugin()
+	plugin1 := crd.SharedPlugin()
 	plugin1.Init()
 	plugin1.Close()
-	plugin2 := netmeshplugincrd.SharedPlugin()
+	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
 }
 
 func TestNonDefaultName(t *testing.T) {
 	RegisterTestingT(t)
 	name := "foo"
-	plugin := netmeshplugincrd.NewPlugin(netmeshplugincrd.UseDeps(&netmeshplugincrd.Deps{Name: name}))
+	plugin := crd.NewPlugin(crd.UseDeps(&crd.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
 }
