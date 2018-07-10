@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
+	"github.com/ligato/networkservicemesh/plugins/crd"
 )
 
 func TestSharedPlugin(t *testing.T) {
