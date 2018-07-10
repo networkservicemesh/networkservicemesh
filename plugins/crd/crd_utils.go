@@ -14,7 +14,7 @@
 
 // //go:generate protoc -I ./model/pod --go_out=plugins=grpc:./model/pod ./model/pod/pod.proto
 
-package netmeshplugincrd
+package crd
 
 import (
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
