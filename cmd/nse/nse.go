@@ -55,6 +55,7 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 }
 
 func main() {
+	// TODO (sbezverk) migtate to cobra package for flags and arguments
 	flag.Parse()
 	var wg sync.WaitGroup
 
@@ -132,7 +133,7 @@ func main() {
 	}
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
-	// Now block on channel forever
+	// Now block on WaitGroup
 	wg.Wait()
 }
 
