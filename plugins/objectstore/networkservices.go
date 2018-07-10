@@ -17,7 +17,7 @@ package objectstore
 import (
 	"sync"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 // NetworkServicesStore map stores all discovered Network Service Object

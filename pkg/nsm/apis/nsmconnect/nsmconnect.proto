@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package nsmconnect;
 
-import "github.com/ligato/networkservicemesh/netmesh/model/netmesh/netmesh.proto";
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
 // ConnectionRequest is sent by a client or NSEP to build a connection.

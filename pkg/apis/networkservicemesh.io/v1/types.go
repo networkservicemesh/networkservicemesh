@@ -17,7 +17,7 @@ package v1
 import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 // Constants to register CRDs for our resources
