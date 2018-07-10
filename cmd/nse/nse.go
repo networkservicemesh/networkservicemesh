@@ -21,9 +21,9 @@ import (
 	"net"
 	"os"
 	"path"
-	"time"
-
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -36,8 +36,6 @@ import (
 const (
 	// clientConnectionTimeout defines time the client waits for establishing connection with the server
 	clientConnectionTimeout = time.Second * 60
-	// clientConnectionTimeout defines retry interval for establishing connection with the server
-	clientConnectionRetry = time.Second * 2
 )
 
 var (
@@ -58,7 +56,7 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 
 func main() {
 	flag.Parse()
-	flag.Set("logtostderr", "true")
+	var wg sync.WaitGroup
 
 	// Checking if nsm client socket exists and of not crash NSE
 	clientSocket := clientSocketPath
@@ -67,16 +65,14 @@ func main() {
 	}
 
 	if _, err := os.Stat(clientSocket); err != nil {
-		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
 	defer cancel()
 	conn, err := dial(ctx, clientSocket)
 	if err != nil {
-		logrus.Errorf("nse: failure to communicate with the socket %s with error: %+v", clientSocket, err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", clientSocket, err)
 	}
 	defer conn.Close()
 	logrus.Infof("nse: connection to nsm server on socket: %s succeeded.", clientSocket)
@@ -84,21 +80,20 @@ func main() {
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
 	nsePath, _ := filepath.Split(clientSocket)
 	if err := socketCleanup(path.Join(nsePath, *nseSocketName)); err != nil {
-		logrus.Errorf("nse: failure to cleanup stale sicket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to cleanup stale sicket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
 	}
 	nse, err := net.Listen("unix", path.Join(nsePath, *nseSocketName))
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	grpcServer := grpc.NewServer()
 
 	go func() {
+		wg.Add(1)
 		if err := grpcServer.Serve(nse); err != nil {
-			logrus.Errorf("nse: failed to start grpc server on socket %s with error: %+v ", path.Join(nsePath, *nseSocketName), err)
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %+v ", path.Join(nsePath, *nseSocketName), err)
 		}
 	}()
 	// Check if the socket of device plugin server is operation
 	if err := socketOperationCheck(path.Join(nsePath, *nseSocketName)); err != nil {
-		logrus.Errorf("nse: failure to communicate with the socket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
 	}
 
 	// Ok, NSE server is ready and now the channel can be advertised to NSM
@@ -121,28 +116,24 @@ func main() {
 			},
 		},
 	}
-	channels := []*netmesh.NetworkServiceChannel{}
+	channels := make([]*netmesh.NetworkServiceChannel, 0)
 	channels = append(channels, &channel)
-	logrus.Infof("Channel info: %+v", channels)
 	resp, err := nsmClient.RequestAdvertiseChannel(context.Background(), &nsmconnect.ChannelAdvertiseRequest{
 		NetmeshChannel: channels,
 	})
 	if err != nil {
 		grpcServer.Stop()
-		logrus.Errorf("nse: failure to communicate with the socket %s with error: %+v", clientSocket, err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", clientSocket, err)
 
 	}
 	if !resp.Success {
 		grpcServer.Stop()
-		logrus.Error("nse: NSM response is inidcating failure of accepting Channel Advertisiment.")
-		os.Exit(1)
+		logrus.Fatalf("nse: NSM response is inidcating failure of accepting Channel Advertisiment.")
 	}
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
 	// Now block on channel forever
-	blockChan := make(chan bool)
-	<-blockChan
+	wg.Wait()
 }
 
 func socketOperationCheck(listenEndpoint string) error {
@@ -161,7 +152,7 @@ func socketCleanup(listenEndpoint string) error {
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
 		if err := os.Remove(listenEndpoint); err != nil {
-			return fmt.Errorf("Cannot remove listen endpoint %s with error: %+v", listenEndpoint, err)
+			return fmt.Errorf("cannot remove listen endpoint %s with error: %+v", listenEndpoint, err)
 		}
 	}
 	if err != nil && !os.IsNotExist(err) {

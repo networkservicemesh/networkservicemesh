@@ -61,6 +61,7 @@ function run_tests() {
     # Starting nsm client pod
     #
     kubectl create -f conf/sample/nsm-client.yaml
+    kubectl create -f conf/sample/nse.yaml
 
     #
     # Now let's wait for nsm-cient pod to get into running state
