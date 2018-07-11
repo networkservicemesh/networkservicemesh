@@ -34,8 +34,6 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type nsmClientEndpoints struct {
@@ -52,7 +50,10 @@ type nsmSocket struct {
 }
 
 func (n nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionAccept, error) {
-	return nil, status.Error(codes.InvalidArgument, "Not Implemented...")
+	n.logger.Infof("received connection request id: %s from pod: %s/%s, requesting network service: %s for linux namespace: %s",
+		cr.GetRequestId(), cr.Metadata.Namespace, cr.Metadata.Name, cr.NetworkServiceName, cr.LinuxNamespace)
+
+	return &nsmconnect.ConnectionAccept{Accepted: true}, nil
 }
 
 func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
