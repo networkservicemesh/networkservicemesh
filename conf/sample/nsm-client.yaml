@@ -76,10 +76,6 @@ spec:
         - name: nsm-init
           image: ligato/networkservicemesh/nsm-init:latest
           imagePullPolicy: IfNotPresent
-#          securityContext:
-#            privileged: true
-#            capabilities:
-#              add: ["NET_ADMIN"]
           args:
           - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
           - --configmap-name=client-network-services

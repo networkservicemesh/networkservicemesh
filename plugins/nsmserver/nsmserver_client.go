@@ -24,22 +24,29 @@ import (
 	"net"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type nsmClientEndpoints struct {
 	nsmSockets  map[string]nsmSocket
 	logger      logger.FieldLoggerPlugin
 	objectStore objectstore.Interface
+	// POD UID is used as a unique key in clientConnections map
+	clientConnections map[string][]*clientNetworkService
+	sync.RWMutex
 }
 
 type nsmSocket struct {
@@ -49,14 +56,82 @@ type nsmSocket struct {
 	allocated   bool
 }
 
-func (n nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionAccept, error) {
+// clientNetworkService struct represents requested by a NSM client NetworkService and its state, isInProgress true
+// indicates that DataPlane programming operation is on going, so no duplicate request for Dataplane processing should occur.
+type clientNetworkService struct {
+	networkService *netmesh.NetworkService
+	// isInProgress indicates ongoing dataplane programming
+	isInProgress bool
+}
+
+// RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
+// return to NSM client result.
+func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionAccept, error) {
 	n.logger.Infof("received connection request id: %s from pod: %s/%s, requesting network service: %s for linux namespace: %s",
-		cr.GetRequestId(), cr.Metadata.Namespace, cr.Metadata.Name, cr.NetworkServiceName, cr.LinuxNamespace)
+		cr.RequestId, cr.Metadata.Namespace, cr.Metadata.Name, cr.NetworkServiceName, cr.LinuxNamespace)
+
+	// first check to see if requested NetworkService exists in objectStore
+	if ns := n.objectStore.GetNetworkService(cr.NetworkServiceName, cr.Metadata.Namespace); ns == nil {
+		// Unknown NetworkService fail Connection request
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("requested Network Service %s/%s does not exist", cr.Metadata.Namespace, cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "requested network service not found")
+	}
+
+	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
+	// Connection request
+	if !isNewRequest(n.clientConnections[cr.RequestId], cr.NetworkServiceName) {
+		// Since it is duplicate request, need to check if it is already inProgress
+		if isInProgress(n.clientConnections[cr.RequestId], cr.NetworkServiceName) {
+			// Looks like dataplane programming is taking long time, responding client to wait and retry
+			// TODO (sbezverk) nsm client should watch for this type of error and not fail but trigger exponential retry mechanism.
+			return &nsmconnect.ConnectionAccept{
+				Accepted:       false,
+				AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s/%s is still being programmed, retry", cr.Metadata.Namespace, cr.NetworkServiceName),
+			}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
+		}
+		// Request is not inProgress which means potentially a success can be returned
+		// TODO (sbezverk) discuss this logic in case some corner cases might break it.
+		return &nsmconnect.ConnectionAccept{
+			Accepted:             true,
+			ConnectionParameters: &nsmconnect.ConnectionParameters{},
+		}, nil
+	}
+	// It is a new Connection request for known NetworkService, need to check if requested interface
+	// parameters have a match with ones of known NetworkService. If not, return error
+
+	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
+	// and wait for complition.
 
 	return &nsmconnect.ConnectionAccept{Accepted: true}, nil
 }
 
-func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
+// TODO (sbezverk) Current assumption is that NSM client is requesting connection for  NetworkService
+// from the same namespace. If it changes, refactor maybe required.
+func isInProgress(networkServices []*clientNetworkService, serviceName string) bool {
+	for _, s := range networkServices {
+		if s.networkService.Metadata.Name == serviceName {
+			return s.isInProgress
+		}
+	}
+	// Should never hit this line as isInProgress is called only if s.networkService.Metadata.Name == serviceName
+	// is true
+	return false
+}
+
+func isNewRequest(networkServices []*clientNetworkService, serviceName string) bool {
+	newRequest := true
+	for _, s := range networkServices {
+		if s.networkService.Metadata.Name == serviceName {
+			newRequest = false
+			break
+		}
+	}
+	return newRequest
+}
+
+func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
 	n.logger.Info("received Discovery request")
 	networkService := n.objectStore.ListNetworkServices()
 	n.logger.Infof("preparing Discovery response, number of returning NetworkServices: %d", len(networkService))
