@@ -5,8 +5,6 @@ metadata:
 spec:
   metadata:
     name: gold-network
-    namespace: namespace-1
-  channels:
-    - name: 'gold-ethernet'
+    namespace: default
   selector: 
     app: routing

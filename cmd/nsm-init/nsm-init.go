@@ -220,6 +220,16 @@ func main() {
 		logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
 		os.Exit(0)
 	}
+	logrus.Info("nsm client: list of discovered network services:")
+	for _, s := range availablaNetworkServices {
+		logrus.Infof("      network service: %s/%s", s.Metadata.Namespace, s.Metadata.Name)
+		for _, c := range s.Channel {
+			logrus.Infof("            Channel: %s/%s", c.Metadata.Namespace, c.Metadata.Name)
+			for _, i := range c.Interface {
+				logrus.Infof("                  Interface type: %s preference: %s", i.GetType(), i.GetPreference())
+			}
+		}
+	}
 	logrus.Infof("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
 	if err := applyRequiredConfig(ns); err != nil {
 		logrus.Fatalf("nsm client: initialization failed, exiting...", err)

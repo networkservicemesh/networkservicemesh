@@ -28,7 +28,8 @@ message NetworkServiceChannel {
     common.Metadata metadata = 1;
     string network_service_name = 2;
     string payload = 3;
-    repeated common.Interface interface = 4;
+    string socket_location = 4;
+    repeated common.Interface interface = 5;
 }
 
 message NetworkServiceEndpoint {
