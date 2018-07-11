@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+GOPATH?=$(shell go env GOPATH)
 GOCMD=go
 GOFMT=${GOCMD} fmt
 GOGET=${GOCMD} get
@@ -19,6 +20,7 @@ GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
 
+.PHONY: all check verify docker-build
 #
 # The all target is what is used by the travis-ci system to build the Docker images
 # which are used to run the code in each run.
@@ -37,6 +39,7 @@ docker-build:
 	@docker build -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
 	@docker build -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
+.PHONY: format deps generate install test test-race
 #
 # The following targets are meant to be run when working with the code locally.
 #
