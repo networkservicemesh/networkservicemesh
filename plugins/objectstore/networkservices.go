@@ -15,6 +15,7 @@
 package objectstore
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
@@ -48,6 +49,56 @@ func (n *networkServicesStore) Add(ns *netmesh.NetworkService) {
 		// Not in the store, adding it.
 		n.networkService[key] = ns
 	}
+}
+
+// Get method returns NetworkService, if it does not
+// already it returns nil.
+func (n *networkServicesStore) Get(nsName, nsNamespace string) *netmesh.NetworkService {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      nsName,
+		namespace: nsNamespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return nil
+	}
+	return ns
+}
+
+// Get method returns NetworkService, if it does not
+// already it returns nil.
+func (n *networkServicesStore) AddChannel(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      nsName,
+		namespace: nsNamespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
+	}
+
+	// Need to check if NetworkService has already Channel with the same name and namespace, Channels must
+	// be unique for Name and Namspace pair.
+	found := false
+	for _, c := range ns.Channel {
+		if c.Metadata.Name == ch.Metadata.Name && c.Metadata.Namespace == ch.Metadata.Namespace {
+			found = true
+			break
+		}
+	}
+	if found {
+		return fmt.Errorf("failed to add channel %s/%s to network service %s/%s, the channel already exists in the object store",
+			ch.Metadata.Namespace, ch.Metadata.Name, key.namespace, key.name)
+	}
+	ns.Channel = append(ns.Channel, ch)
+
+	return nil
 }
 
 // Delete method deletes removed NetworkService object from the store.

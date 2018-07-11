@@ -32,6 +32,8 @@ const (
 type Interface interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
+	GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService
+	AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
 	ListNetworkServices() []*netmesh.NetworkService
 	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
 	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint

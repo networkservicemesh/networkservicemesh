@@ -103,7 +103,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 				return
 			}
 
-			plugin.Log.Infof("Found object of type: %T", reflect.TypeOf(message.(objectMessage).obj))
+			plugin.Log.Infof("Found object of type: %s", reflect.TypeOf(message.(objectMessage).obj))
 			// Check if this is a create or delete operation
 			switch message.(objectMessage).operation {
 			case createOp:

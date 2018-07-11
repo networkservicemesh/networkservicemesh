@@ -52,14 +52,21 @@ function run_tests() {
     #
     # Since daemonset is up and running, create CRD resources
     #
+    kubectl create -f conf/sample/networkservice.yaml
     kubectl create -f conf/sample/networkservice-channel.yaml
     kubectl create -f conf/sample/networkservice-endpoint.yaml
-    kubectl create -f conf/sample/networkservice.yaml
     kubectl logs "$(kubectl get pods -o name | sed -e 's/.*\///')"
+    wait_for_networkservice default
 
     #
-    # Starting nsm client pod
+    # Starting nse pod which will advertise a channel for gold-network
+    # network service
+    kubectl create -f conf/sample/nse.yaml
+    wait_for_pods default
+ 
     #
+    # Starting nsm client pod, nsm-client pod should discover gold-network
+    # network service along with its channel and interface
     kubectl create -f conf/sample/nsm-client.yaml
 
     #
@@ -77,6 +84,7 @@ function run_tests() {
     kubectl get nodes
     kubectl get pods
     kubectl get crd
+    kubectl logs "$(kubectl get pods -o name | grep nse )"
     kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
     kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
