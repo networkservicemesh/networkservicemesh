@@ -15,6 +15,8 @@
 package objectstore
 
 import (
+	"reflect"
+
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -83,18 +85,26 @@ func (p *Plugin) close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
+	p.Log.Infof("About to create object of type: %s", reflect.TypeOf(obj))
 	p.Log.Infof("ObjectStore.ObjectCreated: %s", obj)
 
 	switch obj.(type) {
 	case *v1.NetworkService:
 		ns := obj.(*v1.NetworkService).Spec
+		p.Log.Infof("object of type: %s data: %+v", reflect.TypeOf(ns), ns)
 		p.objects.networkServicesStore.Add(&ns)
+		p.Log.Infof("Number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
+		for _, s := range p.objects.networkServicesStore.List() {
+			p.Log.Infof("network service in Object Store %+v", s)
+		}
 	case *v1.NetworkServiceChannel:
 		nsc := obj.(*v1.NetworkServiceChannel).Spec
 		p.objects.networkServiceChannelsStore.Add(&nsc)
 	case *v1.NetworkServiceEndpoint:
 		nse := obj.(*v1.NetworkServiceEndpoint).Spec
 		p.objects.networkServiceEndpointsStore.Add(&nse)
+	default:
+		p.Log.Infof("Found object of unknown type: %s", reflect.TypeOf(obj))
 	}
 }
 
