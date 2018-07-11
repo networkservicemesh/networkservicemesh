@@ -33,5 +33,6 @@ How tos
 -------
 * [Building Network Service Mesh](/docs/BUILD.md)
 * [Running Network Service Mesh in Minikube](/docs/MINIKUBE.md)
+* [Running Network Service Mesh in Kubernetes](/docs/RUN.md)
 * [Install and run NSM on GKE](/docs/NSM-on-GKE.md)
 * [Gettting a Namespace from inside a Pod](/docs/Getting-a-namespace-from-inside-a-Pod.md)
