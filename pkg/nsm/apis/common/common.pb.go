@@ -86,7 +86,7 @@ func (InterfacePreference) EnumDescriptor() ([]byte, []int) {
 }
 
 type Label struct {
-	Selector             map[string]string `protobuf:"bytes,1,rep,name=selector" json:"selector,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Selector             map[string]string `protobuf:"bytes,1,rep,name=selector,proto3" json:"selector,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -124,9 +124,9 @@ func (m *Label) GetSelector() map[string]string {
 }
 
 type Metadata struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Namespace            string   `protobuf:"bytes,2,opt,name=namespace" json:"namespace,omitempty"`
-	Labels               *Label   `protobuf:"bytes,3,opt,name=labels" json:"labels,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Namespace            string   `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Labels               *Label   `protobuf:"bytes,3,opt,name=labels,proto3" json:"labels,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -208,10 +208,10 @@ func (m *InterfaceParameters) XXX_DiscardUnknown() {
 var xxx_messageInfo_InterfaceParameters proto.InternalMessageInfo
 
 type Interface struct {
-	Type                 InterfaceType        `protobuf:"varint,1,opt,name=type,enum=common.InterfaceType" json:"type,omitempty"`
-	Metadata             *Metadata            `protobuf:"bytes,2,opt,name=metadata" json:"metadata,omitempty"`
-	Preference           InterfacePreference  `protobuf:"varint,3,opt,name=preference,enum=common.InterfacePreference" json:"preference,omitempty"`
-	Parmeters            *InterfaceParameters `protobuf:"bytes,4,opt,name=parmeters" json:"parmeters,omitempty"`
+	Type                 InterfaceType        `protobuf:"varint,1,opt,name=type,proto3,enum=common.InterfaceType" json:"type,omitempty"`
+	Metadata             *Metadata            `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Preference           InterfacePreference  `protobuf:"varint,3,opt,name=preference,proto3,enum=common.InterfacePreference" json:"preference,omitempty"`
+	Parmeters            *InterfaceParameters `protobuf:"bytes,4,opt,name=parmeters,proto3" json:"parmeters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`

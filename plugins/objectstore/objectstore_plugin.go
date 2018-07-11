@@ -15,6 +15,8 @@
 package objectstore
 
 import (
+	"reflect"
+
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -83,19 +85,34 @@ func (p *Plugin) close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("ObjectStore.ObjectCreated: %s", obj)
+	p.Log.Infof("ObjectStore.ObjectCreated: %+v", obj)
 
 	switch obj.(type) {
 	case *v1.NetworkService:
 		ns := obj.(*v1.NetworkService).Spec
 		p.objects.networkServicesStore.Add(&ns)
+		p.Log.Infof("number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
 	case *v1.NetworkServiceChannel:
 		nsc := obj.(*v1.NetworkServiceChannel).Spec
 		p.objects.networkServiceChannelsStore.Add(&nsc)
 	case *v1.NetworkServiceEndpoint:
 		nse := obj.(*v1.NetworkServiceEndpoint).Spec
 		p.objects.networkServiceEndpointsStore.Add(&nse)
+	default:
+		p.Log.Infof("found object of unknown type: %s", reflect.TypeOf(obj))
 	}
+}
+
+// GetNetworkService get NetworkService object for name and namespace specified
+func (p *Plugin) GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService {
+	p.Log.Info("ObjectStore.GetNetworkService.")
+	return p.objects.networkServicesStore.Get(nsName, nsNamespace)
+}
+
+// AddChannelToNetworkService adds a channel to Existing in the ObjectStore NetworkService object
+func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+	p.Log.Info("ObjectStore.AddChannelToNetworkService.")
+	return p.objects.networkServicesStore.AddChannel(nsName, nsNamespace, ch)
 }
 
 // ListNetworkServices lists all stored NetworkService objects

@@ -30,10 +30,10 @@ type ConnectionRequest struct {
 	// Since connection request will trigger certain actions
 	// executed by NSM for a client to address idempotency, request_id
 	// will be tracked.
-	RequestId            string              `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	Metadata             *common.Metadata    `protobuf:"bytes,2,opt,name=metadata" json:"metadata,omitempty"`
-	NetworkServiceName   string              `protobuf:"bytes,3,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
-	Interface            []*common.Interface `protobuf:"bytes,4,rep,name=interface" json:"interface,omitempty"`
+	RequestId            string              `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Metadata             *common.Metadata    `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	NetworkServiceName   string              `protobuf:"bytes,3,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	Interface            []*common.Interface `protobuf:"bytes,4,rep,name=interface,proto3" json:"interface,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -92,8 +92,8 @@ func (m *ConnectionRequest) GetInterface() []*common.Interface {
 }
 
 type ConnectionParameters struct {
-	Address              string   `protobuf:"bytes,1,opt,name=address" json:"address,omitempty"`
-	Route                []string `protobuf:"bytes,2,rep,name=route" json:"route,omitempty"`
+	Address              string   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Route                []string `protobuf:"bytes,2,rep,name=route,proto3" json:"route,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -142,10 +142,10 @@ func (m *ConnectionParameters) GetRoute() []string {
 // indicates that connection was refused and admission_error will provide details
 // why connection was refused.
 type ConnectionAccept struct {
-	Accepted             bool                  `protobuf:"varint,1,opt,name=accepted" json:"accepted,omitempty"`
-	AdmissionError       string                `protobuf:"bytes,2,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
-	ConnectionParameters *ConnectionParameters `protobuf:"bytes,3,opt,name=connection_parameters,json=connectionParameters" json:"connection_parameters,omitempty"`
-	Interface            *common.Interface     `protobuf:"bytes,4,opt,name=interface" json:"interface,omitempty"`
+	Accepted             bool                  `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string                `protobuf:"bytes,2,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
+	ConnectionParameters *ConnectionParameters `protobuf:"bytes,3,opt,name=connection_parameters,json=connectionParameters,proto3" json:"connection_parameters,omitempty"`
+	Interface            *common.Interface     `protobuf:"bytes,4,opt,name=interface,proto3" json:"interface,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -236,7 +236,7 @@ var xxx_messageInfo_DiscoveryRequest proto.InternalMessageInfo
 
 // DiscoveryRespons carries a list of all available/known to NSM NetworkServices
 type DiscoveryResponse struct {
-	NetworkService       []*netmesh.NetworkService `protobuf:"bytes,1,rep,name=network_service,json=networkService" json:"network_service,omitempty"`
+	NetworkService       []*netmesh.NetworkService `protobuf:"bytes,1,rep,name=network_service,json=networkService,proto3" json:"network_service,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -275,7 +275,7 @@ func (m *DiscoveryResponse) GetNetworkService() []*netmesh.NetworkService {
 
 // ChannelAdvertiseRequest used by NSE to advertise its available channels
 type ChannelAdvertiseRequest struct {
-	NetmeshChannel       []*netmesh.NetworkServiceChannel `protobuf:"bytes,1,rep,name=netmesh_channel,json=netmeshChannel" json:"netmesh_channel,omitempty"`
+	NetmeshChannel       []*netmesh.NetworkServiceChannel `protobuf:"bytes,1,rep,name=netmesh_channel,json=netmeshChannel,proto3" json:"netmesh_channel,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                         `json:"-"`
 	XXX_unrecognized     []byte                           `json:"-"`
 	XXX_sizecache        int32                            `json:"-"`
@@ -314,7 +314,7 @@ func (m *ChannelAdvertiseRequest) GetNetmeshChannel() []*netmesh.NetworkServiceC
 
 // ChannelAdvertiseResponse used by NSM to confirm if Channel Object has been created successfully
 type ChannelAdvertiseResponse struct {
-	Success              bool     `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
+	Success              bool     `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -369,8 +369,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for ClientConnection service
-
+// ClientConnectionClient is the client API for ClientConnection service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ClientConnectionClient interface {
 	RequestConnection(ctx context.Context, in *ConnectionRequest, opts ...grpc.CallOption) (*ConnectionAccept, error)
 	RequestDiscovery(ctx context.Context, in *DiscoveryRequest, opts ...grpc.CallOption) (*DiscoveryResponse, error)
@@ -387,7 +388,7 @@ func NewClientConnectionClient(cc *grpc.ClientConn) ClientConnectionClient {
 
 func (c *clientConnectionClient) RequestConnection(ctx context.Context, in *ConnectionRequest, opts ...grpc.CallOption) (*ConnectionAccept, error) {
 	out := new(ConnectionAccept)
-	err := grpc.Invoke(ctx, "/nsmconnect.ClientConnection/RequestConnection", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/nsmconnect.ClientConnection/RequestConnection", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +397,7 @@ func (c *clientConnectionClient) RequestConnection(ctx context.Context, in *Conn
 
 func (c *clientConnectionClient) RequestDiscovery(ctx context.Context, in *DiscoveryRequest, opts ...grpc.CallOption) (*DiscoveryResponse, error) {
 	out := new(DiscoveryResponse)
-	err := grpc.Invoke(ctx, "/nsmconnect.ClientConnection/RequestDiscovery", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/nsmconnect.ClientConnection/RequestDiscovery", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -405,15 +406,14 @@ func (c *clientConnectionClient) RequestDiscovery(ctx context.Context, in *Disco
 
 func (c *clientConnectionClient) RequestAdvertiseChannel(ctx context.Context, in *ChannelAdvertiseRequest, opts ...grpc.CallOption) (*ChannelAdvertiseResponse, error) {
 	out := new(ChannelAdvertiseResponse)
-	err := grpc.Invoke(ctx, "/nsmconnect.ClientConnection/RequestAdvertiseChannel", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/nsmconnect.ClientConnection/RequestAdvertiseChannel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for ClientConnection service
-
+// ClientConnectionServer is the server API for ClientConnection service.
 type ClientConnectionServer interface {
 	RequestConnection(context.Context, *ConnectionRequest) (*ConnectionAccept, error)
 	RequestDiscovery(context.Context, *DiscoveryRequest) (*DiscoveryResponse, error)

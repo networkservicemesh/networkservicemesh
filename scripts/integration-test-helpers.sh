@@ -17,6 +17,37 @@
 
 
 #
+# Wait for network service object to become available in a $1 namespace
+# Default timeout of 60 seconds can be overwritten in $2 parameter.
+#
+function wait_for_networkservice() {
+    set +xe
+    end=$(date +%s)
+    if [ "x$2" != "x" ]; then
+     end=$((end + "$2"))
+    else
+     end=$((end + 60))
+    fi
+    while true; do
+        network_service=$(kubectl get networkservices --namespace="$1" -o json | jq -r '.items[].metadata.name')
+        if [ "x$network_service" != "x" ]; then
+            break
+        fi
+        sleep 1
+        now=$(date +%s)
+        if [ "$now" -gt "$end" ] ; then
+            echo "NetworkService has not been created within 60 seconds, failing..."
+            error_collection
+            set -xe
+            return 1
+        fi
+    done
+
+    set -xe
+    return 0
+}
+
+#
 # Wait for all pods to become running in a $1 namespace
 # Default timeout of 180 seconds can be overwritten in $2 parameter.
 #
@@ -47,7 +78,7 @@ function wait_for_pods() {
         now=$(date +%s)
         if [ "$now" -gt "$end" ] ; then
             echo "Containers failed to start."
-            kubectl get pods --namespace "$1"
+            error_collection
             set -xe
             return 1
         fi
@@ -78,6 +109,12 @@ function error_collection() {
         kubectl logs "$nsm_client" -n "$namespace" nsm-init -p || true
         kubectl logs "$nsm_client" -n "$namespace" nsm-client -p || true
     fi
+    nse=$(kubectl get pods --all-namespaces | grep nse | awk '{print $2}')
+    if [[ "x$nse" != "x" ]]; then 
+        kubectl describe pod "$nse" -n "$namespace" || true
+        kubectl logs "$nse" -n "$namespace"  || true
+        kubectl logs "$nse" -n "$namespace"  -p || true
+    fi    
     sudo docker images
 }
 
