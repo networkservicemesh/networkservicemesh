@@ -43,7 +43,7 @@ data:
   networkService: |
     - name: gold-network
       serviceInterface:
-      - type: 0
+      - type: 1
         preference: 1
         metadata:
           name: interface-1
@@ -53,7 +53,7 @@ data:
           name: interface-2
     - name: network-service-2
       serviceInterface:
-      - type: 0
+      - type: 3
         preference: 1
         metadata:
           name: interface-3
