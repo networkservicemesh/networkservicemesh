@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
@@ -39,11 +40,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	// Used to allocate array for sorting
-	MaxInterfaces = 10
 )
 
 type nsmClientEndpoints struct {
@@ -70,6 +66,22 @@ type clientNetworkService struct {
 	ConnectionParameters *nsmconnect.ConnectionParameters
 	// isInProgress indicates ongoing dataplane programming
 	isInProgress bool
+}
+
+type sortedInterfaceList struct {
+	interfaceList []*common.Interface
+}
+
+func (s sortedInterfaceList) Len() int {
+	return len(s.interfaceList)
+}
+
+func (s sortedInterfaceList) Swap(i, j int) {
+	s.interfaceList[i], s.interfaceList[j] = s.interfaceList[j], s.interfaceList[i]
+}
+
+func (s sortedInterfaceList) Less(i, j int) bool {
+	return s.interfaceList[i].Preference < s.interfaceList[j].Preference
 }
 
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
@@ -114,9 +126,14 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.logger.Info("it is a new request")
 	// It is a new Connection request for known NetworkService, need to check if requested interface
 	// parameters have a match with ones of known NetworkService. If not, return error
-
-	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm
-	channel, found := findInterface(ns, cr.Interface)
+	sortedInterfaces := sortedInterfaceList{}
+	sortedInterfaces.interfaceList = cr.Interface
+	n.logger.Infof("Interface list before sorting: %+v", sortedInterfaces.interfaceList)
+	sort.Sort(sortedInterfaces)
+	n.logger.Infof("Interface list after sorting: %+v", sortedInterfaces.interfaceList)
+	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm, possible consider
+	// other attributes.
+	channel, found := findInterface(ns, sortedInterfaces.interfaceList)
 	if !found {
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
