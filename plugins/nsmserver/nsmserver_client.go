@@ -41,6 +41,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	// Used to allocate array for sorting
+	MaxInterfaces = 10
+)
+
 type nsmClientEndpoints struct {
 	nsmSockets  map[string]nsmSocket
 	logger      logger.FieldLoggerPlugin
@@ -77,37 +82,41 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName, cr.Metadata.Namespace)
 	if ns == nil {
 		// Unknown NetworkService fail Connection request
+		n.logger.Infof("not found network service object: %s/%s", cr.Metadata.Namespace, cr.NetworkServiceName)
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
 			AdmissionError: fmt.Sprintf("requested Network Service %s/%s does not exist", cr.Metadata.Namespace, cr.NetworkServiceName),
 		}, status.Error(codes.NotFound, "requested network service not found")
 	}
-
+	n.logger.Infof("found network service object: %+v", ns)
 	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
 	// Connection request
-	if _, ok := n.clientConnections[cr.RequestId][cr.NetworkServiceName]; ok {
-		// Since it is duplicate request, need to check if it is already inProgress
-		if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
-			// Looks like dataplane programming is taking long time, responding client to wait and retry
-			// TODO (sbezverk) nsm client should watch for this type of error and not fail but trigger exponential retry mechanism.
+	if _, ok := n.clientConnections[cr.RequestId]; ok {
+		// Check if exisiting request for already requested NetworkService
+		if _, ok := n.clientConnections[cr.RequestId][cr.NetworkServiceName]; ok {
+			// Since it is duplicate request, need to check if it is already inProgress
+			if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
+				// Looks like dataplane programming is taking long time, responding client to wait and retry
+				// TODO (sbezverk) nsm client should watch for this type of error and not fail but trigger exponential retry mechanism.
+				return &nsmconnect.ConnectionAccept{
+					Accepted:       false,
+					AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s/%s is still being programmed, retry", cr.Metadata.Namespace, cr.NetworkServiceName),
+				}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
+			}
+			// Request is not inProgress which means potentially a success can be returned
+			// TODO (sbezverk) discuss this logic in case some corner cases might break it.
 			return &nsmconnect.ConnectionAccept{
-				Accepted:       false,
-				AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s/%s is still being programmed, retry", cr.Metadata.Namespace, cr.NetworkServiceName),
-			}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
+				Accepted:             true,
+				ConnectionParameters: &nsmconnect.ConnectionParameters{},
+			}, nil
 		}
-		// Request is not inProgress which means potentially a success can be returned
-		// TODO (sbezverk) discuss this logic in case some corner cases might break it.
-		return &nsmconnect.ConnectionAccept{
-			Accepted:             true,
-			ConnectionParameters: &nsmconnect.ConnectionParameters{},
-		}, nil
 	}
+	n.logger.Info("it is a new request")
 	// It is a new Connection request for known NetworkService, need to check if requested interface
 	// parameters have a match with ones of known NetworkService. If not, return error
-	reqInterfacesSorted := sortReqInterfaces(cr.Interface)
 
 	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm
-	channel, found := findInterface(ns, reqInterfacesSorted)
+	channel, found := findInterface(ns, cr.Interface)
 	if !found {
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
@@ -125,6 +134,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 		ConnectionParameters: &nsmconnect.ConnectionParameters{},
 	}
 	n.Lock()
+	n.clientConnections[cr.RequestId] = make(map[string]*clientNetworkService, 0)
 	n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
 	n.Unlock()
 
@@ -132,10 +142,15 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	// Once it is done and sucessfull call to dataplane programming function.
 	// but it is for next PR
 
+	// TODO (sbezverk) How to clear client connections? Track pods? Push DPAPI folks to provide more info when pod
+	// which was useing the socket get deleted from the node ??
+
 	// Simulating sucessfull end
 	n.Lock()
 	n.clientConnections[cr.RequestId][cr.NetworkServiceName].isInProgress = false
 	n.Unlock()
+	n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
+		cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
 
 	return &nsmconnect.ConnectionAccept{
 		Accepted:             true,
@@ -154,14 +169,6 @@ func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Int
 		}
 	}
 	return nil, false
-}
-
-func sortReqInterfaces(reqInterfaces []*common.Interface) []*common.Interface {
-	sortedInterfaces := make([]*common.Interface, len(reqInterfaces))
-	for _, i := range reqInterfaces {
-		sortedInterfaces[int(i.Preference)] = i
-	}
-	return sortedInterfaces
 }
 
 // TODO (sbezverk) Current assumption is that NSM client is requesting connection for  NetworkService
