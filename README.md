@@ -15,7 +15,7 @@ A Network Service Mesh is an extension of the Service Mesh concept common in app
 
 ## Build
 
-See [BUILD.md](BUILD.md) for build instructions.
+See [/docs/BUILD.md](/docs/BUILD.md) for build instructions.
 
 ## Getting Involved
 
