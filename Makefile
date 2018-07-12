@@ -19,6 +19,12 @@ GOGET=${GOCMD} get
 GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
+GOVET=${GOCMD} tool vet
+GOVETTARGETS=cmd \
+	pkg/apis/networkservicemesh.io/v1 \
+	pkg/nsm \
+	plugins \
+	utils
 
 .PHONY: all check verify docker-build
 #
@@ -33,13 +39,25 @@ check:
 verify:
 	@./scripts/verify-codegen.sh
 
-docker-build:
+docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse
+
+.PHONY: docker-build-netmesh-test
+docker-build-netmesh-test:
 	@docker build -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
+
+.PHONY: docker-build-netmesh
+docker-build-netmesh:
 	@docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+
+.PHONY: docker-build-nsm-init
+docker-build-nsm-init:
 	@docker build -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
+
+.PHONY: docker-build-nse
+docker-build-nse:
 	@docker build -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
-.PHONY: format deps generate install test test-race
+.PHONY: format deps generate install test test-race vet
 #
 # The following targets are meant to be run when working with the code locally.
 #
@@ -60,3 +78,6 @@ test:
 
 test-race:
 	@${GOTEST} -race ./... -cover
+
+vet:
+	${GOVET} ${GOVETTARGETS}
