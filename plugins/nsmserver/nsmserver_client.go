@@ -24,10 +24,14 @@ import (
 	"net"
 	"os"
 	"path"
+	"sort"
+	"sync"
 	"time"
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -42,6 +46,10 @@ type nsmClientEndpoints struct {
 	nsmSockets  map[string]nsmSocket
 	logger      logger.FieldLoggerPlugin
 	objectStore objectstore.Interface
+	// POD UID is used as a unique key in clientConnections map
+	// Second key is NetworkService name
+	clientConnections map[string]map[string]*clientNetworkService
+	sync.RWMutex
 }
 
 type nsmSocket struct {
@@ -51,11 +59,142 @@ type nsmSocket struct {
 	allocated   bool
 }
 
-func (n nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionAccept, error) {
-	return nil, status.Error(codes.InvalidArgument, "Not Implemented...")
+// clientNetworkService struct represents requested by a NSM client NetworkService and its state, isInProgress true
+// indicates that DataPlane programming operation is on going, so no duplicate request for Dataplane processing should occur.
+type clientNetworkService struct {
+	networkService       *netmesh.NetworkService
+	ConnectionParameters *nsmconnect.ConnectionParameters
+	// isInProgress indicates ongoing dataplane programming
+	isInProgress bool
 }
 
-func (n nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
+type sortedInterfaceList struct {
+	interfaceList []*common.Interface
+}
+
+func (s sortedInterfaceList) Len() int {
+	return len(s.interfaceList)
+}
+
+func (s sortedInterfaceList) Swap(i, j int) {
+	s.interfaceList[i], s.interfaceList[j] = s.interfaceList[j], s.interfaceList[i]
+}
+
+func (s sortedInterfaceList) Less(i, j int) bool {
+	return s.interfaceList[i].Preference < s.interfaceList[j].Preference
+}
+
+// RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
+// return to NSM client result.
+func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionAccept, error) {
+	n.logger.Infof("received connection request id: %s from pod: %s/%s, requesting network service: %s for linux namespace: %s",
+		cr.RequestId, cr.Metadata.Namespace, cr.Metadata.Name, cr.NetworkServiceName, cr.LinuxNamespace)
+
+	// first check to see if requested NetworkService exists in objectStore
+	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName, cr.Metadata.Namespace)
+	if ns == nil {
+		// Unknown NetworkService fail Connection request
+		n.logger.Infof("not found network service object: %s/%s", cr.Metadata.Namespace, cr.NetworkServiceName)
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("requested Network Service %s/%s does not exist", cr.Metadata.Namespace, cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "requested network service not found")
+	}
+	n.logger.Infof("found network service object: %+v", ns)
+	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
+	// Connection request
+	if _, ok := n.clientConnections[cr.RequestId]; ok {
+		// Check if exisiting request for already requested NetworkService
+		if _, ok := n.clientConnections[cr.RequestId][cr.NetworkServiceName]; ok {
+			// Since it is duplicate request, need to check if it is already inProgress
+			if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
+				// Looks like dataplane programming is taking long time, responding client to wait and retry
+				// TODO (sbezverk) nsm client should watch for this type of error and not fail but trigger exponential retry mechanism.
+				return &nsmconnect.ConnectionAccept{
+					Accepted:       false,
+					AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s/%s is still being programmed, retry", cr.Metadata.Namespace, cr.NetworkServiceName),
+				}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
+			}
+			// Request is not inProgress which means potentially a success can be returned
+			// TODO (sbezverk) discuss this logic in case some corner cases might break it.
+			return &nsmconnect.ConnectionAccept{
+				Accepted:             true,
+				ConnectionParameters: &nsmconnect.ConnectionParameters{},
+			}, nil
+		}
+	}
+	n.logger.Info("it is a new request")
+	// It is a new Connection request for known NetworkService, need to check if requested interface
+	// parameters have a match with ones of known NetworkService. If not, return error
+	sortedInterfaces := sortedInterfaceList{}
+	sortedInterfaces.interfaceList = cr.Interface
+	n.logger.Infof("Interface list before sorting: %+v", sortedInterfaces.interfaceList)
+	sort.Sort(sortedInterfaces)
+	n.logger.Infof("Interface list after sorting: %+v", sortedInterfaces.interfaceList)
+	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm, possible consider
+	// other attributes.
+	channel, found := findInterface(ns, sortedInterfaces.interfaceList)
+	if !found {
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("no advertised channels for Network Service %s, support required interface", cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "required interface type not found")
+	}
+	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
+	// and wait for complition.
+	clientNS := clientNetworkService{
+		networkService: &netmesh.NetworkService{
+			Metadata: ns.Metadata,
+			Channel:  []*netmesh.NetworkServiceChannel{channel},
+		},
+		isInProgress:         true,
+		ConnectionParameters: &nsmconnect.ConnectionParameters{},
+	}
+	n.Lock()
+	n.clientConnections[cr.RequestId] = make(map[string]*clientNetworkService, 0)
+	n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
+	n.Unlock()
+
+	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice
+	// Once it is done and sucessfull call to dataplane programming function.
+	// but it is for next PR
+
+	// TODO (sbezverk) How to clear client connections? Track pods? Push DPAPI folks to provide more info when pod
+	// which was useing the socket get deleted from the node ??
+
+	// Simulating sucessfull end
+	n.Lock()
+	n.clientConnections[cr.RequestId][cr.NetworkServiceName].isInProgress = false
+	n.Unlock()
+	n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
+		cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
+
+	return &nsmconnect.ConnectionAccept{
+		Accepted:             true,
+		ConnectionParameters: n.clientConnections[cr.RequestId][cr.NetworkServiceName].ConnectionParameters,
+	}, nil
+}
+
+func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Interface) (*netmesh.NetworkServiceChannel, bool) {
+	for _, c := range ns.Channel {
+		for _, i := range c.Interface {
+			for _, iReq := range reqInterfacesSorted {
+				if i.Type == iReq.Type {
+					return c, true
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
+// TODO (sbezverk) Current assumption is that NSM client is requesting connection for  NetworkService
+// from the same namespace. If it changes, refactor maybe required.
+func isInProgress(networkService *clientNetworkService) bool {
+	return networkService.isInProgress
+}
+
+func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
 	n.logger.Info("received Discovery request")
 	networkService := n.objectStore.ListNetworkServices()
 	n.logger.Infof("preparing Discovery response, number of returning NetworkServices: %d", len(networkService))
