@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
+
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -40,6 +42,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	// nseConnectionTimeout defines a timoute for NSM to succeed connection to NSE (seconds)
+	nseConnectionTimeout = 15
 )
 
 type nsmClientEndpoints struct {
@@ -155,9 +162,42 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
 	n.Unlock()
 
-	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice
-	// Once it is done and sucessfull call to dataplane programming function.
-	// but it is for next PR
+	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
+	ctx, cancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer cancel()
+	nseConn, err := dial(ctx, channel.SocketLocation)
+	if err != nil {
+		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
+
+		// TODO (sbezverk) Massive cleanup here since we could not complete control plane signalling.
+		// should be done as a function.
+
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("failed to communicate with NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
+		}, status.Error(codes.Aborted, "communication failure with NSE")
+	}
+	defer nseConn.Close()
+	nseClient := nseconnect.NewNSEConnectionClient(nseConn)
+
+	ctx, cancel = context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer cancel()
+	nseRepl, err := nseClient.RequestNSEConnection(ctx, &nseconnect.NSEConnectionRequest{
+		RequestId: cr.RequestId,
+		Metadata:  cr.Metadata,
+		Channel:   channel,
+	})
+	if err != nil {
+		n.logger.Errorf("nsm: failed to get information from NSE with error: %+v", err)
+
+		// TODO (sbezverk) Massive cleanup here since we could not complete control plane signalling.
+
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
+		}, status.Error(codes.Aborted, "communication failure with NSE")
+	}
+	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
 
 	// TODO (sbezverk) How to clear client connections? Track pods? Push DPAPI folks to provide more info when pod
 	// which was useing the socket get deleted from the node ??
@@ -253,6 +293,11 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					// Socket has been previsously used, since we did not get notification from
 					// kubelet when POD using this socket went down, gRPC client's server
 					// needs to be stopped.
+
+					// TODO (sbezverk) There is a good chance that there was a clientNetworkService associated
+					// with the pod which was previsouly using this socket. Also some dataplane
+					// programming leftovers for the old pod. All needs to be cleaned here before allowing reuse of this socket.
+
 					n.nsmSockets[id].stopChannel <- true
 					// Wait for confirmation
 					<-n.nsmSockets[id].stopChannel

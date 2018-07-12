@@ -27,6 +27,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
@@ -43,6 +44,13 @@ var (
 	clientSocketUserPath = flag.String("nsm-socket", "", "Location of NSM process client access socket")
 	nseSocketName        = flag.String("nse-socket", "nse.ligato.io.sock", "Name of NSE socket whcih will be used by NSM for Connection Request call")
 )
+
+type nseConnection struct{}
+
+func (n nseConnection) RequestNSEConnection(ctx context.Context, req *nseconnect.NSEConnectionRequest) (*nseconnect.NSEConnectionReply, error) {
+
+	return &nseconnect.NSEConnectionReply{}, nil
+}
 
 func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
 	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
@@ -86,6 +94,10 @@ func main() {
 	nse, err := net.Listen("unix", path.Join(nsePath, *nseSocketName))
 	grpcServer := grpc.NewServer()
 
+	// Registering NSE API, it will listen for Connection requests from NSM and return information
+	// needed for NSE's dataplane programming.
+	nseConn := nseConnection{}
+	nseconnect.RegisterNSEConnectionServer(grpcServer, nseConn)
 	go func() {
 		wg.Add(1)
 		if err := grpcServer.Serve(nse); err != nil {
