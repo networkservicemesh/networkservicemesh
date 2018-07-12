@@ -48,6 +48,8 @@ const (
 	clientConnectionRetry = time.Second * 2
 	// location of network namespace for a process
 	netnsfile = "/proc/self/ns/net"
+	// MaxSymLink is maximum length of Symbolic Link
+	MaxSymLink = 8192
 )
 
 var (
@@ -294,23 +296,16 @@ func requestConnection(nsmClient nsmconnect.ClientConnectionClient, cReq *nsmcon
 }
 
 func getCurrentNS() string {
-	for ln := 128; ; ln *= 2 {
-		buf := make([]byte, ln)
-		numBytes, err := syscall.Readlink(netnsfile, buf)
-		if err != nil {
-			return ""
-		}
-		if numBytes < 0 {
-			numBytes = 0
-		}
-		if numBytes < ln {
-			link := string(buf[0:numBytes])
-			nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
-			submatches := nsRegExp.FindStringSubmatch(link)
-			if len(submatches) >= 1 {
-				return submatches[1]
-			}
-			return ""
-		}
+	buf := make([]byte, MaxSymLink)
+	numBytes, err := syscall.Readlink(netnsfile, buf)
+	if err != nil {
+		return ""
 	}
+	link := string(buf[0:numBytes])
+	nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
+	submatches := nsRegExp.FindStringSubmatch(link)
+	if len(submatches) >= 1 {
+		return submatches[1]
+	}
+	return ""
 }

@@ -29,6 +29,7 @@ import (
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -45,7 +46,8 @@ type nsmClientEndpoints struct {
 	logger      logger.FieldLoggerPlugin
 	objectStore objectstore.Interface
 	// POD UID is used as a unique key in clientConnections map
-	clientConnections map[string][]*clientNetworkService
+	// Second key is NetworkService name
+	clientConnections map[string]map[string]*clientNetworkService
 	sync.RWMutex
 }
 
@@ -59,7 +61,8 @@ type nsmSocket struct {
 // clientNetworkService struct represents requested by a NSM client NetworkService and its state, isInProgress true
 // indicates that DataPlane programming operation is on going, so no duplicate request for Dataplane processing should occur.
 type clientNetworkService struct {
-	networkService *netmesh.NetworkService
+	networkService       *netmesh.NetworkService
+	ConnectionParameters *nsmconnect.ConnectionParameters
 	// isInProgress indicates ongoing dataplane programming
 	isInProgress bool
 }
@@ -71,7 +74,8 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 		cr.RequestId, cr.Metadata.Namespace, cr.Metadata.Name, cr.NetworkServiceName, cr.LinuxNamespace)
 
 	// first check to see if requested NetworkService exists in objectStore
-	if ns := n.objectStore.GetNetworkService(cr.NetworkServiceName, cr.Metadata.Namespace); ns == nil {
+	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName, cr.Metadata.Namespace)
+	if ns == nil {
 		// Unknown NetworkService fail Connection request
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
@@ -81,9 +85,9 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 
 	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
 	// Connection request
-	if !isNewRequest(n.clientConnections[cr.RequestId], cr.NetworkServiceName) {
+	if _, ok := n.clientConnections[cr.RequestId][cr.NetworkServiceName]; ok {
 		// Since it is duplicate request, need to check if it is already inProgress
-		if isInProgress(n.clientConnections[cr.RequestId], cr.NetworkServiceName) {
+		if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
 			// Looks like dataplane programming is taking long time, responding client to wait and retry
 			// TODO (sbezverk) nsm client should watch for this type of error and not fail but trigger exponential retry mechanism.
 			return &nsmconnect.ConnectionAccept{
@@ -100,35 +104,70 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	}
 	// It is a new Connection request for known NetworkService, need to check if requested interface
 	// parameters have a match with ones of known NetworkService. If not, return error
+	reqInterfacesSorted := sortReqInterfaces(cr.Interface)
 
+	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm
+	channel, found := findInterface(ns, reqInterfacesSorted)
+	if !found {
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("no advertised channels for Network Service %s, support required interface", cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "required interface type not found")
+	}
 	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
 	// and wait for complition.
+	clientNS := clientNetworkService{
+		networkService: &netmesh.NetworkService{
+			Metadata: ns.Metadata,
+			Channel:  []*netmesh.NetworkServiceChannel{channel},
+		},
+		isInProgress:         true,
+		ConnectionParameters: &nsmconnect.ConnectionParameters{},
+	}
+	n.Lock()
+	n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
+	n.Unlock()
 
-	return &nsmconnect.ConnectionAccept{Accepted: true}, nil
+	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice
+	// Once it is done and sucessfull call to dataplane programming function.
+	// but it is for next PR
+
+	// Simulating sucessfull end
+	n.Lock()
+	n.clientConnections[cr.RequestId][cr.NetworkServiceName].isInProgress = false
+	n.Unlock()
+
+	return &nsmconnect.ConnectionAccept{
+		Accepted:             true,
+		ConnectionParameters: n.clientConnections[cr.RequestId][cr.NetworkServiceName].ConnectionParameters,
+	}, nil
+}
+
+func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Interface) (*netmesh.NetworkServiceChannel, bool) {
+	for _, c := range ns.Channel {
+		for _, i := range c.Interface {
+			for _, iReq := range reqInterfacesSorted {
+				if i.Type == iReq.Type {
+					return c, true
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
+func sortReqInterfaces(reqInterfaces []*common.Interface) []*common.Interface {
+	sortedInterfaces := make([]*common.Interface, len(reqInterfaces))
+	for _, i := range reqInterfaces {
+		sortedInterfaces[int(i.Preference)] = i
+	}
+	return sortedInterfaces
 }
 
 // TODO (sbezverk) Current assumption is that NSM client is requesting connection for  NetworkService
 // from the same namespace. If it changes, refactor maybe required.
-func isInProgress(networkServices []*clientNetworkService, serviceName string) bool {
-	for _, s := range networkServices {
-		if s.networkService.Metadata.Name == serviceName {
-			return s.isInProgress
-		}
-	}
-	// Should never hit this line as isInProgress is called only if s.networkService.Metadata.Name == serviceName
-	// is true
-	return false
-}
-
-func isNewRequest(networkServices []*clientNetworkService, serviceName string) bool {
-	newRequest := true
-	for _, s := range networkServices {
-		if s.networkService.Metadata.Name == serviceName {
-			newRequest = false
-			break
-		}
-	}
-	return newRequest
+func isInProgress(networkService *clientNetworkService) bool {
+	return networkService.isInProgress
 }
 
 func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
