@@ -18,6 +18,7 @@ rules:
   - ""
   resources:
   - configmaps
+  - pods
   verbs:
   - get
   - list
@@ -40,19 +41,23 @@ subjects:
 apiVersion: v1
 data:
   networkService: |
-    - name: network-service-1
+    - name: gold-network
       serviceInterface:
-      - type: 0
-        preference: 1
-        metadata:
-          name: interface-1
       - type: 2
         preference: 3
         metadata:
+          name: interface-3
+      - type: 3
+        preference: 2
+        metadata:
           name: interface-2
+      - type: 1
+        preference: 1
+        metadata:
+          name: interface-1
     - name: network-service-2
       serviceInterface:
-      - type: 0
+      - type: 3
         preference: 1
         metadata:
           name: interface-3
@@ -75,10 +80,6 @@ spec:
         - name: nsm-init
           image: ligato/networkservicemesh/nsm-init:latest
           imagePullPolicy: IfNotPresent
-          securityContext:
-            privileged: true
-            capabilities:
-              add: ["NET_ADMIN"]
           args:
           - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
           - --configmap-name=client-network-services

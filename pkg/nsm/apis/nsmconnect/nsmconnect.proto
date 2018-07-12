@@ -16,7 +16,9 @@ message ConnectionRequest {
     
     string network_service_name = 3;
 
-    repeated common.Interface interface = 4;
+    string linux_namespace = 4;
+
+    repeated common.Interface interface = 5;
 }
 
 message ConnectionParameters {

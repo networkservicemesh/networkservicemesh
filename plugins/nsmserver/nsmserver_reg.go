@@ -117,9 +117,10 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 // NewNSMDevicePlugin registers and starts Kubelet's device plugin
 func NewNSMDevicePlugin(logger logger.FieldLoggerPlugin, os objectstore.Interface) error {
 	nsm := &nsmClientEndpoints{
-		nsmSockets:  map[string]nsmSocket{},
-		logger:      logger,
-		objectStore: os,
+		nsmSockets:        map[string]nsmSocket{},
+		logger:            logger,
+		objectStore:       os,
+		clientConnections: make(map[string]map[string]*clientNetworkService, 0),
 	}
 	for i := 0; i < initDeviceCount; i++ {
 		nsm.nsmSockets[strconv.Itoa(i)] = nsmSocket{device: &pluginapi.Device{ID: strconv.Itoa(i), Health: pluginapi.Healthy}}
