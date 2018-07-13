@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/peer"
+
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
@@ -46,7 +48,7 @@ import (
 
 const (
 	// nseConnectionTimeout defines a timoute for NSM to succeed connection to NSE (seconds)
-	nseConnectionTimeout = 15
+	nseConnectionTimeout = 15 * time.Second
 )
 
 type nsmClientEndpoints struct {
@@ -163,9 +165,9 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.Unlock()
 
 	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
-	ctx, cancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer cancel()
-	nseConn, err := dial(ctx, channel.SocketLocation)
+	nseCTX, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer nseCancel()
+	nseConn, err := dial(nseCTX, channel.SocketLocation)
 	if err != nil {
 		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
 
@@ -180,9 +182,9 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	defer nseConn.Close()
 	nseClient := nseconnect.NewNSEConnectionClient(nseConn)
 
-	ctx, cancel = context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer cancel()
-	nseRepl, err := nseClient.RequestNSEConnection(ctx, &nseconnect.NSEConnectionRequest{
+	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer nseCancel()
+	nseRepl, err := nseClient.RequestNSEConnection(nseCtx, &nseconnect.NSEConnectionRequest{
 		RequestId: cr.RequestId,
 		Metadata:  cr.Metadata,
 		Channel:   channel,
@@ -247,7 +249,19 @@ func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnec
 func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
 	n.logger.Printf("received Channel advertisement...")
 	for _, c := range cr.NetmeshChannel {
+
+		// Ignoring path since it is local to NSE path, completely useless for server, but keeping NSE socket name
+		_, clientSocket := path.Split(c.SocketLocation)
+		// Extracting the location of actual server's socket for this specific connection
+		// from the peer struct which is a part of the context passed to gRPC method
+		if peer, ok := peer.FromContext(ctx); ok {
+			// Keeping server path, because this is where NSE socket would be located
+			serverPath, _ := path.Split(peer.Addr.(*net.UnixAddr).Name)
+			// Updating socket location to actual location of NSE socket on the server
+			c.SocketLocation = path.Join(serverPath, clientSocket)
+		}
 		n.logger.Infof("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
+
 		networkServiceName := c.NetworkServiceName
 		networkServiceNamespace := "default"
 		if c.Metadata.Namespace != "" {
@@ -349,6 +363,43 @@ func (n *nsmClientEndpoints) PreStartContainer(context.Context, *pluginapi.PreSt
 	return &pluginapi.PreStartContainerResponse{}, nil
 }
 
+type customConn struct {
+	net.Conn
+	localAddr *net.UnixAddr
+}
+
+func (c customConn) RemoteAddr() net.Addr {
+	return c.localAddr
+}
+
+func (l customListener) Accept() (net.Conn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &customConn{
+		Conn:      conn,
+		localAddr: &net.UnixAddr{Net: "unix", Name: l.serverSocket},
+	}, nil
+}
+
+type customListener struct {
+	net.Listener
+	serverSocket string
+}
+
+func newCustomListener(socket string) (customListener, error) {
+	listener, err := net.Listen("unix", socket)
+	if err == nil {
+		custList := customListener{
+			Listener:     listener,
+			serverSocket: socket,
+		}
+		return custList, nil
+	}
+	return customListener{}, err
+}
+
 func startClientServer(id string, endpoints *nsmClientEndpoints) {
 	client := endpoints.nsmSockets[id]
 	logger := endpoints.logger
@@ -367,13 +418,15 @@ func startClientServer(id string, endpoints *nsmClientEndpoints) {
 	}
 
 	unix.Umask(socketMask)
-	sock, err := net.Listen("unix", listenEndpoint)
+
+	sock, err := newCustomListener(listenEndpoint) // net.Listen("unix", listenEndpoint)
 	if err != nil {
 		logger.Errorf("failure to listen on socket %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 		return
 	}
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+
+	grpcServer := grpc.NewServer( /*grpc.UnaryInterceptor(grpcUnaryIntercept)*/ )
 	// PLugging NSM client Connection methods
 	nsmconnect.RegisterClientConnectionServer(grpcServer, endpoints)
 	logger.Infof("Starting Client gRPC server listening on socket: %s", ServerSock)
