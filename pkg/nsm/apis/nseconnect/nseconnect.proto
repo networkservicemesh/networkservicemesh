@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package nseconnect;
+
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+
+// ConnectionRequest is sent by a NSM to NSE to build a connection.
+    message NSEConnectionRequest {
+        string request_id = 1;
+    
+        common.Metadata metadata = 2;
+
+        netmesh.NetworkServiceChannel channel = 3;
+    }
+    
+    
+    // NSEConnectionReply is sent back by NSE to NSM with information required for
+    // dataplane programming.
+    message NSEConnectionReply {
+        string request_id = 1;
+        // Metadata contains NSE's POD name and namespace which will be needed for
+        // dataplane programming
+        common.Metadata metadata = 2;
+
+        string network_service_name = 3;
+
+        string linux_namespace = 4;
+    }
+
+    service NSEConnection {
+        rpc RequestNSEConnection (NSEConnectionRequest) returns (NSEConnectionReply);
+    }
+    
