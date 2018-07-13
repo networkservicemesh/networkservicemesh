@@ -22,7 +22,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -32,24 +34,46 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
 	// clientConnectionTimeout defines time the client waits for establishing connection with the server
 	clientConnectionTimeout = time.Second * 60
+	// networkServiceName defines Network Service Name the NSE is serving for
+	networkServiceName = "gold-network"
+	// location of network namespace for a process
+	netnsfile = "/proc/self/ns/net"
+	// MaxSymLink is maximum length of Symbolic Link
+	MaxSymLink = 8192
 )
 
 var (
 	clientSocketPath     = path.Join(nsmserver.SocketBaseDir, nsmserver.ServerSock)
 	clientSocketUserPath = flag.String("nsm-socket", "", "Location of NSM process client access socket")
 	nseSocketName        = flag.String("nse-socket", "nse.ligato.io.sock", "Name of NSE socket whcih will be used by NSM for Connection Request call")
+	kubeconfig           = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
 )
 
-type nseConnection struct{}
+type nseConnection struct {
+	metadata           *common.Metadata
+	podUID             string
+	networkServiceName string
+	linuxNamespace     string
+}
 
 func (n nseConnection) RequestNSEConnection(ctx context.Context, req *nseconnect.NSEConnectionRequest) (*nseconnect.NSEConnectionReply, error) {
 
-	return &nseconnect.NSEConnectionReply{}, nil
+	return &nseconnect.NSEConnectionReply{
+		RequestId:          n.podUID,
+		Metadata:           n.metadata,
+		NetworkServiceName: n.networkServiceName,
+		LinuxNamespace:     n.linuxNamespace,
+	}, nil
 }
 
 func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
@@ -62,10 +86,64 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 	return c, err
 }
 
+func buildClient() (*kubernetes.Clientset, error) {
+	var config *rest.Config
+	var err error
+
+	kubeconfigEnv := os.Getenv("KUBECONFIG")
+
+	if kubeconfigEnv != "" {
+		kubeconfig = &kubeconfigEnv
+	}
+
+	if *kubeconfig != "" {
+		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	} else {
+		config, err = rest.InClusterConfig()
+	}
+	if err != nil {
+		return nil, err
+	}
+	k8s, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return k8s, nil
+}
+
 func main() {
 	// TODO (sbezverk) migtate to cobra package for flags and arguments
 	flag.Parse()
 	var wg sync.WaitGroup
+
+	k8s, err := buildClient()
+	if err != nil {
+		logrus.Errorf("nsm client: fail to build kubernetes client with error: %+v, exiting...", err)
+		os.Exit(1)
+	}
+	namespace := os.Getenv("INIT_NAMESPACE")
+	if namespace == "" {
+		logrus.Error("nsm client: cannot detect namespace, make sure INIT_NAMESPACE variable is set via downward api, exiting...")
+		os.Exit(1)
+	}
+	podName := os.Getenv("HOSTNAME")
+
+	// podUID is used as a unique identifier for nsm init process, it will stay the same throughout life of
+	// pod and will guarantee idempotency of possible repeated requests to NSM
+	pod, err := k8s.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+	if err != nil {
+		logrus.Errorf("nsm client: failure to get pod  %s/%s with error: %+v, exiting...", namespace, podName, err)
+		os.Exit(1)
+	}
+	podUID := string(pod.GetUID())
+
+	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
+	linuxNS := getCurrentNS()
+	if linuxNS == "" {
+		logrus.Fatal("nsm client: failed to get a linux namespace for the current process, exiting...")
+		os.Exit(1)
+	}
 
 	// Checking if nsm client socket exists and of not crash NSE
 	clientSocket := clientSocketPath
@@ -96,7 +174,16 @@ func main() {
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
-	nseConn := nseConnection{}
+	nseConn := nseConnection{
+		metadata: &common.Metadata{
+			Name:      podName,
+			Namespace: namespace,
+		},
+		podUID:             podUID,
+		networkServiceName: networkServiceName,
+		linuxNamespace:     linuxNS,
+	}
+
 	nseconnect.RegisterNSEConnectionServer(grpcServer, nseConn)
 	go func() {
 		wg.Add(1)
@@ -116,7 +203,7 @@ func main() {
 		Metadata: &common.Metadata{
 			Name: "gold-net-channel-1",
 		},
-		NetworkServiceName: "gold-network",
+		NetworkServiceName: networkServiceName,
 		Payload:            "ipv4",
 		SocketLocation:     path.Join(nsePath, *nseSocketName),
 		Interface: []*common.Interface{
@@ -172,4 +259,19 @@ func socketCleanup(listenEndpoint string) error {
 		return fmt.Errorf("failure stat of socket file %s with error: %+v", listenEndpoint, err)
 	}
 	return nil
+}
+
+func getCurrentNS() string {
+	buf := make([]byte, MaxSymLink)
+	numBytes, err := syscall.Readlink(netnsfile, buf)
+	if err != nil {
+		return ""
+	}
+	link := string(buf[0:numBytes])
+	nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
+	submatches := nsRegExp.FindStringSubmatch(link)
+	if len(submatches) >= 1 {
+		return submatches[1]
+	}
+	return ""
 }
