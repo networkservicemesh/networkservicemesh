@@ -416,17 +416,16 @@ func startClientServer(id string, endpoints *nsmClientEndpoints) {
 		client.allocated = false
 		return
 	}
-
 	unix.Umask(socketMask)
 
-	sock, err := newCustomListener(listenEndpoint) // net.Listen("unix", listenEndpoint)
+	sock, err := newCustomListener(listenEndpoint)
 	if err != nil {
 		logger.Errorf("failure to listen on socket %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 		return
 	}
 
-	grpcServer := grpc.NewServer( /*grpc.UnaryInterceptor(grpcUnaryIntercept)*/ )
+	grpcServer := grpc.NewServer()
 	// PLugging NSM client Connection methods
 	nsmconnect.RegisterClientConnectionServer(grpcServer, endpoints)
 	logger.Infof("Starting Client gRPC server listening on socket: %s", ServerSock)

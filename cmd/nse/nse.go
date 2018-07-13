@@ -119,12 +119,12 @@ func main() {
 
 	k8s, err := buildClient()
 	if err != nil {
-		logrus.Errorf("nsm client: fail to build kubernetes client with error: %+v, exiting...", err)
+		logrus.Errorf("nse: fail to build kubernetes client with error: %+v, exiting...", err)
 		os.Exit(1)
 	}
 	namespace := os.Getenv("INIT_NAMESPACE")
 	if namespace == "" {
-		logrus.Error("nsm client: cannot detect namespace, make sure INIT_NAMESPACE variable is set via downward api, exiting...")
+		logrus.Error("nse: cannot detect namespace, make sure INIT_NAMESPACE variable is set via downward api, exiting...")
 		os.Exit(1)
 	}
 	podName := os.Getenv("HOSTNAME")
@@ -133,15 +133,15 @@ func main() {
 	// pod and will guarantee idempotency of possible repeated requests to NSM
 	pod, err := k8s.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
-		logrus.Errorf("nsm client: failure to get pod  %s/%s with error: %+v, exiting...", namespace, podName, err)
+		logrus.Errorf("nse: failure to get pod  %s/%s with error: %+v, exiting...", namespace, podName, err)
 		os.Exit(1)
 	}
 	podUID := string(pod.GetUID())
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
-	linuxNS := getCurrentNS()
-	if linuxNS == "" {
-		logrus.Fatal("nsm client: failed to get a linux namespace for the current process, exiting...")
+	linuxNS, err := getCurrentNS()
+	if err != nil {
+		logrus.Fatalf("nse: failed to get a linux namespace for pod %s/%s with error: %+v, exiting...", namespace, podName, err)
 		os.Exit(1)
 	}
 
@@ -261,17 +261,17 @@ func socketCleanup(listenEndpoint string) error {
 	return nil
 }
 
-func getCurrentNS() string {
+func getCurrentNS() (string, error) {
 	buf := make([]byte, MaxSymLink)
 	numBytes, err := syscall.Readlink(netnsfile, buf)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	link := string(buf[0:numBytes])
 	nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
 	submatches := nsRegExp.FindStringSubmatch(link)
 	if len(submatches) >= 1 {
-		return submatches[1]
+		return submatches[1], nil
 	}
-	return ""
+	return "", fmt.Errorf("namespace is not found")
 }
