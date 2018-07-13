@@ -5,7 +5,7 @@ package nsmconnect;
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
-// ConnectionRequest is sent by a client or NSEP to build a connection.
+// ConnectionRequest is sent by a NSM client to build a connection.
 message ConnectionRequest {
 // Since connection request will trigger certain actions
 // executed by NSM for a client to address idempotency, request_id
