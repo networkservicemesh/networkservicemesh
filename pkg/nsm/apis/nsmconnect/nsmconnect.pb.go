@@ -25,7 +25,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// ConnectionRequest is sent by a client or NSEP to build a connection.
+// ConnectionRequest is sent by a NSM client to build a connection.
 type ConnectionRequest struct {
 	// Since connection request will trigger certain actions
 	// executed by NSM for a client to address idempotency, request_id
@@ -44,7 +44,7 @@ func (m *ConnectionRequest) Reset()         { *m = ConnectionRequest{} }
 func (m *ConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*ConnectionRequest) ProtoMessage()    {}
 func (*ConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{0}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{0}
 }
 func (m *ConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionRequest.Unmarshal(m, b)
@@ -111,7 +111,7 @@ func (m *ConnectionParameters) Reset()         { *m = ConnectionParameters{} }
 func (m *ConnectionParameters) String() string { return proto.CompactTextString(m) }
 func (*ConnectionParameters) ProtoMessage()    {}
 func (*ConnectionParameters) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{1}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{1}
 }
 func (m *ConnectionParameters) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionParameters.Unmarshal(m, b)
@@ -163,7 +163,7 @@ func (m *ConnectionAccept) Reset()         { *m = ConnectionAccept{} }
 func (m *ConnectionAccept) String() string { return proto.CompactTextString(m) }
 func (*ConnectionAccept) ProtoMessage()    {}
 func (*ConnectionAccept) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{2}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{2}
 }
 func (m *ConnectionAccept) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionAccept.Unmarshal(m, b)
@@ -222,7 +222,7 @@ func (m *DiscoveryRequest) Reset()         { *m = DiscoveryRequest{} }
 func (m *DiscoveryRequest) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryRequest) ProtoMessage()    {}
 func (*DiscoveryRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{3}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{3}
 }
 func (m *DiscoveryRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryRequest.Unmarshal(m, b)
@@ -254,7 +254,7 @@ func (m *DiscoveryResponse) Reset()         { *m = DiscoveryResponse{} }
 func (m *DiscoveryResponse) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryResponse) ProtoMessage()    {}
 func (*DiscoveryResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{4}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{4}
 }
 func (m *DiscoveryResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryResponse.Unmarshal(m, b)
@@ -293,7 +293,7 @@ func (m *ChannelAdvertiseRequest) Reset()         { *m = ChannelAdvertiseRequest
 func (m *ChannelAdvertiseRequest) String() string { return proto.CompactTextString(m) }
 func (*ChannelAdvertiseRequest) ProtoMessage()    {}
 func (*ChannelAdvertiseRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{5}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{5}
 }
 func (m *ChannelAdvertiseRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChannelAdvertiseRequest.Unmarshal(m, b)
@@ -332,7 +332,7 @@ func (m *ChannelAdvertiseResponse) Reset()         { *m = ChannelAdvertiseRespon
 func (m *ChannelAdvertiseResponse) String() string { return proto.CompactTextString(m) }
 func (*ChannelAdvertiseResponse) ProtoMessage()    {}
 func (*ChannelAdvertiseResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_54d2a21cac790a2a, []int{6}
+	return fileDescriptor_nsmconnect_adbb61ef747da1f7, []int{6}
 }
 func (m *ChannelAdvertiseResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChannelAdvertiseResponse.Unmarshal(m, b)
@@ -507,9 +507,9 @@ var _ClientConnection_serviceDesc = grpc.ServiceDesc{
 	Metadata: "nsmconnect.proto",
 }
 
-func init() { proto.RegisterFile("nsmconnect.proto", fileDescriptor_nsmconnect_54d2a21cac790a2a) }
+func init() { proto.RegisterFile("nsmconnect.proto", fileDescriptor_nsmconnect_adbb61ef747da1f7) }
 
-var fileDescriptor_nsmconnect_54d2a21cac790a2a = []byte{
+var fileDescriptor_nsmconnect_adbb61ef747da1f7 = []byte{
 	// 550 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xdd, 0x6e, 0xd3, 0x30,
 	0x14, 0x56, 0xf6, 0xc3, 0xda, 0x33, 0x69, 0x4b, 0xad, 0xa2, 0x46, 0x11, 0x45, 0x55, 0x40, 0xa2,

@@ -28,6 +28,10 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/peer"
+
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
+
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -40,6 +44,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	// nseConnectionTimeout defines a timoute for NSM to succeed connection to NSE (seconds)
+	nseConnectionTimeout = 15 * time.Second
 )
 
 type nsmClientEndpoints struct {
@@ -155,9 +164,42 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
 	n.Unlock()
 
-	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice
-	// Once it is done and sucessfull call to dataplane programming function.
-	// but it is for next PR
+	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
+	nseCTX, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer nseCancel()
+	nseConn, err := dial(nseCTX, channel.SocketLocation)
+	if err != nil {
+		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
+
+		// TODO (sbezverk) Massive cleanup here since we could not complete control plane signalling.
+		// should be done as a function.
+
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("failed to communicate with NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
+		}, status.Error(codes.Aborted, "communication failure with NSE")
+	}
+	defer nseConn.Close()
+	nseClient := nseconnect.NewNSEConnectionClient(nseConn)
+
+	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer nseCancel()
+	nseRepl, err := nseClient.RequestNSEConnection(nseCtx, &nseconnect.NSEConnectionRequest{
+		RequestId: cr.RequestId,
+		Metadata:  cr.Metadata,
+		Channel:   channel,
+	})
+	if err != nil {
+		n.logger.Errorf("nsm: failed to get information from NSE with error: %+v", err)
+
+		// TODO (sbezverk) Massive cleanup here since we could not complete control plane signalling.
+
+		return &nsmconnect.ConnectionAccept{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
+		}, status.Error(codes.Aborted, "communication failure with NSE")
+	}
+	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
 
 	// TODO (sbezverk) How to clear client connections? Track pods? Push DPAPI folks to provide more info when pod
 	// which was useing the socket get deleted from the node ??
@@ -207,7 +249,19 @@ func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnec
 func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
 	n.logger.Printf("received Channel advertisement...")
 	for _, c := range cr.NetmeshChannel {
+
+		// Ignoring path since it is local to NSE path, completely useless for server, but keeping NSE socket name
+		_, clientSocket := path.Split(c.SocketLocation)
+		// Extracting the location of actual server's socket for this specific connection
+		// from the peer struct which is a part of the context passed to gRPC method
+		if peer, ok := peer.FromContext(ctx); ok {
+			// Keeping server path, because this is where NSE socket would be located
+			serverPath, _ := path.Split(peer.Addr.(*net.UnixAddr).Name)
+			// Updating socket location to actual location of NSE socket on the server
+			c.SocketLocation = path.Join(serverPath, clientSocket)
+		}
 		n.logger.Infof("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
+
 		networkServiceName := c.NetworkServiceName
 		networkServiceNamespace := "default"
 		if c.Metadata.Namespace != "" {
@@ -253,6 +307,11 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					// Socket has been previsously used, since we did not get notification from
 					// kubelet when POD using this socket went down, gRPC client's server
 					// needs to be stopped.
+
+					// TODO (sbezverk) There is a good chance that there was a clientNetworkService associated
+					// with the pod which was previsouly using this socket. Also some dataplane
+					// programming leftovers for the old pod. All needs to be cleaned here before allowing reuse of this socket.
+
 					n.nsmSockets[id].stopChannel <- true
 					// Wait for confirmation
 					<-n.nsmSockets[id].stopChannel
@@ -304,6 +363,43 @@ func (n *nsmClientEndpoints) PreStartContainer(context.Context, *pluginapi.PreSt
 	return &pluginapi.PreStartContainerResponse{}, nil
 }
 
+type customConn struct {
+	net.Conn
+	localAddr *net.UnixAddr
+}
+
+func (c customConn) RemoteAddr() net.Addr {
+	return c.localAddr
+}
+
+func (l customListener) Accept() (net.Conn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &customConn{
+		Conn:      conn,
+		localAddr: &net.UnixAddr{Net: "unix", Name: l.serverSocket},
+	}, nil
+}
+
+type customListener struct {
+	net.Listener
+	serverSocket string
+}
+
+func newCustomListener(socket string) (customListener, error) {
+	listener, err := net.Listen("unix", socket)
+	if err == nil {
+		custList := customListener{
+			Listener:     listener,
+			serverSocket: socket,
+		}
+		return custList, nil
+	}
+	return customListener{}, err
+}
+
 func startClientServer(id string, endpoints *nsmClientEndpoints) {
 	client := endpoints.nsmSockets[id]
 	logger := endpoints.logger
@@ -320,15 +416,16 @@ func startClientServer(id string, endpoints *nsmClientEndpoints) {
 		client.allocated = false
 		return
 	}
-
 	unix.Umask(socketMask)
-	sock, err := net.Listen("unix", listenEndpoint)
+
+	sock, err := newCustomListener(listenEndpoint)
 	if err != nil {
 		logger.Errorf("failure to listen on socket %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 		return
 	}
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+
+	grpcServer := grpc.NewServer()
 	// PLugging NSM client Connection methods
 	nsmconnect.RegisterClientConnectionServer(grpcServer, endpoints)
 	logger.Infof("Starting Client gRPC server listening on socket: %s", ServerSock)
