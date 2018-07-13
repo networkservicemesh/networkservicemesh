@@ -82,7 +82,7 @@ MINIKUBE_BIN=$(command -v minikube)
 sudo -E "${MINIKUBE_BIN}" start --vm-driver=none \
     --extra-config=apiserver.Authorization.Mode=RBAC \
     --kubernetes-version="${KUBERNETES_VERSION}" \
-    --bootstrapper=localkube
+    --bootstrapper=kubeadm
 
 # Wait til settles
 echo "INFO: Waiting for minikube cluster to be ready ..."
