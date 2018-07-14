@@ -5,7 +5,7 @@ metadata:
   labels:
     app: sidecar-injector
 webhooks:
-  - name: sidecar-injector.nsm.ligato.io
+  - name: sidecarinjectorwebhook.networkservicemesh.io
     clientConfig:
       service:
         name: sidecar-injector-webhook-svc

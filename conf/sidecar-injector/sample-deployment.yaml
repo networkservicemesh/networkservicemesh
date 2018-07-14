@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar-injector-webhook.nsm.ligato.io/inject: "true"
+        sidecarinjectorwebhook.networkservicemesh.io/inject: "true"
       labels:
         app: sleep
     spec:

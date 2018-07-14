@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	admissionWebhookAnnotationInjectKey = "sidecar-injector-webhook.nsm.ligato.io/inject"
-	admissionWebhookAnnotationStatusKey = "sidecar-injector-webhook.nsm.ligato.io/status"
+	admissionWebhookAnnotationInjectKey = "sidecarinjectorwebhook.networkservicemesh.io/inject"
+	admissionWebhookAnnotationStatusKey = "sidecarinjectorwebhook.networkservicemesh.io/status"
 )
 
 type Config struct {

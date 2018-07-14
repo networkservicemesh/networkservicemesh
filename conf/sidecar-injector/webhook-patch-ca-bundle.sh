@@ -14,10 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## Sample test scripts for removing sidecar components in a Kubernetes cluster
-SIDECAR_CONFIG=conf/sidecar-injector
+set -o errexit
+set -o nounset
+set -o pipefail
 
+CA_BUNDLE=$(kubectl get configmap -n kube-system extension-apiserver-authentication -o=jsonpath='{.data.client-ca-file}' | base64 | tr -d '\n')
 
-## Create all the required components
-kubectl delete -f $SIDECAR_CONFIG/configMap.yaml -f $SIDECAR_CONFIG/ServiceAccount.yaml -f $SIDECAR_CONFIG/server-deployment.yaml -f $SIDECAR_CONFIG/mutatingwebhook-ca-bundle.yaml -f $SIDECAR_CONFIG/sidecarInjectorService.yaml
-
+if command -v envsubst >/dev/null 2>&1; then
+    envsubst
+else
+    sed -e "s|\${CA_BUNDLE}|${CA_BUNDLE}|g"
+fi
