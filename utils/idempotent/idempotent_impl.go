@@ -24,10 +24,12 @@ import (
 )
 
 const (
+	// ReinitErrorStr is the string used for errors returned when you attempt
+	// to close an already Closed Plugin
 	ReinitErrorStr = "true Close() has already occurred, plugin can no longer be Init() ed"
 )
 
-// IdemPotentImpl implements methods for wrapping Init() and Close() such that
+// Impl implements methods for wrapping Init() and Close() such that
 // the actual Init() and Close() are idempotent.
 type Impl struct {
 	refCount      int
@@ -49,6 +51,22 @@ func (i *Impl) IsClosed() bool {
 	return i.refCount < 0
 }
 
+// Init should be overriden by a Plugin embedding idempotent.Impl
+// When overriding use something like:
+// func (p *Plugin) Init() error {
+// 	return p.Impl.IdempotentInit(p.init)
+// }
+// where p.init() is contains the real init code for your plugin
+func (i *Impl) Init() error { return nil }
+
+// Close should be overriden
+// When overriding use something like:
+// func (p *Plugin) Close() error {
+// 	return p.Impl.IdempotentInit(p.close)
+// }
+// where p.close() is contains the real close code for your plugin
+func (i *Impl) Close() error { return nil }
+
 // IdempotentInit increments the refCount and calls init precisely once
 func (i *Impl) IdempotentInit(init func() error) error {
 	i.refCountMutex.Lock()
@@ -63,7 +81,7 @@ func (i *Impl) IdempotentInit(init func() error) error {
 	return i.initErr
 }
 
-// IdemPotentClose decrements the refCount and calls close precisely once
+// IdempotentClose decrements the refCount and calls close precisely once
 // when refCount is equal to zero.
 func (i *Impl) IdempotentClose(close func() error) (err error) {
 	i.refCountMutex.Lock()
