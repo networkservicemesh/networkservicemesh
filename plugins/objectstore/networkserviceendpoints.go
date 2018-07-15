@@ -17,7 +17,7 @@ package objectstore
 import (
 	"sync"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 // NetworkServiceEndpointsStore map stores all discovered Network Service Endpoint
@@ -64,7 +64,7 @@ func (n *networkServiceEndpointsStore) Delete(key meta) {
 func (n *networkServiceEndpointsStore) List() []*netmesh.NetworkServiceEndpoint {
 	n.Lock()
 	defer n.Unlock()
-	networkServiceEndpoints := []*netmesh.NetworkServiceEndpoint{}
+	networkServiceEndpoints := make([]*netmesh.NetworkServiceEndpoint, 0)
 	for _, ns := range n.networkServiceEndpoint {
 		networkServiceEndpoints = append(networkServiceEndpoints, ns)
 	}

@@ -15,10 +15,11 @@
 package objectstore
 
 import (
-	"github.com/ligato/cn-infra/flavors/local"
-	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"reflect"
+
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
@@ -33,14 +34,6 @@ type objectStore struct {
 	*networkServicesStore
 	*networkServiceChannelsStore
 	*networkServiceEndpointsStore
-}
-
-// sharedPlugin is used to provide access to ObjectStore to other plugins
-var sharedPlugin *Plugin
-
-// SharedPlugin returns a pointer to the actual plugin struct
-func SharedPlugin() Interface {
-	return sharedPlugin
 }
 
 func newObjectStore() *objectStore {
@@ -61,7 +54,8 @@ type Plugin struct {
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
-	local.PluginInfraDeps
+	Name string
+	Log  logger.FieldLoggerPlugin
 }
 
 // Init initializes ObjectStore plugin
@@ -70,18 +64,12 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	p.Log.SetLevel(logging.DebugLevel)
+	err := p.Log.Init()
+	if err != nil {
+		return err
+	}
 	p.pluginStopCh = make(chan struct{})
 	p.objects = newObjectStore()
-	sharedPlugin = p
-
-	return nil
-}
-
-// AfterInit is called for post init processing
-func (p *Plugin) AfterInit() error {
-	p.Log.Info("AfterInit")
-
 	return nil
 }
 
@@ -92,24 +80,39 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
-	return nil
+	return p.Log.Close()
 }
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("ObjectStore.ObjectCreated: %s", obj)
+	p.Log.Infof("ObjectStore.ObjectCreated: %+v", obj)
 
 	switch obj.(type) {
 	case *v1.NetworkService:
 		ns := obj.(*v1.NetworkService).Spec
 		p.objects.networkServicesStore.Add(&ns)
+		p.Log.Infof("number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
 	case *v1.NetworkServiceChannel:
 		nsc := obj.(*v1.NetworkServiceChannel).Spec
 		p.objects.networkServiceChannelsStore.Add(&nsc)
 	case *v1.NetworkServiceEndpoint:
 		nse := obj.(*v1.NetworkServiceEndpoint).Spec
 		p.objects.networkServiceEndpointsStore.Add(&nse)
+	default:
+		p.Log.Infof("found object of unknown type: %s", reflect.TypeOf(obj))
 	}
+}
+
+// GetNetworkService get NetworkService object for name and namespace specified
+func (p *Plugin) GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService {
+	p.Log.Info("ObjectStore.GetNetworkService.")
+	return p.objects.networkServicesStore.Get(nsName, nsNamespace)
+}
+
+// AddChannelToNetworkService adds a channel to Existing in the ObjectStore NetworkService object
+func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+	p.Log.Info("ObjectStore.AddChannelToNetworkService.")
+	return p.objects.networkServicesStore.AddChannel(nsName, nsNamespace, ch)
 }
 
 // ListNetworkServices lists all stored NetworkService objects
@@ -119,7 +122,7 @@ func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 }
 
 // ListNetworkServiceChannels lists all stored NetworkServiceChannel objects
-func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel {
+func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel {
 	p.Log.Info("ObjectStore.ListNetworkServiceChannels")
 	return p.objects.networkServiceChannelsStore.List()
 }

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package common;
+
+message Label {
+    map<string ,string> selector = 1;
+}
+
+message Metadata {
+    string name = 1;
+    string namespace = 2;
+    Label labels = 3;
+}
+
+message InterfaceParameters {
+// Interface parameters go here.
+}
+
+message Interface {
+   InterfaceType type = 1;
+   Metadata metadata = 2;
+   InterfacePreference preference = 3;
+   InterfaceParameters parmeters = 4;
+}
+
+enum InterfaceType {
+    DEFAULT_INTF = 0;
+    KERNEL_INTERFACE = 1;
+    VHOST_INTERFACE = 2;
+    MEM_INTERFACE = 3;
+    SRIOV_INTERFACE = 4;
+    HW_INTERFACE = 5;
+  }
+
+enum InterfacePreference {
+    DEFAULT_PREF = 0;
+    FIRST = 1;
+    SECOND = 2;
+    THIRD = 3;
+    FORTH = 4;
+    FIFTH = 5;
+}

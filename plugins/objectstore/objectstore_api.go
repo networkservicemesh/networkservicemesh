@@ -17,7 +17,8 @@ package objectstore
 import (
 	"time"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
 const (
@@ -31,7 +32,15 @@ const (
 type Interface interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
+	GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService
+	AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
 	ListNetworkServices() []*netmesh.NetworkService
-	ListNetworkServiceChannels() []*netmesh.NetworkService_NetmeshChannel
+	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
 	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint
+}
+
+// PluginAPI - API for the Plugin
+type PluginAPI interface {
+	idempotent.PluginAPI
+	Interface
 }

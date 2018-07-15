@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	ReinitErrorStr = "True Close() has already occurred, plugin can no longer be Init() ed"
+	ReinitErrorStr = "true Close() has already occurred, plugin can no longer be Init() ed"
 )
 
 // IdemPotentImpl implements methods for wrapping Init() and Close() such that

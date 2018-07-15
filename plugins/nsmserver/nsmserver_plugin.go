@@ -17,11 +17,7 @@
 package nsmserver
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/ligato/cn-infra/flavors/local"
-	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
@@ -37,7 +33,9 @@ type Plugin struct {
 
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
-	local.PluginInfraDeps
+	Name        string
+	Log         logger.FieldLoggerPlugin
+	ObjectStore objectstore.PluginAPI
 }
 
 // Init initializes ObjectStore plugin
@@ -46,42 +44,18 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	p.Log.SetLevel(logging.DebugLevel)
-	p.pluginStopCh = make(chan bool)
-
-	return nil
-}
-
-// AfterInit is called after all plugins are initialized
-func (p *Plugin) AfterInit() error {
-	var os objectstore.Interface
-	// Wait for ObjectStore to be ready
-	ticker := time.NewTicker(objectstore.ObjectStoreReadyInterval)
-	timeout := time.After(objectstore.ObjectStoreReadyTimeout)
-	defer ticker.Stop()
-	// Wait for objectstore to initialize
-	ready := false
-	for !ready {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for ObjectStore")
-		case <-ticker.C:
-			if os = objectstore.SharedPlugin(); os != nil {
-				ticker.Stop()
-				ready = true
-				p.Log.Info("ObjectStore is ready, starting Consumer")
-			} else {
-				p.Log.Info("ObjectStore is not ready, waiting")
-			}
-		}
-	}
-	// Register and start Kubelet's device plugin
-	err := NewNSMDevicePlugin(p.Deps.Log, os)
+	// p.Log.SetLevel(logging.DebugLevel)
+	p.pluginStopCh = make(chan bool, 1)
+	err := p.Log.Init()
 	if err != nil {
 		return err
 	}
-
-	return nil
+	err = p.ObjectStore.Init()
+	if err != nil {
+		return err
+	}
+	err = NewNSMDevicePlugin(p.Deps.Log, p.Deps.ObjectStore)
+	return err
 }
 
 // Close is called when the plugin is being stopped
@@ -92,5 +66,5 @@ func (p *Plugin) Close() error {
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
 	p.pluginStopCh <- true
-	return nil
+	return p.Log.Close()
 }

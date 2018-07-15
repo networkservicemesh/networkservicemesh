@@ -17,7 +17,8 @@ package objectstore
 import (
 	"testing"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 type channelStore struct {
@@ -29,14 +30,12 @@ const (
 	chTestNamespace = "default"
 )
 
-var channels *channelStore
-
 func TestChannelStore(t *testing.T) {
 	channels := &channelStore{}
 	channels.networkServiceChannelsStore = newNetworkServiceChannelsStore()
 
-	nsc := netmesh.NetworkService_NetmeshChannel{
-		Metadata: &netmesh.Metadata{
+	nsc := netmesh.NetworkServiceChannel{
+		Metadata: &common.Metadata{
 			Name:      chTestName,
 			Namespace: chTestNamespace,
 		},

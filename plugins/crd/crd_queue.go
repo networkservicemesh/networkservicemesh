@@ -14,7 +14,7 @@
 
 // //go:generate protoc -I ./model/pod --go_out=plugins=grpc:./model/pod ./model/pod/pod.proto
 
-package netmeshplugincrd
+package crd
 
 import (
 	"reflect"
@@ -29,9 +29,9 @@ import (
 const QueueRetryCount = 5
 
 const (
-	create = iota
-	delete
-	update
+	createOp = iota
+	deleteOp
+	updateOp
 )
 
 type objectMessage struct {
@@ -103,20 +103,20 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 				return
 			}
 
-			plugin.Log.Infof("Found object of type: %T", reflect.TypeOf(message.(objectMessage).obj))
+			plugin.Log.Infof("Found object of type: %s", reflect.TypeOf(message.(objectMessage).obj))
 			// Check if this is a create or delete operation
 			switch message.(objectMessage).operation {
-			case create:
+			case createOp:
 				// Verify and log if the informer cached version of the object is different than the
 				// copy we made
 				if !reflect.DeepEqual(message.(objectMessage).obj, item) {
 					plugin.Log.Errorf("Informer cached version of object (%s/%s) different than worker queue version", namespace, name)
 				}
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-				plugin.objectStore.ObjectCreated(message.(objectMessage).obj)
-			case delete:
+				plugin.ObjectStore.ObjectCreated(message.(objectMessage).obj)
+			case deleteOp:
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-				plugin.objectStore.ObjectDeleted(message.(objectMessage).obj)
+				plugin.ObjectStore.ObjectDeleted(message.(objectMessage).obj)
 			}
 
 			// As we managed to process this successfully, we can forget it

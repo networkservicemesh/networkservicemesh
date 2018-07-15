@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -xe
+
 # From minikube howto
 export MINIKUBE_WANTUPDATENOTIFICATION=false
 export MINIKUBE_WANTREPORTERRORPROMPT=false
@@ -26,18 +28,23 @@ touch ~/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 export PATH=${PATH}:${GOPATH:?}/bin
 
-MINIKUBE_VERSION=v0.25.2
+MINIKUBE_VERSION=v0.28.0
 KUBERNETES_VERSION=v1.10.0
 
 install_bin() {
     local exe=${1:?}
-    test -n "${TRAVIS}" && sudo install -v ${exe} /usr/local/bin || install ${exe} ${GOPATH:?}/bin
+    if [ -n "${TRAVIS}" ]
+    then
+        sudo install -v "${exe}" /usr/local/bin
+    else
+        install "${exe}" "${GOPATH:?}/bin"
+    fi
 }
 
 # Travis ubuntu trusty env doesn't have nsenter, needed for VM-less minikube
 # (--vm-driver=none, runs dockerized)
 check_or_build_nsenter() {
-    which nsenter >/dev/null && return 0
+    command -v nsenter >/dev/null && return 0
     echo "INFO: Building 'nsenter' ..."
 cat <<-EOF | docker run -i --rm -v "$(pwd):/build" ubuntu:14.04 >& nsenter.build.log
         apt-get update
@@ -58,7 +65,7 @@ EOF
     install_bin ./nsenter
 }
 check_or_install_minikube() {
-    which minikube || {
+    command -v minikube || {
         wget --no-clobber -O minikube \
             https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64
         install_bin ./minikube
@@ -69,12 +76,13 @@ check_or_install_minikube() {
 check_or_build_nsenter
 # Install minikube if missing
 check_or_install_minikube
-MINIKUBE_BIN=$(which minikube)
+MINIKUBE_BIN=$(command -v minikube)
 
 # Start minikube
-sudo -E ${MINIKUBE_BIN} start --vm-driver=none \
+sudo -E "${MINIKUBE_BIN}" start --vm-driver=none \
     --extra-config=apiserver.Authorization.Mode=RBAC \
-    --kubernetes-version=${KUBERNETES_VERSION}
+    --kubernetes-version="${KUBERNETES_VERSION}" \
+    --bootstrapper=localkube
 
 # Wait til settles
 echo "INFO: Waiting for minikube cluster to be ready ..."
@@ -83,5 +91,8 @@ until kubectl get pod --namespace=kube-system -lapp=kubernetes-dashboard|grep Ru
     ((cnt=cnt-1)) || exit 1
     sleep 1
 done
+
+set +xe
 exit 0
+
 # vim: sw=4 ts=4 et si

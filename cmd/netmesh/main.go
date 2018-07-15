@@ -15,16 +15,18 @@
 package main
 
 import (
-	"github.com/ligato/cn-infra/core"
-	"github.com/ligato/networkservicemesh/flavors/netmesh"
-	"log"
+	"github.com/ligato/networkservicemesh/plugins/interupthandler"
+	"github.com/ligato/networkservicemesh/plugins/nsmcommand"
+	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/spf13/cobra"
 )
 
 // netmesh main entry point.
 func main() {
-	// netmesh is a CN-infra based agent.
-	agentVar := netmesh.NewAgent()
-	if err := core.EventLoopWithInterrupt(agentVar, nil); err != nil {
-		log.Fatalln("Failed to start core agent in network mesh service err:", err)
-	}
+	cmd := &cobra.Command{Use: "netmesh"}
+	command.SetRootCmd(cmd)
+	nsm := nsmcommand.NewPlugin()
+	interupt := interupthandler.Wrap(nsm)
+	interupt.Init()
+	interupt.Wait()
 }

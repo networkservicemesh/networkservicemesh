@@ -17,13 +17,13 @@ package objectstore
 import (
 	"sync"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 // NetworkServiceChannelsStore map stores all discovered Network Service Channel
 // Objects with a key composed of a name and a namespace
 type networkServiceChannelsStore struct {
-	networkServiceChannel map[meta]*netmesh.NetworkService_NetmeshChannel
+	networkServiceChannel map[meta]*netmesh.NetworkServiceChannel
 	sync.RWMutex
 }
 
@@ -31,12 +31,12 @@ type networkServiceChannelsStore struct {
 // NetworkServiceChannels store. It must be initialized before any controllers start.
 func newNetworkServiceChannelsStore() *networkServiceChannelsStore {
 	return &networkServiceChannelsStore{
-		networkServiceChannel: map[meta]*netmesh.NetworkService_NetmeshChannel{}}
+		networkServiceChannel: map[meta]*netmesh.NetworkServiceChannel{}}
 }
 
 // Add method adds descovered NetworkServiceChannel if it does not
 // already exit in the store.
-func (n *networkServiceChannelsStore) Add(ns *netmesh.NetworkService_NetmeshChannel) {
+func (n *networkServiceChannelsStore) Add(ns *netmesh.NetworkServiceChannel) {
 	n.Lock()
 	defer n.Unlock()
 
@@ -61,10 +61,10 @@ func (n *networkServiceChannelsStore) Delete(key meta) {
 }
 
 // List method lists all known NetworkServiceChannel objects.
-func (n *networkServiceChannelsStore) List() []*netmesh.NetworkService_NetmeshChannel {
+func (n *networkServiceChannelsStore) List() []*netmesh.NetworkServiceChannel {
 	n.Lock()
 	defer n.Unlock()
-	networkServiceChannels := []*netmesh.NetworkService_NetmeshChannel{}
+	networkServiceChannels := make([]*netmesh.NetworkServiceChannel, 0)
 	for _, ns := range n.networkServiceChannel {
 		networkServiceChannels = append(networkServiceChannels, ns)
 	}

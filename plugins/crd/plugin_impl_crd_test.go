@@ -14,15 +14,16 @@
 
 // //go:generate protoc -I ./model/pod --go_out=plugins=grpc:./model/pod ./model/pod/pod.proto
 
-package netmeshplugincrd
+package crd_test
 
 import (
 	"flag"
 	"testing"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	networkservicemesh "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	corev1 "k8s.io/api/core/v1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -63,7 +64,7 @@ func k8sClient(kc string) (*kubernetes.Clientset, *apiextcs.Clientset, *networks
 	return kubeClient, apiextClient, crdClient, nil
 }
 
-func setupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error {
+func setupEnv(k8s *kubernetes.Clientset, _ *apiextcs.Clientset) error {
 	// Setting up testing namespace
 	namespace := corev1.Namespace{
 		ObjectMeta: meta.ObjectMeta{
@@ -82,7 +83,7 @@ func setupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error
 	return nil
 }
 
-func cleanupEnv(k8s *kubernetes.Clientset, apiextClient *apiextcs.Clientset) error {
+func cleanupEnv(k8s *kubernetes.Clientset, _ *apiextcs.Clientset) error {
 
 	_, err := k8s.CoreV1().Namespaces().Get(nsmTestNamespace, meta.GetOptions{})
 	if apierrors.IsNotFound(err) {
@@ -127,7 +128,7 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService{
-					Metadata: &netmesh.Metadata{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-1",
 						Namespace: "nsm-service-1-namespace",
 					},
@@ -143,7 +144,7 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService{
-					Metadata: &netmesh.Metadata{
+					Metadata: &common.Metadata{
 						Name:      "nsm-serv%ice-1",
 						Namespace: "nsm-service-1-namespace",
 					},
@@ -159,7 +160,7 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkService{
-					Metadata: &netmesh.Metadata{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-1",
 						Namespace: "nsm-service-1-$namespace",
 					},
@@ -196,7 +197,7 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkServiceEndpoint{
-					Metadata: &netmesh.Metadata{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-endpoint-1",
 						Namespace: "nsm-service-endpoint-1-namespace",
 					},
@@ -212,7 +213,7 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkServiceEndpoint{
-					Metadata: &netmesh.Metadata{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-%endpoint-1",
 						Namespace: "nsm-service-endpoint-1-namespace",
 					},
@@ -228,7 +229,7 @@ func TestCRDValidation(t *testing.T) {
 					Namespace: nsmTestNamespace,
 				},
 				Spec: netmesh.NetworkServiceEndpoint{
-					Metadata: &netmesh.Metadata{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-endpoint-1",
 						Namespace: "nsm-service-endpoint-1-name$space",
 					},
@@ -264,8 +265,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
-					Metadata: &netmesh.Metadata{
+				Spec: netmesh.NetworkServiceChannel{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-channel-1",
 						Namespace: "nsm-service-channel-1-namespace",
 					},
@@ -280,8 +281,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-serv%ice-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
-					Metadata: &netmesh.Metadata{
+				Spec: netmesh.NetworkServiceChannel{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-c%h&annel-1",
 						Namespace: "nsm-service-channel-1-namespace",
 					},
@@ -296,8 +297,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
-					Metadata: &netmesh.Metadata{
+				Spec: netmesh.NetworkServiceChannel{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-channel-1",
 						Namespace: "nsm-service-cha&nnel-1-namespace",
 					},
@@ -312,8 +313,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-channel-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService_NetmeshChannel{
-					Metadata: &netmesh.Metadata{
+				Spec: netmesh.NetworkServiceChannel{
+					Metadata: &common.Metadata{
 						Name:      "nsm-service-channel-1",
 						Namespace: "nsm-service-channel-1-namespace",
 					},

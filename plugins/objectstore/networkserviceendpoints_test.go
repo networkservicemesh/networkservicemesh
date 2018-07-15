@@ -17,7 +17,8 @@ package objectstore
 import (
 	"testing"
 
-	"github.com/ligato/networkservicemesh/netmesh/model/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 type endpointStore struct {
@@ -29,14 +30,12 @@ const (
 	epTestNamespace = "default"
 )
 
-var endpoints *endpointStore
-
 func TestEndpointStore(t *testing.T) {
 	endpoints := &endpointStore{}
 	endpoints.networkServiceEndpointsStore = newNetworkServiceEndpointsStore()
 
 	nse := netmesh.NetworkServiceEndpoint{
-		Metadata: &netmesh.Metadata{
+		Metadata: &common.Metadata{
 			Name:      epTestName,
 			Namespace: epTestNamespace,
 		},
