@@ -13,6 +13,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/plugins/config"
 	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 	. "github.com/onsi/gomega"
 )
 
@@ -88,10 +89,10 @@ func TestSharedPlugin(t *testing.T) {
 	Expect(err).To(BeNil())
 	err = plugin.Close()
 	Expect(err).To(BeNil())
-	Expect(plugin.IsClosed()).To(BeFalse())
+	Expect(plugin.State()).To(Equal(idempotent.RUNNING))
 	err = plugin2.Close()
 	Expect(err).To(BeNil())
-	Expect(plugin2.IsClosed()).To(BeTrue())
+	Expect(plugin2.State()).To(Equal(idempotent.CLOSED))
 
 	// Make sure the plugin isn't still lingering
 	// After its final close
