@@ -19,3 +19,8 @@
 
 # Cmds being built
 cmd/nsm/nsm
+cmd/nsm/nsm
+cmd/nsm-init/nsm-init
+
+# VScode files
+.vscode
