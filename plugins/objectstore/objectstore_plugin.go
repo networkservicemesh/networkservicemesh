@@ -17,6 +17,8 @@ package objectstore
 import (
 	"reflect"
 
+	"github.com/ligato/networkservicemesh/utils/helper"
+
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -55,7 +57,7 @@ type Plugin struct {
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
 	Name string
-	Log  logger.FieldLoggerPlugin
+	Log  logger.FieldLogger
 }
 
 // Init initializes ObjectStore plugin
@@ -64,7 +66,7 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	err := p.Log.Init()
+	err := helper.InitDeps(p)
 	if err != nil {
 		return err
 	}
@@ -80,7 +82,7 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
-	return p.Log.Close()
+	return helper.CloseDeps(p)
 }
 
 // ObjectCreated is called when an object is created

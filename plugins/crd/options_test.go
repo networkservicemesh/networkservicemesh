@@ -17,6 +17,8 @@ package crd_test
 import (
 	"testing"
 
+	"github.com/ligato/networkservicemesh/utils/helper"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/ligato/networkservicemesh/plugins/crd"
@@ -28,6 +30,7 @@ func TestSharedPlugin(t *testing.T) {
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).To(BeTrue())
+	Expect(helper.CheckDeps(plugin1)).To(Succeed())
 }
 
 func TestNewPluginNotShared(t *testing.T) {
@@ -36,6 +39,8 @@ func TestNewPluginNotShared(t *testing.T) {
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
+	Expect(helper.CheckDeps(plugin1)).To(Succeed())
+	Expect(helper.CheckDeps(plugin2)).To(Succeed())
 }
 
 func TestSharedPluginRemoveOnClose(t *testing.T) {
@@ -45,6 +50,7 @@ func TestSharedPluginRemoveOnClose(t *testing.T) {
 	plugin1.Close()
 	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
+	Expect(helper.CheckDeps(plugin1)).To(Succeed())
 }
 
 func TestNonDefaultName(t *testing.T) {
@@ -52,4 +58,5 @@ func TestNonDefaultName(t *testing.T) {
 	name := "foo"
 	plugin := crd.NewPlugin(crd.UseDeps(&crd.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
+	Expect(helper.CheckDeps(plugin)).To(Succeed())
 }

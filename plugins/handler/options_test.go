@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ligato/networkservicemesh/plugins/handler"
+	"github.com/ligato/networkservicemesh/utils/helper"
 )
 
 func TestSharedPlugin(t *testing.T) {
@@ -28,6 +29,7 @@ func TestSharedPlugin(t *testing.T) {
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := handler.SharedPlugin()
 	Expect(plugin2 == plugin1).To(BeTrue())
+	Expect(helper.CheckDeps(plugin1)).To(Succeed())
 }
 
 func TestNewPluginNotShared(t *testing.T) {
@@ -36,6 +38,8 @@ func TestNewPluginNotShared(t *testing.T) {
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := handler.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
+	Expect(helper.CheckDeps(plugin1)).To(Succeed())
+	Expect(helper.CheckDeps(plugin2)).To(Succeed())
 }
 
 func TestSharedPluginRemoveOnClose(t *testing.T) {
@@ -45,6 +49,8 @@ func TestSharedPluginRemoveOnClose(t *testing.T) {
 	plugin1.Close()
 	plugin2 := handler.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
+	Expect(helper.CheckDeps(plugin1)).To(Succeed())
+	Expect(helper.CheckDeps(plugin2)).To(Succeed())
 }
 
 func TestNonDefaultName(t *testing.T) {
@@ -52,4 +58,5 @@ func TestNonDefaultName(t *testing.T) {
 	name := "foo"
 	plugin := handler.NewPlugin(handler.UseDeps(&handler.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
+	Expect(helper.CheckDeps(plugin)).To(Succeed())
 }

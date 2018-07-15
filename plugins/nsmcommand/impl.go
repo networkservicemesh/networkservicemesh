@@ -15,6 +15,7 @@
 package nsmcommand
 
 import (
+	"github.com/ligato/networkservicemesh/utils/helper"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
@@ -32,24 +33,10 @@ func (p *Plugin) Init() error {
 func (p *Plugin) init() error {
 	err := p.Cmd.Execute()
 	if err != nil {
+		p.Log.Errorf("Initializing NSMServer failed with error: %s", err)
 		return err
 	}
-	// TODO: Figure out correct order of initialization
-	err = p.Deps.Log.Init()
-	if err != nil {
-		return err
-	}
-	err = p.Deps.ObjectStore.Init()
-	if err != nil {
-		p.Log.Errorf("Initializing ObjectStore failed with error: %s", err)
-		return err
-	}
-	err = p.Deps.CRD.Init()
-	if err != nil {
-		p.Log.Errorf("Initializing CRD failed with error: %s", err)
-		return err
-	}
-	err = p.Deps.NSMServer.Init()
+	err = helper.InitDeps(p)
 	if err != nil {
 		p.Log.Errorf("Initializing NSMServer failed with error: %s", err)
 		return err
@@ -63,28 +50,5 @@ func (p *Plugin) Close() error {
 }
 
 func (p *Plugin) close() error {
-	// TODO: Figure out correct order of initialization
-	err := p.Deps.Log.Close()
-	if err != nil {
-		return err
-	}
-
-	err = p.Deps.NSMServer.Close()
-	if err != nil {
-		p.Log.Errorf("Closing NSMServer failed with error: %s", err)
-		return err
-	}
-
-	err = p.Deps.CRD.Close()
-	if err != nil {
-		p.Log.Errorf("Closing CRD failed with error: %s", err)
-		return err
-	}
-
-	err = p.Deps.ObjectStore.Close()
-	if err != nil {
-		p.Log.Errorf("Closing ObjectStore failed with error: %s", err)
-		return err
-	}
-	return nil
+	return helper.CloseDeps(p)
 }

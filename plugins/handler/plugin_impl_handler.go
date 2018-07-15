@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ligato/networkservicemesh/utils/helper"
+
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -41,10 +43,10 @@ type Plugin struct {
 // Deps defines dependencies of netmesh plugin.
 type Deps struct {
 	Name        string
-	Log         logger.FieldLoggerPlugin
+	Log         logger.FieldLogger
 	Cmd         *cobra.Command
 	KubeConfig  string // Fetch kubeconfig file from --kube-config
-	ObjectStore objectstore.PluginAPI
+	ObjectStore objectstore.Interface
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -55,11 +57,7 @@ func (p *Plugin) Init() error {
 
 func (p *Plugin) init() error {
 	p.pluginStopCh = make(chan struct{})
-	err := p.Log.Init()
-	if err != nil {
-		return err
-	}
-	err = p.Deps.ObjectStore.Init()
+	err := helper.InitDeps(p)
 	if err != nil {
 		return err
 	}
@@ -85,11 +83,7 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
-	err := p.Log.Close()
-	if err != nil {
-		return err
-	}
-	err = p.ObjectStore.Close()
+	err := helper.CloseDeps(p)
 	if err != nil {
 		return err
 	}
