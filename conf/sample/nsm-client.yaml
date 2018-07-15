@@ -55,12 +55,6 @@ data:
         preference: 1
         metadata:
           name: interface-1
-    - name: network-service-2
-      serviceInterface:
-      - type: 3
-        preference: 1
-        metadata:
-          name: interface-3
 kind: ConfigMap
 metadata:
   name: client-network-services

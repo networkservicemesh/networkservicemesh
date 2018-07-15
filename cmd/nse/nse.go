@@ -17,20 +17,18 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"net"
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -74,16 +72,6 @@ func (n nseConnection) RequestNSEConnection(ctx context.Context, req *nseconnect
 		NetworkServiceName: n.networkServiceName,
 		LinuxNamespace:     n.linuxNamespace,
 	}, nil
-}
-
-func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
-	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
-	)
-
-	return c, err
 }
 
 func buildClient() (*kubernetes.Clientset, error) {
@@ -139,13 +127,13 @@ func main() {
 	podUID := string(pod.GetUID())
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
-	linuxNS, err := getCurrentNS()
+	linuxNS, err := tools.GetCurrentNS()
 	if err != nil {
 		logrus.Fatalf("nse: failed to get a linux namespace for pod %s/%s with error: %+v, exiting...", namespace, podName, err)
 		os.Exit(1)
 	}
 
-	// Checking if nsm client socket exists and of not crash NSE
+	// Checking if non default location of NSM socket was provided
 	clientSocket := clientSocketPath
 	if clientSocketUserPath != nil {
 		clientSocket = *clientSocketUserPath
@@ -155,21 +143,20 @@ func main() {
 		logrus.Fatalf("nse: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
-	defer cancel()
-	conn, err := dial(ctx, clientSocket)
+	conn, err := tools.SocketOperationCheck(clientSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", clientSocket, err)
+		logrus.Fatalf("nse: failure to communicate with nsm on the socket %s with error: %+v", clientSocket, err)
 	}
+	logrus.Infof("nse: connection to nsm server on the socket: %s succeeded.", clientSocket)
 	defer conn.Close()
-	logrus.Infof("nse: connection to nsm server on socket: %s succeeded.", clientSocket)
 
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
 	nsePath, _ := filepath.Split(clientSocket)
-	if err := socketCleanup(path.Join(nsePath, *nseSocketName)); err != nil {
-		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
+	nseSocket := path.Join(nsePath, *nseSocketName)
+	if err := tools.SocketCleanup(nseSocket); err != nil {
+		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", nseSocket, err)
 	}
-	nse, err := net.Listen("unix", path.Join(nsePath, *nseSocketName))
+	nse, err := net.Listen("unix", nseSocket)
 	grpcServer := grpc.NewServer()
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
@@ -188,13 +175,15 @@ func main() {
 	go func() {
 		wg.Add(1)
 		if err := grpcServer.Serve(nse); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %+v ", path.Join(nsePath, *nseSocketName), err)
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %+v ", nseSocket, err)
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	if err := socketOperationCheck(path.Join(nsePath, *nseSocketName)); err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", path.Join(nsePath, *nseSocketName), err)
+	testSocket, err := tools.SocketOperationCheck(nseSocket)
+	if err != nil {
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", nseSocket, err)
 	}
+	testSocket.Close()
 
 	// Ok, NSE server is ready and now the channel can be advertised to NSM
 	nsmClient := nsmconnect.NewClientConnectionClient(conn)
@@ -205,7 +194,7 @@ func main() {
 		},
 		NetworkServiceName: networkServiceName,
 		Payload:            "ipv4",
-		SocketLocation:     path.Join(nsePath, *nseSocketName),
+		SocketLocation:     nseSocket,
 		Interface: []*common.Interface{
 			{
 				Type: common.InterfaceType_KERNEL_INTERFACE,
@@ -234,44 +223,4 @@ func main() {
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
 	// Now block on WaitGroup
 	wg.Wait()
-}
-
-func socketOperationCheck(listenEndpoint string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	conn, err := dial(ctx, listenEndpoint)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	return nil
-}
-
-func socketCleanup(listenEndpoint string) error {
-	fi, err := os.Stat(listenEndpoint)
-	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
-		if err := os.Remove(listenEndpoint); err != nil {
-			return fmt.Errorf("cannot remove listen endpoint %s with error: %+v", listenEndpoint, err)
-		}
-	}
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failure stat of socket file %s with error: %+v", listenEndpoint, err)
-	}
-	return nil
-}
-
-func getCurrentNS() (string, error) {
-	buf := make([]byte, MaxSymLink)
-	numBytes, err := syscall.Readlink(netnsfile, buf)
-	if err != nil {
-		return "", err
-	}
-	link := string(buf[0:numBytes])
-	nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
-	submatches := nsRegExp.FindStringSubmatch(link)
-	if len(submatches) >= 1 {
-		return submatches[1], nil
-	}
-	return "", fmt.Errorf("namespace is not found")
 }

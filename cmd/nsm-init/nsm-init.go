@@ -18,21 +18,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"strings"
 	"time"
 
-	"regexp"
-	"syscall"
-
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -62,16 +58,6 @@ var (
 type networkService struct {
 	Name             string              `json:"name" yaml:"name"`
 	ServiceInterface []*common.Interface `json:"serviceInterface" yaml:"serviceInterface"`
-}
-
-func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
-	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
-	)
-
-	return c, err
 }
 
 func checkClientConfigMap(name, namespace string, k8s kubernetes.Interface) (*v1.ConfigMap, error) {
@@ -160,14 +146,14 @@ func main() {
 		os.Exit(1)
 	}
 	// Attempting to extract Client's config from the config map and store it in networkService slice
-	ns, err := parseConfigMap(configMap)
+	networkServices, err := parseConfigMap(configMap)
 	if err != nil {
 		logrus.Errorf("nsm client: failure to parse client's configmap %s/%s with error: %+v, exiting...", namespace, name, err)
 		os.Exit(1)
 	}
 	// Checking number of NetworkServices extracted from the config map and if it is 0 then
 	// print log message and gracefully exit
-	if len(ns) == 0 {
+	if len(networkServices) == 0 {
 		logrus.Infof("nsm client: no NetworkServices were discovered in client's configmap %s/%s, exiting...", namespace, name)
 		os.Exit(0)
 	}
@@ -182,12 +168,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
-	defer cancel()
-	conn, err := dial(ctx, clientSocket)
+	conn, err := tools.SocketOperationCheck(clientSocket)
 	if err != nil {
-		logrus.Errorf("nsm client: failure to communicate with the socket %s with error: %+v", clientSocket, err)
-		os.Exit(1)
+		logrus.Fatalf("nsm client: failure to communicate with the socket %s with error: %+v", clientSocket, err)
 	}
 	defer conn.Close()
 	logrus.Infof("nsm client: connection to nsm server on socket: %s succeeded.", clientSocket)
@@ -219,36 +202,37 @@ func main() {
 	logrus.Infof("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
 
 	// For NSM to program container's dataplane, container's linux namespace must be sent to NSM
-	linuxNS, err := getCurrentNS()
+	linuxNS, err := tools.GetCurrentNS()
 	if err != nil {
 		logrus.Fatalf("nsm client: failed to get a linux namespace for pod %s/%s with error: %+v, exiting...", namespace, podName, err)
 		os.Exit(1)
 	}
 
-	// TODO (sbezverk) At this point it is not clear the logic what to do if nsm init process is requesting
-	// connection to multiple NetworkServices. Loop through and call Connect for individual? what if one of them
-	// fails? Fail all? If one of fails, how to notify NSM to release Connections which succeeded.
-	// For now connection to a single NetworkService is requested.
-	cReq := nsmconnect.ConnectionRequest{
-		RequestId: podUID,
-		Metadata: &common.Metadata{
-			Name:      podName,
-			Namespace: namespace,
-		},
-		NetworkServiceName: ns[0].Name,
-		LinuxNamespace:     linuxNS,
-		Interface:          ns[0].ServiceInterface,
-	}
+	// Loop through all network services in the config map and request connection to each one. In case of a single
+	// connection request failure, the initialization process is consider as failed.
+	// TODO (sbezverk) Discuss if a non-mandatory atrribute should be added to NetworkService config.
+	for _, ns := range networkServices {
+		cReq := nsmconnect.ConnectionRequest{
+			RequestId: podUID,
+			Metadata: &common.Metadata{
+				Name:      podName,
+				Namespace: namespace,
+			},
+			NetworkServiceName: ns.Name,
+			LinuxNamespace:     linuxNS,
+			Interface:          ns.ServiceInterface,
+		}
 
-	logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.Interface))
-	connParams, err := requestConnection(nsmClient, &cReq)
-	if err != nil {
-		logrus.Fatalf("nsm client: failed to request connection from NSM with error: %+v, exiting...", err)
-		os.Exit(1)
+		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.Interface))
+		connParams, err := requestConnection(nsmClient, &cReq)
+		if err != nil {
+			logrus.Fatalf("nsm client: failed to request connection for Network Service %s with error: %+v, exiting...", ns.Name, err)
+			os.Exit(1)
+		}
+		logrus.Infof("nsm client: connection to Network Service %s suceeded, connection parameters: %+v, exiting...", ns.Name, connParams)
 	}
-
 	// Init related activities ends here
-	logrus.Infof("nsm client: initialization is completed successfully, connection parameters: %+v, exiting...", connParams)
+	logrus.Info("nsm client: initialization is completed successfully, exiting...")
 }
 
 func getNetworkServices(nsmClient nsmconnect.ClientConnectionClient) ([]*netmesh.NetworkService, error) {
@@ -293,19 +277,4 @@ func requestConnection(nsmClient nsmconnect.ClientConnectionClient, cReq *nsmcon
 			}
 		}
 	}
-}
-
-func getCurrentNS() (string, error) {
-	buf := make([]byte, MaxSymLink)
-	numBytes, err := syscall.Readlink(netnsfile, buf)
-	if err != nil {
-		return "", err
-	}
-	link := string(buf[0:numBytes])
-	nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
-	submatches := nsRegExp.FindStringSubmatch(link)
-	if len(submatches) >= 1 {
-		return submatches[1], nil
-	}
-	return "", fmt.Errorf("namespace is not found")
 }
