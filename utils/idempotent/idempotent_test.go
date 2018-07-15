@@ -20,9 +20,10 @@ package idempotent_test
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 type Plugin struct {
@@ -67,43 +68,49 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 
 	_, ok := interface{}(p).(idempotent.Interface)
 	Expect(ok).To(BeTrue())
-	Expect(p.IsClosed()).To(BeFalse())
+	state := idempotent.NEW
+	Expect(p.State()).To(Equal(state))
 	Expect(p.IsIdempotent()).To(BeTrue())
 
 	// Init
 	err := p.Init()
 	Expect(err).To(expectedInitErrMatcher)
 	Expect(p.RefCount).To(Equal(1)) // See p.init() was called
+	if err == nil {
+		// If we didn't get an error (succesful init) state changes to RUNNING
+		state = idempotent.RUNNING
+	}
+	Expect(p.State()).To(Equal(state))
 
 	// Init again
 	err = p.Init()
 	Expect(err).To(expectedInitErrMatcher) // See the correct error, even though p.init() wasn't called again
 	Expect(p.RefCount).To(Equal(1))        // See plugin.init() wasn't called again
+	Expect(p.State()).To(Equal(state))     // State is unchanged
 
 	// Close
 	err = p.Close()
-	Expect(err).To(BeNil())         // See a nil error, because p.close() wasn't called
-	Expect(p.RefCount).To(Equal(1)) // See plugin.close() wasn't called
-	Expect(p.IsClosed()).To(BeFalse())
+	Expect(err).To(BeNil())            // See a nil error, because p.close() wasn't called
+	Expect(p.RefCount).To(Equal(1))    // See plugin.close() wasn't called
+	Expect(p.State()).To(Equal(state)) // State is unchanged
 
 	// Close again
 	err = p.Close()
 	Expect(err).To(expectedCloseErrorMatcher) // See the correct close error
 	Expect(p.RefCount).To(Equal(0))           // See p.close() was called
-	Expect(p.IsClosed()).To(BeTrue())
+	Expect(p.State()).To(Equal(idempotent.CLOSED))
 
 	// Close even though p.close() was already been called
 	err = p.Close()
 	Expect(err).To(expectedCloseErrorMatcher) // See the correct close error, even though p.close() wasn't called again
 	Expect(p.RefCount).To(Equal(0))           // See p.close() was called
-	Expect(p.IsClosed()).To(BeTrue())
-
+	Expect(p.State()).To(Equal(idempotent.CLOSED))
 	// Try to re-init after true Close()
 	err = p.Init()
 	Expect(err).ToNot(BeNil())
 	Expect(err.Error()).To(Equal(idempotent.ReinitErrorStr)) // Confirm we get a ReinitErrorStr
 	Expect(p.RefCount).To(Equal(0))                          // See plugin.init() wasn't called again
-	Expect(p.IsClosed()).To(BeTrue())
+	Expect(p.State()).To(Equal(idempotent.CLOSED))
 
 }
 
