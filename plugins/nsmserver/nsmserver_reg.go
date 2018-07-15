@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
@@ -69,19 +70,6 @@ func Register(kubeletEndpoint string) error {
 	return nil
 }
 
-func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
-	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
 func startDeviceServer(nsm *nsmClientEndpoints) error {
 	// Initial socket clean up
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
@@ -107,9 +95,11 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	if err := socketOperationCheck(listenEndpoint); err != nil {
+	conn, err := tools.SocketOperationCheck(listenEndpoint)
+	if err != nil {
 		return err
 	}
+	conn.Close()
 
 	return nil
 }
