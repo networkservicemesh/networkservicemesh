@@ -87,7 +87,7 @@ func (i *Impl) Close() error { return nil }
 func (i *Impl) IdempotentInit(init func() error) error {
 	i.Lock()
 	defer i.Unlock()
-	if i.state == CLOSED { // We are closed an no longer initable
+	if i.state == CLOSED { // We are closed and no longer initable
 		return errors.New(ReinitErrorStr)
 	}
 	i.refCount++
