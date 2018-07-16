@@ -137,9 +137,8 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	// parameters have a match with ones of known NetworkService. If not, return error
 	sortedInterfaces := sortedInterfaceList{}
 	sortedInterfaces.interfaceList = cr.Interface
-	n.logger.Infof("Interface list before sorting: %+v", sortedInterfaces.interfaceList)
 	sort.Sort(sortedInterfaces)
-	n.logger.Infof("Interface list after sorting: %+v", sortedInterfaces.interfaceList)
+
 	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm, possible consider
 	// other attributes.
 	channel, found := findInterface(ns, sortedInterfaces.interfaceList)
@@ -149,6 +148,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 			AdmissionError: fmt.Sprintf("no advertised channels for Network Service %s, support required interface", cr.NetworkServiceName),
 		}, status.Error(codes.NotFound, "required interface type not found")
 	}
+
 	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
 	// and wait for complition.
 	clientNS := clientNetworkService{
@@ -168,10 +168,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	nseConn, err := tools.SocketOperationCheck(channel.SocketLocation)
 	if err != nil {
 		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
-
-		// TODO (sbezverk) Massive cleanup here since we could not complete control plane signalling.
-		// should be done as a function.
-
+		cleanConnectionRequest(cr.RequestId, n)
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
 			AdmissionError: fmt.Sprintf("failed to communicate with NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
@@ -189,9 +186,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	})
 	if err != nil {
 		n.logger.Errorf("nsm: failed to get information from NSE with error: %+v", err)
-
-		// TODO (sbezverk) Massive cleanup here since we could not complete control plane signalling.
-
+		cleanConnectionRequest(cr.RequestId, n)
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
 			AdmissionError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
@@ -199,20 +194,24 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	}
 	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
 
-	// TODO (sbezverk) How to clear client connections? Track pods? Push DPAPI folks to provide more info when pod
-	// which was useing the socket get deleted from the node ??
-
 	// Simulating sucessfull end
-	n.Lock()
-	n.clientConnections[cr.RequestId][cr.NetworkServiceName].isInProgress = false
-	n.Unlock()
 	n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
 		cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
 
+	// nsm client requesting connection is one time operation and it does not seem require to keep state
+	// after it either succeeded or failed. It seems safe to delete completed Connection Request.
+	cleanConnectionRequest(cr.RequestId, n)
+
 	return &nsmconnect.ConnectionAccept{
 		Accepted:             true,
-		ConnectionParameters: n.clientConnections[cr.RequestId][cr.NetworkServiceName].ConnectionParameters,
+		ConnectionParameters: &nsmconnect.ConnectionParameters{},
 	}, nil
+}
+
+func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
+	n.Lock()
+	delete(n.clientConnections, requestID)
+	n.Unlock()
 }
 
 func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Interface) (*netmesh.NetworkServiceChannel, bool) {
