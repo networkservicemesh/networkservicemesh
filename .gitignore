@@ -24,3 +24,7 @@ cmd/nsm-init/nsm-init
 
 # VScode files
 .vscode
+
+# For those that use vi
+*.swp
+*.swo
