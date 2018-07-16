@@ -12,64 +12,68 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helper_test
+package deptools_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/ligato/networkservicemesh/utils/helper"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 
 	. "github.com/onsi/gomega"
 )
 
-func TestInitDeps(t *testing.T) {
+func TestClose(t *testing.T) {
 	RegisterTestingT(t)
+	one := &Plugin{}
 	p := &PluginWithDeps{
 		Deps: NonOptionalDeps{
-			One: &Plugin{},
+			One: one,
 		},
 	}
-	Expect(helper.InitDeps(p)).To(Succeed())
+
+	Expect(one.Init()).To(Succeed())
 	Expect(p.Deps.One.Running()).To(BeTrue())
+	Expect(deptools.Close(p)).To(Succeed())
+	Expect(p.Deps.One.Running()).To(BeFalse())
 }
 
-func TestInitDepsUnSetDeps(t *testing.T) {
+func TestCloseUnSetDeps(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginWithDeps{}
-	Expect(helper.InitDeps(p)).ToNot(Succeed())
+	Expect(deptools.Close(p)).ToNot(Succeed())
 }
 
-func TestInitNoDeps(t *testing.T) {
+func TestCloseNoDeps(t *testing.T) {
 	RegisterTestingT(t)
 	p := &Plugin{}
-	Expect(helper.InitDeps(p)).To(Succeed())
+	Expect(deptools.Close(p)).To(Succeed())
 }
 
-func TestInitDepsNonPluginDep(t *testing.T) {
+func TestCloseNonPluginDep(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginWithDeps{
 		Deps: NonOptionalDeps{
 			One: &Runable{},
 		},
 	}
-	Expect(helper.InitDeps(p)).To(Succeed())
+	Expect(deptools.Close(p)).To(Succeed())
 	Expect(p.Deps.One.Running()).To(BeFalse())
 }
 
-type PluginErrorOnInit struct {
+type PluginErrorOnClose struct {
 	Plugin
 }
 
-func (*PluginErrorOnInit) Init() error { return fmt.Errorf("PluginErrorOnInit always fails on Init") }
+func (*PluginErrorOnInit) Close() error { return fmt.Errorf("PluginErrorOnInit always fails on Init") }
 
-func TestInitDepsErrorOnInit(t *testing.T) {
+func TestCloseErrorOnInit(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginWithDeps{
 		Deps: NonOptionalDeps{
 			One: &PluginErrorOnInit{},
 		},
 	}
-	Expect(helper.InitDeps(p)).ToNot(Succeed())
+	Expect(deptools.Close(p)).ToNot(Succeed())
 	Expect(p.Deps.One.Running()).To(BeFalse())
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helper
+package deptools
 
 import (
 	"reflect"
@@ -20,22 +20,22 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
-// CloseDeps closes the Deps of a Plugin
-func CloseDeps(p idempotent.PluginAPI) error {
-	err := CheckDeps(p)
+// Close closes the Deps of a Plugin
+func Close(p idempotent.PluginAPI) error {
+	err := Check(p)
 	if err != nil {
 		return err
 	}
 	// Note: Any error from getDeps would have been hit previously
 	// by CheckDeps
-	sf, vdeps, _ := getDeps(p)
+	sf, vdeps, _ := GetStructFieldValue(p)
 	if sf == nil {
 		return nil
 	}
-	return closeDeps(sf, vdeps)
+	return close(sf, vdeps)
 }
 
-func closeDeps(structField *reflect.StructField, value *reflect.Value) error {
+func close(structField *reflect.StructField, value *reflect.Value) error {
 	// Deps passed in here is presumed to have passed CheckDeps, so there are many
 	// errors we don't need to check for
 	// Example: We know Deps is a struct with only Interface fields

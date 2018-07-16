@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helper
+package deptools
 
 import (
 	"reflect"
@@ -20,22 +20,22 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
-// InitDeps initializes the Deps of a Plugin
-func InitDeps(p idempotent.PluginAPI) error {
-	err := CheckDeps(p)
+// Init initializes the Deps of a Plugin
+func Init(p idempotent.PluginAPI) error {
+	err := Check(p)
 	if err != nil {
 		return err
 	}
 	// Note: Any error from getDeps would have been hit previously
 	// by CheckDeps
-	sf, vdeps, _ := getDeps(p)
+	sf, vdeps, _ := GetStructFieldValue(p)
 	if sf == nil {
 		return nil
 	}
-	return initDeps(sf, vdeps)
+	return initDeps(vdeps)
 }
 
-func initDeps(structField *reflect.StructField, value *reflect.Value) error {
+func initDeps(value *reflect.Value) error {
 	// Deps passed in here is presumed to have passed CheckDeps, so there are many
 	// errors we don't need to check for
 	// Example: We know Deps is a struct with only Interface fields

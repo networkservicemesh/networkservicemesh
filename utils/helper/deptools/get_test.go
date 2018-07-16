@@ -12,4 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helper
+package deptools_test
+
+import (
+	"testing"
+
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	. "github.com/onsi/gomega"
+)
+
+func TestGet(t *testing.T) {
+	RegisterTestingT(t)
+	p := &PluginWithDeps{
+		Deps: NonOptionalDeps{
+			One: &Plugin{},
+		},
+	}
+	d, err := deptools.Get(p)
+	Expect(err).To(Succeed())
+	Expect(d == p.Deps).To(BeTrue())
+}
+
+func TestGetNoDeps(t *testing.T) {
+	RegisterTestingT(t)
+	p := &Plugin{}
+	d, err := deptools.Get(p)
+	Expect(err).To(Succeed())
+	Expect(d).To(BeNil())
+}

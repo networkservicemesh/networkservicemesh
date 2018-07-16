@@ -12,24 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helper_test
+package deptools_test
 
 import (
 	"testing"
 
-	"github.com/ligato/networkservicemesh/plugins/idempotent"
-	"github.com/ligato/networkservicemesh/utils/helper"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	id1 "github.com/ligato/networkservicemesh/utils/idempotent"
 	. "github.com/onsi/gomega"
 )
 
 type API interface {
 	Running() bool
-}
-
-type PluginAPI interface {
-	idempotent.PluginAPI
-	API
 }
 
 type Runable struct {
@@ -46,9 +40,9 @@ func (p *Runable) Running() bool { return p.running }
 func (p *Plugin) Init() error  { p.running = true; return nil }
 func (p *Plugin) Close() error { p.running = false; return nil }
 
-func TestCheckDepsNil(t *testing.T) {
+func TestCheckNil(t *testing.T) {
 	RegisterTestingT(t)
-	Expect(helper.CheckDeps(nil)).ToNot(Succeed())
+	Expect(deptools.Check(nil)).ToNot(Succeed())
 }
 
 type PluginString string
@@ -58,16 +52,16 @@ func (*PluginString) Close() error       { return nil }
 func (*PluginString) IsIdempotent() bool { return true }
 func (*PluginString) State() id1.State   { return id1.NEW }
 
-func TestCheckDepsNonStruct(t *testing.T) {
+func TestCheckNonStruct(t *testing.T) {
 	RegisterTestingT(t)
 	p := PluginString("Foo")
-	Expect(helper.CheckDeps(&p)).ToNot(Succeed())
+	Expect(deptools.Check(&p)).ToNot(Succeed())
 }
 
-func TestCheckDepsNoDeps(t *testing.T) {
+func TestCheckNoDeps(t *testing.T) {
 	RegisterTestingT(t)
 	p := &Plugin{}
-	Expect(helper.CheckDeps(p)).To(Succeed())
+	Expect(deptools.Check(p)).To(Succeed())
 }
 
 type PluginStringDeps struct {
@@ -75,15 +69,10 @@ type PluginStringDeps struct {
 	Deps string
 }
 
-func TestCheckDepsNonStructDeps(t *testing.T) {
+func TestCheckNonStructDeps(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginStringDeps{Deps: "foo"}
-	Expect(helper.CheckDeps(p)).ToNot(Succeed())
-}
-
-type PluginNonInterfaceDeps struct {
-	id1.Impl
-	Deps struct{ Foo string }
+	Expect(deptools.Check(p)).ToNot(Succeed())
 }
 
 type PrivateDeps struct {
@@ -95,10 +84,10 @@ type PluginPrivateDep struct {
 	Deps PrivateDeps
 }
 
-func TestCheckDepsPrivatedeps(t *testing.T) {
+func TestCheckPrivatedeps(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginPrivateDep{}
-	Expect(helper.CheckDeps(p)).ToNot(Succeed())
+	Expect(deptools.Check(p)).ToNot(Succeed())
 }
 
 type NonOptionalDeps struct {
@@ -109,10 +98,10 @@ type PluginWithDeps struct {
 	Deps NonOptionalDeps
 }
 
-func TestCheckDepsUnsetDeps(t *testing.T) {
+func TestCheckUnsetDeps(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginWithDeps{}
-	Expect(helper.CheckDeps(p)).ToNot(Succeed())
+	Expect(deptools.Check(p)).ToNot(Succeed())
 }
 
 type OptionalDeps struct {
@@ -124,18 +113,18 @@ type PluginWithOptionalDep struct {
 	Deps OptionalDeps
 }
 
-func TestCheckDepsUnsetOptionalDep(t *testing.T) {
+func TestCheckUnsetOptionalDep(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginWithOptionalDep{}
-	Expect(helper.CheckDeps(p)).To(Succeed())
+	Expect(deptools.Check(p)).To(Succeed())
 }
 
-func TestCheckDeps(t *testing.T) {
+func TestCheck(t *testing.T) {
 	RegisterTestingT(t)
 	p := &PluginWithDeps{
 		Deps: NonOptionalDeps{
 			One: &Plugin{},
 		},
 	}
-	Expect(helper.CheckDeps(p)).To(Succeed())
+	Expect(deptools.Check(p)).To(Succeed())
 }
