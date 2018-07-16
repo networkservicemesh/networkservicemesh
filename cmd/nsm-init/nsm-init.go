@@ -29,6 +29,8 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -264,16 +266,31 @@ func requestConnection(nsmClient nsmconnect.ClientConnectionClient, cReq *nsmcon
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("nsm client: Connection request did not succeed within %d seconds, last known error: %+v", clientConnectionTimeout, err)
+			return nil, fmt.Errorf("nsm client: Request Connection to NSM timedout (%d)seconds with error: %+v", clientConnectionTimeout, err)
 		case <-ticker.C:
 			cResp, err := nsmClient.RequestConnection(ctx, cReq)
 			if err == nil && cResp.Accepted {
 				return cResp.ConnectionParameters, nil
 			}
-			logrus.Infof("nsm client: Connection request failed with: %+v, re-attempting in %d seconds",
-				err, clientConnectionRetry)
+			switch status.Convert(err).Code() {
+			case codes.Aborted:
+				// Aborted inidcates an unrecoverable issue, retries are not needed
+				fallthrough
+			case codes.NotFound:
+				// NotFound indicates that requested Network Service does not exist, retries are not needed
+				return nil, fmt.Errorf("nsm client: Request Connection to NSM has failed with error: %+v", err)
+			case codes.AlreadyExists:
+				// AlreadyExists inidcates not completed dataplane programming, will retry until connection timeout expires
+				// or success returned
+				logrus.Infof("nsm client: NSM inidcates already existing non-completed Connection Request, retrying in %d seconds",
+					clientConnectionRetry)
+			default:
+				logrus.Infof("nsm client: Request Connection to NSM has failed with error: %+v, retrying in %d seconds", err, clientConnectionRetry)
+			}
+			// There was no error, but NSM did not set Accepted as true, possibly unaccounted error condition or a bug
 			if cResp != nil {
-				logrus.Infof("nsm client: server side admission response: %s", cResp.AdmissionError)
+				logrus.Infof("nsm client: NSM failed Connection Request with an admission error: %s, check NSM log for more details. Failed request ID: %s",
+					cResp.AdmissionError, cReq.RequestId)
 			}
 		}
 	}
