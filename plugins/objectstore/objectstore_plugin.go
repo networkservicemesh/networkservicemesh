@@ -17,11 +17,10 @@ package objectstore
 import (
 	"reflect"
 
-	"github.com/ligato/networkservicemesh/utils/helper"
-
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
@@ -66,7 +65,7 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	err := helper.InitDeps(p)
+	err := deptools.Init(p)
 	if err != nil {
 		return err
 	}
@@ -82,7 +81,7 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
-	return helper.CloseDeps(p)
+	return deptools.Close(p)
 }
 
 // ObjectCreated is called when an object is created

@@ -15,7 +15,7 @@
 package nsmcommand
 
 import (
-	"github.com/ligato/networkservicemesh/utils/helper"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
@@ -36,7 +36,7 @@ func (p *Plugin) init() error {
 		p.Log.Errorf("Initializing NSMServer failed with error: %s", err)
 		return err
 	}
-	err = helper.InitDeps(p)
+	err = deptools.Init(p)
 	if err != nil {
 		p.Log.Errorf("Initializing NSMServer failed with error: %s", err)
 		return err
@@ -50,5 +50,5 @@ func (p *Plugin) Close() error {
 }
 
 func (p *Plugin) close() error {
-	return helper.CloseDeps(p)
+	return deptools.Close(p)
 }

@@ -19,7 +19,7 @@ package nsmserver
 import (
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
-	"github.com/ligato/networkservicemesh/utils/helper"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
 
@@ -46,7 +46,7 @@ func (p *Plugin) Init() error {
 
 func (p *Plugin) init() error {
 	p.pluginStopCh = make(chan bool, 1)
-	err := helper.InitDeps(p)
+	err := deptools.Init(p)
 	if err != nil {
 		return err
 	}
@@ -62,5 +62,5 @@ func (p *Plugin) Close() error {
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
 	p.pluginStopCh <- true
-	return helper.CloseDeps(p)
+	return deptools.Close(p)
 }

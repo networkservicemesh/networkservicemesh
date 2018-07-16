@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ligato/networkservicemesh/utils/helper"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
@@ -90,7 +90,7 @@ func (plugin *Plugin) Init() error {
 }
 func (plugin *Plugin) init() error {
 	plugin.pluginStopCh = make(chan struct{})
-	err := helper.InitDeps(plugin)
+	err := deptools.Init(plugin)
 	if err != nil {
 		return err
 	}
@@ -256,5 +256,5 @@ func (plugin *Plugin) Close() error {
 func (plugin *Plugin) close() error {
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
-	return helper.CloseDeps(plugin)
+	return deptools.Close(plugin)
 }

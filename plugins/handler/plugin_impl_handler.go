@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ligato/networkservicemesh/utils/helper"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 
@@ -57,7 +57,7 @@ func (p *Plugin) Init() error {
 
 func (p *Plugin) init() error {
 	p.pluginStopCh = make(chan struct{})
-	err := helper.InitDeps(p)
+	err := deptools.Init(p)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (p *Plugin) Close() error {
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
-	err := helper.CloseDeps(p)
+	err := deptools.Close(p)
 	if err != nil {
 		return err
 	}
