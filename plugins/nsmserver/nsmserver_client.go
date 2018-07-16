@@ -119,7 +119,6 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 			// Since it is duplicate request, need to check if it is already inProgress
 			if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
 				// Looks like dataplane programming is taking long time, responding client to wait and retry
-				// TODO (sbezverk) nsm client should watch for this type of error and not fail but trigger exponential retry mechanism.
 				return &nsmconnect.ConnectionAccept{
 					Accepted:       false,
 					AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s/%s is still being programmed, retry", cr.Metadata.Namespace, cr.NetworkServiceName),
