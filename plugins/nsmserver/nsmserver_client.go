@@ -37,6 +37,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
@@ -165,9 +166,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.Unlock()
 
 	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
-	nseCTX, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer nseCancel()
-	nseConn, err := dial(nseCTX, channel.SocketLocation)
+	nseConn, err := tools.SocketOperationCheck(channel.SocketLocation)
 	if err != nil {
 		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
 
@@ -435,11 +434,13 @@ func startClientServer(id string, endpoints *nsmClientEndpoints) {
 		}
 	}()
 
-	if err := socketOperationCheck(listenEndpoint); err != nil {
+	conn, err := tools.SocketOperationCheck(listenEndpoint)
+	if err != nil {
 		logger.Errorf("failure to communicate with the socket %s with error: %+v", client.socketPath, err)
 		client.allocated = false
 		return
 	}
+	conn.Close()
 	logger.Infof("Client Server socket: %s is operational", listenEndpoint)
 
 	// Wait for shutdown
@@ -449,16 +450,4 @@ func startClientServer(id string, endpoints *nsmClientEndpoints) {
 	}
 	client.allocated = false
 	client.stopChannel <- true
-}
-
-func socketOperationCheck(listenEndpoint string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	conn, err := dial(ctx, listenEndpoint)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	defer cancel()
-
-	return nil
 }
