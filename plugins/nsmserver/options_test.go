@@ -38,6 +38,8 @@ func TestNewPluginNotShared(t *testing.T) {
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
 }
 
+// This really should be tested, but right now plugin.Close() is timing out
+
 func TestSharedPluginRemoveOnClose(t *testing.T) {
 	RegisterTestingT(t)
 	plugin1 := nsmserver.SharedPlugin()
