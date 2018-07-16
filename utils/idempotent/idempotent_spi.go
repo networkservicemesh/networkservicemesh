@@ -18,7 +18,8 @@
 
 package idempotent
 
+// Interface for idempotent things
 type Interface interface {
-	IsClosed() bool
+	State() State
 	IsIdempotent() bool
 }
