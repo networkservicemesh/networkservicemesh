@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -77,8 +79,8 @@ type Deps struct {
 	Log  logger.FieldLoggerPlugin
 	// Kubeconfig with k8s cluster address and access credentials to use.
 	KubeConfig  string
-	Handler     handler.PluginAPI
-	ObjectStore objectstore.PluginAPI
+	Handler     handler.API
+	ObjectStore objectstore.Interface
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -88,15 +90,7 @@ func (plugin *Plugin) Init() error {
 }
 func (plugin *Plugin) init() error {
 	plugin.pluginStopCh = make(chan struct{})
-	err := plugin.Log.Init()
-	if err != nil {
-		return err
-	}
-	err = plugin.Handler.Init()
-	if err != nil {
-		return err
-	}
-	err = plugin.ObjectStore.Init()
+	err := deptools.Init(plugin)
 	if err != nil {
 		return err
 	}
@@ -262,17 +256,5 @@ func (plugin *Plugin) Close() error {
 func (plugin *Plugin) close() error {
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
-	err := plugin.Deps.ObjectStore.Close()
-	if err != nil {
-		return err
-	}
-	err = plugin.Deps.Handler.Close()
-	if err != nil {
-		return err
-	}
-	err = plugin.Deps.Log.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return deptools.Close(plugin)
 }

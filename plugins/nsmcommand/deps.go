@@ -25,9 +25,9 @@ import (
 // Deps - dependencies for Plugin
 type Deps struct {
 	Name        string
-	Log         logger.FieldLoggerPlugin
+	Log         logger.FieldLogger
 	Cmd         *cobra.Command
 	NSMServer   nsmserver.PluginAPI
 	CRD         crd.PluginAPI
-	ObjectStore objectstore.PluginAPI
+	ObjectStore objectstore.Interface
 }

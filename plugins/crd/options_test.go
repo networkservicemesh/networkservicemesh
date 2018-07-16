@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ligato/networkservicemesh/plugins/crd"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 )
 
 func TestSharedPlugin(t *testing.T) {
@@ -28,6 +29,7 @@ func TestSharedPlugin(t *testing.T) {
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).To(BeTrue())
+	Expect(deptools.Check(plugin1)).To(Succeed())
 }
 
 func TestNewPluginNotShared(t *testing.T) {
@@ -36,6 +38,8 @@ func TestNewPluginNotShared(t *testing.T) {
 	Expect(plugin1).NotTo(BeNil())
 	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
+	Expect(deptools.Check(plugin1)).To(Succeed())
+	Expect(deptools.Check(plugin2)).To(Succeed())
 }
 
 func TestSharedPluginRemoveOnClose(t *testing.T) {
@@ -45,6 +49,7 @@ func TestSharedPluginRemoveOnClose(t *testing.T) {
 	plugin1.Close()
 	plugin2 := crd.SharedPlugin()
 	Expect(plugin2 == plugin1).ToNot(BeTrue())
+	Expect(deptools.Check(plugin1)).To(Succeed())
 }
 
 func TestNonDefaultName(t *testing.T) {
@@ -52,4 +57,5 @@ func TestNonDefaultName(t *testing.T) {
 	name := "foo"
 	plugin := crd.NewPlugin(crd.UseDeps(&crd.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
+	Expect(deptools.Check(plugin)).To(Succeed())
 }
