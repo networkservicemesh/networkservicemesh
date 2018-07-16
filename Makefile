@@ -40,11 +40,6 @@ endif
 
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
-# Test target to debug proxy issues
-checkproxy:
-	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
-	echo "DOCKERBUILD=${DOCKERBUILD}"
-
 .PHONY: all check verify docker-build
 #
 # The all target is what is used by the travis-ci system to build the Docker images
@@ -100,3 +95,8 @@ test-race:
 
 vet:
 	${GOVET} ${GOVETTARGETS}
+
+# Test target to debug proxy issues
+checkproxy:
+	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
+	echo "DOCKERBUILD=${DOCKERBUILD}"
