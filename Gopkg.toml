@@ -52,7 +52,7 @@ required = [
   # revision is set because it is an in-development library with an evolving API
   revision = "7d6f385de8bea29190f15ba9931442a0eaef9af7"
 
-[[constraint]]
+[[override]]
   name = "github.com/vishvananda/netlink"
   version = "1.0.0"
 
