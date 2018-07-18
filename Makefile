@@ -26,6 +26,20 @@ GOVETTARGETS=cmd \
 	plugins \
 	utils
 
+# Setup proxies for docker build
+ifeq ($(HTTP_PROXY),)
+HTTPBUILD=
+else
+HTTPBUILD=--build-arg HTTP_PROXY=$(HTTP_PROXY)
+endif
+ifeq ($(HTTPS_PROXY),)
+HTTPSBUILD=
+else
+HTTPSBUILD=--build-arg HTTPS_PROXY=$(HTTPS_PROXY)
+endif
+
+DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
+
 .PHONY: all check verify docker-build
 #
 # The all target is what is used by the travis-ci system to build the Docker images
@@ -43,19 +57,19 @@ docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-in
 
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
-	@docker build -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
+	${DOCKERBUILD} -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
 
 .PHONY: docker-build-netmesh
 docker-build-netmesh:
-	@docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+	${DOCKERBUILD} -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init:
-	@docker build -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
+	${DOCKERBUILD} -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
 
 .PHONY: docker-build-nse
 docker-build-nse:
-	@docker build -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
+	${DOCKERBUILD} -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
 .PHONY: format deps generate install test test-race vet
 #
@@ -81,3 +95,8 @@ test-race:
 
 vet:
 	${GOVET} ${GOVETTARGETS}
+
+# Test target to debug proxy issues
+checkproxy:
+	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
+	echo "DOCKERBUILD=${DOCKERBUILD}"
