@@ -59,6 +59,9 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
           - --dataplane-socket=/var/lib/networkservicemesh/dataplane.sock
+          volumeMounts:
+          - name: dataplane-socket
+            mountPath: /var/lib/networkservicemesh
       volumes:
       - hostPath:
           path: /var/lib/networkservicemesh

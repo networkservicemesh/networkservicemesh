@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	dataplane  = flag.String("dataplane-scoket", dataplaneSocket, "Location of the dataplane gRPC socket")
+	dataplane  = flag.String("dataplane-socket", dataplaneSocket, "Location of the dataplane gRPC socket")
 	kubeconfig = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
 )
 
@@ -245,6 +245,9 @@ func main() {
 		logrus.Fatalf("simple-dataplane: failure to cleanup stale socket %s with error: %+v", socket, err)
 	}
 	dataplaneConn, err := net.Listen("unix", socket)
+	if err != nil {
+		logrus.Fatalf("simple-dataplane: fail to open socket %s with error: %+v", socket, err)
+	}
 	dataplaneController.dataplaneServer = grpc.NewServer()
 	simpledataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 
