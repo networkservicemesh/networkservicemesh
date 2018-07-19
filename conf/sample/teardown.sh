@@ -6,6 +6,9 @@
 # Delete the client
 kubectl delete -f conf/sample/nsm-client.yaml
 
+# Delete the NSE
+kubectl delete -f conf/sample/nse.yaml
+
 # First, delete the network service
 kubectl delete -f conf/sample/networkservice.yaml
 
