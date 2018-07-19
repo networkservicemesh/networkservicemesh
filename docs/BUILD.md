@@ -10,7 +10,7 @@ You will need to install
 ## On a Mac:
 
 ```bash
-brew install golang protobuf dep
+brew install dep golang jq protobuf shellcheck
 go get -u github.com/golang/protobuf/protoc-gen-go
 ```
 
