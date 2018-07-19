@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -9,15 +10,24 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/vishvananda/netns"
 
 	"github.com/vishvananda/netlink"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -31,6 +41,42 @@ var (
 	dataplane  = flag.String("dataplane-scoket", dataplaneSocket, "Location of the dataplane gRPC socket")
 	kubeconfig = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
 )
+
+// DataplaneController keeps k8s client and gRPC server
+type DataplaneController struct {
+	k8s             *kubernetes.Clientset
+	dataplaneServer *grpc.Server
+}
+
+// RequestBuildConnect implements method for simpledataplane proto
+func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simpledataplane.BuildConnectRequest) (*simpledataplane.BuildConnectReply, error) {
+
+	podName1 := in.SourcePod.Metadata.Name
+	if podName1 == "" {
+		logrus.Error("simple-dataplane: missing required pod name")
+		return &simpledataplane.BuildConnectReply{
+			Built:      false,
+			BuildError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v"),
+		}, status.Error(codes.NotFound, "communication failure with NSE")
+	}
+	podNamespace1 := "default"
+	if in.SourcePod.Metadata.Namespace != "" {
+		podNamespace1 = in.SourcePod.Metadata.Namespace
+	}
+
+	podName2 := in.DestinationPod.Metadata.Name
+	if podName2 == "" {
+		// fail
+	}
+	podNamespace2 := "default"
+	if in.DestinationPod.Metadata.Namespace != "" {
+		podNamespace2 = in.DestinationPod.Metadata.Namespace
+	}
+
+	return &simpledataplane.BuildConnectReply{
+		Built: true,
+	}, nil
+}
 
 func buildClient() (*kubernetes.Clientset, error) {
 	var config *rest.Config
@@ -164,54 +210,80 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
+	var wg sync.WaitGroup
 
-	if *podName1 == "" || *podName2 == "" {
-		log.Fatal("Pod names cannot be empty, exitting...")
-	}
+	flag.Parse()
 
 	k8s, err := buildClient()
 	if err != nil {
-		log.Fatal("Failed to build kubernetes client, exitting...")
+		logrus.Fatal("Failed to build kubernetes client, exitting...")
 	}
 
-	cid1, err := getContainerID(k8s, *podName1, *namespace)
-	if err != nil {
-		log.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *namespace, *podName1, err)
-	}
-	log.Printf("Discovered Container ID %s for pod %s/%s", cid1, *namespace, *podName1)
+	dataplaneController := DataplaneController{k8s: k8s}
 
-	cid2, err := getContainerID(k8s, *podName2, *namespace)
-	if err != nil {
-		log.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *namespace, *podName2, err)
+	socket := *dataplane
+	if err := tools.SocketCleanup(socket); err != nil {
+		logrus.Fatalf("simple-dataplane: failure to cleanup stale socket %s with error: %+v", socket, err)
 	}
-	log.Printf("Discovered Container ID %s for pod %s/%s", cid2, *namespace, *podName2)
+	dataplaneConn, err := net.Listen("unix", socket)
+	dataplaneController.dataplaneServer = grpc.NewServer()
+	simpledataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
+
+	go func() {
+		wg.Add(1)
+		if err := dataplaneController.dataplaneServer.Serve(dataplaneConn); err != nil {
+			logrus.Fatalf("simple-dataplane: failed to start grpc server on socket %s with error: %+v ", socket, err)
+		}
+	}()
+	// Check if the socket of device plugin server is operation
+	testSocket, err := tools.SocketOperationCheck(socket)
+	if err != nil {
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", socket, err)
+	}
+	testSocket.Close()
+
+	logrus.Infof("simple-dataplane: Simple Dataplane controller is ready to serve...")
+	// Now block on WaitGroup
+	wg.Wait()
+}
+
+func temp(k8s *kubernetes.Clientset, podName1, podName2, namespace1, namespace2 *string) {
+	cid1, err := getContainerID(k8s, *podName1, *namespace1)
+	if err != nil {
+		logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *namespace1, *podName1, err)
+	}
+	log.Printf("Discovered Container ID %s for pod %s/%s", cid1, *namespace1, *podName1)
+
+	cid2, err := getContainerID(k8s, *podName2, *namespace2)
+	if err != nil {
+		logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *namespace2, *podName2, err)
+	}
+	log.Printf("Discovered Container ID %s for pod %s/%s", cid2, *namespace2, *podName2)
 
 	ns1, err := netns.GetFromDocker(cid1)
 	if err != nil {
-		log.Fatalf("Failed to get Linux namespace for pod %s/%s with error: %+v", *namespace, *podName1, err)
+		logrus.Fatalf("Failed to get Linux namespace for pod %s/%s with error: %+v", *namespace1, *podName1, err)
 	}
 	ns2, err := netns.GetFromDocker(cid2)
 	if err != nil {
-		log.Fatalf("Failed to get Linux namespace for pod %s/%s with error: %+v", *namespace, *podName1, err)
+		logrus.Fatalf("Failed to get Linux namespace for pod %s/%s with error: %+v", *namespace2, *podName2, err)
 	}
-	log.Printf("Discovered namespaces: %s %s", ns1.String(), ns2.String())
 
 	if err := setVethPair(ns1, ns2, *podName1, *podName2); err != nil {
-		log.Fatalf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
-			*namespace, *podName1, *namespace, *podName2, err)
+		logrus.Fatalf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
+			*namespace1, *podName1, *namespace2, *podName2, err)
 	}
 
 	if err := setVethAddr(ns1, ns2, *podName1, *podName2); err != nil {
-		log.Fatalf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
-			*namespace, *podName1, *namespace, *podName2, err)
+		logrus.Fatalf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
+			*namespace1, *podName1, *namespace2, *podName2, err)
 	}
 
 	if err := listInterfaces(ns1); err != nil {
-		log.Fatalf("Failed to list interfaces of to %s/%swith error: %+v", *namespace, *podName1, err)
+		logrus.Fatalf("Failed to list interfaces of to %s/%swith error: %+v", *namespace1, *podName1, err)
 	}
 	if err := listInterfaces(ns2); err != nil {
-		log.Fatalf("Failed to list interfaces of %s/%swith error: %+v", *namespace, *podName2, err)
+		logrus.Fatalf("Failed to list interfaces of %s/%swith error: %+v", *namespace2, *podName2, err)
 	}
 }
 

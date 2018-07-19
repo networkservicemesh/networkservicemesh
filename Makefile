@@ -63,6 +63,10 @@ docker-build-netmesh-test:
 docker-build-netmesh:
 	${DOCKERBUILD} -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 
+.PHONY: docker-build-simple-dataplane
+docker-build-simple-dataplane:
+	@docker build -t ligato/networkservicemesh/simple-dataplane -f build/simple-dataplane/docker/Dockerfile .
+
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init:
 	${DOCKERBUILD} -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
