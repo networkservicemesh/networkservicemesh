@@ -66,11 +66,23 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 
 	podName2 := in.DestinationPod.Metadata.Name
 	if podName2 == "" {
-		// fail
+		logrus.Error("simple-dataplane: missing required pod name")
+		return &simpledataplane.BuildConnectReply{
+			Built:      false,
+			BuildError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v"),
+		}, status.Error(codes.NotFound, "communication failure with NSE")
 	}
 	podNamespace2 := "default"
 	if in.DestinationPod.Metadata.Namespace != "" {
 		podNamespace2 = in.DestinationPod.Metadata.Namespace
+	}
+
+	if err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2); err != nil {
+		logrus.Error("simple-dataplane: missing required pod name")
+		return &simpledataplane.BuildConnectReply{
+			Built:      false,
+			BuildError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v"),
+		}, status.Error(codes.NotFound, "communication failure with NSE")
 	}
 
 	return &simpledataplane.BuildConnectReply{
@@ -247,44 +259,45 @@ func main() {
 	wg.Wait()
 }
 
-func temp(k8s *kubernetes.Clientset, podName1, podName2, namespace1, namespace2 *string) {
-	cid1, err := getContainerID(k8s, *podName1, *namespace1)
+func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, namespace2 string) error {
+	cid1, err := getContainerID(k8s, podName1, namespace1)
 	if err != nil {
-		logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *namespace1, *podName1, err)
+		return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace1, podName1, err)
 	}
-	log.Printf("Discovered Container ID %s for pod %s/%s", cid1, *namespace1, *podName1)
+	logrus.Printf("Discovered Container ID %s for pod %s/%s", cid1, namespace1, podName1)
 
-	cid2, err := getContainerID(k8s, *podName2, *namespace2)
+	cid2, err := getContainerID(k8s, podName2, namespace2)
 	if err != nil {
-		logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *namespace2, *podName2, err)
+		return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
-	log.Printf("Discovered Container ID %s for pod %s/%s", cid2, *namespace2, *podName2)
+	logrus.Printf("Discovered Container ID %s for pod %s/%s", cid2, namespace2, podName2)
 
 	ns1, err := netns.GetFromDocker(cid1)
 	if err != nil {
-		logrus.Fatalf("Failed to get Linux namespace for pod %s/%s with error: %+v", *namespace1, *podName1, err)
+		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
 	}
 	ns2, err := netns.GetFromDocker(cid2)
 	if err != nil {
-		logrus.Fatalf("Failed to get Linux namespace for pod %s/%s with error: %+v", *namespace2, *podName2, err)
+		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
 
-	if err := setVethPair(ns1, ns2, *podName1, *podName2); err != nil {
-		logrus.Fatalf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
-			*namespace1, *podName1, *namespace2, *podName2, err)
+	if err := setVethPair(ns1, ns2, podName1, podName2); err != nil {
+		return fmt.Errorf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
+			namespace1, podName1, namespace2, podName2, err)
 	}
 
-	if err := setVethAddr(ns1, ns2, *podName1, *podName2); err != nil {
-		logrus.Fatalf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
-			*namespace1, *podName1, *namespace2, *podName2, err)
+	if err := setVethAddr(ns1, ns2, podName1, podName2); err != nil {
+		return fmt.Errorf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
+			namespace1, podName1, namespace2, podName2, err)
 	}
 
 	if err := listInterfaces(ns1); err != nil {
-		logrus.Fatalf("Failed to list interfaces of to %s/%swith error: %+v", *namespace1, *podName1, err)
+		logrus.Errorf("Failed to list interfaces of to %s/%swith error: %+v", namespace1, podName1, err)
 	}
 	if err := listInterfaces(ns2); err != nil {
-		logrus.Fatalf("Failed to list interfaces of %s/%swith error: %+v", *namespace2, *podName2, err)
+		logrus.Errorf("Failed to list interfaces of %s/%swith error: %+v", namespace2, podName2, err)
 	}
+	return nil
 }
 
 func listInterfaces(targetNS netns.NsHandle) error {
