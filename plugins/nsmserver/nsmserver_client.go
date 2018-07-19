@@ -37,6 +37,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -50,6 +51,9 @@ import (
 const (
 	// nseConnectionTimeout defines a timoute for NSM to succeed connection to NSE (seconds)
 	nseConnectionTimeout = 15 * time.Second
+	// dataplane default socker location
+	// TODO (sbezverk) need to figure out how to make it flexible if it is required
+	dataplaneSocket = "/var/lib/networkservicemesh/dataplane.sock"
 )
 
 type nsmClientEndpoints struct {
@@ -194,6 +198,37 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	}
 	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
 
+	// podName1/podNamespace1 represents nsm client requesting access to a network service
+	podName1 := cr.Metadata.Name
+	podNamespace1 := "default"
+	if cr.Metadata.Namespace != "" {
+		podNamespace1 = cr.Metadata.Namespace
+	}
+
+	// podName2/podNamespace2 represents nse pod
+	podName2 := nseRepl.Metadata.Name
+	podNamespace2 := "default"
+	if cr.Metadata.Namespace != "" {
+		podNamespace2 = cr.Metadata.Namespace
+	}
+
+	if err := connectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
+		n.logger.Error("nsm: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+			podNamespace1,
+			podName1,
+			podNamespace2,
+			podName2,
+			err)
+		return &nsmconnect.ConnectionAccept{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
+				podNamespace1,
+				podName1,
+				podNamespace2,
+				podName2,
+				err),
+		}, status.Error(codes.Aborted, "failed to interconnect pods")
+	}
 	// Simulating sucessfull end
 	n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
 		cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
@@ -206,6 +241,43 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 		Accepted:             true,
 		ConnectionParameters: &nsmconnect.ConnectionParameters{},
 	}, nil
+}
+
+func connectPods(podName1, podName2, podNamespace1, podNamespace2 string) error {
+
+	dataplaneConn, err := tools.SocketOperationCheck(dataplaneSocket)
+	if err != nil {
+		return err
+	}
+	defer dataplaneConn.Close()
+
+	dataplaneClient := simpledataplane.NewBuildConnectClient(dataplaneConn)
+
+	ctx, Cancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer Cancel()
+	buildConnectRequest := &simpledataplane.BuildConnectRequest{
+		SourcePod: &simpledataplane.Pod{
+			Metadata: &common.Metadata{
+				Name:      podName1,
+				Namespace: podNamespace1,
+			},
+		},
+		DestinationPod: &simpledataplane.Pod{
+			Metadata: &common.Metadata{
+				Name:      podName2,
+				Namespace: podNamespace2,
+			},
+		},
+	}
+	buildConnectRepl, err := dataplaneClient.RequestBuildConnect(ctx, buildConnectRequest)
+	if err != nil {
+		if buildConnectRepl != nil {
+			return fmt.Errorf("%+v with additional information: %s", err, buildConnectRepl.BuildError)
+		}
+		return err
+	}
+
+	return nil
 }
 
 func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {

@@ -12,22 +12,18 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/vishvananda/netns"
-
-	"github.com/vishvananda/netlink"
-
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
-
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -74,6 +70,7 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 		podNamespace2 = in.DestinationPod.Metadata.Namespace
 	}
 
+	// TODO (sbezverk) Add ip address check
 	if err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2); err != nil {
 		logrus.Error("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1,
