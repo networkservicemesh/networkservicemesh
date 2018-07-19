@@ -35,9 +35,6 @@ const (
 )
 
 var (
-	// podName1   = flag.String("pod-1", "", "POD name for process 1")
-	// podName2   = flag.String("pod-2", "", "POD name for process 2")
-	// namespace  = flag.String("namespace", "default", "PODs namespace")
 	dataplane  = flag.String("dataplane-scoket", dataplaneSocket, "Location of the dataplane gRPC socket")
 	kubeconfig = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
 )
@@ -56,8 +53,8 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 		logrus.Error("simple-dataplane: missing required pod name")
 		return &simpledataplane.BuildConnectReply{
 			Built:      false,
-			BuildError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v"),
-		}, status.Error(codes.NotFound, "communication failure with NSE")
+			BuildError: fmt.Sprint("missing required name for pod 1"),
+		}, status.Error(codes.NotFound, "missing required pod name")
 	}
 	podNamespace1 := "default"
 	if in.SourcePod.Metadata.Namespace != "" {
@@ -69,8 +66,8 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 		logrus.Error("simple-dataplane: missing required pod name")
 		return &simpledataplane.BuildConnectReply{
 			Built:      false,
-			BuildError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v"),
-		}, status.Error(codes.NotFound, "communication failure with NSE")
+			BuildError: fmt.Sprint("missing required name for pod 2"),
+		}, status.Error(codes.NotFound, "missing required pod name")
 	}
 	podNamespace2 := "default"
 	if in.DestinationPod.Metadata.Namespace != "" {
@@ -78,11 +75,21 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 	}
 
 	if err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2); err != nil {
-		logrus.Error("simple-dataplane: missing required pod name")
+		logrus.Error("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+			podNamespace1,
+			podName1,
+			podNamespace2,
+			podName2,
+			err)
 		return &simpledataplane.BuildConnectReply{
-			Built:      false,
-			BuildError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v"),
-		}, status.Error(codes.NotFound, "communication failure with NSE")
+			Built: false,
+			BuildError: fmt.Sprintf("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+				podNamespace1,
+				podName1,
+				podNamespace2,
+				podName2,
+				err),
+		}, status.Error(codes.Aborted, "failure to interconnect pods")
 	}
 
 	return &simpledataplane.BuildConnectReply{

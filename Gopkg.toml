@@ -54,7 +54,11 @@ required = [
 
 [[override]]
   name = "github.com/vishvananda/netlink"
-  version = "1.0.0"
+  branch = "master"
+
+[[override]]
+  name = "github.com/vishvananda/netns"
+  branch = "master"
 
 [[constraint]]
   branch = "master"

@@ -268,6 +268,21 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/vishvananda/netlink"
+  packages = [
+    ".",
+    "nl"
+  ]
+  revision = "3ac69fdec7a69088e43608251bacd3c92d533085"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vishvananda/netns"
+  packages = ["."]
+  revision = "be1fbeda19366dea804f00efff2dd73a1642fdcc"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
@@ -644,6 +659,10 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
+<<<<<<< HEAD
   inputs-digest = "b8366adb594ac7b405e65e12a96161f4a18fea5705b65564ff26a1fa3a9bb22b"
+=======
+  inputs-digest = "e4c8b7992035b0716eb60137830146c0895ec50ff442f6ca724ad4bccb79301c"
+>>>>>>> Addressing build failure in CI
   solver-name = "gps-cdcl"
   solver-version = 1
