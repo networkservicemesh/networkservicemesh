@@ -1,36 +1,44 @@
 # Getting started with Network Service Mesh
 
-This document illustrates the procedure to install and start network service mesh from a bare bones system.`
+This document illustrates the procedure to install and start network service mesh from a bare bones system.
 
 ## Table of Contents
 1. [Introduction](#"Introduction")
-2. [Set up Virtualization](#"Nested")
-3. [Install on Ubuntu](#"Ubuntu")
-4. [Install on Fedora.](#"Fedora")
-5. [Install pre-requisites](#"prereq")
-6. [Install docker](#"docker")
-7. [Install docker CE](#"dockerCE")
-8. [Install kubernetes](#kube)
-9. [Install virt and kvm](#virt)
-10. [Install kubectl](#kubectl)
-11. [Install golang](#golang)
-12. [Install minikube ](#minikube)
-13. [Install kvm2 driver](#kvm2)
-14. [Install protobuf](#proto)
-15. [Install NSM](#NSM)
-16. [Verify NSM](#NSMverify)
-17. [Manual steps](#Manual)
-18. [TODO](#TODO)
-19. [Credits](#credit)
+2. [Quick Start](#'quick')
+3. [Set up Virtualization](#"Nested')
+4. [Install on Ubuntu](#"Ubuntu")
+5. [Install on Fedora.](#"Fedora")
+6. [Install pre-requisites](#"prereq")
+7. [Install docker](#"docker")
+8. [Install docker CE](#"dockerCE")
+9. [Install kubernetes](#'kube')
+10. [Install virt and kvm](#'virt')
+11. [Install kubectl](#'kubectl')
+12. [Install golang](#'golang')
+13. [Install minikube ](#'minikube')
+14. [Install kvm2 driver](#'kvm2')
+15. [Local docker images](#'Local')
+16. [Install protobuf](#'proto')
+17. [Install NSM](#'NSM')
+18. [Verify NSM](#'NSMverify')
+19. [Simple Make](#'simplemake')
+20. [Run NSM](#'runNSM')
+21. [Manual steps](#'Manual')
+22. [TODO](#'TODO')
+23. [Credits](#'credit')
 
-## Introduction
+## Introduction <a name="Introduction"></a>
 
-For a working example we will launch a VM running kubernetes, and all required packages as well as network service mesh itself. The exam;e starts with launching a VM under Qemu/KVM. You may of course choosse a different hypervisor but those procedures haven't been verified in this document.
+For a working example we will launch a VM running kubernetes, and all required packages as well as network service mesh itself. The exampe starts with launching a VM under Qemu/KVM. You may of course choose a different hypervisor but those procedures haven't been verified in this document.
 
 You may use your favorite distro. In this document we hope to show the procedures for Ubuntu, Centos, Fedora, RHEL, and perhaps others.
 
-The steps here have analogies for other distros.  Also, I used minicube cluster which provides a more interesting case and probably is a closer simulation of what may happen on a "real"
+The steps here have analogies for other distros.  Also, this procedure uses the minikube cluster with the kvm2 docker driver. This may provide a more interesting case and probably is a closer simulation of what may happen on a "real"
  scaled cloud, private or public.
+
+## Quick Start
+
+If you may prefer the fast path straight to running. Assuming you already have a kubernetes cluster, probably minikube installed  and all packages such as golang, docker and kubernetes installed. Once you have installed network service mesh source code, go to straght to [Quick Start](#'quick')
 
 ## Set up Nested Virtualization <a name="Nested"></a>
 
@@ -71,7 +79,7 @@ sudo dnf update -y
 sudo dnf -y groupinstall 'C Development Tools and Libraries'
 sudo dnf install -y yum-utils
 sudo dnf install -y git
-sudo dnf install -y ShellCheck
+sudo dnf install -y ShellCheck pv
 ```
 
 Set selinux to Permissive.
@@ -97,7 +105,7 @@ The current scripts and dockerfiles don't work to well with the older version of
 As an alternative, install from Docker CE upstream. First remove any old versions of docker.
 
 ````
-sudo dnf remove docker \
+sudo dnf remove -y docker \
                   docker-client \
                   docker-client-latest \
                   docker-common \
@@ -289,7 +297,12 @@ You should see:
     ----------------------------------------------------
     1     minikube                       running
 ```
+#### Local docker images <a name="Local"></a>
 
+If have local docker images that havn't been pushed into the docker repo, minikube will be able to "see" yourlocally built docker images if you set the docker environment variables for minikube kubernetes cluster.
+```
+eval $(minikube docker-env)
+```
 ### Install protobuf <a name="proto"></a>
 
 Install Google protobuf packages.
@@ -311,7 +324,7 @@ cd $GOPATH/src
 go get github.com/ligato/networkservicemesh
 ```
 
-### Now finally, Network Service Mesh!
+### Get the code for Network Service Mesh!
 
 Use make from the top level to generate the code, build docker images and install into minikube.
 
@@ -334,11 +347,43 @@ make verify
 make docker-build
 ```
 
-### Run Network Service Mesh
+### Combine above steps. <a name="simplemake"></a>
+
+The default make target will execute all the above steps and verify the code and build the docker images.
 
 ```
 make
 ```
+### Run network service mesh <a name="runNSM"></a>
+
+This step will actually start the Network Service Mesh daemonset into the minikube cluster.
+First, make sure to label the nodes where you want to run the image:
+
+```
+kubectl label --overwrite nodes minikube app=networkservice-node
+```
+#### Now, create the daemonset <a name="quick"></a>
+
+If you already have minikube, docker, golang and the network service mesh code installed, you may start
+NSM in one command. If not, review the steps above.
+
+```
+kubectl create -f conf/sample/networkservice-daemonset.yaml
+
+```
+
+Now you should be able to see your Network Service Mesh daemonset running:
+
+```
+cd $GOPATH/github.com/ligato/networkservicemesh
+kubectl get pods
+```
+You should see:
+```
+NAME                   READY     STATUS    RESTARTS   AGE
+networkservice-x5k9s   1/1       Running   0          5h
+```
+
 
 ## "Manual" execution using scripts and lower level commands <a name="Manual"></a>
 
