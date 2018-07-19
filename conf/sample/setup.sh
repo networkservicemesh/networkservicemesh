@@ -16,8 +16,14 @@ kubectl create -f conf/sample/networkservice-channel.yaml
 # Create the endpoints
 kubectl create -f conf/sample/networkservice-endpoint.yaml
 
-# Finally, create the network service
+# Create the network service
 kubectl create -f conf/sample/networkservice.yaml
+
+# Now create the NSE
+kubectl create -f conf/sample/nse.yaml
+
+# Now create the client
+kubectl create -f conf/sample/nsm-client.yaml
 
 # Dump some info
 kubectl get pods,crd,NetworkService,NetworkServiceChannel,NetworkServiceEndpoint
