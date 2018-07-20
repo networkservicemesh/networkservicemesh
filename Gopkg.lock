@@ -272,7 +272,8 @@
     ".",
     "nl"
   ]
-  revision = "f67b75edbf5e3bb7dfe70bb788610693a71be3d1"
+  revision = "a2ad57a690f3caf3015351d2d6e1c0b95c349752"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/vishvananda/netns"
@@ -657,6 +658,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9e62b7e21c399c6e30756a18ba37b6868a8f3c8f8d6186a549b4c63eb5b14478"
+  inputs-digest = "78a6ef00d4f3ce8eb52e3dc392e5629268ed4d46d3316f151a8312b9495ae5fd"
   solver-name = "gps-cdcl"
   solver-version = 1

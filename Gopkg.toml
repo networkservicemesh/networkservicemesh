@@ -53,11 +53,6 @@ required = [
   revision = "7d6f385de8bea29190f15ba9931442a0eaef9af7"
 
 [[override]]
-  name = "github.com/vishvananda/netlink"
-  # revision is set because verioned release is missing 2 important fixes
-  revision = "f67b75edbf5e3bb7dfe70bb788610693a71be3d1"
-
-[[override]]
   name = "github.com/vishvananda/netns"
   # revision is set because verioned release is missing 2 important fixes
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
