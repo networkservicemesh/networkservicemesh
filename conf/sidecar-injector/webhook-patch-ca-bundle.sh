@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Copyright (c) 2018 Cisco and/or its affiliates.
+# Copyright 2018 vArmour Networks.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +21,4 @@ set -o pipefail
 
 CA_BUNDLE=$(kubectl get configmap -n kube-system extension-apiserver-authentication -o=jsonpath='{.data.client-ca-file}' | base64 | tr -d '\n')
 
-if command -v envsubst >/dev/null 2>&1; then
-    envsubst
-else
-    sed -e "s|\${CA_BUNDLE}|${CA_BUNDLE}|g"
-fi
+sed -e "s|\${CA_BUNDLE}|${CA_BUNDLE}|g"

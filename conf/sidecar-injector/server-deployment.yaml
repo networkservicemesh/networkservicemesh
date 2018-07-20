@@ -14,8 +14,8 @@ spec:
       serviceAccountName: nsm-service-account
       containers:
         - name: sidecar-injector
-          image: prateekgogia/sidecar-injector:latest
-          imagePullPolicy: Always
+          image: networkservicemesh/sidecar-injector:latest
+          imagePullPolicy: IfNotPresent
           args:
             - -sidecarCfgFile=/etc/webhook/config/sidecarconfig.yaml
             - -tlsCertFile=/etc/webhook/certs/cert.pem

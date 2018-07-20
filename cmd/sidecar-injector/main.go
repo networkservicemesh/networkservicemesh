@@ -1,4 +1,5 @@
 // Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018 vArmour Networks.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +17,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -27,21 +27,29 @@ import (
 	"syscall"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	injector "github.com/ligato/networkservicemesh/pkg/sidecarinjector"
+	"github.com/ligato/networkservicemesh/plugins/logger"
+)
+
+const (
+	loggerName        = "sidecarInjector"
+	serverPort        = 443
+	webhookCertPath   = "/etc/webhook/certs/cert.pem"
+	webhookKeyPath    = "/etc/webhook/certs/key.pem"
+	sidecarConfigPath = "/etc/webhook/config/sidecarconfig.yaml"
 )
 
 func main() {
 
-	port := flag.Int("port", 443, "Webhook server port")
-	cert := flag.String("tlsCertFile", "/etc/webhook/certs/cert.pem", "File containing the x509 Certificate for HTTPS.")
-	key := flag.String("tlsKeyFile", "/etc/webhook/certs/key.pem", "File containing the x509 private key to --tlsCertFile.")
-	sidecarConfig := flag.String("sidecarCfgFile", "/etc/webhook/config/sidecarconfig.yaml", "File containing the mutation configuration.")
+	port := flag.Int("port", serverPort, "Webhook server port")
+	cert := flag.String("tlsCertFile", webhookCertPath, "File containing the x509 Certificate for HTTPS.")
+	key := flag.String("tlsKeyFile", webhookKeyPath, "File containing the x509 private key to --tlsCertFile.")
+	sidecarConfig := flag.String("sidecarCfgFile", sidecarConfigPath, "File containing the mutation configuration.")
 	flag.Parse()
 
 	pair, err := tls.LoadX509KeyPair(*cert, *key)
 	if err != nil {
-		glog.Fatalf("Failed to load key pair: %v", err)
+		panic(fmt.Sprintf("Failed to load key pair: %v", err))
 	}
 
 	server := injector.Server{
@@ -50,22 +58,23 @@ func main() {
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
 		SideCarConfigFile: *sidecarConfig,
+		Log:               logger.ByName(loggerName),
 	}
 
 	if server.SideCarConfig, err = loadConfig(server.SideCarConfigFile); err != nil {
-		glog.Fatalf("Failed to load config file %v err %v", server.SideCarConfigFile, err)
+		server.Log.Fatalf("Failed to load config file %v err %v", server.SideCarConfigFile, err)
 	}
 
 	go func() {
 		if err := server.Start(); err != nil {
-			glog.Fatalf("Failed to start injector server err %v\n", err)
+			server.Log.Fatalf("Failed to start injector server err %v\n", err)
 		}
 	}()
 
 	// blocking call
 	handleExitSignal()
 
-	glog.Info("Exit signal received clean up")
+	server.Log.Info("Exit signal received clean up")
 	server.Server.Shutdown(context.Background())
 }
 
@@ -81,12 +90,9 @@ func loadConfig(configFile string) (*injector.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("New configuration: sha256sum %x", sha256.Sum256(data))
-
 	cfg := &injector.Config{}
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, err
 	}
-
 	return cfg, nil
 }

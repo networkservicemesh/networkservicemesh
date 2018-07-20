@@ -1,4 +1,5 @@
 // Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018 vArmour Networks.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +19,6 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/golang/glog"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,9 +42,8 @@ type patchOperation struct {
 func (s *Server) mutate(r *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	var pod corev1.Pod
-	glog.Infof("Request received is %#v\n", string(r.Request.Object.Raw))
 	if err := json.Unmarshal(r.Request.Object.Raw, &pod); err != nil {
-		glog.Errorf("Failed to unmarshal pod object: %v", err)
+		s.Log.Errorf("Failed to unmarshal pod object: %v", err)
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
@@ -52,19 +51,19 @@ func (s *Server) mutate(r *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 		}
 	}
 
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	s.Log.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		r.Request.Kind, r.Request.Namespace, r.Request.Name, pod.Name,
 		r.Request.UID, r.Request.Operation, r.Request.UserInfo)
 
 	// determine whether to perform mutation
 	if !mutationRequired(&pod.ObjectMeta) {
-		glog.Infof("Skipping mutation for %s/%s due to policy check",
+		s.Log.Infof("Skipping mutation for %s/%s due to policy check",
 			r.Request.Namespace, pod.GenerateName)
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
-	glog.Infof("Mutation required for %v/%v", r.Request.Namespace, pod.GenerateName)
+	s.Log.Infof("Mutation required for %v/%v", r.Request.Namespace, pod.GenerateName)
 
 	annotations := map[string]string{admissionWebhookAnnotationStatusKey: "injected"}
 	patchBytes, err := createPatch(&pod, s.SideCarConfig, annotations)
@@ -76,7 +75,7 @@ func (s *Server) mutate(r *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 		}
 	}
 
-	glog.Infof("AdmissionResponse: patch=%v\n", string(patchBytes))
+	s.Log.Infof("AdmissionResponse: patch=%v\n", string(patchBytes))
 	return &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,

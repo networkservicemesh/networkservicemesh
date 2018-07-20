@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Copyright (c) 2018 Cisco and/or its affiliates.
+# Copyright 2018 vArmour Networks.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -123,7 +124,7 @@ done
 kubectl certificate approve ${csrName}
 # verify certificate has been signed
 for ((i=1;i<=20;i++)); do
-    serverCert=$(kubectl get csr ${csrName} -o jsonpath='{.status.certificate}')
+    serverCert=$(kubectl get csr sidecar-injector-webhook-svc.default -o jsonpath='{.status.certificate}')
     if [[ ${serverCert} != '' ]]; then
         break
     fi

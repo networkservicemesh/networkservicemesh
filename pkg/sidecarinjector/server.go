@@ -1,4 +1,5 @@
 // Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018 vArmour Networks.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +21,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/glog"
+	"github.com/ligato/networkservicemesh/plugins/logger"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +34,8 @@ type Server struct {
 	SideCarConfigFile string
 
 	SideCarConfig *Config
+
+	Log logger.FieldLoggerPlugin
 }
 
 var (
@@ -57,14 +60,14 @@ func (s *Server) Start() error {
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		glog.Errorf("Failed to read HTTP req body err %v\n", err)
+		s.Log.Errorf("Failed to read HTTP req body err %v\n", err)
 		return
 	}
 
 	// verify content type
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		glog.Errorf("Content-Type=%s, expect application/json", contentType)
+		s.Log.Errorf("Content-Type=%s, expect application/json", contentType)
 		http.Error(w, "invalid Content-Type, expect `application/json`", http.StatusUnsupportedMediaType)
 		return
 	}
@@ -72,7 +75,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	admissionResponse := &v1beta1.AdmissionResponse{}
 	review := &v1beta1.AdmissionReview{}
 	if _, _, err := deserializer.Decode(body, nil, review); err != nil {
-		glog.Errorf("Can't decode body: %v", err)
+		s.Log.Errorf("Can't decode body: %v", err)
 		admissionResponse = &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
@@ -92,12 +95,12 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(admissionReview)
 	if err != nil {
-		glog.Errorf("Failed to encode response: %v", err)
+		s.Log.Errorf("Failed to encode response: %v", err)
 		http.Error(w, fmt.Sprintf("failed to encode response: %v", err), http.StatusInternalServerError)
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		glog.Errorf("Failed to write response: %v", err)
+		s.Log.Errorf("Failed to write response: %v", err)
 		http.Error(w, fmt.Sprintf("failed to write response: %v", err), http.StatusInternalServerError)
 	}
 }
