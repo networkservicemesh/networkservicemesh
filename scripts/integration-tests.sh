@@ -62,6 +62,7 @@ function run_tests() {
     # Starting nse pod which will advertise a channel for gold-network
     # network service
     kubectl create -f conf/sample/nse.yaml
+    kubectl create -f conf/sample/simple-dataplane.yaml
     wait_for_pods default
  
     #
@@ -78,6 +79,12 @@ function run_tests() {
         return "${exit_ret}"
     fi
 
+    #
+    # Let's check connectivity between nsm-client and nse
+    #
+    nsm_pod_name="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')"
+    nsm_pod_namespace="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $1}')"
+    kubectl exec "$nsm_pod_name" -n "$nsm_pod_namespace" -- ping 1.1.1.2 -c 5
     #
     # Final log collection
     #

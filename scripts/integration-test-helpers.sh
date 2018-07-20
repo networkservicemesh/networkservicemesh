@@ -115,6 +115,12 @@ function error_collection() {
         kubectl logs "$nse" -n "$namespace"  || true
         kubectl logs "$nse" -n "$namespace"  -p || true
     fi    
+    dataplane=$(kubectl get pods --all-namespaces | grep simple-dataplane | awk '{print $2}')
+    if [[ "x$dataplane" != "x" ]]; then 
+        kubectl describe pod "$dataplane" -n "$namespace" || true
+        kubectl logs "$dataplane" -n "$namespace"  || true
+        kubectl logs "$dataplane" -n "$namespace"  -p || true
+    fi 
     sudo docker images
 }
 
