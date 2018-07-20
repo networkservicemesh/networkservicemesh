@@ -52,21 +52,39 @@ spec:
       labels:
         app: simple-dataplane
     spec:
+      hostNetwork: True
+      hostPID: True
       serviceAccount: simple-dataplane
       containers:
         - name: simple-dataplane
           image: ligato/networkservicemesh/simple-dataplane:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN"]
           args:
           - --dataplane-socket=/var/lib/networkservicemesh/dataplane.sock
           volumeMounts:
           - name: dataplane-socket
             mountPath: /var/lib/networkservicemesh
+          - name: run
+            mountPath: /var/run
+          - name: sys
+            mountPath: /sys
       volumes:
       - hostPath:
           path: /var/lib/networkservicemesh
           type: DirectoryOrCreate
         name: dataplane-socket
+      - hostPath:
+          path: /var/run
+          type: DirectoryOrCreate
+        name: run
+      - hostPath:
+          path: /sys
+          type: DirectoryOrCreate
+        name: sys
 metadata:
    name: simple-dataplane
    namespace: default

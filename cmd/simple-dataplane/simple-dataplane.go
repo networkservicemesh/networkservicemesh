@@ -70,9 +70,14 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 		podNamespace2 = in.DestinationPod.Metadata.Namespace
 	}
 
+	logrus.Infof("simple-dataplane: attempting to interconnect pods %s/%s and %s/%s",
+		podNamespace1,
+		podName1,
+		podNamespace2,
+		podName2)
 	// TODO (sbezverk) Add ip address check
 	if err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2); err != nil {
-		logrus.Error("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+		logrus.Errorf("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1,
 			podName1,
 			podNamespace2,
@@ -257,7 +262,7 @@ func main() {
 	// Check if the socket of device plugin server is operation
 	testSocket, err := tools.SocketOperationCheck(socket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", socket, err)
+		logrus.Fatalf("simple-dataplane: failure to communicate with the socket %s with error: %+v", socket, err)
 	}
 	testSocket.Close()
 
