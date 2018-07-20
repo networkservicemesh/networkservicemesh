@@ -59,7 +59,7 @@ type Injector interface {
 // ListPluginsInFlavor lists plugins in a Flavor.
 // It extracts all plugins and returns them as a slice of NamedPlugins.
 func ListPluginsInFlavor(flavor Flavor) (plugins []*NamedPlugin) {
-	uniqueness := map[Plugin] /*nil*/ interface{}{}
+	uniqueness := map[Plugin]interface{}{}
 	l, err := listPluginsInFlavor(reflect.ValueOf(flavor), uniqueness)
 	if err != nil {
 		flavorLogger.Error("Invalid argument - it does not satisfy the Flavor interface")
@@ -77,7 +77,7 @@ func ListPluginsInFlavor(flavor Flavor) (plugins []*NamedPlugin) {
 // satisfy the Flavor interface. All components in the argument flavorValue
 // must satisfy either the Plugin or the Flavor interface. If they do not,
 // an error is logged, but the function does not return an error.
-func listPluginsInFlavor(flavorValue reflect.Value, uniqueness map[Plugin] /*nil*/ interface{}) ([]*NamedPlugin, error) {
+func listPluginsInFlavor(flavorValue reflect.Value, uniqueness map[Plugin]interface{}) ([]*NamedPlugin, error) {
 	flavorLogger.Debug("inspect flavor structure ", flavorValue.Type())
 
 	var res []*NamedPlugin

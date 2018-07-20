@@ -17,13 +17,16 @@ package logrus
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sync"
 
-	"regexp"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ligato/cn-infra/logging"
-	"github.com/sirupsen/logrus"
 )
+
+// DefaultRegistry is a default logging registry
+var DefaultRegistry logging.Registry
 
 var initialLogLvl = logrus.InfoLevel
 
@@ -36,6 +39,7 @@ func init() {
 			defaultLogger.Debugf("initial log level: %v", lvl.String())
 		}
 	}
+	DefaultRegistry = NewLogRegistry()
 }
 
 // NewLogRegistry is a constructor

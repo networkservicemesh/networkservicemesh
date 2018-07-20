@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"syscall"
 
 	"github.com/vishvananda/netlink/nl"
 	"github.com/vishvananda/netns"
@@ -65,11 +64,7 @@ func (h *Handle) addrHandle(link Link, addr *Addr, req *nl.NetlinkRequest) error
 	msg := nl.NewIfAddrmsg(family)
 	msg.Index = uint32(base.Index)
 	msg.Scope = uint8(addr.Scope)
-	mask := addr.Mask
-	if addr.Peer != nil {
-		mask = addr.Peer.Mask
-	}
-	prefixlen, masklen := mask.Size()
+	prefixlen, masklen := addr.Mask.Size()
 	msg.Prefixlen = uint8(prefixlen)
 	req.AddData(msg)
 
@@ -107,31 +102,18 @@ func (h *Handle) addrHandle(link Link, addr *Addr, req *nl.NetlinkRequest) error
 		}
 	}
 
-	if family == FAMILY_V4 {
-		if addr.Broadcast == nil {
-			calcBroadcast := make(net.IP, masklen/8)
-			for i := range localAddrData {
-				calcBroadcast[i] = localAddrData[i] | ^mask[i]
-			}
-			addr.Broadcast = calcBroadcast
+	if addr.Broadcast == nil {
+		calcBroadcast := make(net.IP, masklen/8)
+		for i := range localAddrData {
+			calcBroadcast[i] = localAddrData[i] | ^addr.Mask[i]
 		}
-		req.AddData(nl.NewRtAttr(unix.IFA_BROADCAST, addr.Broadcast))
-
-		if addr.Label != "" {
-			labelData := nl.NewRtAttr(unix.IFA_LABEL, nl.ZeroTerminated(addr.Label))
-			req.AddData(labelData)
-		}
+		addr.Broadcast = calcBroadcast
 	}
+	req.AddData(nl.NewRtAttr(unix.IFA_BROADCAST, addr.Broadcast))
 
-	// 0 is the default value for these attributes. However, 0 means "expired", while the least-surprising default
-	// value should be "forever". To compensate for that, only add the attributes if at least one of the values is
-	// non-zero, which means the caller has explicitly set them
-	if addr.ValidLft > 0 || addr.PreferedLft > 0 {
-		cachedata := nl.IfaCacheInfo{
-			IfaValid:    uint32(addr.ValidLft),
-			IfaPrefered: uint32(addr.PreferedLft),
-		}
-		req.AddData(nl.NewRtAttr(unix.IFA_CACHEINFO, cachedata.Serialize()))
+	if addr.Label != "" {
+		labelData := nl.NewRtAttr(unix.IFA_LABEL, nl.ZeroTerminated(addr.Label))
+		req.AddData(labelData)
 	}
 
 	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
@@ -210,17 +192,13 @@ func parseAddr(m []byte) (addr Addr, family, index int, err error) {
 				IP:   attr.Value,
 				Mask: net.CIDRMask(int(msg.Prefixlen), 8*len(attr.Value)),
 			}
+			addr.Peer = dst
 		case unix.IFA_LOCAL:
-			// iproute2 manual:
-			// If a peer address is specified, the local address
-			// cannot have a prefix length. The network prefix is
-			// associated with the peer rather than with the local
-			// address.
-			n := 8 * len(attr.Value)
 			local = &net.IPNet{
 				IP:   attr.Value,
-				Mask: net.CIDRMask(n, n),
+				Mask: net.CIDRMask(int(msg.Prefixlen), 8*len(attr.Value)),
 			}
+			addr.IPNet = local
 		case unix.IFA_BROADCAST:
 			addr.Broadcast = attr.Value
 		case unix.IFA_LABEL:
@@ -234,24 +212,12 @@ func parseAddr(m []byte) (addr Addr, family, index int, err error) {
 		}
 	}
 
-	// libnl addr.c comment:
-	// IPv6 sends the local address as IFA_ADDRESS with no
-	// IFA_LOCAL, IPv4 sends both IFA_LOCAL and IFA_ADDRESS
-	// with IFA_ADDRESS being the peer address if they differ
-	//
-	// But obviously, as there are IPv6 PtP addresses, too,
-	// IFA_LOCAL should also be handled for IPv6.
+	// IFA_LOCAL should be there but if not, fall back to IFA_ADDRESS
 	if local != nil {
-		if family == FAMILY_V4 && local.IP.Equal(dst.IP) {
-			addr.IPNet = dst
-		} else {
-			addr.IPNet = local
-			addr.Peer = dst
-		}
+		addr.IPNet = local
 	} else {
 		addr.IPNet = dst
 	}
-
 	addr.Scope = int(msg.Scope)
 
 	return
@@ -270,13 +236,13 @@ type AddrUpdate struct {
 // AddrSubscribe takes a chan down which notifications will be sent
 // when addresses change.  Close the 'done' chan to stop subscription.
 func AddrSubscribe(ch chan<- AddrUpdate, done <-chan struct{}) error {
-	return addrSubscribeAt(netns.None(), netns.None(), ch, done, nil, false)
+	return addrSubscribeAt(netns.None(), netns.None(), ch, done, nil)
 }
 
 // AddrSubscribeAt works like AddrSubscribe plus it allows the caller
 // to choose the network namespace in which to subscribe (ns).
 func AddrSubscribeAt(ns netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct{}) error {
-	return addrSubscribeAt(ns, netns.None(), ch, done, nil, false)
+	return addrSubscribeAt(ns, netns.None(), ch, done, nil)
 }
 
 // AddrSubscribeOptions contains a set of options to use with
@@ -284,7 +250,6 @@ func AddrSubscribeAt(ns netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct
 type AddrSubscribeOptions struct {
 	Namespace     *netns.NsHandle
 	ErrorCallback func(error)
-	ListExisting  bool
 }
 
 // AddrSubscribeWithOptions work like AddrSubscribe but enable to
@@ -295,10 +260,10 @@ func AddrSubscribeWithOptions(ch chan<- AddrUpdate, done <-chan struct{}, option
 		none := netns.None()
 		options.Namespace = &none
 	}
-	return addrSubscribeAt(*options.Namespace, netns.None(), ch, done, options.ErrorCallback, options.ListExisting)
+	return addrSubscribeAt(*options.Namespace, netns.None(), ch, done, options.ErrorCallback)
 }
 
-func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct{}, cberr func(error), listExisting bool) error {
+func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct{}, cberr func(error)) error {
 	s, err := nl.SubscribeAt(newNs, curNs, unix.NETLINK_ROUTE, unix.RTNLGRP_IPV4_IFADDR, unix.RTNLGRP_IPV6_IFADDR)
 	if err != nil {
 		return err
@@ -308,15 +273,6 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 			<-done
 			s.Close()
 		}()
-	}
-	if listExisting {
-		req := pkgHandle.newNetlinkRequest(unix.RTM_GETADDR,
-			unix.NLM_F_DUMP)
-		infmsg := nl.NewIfInfomsg(unix.AF_UNSPEC)
-		req.AddData(infmsg)
-		if err := s.Send(req); err != nil {
-			return err
-		}
 	}
 	go func() {
 		defer close(ch)
@@ -329,20 +285,6 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 				return
 			}
 			for _, m := range msgs {
-				if m.Header.Type == unix.NLMSG_DONE {
-					continue
-				}
-				if m.Header.Type == unix.NLMSG_ERROR {
-					native := nl.NativeEndian()
-					error := int32(native.Uint32(m.Data[0:4]))
-					if error == 0 {
-						continue
-					}
-					if cberr != nil {
-						cberr(syscall.Errno(-error))
-					}
-					return
-				}
 				msgType := m.Header.Type
 				if msgType != unix.RTM_NEWADDR && msgType != unix.RTM_DELADDR {
 					if cberr != nil {

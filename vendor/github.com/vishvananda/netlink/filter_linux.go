@@ -172,15 +172,6 @@ func (h *Handle) FilterAdd(filter Filter) error {
 		if filter.ClassId != 0 {
 			nl.NewRtAttrChild(options, nl.TCA_U32_CLASSID, nl.Uint32Attr(filter.ClassId))
 		}
-		if filter.Divisor != 0 {
-			if (filter.Divisor-1)&filter.Divisor != 0 {
-				return fmt.Errorf("illegal divisor %d. Must be a power of 2.", filter.Divisor)
-			}
-			nl.NewRtAttrChild(options, nl.TCA_U32_DIVISOR, nl.Uint32Attr(filter.Divisor))
-		}
-		if filter.Hash != 0 {
-			nl.NewRtAttrChild(options, nl.TCA_U32_HASH, nl.Uint32Attr(filter.Hash))
-		}
 		actionsAttr := nl.NewRtAttrChild(options, nl.TCA_U32_ACT, nil)
 		// backwards compatibility
 		if filter.RedirIndex != 0 {
@@ -231,14 +222,6 @@ func (h *Handle) FilterAdd(filter Filter) error {
 			bpfFlags |= nl.TCA_BPF_FLAG_ACT_DIRECT
 		}
 		nl.NewRtAttrChild(options, nl.TCA_BPF_FLAGS, nl.Uint32Attr(bpfFlags))
-	case *MatchAll:
-		actionsAttr := nl.NewRtAttrChild(options, nl.TCA_MATCHALL_ACT, nil)
-		if err := EncodeActions(actionsAttr, filter.Actions); err != nil {
-			return err
-		}
-		if filter.ClassId != 0 {
-			nl.NewRtAttrChild(options, nl.TCA_MATCHALL_CLASSID, nl.Uint32Attr(filter.ClassId))
-		}
 	}
 
 	req.AddData(options)
@@ -305,8 +288,6 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 					filter = &Fw{}
 				case "bpf":
 					filter = &BpfFilter{}
-				case "matchall":
-					filter = &MatchAll{}
 				default:
 					filter = &GenericFilter{FilterType: filterType}
 				}
@@ -328,11 +309,6 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 					}
 				case "bpf":
 					detailed, err = parseBpfData(filter, data)
-					if err != nil {
-						return nil, err
-					}
-				case "matchall":
-					detailed, err = parseMatchAllData(filter, data)
 					if err != nil {
 						return nil, err
 					}
@@ -509,10 +485,6 @@ func parseU32Data(filter Filter, data []syscall.NetlinkRouteAttr) (bool, error) 
 			}
 		case nl.TCA_U32_CLASSID:
 			u32.ClassId = native.Uint32(datum.Value)
-		case nl.TCA_U32_DIVISOR:
-			u32.Divisor = native.Uint32(datum.Value)
-		case nl.TCA_U32_HASH:
-			u32.Hash = native.Uint32(datum.Value)
 		}
 	}
 	return detailed, nil
@@ -563,28 +535,6 @@ func parseBpfData(filter Filter, data []syscall.NetlinkRouteAttr) (bool, error) 
 			flags := native.Uint32(datum.Value[0:4])
 			if (flags & nl.TCA_BPF_FLAG_ACT_DIRECT) != 0 {
 				bpf.DirectAction = true
-			}
-		}
-	}
-	return detailed, nil
-}
-
-func parseMatchAllData(filter Filter, data []syscall.NetlinkRouteAttr) (bool, error) {
-	native = nl.NativeEndian()
-	matchall := filter.(*MatchAll)
-	detailed := true
-	for _, datum := range data {
-		switch datum.Attr.Type {
-		case nl.TCA_MATCHALL_CLASSID:
-			matchall.ClassId = native.Uint32(datum.Value[0:4])
-		case nl.TCA_MATCHALL_ACT:
-			tables, err := nl.ParseRouteAttr(datum.Value)
-			if err != nil {
-				return detailed, err
-			}
-			matchall.Actions, err = parseActions(tables)
-			if err != nil {
-				return detailed, err
 			}
 		}
 	}
