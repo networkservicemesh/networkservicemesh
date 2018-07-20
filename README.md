@@ -30,4 +30,5 @@ We encourage discussion on our mailing list and IRC channel and accept pull requ
 * IRC Channel - #networkservicemesh on freenode
 
 ### Documentation
+- [What is Network Service Mesh](/docs/What-is-nsm.md)
 * [Documentation](/docs/README.md)
