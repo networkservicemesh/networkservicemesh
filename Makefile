@@ -53,7 +53,7 @@ check:
 verify:
 	@./scripts/verify-codegen.sh
 
-docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse
+docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-simple-dataplane
 
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
