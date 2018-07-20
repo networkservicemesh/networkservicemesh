@@ -213,7 +213,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	}
 
 	if err := connectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
-		n.logger.Error("nsm: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+		n.logger.Errorf("nsm: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1,
 			podName1,
 			podNamespace2,

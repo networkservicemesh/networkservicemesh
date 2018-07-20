@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,7 +28,8 @@ import (
 )
 
 const (
-	dataplaneSocket = "/var/lib/networkservicemesh/dataplane.sock"
+	dataplaneSocket        = "/var/lib/networkservicemesh/dataplane.sock"
+	interfaceNameMaxLength = 15
 )
 
 var (
@@ -133,11 +135,26 @@ func getContainerID(k8s *kubernetes.Clientset, pn, ns string) (string, error) {
 
 	for _, p := range pl.Items {
 		if strings.HasPrefix(p.ObjectMeta.Name, pn) {
-			return strings.Split(p.Status.ContainerStatuses[0].ContainerID, "://")[1][:12], nil
+			// Two cases main container is in Running state and in Pending
+			// Pending can inidcate that Init container is still running
+			if p.Status.Phase == v1.PodRunning {
+				return strings.Split(p.Status.ContainerStatuses[0].ContainerID, "://")[1][:12], nil
+			}
+			if p.Status.Phase == v1.PodPending {
+				// Check if we have Init containers
+				if p.Status.InitContainerStatuses != nil {
+					for _, i := range p.Status.InitContainerStatuses {
+						if i.State.Running != nil {
+							return strings.Split(i.ContainerID, "://")[1][:12], nil
+						}
+					}
+				}
+			}
+			return "", fmt.Errorf("simple-dataplane: none of containers of pod %s/%s is in running state", p.ObjectMeta.Namespace, p.ObjectMeta.Name)
 		}
 	}
 
-	return "", nil
+	return "", fmt.Errorf("simple-dataplane: pod %s/%s not found", ns, pn)
 }
 
 func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
@@ -147,6 +164,12 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	}
 	defer netns.Set(ns)
 
+	if len(p1) > interfaceNameMaxLength {
+		p1 = p1[:interfaceNameMaxLength]
+	}
+	if len(p2) > interfaceNameMaxLength {
+		p2 = p2[:interfaceNameMaxLength]
+	}
 	linkAttr := netlink.NewLinkAttrs()
 	linkAttr.Name = p2
 	veth := &netlink.Veth{
@@ -190,6 +213,13 @@ func setVethAddr(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	var addr2 = &net.IPNet{IP: net.IPv4(1, 1, 1, 2), Mask: net.CIDRMask(30, 32)}
 	var vethAddr1 = &netlink.Addr{IPNet: addr1, Peer: addr2}
 	var vethAddr2 = &netlink.Addr{IPNet: addr2, Peer: addr1}
+
+	if len(p1) > interfaceNameMaxLength {
+		p1 = p1[:interfaceNameMaxLength]
+	}
+	if len(p2) > interfaceNameMaxLength {
+		p2 = p2[:interfaceNameMaxLength]
+	}
 
 	ns, err := netns.Get()
 	if err != nil {
