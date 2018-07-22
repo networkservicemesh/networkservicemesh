@@ -128,3 +128,18 @@ func TestCheck(t *testing.T) {
 	}
 	Expect(deptools.Check(p)).To(Succeed())
 }
+
+type DepsWithName struct {
+	Name string
+}
+
+type PluginDepsWithName struct {
+	id1.Impl
+	Deps DepsWithName
+}
+
+func TestCheckDepsWithName(t *testing.T) {
+	RegisterTestingT(t)
+	p := &PluginDepsWithName{}
+	Expect(deptools.Check(p)).ToNot(Succeed())
+}
