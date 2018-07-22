@@ -17,8 +17,11 @@
 package finalizer
 
 import (
+	"fmt"
 	"reflect"
 
+	"k8s.io/api/core/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -63,6 +66,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 				// This is a soft-error
 				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
 				queue.Forget(message)
+				utilruntime.HandleError(err)
 				return
 			}
 
@@ -73,14 +77,49 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			switch message.(objectMessage).operation {
 			case deleteOp:
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-
-				plugin.Log.Infof("><SB> Got delete event for object type %+s", reflect.TypeOf(message.(objectMessage).obj))
-				plugin.ObjectStore.ObjectDeleted(message.(objectMessage).obj)
+				if err := cleanUp(plugin, message.(objectMessage).obj); err != nil {
+					plugin.Log.Errorf("object clean up failed with error: %+v", err)
+				} else {
+					plugin.Log.Infof("object clean up successful %s/%s", namespace, name)
+				}
 			}
-
-			// As we managed to process this successfully, we can forget it
-			// from the work queue altogether.
 			queue.Forget(message)
 		}(strKey)
 	}
+}
+
+func cleanUp(plugin *Plugin, obj interface{}) error {
+
+	//plugin.ObjectStore.ObjectDeleted(message.(objectMessage).obj)
+	var err error
+	pod, ok := obj.(*v1.Pod)
+	if !ok {
+		return fmt.Errorf("object is not a pod, but is %s, stopping clean up", reflect.TypeOf(obj))
+	}
+	label, ok := pod.ObjectMeta.Labels[nsmAppLabel]
+	if !ok {
+		return fmt.Errorf("pod %s/%s is missing %s label, stopping cleanup", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel)
+	}
+	plugin.Log.Infof("found nsm pod %s/%s with label: %s : %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel, label)
+
+	switch label {
+	case nsmAppNSE:
+		err = cleanUpNSE(plugin, pod)
+	case nsmAppClient:
+		err = cleanUpNSMClient(plugin, pod)
+	default:
+		return fmt.Errorf("found nsm pod %s/%s with unknown app label: %s : %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel, label)
+	}
+	return err
+}
+
+func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
+	plugin.Log.Infof("cleanup requested for NSE pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+
+	return nil
+}
+
+func cleanUpNSMClient(plugin *Plugin, pod *v1.Pod) error {
+	plugin.Log.Infof("cleanup requested for NSM Client pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	return nil
 }

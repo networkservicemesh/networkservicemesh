@@ -38,6 +38,14 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
+const (
+	// Label to select pods treated by NSM controller
+	nsmLabel     = "networkservicemesh.io"
+	nsmAppLabel  = "networkservicemesh.io/app"
+	nsmAppNSE    = "nse"
+	nsmAppClient = "nsm-client"
+)
+
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
 // data store.
 type Plugin struct {
@@ -124,9 +132,11 @@ func (plugin *Plugin) afterInit() error {
 	plugin.informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.LabelSelector = nsmLabel + "=true"
 				return plugin.k8sClientset.CoreV1().Pods(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.LabelSelector = nsmLabel + "=true"
 				return plugin.k8sClientset.CoreV1().Pods(metav1.NamespaceAll).Watch(options)
 			},
 		},
