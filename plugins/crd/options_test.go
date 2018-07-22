@@ -21,6 +21,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/plugins/crd"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 )
 
 func TestSharedPlugin(t *testing.T) {
@@ -58,4 +59,12 @@ func TestNonDefaultName(t *testing.T) {
 	plugin := crd.NewPlugin(crd.UseDeps(&crd.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
 	Expect(deptools.Check(plugin)).To(Succeed())
+}
+
+func TestWithRegistry(t *testing.T) {
+	name := "foo"
+	p1 := crd.NewPlugin()
+	p2 := crd.NewPlugin()
+	p3 := crd.NewPlugin(crd.UseDeps(&crd.Deps{Name: name}))
+	testsuites.SuiteRegistry(t, p1, p2, p3)
 }

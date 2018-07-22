@@ -15,12 +15,10 @@
 package nsmcommand
 
 import (
-	"reflect"
-	"sync"
-
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/command"
+	"github.com/ligato/networkservicemesh/utils/registry"
 
 	"github.com/ligato/networkservicemesh/plugins/crd"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -34,13 +32,9 @@ const (
 // Option acts on a Plugin in order to set its Deps or Config
 type Option func(*Plugin)
 
-var sharedPlugins []*Plugin
-var sharedPluginLock sync.Mutex
-
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
 	p := newPlugin(opts...)
-	sharedPlugins = append(sharedPlugins, p)
 	return p
 }
 
@@ -57,23 +51,7 @@ func newPlugin(opts ...Option) *Plugin {
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
 	p := newPlugin(opts...)
-	sharedPluginLock.Lock()
-	defer sharedPluginLock.Unlock()
-	_, plug := p.findSharedPlugin()
-	if plug != nil {
-		return plug
-	}
-	sharedPlugins = append(sharedPlugins, p)
-	return p
-}
-
-func (p *Plugin) findSharedPlugin() (int, *Plugin) {
-	for i, value := range sharedPlugins {
-		if reflect.DeepEqual(p.Deps, value.Deps) {
-			return i, value
-		}
-	}
-	return -1, nil
+	return registry.Shared().LoadOrStore(p).(*Plugin)
 }
 
 // UseDeps creates an Option to set the Deps for a Plugin

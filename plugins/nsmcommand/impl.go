@@ -16,7 +16,9 @@ package nsmcommand
 
 import (
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
 )
 
 // Plugin for nsmcommand
@@ -27,7 +29,7 @@ type Plugin struct {
 
 // Init Plugin
 func (p *Plugin) Init() error {
-	return p.Impl.IdempotentInit(p.init)
+	return p.Impl.IdempotentInit(plugintools.LoggingInitFunc(p.Log, p, p.init))
 }
 
 func (p *Plugin) init() error {
@@ -46,9 +48,10 @@ func (p *Plugin) init() error {
 
 // Close Plugin
 func (p *Plugin) Close() error {
-	return p.Impl.IdempotentClose(p.close)
+	return p.Impl.IdempotentClose(plugintools.LoggingCloseFunc(p.Log, p, p.close))
 }
 
 func (p *Plugin) close() error {
+	registry.Shared().Delete(p)
 	return deptools.Close(p)
 }
