@@ -27,9 +27,10 @@ import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 message NetworkServiceChannel {
     common.Metadata metadata = 1;
     string network_service_name = 2;
-    string payload = 3;
-    string socket_location = 4;
-    repeated common.Interface interface = 5;
+    string host_name = 3;
+    string payload = 4;
+    string socket_location = 5;
+    repeated common.Interface interface = 6;
 }
 
 message NetworkServiceEndpoint {

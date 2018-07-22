@@ -23,7 +23,7 @@ import (
 // NetworkServiceChannelsStore map stores all discovered Network Service Channel
 // Objects with a key composed of a name and a namespace
 type networkServiceChannelsStore struct {
-	networkServiceChannel map[meta]*netmesh.NetworkServiceChannel
+	networkServiceChannel map[meta][]*netmesh.NetworkServiceChannel
 	sync.RWMutex
 }
 
@@ -31,7 +31,7 @@ type networkServiceChannelsStore struct {
 // NetworkServiceChannels store. It must be initialized before any controllers start.
 func newNetworkServiceChannelsStore() *networkServiceChannelsStore {
 	return &networkServiceChannelsStore{
-		networkServiceChannel: map[meta]*netmesh.NetworkServiceChannel{}}
+		networkServiceChannel: map[meta][]*netmesh.NetworkServiceChannel{}}
 }
 
 // Add method adds descovered NetworkServiceChannel if it does not
@@ -41,12 +41,12 @@ func (n *networkServiceChannelsStore) Add(ns *netmesh.NetworkServiceChannel) {
 	defer n.Unlock()
 
 	key := meta{
-		name:      ns.Metadata.Name,
+		name:      ns.HostName,
 		namespace: ns.Metadata.Namespace,
 	}
 	if _, ok := n.networkServiceChannel[key]; !ok {
 		// Not in the store, adding it.
-		n.networkServiceChannel[key] = ns
+		n.networkServiceChannel[key] = append(n.networkServiceChannel[key], ns)
 	}
 }
 
@@ -66,7 +66,7 @@ func (n *networkServiceChannelsStore) List() []*netmesh.NetworkServiceChannel {
 	defer n.Unlock()
 	networkServiceChannels := make([]*netmesh.NetworkServiceChannel, 0)
 	for _, ns := range n.networkServiceChannel {
-		networkServiceChannels = append(networkServiceChannels, ns)
+		networkServiceChannels = append(networkServiceChannels, ns...)
 	}
 
 	return networkServiceChannels
