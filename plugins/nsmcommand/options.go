@@ -21,6 +21,7 @@ import (
 	"github.com/ligato/networkservicemesh/utils/registry"
 
 	"github.com/ligato/networkservicemesh/plugins/crd"
+	"github.com/ligato/networkservicemesh/plugins/finalizer"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 )
 
@@ -64,6 +65,7 @@ func UseDeps(deps *Deps) Option {
 		d.CRD = deps.CRD
 		d.NSMServer = deps.NSMServer
 		d.ObjectStore = deps.ObjectStore
+		d.Finalizer = deps.Finalizer
 	}
 }
 
@@ -89,6 +91,9 @@ func DefaultDeps() Option {
 		}
 		if d.ObjectStore == nil {
 			d.ObjectStore = objectstore.SharedPlugin()
+		}
+		if d.Finalizer == nil {
+			d.Finalizer = finalizer.SharedPlugin()
 		}
 	}
 }
