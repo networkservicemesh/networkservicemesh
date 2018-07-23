@@ -21,6 +21,7 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
@@ -62,5 +63,6 @@ func (p *Plugin) Close() error {
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
 	p.pluginStopCh <- true
+	registry.Shared().Delete(p)
 	return deptools.Close(p)
 }

@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
+	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 )
 
 func TestSharedPlugin(t *testing.T) {
@@ -54,4 +55,12 @@ func TestNonDefaultName(t *testing.T) {
 	name := "foo"
 	plugin := nsmserver.NewPlugin(nsmserver.UseDeps(&nsmserver.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
+}
+
+func TestWithRegistry(t *testing.T) {
+	name := "foo"
+	p1 := nsmserver.NewPlugin()
+	p2 := nsmserver.NewPlugin()
+	p3 := nsmserver.NewPlugin(nsmserver.UseDeps(&nsmserver.Deps{Name: name}))
+	testsuites.SuiteRegistry(t, p1, p2, p3)
 }

@@ -37,8 +37,12 @@ type Plugin struct {
 
 func (p *Runable) Running() bool { return p.running }
 
-func (p *Plugin) Init() error  { p.running = true; return nil }
-func (p *Plugin) Close() error { p.running = false; return nil }
+func (p *Plugin) Init() error {
+	return p.IdempotentInit(func() error { p.running = true; return nil })
+}
+func (p *Plugin) Close() error {
+	return p.IdempotentClose(func() error { p.running = false; return nil })
+}
 
 func TestCheckNil(t *testing.T) {
 	RegisterTestingT(t)
@@ -127,4 +131,19 @@ func TestCheck(t *testing.T) {
 		},
 	}
 	Expect(deptools.Check(p)).To(Succeed())
+}
+
+type DepsWithName struct {
+	Name string
+}
+
+type PluginDepsWithName struct {
+	id1.Impl
+	Deps DepsWithName
+}
+
+func TestCheckDepsWithName(t *testing.T) {
+	RegisterTestingT(t)
+	p := &PluginDepsWithName{}
+	Expect(deptools.Check(p)).ToNot(Succeed())
 }
