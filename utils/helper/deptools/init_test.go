@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"testing"
 
+	id1 "github.com/ligato/networkservicemesh/plugins/idempotent"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 	. "github.com/onsi/gomega"
 )
 
@@ -60,15 +62,26 @@ type PluginErrorOnInit struct {
 	Plugin
 }
 
+type TwoDeps struct {
+	One id1.PluginAPI
+	Two id1.PluginAPI
+}
+
+type PluginTwoDeps struct {
+	idempotent.Impl
+	Deps TwoDeps
+}
+
 func (*PluginErrorOnInit) Init() error { return fmt.Errorf("PluginErrorOnInit always fails on Init") }
 
 func TestInitErrorOnInit(t *testing.T) {
 	RegisterTestingT(t)
-	p := &PluginWithDeps{
-		Deps: NonOptionalDeps{
-			One: &PluginErrorOnInit{},
+	p := &PluginTwoDeps{
+		Deps: TwoDeps{
+			One: &Plugin{},
+			Two: &PluginErrorOnInit{},
 		},
 	}
 	Expect(deptools.Init(p)).ToNot(Succeed())
-	Expect(p.Deps.One.Running()).To(BeFalse())
+	Expect(p.Deps.One.State()).To(Equal(idempotent.CLOSED))
 }

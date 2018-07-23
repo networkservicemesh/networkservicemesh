@@ -15,10 +15,12 @@
 package logger
 
 import (
-	"github.com/ligato/networkservicemesh/utils/idempotent"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
+
+	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
+	"github.com/sirupsen/logrus"
 )
 
 // Plugin -  Providies a logger
@@ -90,12 +92,7 @@ func (p *Plugin) Close() error {
 }
 
 func (p *Plugin) close() error {
-	sharedPluginLock.Lock()
-	defer sharedPluginLock.Unlock()
-	i, plug := p.findSharedPlugin()
-	if plug != nil {
-		sharedPlugins = append(sharedPlugins[:i], sharedPlugins[i+1:]...)
-	}
+	registry.Shared().Delete(p)
 	return p.Deps.ConfigLoader.Close()
 }
 

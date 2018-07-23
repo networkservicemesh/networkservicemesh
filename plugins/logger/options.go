@@ -15,13 +15,10 @@
 package logger
 
 import (
-	"sync"
-
 	"github.com/ligato/networkservicemesh/plugins/logger/hooks/pid"
+	"github.com/ligato/networkservicemesh/utils/registry"
 	"github.com/onrik/logrus/filename"
 	"github.com/sirupsen/logrus"
-
-	"reflect"
 
 	"github.com/ligato/networkservicemesh/plugins/config"
 )
@@ -39,9 +36,6 @@ const (
 // Option acts on a Plugin in order to set its Deps or Config
 type Option func(*Plugin)
 
-var sharedPlugins []*Plugin
-var sharedPluginLock sync.Mutex
-
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
 	p := &Plugin{}
@@ -56,23 +50,7 @@ func NewPlugin(opts ...Option) *Plugin {
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
 	p := NewPlugin(opts...)
-	sharedPluginLock.Lock()
-	defer sharedPluginLock.Unlock()
-	_, plug := p.findSharedPlugin()
-	if plug != nil {
-		return plug
-	}
-	sharedPlugins = append(sharedPlugins, p)
-	return p
-}
-
-func (p *Plugin) findSharedPlugin() (int, *Plugin) {
-	for i, value := range sharedPlugins {
-		if reflect.DeepEqual(p.Deps, value.Deps) && reflect.DeepEqual(p.Config, value.Config) {
-			return i, value
-		}
-	}
-	return -1, nil
+	return registry.Shared().LoadOrStore(p).(*Plugin)
 }
 
 // ByName - If you just want a logger with a custom name and the rest of options

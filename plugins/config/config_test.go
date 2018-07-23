@@ -14,6 +14,7 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/config"
 	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 	. "github.com/onsi/gomega"
 )
 
@@ -148,4 +149,12 @@ func TestLoadConfigFileMissingKey(t *testing.T) {
 	Expect(c.One).To(Equal(dcfg.One))
 	Expect(c.Two).To(Equal(dcfg.Two))
 
+}
+
+func TestWithRegistry(t *testing.T) {
+	name := "foo"
+	p1 := config.NewPlugin()
+	p2 := config.NewPlugin()
+	p3 := config.NewPlugin(config.UseDeps(&config.Deps{Name: name}))
+	testsuites.SuiteRegistry(t, p1, p2, p3)
 }

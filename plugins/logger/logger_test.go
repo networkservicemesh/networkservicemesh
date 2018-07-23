@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/ligato/networkservicemesh/plugins/logger"
+	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -246,4 +247,12 @@ func TestNoMatchingSelector(t *testing.T) {
 	Expect(plugin.Log).NotTo(BeNil())
 	Expect(plugin.Log.Level).To(Equal(logrus.InfoLevel))
 
+}
+
+func TestWithRegistry(t *testing.T) {
+	name := "foo"
+	p1 := logger.NewPlugin()
+	p2 := logger.NewPlugin()
+	p3 := logger.NewPlugin(logger.UseDeps(&logger.Deps{Name: name}))
+	testsuites.SuiteRegistry(t, p1, p2, p3)
 }
