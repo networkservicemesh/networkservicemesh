@@ -62,6 +62,7 @@ function run_tests() {
     # Starting nse pod which will advertise a channel for gold-network
     # network service
     kubectl create -f conf/sample/nse.yaml
+    kubectl create -f conf/sample/simple-dataplane.yaml
     wait_for_pods default
  
     #
@@ -79,6 +80,18 @@ function run_tests() {
     fi
 
     #
+    # Let's check number of injected interfaces and if found,
+    # check connectivity between nsm-client and nse
+    #
+    client_pod_name="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')"
+    client_pod_namespace="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $1}')"
+    intf_number="$(kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ifconfig -a | grep -c nse)"
+    if [ "$intf_number" -eq 0 ] ; then
+        error_collection
+        return 1
+    fi
+    kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ping 1.1.1.2 -c 5
+    #
     # Final log collection
     #
     kubectl get nodes
@@ -86,6 +99,7 @@ function run_tests() {
     kubectl get crd
     kubectl logs "$(kubectl get pods -o name | grep nse )"
     kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
+    kubectl logs "$(kubectl get pods -o name | grep simple-dataplane )"
     kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
     # Need to get kubeconfig full path

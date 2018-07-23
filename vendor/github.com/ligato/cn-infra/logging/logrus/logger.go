@@ -24,14 +24,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
 	"sync/atomic"
-
 	"unsafe"
 
-	"github.com/ligato/cn-infra/logging"
 	"github.com/satori/go.uuid"
 	lg "github.com/sirupsen/logrus"
+
+	"github.com/ligato/cn-infra/logging"
 )
 
 // DefaultLoggerName is logger name of global instance of logger

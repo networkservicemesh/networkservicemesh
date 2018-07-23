@@ -11,6 +11,8 @@ go_import_path: github.com/ligato/networkservicemesh
 
 before_script:
 - sudo mount --make-rshared /
+- sudo mount --make-rshared /sys
+- sudo mount --make-rshared /var/run
 
 script:
 - make all
