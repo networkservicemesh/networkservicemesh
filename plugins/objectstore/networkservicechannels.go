@@ -41,7 +41,7 @@ func (n *networkServiceChannelsStore) Add(ns *netmesh.NetworkServiceChannel) {
 	defer n.Unlock()
 
 	key := meta{
-		name:      ns.HostName,
+		name:      ns.NseProviderName,
 		namespace: ns.Metadata.Namespace,
 	}
 	if _, ok := n.networkServiceChannel[key]; !ok {

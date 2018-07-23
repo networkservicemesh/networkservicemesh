@@ -39,7 +39,7 @@ func TestChannelStore(t *testing.T) {
 			Name:      chTestName,
 			Namespace: chTestNamespace,
 		},
-		HostName:           "host1",
+		NseProviderName:    "host1",
 		NetworkServiceName: "network-service-1",
 	}
 
@@ -55,7 +55,7 @@ func TestChannelStore(t *testing.T) {
 		}
 	}
 
-	channels.networkServiceChannelsStore.Delete(meta{name: nsc.HostName, namespace: nsc.Metadata.Namespace})
+	channels.networkServiceChannelsStore.Delete(meta{name: nsc.NseProviderName, namespace: nsc.Metadata.Namespace})
 
 	nscRet := channels.networkServiceChannelsStore.List()
 	if len(nscRet) != 0 {

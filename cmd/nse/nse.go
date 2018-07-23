@@ -192,7 +192,7 @@ func main() {
 		Metadata: &common.Metadata{
 			Name: "gold-net-channel-1",
 		},
-		HostName:           podName,
+		NseProviderName:    podName,
 		NetworkServiceName: networkServiceName,
 		Payload:            "ipv4",
 		SocketLocation:     nseSocket,
