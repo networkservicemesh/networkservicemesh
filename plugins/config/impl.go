@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
 	"github.com/spf13/viper"
 )
 
@@ -55,12 +56,7 @@ func (p *Plugin) Close() error {
 
 // TODO: Add WatchConfig
 func (p *Plugin) close() error {
-	sharedPluginLock.Lock()
-	defer sharedPluginLock.Unlock()
-	i, plug := p.findSharedPlugin()
-	if plug != nil {
-		sharedPlugins = append(sharedPlugins[:i], sharedPlugins[i+1:]...)
-	}
+	registry.Shared().Delete(p)
 	return nil
 }
 

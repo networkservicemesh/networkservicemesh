@@ -21,6 +21,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/plugins/handler"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 )
 
 func TestSharedPlugin(t *testing.T) {
@@ -59,4 +60,12 @@ func TestNonDefaultName(t *testing.T) {
 	plugin := handler.NewPlugin(handler.UseDeps(&handler.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
 	Expect(deptools.Check(plugin)).To(Succeed())
+}
+
+func TestWithRegistry(t *testing.T) {
+	name := "foo"
+	p1 := handler.NewPlugin()
+	p2 := handler.NewPlugin()
+	p3 := handler.NewPlugin(handler.UseDeps(&handler.Deps{Name: name}))
+	testsuites.SuiteRegistry(t, p1, p2, p3)
 }

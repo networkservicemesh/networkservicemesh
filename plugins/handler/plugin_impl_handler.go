@@ -19,6 +19,8 @@ import (
 	"reflect"
 
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
+	"github.com/ligato/networkservicemesh/utils/registry"
 
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 
@@ -45,14 +47,14 @@ type Deps struct {
 	Name        string
 	Log         logger.FieldLogger
 	Cmd         *cobra.Command
-	KubeConfig  string // Fetch kubeconfig file from --kube-config
+	KubeConfig  string `optional:"true"` // Fetch kubeconfig file from --kube-config
 	ObjectStore objectstore.Interface
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (p *Plugin) Init() error {
-	return p.IdempotentInit(p.init)
+	return p.IdempotentInit(plugintools.LoggingInitFunc(p.Log, p, p.init))
 }
 
 func (p *Plugin) init() error {
@@ -78,11 +80,12 @@ func (p *Plugin) init() error {
 
 // Close is called when the plugin is being stopped
 func (p *Plugin) Close() error {
-	return p.IdempotentClose(p.close)
+	return p.IdempotentClose(plugintools.LoggingCloseFunc(p.Log, p, p.close))
 }
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
+	registry.Shared().Delete(p)
 	err := deptools.Close(p)
 	if err != nil {
 		return err

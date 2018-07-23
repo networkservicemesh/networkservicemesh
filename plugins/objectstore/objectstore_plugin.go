@@ -21,7 +21,9 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
 )
 
 // meta is used as a key for each NetworkService object
@@ -61,14 +63,10 @@ type Deps struct {
 
 // Init initializes ObjectStore plugin
 func (p *Plugin) Init() error {
-	return p.IdempotentInit(p.init)
+	return p.IdempotentInit(plugintools.LoggingInitFunc(p.Log, p, p.init))
 }
 
 func (p *Plugin) init() error {
-	err := deptools.Init(p)
-	if err != nil {
-		return err
-	}
 	p.pluginStopCh = make(chan struct{})
 	p.objects = newObjectStore()
 	return nil
@@ -76,11 +74,12 @@ func (p *Plugin) init() error {
 
 // Close is called when the plugin is being stopped
 func (p *Plugin) Close() error {
-	return p.IdempotentClose(p.close)
+	return p.IdempotentClose(plugintools.LoggingCloseFunc(p.Log, p, p.close))
 }
 
 func (p *Plugin) close() error {
 	p.Log.Info("Close")
+	registry.Shared().Delete(p)
 	return deptools.Close(p)
 }
 

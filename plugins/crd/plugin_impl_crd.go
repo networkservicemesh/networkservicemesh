@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
+	"github.com/ligato/networkservicemesh/utils/registry"
 
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
@@ -78,7 +80,7 @@ type Deps struct {
 	Name string
 	Log  logger.FieldLoggerPlugin
 	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig  string
+	KubeConfig  string `optional:"true"`
 	Handler     handler.API
 	ObjectStore objectstore.Interface
 }
@@ -86,7 +88,7 @@ type Deps struct {
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (plugin *Plugin) Init() error {
-	return plugin.IdempotentInit(plugin.init)
+	return plugin.IdempotentInit(plugintools.LoggingInitFunc(plugin.Log, plugin, plugin.init))
 }
 func (plugin *Plugin) init() error {
 	plugin.pluginStopCh = make(chan struct{})
@@ -250,11 +252,14 @@ func (plugin *Plugin) afterInit() error {
 
 // Close stops all reflectors.
 func (plugin *Plugin) Close() error {
-	return plugin.IdempotentClose(plugin.close)
+	return plugin.IdempotentClose(plugintools.LoggingCloseFunc(plugin.Log, plugin, plugin.close))
 }
 
 func (plugin *Plugin) close() error {
-	close(plugin.pluginStopCh)
+	if plugin.pluginStopCh != nil {
+		close(plugin.pluginStopCh)
+	}
+	registry.Shared().Delete(plugin)
 	plugin.wg.Wait()
 	return deptools.Close(plugin)
 }

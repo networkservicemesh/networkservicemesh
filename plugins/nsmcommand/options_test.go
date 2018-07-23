@@ -17,10 +17,10 @@ package nsmcommand_test
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/ligato/networkservicemesh/plugins/nsmcommand"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
+	. "github.com/onsi/gomega"
 )
 
 func TestSharedPlugin(t *testing.T) {
@@ -59,4 +59,12 @@ func TestNonDefaultName(t *testing.T) {
 	plugin := nsmcommand.NewPlugin(nsmcommand.UseDeps(&nsmcommand.Deps{Name: name}))
 	Expect(plugin).NotTo(BeNil())
 	Expect(deptools.Check(plugin)).To(Succeed())
+}
+
+func TestWithRegistry(t *testing.T) {
+	name := "foo"
+	p1 := nsmcommand.NewPlugin()
+	p2 := nsmcommand.NewPlugin()
+	p3 := nsmcommand.NewPlugin(nsmcommand.UseDeps(&nsmcommand.Deps{Name: name}))
+	testsuites.SuiteRegistry(t, p1, p2, p3)
 }
