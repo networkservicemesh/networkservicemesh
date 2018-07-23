@@ -53,7 +53,7 @@ check:
 verify:
 	@./scripts/verify-codegen.sh
 
-docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse
+docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-simple-dataplane
 
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
@@ -62,6 +62,10 @@ docker-build-netmesh-test:
 .PHONY: docker-build-netmesh
 docker-build-netmesh:
 	${DOCKERBUILD} -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+
+.PHONY: docker-build-simple-dataplane
+docker-build-simple-dataplane:
+	@docker build -t ligato/networkservicemesh/simple-dataplane -f build/simple-dataplane/docker/Dockerfile .
 
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init:

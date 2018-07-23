@@ -36,6 +36,9 @@ func WithTimeout(timeout time.Duration) *WithTimeoutOpt {
 	return &WithTimeoutOpt{Timeout: timeout}
 }
 
+// OptionMarkerCore is only for marking implementation that implements this interface.
+func (marker *WithTimeoutOpt) OptionMarkerCore() {}
+
 // WithLoggerOpt defines a logger that logs if notification delivery is unsuccessful.
 type WithLoggerOpt struct {
 	Logger logging.Logger
@@ -45,9 +48,6 @@ type WithLoggerOpt struct {
 func WithLogger(logger logging.Logger) *WithLoggerOpt {
 	return &WithLoggerOpt{Logger: logger}
 }
-
-// OptionMarkerCore is only for marking implementation that implements this interface.
-func (marker *WithTimeoutOpt) OptionMarkerCore() {}
 
 // OptionMarkerCore is just for marking implementation that implements this interface.
 func (marker *WithLoggerOpt) OptionMarkerCore() {}
@@ -78,10 +78,10 @@ type withPluginOpt struct {
 	plugin *NamedPlugin
 }
 
-// OptionMarkerCore is just for marking implementation that it implements this interface
-func (opt *withPluginOpt) OptionMarkerCore() {}
-
 // Plugins is just for marking implementation that it implements this interface
 func (opt *withPluginOpt) Plugins(...Flavor) []*NamedPlugin {
 	return []*NamedPlugin{opt.plugin}
 }
+
+// OptionMarkerCore is just for marking implementation that it implements this interface
+func (opt *withPluginOpt) OptionMarkerCore() {}

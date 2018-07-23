@@ -14,27 +14,53 @@
 
 package logging
 
+import "fmt"
+
+// Fields is a type accepted by WithFields method. It can be used to instantiate map using shorter notation.
+type Fields map[string]interface{}
+
 // LogLevel represents severity of log record
-type LogLevel int
+type LogLevel uint32
 
 const (
-	// DebugLevel - the most verbose logging
-	DebugLevel LogLevel = iota
-	// InfoLevel level - general operational entries about what's going on inside the application.
-	InfoLevel
-	// WarnLevel - non-critical entries that deserve eyes.
-	WarnLevel
-	// ErrorLevel level - used for errors that should definitely be noted.
-	ErrorLevel
+	// PanicLevel - highest level of severity. Logs and then calls panic with the message passed in.
+	PanicLevel LogLevel = iota
 	// FatalLevel - logs and then calls `os.Exit(1)`.
 	FatalLevel
-	// PanicLevel - highest level of severity. Logs and then calls panic with the message passed in.
-	PanicLevel
+	// ErrorLevel - used for errors that should definitely be noted.
+	ErrorLevel
+	// WarnLevel - non-critical entries that deserve eyes.
+	WarnLevel
+	// InfoLevel - general operational entries about what's going on inside the application.
+	InfoLevel
+	// DebugLevel - enabled for debugging, very verbose logging.
+	DebugLevel
 )
+
+// String converts the LogLevel to a string. E.g. PanicLevel becomes "panic".
+func (level LogLevel) String() string {
+	switch level {
+	case PanicLevel:
+		return "panic"
+	case FatalLevel:
+		return "fatal"
+	case ErrorLevel:
+		return "error"
+	case WarnLevel:
+		return "warning"
+	case InfoLevel:
+		return "info"
+	case DebugLevel:
+		return "debug"
+	}
+
+	return fmt.Sprintf("unknown(%d)", level)
+}
 
 // Logger provides logging capabilities
 type Logger interface {
-	LogWithLevel
+	// GetName return the logger name
+	GetName() string
 	// SetLevel modifies the LogLevel
 	SetLevel(level LogLevel)
 	// GetLevel returns currently set logLevel
@@ -44,8 +70,28 @@ type Logger interface {
 	// WithFields creates multiple structured fields
 	WithFields(fields map[string]interface{}) LogWithLevel
 
-	// GetName return the logger name
-	GetName() string
+	LogWithLevel
+}
+
+// LogWithLevel allows to log with different log levels
+type LogWithLevel interface {
+	Debug(args ...interface{})
+	Debugf(format string, args ...interface{})
+	Info(args ...interface{})
+	Infof(format string, args ...interface{})
+	Warn(args ...interface{})
+	Warnf(format string, args ...interface{})
+	Error(args ...interface{})
+	Errorf(format string, args ...interface{})
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Fatalln(args ...interface{})
+	Panic(args ...interface{})
+	Panicf(format string, args ...interface{})
+
+	Print(v ...interface{})
+	Printf(format string, v ...interface{})
+	Println(v ...interface{})
 }
 
 // LogFactory is API for the plugins that want to create their own loggers.
@@ -66,56 +112,6 @@ type PluginLogger interface {
 	LogFactory
 }
 
-// ForPlugin is used to initialize plugin logger by name
-// and optionally created children (their name prefixed by plugin logger name)
-//
-// Example usage:
-//
-//    flavor.ETCD.Logger =
-// 			ForPlugin(PluginNameOfFlavor(&flavor.ETCD, flavor), flavor.Logrus)
-//
-func ForPlugin(name string, factory LogFactory) PluginLogger {
-	logger := factory.NewLogger(name)
-
-	return &pluginLogger{logger,
-		&prefixedLogFactory{name, factory}}
-}
-
-// Fields is a type accepted by WithFields method. It can be used to instantiate map using shorter notation.
-type Fields map[string]interface{}
-
-// LogWithLevel allows to log with different log levels
-type LogWithLevel interface {
-	// Debug logs using Debug level
-	Debug(args ...interface{})
-	// Debugf prints formatted log using Debug level
-	Debugf(format string, args ...interface{})
-	// Info logs using Info level
-	Info(args ...interface{})
-	// Infof prints formatted log using Info level
-	Infof(format string, args ...interface{})
-	// Warning logs using Warning level
-	Warn(args ...interface{})
-	// Warnf prints formatted log using Warn level
-	Warnf(format string, args ...interface{})
-	// Error logs using Error level
-	Error(args ...interface{})
-	// Errorf prints formatted log using Error level
-	Errorf(format string, args ...interface{})
-	// Panic logs using Panic level and panics
-	Panic(args ...interface{})
-	// Panicf prints formatted log using Panic level and panic
-	Panicf(format string, args ...interface{})
-	// Fatal logs using Fatal level and calls os.Exit(1)
-	Fatal(args ...interface{})
-	// Fatalf prints formatted log using Fatal level and calls os.Exit(1)
-	Fatalf(format string, args ...interface{})
-	Fatalln(args ...interface{})
-	Print(v ...interface{})
-	Printf(format string, v ...interface{})
-	Println(v ...interface{})
-}
-
 // Registry groups multiple Logger instances and allows to mange their log levels.
 type Registry interface {
 	// LogFactory allow to create new loggers
@@ -132,29 +128,23 @@ type Registry interface {
 	ClearRegistry()
 }
 
-// String converts the Level to a string. E.g. PanicLevel becomes "panic".
-func (level LogLevel) String() string {
-	switch level {
-	case DebugLevel:
-		return "debug"
-	case InfoLevel:
-		return "info"
-	case WarnLevel:
-		return "warning"
-	case ErrorLevel:
-		return "error"
-	case FatalLevel:
-		return "fatal"
-	case PanicLevel:
-		return "panic"
+// ForPlugin is used to initialize plugin logger by name
+// and optionally created children (their name prefixed by plugin logger name)
+//
+// Example usage:
+//
+//    flavor.ETCD.Logger =
+// 			ForPlugin(PluginNameOfFlavor(&flavor.ETCD, flavor), flavor.Logrus)
+//
+func ForPlugin(name string, factory LogFactory) PluginLogger {
+	return &pluginLogger{
+		Logger:     factory.NewLogger(name),
+		LogFactory: &prefixedLogFactory{name, factory},
 	}
-
-	return "unknown"
 }
 
-type pluginLogger struct {
-	Logger
-	LogFactory
+func (factory *prefixedLogFactory) NewLogger(name string) Logger {
+	return factory.delegate.NewLogger(factory.prefix + name)
 }
 
 type prefixedLogFactory struct {
@@ -162,6 +152,7 @@ type prefixedLogFactory struct {
 	delegate LogFactory
 }
 
-func (factory *prefixedLogFactory) NewLogger(name string) Logger {
-	return factory.delegate.NewLogger(factory.prefix + name)
+type pluginLogger struct {
+	Logger
+	LogFactory
 }
