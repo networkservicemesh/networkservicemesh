@@ -37,8 +37,12 @@ type Plugin struct {
 
 func (p *Runable) Running() bool { return p.running }
 
-func (p *Plugin) Init() error  { p.running = true; return nil }
-func (p *Plugin) Close() error { p.running = false; return nil }
+func (p *Plugin) Init() error {
+	return p.IdempotentInit(func() error { p.running = true; return nil })
+}
+func (p *Plugin) Close() error {
+	return p.IdempotentClose(func() error { p.running = false; return nil })
+}
 
 func TestCheckNil(t *testing.T) {
 	RegisterTestingT(t)

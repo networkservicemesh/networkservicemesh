@@ -61,10 +61,10 @@ func LoggingCloseFunc(log logger.FieldLogger, p idempotent.PluginAPI, inits ...f
 		stop := time.Now()
 		duration := stop.Sub(start)
 		if err != nil {
-			log.Infof("Close Failed after %v: %s", duration, err)
+			log.Infof("close failed after %v: %s", duration, err)
 			return err
 		}
-		log.Infof("Close Succeded after %v", duration)
+		log.Infof("close succeded after %v", duration)
 		return err
 	}
 }

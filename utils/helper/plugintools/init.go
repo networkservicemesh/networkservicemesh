@@ -63,10 +63,10 @@ func LoggingInitFunc(log logger.FieldLogger, p idempotent.PluginAPI, inits ...fu
 		stop := time.Now()
 		duration := stop.Sub(start)
 		if err != nil {
-			log.Infof("Initialization Failed after %v: %s", duration, err)
+			log.Infof("initialization failed after %v: %s", duration, err)
 			return err
 		}
-		log.Infof("Initialization Succeeded after %v", duration)
+		log.Infof("initialization succeeded after %v", duration)
 		return err
 	}
 }

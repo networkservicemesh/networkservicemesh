@@ -39,6 +39,8 @@ func initDeps(value *reflect.Value) error {
 	// Deps passed in here is presumed to have passed CheckDeps, so there are many
 	// errors we don't need to check for
 	// Example: We know Deps is a struct with only Interface fields
+	var initedPlugins []idempotent.PluginAPI
+
 	for i := 0; i < value.NumField(); i++ {
 		v := value.Field(i)
 		if v.CanInterface() {
@@ -46,8 +48,14 @@ func initDeps(value *reflect.Value) error {
 			if ok {
 				err := p.Init()
 				if err != nil {
+					// Close initted plugins if we hit an error
+					for _, plug := range initedPlugins {
+						plug.Close()
+					}
+					// Return error
 					return err
 				}
+				initedPlugins = append(initedPlugins, p)
 			}
 		}
 	}
