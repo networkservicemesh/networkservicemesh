@@ -15,90 +15,102 @@
 package safeclose
 
 import (
-	"errors"
 	"io"
 	"reflect"
+	"strings"
 
 	"github.com/ligato/cn-infra/logging/logrus"
 )
 
-// CloserWithoutErr is similar interface to GoLang Closer but Close() does not return error
-type CloserWithoutErr interface {
-	Close()
-}
-
-// Close closes closable I/O stream.
-func Close(obj interface{}) error {
+// safeClose closes closable object.
+func safeClose(obj interface{}) error {
 	defer func() {
 		if r := recover(); r != nil {
 			logrus.DefaultLogger().Error("Recovered in safeclose: ", r)
 		}
 	}()
 
-	if reflect.ValueOf(obj).IsValid() && !reflect.ValueOf(obj).IsNil() {
+	// closerWithoutErr is similar interface to io.Closer, but Close() does not return error
+	type closerWithoutErr interface {
+		Close()
+	}
+
+	if val := reflect.ValueOf(obj); val.IsValid() && !val.IsNil() {
 		if closer, ok := obj.(*io.Closer); ok {
 			if closer != nil {
-				err := (*closer).Close()
-				return err
-			}
-		} else if closer, ok := obj.(*CloserWithoutErr); ok {
-			if closer != nil {
-				(*closer).Close()
+				return (*closer).Close()
 			}
 		} else if closer, ok := obj.(io.Closer); ok {
 			if closer != nil {
-				logrus.DefaultLogger().Debug("closer: ", closer)
-				err := closer.Close()
-				return err
+				return closer.Close()
 			}
-		} else if closer, ok := obj.(CloserWithoutErr); ok {
+		} else if closer, ok := obj.(*closerWithoutErr); ok {
+			if closer != nil {
+				(*closer).Close()
+			}
+		} else if closer, ok := obj.(closerWithoutErr); ok {
 			if closer != nil {
 				closer.Close()
 			}
 		} else if reflect.TypeOf(obj).Kind() == reflect.Chan {
-			//reflect.ValueOf(nil).
-
-			if x, ok := obj.(chan interface{}); ok {
-				close(x)
-			}
+			val.Close()
 		}
 
 	}
+
+	return nil
+}
+
+// Close tries to close all objects and return all errors using CloseErrors if there are any.
+func Close(objs ...interface{}) error {
+	errs := make([]error, len(objs))
+
+	for i, obj := range objs {
+		errs[i] = safeClose(obj)
+	}
+
+	for _, err := range errs {
+		if err != nil {
+			return CloseErrors(errs)
+		}
+	}
+
 	return nil
 }
 
 // CloseAll tries to close all objects and return all errors (there are nils if there was no errors).
-func CloseAll(objs ...interface{}) (details []error, errOccured error) {
-	defer func() {
-		if r := recover(); r != nil {
-			logrus.DefaultLogger().Error("Recovered in safeclose: ", r)
-		}
-	}()
+// DEPRECATED - use safeclose.Close(...) instead
+func CloseAll(objs ...interface{}) ([]error, error) {
+	logrus.DefaultLogger().Debugf("safeclose.CloseAll() is DEPRECATED! Please use safeclose.Close() instead")
 
-	details = make([]error, len(objs))
+	errs := make([]error, len(objs))
+
 	for i, obj := range objs {
-		details[i] = Close(obj)
+		errs[i] = Close(obj)
 	}
-
-	if errOccured != nil {
-		return details, format(details)
-	}
-
-	return details, nil
-}
-
-// format squashes multiple errors into one.
-func format(errs []error) error {
-	errMsg := ""
 
 	for _, err := range errs {
 		if err != nil {
-			errMsg += ";" + err.Error()
+			return errs, CloseErrors(errs)
 		}
 	}
 
-	if len(errMsg) > 0 {
-		return errors.New(errMsg)
+	return errs, nil
+}
+
+// CloseErrors merges multiple errors into single type for simpler use.
+type CloseErrors []error
+
+// Error implements error interface.
+func (e CloseErrors) Error() string {
+	var errMsgs []string
+
+	for _, err := range []error(e) {
+		if err == nil {
+			continue
+		}
+		errMsgs = append(errMsgs, err.Error())
 	}
-	return nil
+
+	return strings.Join(errMsgs, ", ")
 }
