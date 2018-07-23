@@ -14,6 +14,7 @@ If you wish to add use cases to the document, please reach out to us.
 
 Architecture
 ------------
+* [High Level Overview](/docs/What-is-nsm.md)
 * TODO - High Level Concepts
 * TODO - Detailed dives into individual topics
 
