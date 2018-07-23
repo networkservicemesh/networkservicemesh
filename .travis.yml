@@ -1,7 +1,7 @@
 sudo: required
 
 language: go
-service: 
+service:
   - docker
 
 go:
@@ -18,6 +18,18 @@ script:
 - make all
 - ./scripts/travis-integration-tests.sh minikube
 
+# We only want to push docker images on a push to master, not a pull request
+after_success:
+- if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then make docker-push ; fi
+
 notifications:
   irc:
     - "chat.freenode.net#networkservicemesh"
+
+# The below are the the username, email, and token used to push builds to Docker Hub
+env:
+  global:
+  - secure: NKZng9qbi/OU4nSfV+2ohSBt7qe8rxZTgTDBNlyoKV5UPiJB4ART9AHwkULngZsAM+dHzatjEGRyUn1OAlVWAfYw8nCGLg7zWKuAX4RMEYMTdEWDBM7Z3sJmQikENsdFRYmAJ0gQz+3Wf8CSLRni3VX+1olu9w58g7EFF/QfxVU65cMa7Pxt7EaZSaSvYpaZG8Njp2kpnlbaDrFlgr8B051cot02gtJXhDAC2ECaYsuj3WPAKIskDS00qz6kj+EH82ZKQf9M5+TblKjjzaxj1JuS7Y8ZmjrHXyKoaaOzoQ1zLHYkTNZeBvwIeDOPkSJokwvzZ06tFZN22KRxCLKeDLKhGixrkEV3HHll9RvM6DTa1/TKqKbjf17ACvri+AGhSrqyztwLsd5H+/fLzc55sXvF3SPu7kGjqdEifGX3Fakml1IFIAkTQQNbTkYZpju6Yi5zoJeBLn+x/lUWwVpYSlpDZktxYvg+j1ftPucl/WFpUqptxclCv/qACVPMw7IGEdZCIXvzhmG3jYP2bJC9H/rJK5MipEc8sYuCq2CbktlBoVGo5rChV/PZjKXTMlON3IabuT65An8Ev10n+bgWIcbA7eZF97npuHEGOGkGMWwZ5iKpqyzonTsQmdmSNsy/1me2V2Xwg2oyku0uQoTdsUXZSqllc27YOsuZkI8msmo=
+  - secure: d0G5U1W7ccAzEpRHO2uq3D0IOC8FhCDjb12yas6ozxI9zQ34yjL4xaY23XXokaTetulh79nBFp2Ro3JlN9f+qlBDNlPBQXwB79e7/dk8FD/1JG7zvRyhS1OiTCCCcDW4MeaioNqZkp1gjY5j8coi2eFqMXhteKcN0Speilj9aFw64s40o3mH4f6fVE8dYK4XLcr5Cr0llFcqHBaBWpMuRCrjaUvlrdeTvztkxl8mZUUbtjoiRoFCxMyRvKvnbkxluBU2D+brrUHA7iwYmFagBSMeq4XmnfuAE23Vp2UQfzZsKB20GLXI1lOhYrTKzSC/vRls2fKFIS6BDfT2AnSqMX1r+DVh7i4vtLudz6Etn09tFijmcSjpFiUFxa+FNnbMZgx+YyYOnvY4isRkTH2OsravHwOkg0MJrlQqAsMeqnLMjEETjyCxhMnB24aP2a8qHcPiZC5b/twCoouKc9dROPMr7EhDOFCNR8YaLZnoteIcIuMasMrVDoErj3/YvLsvtxcdMbsJBz4uYTVtTMMVvK8Pi634LTS/1d1KWV4rxk4PMuLypmmWA8WI5t8GG3XgPvBS8je9ozL7CEjhwsvsaW0FrlIzVGbofMWa2Juf6+xjBcRFVzzdK4sQivphZ6WocRmiQFb5M1s6PERdJxu538mv/tHbEzBlKwHMCQ/Wz+g=
+  - secure: AU8Q7N2EnQo4Mbls2LzzqSqFat8BRIGToUWdRz9jF+D4FDv28PH5XjYfN1qaZgs1+PjhHVltaWrqH+i4q4sOehVtUBCZtHp/lEMpbHjtWMtFpaMg7Vk9rfJ8zJAgXck936eNtH4Q8M+SKS2zb+g7p99pNIstUo6nTT4SRwykImlLlf3FevO04BET2uXD0cvSU/3iGGEqgCiE2ITi0YBlRJj95IlUCo8fdpo2sQgumIgRK5FU8zP+PBb07GFJI4YhazbNZT3NdYAIeFMTglg3Cg2h95A8vUBCblOgtBtwKxFubDucCLBPVxYPXj3juPYRT7XSODopusM9XrWoPXft8JicU0X0hDoXLfzc3s8r5J8/EbBex5/TPAtiSBBVxVD82eCdesEuo6YMqpnlmhJbx2rmrZkBaYqXuhYxITmKHfXOe0zsM8/n3e4W0VaM6Qh3RfVaxSdhO+P3tOX0F8Mpue2a6jvErrBhFmB8YZQTPmS5RN5mfb4qpL1KLSmod79uRoMOXTbO7VnHvBo6/JM9FFH10M0rAdbbpU0ozppQsPLN9Z2OOFJ6IcuB8d0PUxoprB4Xeh4J8urCha+VOSLQSlaTxP2a5EE7a5rGE/0MU/3s8l9E0B5xb3HAD0szHTNI5jh3hAPWgdwAFTJnXqUdczA5+HZcBcwm4RQ4kltRtN0=
+  - COMMIT=${TRAVIS_COMMIT::8}
