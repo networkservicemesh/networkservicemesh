@@ -117,7 +117,7 @@ func main() {
 	}
 	podName := os.Getenv("HOSTNAME")
 
-	// podUID is used as a unique identifier for nsm init process, it will stay the same throughout life of
+	// podUID is used as a unique identifier for nse init process, it will stay the same throughout life of
 	// pod and will guarantee idempotency of possible repeated requests to NSM
 	pod, err := k8s.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
@@ -192,6 +192,7 @@ func main() {
 		Metadata: &common.Metadata{
 			Name: "gold-net-channel-1",
 		},
+		NseProviderName:    podName,
 		NetworkServiceName: networkServiceName,
 		Payload:            "ipv4",
 		SocketLocation:     nseSocket,
