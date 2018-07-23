@@ -116,6 +116,28 @@ func cleanUp(plugin *Plugin, obj interface{}) error {
 func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 	plugin.Log.Infof("cleanup requested for NSE pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 
+	// Step 1 getting a slice of channels advertised by about to be deleted pod
+	channels := plugin.ObjectStore.GetChannelsByNSEServerProvider(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+	if channels == nil {
+		plugin.Log.Infof("no advertised channels found for NSE pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+		return nil
+	}
+	// Step 2 range through received list of channels and for each found NetworkService, remove the channel
+	// from NetworkService object.
+	plugin.Log.Infof("found %d advertised channels found for NSE pod %s/%s", len(channels), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	for _, ch := range channels {
+		plugin.Log.Infof("channel %s/%s was used by netowrk service %s, deleting it...", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName)
+		if err := plugin.ObjectStore.DeleteChannelFromNS(ch); err != nil {
+			plugin.Log.Errorf("failed channel %s/%s from netowrk service %s with error: %+v", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName, err)
+			return err
+		}
+	}
+	// Step 3 last step is to remove from Channels map all channels advertised by the pod
+	plugin.ObjectStore.DeleteNSE(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+	plugin.Log.Infof("all channels advertised by NSE %s/%s were deleted", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+
+	// Step 4 Clean up dataplane
+
 	return nil
 }
 

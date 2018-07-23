@@ -344,6 +344,9 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 			n.logger.Infof("Found existing NetworkService %s/%s in the Object Store, will add channel %s to its list of channels",
 				networkServiceName, networkServiceNamespace, c.Metadata.Name)
 			// Since it was discovered that NetworkService Object exists, calling method to add the channel to NetworkService.
+
+			// TODO (sbezverk) Advertised channel needs to be added to Object Store of channel.
+
 			if err := n.objectStore.AddChannelToNetworkService(networkServiceName, networkServiceNamespace, c); err != nil {
 				n.logger.Error("failed to add channel %s/%s to network service %s with error: %+v", networkServiceNamespace, networkServiceName, c.Metadata.Name, err)
 				return &nsmconnect.ChannelAdvertiseResponse{Success: false}, err

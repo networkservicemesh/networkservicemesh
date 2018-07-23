@@ -60,6 +60,20 @@ func (n *networkServiceChannelsStore) Delete(key meta) {
 	}
 }
 
+// DeleteNSE method deletes removed NetworkServiceChannel object from the store.
+func (n *networkServiceChannelsStore) DeleteNSE(nseServer, namespace string) {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      nseServer,
+		namespace: namespace,
+	}
+	if _, ok := n.networkServiceChannel[key]; ok {
+		delete(n.networkServiceChannel, key)
+	}
+}
+
 // List method lists all known NetworkServiceChannel objects.
 func (n *networkServiceChannelsStore) List() []*netmesh.NetworkServiceChannel {
 	n.Lock()
@@ -70,4 +84,16 @@ func (n *networkServiceChannelsStore) List() []*netmesh.NetworkServiceChannel {
 	}
 
 	return networkServiceChannels
+}
+
+// GetChannelsByNSEServerProvider returns a slice of channels for specified nse_server_provider + namespace key
+func (n *networkServiceChannelsStore) GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel {
+	key := meta{
+		name:      nseServer,
+		namespace: namespace,
+	}
+	if list, ok := n.networkServiceChannel[key]; ok {
+		return list
+	}
+	return nil
 }

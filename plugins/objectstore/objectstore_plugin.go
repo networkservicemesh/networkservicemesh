@@ -115,6 +115,12 @@ func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, c
 	return p.objects.networkServicesStore.AddChannel(nsName, nsNamespace, ch)
 }
 
+// DeleteChannelFromNS deletes a channel from the ObjectStore NetworkService object
+func (p *Plugin) DeleteChannelFromNS(ch *netmesh.NetworkServiceChannel) error {
+	p.Log.Info("ObjectStore.DeleteChannelFromNetworkService.")
+	return p.objects.networkServicesStore.DeleteChannelFromNS(ch)
+}
+
 // ListNetworkServices lists all stored NetworkService objects
 func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 	p.Log.Info("ObjectStore.ListNetworkServices.")
@@ -147,4 +153,16 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 		nse := obj.(*v1.NetworkServiceEndpoint).Spec
 		p.objects.networkServiceEndpointsStore.Delete(meta{name: nse.Metadata.Name, namespace: nse.Metadata.Namespace})
 	}
+}
+
+// GetChannelsByNSEServerProvider lists all stored NetworkServiceChannel objects for a given nse server
+func (p *Plugin) GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel {
+	p.Log.Info("ObjectStore.ListNetworkServiceChannels")
+	return p.objects.networkServiceChannelsStore.GetChannelsByNSEServerProvider(nseServer, namespace)
+}
+
+// DeleteNSE delete all channels associated with given NSE
+func (p *Plugin) DeleteNSE(nseServer, namespace string) {
+	p.Log.Info("ObjectStore.DeleteNSE")
+	p.objects.networkServiceChannelsStore.DeleteNSE(nseServer, namespace)
 }

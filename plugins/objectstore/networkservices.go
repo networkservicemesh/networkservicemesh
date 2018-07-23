@@ -101,6 +101,32 @@ func (n *networkServicesStore) AddChannel(nsName string, nsNamespace string, ch 
 	return nil
 }
 
+// DeleteChannel deletes channel from Network Service
+func (n *networkServicesStore) DeleteChannelFromNS(ch *netmesh.NetworkServiceChannel) error {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      ch.NetworkServiceName,
+		namespace: ch.Metadata.Namespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
+	}
+
+	// Need to check if NetworkService has already Channel with the same name and namespace, Channels must
+	// be unique for Name and Namspace pair.
+	for i, c := range ns.Channel {
+		if c.Metadata.Name == ch.Metadata.Name && c.Metadata.Namespace == ch.Metadata.Namespace {
+			ns.Channel = append(ns.Channel[:i], ns.Channel[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("failed to delete channel %s/%s from network service %s/%s, the channel does not exist in the object store",
+		ch.Metadata.Namespace, ch.Metadata.Name, key.namespace, key.name)
+}
+
 // Delete method deletes removed NetworkService object from the store.
 func (n *networkServicesStore) Delete(key meta) {
 	n.Lock()
