@@ -27,7 +27,7 @@ import (
 
 const (
 	depsFieldname    = "Deps"
-	optionalTagName  = "optional"
+	optionalTagName  = "empty_value_ok"
 	optionalTagValue = "true"
 )
 
@@ -60,7 +60,7 @@ func check(structField *reflect.StructField, value *reflect.Value) error {
 			field := v.Interface()
 			zeroValue := reflect.Zero(v.Type()).Interface()
 			if field == nil || field == zeroValue {
-				return fmt.Errorf("field in Deps struct named %s is zero valued, and lacks tag `optional:\"true\"`.  Please either set it to a non-zero value or add the `optional:\"true\"` to indicate its acceptable for it to be zero valued", sf.Name)
+				return fmt.Errorf("field in Deps struct named %s is zero valued, and lacks tag `empty_value_ok:\"true\"`.  Please either set it to a non-zero value or add the `empty_value_ok:\"true\"` to indicate its acceptable for it to be zero valued", sf.Name)
 			}
 		}
 	}

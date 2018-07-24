@@ -47,7 +47,7 @@ type Deps struct {
 	Name        string
 	Log         logger.FieldLogger
 	Cmd         *cobra.Command
-	KubeConfig  string `optional:"true"` // Fetch kubeconfig file from --kube-config
+	KubeConfig  string `empty_value_ok:"true"` // Fetch kubeconfig file from --kube-config
 	ObjectStore objectstore.Interface
 }
 
