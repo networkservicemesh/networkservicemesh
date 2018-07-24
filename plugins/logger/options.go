@@ -45,6 +45,7 @@ func NewPlugin(opts ...Option) *Plugin {
 	DefaultDeps()(p)
 	// Set a defensive p.FieldLogger so its *never* nil
 	// This should be overwritten by something proper in Init()
+	p.Log = logrus.New()
 	p.FieldLogger = p.Log
 	return p
 }
