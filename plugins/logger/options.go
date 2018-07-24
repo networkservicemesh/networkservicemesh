@@ -43,6 +43,9 @@ func NewPlugin(opts ...Option) *Plugin {
 		o(p)
 	}
 	DefaultDeps()(p)
+	// Set a defensive p.FieldLogger so its *never* nil
+	// This should be overwritten by something proper in Init()
+	p.FieldLogger = p.Log
 	return p
 }
 
