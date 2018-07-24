@@ -27,7 +27,7 @@ import (
 
 const (
 	depsFieldname    = "Deps"
-	optionalTagName  = "optional"
+	optionalTagName  = "empty_value_ok"
 	optionalTagValue = "true"
 )
 
