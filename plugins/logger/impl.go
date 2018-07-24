@@ -41,7 +41,10 @@ func (p *Plugin) Init() error {
 
 func (p *Plugin) init() error {
 	p.Log = logrus.New()
-	p.Deps.ConfigLoader.Init()
+	err := p.Deps.ConfigLoader.Init()
+	if err != nil {
+		return err
+	}
 	if p.Config == nil {
 		p.Config = p.Deps.ConfigLoader.LoadConfig().(*Config)
 	}
