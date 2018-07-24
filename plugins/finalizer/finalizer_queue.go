@@ -23,11 +23,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-//type objectMessage struct {
-//	key string
-//	obj interface{}
-//}
-
 func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer cache.SharedIndexInformer, stopCH chan struct{}) {
 	for {
 		obj, shutdown := queue.Get()

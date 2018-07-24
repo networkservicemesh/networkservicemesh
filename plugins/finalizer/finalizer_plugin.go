@@ -108,13 +108,7 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
-				//				var message objectMessage
-				//				var err error
-				//				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				//				message.obj = obj
-				// if err == nil {
 				queue.Add(obj)
-				// }
 			},
 		},
 	)
