@@ -6,6 +6,9 @@
 # Delete the client
 kubectl delete -f conf/sample/nsm-client.yaml
 
+# Delete the dataplane
+kubectl delete -f conf/sample/simple-dataplane.yaml
+
 # Delete the NSE
 kubectl delete -f conf/sample/nse.yaml
 
