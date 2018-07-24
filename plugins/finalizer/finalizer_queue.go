@@ -83,7 +83,7 @@ func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 	}
 	// Step 2 range through received list of channels and for each found NetworkService, remove the channel
 	// from NetworkService object.
-	plugin.Log.Infof("found %d advertised channels found for NSE pod %s/%s", len(channels), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	plugin.Log.Infof("found %d advertised channels for NSE pod %s/%s", len(channels), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	for _, ch := range channels {
 		plugin.Log.Infof("channel %s/%s was used by netowrk service %s, deleting it...", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName)
 		if err := plugin.ObjectStore.DeleteChannelFromNetworkService(ch.NetworkServiceName, ch.Metadata.Namespace, ch); err != nil {
