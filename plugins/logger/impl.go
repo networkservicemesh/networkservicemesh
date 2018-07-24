@@ -40,7 +40,6 @@ func (p *Plugin) Init() error {
 }
 
 func (p *Plugin) init() error {
-	p.Log = logrus.New()
 	err := p.Deps.ConfigLoader.Init()
 	if err != nil {
 		return err
