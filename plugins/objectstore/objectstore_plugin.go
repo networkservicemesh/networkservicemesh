@@ -112,13 +112,13 @@ func (p *Plugin) GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkS
 // AddChannelToNetworkService adds a channel to Existing in the ObjectStore NetworkService object
 func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
 	p.Log.Info("ObjectStore.AddChannelToNetworkService.")
-	return p.objects.networkServicesStore.AddChannel(nsName, nsNamespace, ch)
+	return p.objects.networkServicesStore.AddChannelToNetworkService(nsName, nsNamespace, ch)
 }
 
 // DeleteChannelFromNetworkService deletes a channel from the ObjectStore NetworkService object
-func (p *Plugin) DeleteChannelFromNetworkService(ch *netmesh.NetworkServiceChannel) error {
+func (p *Plugin) DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
 	p.Log.Info("ObjectStore.DeleteChannelFromNetworkService.")
-	return p.objects.networkServicesStore.DeleteChannelFromNS(ch)
+	return p.objects.networkServicesStore.DeleteChannelFromNetworkService(nsName, nsNamespace, ch)
 }
 
 // ListNetworkServices lists all stored NetworkService objects

@@ -349,7 +349,7 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 			n.objectStore.AddChannel(c)
 
 			if err := n.objectStore.AddChannelToNetworkService(networkServiceName, networkServiceNamespace, c); err != nil {
-				n.logger.Error("failed to add channel %s/%s to network service %s with error: %+v", networkServiceNamespace, networkServiceName, c.Metadata.Name, err)
+				n.logger.Errorf("failed to add channel %s/%s to network service %s with error: %+v", networkServiceNamespace, networkServiceName, c.Metadata.Name, err)
 				return &nsmconnect.ChannelAdvertiseResponse{Success: false}, err
 			}
 			n.logger.Infof("Channel %s/%s has been successfully added to network service %s/%s in the Object Store",

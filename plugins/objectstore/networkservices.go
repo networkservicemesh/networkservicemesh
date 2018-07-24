@@ -70,7 +70,7 @@ func (n *networkServicesStore) Get(nsName, nsNamespace string) *netmesh.NetworkS
 
 // Get method returns NetworkService, if it does not
 // already it returns nil.
-func (n *networkServicesStore) AddChannel(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+func (n *networkServicesStore) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
 	n.Lock()
 	defer n.Unlock()
 
@@ -102,13 +102,13 @@ func (n *networkServicesStore) AddChannel(nsName string, nsNamespace string, ch 
 }
 
 // DeleteChannel deletes channel from Network Service
-func (n *networkServicesStore) DeleteChannelFromNS(ch *netmesh.NetworkServiceChannel) error {
+func (n *networkServicesStore) DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
 	n.Lock()
 	defer n.Unlock()
 
 	key := meta{
-		name:      ch.NetworkServiceName,
-		namespace: ch.Metadata.Namespace,
+		name:      nsName,
+		namespace: nsNamespace,
 	}
 	ns, ok := n.networkService[key]
 	if !ok {
@@ -146,4 +146,19 @@ func (n *networkServicesStore) List() []*netmesh.NetworkService {
 		networkServices = append(networkServices, ns)
 	}
 	return networkServices
+}
+
+func (n *networkServicesStore) ListChannelsForNetworkService(ns *netmesh.NetworkService) ([]*netmesh.NetworkServiceChannel, error) {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      ns.Metadata.Name,
+		namespace: ns.Metadata.Namespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return nil, fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
+	}
+	return ns.Channel, nil
 }
