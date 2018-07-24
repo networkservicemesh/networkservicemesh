@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// //go:generate protoc -I ./model/pod --go_out=plugins=grpc:./model/pod ./model/pod/pod.proto
-
 package finalizer
 
 import (
@@ -21,30 +19,18 @@ import (
 	"reflect"
 
 	"k8s.io/api/core/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
-// QueueRetryCount is the max number of times to retry processing a failed item
-// from the workqueue.
-const QueueRetryCount = 5
-
-const (
-	createOp = iota
-	deleteOp
-	updateOp
-)
-
-type objectMessage struct {
-	operation int
-	key       string
-	obj       interface{}
-}
+//type objectMessage struct {
+//	key string
+//	obj interface{}
+//}
 
 func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer cache.SharedIndexInformer, stopCH chan struct{}) {
 	for {
-		message, shutdown := queue.Get()
+		obj, shutdown := queue.Get()
 
 		// If the queue has been shut down, we should exit the work queue here
 		if shutdown {
@@ -53,49 +39,27 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 			return
 		}
 
-		var strKey string
-		strKey = message.(objectMessage).key
-
-		func(key string) {
-			defer queue.Done(message)
-
-			// Attempt to split the 'key' into namespace and object name
-			namespace, name, err := cache.SplitMetaNamespaceKey(strKey)
-
-			if err != nil {
-				// This is a soft-error
-				plugin.Log.Errorf("Error splitting meta namespace key into parts: %s", err.Error())
-				queue.Forget(message)
-				utilruntime.HandleError(err)
+		func(obj interface{}) {
+			defer queue.Done(obj)
+			pod, ok := obj.(*v1.Pod)
+			if !ok {
+				plugin.Log.Errorf("Unexpected object type %s", reflect.TypeOf(obj))
+				queue.Forget(obj)
 				return
 			}
 
-			plugin.Log.Infof("Read item '%s/%s' off workqueue. Processing...", namespace, name)
-
-			plugin.Log.Infof("Found object of type: %s", reflect.TypeOf(message.(objectMessage).obj))
-			// Check if this is a create or delete operation
-			switch message.(objectMessage).operation {
-			case deleteOp:
-				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
-				if err := cleanUp(plugin, message.(objectMessage).obj); err != nil {
-					plugin.Log.Errorf("object clean up failed with error: %+v", err)
-				} else {
-					plugin.Log.Infof("object clean up successful %s/%s", namespace, name)
-				}
+			if err := cleanUp(plugin, pod); err != nil {
+				plugin.Log.Errorf("object clean up failed with error: %+v", err)
+			} else {
+				plugin.Log.Infof("object clean up successful %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 			}
-			queue.Forget(message)
-		}(strKey)
+			queue.Forget(obj)
+		}(obj)
 	}
 }
 
-func cleanUp(plugin *Plugin, obj interface{}) error {
-
-	//plugin.ObjectStore.ObjectDeleted(message.(objectMessage).obj)
+func cleanUp(plugin *Plugin, pod *v1.Pod) error {
 	var err error
-	pod, ok := obj.(*v1.Pod)
-	if !ok {
-		return fmt.Errorf("object is not a pod, but is %s, stopping clean up", reflect.TypeOf(obj))
-	}
 	label, ok := pod.ObjectMeta.Labels[nsmAppLabel]
 	if !ok {
 		return fmt.Errorf("pod %s/%s is missing %s label, stopping cleanup", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel)

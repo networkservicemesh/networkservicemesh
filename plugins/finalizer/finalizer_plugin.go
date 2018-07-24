@@ -26,7 +26,9 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,8 +77,9 @@ type Deps struct {
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
 // all reflectors.
 func (plugin *Plugin) Init() error {
-	return plugin.IdempotentInit(plugin.init)
+	return plugin.IdempotentInit(plugintools.LoggingInitFunc(plugin.Log, plugin, plugin.init))
 }
+
 func (plugin *Plugin) init() error {
 	plugin.pluginStopCh = make(chan struct{})
 	err := deptools.Init(plugin)
@@ -105,14 +108,13 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
-				var message objectMessage
-				var err error
-				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-				message.operation = deleteOp
-				message.obj = obj
-				if err == nil {
-					queue.Add(message)
-				}
+				//				var message objectMessage
+				//				var err error
+				//				message.key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				//				message.obj = obj
+				// if err == nil {
+				queue.Add(obj)
+				// }
 			},
 		},
 	)
@@ -165,11 +167,13 @@ func (plugin *Plugin) afterInit() error {
 
 // Close stops all reflectors.
 func (plugin *Plugin) Close() error {
-	return plugin.IdempotentClose(plugin.close)
+	return plugin.IdempotentClose(plugintools.LoggingCloseFunc(plugin.Log, plugin, plugin.close))
 }
 
 func (plugin *Plugin) close() error {
+	plugin.Log.Info("Close")
 	close(plugin.pluginStopCh)
 	plugin.wg.Wait()
+	registry.Shared().Delete(plugin)
 	return deptools.Close(plugin)
 }

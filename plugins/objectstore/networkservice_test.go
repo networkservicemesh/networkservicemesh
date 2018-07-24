@@ -146,5 +146,3 @@ func TestDeletehannelToNetworkService(t *testing.T) {
 		t.Fatalf("Expected to see exactly 0 channel but got %d, failing", len(resultChannels))
 	}
 }
-
-// TODO (sbezverk) AddChannelToNetworkService and DeleteChannelFromNetworkService
