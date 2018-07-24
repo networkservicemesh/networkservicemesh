@@ -26,6 +26,17 @@ GOVETTARGETS=cmd \
 	plugins \
 	utils
 
+# Export some of the above variables so they persist for the shell scripts
+# which are run from the Makefiles
+export GOPATH \
+       GOCMD \
+       GOFMT \
+       GOGET \
+       GOGENERATE \
+       GOINSTALL \
+       GOTEST \
+       GOVET
+
 # Setup proxies for docker build
 ifeq ($(HTTP_PROXY),)
 HTTPBUILD=
