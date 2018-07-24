@@ -208,12 +208,18 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	if _, ok := link.(*netlink.Veth); !ok {
 		return fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
 	}
+	if netlink.LinkSetUp(link) != nil {
+		return fmt.Errorf("failure setting link %s up", link)
+	}
 	peer, err := netlink.LinkByName(p1)
 	if err != nil {
 		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
 	}
 	if _, ok := peer.(*netlink.Veth); !ok {
 		return fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
+	}
+	if netlink.LinkSetUp(peer) != nil {
+		return fmt.Errorf("failure setting link %s up", peer)
 	}
 	if err := netlink.LinkSetNsFd(peer, int(ns2)); err != nil {
 		return fmt.Errorf("failure to get place veth into peer's pod with error: %+v", err)
