@@ -109,7 +109,7 @@ func TestCheckUnsetDeps(t *testing.T) {
 }
 
 type OptionalDeps struct {
-	One API `optional:"true"`
+	One API `empty_value_ok:"true"`
 }
 
 type PluginWithOptionalDep struct {

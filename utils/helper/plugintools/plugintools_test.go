@@ -26,7 +26,7 @@ import (
 
 type Deps struct {
 	Name string
-	Log  logger.FieldLogger `optional:"true"`
+	Log  logger.FieldLogger `empty_value_ok:"true"`
 }
 
 type Plugin struct {
