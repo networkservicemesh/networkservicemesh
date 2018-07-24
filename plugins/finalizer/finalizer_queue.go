@@ -127,7 +127,7 @@ func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 	plugin.Log.Infof("found %d advertised channels found for NSE pod %s/%s", len(channels), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	for _, ch := range channels {
 		plugin.Log.Infof("channel %s/%s was used by netowrk service %s, deleting it...", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName)
-		if err := plugin.ObjectStore.DeleteChannelFromNS(ch); err != nil {
+		if err := plugin.ObjectStore.DeleteChannelFromNetworkService(ch); err != nil {
 			plugin.Log.Errorf("failed channel %s/%s from netowrk service %s with error: %+v", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName, err)
 			return err
 		}

@@ -36,27 +36,48 @@ func newNetworkServiceChannelsStore() *networkServiceChannelsStore {
 
 // Add method adds descovered NetworkServiceChannel if it does not
 // already exit in the store.
-func (n *networkServiceChannelsStore) Add(ns *netmesh.NetworkServiceChannel) {
+func (n *networkServiceChannelsStore) AddChannel(nch *netmesh.NetworkServiceChannel) {
 	n.Lock()
 	defer n.Unlock()
 
 	key := meta{
-		name:      ns.NseProviderName,
-		namespace: ns.Metadata.Namespace,
+		name:      nch.NseProviderName,
+		namespace: nch.Metadata.Namespace,
 	}
+	found := false
 	if _, ok := n.networkServiceChannel[key]; !ok {
-		// Not in the store, adding it.
-		n.networkServiceChannel[key] = append(n.networkServiceChannel[key], ns)
+		// Not in the store, meaning it will be a first channel for NSE
+		n.networkServiceChannel[key] = append(n.networkServiceChannel[key], nch)
+	} else {
+		// NSE already exists, now need to check is the channel is not duplicate
+		// and if it is not, then add it.
+		for _, c := range n.networkServiceChannel[key] {
+			if c.Metadata.Name == nch.Metadata.Name &&
+				c.Metadata.Namespace == nch.Metadata.Namespace {
+				found = true
+			}
+		}
+		if !found {
+			n.networkServiceChannel[key] = append(n.networkServiceChannel[key], nch)
+		}
 	}
 }
 
 // Delete method deletes removed NetworkServiceChannel object from the store.
-func (n *networkServiceChannelsStore) Delete(key meta) {
+func (n *networkServiceChannelsStore) DeleteChannel(nch *netmesh.NetworkServiceChannel) {
 	n.Lock()
 	defer n.Unlock()
 
-	if _, ok := n.networkServiceChannel[key]; ok {
-		delete(n.networkServiceChannel, key)
+	key := meta{
+		name:      nch.NseProviderName,
+		namespace: nch.Metadata.Namespace,
+	}
+	if channels, ok := n.networkServiceChannel[key]; ok {
+		for i, c := range channels {
+			if c.Metadata.Name == nch.Metadata.Name && c.Metadata.Namespace == nch.Metadata.Namespace {
+				n.networkServiceChannel[key] = append(n.networkServiceChannel[key][:i], n.networkServiceChannel[key][i+1:]...)
+			}
+		}
 	}
 }
 

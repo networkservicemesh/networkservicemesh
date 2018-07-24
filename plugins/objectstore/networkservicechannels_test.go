@@ -43,7 +43,7 @@ func TestChannelStore(t *testing.T) {
 		NetworkServiceName: "network-service-1",
 	}
 
-	channels.networkServiceChannelsStore.Add(&nsc)
+	channels.networkServiceChannelsStore.AddChannel(&nsc)
 
 	for _, n := range channels.networkServiceChannelsStore.List() {
 		if n.Metadata.Name != chTestName {
@@ -55,7 +55,7 @@ func TestChannelStore(t *testing.T) {
 		}
 	}
 
-	channels.networkServiceChannelsStore.Delete(meta{name: nsc.NseProviderName, namespace: nsc.Metadata.Namespace})
+	channels.networkServiceChannelsStore.DeleteChannel(&nsc)
 
 	nscRet := channels.networkServiceChannelsStore.List()
 	if len(nscRet) != 0 {

@@ -60,3 +60,5 @@ func TestNetworkServiceStore(t *testing.T) {
 		t.Errorf("Deletion of NetworkService from objectstore failed")
 	}
 }
+
+// TODO (sbezverk) AddChannelToNetworkService and DeleteChannelFromNetworkService

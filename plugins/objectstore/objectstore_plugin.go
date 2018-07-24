@@ -94,7 +94,7 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 		p.Log.Infof("number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
 	case *v1.NetworkServiceChannel:
 		nsc := obj.(*v1.NetworkServiceChannel).Spec
-		p.objects.networkServiceChannelsStore.Add(&nsc)
+		p.objects.networkServiceChannelsStore.AddChannel(&nsc)
 	case *v1.NetworkServiceEndpoint:
 		nse := obj.(*v1.NetworkServiceEndpoint).Spec
 		p.objects.networkServiceEndpointsStore.Add(&nse)
@@ -115,8 +115,8 @@ func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, c
 	return p.objects.networkServicesStore.AddChannel(nsName, nsNamespace, ch)
 }
 
-// DeleteChannelFromNS deletes a channel from the ObjectStore NetworkService object
-func (p *Plugin) DeleteChannelFromNS(ch *netmesh.NetworkServiceChannel) error {
+// DeleteChannelFromNetworkService deletes a channel from the ObjectStore NetworkService object
+func (p *Plugin) DeleteChannelFromNetworkService(ch *netmesh.NetworkServiceChannel) error {
 	p.Log.Info("ObjectStore.DeleteChannelFromNetworkService.")
 	return p.objects.networkServicesStore.DeleteChannelFromNS(ch)
 }
@@ -148,7 +148,7 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 		p.objects.networkServicesStore.Delete(meta{name: ns.Metadata.Name, namespace: ns.Metadata.Namespace})
 	case *v1.NetworkServiceChannel:
 		nsc := obj.(*v1.NetworkServiceChannel).Spec
-		p.objects.networkServiceChannelsStore.Delete(meta{name: nsc.Metadata.Name, namespace: nsc.Metadata.Namespace})
+		p.objects.networkServiceChannelsStore.DeleteChannel(&nsc)
 	case *v1.NetworkServiceEndpoint:
 		nse := obj.(*v1.NetworkServiceEndpoint).Spec
 		p.objects.networkServiceEndpointsStore.Delete(meta{name: nse.Metadata.Name, namespace: nse.Metadata.Namespace})
@@ -165,4 +165,17 @@ func (p *Plugin) GetChannelsByNSEServerProvider(nseServer, namespace string) []*
 func (p *Plugin) DeleteNSE(nseServer, namespace string) {
 	p.Log.Info("ObjectStore.DeleteNSE")
 	p.objects.networkServiceChannelsStore.DeleteNSE(nseServer, namespace)
+}
+
+// DeleteChannel delete all channels associated with given NSE
+func (p *Plugin) DeleteChannel(nch *netmesh.NetworkServiceChannel) {
+	p.Log.Info("ObjectStore.DeleteChannel")
+	p.objects.networkServiceChannelsStore.DeleteChannel(nch)
+}
+
+// AddChannel checks if advertised NSE already exists and then add given channel to its list,
+// othewise NSE gets created and then new channel gets added.
+func (p *Plugin) AddChannel(nch *netmesh.NetworkServiceChannel) {
+	p.Log.Info("ObjectStore.AddChannel")
+	p.objects.networkServiceChannelsStore.DeleteChannel(nch)
 }
