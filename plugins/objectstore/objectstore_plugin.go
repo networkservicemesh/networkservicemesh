@@ -127,18 +127,6 @@ func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
 	return p.objects.networkServicesStore.List()
 }
 
-// ListNetworkServiceChannels lists all stored NetworkServiceChannel objects
-func (p *Plugin) ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel {
-	p.Log.Info("ObjectStore.ListNetworkServiceChannels")
-	return p.objects.networkServiceChannelsStore.List()
-}
-
-// ListNetworkServiceEndpoints lists all stored NetworkServiceEndpoint objects
-func (p *Plugin) ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint {
-	p.Log.Info("ObjectStore.ListNetworkServiceEndpoints")
-	return p.objects.networkServiceEndpointsStore.List()
-}
-
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
 	p.Log.Infof("ObjectStore.ObjectDeleted: %s", obj)
@@ -157,7 +145,8 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 
 // GetChannelsByNSEServerProvider lists all stored NetworkServiceChannel objects for a given nse server
 func (p *Plugin) GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel {
-	p.Log.Info("ObjectStore.ListNetworkServiceChannels")
+	p.Log.Info("ObjectStore.GetChannelsByNSEServerProvider for %s/%s", nseServer, namespace)
+	p.Log.Infof("><SB> Dumping content of channel store: %+v", p.objects.networkServiceChannel)
 	return p.objects.networkServiceChannelsStore.GetChannelsByNSEServerProvider(nseServer, namespace)
 }
 
@@ -170,6 +159,7 @@ func (p *Plugin) DeleteNSE(nseServer, namespace string) {
 // DeleteChannel delete all channels associated with given NSE
 func (p *Plugin) DeleteChannel(nch *netmesh.NetworkServiceChannel) {
 	p.Log.Info("ObjectStore.DeleteChannel")
+	p.Log.Infof("><SB> Dumping content of channel store: %+v", p.objects.networkServiceChannel)
 	p.objects.networkServiceChannelsStore.DeleteChannel(nch)
 }
 
@@ -177,5 +167,6 @@ func (p *Plugin) DeleteChannel(nch *netmesh.NetworkServiceChannel) {
 // othewise NSE gets created and then new channel gets added.
 func (p *Plugin) AddChannel(nch *netmesh.NetworkServiceChannel) {
 	p.Log.Info("ObjectStore.AddChannel")
-	p.objects.networkServiceChannelsStore.DeleteChannel(nch)
+	p.Log.Infof("><SB> Dumping content of channel store: %+v", p.objects.networkServiceChannel)
+	p.objects.networkServiceChannelsStore.AddChannel(nch)
 }

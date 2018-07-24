@@ -70,7 +70,7 @@ type Deps struct {
 	Name string
 	Log  logger.FieldLoggerPlugin
 	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig  string
+	KubeConfig  string `optional:"true"`
 	ObjectStore objectstore.Interface
 }
 

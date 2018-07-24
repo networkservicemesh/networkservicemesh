@@ -17,6 +17,8 @@ package objectstore
 import (
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
@@ -45,19 +47,22 @@ func (n *networkServiceChannelsStore) AddChannel(nch *netmesh.NetworkServiceChan
 		namespace: nch.Metadata.Namespace,
 	}
 	found := false
-	if _, ok := n.networkServiceChannel[key]; !ok {
+	if channels, ok := n.networkServiceChannel[key]; !ok {
 		// Not in the store, meaning it will be a first channel for NSE
+		logrus.Infof("><SB> NSE with key: %+v not found, adding it...", key)
 		n.networkServiceChannel[key] = append(n.networkServiceChannel[key], nch)
 	} else {
 		// NSE already exists, now need to check is the channel is not duplicate
 		// and if it is not, then add it.
-		for _, c := range n.networkServiceChannel[key] {
-			if c.Metadata.Name == nch.Metadata.Name &&
-				c.Metadata.Namespace == nch.Metadata.Namespace {
+		for _, ch := range channels {
+			if ch.Metadata.Name == nch.Metadata.Name &&
+				ch.Metadata.Namespace == nch.Metadata.Namespace {
+				logrus.Infof("><SB> Channel %s/%s already exists", nch.Metadata.Namespace, nch.Metadata.Name)
 				found = true
 			}
 		}
 		if !found {
+			logrus.Infof("><SB> Channel %s/%s is new, adding it", nch.Metadata.Namespace, nch.Metadata.Name)
 			n.networkServiceChannel[key] = append(n.networkServiceChannel[key], nch)
 		}
 	}
@@ -96,6 +101,7 @@ func (n *networkServiceChannelsStore) DeleteNSE(nseServer, namespace string) {
 }
 
 // List method lists all known NetworkServiceChannel objects.
+/*
 func (n *networkServiceChannelsStore) List() []*netmesh.NetworkServiceChannel {
 	n.Lock()
 	defer n.Unlock()
@@ -106,6 +112,7 @@ func (n *networkServiceChannelsStore) List() []*netmesh.NetworkServiceChannel {
 
 	return networkServiceChannels
 }
+*/
 
 // GetChannelsByNSEServerProvider returns a slice of channels for specified nse_server_provider + namespace key
 func (n *networkServiceChannelsStore) GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel {

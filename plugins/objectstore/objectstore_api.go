@@ -38,8 +38,6 @@ type Interface interface {
 	DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
 	DeleteNSE(nseServer, namespace string)
 	ListNetworkServices() []*netmesh.NetworkService
-	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
-	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint
 	GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel
 }
 

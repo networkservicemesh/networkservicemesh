@@ -316,7 +316,7 @@ func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnec
 }
 
 func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
-	n.logger.Printf("received Channel advertisement...")
+	n.logger.Printf("received Channel advertisement.")
 	for _, c := range cr.NetmeshChannel {
 
 		// Ignoring path since it is local to NSE path, completely useless for server, but keeping NSE socket name
@@ -346,6 +346,7 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 			// Since it was discovered that NetworkService Object exists, calling method to add the channel to NetworkService.
 
 			// Adding advertised channel to Object Store of NSEs and channels.
+			n.logger.Infof("Adding channel %s/%s for NSE %s/%s", c.Metadata.Namespace, c.Metadata.Name, c.Metadata.Namespace, c.NseProviderName)
 			n.objectStore.AddChannel(c)
 
 			if err := n.objectStore.AddChannelToNetworkService(networkServiceName, networkServiceNamespace, c); err != nil {
