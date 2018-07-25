@@ -15,6 +15,7 @@
 package logger
 
 import (
+	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
 	"github.com/sirupsen/logrus"
 )
@@ -24,8 +25,13 @@ type FieldLogger interface {
 	logrus.FieldLogger
 }
 
+type StackLogger interface {
+	WithStackTrace(err *errors.Error) logrus.FieldLogger
+}
+
 // FieldLoggerPlugin is a FieldLogger and a Plugin
 type FieldLoggerPlugin interface {
 	idempotent.PluginAPI
 	FieldLogger
+	StackLogger
 }

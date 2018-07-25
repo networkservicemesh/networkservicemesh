@@ -20,6 +20,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/go-errors/errors"
+  packages = ["."]
+  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
+  version = "v1.0.1"
+
+[[projects]]
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -658,6 +664,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "78a6ef00d4f3ce8eb52e3dc392e5629268ed4d46d3316f151a8312b9495ae5fd"
+  inputs-digest = "c827323875273ee2597b52d7373b0a9d4aaf4fe9904cddabbdaf0b5c89c30acc"
   solver-name = "gps-cdcl"
   solver-version = 1
