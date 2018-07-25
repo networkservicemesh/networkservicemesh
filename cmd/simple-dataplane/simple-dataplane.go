@@ -57,6 +57,44 @@ type DataplaneController struct {
 	dataplaneServer *grpc.Server
 }
 
+// RequestDeleteConnect implements method for simpledataplane proto
+func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *simpledataplane.DeleteConnectRequest) (*simpledataplane.DeleteConnectReply, error) {
+
+	podName := in.Pod.Metadata.Name
+	if podName == "" {
+		logrus.Error("simple-dataplane: missing required pod name")
+		return &simpledataplane.DeleteConnectReply{
+			Deleted:     false,
+			DeleteError: fmt.Sprint("missing required name for pod"),
+		}, status.Error(codes.NotFound, "missing required pod name")
+	}
+	podNamespace := "default"
+	if in.Pod.Metadata.Namespace != "" {
+		podNamespace = in.Pod.Metadata.Namespace
+	}
+
+	switch in.PodType {
+	case simpledataplane.NSMPodType_NSE:
+	case simpledataplane.NSMPodType_NSMCLIENT:
+	default:
+		logrus.Error("simple-dataplane: invalid pod type")
+		return &simpledataplane.DeleteConnectReply{
+			Deleted:     false,
+			DeleteError: fmt.Sprintf("invalid pod type detected for pod %s/%s", podNamespace, podName),
+		}, status.Error(codes.Aborted, "nvalid pod type")
+	}
+	if err := deleteLink(d.k8s, podName, podNamespace, in.PodType); err != nil {
+		return &simpledataplane.DeleteConnectReply{
+			Deleted:     false,
+			DeleteError: fmt.Sprintf("failed to delete interface(s) for pod %s/%s with error: %+v", podNamespace, podName, err),
+		}, status.Error(codes.Aborted, "failed to delete interface(s) for pod")
+	}
+
+	return &simpledataplane.DeleteConnectReply{
+		Deleted: true,
+	}, nil
+}
+
 // RequestBuildConnect implements method for simpledataplane proto
 func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simpledataplane.BuildConnectRequest) (*simpledataplane.BuildConnectReply, error) {
 
@@ -171,6 +209,44 @@ func getContainerID(k8s *kubernetes.Clientset, pn, ns string) (string, error) {
 	return "", fmt.Errorf("simple-dataplane: pod %s/%s not found", ns, pn)
 }
 
+func deleteVethInterface(ns netns.NsHandle, interfacePrefix string) error {
+	nsOrigin, err := netns.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get current process namespace")
+	}
+	defer netns.Set(nsOrigin)
+
+	if err := netns.Set(ns); err != nil {
+		return fmt.Errorf("failed to switch to namespace %s with error: %+v", ns, err)
+	}
+	namespaceHandle, err := netlink.NewHandleAt(ns)
+	if err != nil {
+		return fmt.Errorf("failure to get pod's handle with error: %+v", err)
+	}
+
+	// Getting list of all interfaces in pod's namespace
+	links, err := namespaceHandle.LinkList()
+	if err != nil {
+		return fmt.Errorf("failure to get pod's interfaces with error: %+v", err)
+	}
+
+	// Now walk the list of discovered interfaces and shut down and delete all links
+	// with matching interfacePrefix.
+	// interfacePrefix can have two values "nsm" or "nse". All NSM injected interfaces
+	// to NSM client pod will have prefix "nse" and all injected interfaces of NSE pod
+	// will have prefix "nsm".
+	for _, link := range links {
+		if strings.HasPrefix(link.Attrs().Name, interfacePrefix) {
+			// Found NSM related interface and in best effort mode shutting it down
+			// and then delete it
+			_ = netlink.LinkSetDown(link)
+			_ = namespaceHandle.LinkDel(link)
+		}
+	}
+
+	return nil
+}
+
 func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	ns, err := netns.Get()
 	if err != nil {
@@ -178,12 +254,9 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	}
 	defer netns.Set(ns)
 
-	if len(p1) > interfaceNameMaxLength {
-		p1 = p1[:interfaceNameMaxLength]
-	}
-	if len(p2) > interfaceNameMaxLength {
-		p2 = p2[:interfaceNameMaxLength]
-	}
+	p1 = "nse-" + p1[:interfaceNameMaxLength-4]
+	p2 = "nsm-" + p2[:interfaceNameMaxLength-4]
+
 	linkAttr := netlink.NewLinkAttrs()
 	linkAttr.Name = p2
 	veth := &netlink.Veth{
@@ -242,13 +315,6 @@ func setVethAddr(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	var addr2 = &net.IPNet{IP: net.IPv4(1, 1, 1, 2), Mask: net.CIDRMask(30, 32)}
 	var vethAddr1 = &netlink.Addr{IPNet: addr1, Peer: addr2}
 	var vethAddr2 = &netlink.Addr{IPNet: addr2, Peer: addr1}
-
-	if len(p1) > interfaceNameMaxLength {
-		p1 = p1[:interfaceNameMaxLength]
-	}
-	if len(p2) > interfaceNameMaxLength {
-		p2 = p2[:interfaceNameMaxLength]
-	}
 
 	ns, err := netns.Get()
 	if err != nil {
@@ -367,6 +433,32 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 	}
 	if err := listInterfaces(ns2); err != nil {
 		logrus.Errorf("Failed to list interfaces of %s/%swith error: %+v", namespace2, podName2, err)
+	}
+	return nil
+}
+
+func deleteLink(k8s *kubernetes.Clientset, podName string, namespace string, podType simpledataplane.NSMPodType) error {
+	cid, err := getContainerID(k8s, podName, namespace)
+	if err != nil {
+		return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace, podName, err)
+	}
+	logrus.Printf("Discovered Container ID %s for pod %s/%s", cid, namespace, podName)
+
+	ns, err := netns.GetFromDocker(cid)
+	if err != nil {
+		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace, podName, err)
+	}
+	var interfacePrefix string
+	switch podType {
+	case simpledataplane.NSMPodType_NSE:
+		interfacePrefix = "nsm"
+
+	case simpledataplane.NSMPodType_NSMCLIENT:
+		interfacePrefix = "nse"
+	}
+	if err := deleteVethInterface(ns, interfacePrefix); err != nil {
+		return fmt.Errorf("Failed to veth interfacefor pod  %s/%s with error: %+v",
+			namespace, podName, err)
 	}
 	return nil
 }
