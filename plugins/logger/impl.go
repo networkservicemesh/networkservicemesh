@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"github.com/ligato/networkservicemesh/utils/registry"
 	"github.com/sirupsen/logrus"
@@ -96,6 +97,10 @@ func (p *Plugin) Close() error {
 func (p *Plugin) close() error {
 	registry.Shared().Delete(p)
 	return p.Deps.ConfigLoader.Close()
+}
+
+func (p *Plugin) WithStackTrace(error *errors.Error) logrus.FieldLogger {
+	return p.FieldLogger.WithField("callstack", error.ErrorStack()).WithError(error)
 }
 
 var defaultFormatter logrus.Formatter
