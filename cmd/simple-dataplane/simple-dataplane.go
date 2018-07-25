@@ -254,9 +254,6 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	}
 	defer netns.Set(ns)
 
-	p1 = "nse-" + p1[:interfaceNameMaxLength-4]
-	p2 = "nsm-" + p2[:interfaceNameMaxLength-4]
-
 	linkAttr := netlink.NewLinkAttrs()
 	linkAttr.Name = p2
 	veth := &netlink.Veth{
@@ -417,6 +414,9 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 	if err != nil {
 		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
+
+	podName1 = "nse-" + podName1[:interfaceNameMaxLength-4]
+	podName2 = "nsm-" + podName2[:interfaceNameMaxLength-4]
 
 	if err := setVethPair(ns1, ns2, podName1, podName2); err != nil {
 		return fmt.Errorf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
