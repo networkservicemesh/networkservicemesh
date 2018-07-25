@@ -15,7 +15,6 @@
 package logger
 
 import (
-	"bytes"
 	"io"
 	"os"
 
@@ -100,18 +99,8 @@ func (p *Plugin) close() error {
 	return p.Deps.ConfigLoader.Close()
 }
 
-func (p *Plugin) WithStackTrace() logrus.FieldLogger {
-	err := errors.New("")
-
-	stackFrames := err.StackFrames()
-	stackFrames = stackFrames[1:]
-
-	var buf bytes.Buffer
-	for _, frame := range stackFrames {
-		buf.WriteString(frame.String())
-	}
-
-	return p.FieldLogger.WithField("callstack", buf.String())
+func (p *Plugin) WithStackTrace(error *errors.Error) logrus.FieldLogger {
+	return p.FieldLogger.WithField("callstack", error.ErrorStack()).WithError(error)
 }
 
 var defaultFormatter logrus.Formatter

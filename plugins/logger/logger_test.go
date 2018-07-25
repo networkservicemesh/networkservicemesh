@@ -20,6 +20,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 	. "github.com/onsi/gomega"
@@ -271,7 +272,8 @@ func TestWithStackTrace(t *testing.T) {
 	Expect(plugin.Name).To(Equal(logger.DefaultName))
 	err := plugin.Init()
 	Expect(err).To(BeNil())
-	plugin.WithStackTrace().Info("Foo")
+	goErr := errors.New("i'm an error")
+	plugin.WithStackTrace(goErr).Info("Foo")
 	err = json.Unmarshal(buffer.Bytes(), &fields)
 	Expect(err).To(BeNil())
 	Expect(fields[logger.LogNameFieldName]).To(Equal(logger.DefaultName))
@@ -279,6 +281,7 @@ func TestWithStackTrace(t *testing.T) {
 	Expect(fields["pid"]).ToNot(BeNil())
 	Expect(fields["source"]).ToNot(BeNil())
 	Expect(fields["callstack"]).To(ContainSubstring("TestWithStackTrace"))
+	Expect(fields["error"]).To(ContainSubstring("i'm an error"))
 	err = plugin.Close()
 	Expect(err).To(BeNil())
 }
