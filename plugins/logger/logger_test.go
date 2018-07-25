@@ -20,6 +20,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/registry/testsuites"
 	. "github.com/onsi/gomega"
@@ -255,4 +256,32 @@ func TestWithRegistry(t *testing.T) {
 	p2 := logger.NewPlugin()
 	p3 := logger.NewPlugin(logger.UseDeps(&logger.Deps{Name: name}))
 	testsuites.SuiteRegistry(t, p1, p2, p3)
+}
+
+func TestWithStackTrace(t *testing.T) {
+	RegisterTestingT(t)
+	var buffer bytes.Buffer
+	var fields logrus.Fields
+	formatter := &logrus.JSONFormatter{}
+	logger.SetDefaultFormatter(formatter)
+	logger.SetDefaultOut(&buffer)
+	plugin := logger.NewPlugin()
+	Expect(plugin).ToNot(BeNil())
+	Expect(plugin.Deps.Formatter).To(Equal(formatter))
+	Expect(plugin.Deps.Out).To(Equal(&buffer))
+	Expect(plugin.Name).To(Equal(logger.DefaultName))
+	err := plugin.Init()
+	Expect(err).To(BeNil())
+	goErr := errors.New("i'm an error")
+	plugin.WithStackTrace(goErr).Info("Foo")
+	err = json.Unmarshal(buffer.Bytes(), &fields)
+	Expect(err).To(BeNil())
+	Expect(fields[logger.LogNameFieldName]).To(Equal(logger.DefaultName))
+	Expect(fields["msg"]).To(Equal("Foo"))
+	Expect(fields["pid"]).ToNot(BeNil())
+	Expect(fields["source"]).ToNot(BeNil())
+	Expect(fields["callstack"]).To(ContainSubstring("TestWithStackTrace"))
+	Expect(fields["error"]).To(ContainSubstring("i'm an error"))
+	err = plugin.Close()
+	Expect(err).To(BeNil())
 }
