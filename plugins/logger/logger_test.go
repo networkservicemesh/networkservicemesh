@@ -278,7 +278,6 @@ func TestWithStackTrace(t *testing.T) {
 	Expect(fields["msg"]).To(Equal("Foo"))
 	Expect(fields["pid"]).ToNot(BeNil())
 	Expect(fields["source"]).ToNot(BeNil())
-	Expect(fields["callstack"]).ToNot(BeNil())
 	Expect(fields["callstack"]).To(ContainSubstring("TestWithStackTrace"))
 	err = plugin.Close()
 	Expect(err).To(BeNil())
