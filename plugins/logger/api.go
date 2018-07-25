@@ -24,8 +24,13 @@ type FieldLogger interface {
 	logrus.FieldLogger
 }
 
+type StackLogger interface {
+	WithStackTrace() logrus.FieldLogger
+}
+
 // FieldLoggerPlugin is a FieldLogger and a Plugin
 type FieldLoggerPlugin interface {
 	idempotent.PluginAPI
 	FieldLogger
+	StackLogger
 }

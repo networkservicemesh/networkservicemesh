@@ -15,9 +15,11 @@
 package logger
 
 import (
+	"bytes"
 	"io"
 	"os"
 
+	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"github.com/ligato/networkservicemesh/utils/registry"
 	"github.com/sirupsen/logrus"
@@ -96,6 +98,20 @@ func (p *Plugin) Close() error {
 func (p *Plugin) close() error {
 	registry.Shared().Delete(p)
 	return p.Deps.ConfigLoader.Close()
+}
+
+func (p *Plugin) WithStackTrace() logrus.FieldLogger {
+	err := errors.New("")
+
+	stackFrames := err.StackFrames()
+	stackFrames = stackFrames[1:]
+
+	var buf bytes.Buffer
+	for _, frame := range stackFrames {
+		buf.WriteString(frame.String())
+	}
+
+	return p.FieldLogger.WithField("callstack", buf.String())
 }
 
 var defaultFormatter logrus.Formatter

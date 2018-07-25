@@ -100,3 +100,7 @@ required = [
     name = "k8s.io/code-generator"
     unused-packages = false
     go-tests = false
+
+[[constraint]]
+  name = "github.com/go-errors/errors"
+  version = "1.0.1"
