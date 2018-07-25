@@ -208,6 +208,9 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	if _, ok := link.(*netlink.Veth); !ok {
 		return fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
 	}
+	if err := netlink.LinkSetUp(link); err != nil {
+		return fmt.Errorf("failure setting link %s up with error: %+v", link.Attrs().Name, err)
+	}
 	peer, err := netlink.LinkByName(p1)
 	if err != nil {
 		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
@@ -215,8 +218,20 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	if _, ok := peer.(*netlink.Veth); !ok {
 		return fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
 	}
+	// Moving peer's interface into peer's namespace
 	if err := netlink.LinkSetNsFd(peer, int(ns2)); err != nil {
 		return fmt.Errorf("failure to get place veth into peer's pod with error: %+v", err)
+	}
+	// Switching to peer's namespace
+	if err := netns.Set(ns2); err != nil {
+		return fmt.Errorf("failed to switch to namespace %s with error: %+v", ns2, err)
+	}
+	peer, err = netlink.LinkByName(p1)
+	if err != nil {
+		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
+	}
+	if err := netlink.LinkSetUp(peer); err != nil {
+		return fmt.Errorf("failure setting link %s up with error: %+v", peer.Attrs().Name, err)
 	}
 	return nil
 }
