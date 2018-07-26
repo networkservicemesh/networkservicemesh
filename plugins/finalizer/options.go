@@ -12,30 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmcommand
+package finalizer
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/nsmserver"
-	"github.com/ligato/networkservicemesh/plugins/objectstore"
-	"github.com/ligato/networkservicemesh/utils/command"
-	"github.com/ligato/networkservicemesh/utils/registry"
+	"reflect"
+	"sync"
 
-	"github.com/ligato/networkservicemesh/plugins/crd"
-	"github.com/ligato/networkservicemesh/plugins/finalizer"
+	"github.com/ligato/networkservicemesh/plugins/objectstore"
+
 	"github.com/ligato/networkservicemesh/plugins/logger"
+	"github.com/ligato/networkservicemesh/utils/command"
 )
 
 const (
-	// DefaultName of the nsmcommand.Plugin
-	DefaultName = "netmesh"
+	// DefaultName of the finalizer.Plugin
+	DefaultName = "finalizer"
+	// KubeConfigFlagName - Cmd line flag for specifying kubeconfig filename
+	KubeConfigFlagName = "kube-config"
+	// KubeConfigFlagDefault - default value of KubeConfig
+	KubeConfigFlagDefault = ""
+	// KubeConfigFlagUsage - usage for flag for specifying kubeconfig filename
+	KubeConfigFlagUsage = "Path to the kubeconfig file to use for the client connection to K8s cluster"
 )
 
 // Option acts on a Plugin in order to set its Deps or Config
 type Option func(*Plugin)
 
+var sharedPlugins []*Plugin
+var sharedPluginLock sync.Mutex
+
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
 	p := newPlugin(opts...)
+	sharedPlugins = append(sharedPlugins, p)
 	return p
 }
 
@@ -52,7 +61,23 @@ func newPlugin(opts ...Option) *Plugin {
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
 	p := newPlugin(opts...)
-	return registry.Shared().LoadOrStore(p).(*Plugin)
+	sharedPluginLock.Lock()
+	defer sharedPluginLock.Unlock()
+	_, plug := p.findSharedPlugin()
+	if plug != nil {
+		return plug
+	}
+	sharedPlugins = append(sharedPlugins, p)
+	return p
+}
+
+func (p *Plugin) findSharedPlugin() (int, *Plugin) {
+	for i, value := range sharedPlugins {
+		if reflect.DeepEqual(p.Deps, value.Deps) {
+			return i, value
+		}
+	}
+	return -1, nil
 }
 
 // UseDeps creates an Option to set the Deps for a Plugin
@@ -60,12 +85,9 @@ func UseDeps(deps *Deps) Option {
 	return func(p *Plugin) {
 		d := &p.Deps
 		d.Name = deps.Name
-		d.Cmd = deps.Cmd
 		d.Log = deps.Log
-		d.CRD = deps.CRD
-		d.NSMServer = deps.NSMServer
 		d.ObjectStore = deps.ObjectStore
-		d.Finalizer = deps.Finalizer
+		d.KubeConfig = deps.KubeConfig
 	}
 }
 
@@ -77,23 +99,19 @@ func DefaultDeps() Option {
 		if d.Name == "" {
 			d.Name = DefaultName
 		}
-		if d.Cmd == nil {
-			d.Cmd = command.RootCmd()
-		}
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
-		}
-		if d.CRD == nil {
-			d.CRD = crd.SharedPlugin()
-		}
-		if d.NSMServer == nil {
-			d.NSMServer = nsmserver.SharedPlugin()
 		}
 		if d.ObjectStore == nil {
 			d.ObjectStore = objectstore.SharedPlugin()
 		}
-		if d.Finalizer == nil {
-			d.Finalizer = finalizer.SharedPlugin()
+		if d.KubeConfig == "" {
+			cmd := command.RootCmd()
+			flag := cmd.Flags().Lookup(KubeConfigFlagName)
+			if flag == nil {
+				cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
+				flag = cmd.Flags().Lookup(KubeConfigFlagName)
+			}
 		}
 	}
 }

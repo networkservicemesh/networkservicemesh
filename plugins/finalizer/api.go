@@ -12,24 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmcommand
+package finalizer
 
-import (
-	"github.com/ligato/networkservicemesh/plugins/crd"
-	"github.com/ligato/networkservicemesh/plugins/finalizer"
-	"github.com/ligato/networkservicemesh/plugins/logger"
-	"github.com/ligato/networkservicemesh/plugins/nsmserver"
-	"github.com/ligato/networkservicemesh/plugins/objectstore"
-	"github.com/spf13/cobra"
-)
+import "github.com/ligato/networkservicemesh/plugins/idempotent"
 
-// Deps - dependencies for Plugin
-type Deps struct {
-	Name        string
-	Log         logger.FieldLogger
-	Cmd         *cobra.Command
-	NSMServer   nsmserver.PluginAPI
-	CRD         crd.PluginAPI
-	ObjectStore objectstore.Interface
-	Finalizer   finalizer.PluginAPI
+// PluginAPI for crd
+type PluginAPI interface {
+	idempotent.PluginAPI
 }
