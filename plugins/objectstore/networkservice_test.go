@@ -26,8 +26,11 @@ type networkserviceStore struct {
 }
 
 const (
-	nsTestName      = "EndpointTest"
-	nsTestNamespace = "default"
+	nsTestName          = "EndpointTest"
+	nsTestNamespace     = "default"
+	nchTestName         = "channel-1"
+	nchTestNamespace    = "default"
+	nseTestProviderName = "nse-1"
 )
 
 func TestNetworkServiceStore(t *testing.T) {
@@ -58,5 +61,88 @@ func TestNetworkServiceStore(t *testing.T) {
 	nsRet := networkservices.networkServicesStore.List()
 	if len(nsRet) != 0 {
 		t.Errorf("Deletion of NetworkService from objectstore failed")
+	}
+}
+
+func TestAddChannelToNetworkService(t *testing.T) {
+	networkservices := &networkserviceStore{}
+	networkservices.networkServicesStore = newNetworkServicesStore()
+
+	ns := netmesh.NetworkService{
+		Metadata: &common.Metadata{
+			Name:      nsTestName,
+			Namespace: nsTestNamespace,
+		},
+	}
+	nch := netmesh.NetworkServiceChannel{
+		Metadata: &common.Metadata{
+			Name:      nchTestName,
+			Namespace: nchTestNamespace,
+		},
+		NetworkServiceName: nsTestName,
+		NseProviderName:    nseTestProviderName,
+	}
+
+	networkservices.networkServicesStore.Add(&ns)
+
+	if err := networkservices.networkServicesStore.AddChannelToNetworkService(nsTestName, nsTestNamespace, &nch); err != nil {
+		t.Fatalf("AddChannel failed with error: %+v", err)
+	}
+	resultChannels, err := networkservices.networkServicesStore.ListChannelsForNetworkService(&ns)
+	if err != nil {
+		t.Fatalf("List channels for network service %s/%s failed with error: %+v", ns.Metadata.Namespace, ns.Metadata.Name, err)
+	}
+	if resultChannels == nil {
+		t.Fatalf("Channel slice for network service %s/%s should not be nil, but it is, failing", ns.Metadata.Namespace, ns.Metadata.Name)
+	}
+	if len(resultChannels) != 1 {
+		t.Fatalf("Expected to see exactly 1 channel but got %d, failing", len(resultChannels))
+	}
+}
+
+func TestDeletehannelToNetworkService(t *testing.T) {
+
+	networkservices := &networkserviceStore{}
+	networkservices.networkServicesStore = newNetworkServicesStore()
+
+	ns := netmesh.NetworkService{
+		Metadata: &common.Metadata{
+			Name:      nsTestName,
+			Namespace: nsTestNamespace,
+		},
+	}
+	nch := netmesh.NetworkServiceChannel{
+		Metadata: &common.Metadata{
+			Name:      nchTestName,
+			Namespace: nchTestNamespace,
+		},
+		NetworkServiceName: nsTestName,
+		NseProviderName:    nseTestProviderName,
+	}
+
+	networkservices.networkServicesStore.Add(&ns)
+
+	if err := networkservices.networkServicesStore.AddChannelToNetworkService(nsTestName, nsTestNamespace, &nch); err != nil {
+		t.Fatalf("AddChannelToNetworkService failed with error: %+v", err)
+	}
+	resultChannels, err := networkservices.networkServicesStore.ListChannelsForNetworkService(&ns)
+	if err != nil {
+		t.Fatalf("List channels for network service %s/%s failed with error: %+v", ns.Metadata.Namespace, ns.Metadata.Name, err)
+	}
+	if resultChannels == nil {
+		t.Fatalf("Channel slice for network service %s/%s should not be nil, but it is, failing", ns.Metadata.Namespace, ns.Metadata.Name)
+	}
+	if len(resultChannels) != 1 {
+		t.Fatalf("Expected to see exactly 1 channel but got %d, failing", len(resultChannels))
+	}
+	if err := networkservices.networkServicesStore.DeleteChannelFromNetworkService(nsTestName, nsTestNamespace, &nch); err != nil {
+		t.Fatalf("DeleteChannelToNetworkService failed with error: %+v", err)
+	}
+	resultChannels, err = networkservices.networkServicesStore.ListChannelsForNetworkService(&ns)
+	if err != nil {
+		t.Fatalf("List channels for network service %s/%s failed with error: %+v", ns.Metadata.Namespace, ns.Metadata.Name, err)
+	}
+	if len(resultChannels) != 0 {
+		t.Fatalf("Expected to see exactly 0 channel but got %d, failing", len(resultChannels))
 	}
 }

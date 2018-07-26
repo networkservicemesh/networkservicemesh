@@ -25,40 +25,43 @@ type channelStore struct {
 	*networkServiceChannelsStore
 }
 
-const (
-	chTestName      = "ChannelTest"
-	chTestNamespace = "default"
-)
-
 func TestChannelStore(t *testing.T) {
 	channels := &channelStore{}
 	channels.networkServiceChannelsStore = newNetworkServiceChannelsStore()
 
-	nsc := netmesh.NetworkServiceChannel{
+	nsc1 := netmesh.NetworkServiceChannel{
 		Metadata: &common.Metadata{
-			Name:      chTestName,
-			Namespace: chTestNamespace,
+			Name:      "channel-1",
+			Namespace: "default",
 		},
 		NseProviderName:    "host1",
 		NetworkServiceName: "network-service-1",
 	}
 
-	channels.networkServiceChannelsStore.Add(&nsc)
-
-	for _, n := range channels.networkServiceChannelsStore.List() {
-		if n.Metadata.Name != chTestName {
-			t.Errorf("Unexpected Name value returned when creating NetworkServiceChannel")
-		}
-
-		if n.Metadata.Namespace != chTestNamespace {
-			t.Errorf("Unexpected Namespace value returned when creating NetworkServiceChannel")
-		}
+	nsc2 := netmesh.NetworkServiceChannel{
+		Metadata: &common.Metadata{
+			Name:      "channel-2",
+			Namespace: "default",
+		},
+		NseProviderName:    "host1",
+		NetworkServiceName: "network-service-1",
 	}
 
-	channels.networkServiceChannelsStore.Delete(meta{name: nsc.NseProviderName, namespace: nsc.Metadata.Namespace})
+	channels.networkServiceChannelsStore.AddChannel(&nsc1)
+	channels.networkServiceChannelsStore.AddChannel(&nsc2)
 
-	nscRet := channels.networkServiceChannelsStore.List()
-	if len(nscRet) != 0 {
-		t.Errorf("Deletion of NetworkServiceChannel from objectstore failed")
+	nseChannels := channels.networkServiceChannelsStore.GetChannelsByNSEServerProvider("host1", "default")
+	if len(nseChannels) != 2 {
+		t.Fatalf("expected to get exactly 2 channels but got %d", len(nseChannels))
+	}
+	channels.networkServiceChannelsStore.DeleteChannel(&nsc1)
+	nseChannels = channels.networkServiceChannelsStore.GetChannelsByNSEServerProvider("host1", "default")
+	if len(nseChannels) != 1 {
+		t.Fatalf("expected to get exactly 1 channels but got %d", len(nseChannels))
+	}
+	channels.networkServiceChannelsStore.DeleteChannel(&nsc2)
+	nseChannels = channels.networkServiceChannelsStore.GetChannelsByNSEServerProvider("host1", "default")
+	if len(nseChannels) != 0 {
+		t.Fatalf("expected to get exactly 0 channels but got %d", len(nseChannels))
 	}
 }
