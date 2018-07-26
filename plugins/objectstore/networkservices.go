@@ -70,7 +70,7 @@ func (n *networkServicesStore) Get(nsName, nsNamespace string) *netmesh.NetworkS
 
 // Get method returns NetworkService, if it does not
 // already it returns nil.
-func (n *networkServicesStore) AddChannel(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+func (n *networkServicesStore) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
 	n.Lock()
 	defer n.Unlock()
 
@@ -101,6 +101,32 @@ func (n *networkServicesStore) AddChannel(nsName string, nsNamespace string, ch 
 	return nil
 }
 
+// DeleteChannel deletes channel from Network Service
+func (n *networkServicesStore) DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      nsName,
+		namespace: nsNamespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
+	}
+
+	// Need to check if NetworkService has already Channel with the same name and namespace, Channels must
+	// be unique for Name and Namspace pair.
+	for i, c := range ns.Channel {
+		if c.Metadata.Name == ch.Metadata.Name && c.Metadata.Namespace == ch.Metadata.Namespace {
+			ns.Channel = append(ns.Channel[:i], ns.Channel[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("failed to delete channel %s/%s from network service %s/%s, the channel does not exist in the object store",
+		ch.Metadata.Namespace, ch.Metadata.Name, key.namespace, key.name)
+}
+
 // Delete method deletes removed NetworkService object from the store.
 func (n *networkServicesStore) Delete(key meta) {
 	n.Lock()
@@ -120,4 +146,19 @@ func (n *networkServicesStore) List() []*netmesh.NetworkService {
 		networkServices = append(networkServices, ns)
 	}
 	return networkServices
+}
+
+func (n *networkServicesStore) ListChannelsForNetworkService(ns *netmesh.NetworkService) ([]*netmesh.NetworkServiceChannel, error) {
+	n.Lock()
+	defer n.Unlock()
+
+	key := meta{
+		name:      ns.Metadata.Name,
+		namespace: ns.Metadata.Namespace,
+	}
+	ns, ok := n.networkService[key]
+	if !ok {
+		return nil, fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
+	}
+	return ns.Channel, nil
 }

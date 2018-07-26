@@ -34,9 +34,11 @@ type Interface interface {
 	ObjectDeleted(obj interface{})
 	GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService
 	AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
+	AddChannel(nch *netmesh.NetworkServiceChannel)
+	DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
+	DeleteNSE(nseServer, namespace string)
 	ListNetworkServices() []*netmesh.NetworkService
-	ListNetworkServiceChannels() []*netmesh.NetworkServiceChannel
-	ListNetworkServiceEndpoints() []*netmesh.NetworkServiceEndpoint
+	GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel
 }
 
 // PluginAPI - API for the Plugin
