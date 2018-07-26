@@ -36,5 +36,8 @@ message DeleteConnectReply {
 
 service BuildConnect {
     rpc RequestBuildConnect (BuildConnectRequest) returns (BuildConnectReply);
+}
+
+service DeleteConnect {
     rpc RequestDeleteConnect (DeleteConnectRequest) returns (DeleteConnectReply);
 }
