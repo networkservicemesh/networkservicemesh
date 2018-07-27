@@ -34,10 +34,10 @@ import (
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
+	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -51,9 +51,6 @@ import (
 const (
 	// nseConnectionTimeout defines a timoute for NSM to succeed connection to NSE (seconds)
 	nseConnectionTimeout = 15 * time.Second
-	// dataplane default socker location
-	// TODO (sbezverk) need to figure out how to make it flexible if it is required
-	dataplaneSocket = "/var/lib/networkservicemesh/dataplane.sock"
 )
 
 type nsmClientEndpoints struct {
@@ -212,7 +209,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 		podNamespace2 = cr.Metadata.Namespace
 	}
 
-	if err := connectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
+	if err := dataplaneutils.ConnectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
 		n.logger.Errorf("nsm: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1,
 			podName1,
@@ -241,43 +238,6 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 		Accepted:             true,
 		ConnectionParameters: &nsmconnect.ConnectionParameters{},
 	}, nil
-}
-
-func connectPods(podName1, podName2, podNamespace1, podNamespace2 string) error {
-
-	dataplaneConn, err := tools.SocketOperationCheck(dataplaneSocket)
-	if err != nil {
-		return err
-	}
-	defer dataplaneConn.Close()
-
-	dataplaneClient := simpledataplane.NewBuildConnectClient(dataplaneConn)
-
-	ctx, Cancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer Cancel()
-	buildConnectRequest := &simpledataplane.BuildConnectRequest{
-		SourcePod: &simpledataplane.Pod{
-			Metadata: &common.Metadata{
-				Name:      podName1,
-				Namespace: podNamespace1,
-			},
-		},
-		DestinationPod: &simpledataplane.Pod{
-			Metadata: &common.Metadata{
-				Name:      podName2,
-				Namespace: podNamespace2,
-			},
-		},
-	}
-	buildConnectRepl, err := dataplaneClient.RequestBuildConnect(ctx, buildConnectRequest)
-	if err != nil {
-		if buildConnectRepl != nil {
-			return fmt.Errorf("%+v with additional information: %s", err, buildConnectRepl.BuildError)
-		}
-		return err
-	}
-
-	return nil
 }
 
 func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
@@ -381,11 +341,6 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					// Socket has been previsously used, since we did not get notification from
 					// kubelet when POD using this socket went down, gRPC client's server
 					// needs to be stopped.
-
-					// TODO (sbezverk) There is a good chance that there was a clientNetworkService associated
-					// with the pod which was previsouly using this socket. Also some dataplane
-					// programming leftovers for the old pod. All needs to be cleaned here before allowing reuse of this socket.
-
 					n.nsmSockets[id].stopChannel <- true
 					// Wait for confirmation
 					<-n.nsmSockets[id].stopChannel
