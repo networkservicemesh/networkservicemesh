@@ -27,13 +27,13 @@ import (
 const (
 	// dataplane default socket location
 	dataplaneSocket = "/var/lib/networkservicemesh/dataplane.sock"
-	// dataplaneConnectionTimeout defines a timoute to succeed connection to
+	// dataplaneConnectionTimeout defines a timeout to succeed connection to
 	// the dataplane provider (seconds)
 	dataplaneConnectionTimeout = 15 * time.Second
 )
 
 // ConnectPods builds dataplane connection between nsm client and nse providing
-// required by the client network serice
+// required by the client network service
 func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) error {
 
 	dataplaneConn, err := tools.SocketOperationCheck(dataplaneSocket)
