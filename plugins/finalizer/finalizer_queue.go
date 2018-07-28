@@ -20,6 +20,7 @@ import (
 
 	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
+	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -96,7 +97,6 @@ func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 	// Step 3 last step is to remove from Channels map all channels advertised by the pod
 	plugin.ObjectStore.DeleteNSE(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
 	plugin.Log.Infof("all channels advertised by NSE %s/%s were deleted", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-
 	// Step 4 Clean up dataplane
 	if err := dataplaneutils.CleanupPodDataplane(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace, simpledataplane.NSMPodType_NSE); err != nil {
 		// NSE pod is about to be deleted as such there is no reason to fail cleanUpNSE, even if
@@ -104,11 +104,23 @@ func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 		plugin.Log.Errorf("failed to clean up pod %s/%s dataplane with error: %+v, please review dataplane controller log if further debugging is required",
 			pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
 	}
+	// Step 5 removing finalizer and allowing k8s to delete pod, if pod does not have a finalizer,
+	// this call is just no-op.
+	finalizerutils.RemovePodFinalizer(plugin.k8sClientset, pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
 
 	return nil
 }
 
 func cleanUpNSMClient(plugin *Plugin, pod *v1.Pod) error {
 	plugin.Log.Infof("cleanup requested for NSM Client pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+
+	if err := dataplaneutils.CleanupPodDataplane(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace, simpledataplane.NSMPodType_NSMCLIENT); err != nil {
+		// NSM pod is about to be deleted as such there is no reason to fail cleanUpNSMClient, even if
+		// dataplane cleanup failed, simply print an error message is sufficient
+		plugin.Log.Errorf("failed to clean up pod %s/%s dataplane with error: %+v, please review dataplane controller log if further debugging is required",
+			pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
+	}
+	finalizerutils.RemovePodFinalizer(plugin.k8sClientset, pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+
 	return nil
 }

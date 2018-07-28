@@ -28,6 +28,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
@@ -147,6 +148,11 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 				err),
 		}, status.Error(codes.Aborted, "failure to interconnect pods")
 	}
+
+	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
+	// to clean up injected dataplane interfaces without any race.
+	_ = finalizerutils.AddPodFinalizer(d.k8s, podName1, podNamespace1)
+	_ = finalizerutils.AddPodFinalizer(d.k8s, podName2, podNamespace2)
 
 	return &simpledataplane.BuildConnectReply{
 		Built: true,
