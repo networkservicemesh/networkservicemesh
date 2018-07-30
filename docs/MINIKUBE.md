@@ -42,7 +42,7 @@ The Network Service Mesh images are not on a Dockerhub yet. To run them, you wil
 ```
 git clone https://github.com/ligato/networkservicemesh
 cd networkservicemesh
-docker build -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+docker build -t networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 ```
 
 If you're behind a proxy, you will want to pass those arguments to the `docker build` command:
@@ -50,14 +50,14 @@ If you're behind a proxy, you will want to pass those arguments to the `docker b
 ```
 git clone https://github.com/ligato/networkservicemesh
 cd networkservicemesh
-docker build --build-arg HTTPS_PROXY=http://proxy-wsa.esl.cisco.com:80 --build-arg HTTP_PROXY=http://proxy-wsa.esl.cisco.com:80 -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+docker build --build-arg HTTPS_PROXY=http://proxy-wsa.esl.cisco.com:80 --build-arg HTTP_PROXY=http://proxy-wsa.esl.cisco.com:80 -t networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 ```
 
 Once the image is built you should see it when listing docker images:
 
 ```
 user@host:~/go/src/github.com/ligato/networkservicemesh$ docker images|grep networkservicemesh
-ligato/networkservicemesh/netmesh             latest              8a8ed4b85132        5 hours ago         47MB
+networkservicemesh/netmesh             latest              8a8ed4b85132        5 hours ago         47MB
 user@host:~/go/src/github.com/ligato/networkservicemesh$ 
 ```
 

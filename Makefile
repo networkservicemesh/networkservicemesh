@@ -68,23 +68,27 @@ docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-in
 
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
-	${DOCKERBUILD} -t ligato/networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
+	${DOCKERBUILD} -t networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
+
+.PHONY: docker-build-release
+docker-build-release:
+	${DOCKERBUILD} -t networkservicemesh/release -f build/Dockerfile .
 
 .PHONY: docker-build-netmesh
-docker-build-netmesh:
-	${DOCKERBUILD} -t ligato/networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
+docker-build-netmesh: docker-build-release
+	${DOCKERBUILD} -t networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
 
 .PHONY: docker-build-simple-dataplane
-docker-build-simple-dataplane:
-	@docker build -t ligato/networkservicemesh/simple-dataplane -f build/simple-dataplane/docker/Dockerfile .
+docker-build-simple-dataplane: docker-build-release
+	@docker build -t networkservicemesh/simple-dataplane -f build/simple-dataplane/docker/Dockerfile .
 
 .PHONY: docker-build-nsm-init
-docker-build-nsm-init:
-	${DOCKERBUILD} -t ligato/networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
+docker-build-nsm-init: docker-build-release
+	${DOCKERBUILD} -t networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
 
 .PHONY: docker-build-nse
-docker-build-nse:
-	${DOCKERBUILD} -t ligato/networkservicemesh/nse -f build/nse/docker/Dockerfile .
+docker-build-nse: docker-build-release
+	${DOCKERBUILD} -t networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
 .PHONY: format deps generate install test test-race vet
 #

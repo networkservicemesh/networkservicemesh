@@ -38,7 +38,7 @@ Run as a single container
 To run netmesh as a single container, execute a command as below:
 
 ```
-docker run -it -p 0.0.0.0:9191:9191 --name=netmesh -v /Users/kmestery/kube.conf:/conf/kube.conf -v /Users/kmestery/etcdv3.conf:/conf/etcdv3.conf -v /Users/kmestery/http.conf:/conf/http.conf ligato/networkservicemesh/nsm
+docker run -it -p 0.0.0.0:9191:9191 --name=netmesh -v /Users/kmestery/kube.conf:/conf/kube.conf -v /Users/kmestery/etcdv3.conf:/conf/etcdv3.conf -v /Users/kmestery/http.conf:/conf/http.conf networkservicemesh/nsm
 ```
 
 Run netmesh as a daemonset

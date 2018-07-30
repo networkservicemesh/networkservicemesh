@@ -50,7 +50,7 @@ spec:
       serviceAccount: nse
       containers:
         - name: nse-1
-          image: ligato/networkservicemesh/nse:latest
+          image: networkservicemesh/nse:latest
           imagePullPolicy: IfNotPresent
           args:
           - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
