@@ -57,7 +57,7 @@ spec:
       serviceAccount: simple-dataplane
       containers:
         - name: simple-dataplane
-          image: ligato/networkservicemesh/simple-dataplane:latest
+          image: networkservicemesh/simple-dataplane:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true

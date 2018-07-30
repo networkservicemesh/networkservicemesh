@@ -13,7 +13,7 @@ spec:
       serviceAccountName: networkservicemesh
       containers:
         - name: netmesh
-          image: ligato/networkservicemesh/netmesh
+          image: networkservicemesh/netmesh
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - name: kubelet-socket

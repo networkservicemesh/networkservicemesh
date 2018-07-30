@@ -20,15 +20,15 @@
 set -xe
 
 # Verify the image exists
-if [ "x$(docker images|grep ligato/networkservicemesh/netmesh)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/netmesh)" == "x" ]
 then
-    echo "Docker image ligato/networkservicemesh/netmesh not found"
+    echo "Docker image networkservicemesh/netmesh not found"
     echo "Please build the image before running integration tests"
     exit 0
 fi
-if [ "x$(docker images|grep ligato/networkservicemesh/nsm-init)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/nsm-init)" == "x" ]
 then
-    echo "Docker image ligato/networkservicemesh/nsm-init not found"
+    echo "Docker image networkservicemesh/nsm-init not found"
     echo "Please build the image before running integration tests"
     exit 0
 fi
