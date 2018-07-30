@@ -16,8 +16,8 @@
 # and docker build infrastructure. It also contains the targets to build
 # and push Docker images
 
-DOCKER_NETMESH_TEST=networkservicemesh/nsm-daemon-test
-DOCKER_NETMESH=networkservicemesh/nsm-daemon
+DOCKER_NETMESH_TEST=networkservicemesh/netmesh-test
+DOCKER_NETMESH=networkservicemesh/netmesh
 DOCKER_SIMPLE_DATAPLANE=networkservicemesh/nsm-simple-dataplane
 DOCKER_NSM_INIT=networkservicemesh/nsm-init
 DOCKER_NSE=networkservicemesh/nse
@@ -55,10 +55,10 @@ docker-build-nse: docker-build-release
 #
 
 .PHONY: docker-login
-docker-ling:
-.PHONY: docker-push-netmesh
+docker-login:
 	@docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
 
+.PHONY: docker-push-netmesh
 docker-push-netmesh:
 	@docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
 	@export REPO=${DOCKER_NETMESH}
