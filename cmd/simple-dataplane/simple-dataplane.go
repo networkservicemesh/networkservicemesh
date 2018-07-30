@@ -151,8 +151,12 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 
 	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
 	// to clean up injected dataplane interfaces without any race.
-	_ = finalizerutils.AddPodFinalizer(d.k8s, podName1, podNamespace1)
-	_ = finalizerutils.AddPodFinalizer(d.k8s, podName2, podNamespace2)
+	if err := finalizerutils.AddPodFinalizer(d.k8s, podName1, podNamespace1); err != nil {
+		logrus.Errorf("simple-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace1, podName1, err)
+	}
+	if err := finalizerutils.AddPodFinalizer(d.k8s, podName2, podNamespace2); err != nil {
+		logrus.Errorf("simple-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace2, podName2, err)
+	}
 
 	return &simpledataplane.BuildConnectReply{
 		Built: true,
