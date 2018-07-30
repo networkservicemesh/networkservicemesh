@@ -18,7 +18,7 @@
 
 DOCKER_NETMESH_TEST=networkservicemesh/netmesh-test
 DOCKER_NETMESH=networkservicemesh/netmesh
-DOCKER_SIMPLE_DATAPLANE=networkservicemesh/nsm-simple-dataplane
+DOCKER_SIMPLE_DATAPLANE=networkservicemesh/simple-dataplane
 DOCKER_NSM_INIT=networkservicemesh/nsm-init
 DOCKER_NSE=networkservicemesh/nse
 DOCKER_RELEASE=networkservicemesh/release
