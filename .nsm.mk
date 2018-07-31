@@ -59,7 +59,7 @@ docker-login:
 	@docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
 
 .PHONY: docker-push-netmesh
-docker-push-netmesh:
+docker-push-netmesh: docker-login
 	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
 		export REPO=${DOCKER_NETMESH} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
@@ -68,7 +68,7 @@ docker-push-netmesh:
 	fi
 
 .PHONY: docker-push-simple-dataplane
-docker-push-simple-dataplane:
+docker-push-simple-dataplane: docker-login
 	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
 		export REPO=${DOCKER_SIMPLE_DATAPLANE} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
@@ -77,7 +77,7 @@ docker-push-simple-dataplane:
 	fi
 
 .PHONY: docker-push-nsm-init
-docker-push-simple-nsm-init:
+docker-push-simple-nsm-init: docker-login
 	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
 		export REPO=${DOCKER_NSM_INIT} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
@@ -86,7 +86,7 @@ docker-push-simple-nsm-init:
 	fi
 
 .PHONY: docker-push-nse
-docker-push-simple-nse:
+docker-push-simple-nse: docker-login
 	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
 		export REPO=${DOCKER_NSE} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
