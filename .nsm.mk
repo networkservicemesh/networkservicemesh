@@ -40,7 +40,7 @@ docker-build-netmesh: docker-build-release
 
 .PHONY: docker-build-simple-dataplane
 docker-build-simple-dataplane: docker-build-release
-	@docker build -t ${DOCKER_SIMPLE_DATAPLANE} -f build/simple-dataplane/docker/Dockerfile .
+	@${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/simple-dataplane/docker/Dockerfile .
 
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init: docker-build-release
@@ -60,33 +60,36 @@ docker-login:
 
 .PHONY: docker-push-netmesh
 docker-push-netmesh:
-	@docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-	@export REPO=${DOCKER_NETMESH}
-	@export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi`
-	@docker tag ${REPO}:${COMMIT} ${REPO}:${TAG}
-	@docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push $REPO
+	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
+		export REPO=${DOCKER_NETMESH} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
+		docker push $REPO
+	fi
 
 .PHONY: docker-push-simple-dataplane
 docker-push-simple-dataplane:
-	@export REPO=${DOCKER_SIMPLE_DATAPLANE}
-	@export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi`
-	@docker tag ${REPO}:${COMMIT} ${REPO}:${TAG}
-	@docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push $REPO
+	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
+		export REPO=${DOCKER_SIMPLE_DATAPLANE} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
+		docker push $REPO
+	fi
 
 .PHONY: docker-push-nsm-init
 docker-push-simple-nsm-init:
-	@export REPO=${DOCKER_NSM_INIT}
-	@export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi`
-	@docker tag ${REPO}:${COMMIT} ${REPO}:${TAG}
-	@docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push $REPO
+	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
+		export REPO=${DOCKER_NSM_INIT} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
+		docker push $REPO
+	fi
 
 .PHONY: docker-push-nse
 docker-push-simple-nse:
-	@export REPO=${DOCKER_NSE}
-	@export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi`
-	@docker tag ${REPO}:${COMMIT} ${REPO}:${TAG}
-	@docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push $REPO
+	@if [ "x${TRAVIS_TAG}" != "x" ] ; then \
+		export REPO=${DOCKER_NSE} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
+		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
+		docker push $REPO
+	fi
