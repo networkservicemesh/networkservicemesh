@@ -46,7 +46,7 @@ const (
 
 // VF describes a single instance of VF
 type VF struct {
-	NetworkService string `yaml:"networkService" json:"NetworkService"`
+	NetworkService string `yaml:"networkService" json:"networkService"`
 	pciAddr        string // `yaml:"pciAddr" json:"pciAddr"`
 	ParentDevice   string `yaml:"parentDevice" json:"parentDevice"`
 	VFLocalID      int32  `yaml:"vfLocalID" json:"vfLocalID"`
