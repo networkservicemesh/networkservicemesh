@@ -75,12 +75,12 @@ func getSriovPfList() ([]string, error) {
 
 	netDevices, err := ioutil.ReadDir(netDirectory)
 	if err != nil {
-		logrus.Errorf("Error. Cannot read %s for network device names. Err: %v", netDirectory, err)
+		logrus.Errorf("cannot read %s for network device names. Err: %v", netDirectory, err)
 		return sriovNetDevices, err
 	}
 
 	if len(netDevices) < 1 {
-		logrus.Errorf("Error. No network device found in %s directory", netDirectory)
+		logrus.Errorf("no network device found in %s directory", netDirectory)
 		return sriovNetDevices, err
 	}
 
@@ -100,16 +100,16 @@ func getSriovPfList() ([]string, error) {
 func readLinkData(link string) (string, error) {
 	dirInfo, err := os.Lstat(link)
 	if err != nil {
-		return "", fmt.Errorf("Error. Could not get directory information %s with error: %v", link, err)
+		return "", fmt.Errorf("could not get directory information %s with error: %v", link, err)
 	}
 
 	if (dirInfo.Mode() & os.ModeSymlink) == 0 {
-		return "", fmt.Errorf("Error. No symbolic link %s", link)
+		return "", fmt.Errorf("no symbolic link %s", link)
 	}
 
 	info, err := os.Readlink(link)
 	if err != nil {
-		return "", fmt.Errorf("Error. Cannot read symbolic %s with error: %+v", link, err)
+		return "", fmt.Errorf("cannot read symbolic %s with error: %+v", link, err)
 	}
 
 	return info, nil
@@ -129,34 +129,34 @@ func discoverNetworks(discoveredVFs *VFs) error {
 	}
 
 	if len(pfList) < 1 {
-		logrus.Errorf("Error. No SRIOV network device found")
-		return fmt.Errorf("Error. No SRIOV network device found")
+		logrus.Errorf("no SRIOV network device found")
+		return fmt.Errorf("no SRIOV network device found")
 	}
 
 	for _, dev := range pfList {
 		sriovcapablepath := filepath.Join(netDirectory, dev, "device", sriovCapable)
 		vfs, err := ioutil.ReadFile(sriovcapablepath)
 		if err != nil {
-			logrus.Errorf("Error. Could not read sriov_totalvfs in device folder. SRIOV not supported. Err: %v", err)
+			logrus.Errorf("could not read sriov_totalvfs in device folder. SRIOV not supported. Err: %v", err)
 			return err
 		}
 		totalvfs := bytes.TrimSpace(vfs)
 		numvfs, err := strconv.Atoi(string(totalvfs))
 		if err != nil {
-			logrus.Errorf("Error. Could not parse sriov_capable file. Err: %v", err)
+			logrus.Errorf("could not parse sriov_capable file. Err: %v", err)
 			return err
 		}
 		if numvfs > 0 {
 			sriovconfiguredpath := netDirectory + dev + "/device" + sriovConfigured
 			vfs, err = ioutil.ReadFile(sriovconfiguredpath)
 			if err != nil {
-				logrus.Errorf("Error. Could not read sriov_numvfs file. SRIOV error. %v", err)
+				logrus.Errorf("could not read sriov_numvfs file. SRIOV error. %v", err)
 				return err
 			}
 			configuredVFs := bytes.TrimSpace(vfs)
 			numconfiguredvfs, err := strconv.Atoi(string(configuredVFs))
 			if err != nil {
-				logrus.Errorf("Error. Could not parse sriov_numvfs files. Skipping device. Err: %v", err)
+				logrus.Errorf("could not parse sriov_numvfs files. Skipping device. Err: %v", err)
 				return err
 			}
 
@@ -165,7 +165,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 				vfDir := fmt.Sprintf("/sys/class/net/%s/device/virtfn%d", dev, vf)
 				pciInfo, err := readLinkData(vfDir)
 				if err != nil {
-					logrus.Errorf("Error. Cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. Err: %v", dev, vf, err)
+					logrus.Errorf("cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. Err: %v", dev, vf, err)
 					continue
 				}
 				pciAddr := pciInfo[len("../"):]
@@ -177,7 +177,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 
 				data, err := ioutil.ReadFile(pciVendorPath)
 				if err != nil {
-					logrus.Errorf(" Cannot read PCI vendor file for %s, VF %v is %s", dev, vf, pciAddr, err)
+					logrus.Errorf("cannot read PCI vendor file for %s, VF %v is %s", dev, vf, pciAddr, err)
 					continue
 				}
 				data = bytes.Trim(data, "\n")
@@ -188,7 +188,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 				}
 				data, err = ioutil.ReadFile(pciTypePath)
 				if err != nil {
-					logrus.Errorf(" Cannot read PCI type file for %s, VF %v is %s", dev, vf, pciAddr, err)
+					logrus.Errorf("cannot read PCI type file for %s, VF %v is %s", dev, vf, pciAddr, err)
 					continue
 				}
 				data = bytes.Trim(data, "\n")
@@ -200,7 +200,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 
 				iommuGroup, err := readLinkData(iommuGroupPath)
 				if err != nil {
-					logrus.Errorf("Error. Cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. Err: %v", dev, vf, err)
+					logrus.Errorf("cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. Err: %v", dev, vf, err)
 					continue
 				}
 				iommuGroup = strings.Split(iommuGroup, "/")[len(strings.Split(iommuGroup, "/"))-1]
@@ -368,30 +368,30 @@ func main() {
 	// discoveredVFs := mockVFs()
 
 	if len(discoveredVFs.vfs) == 0 {
-		logrus.Info("No VF were discovered, exiting...")
+		logrus.Info("no VF were discovered, exiting...")
 		os.Exit(0)
 	}
 
 	logrus.Infof("%d VFs were discovered on the host.", len(discoveredVFs.vfs))
 	// Building vfio device for each VF
 	if err := buildVFIODevices(discoveredVFs); err != nil {
-		logrus.Errorf("Failed to build VFIO devices for VFs with error: %+v", err)
+		logrus.Errorf("failed to build VFIO devices for VFs with error: %+v", err)
 		os.Exit(1)
 	}
 	cf, err := buildSRIOVConfigMap(discoveredVFs)
 	if err != nil {
-		logrus.Errorf("Failed to build SRIOV config map with error: %+v", err)
+		logrus.Errorf("failed to build SRIOV config map with error: %+v", err)
 		os.Exit(1)
 	}
 
 	configMap, err := yaml.Marshal(cf)
 	if err != nil {
-		logrus.Errorf("Failed to marshal SRIOV config map with error: %+v", err)
+		logrus.Errorf("failed to marshal SRIOV config map with error: %+v", err)
 		os.Exit(1)
 	}
 
 	if err := ioutil.WriteFile("nsm-sriov-configmap.yaml", configMap, 0644); err != nil {
-		logrus.Errorf("Failed to save  SRIOV config map with error: %+v", err)
+		logrus.Errorf("failed to save  SRIOV config map with error: %+v", err)
 		os.Exit(1)
 	}
 	logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
