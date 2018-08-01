@@ -23,36 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestSharedPlugin(t *testing.T) {
-	RegisterTestingT(t)
-	plugin1 := k8sclient.SharedPlugin()
-	Expect(plugin1).NotTo(BeNil())
-	plugin2 := k8sclient.SharedPlugin()
-	Expect(plugin2 == plugin1).To(BeTrue())
-	Expect(deptools.Check(plugin1)).To(Succeed())
-}
-
-func TestNewPluginNotShared(t *testing.T) {
-	RegisterTestingT(t)
-	plugin1 := k8sclient.NewPlugin()
-	Expect(plugin1).NotTo(BeNil())
-	plugin2 := k8sclient.SharedPlugin()
-	Expect(plugin2 == plugin1).ToNot(BeTrue())
-	Expect(deptools.Check(plugin1)).To(Succeed())
-	Expect(deptools.Check(plugin2)).To(Succeed())
-}
-
-func TestSharedPluginRemoveOnClose(t *testing.T) {
-	RegisterTestingT(t)
-	plugin1 := k8sclient.SharedPlugin()
-	plugin1.Init()
-	plugin1.Close()
-	plugin2 := k8sclient.SharedPlugin()
-	Expect(plugin2 == plugin1).ToNot(BeTrue())
-	Expect(deptools.Check(plugin1)).To(Succeed())
-	Expect(deptools.Check(plugin2)).To(Succeed())
-}
-
 func TestNonDefaultName(t *testing.T) {
 	RegisterTestingT(t)
 	name := "foo"

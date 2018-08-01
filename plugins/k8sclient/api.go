@@ -21,7 +21,7 @@ import (
 )
 
 // Interface is the interface to a k8sclient plugin
-type Interface interface {
+type API interface {
 	GetClientConfig() *rest.Config
 	GetClientset() *kubernetes.Clientset
 }

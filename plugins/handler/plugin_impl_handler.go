@@ -44,7 +44,7 @@ type Deps struct {
 	Cmd         *cobra.Command
 	KubeConfig  string `empty_value_ok:"true"` // Fetch kubeconfig file from --kube-config
 	ObjectStore objectstore.Interface
-	K8sclient   k8sclient.Interface
+	K8sclient   k8sclient.API
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
