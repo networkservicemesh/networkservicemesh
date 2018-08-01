@@ -41,7 +41,7 @@ const (
 	// nsmSRIOVDefaultNetworkServiceName defines a default network service name for all
 	// SRIOV VFs found on a host. Further editing might be required to map VF to real
 	// Network Services
-	nsmSRIOVDefaultNetworkServiceName = "networkservicemesh.io/sriov/nsm-default"
+	nsmSRIOVDefaultNetworkServiceName = "networkservicemesh.io/sriov-nsm-default"
 )
 
 // VF describes a single instance of VF
