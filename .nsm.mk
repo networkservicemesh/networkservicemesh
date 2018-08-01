@@ -28,7 +28,7 @@ DOCKER_RELEASE=networkservicemesh/release
 #
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
-	@${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST} -f build/nsm/docker/Test.Dockerfile .
+	@${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST} -f build/Dockerfile.nsm-test .
 
 .PHONY: docker-build-release
 docker-build-release:
@@ -36,17 +36,17 @@ docker-build-release:
 
 .PHONY: docker-build-netmesh
 docker-build-netmesh: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_NETMESH} -f build/nsm/docker/Dockerfile .
+	@${DOCKERBUILD} -t ${DOCKER_NETMESH} -f build/Dockerfile.nsm .
 
 .PHONY: docker-build-simple-dataplane
 docker-build-simple-dataplane: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/simple-dataplane/docker/Dockerfile .
+	@${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/Dockerfile.simple-dataplane .
 
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_NSM_INIT} -f build/nsm-init/docker/Dockerfile .
+	@${DOCKERBUILD} -t ${DOCKER_NSM_INIT} -f build/Dockerfile.nsm-init .
 
 .PHONY: docker-build-nse
 docker-build-nse: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_NSE} -f build/nse/docker/Dockerfile .
+	@${DOCKERBUILD} -t ${DOCKER_NSE} -f build/Dockerfile.nse .
 

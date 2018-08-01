@@ -18,7 +18,7 @@ Build a docker image from the source code
 
 
 ```SHELL
- $ sudo docker build -t gcr.io/nsm-gke-project/netmesh:0.0.1 -f build/nsm/docker/Dockerfile .
+ $ sudo docker build -t gcr.io/nsm-gke-project/netmesh:0.0.1 -f build/Dockerfile.nsm .
 ```
 
 
