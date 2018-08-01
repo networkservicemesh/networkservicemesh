@@ -9,6 +9,9 @@ go:
 
 go_import_path: github.com/ligato/networkservicemesh
 
+before_install:
+- ./.travis/update-docker.sh
+
 before_script:
 - sudo mount --make-rshared /
 - sudo mount --make-rshared /sys
