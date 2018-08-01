@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Pull in Docker image names
+include .nsm.mk
+
 GOPATH?=$(shell go env GOPATH)
 GOCMD=go
 GOFMT=${GOCMD} fmt
@@ -64,31 +67,8 @@ check:
 verify:
 	@./scripts/verify-codegen.sh
 
+# Individual targets are found in .nsm.mk
 docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-simple-dataplane
-
-.PHONY: docker-build-netmesh-test
-docker-build-netmesh-test:
-	${DOCKERBUILD} -t networkservicemesh/netmesh-test -f build/nsm/docker/Test.Dockerfile .
-
-.PHONY: docker-build-release
-docker-build-release:
-	${DOCKERBUILD} -t networkservicemesh/release -f build/Dockerfile .
-
-.PHONY: docker-build-netmesh
-docker-build-netmesh: docker-build-release
-	${DOCKERBUILD} -t networkservicemesh/netmesh -f build/nsm/docker/Dockerfile .
-
-.PHONY: docker-build-simple-dataplane
-docker-build-simple-dataplane: docker-build-release
-	@docker build -t networkservicemesh/simple-dataplane -f build/simple-dataplane/docker/Dockerfile .
-
-.PHONY: docker-build-nsm-init
-docker-build-nsm-init: docker-build-release
-	${DOCKERBUILD} -t networkservicemesh/nsm-init -f build/nsm-init/docker/Dockerfile .
-
-.PHONY: docker-build-nse
-docker-build-nse: docker-build-release
-	${DOCKERBUILD} -t networkservicemesh/nse -f build/nse/docker/Dockerfile .
 
 .PHONY: format deps generate install test test-race vet
 #

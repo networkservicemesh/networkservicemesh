@@ -24,13 +24,25 @@ if [ "x$(docker images|grep networkservicemesh/netmesh)" == "x" ]
 then
     echo "Docker image networkservicemesh/netmesh not found"
     echo "Please build the image before running integration tests"
-    exit 0
+    exit 1
+fi
+if [ "x$(docker images|grep networkservicemesh/simple-dataplane)" == "x" ]
+then
+    echo "Docker image networkservicemesh/simple-dataplane not found"
+    echo "Please build the image before running integration tests"
+    exit 1
 fi
 if [ "x$(docker images|grep networkservicemesh/nsm-init)" == "x" ]
 then
     echo "Docker image networkservicemesh/nsm-init not found"
     echo "Please build the image before running integration tests"
-    exit 0
+    exit 1
+fi
+if [ "x$(docker images|grep networkservicemesh/nse)" == "x" ]
+then
+    echo "Docker image networkservicemesh/nse not found"
+    echo "Please build the image before running integration tests"
+    exit 1
 fi
 
 # run_tests returns an error on failure
