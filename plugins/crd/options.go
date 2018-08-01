@@ -15,6 +15,7 @@
 package crd
 
 import (
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 
 	"github.com/ligato/networkservicemesh/plugins/handler"
@@ -63,6 +64,7 @@ func UseDeps(deps *Deps) Option {
 		d.Log = deps.Log
 		d.Handler = deps.Handler
 		d.ObjectStore = deps.ObjectStore
+		d.K8sclient = deps.K8sclient
 		d.KubeConfig = deps.KubeConfig
 	}
 }
@@ -83,6 +85,9 @@ func DefaultDeps() Option {
 		}
 		if d.ObjectStore == nil {
 			d.ObjectStore = objectstore.SharedPlugin()
+		}
+		if d.K8sclient == nil {
+			d.K8sclient = k8sclient.SharedPlugin()
 		}
 		if d.KubeConfig == "" {
 			cmd := command.RootCmd()

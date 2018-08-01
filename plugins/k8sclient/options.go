@@ -12,21 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package handler
+package k8sclient
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/k8sclient"
-	"github.com/ligato/networkservicemesh/plugins/logger"
-	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/registry"
+
+	"github.com/ligato/networkservicemesh/plugins/logger"
 )
 
 const (
-	// DefaultName of the handler.Plugin
-	DefaultName = "handler"
+	// DefaultName of the k8sclient.Plugin
+	DefaultName = "k8sclient"
 	// KubeConfigFlagName - Cmd line flag for specifying kubeconfig filename
-	KubeConfigFlagName = "kube"
+	KubeConfigFlagName = "kube-config"
 	// KubeConfigFlagDefault - default value of KubeConfig
 	KubeConfigFlagDefault = ""
 	// KubeConfigFlagUsage - usage for flag for specifying kubeconfig filename
@@ -38,6 +37,11 @@ type Option func(*Plugin)
 
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
+	p := newPlugin(opts...)
+	return p
+}
+
+func newPlugin(opts ...Option) *Plugin {
 	p := &Plugin{}
 	for _, o := range opts {
 		o(p)
@@ -49,7 +53,7 @@ func NewPlugin(opts ...Option) *Plugin {
 // SharedPlugin provides a single shared Plugin that has the same Deps/Config as would result
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
-	p := NewPlugin(opts...)
+	p := newPlugin(opts...)
 	return registry.Shared().LoadOrStore(p).(*Plugin)
 }
 
@@ -59,10 +63,6 @@ func UseDeps(deps *Deps) Option {
 		d := &p.Deps
 		d.Name = deps.Name
 		d.Log = deps.Log
-		d.Cmd = deps.Cmd
-		d.ObjectStore = deps.ObjectStore
-		d.K8sclient = deps.K8sclient
-		d.KubeConfig = deps.KubeConfig
 	}
 }
 
@@ -77,23 +77,14 @@ func DefaultDeps() Option {
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
 		}
-		if d.Cmd == nil {
-			d.Cmd = command.RootCmd()
-		}
-		if d.ObjectStore == nil {
-			d.ObjectStore = objectstore.SharedPlugin()
-		}
-		if d.K8sclient == nil {
-			d.K8sclient = k8sclient.SharedPlugin()
-		}
 		if d.KubeConfig == "" {
-			flag := d.Cmd.Flags().Lookup(KubeConfigFlagName)
+			cmd := command.RootCmd()
+			flag := cmd.Flags().Lookup(KubeConfigFlagName)
 			if flag == nil {
-				d.Cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
-				flag = d.Cmd.Flags().Lookup(KubeConfigFlagName)
+				cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
+				flag = cmd.Flags().Lookup(KubeConfigFlagName)
 			}
-			// TODO: This is misplaced... it should be in Init()... but its a Dep, hmm... what to do
-			d.KubeConfig = flag.Value.String()
 		}
+
 	}
 }

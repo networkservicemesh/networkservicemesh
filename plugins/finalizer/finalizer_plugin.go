@@ -15,11 +15,11 @@
 package finalizer
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ligato/cn-infra/health/statuscheck"
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/command"
@@ -31,10 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -52,10 +49,8 @@ type Plugin struct {
 	idempotent.Impl
 	Deps
 
-	pluginStopCh    chan struct{}
-	wg              sync.WaitGroup
-	k8sClientConfig *rest.Config
-	k8sClientset    *kubernetes.Clientset
+	pluginStopCh chan struct{}
+	wg           sync.WaitGroup
 
 	StatusMonitor statuscheck.StatusReader
 
@@ -70,6 +65,7 @@ type Deps struct {
 	// Kubeconfig with k8s cluster address and access credentials to use.
 	KubeConfig  string `empty_value_ok:"true"`
 	ObjectStore objectstore.Interface
+	K8sclient   k8sclient.Interface
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -87,15 +83,6 @@ func (plugin *Plugin) init() error {
 	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
 
 	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
-	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", plugin.KubeConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
-	}
-
-	plugin.k8sClientset, err = kubernetes.NewForConfig(plugin.k8sClientConfig)
-	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client: %s", err)
-	}
 
 	plugin.stopCh = make(chan struct{})
 
@@ -127,11 +114,11 @@ func (plugin *Plugin) afterInit() error {
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.LabelSelector = nsmLabel + "=true"
-				return plugin.k8sClientset.CoreV1().Pods(metav1.NamespaceAll).List(options)
+				return plugin.K8sclient.GetClientset().CoreV1().Pods(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.LabelSelector = nsmLabel + "=true"
-				return plugin.k8sClientset.CoreV1().Pods(metav1.NamespaceAll).Watch(options)
+				return plugin.K8sclient.GetClientset().CoreV1().Pods(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&v1.Pod{},
