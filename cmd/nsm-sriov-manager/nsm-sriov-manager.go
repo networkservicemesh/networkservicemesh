@@ -46,14 +46,22 @@ const (
 
 // VF describes a single instance of VF
 type VF struct {
+	// NetworkService defines a network service which is offered by this VF
 	NetworkService string `yaml:"networkService" json:"networkService"`
-	pciAddr        string // `yaml:"pciAddr" json:"pciAddr"`
-	ParentDevice   string `yaml:"parentDevice" json:"parentDevice"`
-	VFLocalID      int32  `yaml:"vfLocalID" json:"vfLocalID"`
-	pciVendor      string // `yaml:"pciVendor" json:"pciVendor"`
-	pciType        string // `yaml:"pciType" json:"pciType"`
-	iommuGroup     string // `yaml:"iommuGroup" json:"iommuGroup"`
-	VFIODevice     string `yaml:"vfioDevice" json:"vfioDevice"`
+	// pciAddr in a form of string with ':' replaced by '-', used as a key in VFs map
+	pciAddr string // `yaml:"pciAddr" json:"pciAddr"`
+	// PF which this VF belogs to
+	ParentDevice string `yaml:"parentDevice" json:"parentDevice"`
+	// VF's ID in relation to PF
+	VFLocalID int32 `yaml:"vfLocalID" json:"vfLocalID"`
+	// pciVendor is used for unbind/bind of VF to vifo device
+	pciVendor string // `yaml:"pciVendor" json:"pciVendor"`
+	// pciType is used for unbind/bind of VF to vifo device
+	pciType string // `yaml:"pciType" json:"pciType"`
+	// iommuGroup is used to form vfio's full device path
+	iommuGroup string // `yaml:"iommuGroup" json:"iommuGroup"`
+	// VFIODevice contains vfio device full path in a form of /dev/vfio/{iommuGroup}
+	VFIODevice string `yaml:"vfioDevice" json:"vfioDevice"`
 }
 
 // VFs is map of ALL found VFs on a specific host kyed by PCI address
@@ -219,6 +227,8 @@ func discoverNetworks(discoveredVFs *VFs) error {
 	return nil
 }
 
+// buildSRIOVConfigMap goes through the list of VFs and marshal them into a yaml.
+// Generated yaml is added to Data's of configmap keyed by pci address of each VF.
 func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
 	configMap := v1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -245,6 +255,7 @@ func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
 	return configMap, nil
 }
 
+// checkVFIOModule checks if vfio kernel module is loaded and of not loads it.
 func checkVFIOModule() error {
 	// Checking if module vfio-pci is loaded
 	out, err := exec.Command("lsmod").Output()
@@ -263,6 +274,7 @@ func checkVFIOModule() error {
 	return nil
 }
 
+// buildVFIODevices goes through the list of discovered VFs and calls bindVF to bind them to vfio device
 func buildVFIODevices(discoveredVFs *VFs) error {
 	if err := checkVFIOModule(); err != nil {
 		return err
@@ -318,6 +330,7 @@ func waitAndRetry(timeout time.Duration, retries int, check func() bool) error {
 	return fmt.Errorf("timeout has expired")
 }
 
+// bindVF unbinds VF's from whatever driver currently owns it and rebinds to vfio device
 func bindVF(vf *VF) error {
 	pciAddr := strings.Replace(vf.pciAddr, "-", ":", -1)
 	unbindPath := fmt.Sprintf("/sys/bus/pci/devices/%s/driver/unbind", pciAddr)
@@ -357,15 +370,11 @@ func bindVF(vf *VF) error {
 func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
-	logrus.Infof("Starting SRIOV Network Device Plugin...")
 	discoveredVFs := newVFs()
 	if err := discoverNetworks(discoveredVFs); err != nil {
 		logrus.Errorf("%+v", err)
 		os.Exit(1)
 	}
-
-	// Uncomment to mock VFs for unit testing
-	// discoveredVFs := mockVFs()
 
 	if len(discoveredVFs.vfs) == 0 {
 		logrus.Info("no VF were discovered, exiting...")
@@ -395,24 +404,4 @@ func main() {
 		os.Exit(1)
 	}
 	logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
-}
-
-// mockVFs will be used for unit testing
-func mockVFs() *VFs {
-
-	discoveredVFs := map[string]*VF{
-		"0000-81-10.6": &VF{ParentDevice: "enp129s0f0", VFLocalID: 3, pciAddr: "0000-81-10.6", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "95"},
-		"0000-81-11.3": &VF{ParentDevice: "enp129s0f1", VFLocalID: 5, pciAddr: "0000-81-11.3", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "105"},
-		"0000-81-11.7": &VF{ParentDevice: "enp129s0f1", VFLocalID: 7, pciAddr: "0000-81-11.7", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "107"},
-		"0000-81-11.0": &VF{ParentDevice: "enp129s0f0", VFLocalID: 4, pciAddr: "0000-81-11.0", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "96"},
-		"0000-81-10.1": &VF{ParentDevice: "enp129s0f1", VFLocalID: 0, pciAddr: "0000-81-10.1", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "100"},
-		"0000-81-11.2": &VF{ParentDevice: "enp129s0f0", VFLocalID: 5, pciAddr: "0000-81-11.2", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "97"},
-		"0000-81-11.4": &VF{ParentDevice: "enp129s0f0", VFLocalID: 6, pciAddr: "0000-81-11.4", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "98"},
-		"0000-81-11.6": &VF{ParentDevice: "enp129s0f0", VFLocalID: 7, pciAddr: "0000-81-11.6", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "99"},
-		"0000-81-11.1": &VF{ParentDevice: "enp129s0f1", VFLocalID: 4, pciAddr: "0000-81-11.1", pciVendor: "8086", pciType: "1515", NetworkService: nsmSRIOVDefaultNetworkServiceName, iommuGroup: "104"},
-	}
-	vfs := VFs{}
-	vfs.vfs = discoveredVFs
-
-	return &vfs
 }
