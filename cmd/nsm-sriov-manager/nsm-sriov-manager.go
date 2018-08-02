@@ -44,6 +44,11 @@ const (
 	nsmSRIOVDefaultNetworkServiceName = "networkservicemesh.io/sriov-nsm-default"
 )
 
+var (
+	noRebind    = flag.Bool("no-rebind", false, "Prevents rebinding discovered VFs from the current driver to vfio driver.")
+	noConfigMap = flag.Bool("no-configmap", false, "Prevents generating a configmap with discovered VFs information.")
+)
+
 // VF describes a single instance of VF
 type VF struct {
 	// NetworkService defines a network service which is offered by this VF
@@ -375,33 +380,35 @@ func main() {
 		logrus.Errorf("%+v", err)
 		os.Exit(1)
 	}
-
 	if len(discoveredVFs.vfs) == 0 {
 		logrus.Info("no VF were discovered, exiting...")
 		os.Exit(0)
 	}
-
 	logrus.Infof("%d VFs were discovered on the host.", len(discoveredVFs.vfs))
-	// Building vfio device for each VF
-	if err := buildVFIODevices(discoveredVFs); err != nil {
-		logrus.Errorf("failed to build VFIO devices for VFs with error: %+v", err)
-		os.Exit(1)
+	// Check if noRebind is selected
+	if !*noRebind {
+		// Building vfio device for each VF
+		if err := buildVFIODevices(discoveredVFs); err != nil {
+			logrus.Errorf("failed to build VFIO devices for VFs with error: %+v", err)
+			os.Exit(1)
+		}
 	}
-	cf, err := buildSRIOVConfigMap(discoveredVFs)
-	if err != nil {
-		logrus.Errorf("failed to build SRIOV config map with error: %+v", err)
-		os.Exit(1)
+	// Check if noConfigMap is selected
+	if !*noConfigMap {
+		cf, err := buildSRIOVConfigMap(discoveredVFs)
+		if err != nil {
+			logrus.Errorf("failed to build SRIOV config map with error: %+v", err)
+			os.Exit(1)
+		}
+		configMap, err := yaml.Marshal(cf)
+		if err != nil {
+			logrus.Errorf("failed to marshal SRIOV config map with error: %+v", err)
+			os.Exit(1)
+		}
+		if err := ioutil.WriteFile("nsm-sriov-configmap.yaml", configMap, 0644); err != nil {
+			logrus.Errorf("failed to save  SRIOV config map with error: %+v", err)
+			os.Exit(1)
+		}
+		logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
 	}
-
-	configMap, err := yaml.Marshal(cf)
-	if err != nil {
-		logrus.Errorf("failed to marshal SRIOV config map with error: %+v", err)
-		os.Exit(1)
-	}
-
-	if err := ioutil.WriteFile("nsm-sriov-configmap.yaml", configMap, 0644); err != nil {
-		logrus.Errorf("failed to save  SRIOV config map with error: %+v", err)
-		os.Exit(1)
-	}
-	logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
 }
