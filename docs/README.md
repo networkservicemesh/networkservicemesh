@@ -36,3 +36,4 @@ How tos
 * [Running Network Service Mesh in Minikube](/docs/MINIKUBE.md)
 * [Install and run NSM on GKE](/docs/NSM-on-GKE.md)
 * [Gettting a Namespace from inside a Pod](/docs/Getting-a-namespace-from-inside-a-Pod.md)
+* [How to stand up a VM from scratch with everything for NSM](/docs/GETTING-STARTED.md)
