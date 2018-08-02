@@ -15,7 +15,6 @@
 package handler
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
@@ -24,12 +23,10 @@ import (
 
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Plugin is the base plugin object for this CRD handler
@@ -37,9 +34,7 @@ type Plugin struct {
 	idempotent.Impl
 	Deps
 
-	pluginStopCh    chan struct{}
-	k8sClientConfig *rest.Config
-	k8sClientset    *kubernetes.Clientset
+	pluginStopCh chan struct{}
 }
 
 // Deps defines dependencies of netmesh plugin.
@@ -49,6 +44,7 @@ type Deps struct {
 	Cmd         *cobra.Command
 	KubeConfig  string `empty_value_ok:"true"` // Fetch kubeconfig file from --kube-config
 	ObjectStore objectstore.Interface
+	K8sclient   k8sclient.API
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -65,15 +61,6 @@ func (p *Plugin) init() error {
 	}
 
 	p.Log.WithField("kubeconfig", p.KubeConfig).Info("Loading kubernetes client config")
-	p.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", p.KubeConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
-	}
-
-	p.k8sClientset, err = kubernetes.NewForConfig(p.k8sClientConfig)
-	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client: %s", err)
-	}
 
 	return nil
 }
