@@ -106,7 +106,7 @@ func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 	}
 	// Step 5 removing finalizer and allowing k8s to delete pod, if pod does not have a finalizer,
 	// this call is just no-op.
-	finalizerutils.RemovePodFinalizer(plugin.k8sClientset, pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+	finalizerutils.RemovePodFinalizer(plugin.K8sclient.GetClientset(), pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
 
 	return nil
 }
@@ -120,7 +120,7 @@ func cleanUpNSMClient(plugin *Plugin, pod *v1.Pod) error {
 		plugin.Log.Errorf("failed to clean up pod %s/%s dataplane with error: %+v, please review dataplane controller log if further debugging is required",
 			pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
 	}
-	finalizerutils.RemovePodFinalizer(plugin.k8sClientset, pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+	finalizerutils.RemovePodFinalizer(plugin.K8sclient.GetClientset(), pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
 
 	return nil
 }

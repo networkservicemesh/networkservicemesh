@@ -17,7 +17,6 @@
 package crd
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -27,16 +26,14 @@ import (
 	"github.com/ligato/networkservicemesh/utils/registry"
 
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/ligato/cn-infra/health/statuscheck"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	factory "github.com/ligato/networkservicemesh/pkg/client/informers/externalversions"
 	"github.com/ligato/networkservicemesh/plugins/handler"
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/command"
@@ -50,13 +47,11 @@ type Plugin struct {
 	idempotent.Impl
 	Deps
 
-	pluginStopCh    chan struct{}
-	wg              sync.WaitGroup
-	k8sClientConfig *rest.Config
-	k8sClientset    *kubernetes.Clientset
-	apiclientset    *apiextcs.Clientset
-	crdClient       client.Interface
-	StatusMonitor   statuscheck.StatusReader
+	pluginStopCh  chan struct{}
+	wg            sync.WaitGroup
+	apiclientset  *apiextcs.Clientset
+	crdClient     client.Interface
+	StatusMonitor statuscheck.StatusReader
 
 	// These can be used to stop all the informers, as well as control loops
 	// within the application.
@@ -83,6 +78,7 @@ type Deps struct {
 	KubeConfig  string `empty_value_ok:"true"`
 	Handler     handler.API
 	ObjectStore objectstore.Interface
+	K8sclient   k8sclient.API
 }
 
 // Init builds K8s client-set based on the supplied kubeconfig and initializes
@@ -99,15 +95,6 @@ func (plugin *Plugin) init() error {
 	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
 
 	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
-	plugin.k8sClientConfig, err = clientcmd.BuildConfigFromFlags("", plugin.KubeConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to build kubernetes client config: %s", err)
-	}
-
-	plugin.k8sClientset, err = kubernetes.NewForConfig(plugin.k8sClientConfig)
-	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client: %s", err)
-	}
 
 	plugin.stopChNS = make(chan struct{})
 	plugin.stopChNSC = make(chan struct{})
@@ -169,13 +156,13 @@ func (plugin *Plugin) afterInit() error {
 	var crdname string
 
 	// Create clientset and create our CRD, this only needs to run once
-	plugin.apiclientset, err = apiextcs.NewForConfig(plugin.k8sClientConfig)
+	plugin.apiclientset, err = apiextcs.NewForConfig(plugin.K8sclient.GetClientConfig())
 	if err != nil {
 		panic(err.Error())
 	}
 
 	// Create an instance of our own API client
-	plugin.crdClient, err = client.NewForConfig(plugin.k8sClientConfig)
+	plugin.crdClient, err = client.NewForConfig(plugin.K8sclient.GetClientConfig())
 	if err != nil {
 		plugin.Log.Errorf("Error creating CRD client: %s", err.Error())
 		panic(err.Error())
