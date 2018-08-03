@@ -224,11 +224,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:760b8150a400b7fd93ce140bd2b8abf54a4e9c4a1fd40403fea2f5e01a5c51cc"
+  digest = "1:4323c6f79178c6f811a0528b1b2eba03bad0cae33605636f1e38c8f907b5cbf7"
   name = "github.com/onrik/logrus"
   packages = ["filename"]
   pruneopts = "UT"
-  revision = "00f4ddfaeb23824ce8b9ce969095a9b2529b9eca"
+  revision = "ca0a758702be2ae04725ba88dcd27a71949faf33"
 
 [[projects]]
   digest = "1:29f294e6a3b9d30629266b2765a8c203056387941e600405b8e8871c84653042"
@@ -370,7 +370,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:03815b0e6d4096fcdf19284bcafeffeea877db50a22ba4814db244cf4b03ee78"
+  digest = "1:f69ae05da70f4bb4e91de29a7c7120ee7dade96cd7d1003649187a0b592a6a83"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -385,18 +385,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "49c15d80dfbc983ea25246ee959d970efe09ec09"
+  revision = "f4c29de78a2a91c00474a2e689954305c350adf9"
 
 [[projects]]
   branch = "master"
-  digest = "1:8742e6e73627b2877c3f723bc1823d5667ec59011242480309dc90fa862512aa"
+  digest = "1:4a7c38ff146e5002dda78fdf599ac143fd0c98ffba9fb9d1721c3ba7fcd356c0"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
+  revision = "3dc4335d56c789b04b0ba99b7a37249d9b614314"
 
 [[projects]]
   digest = "1:436b24586f8fee329e0dd65fd67c817681420cda1d7f934345c13fe78c212a73"
@@ -451,7 +451,7 @@
     "internal/fastwalk",
   ]
   pruneopts = "UT"
-  revision = "33176b2029f9538e722efa4a005f7aa00cf60010"
+  revision = "78b3e717651b2f0170900ca0ac1080c331822c22"
 
 [[projects]]
   branch = "master"
