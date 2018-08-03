@@ -243,7 +243,7 @@ func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "nsm-sriov-vf-list",
 			Namespace: "default",
-			Labels:    map[string]string{"networkservicemesh.io/sriov": ""},
+			Labels:    map[string]string{"networkservicemesh.io/sriov": "config"},
 		},
 		Data: make(map[string]string),
 	}
