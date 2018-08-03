@@ -7,4 +7,3 @@ This directory contains some example yaml files for creating CRDs of:
 * NetworkServiceChannel
 * NetworkServiceEndpoint
 
-It also has some simple scripts to both setup and teardown these resources.
