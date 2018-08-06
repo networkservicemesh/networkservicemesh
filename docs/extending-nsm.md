@@ -66,6 +66,6 @@ This file should be created: networkservicemesh/conf/sample/vnf-dataplane.yaml
 This will define the DaemonSet to be run in each Pod.
 
 ### End User YAML File
-To use the plugin the end user will need to add the following to their POD Yaml file.
+To use the plugin the end user will need to add the following to their Pod Yaml file. Need to provide an example how to integrate into a simple application.
 
 **Todo not sure about this step**
