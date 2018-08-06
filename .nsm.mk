@@ -56,7 +56,7 @@ docker-build-nse: docker-build-release
 
 .PHONY: docker-login
 docker-login:
-	@docker login -u $DOCKER_USER -p $DOCKER_PASS
+	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
 .PHONY: docker-push-netmesh
 docker-push-netmesh: docker-login
