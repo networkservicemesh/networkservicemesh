@@ -54,7 +54,7 @@ endif
 
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
-.PHONY: all check verify docker-build
+.PHONY: all check verify docker-build docker-push
 #
 # The all target is what is used by the travis-ci system to build the Docker images
 # which are used to run the code in each run.
@@ -69,6 +69,9 @@ verify:
 
 # Individual targets are found in .nsm.mk
 docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-simple-dataplane
+
+# Individual targets are found in .nsm.mk
+docker-push: docker-login docker-push-netmesh docker-push-simple-dataplane docker-push-nsm-init docker-push-nse
 
 .PHONY: format deps generate install test test-race vet
 #
