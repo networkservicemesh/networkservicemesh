@@ -67,6 +67,7 @@ This will define the DaemonSet to be run in each Pod.
 
 ### End User YAML File
 <<<<<<< HEAD
+<<<<<<< HEAD
 To use the plugin the end user will need to add the following to their Pod Yaml file. Need to provide an example how to integrate into a simple application.
 
 <<<<<<< HEAD
@@ -140,6 +141,9 @@ A proposed sample tree is shown below:
 >>>>>>> fb0d4f4... added a sample directory structure for new networks
 =======
 To use the plugin the end user will need to add the following to their POD Yaml file.
+=======
+To use the plugin the end user will need to add the following to their Pod Yaml file. Need to provide an example how to integrate into a simple application.
+>>>>>>> 49d685b... added some more detail around end user case
 
 **Todo not sure about this step**
 >>>>>>> a4dc94f... adding documentation for extending NSM
