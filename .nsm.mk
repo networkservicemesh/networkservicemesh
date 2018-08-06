@@ -64,7 +64,7 @@ docker-push-netmesh: docker-login
 		export REPO=${DOCKER_NETMESH} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
-		docker push $REPO
+		docker push $REPO ;\
 	fi
 
 .PHONY: docker-push-simple-dataplane
@@ -73,7 +73,7 @@ docker-push-simple-dataplane: docker-login
 		export REPO=${DOCKER_SIMPLE_DATAPLANE} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
-		docker push $REPO
+		docker push $REPO ;\
 	fi
 
 .PHONY: docker-push-nsm-init
@@ -82,7 +82,7 @@ docker-push-simple-nsm-init: docker-login
 		export REPO=${DOCKER_NSM_INIT} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
-		docker push $REPO
+		docker push $REPO ;\
 	fi
 
 .PHONY: docker-push-nse
@@ -91,5 +91,5 @@ docker-push-simple-nse: docker-login
 		export REPO=${DOCKER_NSE} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:${TRAVIS_TAG} ;\
 		docker tag ${REPO}:${COMMIT} ${REPO}:travis-${TRAVIS_BUILD_NUMBER} ;\
-		docker push $REPO
+		docker push $REPO ;\
 	fi
