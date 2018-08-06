@@ -389,14 +389,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bdd70b95d2f0faaad6d9e259aad84738c6bdeb8f45245be6487e88df45f5a0f1"
+  digest = "1:ac2b4591b3f3d30453b924e13326e2e7a656d65cc74b1d3420e25ab9f5dbd39f"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "0ffbfd41fbef8ffcf9b62b0b0aa3a5873ed7a4fe"
+  revision = "34b17bdb430002e9db9ae7ddc8480b9fa05edc22"
 
 [[projects]]
   digest = "1:436b24586f8fee329e0dd65fd67c817681420cda1d7f934345c13fe78c212a73"
@@ -451,7 +451,7 @@
     "internal/fastwalk",
   ]
   pruneopts = "UT"
-  revision = "82515cf89538b3e8a206be74377c01dee420b76d"
+  revision = "3c07937fe18c27668fd78bbaed3d6b8b39e202ea"
 
 [[projects]]
   branch = "master"
@@ -776,6 +776,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
