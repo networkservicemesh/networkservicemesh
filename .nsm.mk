@@ -26,34 +26,57 @@ DOCKER_RELEASE=networkservicemesh/release
 #
 # Targets to build docker images
 #
+# NOTE: ${COMMIT} is set in .travis.yml from the first 8 bytes of
+# ${TRAVIS_COMMIT}. Thus, for travis-ci builds, we tag the Docker images
+# with both the name and this first 8 bytes of the commit hash.
+#
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
 	@${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST} -f build/Dockerfile.nsm-test .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NETMESH_TEST} ${DOCKER_NETMESH_TEST}:${COMMIT} ;\
+	fi
 
 .PHONY: docker-build-release
 docker-build-release:
 	@${DOCKERBUILD} -t ${DOCKER_RELEASE} -f build/Dockerfile .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_RELEASE} ${DOCKER_RELEASE}:${COMMIT} ;\
+	fi
 
 .PHONY: docker-build-netmesh
 docker-build-netmesh: docker-build-release
 	@${DOCKERBUILD} -t ${DOCKER_NETMESH} -f build/Dockerfile.nsm .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NETMESH} ${DOCKER_NETMESH}:${COMMIT} ;\
+	fi
 
 .PHONY: docker-build-simple-dataplane
 docker-build-simple-dataplane: docker-build-release
 	@${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/Dockerfile.simple-dataplane .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_SIMPLE_DATAPLANE} ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ;\
+	fi
 
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init: docker-build-release
 	@${DOCKERBUILD} -t ${DOCKER_NSM_INIT} -f build/Dockerfile.nsm-init .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NSM_INIT} ${DOCKER_NSM_INIT}:${COMMIT} ;\
+	fi
 
 .PHONY: docker-build-nse
 docker-build-nse: docker-build-release
 	@${DOCKERBUILD} -t ${DOCKER_NSE} -f build/Dockerfile.nse .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NSE} ${DOCKER_NSE}:${COMMIT} ;\
+	fi
 
 #
 # Targets to push docker images
 #
-
+# NOTE: These assume that ${COMMIT} is set and are meant to be called from travis-ci only.
+#
 .PHONY: docker-login
 docker-login:
 	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
