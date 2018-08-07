@@ -1,0 +1,52 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sriov-controller
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sriov-controller
+rules:
+- apiGroups: ["*"] 
+  resources: ["configmaps", "namespaces"]
+  verbs: ["*"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sriov-controller-binding
+subjects:
+- kind: ServiceAccount
+  namespace: default
+  name: sriov-controller
+roleRef:
+  kind: ClusterRole
+  name: sriov-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+spec:
+  template:
+    metadata:
+      labels:
+        app: sriov-controller
+    spec:
+      serviceAccount: sriov-controller
+      containers:
+        - name: sriov-controller
+          image: networkservicemesh/sriov-controller:latest
+          imagePullPolicy: Always
+          volumeMounts:
+          - name: kubelet-socket
+            mountPath: /var/lib/kubelet/device-plugins
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet/device-plugins
+            type: DirectoryOrCreate
+          name: kubelet-socket
+metadata:
+   name: sriov-controller
+   namespace: default
