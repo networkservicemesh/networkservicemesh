@@ -83,24 +83,24 @@ docker-login:
 
 .PHONY: docker-push-netmesh
 docker-push-netmesh: docker-login
-	@docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:${TAG}
-	@docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push ${DOCKER_NETMESH}
+	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:${TAG}
+	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_NETMESH}
 
 .PHONY: docker-push-simple-dataplane
 docker-push-simple-dataplane: docker-login
-	@docker tag ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ${DOCKER_SIMPLE_DATAPLANE}:${TAG}
-	@docker tag ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ${DOCKER_SIMPLE_DATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push ${DOCKER_SIMPLE_DATAPLANE}
+	docker tag ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ${DOCKER_SIMPLE_DATAPLANE}:${TAG}
+	docker tag ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ${DOCKER_SIMPLE_DATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_SIMPLE_DATAPLANE}
 
 .PHONY: docker-push-nsm-init
 docker-push-simple-nsm-init: docker-login
-	@docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:${TAG}
-	@docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push ${DOCKER_NSM_INIT}
+	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:${TAG}
+	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_NSM_INIT}
 
 .PHONY: docker-push-nse
 docker-push-simple-nse: docker-login
-	@docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${TAG}
-	@docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:travis-${TRAVIS_BUILD_NUMBER}
-	@docker push ${DOCKER_NSE}
+	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${TAG}
+	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_NSE}
