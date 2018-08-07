@@ -69,3 +69,60 @@ This will define the DaemonSet to be run in each Pod.
 To use the plugin the end user will need to add the following to their Pod Yaml file. Need to provide an example how to integrate into a simple application.
 
 **Todo not sure about this step**
+
+# Proposed Directory Structure
+The current directory structure for adding new plugins is not optimal as files are scattered over multiple parts of the tree. It is suggested that a normalized directory structure is developed to isolate all new plugins in their own tree.
+
+
+A proposed sample tree is shown below:
+
+┌────────┐ │
+│networks├─┤ ┌────────────────┐ │
+└────────┘ ├─┤simple-dataplane├─┤
+           │ └────────────────┘ │  ┌───────────┐
+           │                    ├──┤ Readme.md │
+           │                    │  └───────────┘
+           │ ┌─────────────┐    │
+           ├─┤cnf-dataplane│    │  ┌─────────────┐
+           │ └─────────────┘    ├──┤ Dockerfile  │
+           │                    │  └─────────────┘
+                                │
+                                │
+                                │  ┌────┐   │
+                                ├──┤apis├───┤
+                                │  └────┘   │
+                                │           │   ┌─────────────────────┐
+                                │           ├───┤simpledataplane.proto│
+                                │           │   └─────────────────────┘
+                                │           │
+                                │           │
+                                │
+                                │  ┌─────┐  │
+                                ├──┤ cmd ├──┤
+                                │  └─────┘  │  ┌──────────────────┐
+                                │           ├──┤simpledataplane.go│
+                                │           │  └──────────────────┘
+                                │           │
+                                │           │
+                                │
+                                │  ┌─────┐  │
+                                ├──│Conf ├──┤  ┌─────────────────────┐
+                                │  └─────┘  ├──┤simple-dataplane.yaml│
+                                │           │  └─────────────────────┘
+                                │           │
+                                │           │
+                                │           │
+                                │
+                                │          │
+                                │  ┌─────┐ │
+                                ├──┤ exm ├─┤         │ ┌─────────┐
+                                │  └─────┘ │ ┌─────┐ ├─┤Readme.md│
+                                │          ├─┤exm1 ├─┤ └─────────┘
+                                │          │ └─────┘ │ ┌───────────────┐
+                                │          │         ├─┤clientpod.yaml │
+                                                     │ └───────────────┘
+                                                     │ ┌───────────────┐
+                                                     ├─┤serverpod.yaml │
+                                                     │ └───────────────┘
+                                                     │
+                                                     │
