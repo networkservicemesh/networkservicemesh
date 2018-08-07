@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# We want to use bash
+SHELL:=/bin/bash
+
 # Pull in Docker image names
 include .nsm.mk
 
