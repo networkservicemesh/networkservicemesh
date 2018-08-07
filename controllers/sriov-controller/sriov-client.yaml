@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nsm-sriov
+    spec:
+      containers:
+        - image: networkservicemesh/sriov-client-image:latest
+          name: nsm-sriov 
+          command:
+            - /bin/sh
+            - -xec
+            - |
+              while true; do ( echo "Doing nothing"; sleep 30; ) done
+          imagePullPolicy: Always
+          resources:
+            limits:
+              networkservicemesh.io/sriov-ns-1: 1
+              networkservicemesh.io/sriov-ns-2: 1
+              networkservicemesh.io/sriov-ns-3: 1
+              networkservicemesh.io/sriov-ns-4: 1    
+          securityContext:
+            capabilities:
+              add:
+              - IPC_LOCK
+              - SYS_RESOURCE
+metadata:
+   name: nsm-sriov
+   namespace: default
