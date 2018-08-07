@@ -32,50 +32,44 @@ DOCKER_RELEASE=networkservicemesh/release
 #
 .PHONY: docker-build-netmesh-test
 docker-build-netmesh-test:
-	@if [ "x${COMMIT}" == "x" ] ; then \
-		${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST} -f build/Dockerfile.nsm-test . ;\
-	else \
-		${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST}:${COMMIT} -f build/Dockerfile.nsm-test . ;\
+	@${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST} -f build/Dockerfile.nsm-test .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NETMESH_TEST} ${DOCKER_NETMESH_TEST}:${COMMIT} ;\
 	fi
 
 .PHONY: docker-build-release
 docker-build-release:
-	@if [ "x${COMMIT}" == "x" ] ; then \
-		${DOCKERBUILD} -t ${DOCKER_RELEASE} -f build/Dockerfile . ;\
-	else \
-		${DOCKERBUILD} -t ${DOCKER_RELEASE}:${COMMIT} -f build/Dockerfile . ;\
+	@${DOCKERBUILD} -t ${DOCKER_RELEASE} -f build/Dockerfile .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_RELEASE} ${DOCKER_RELEASE}:${COMMIT} ;\
 	fi
 
 .PHONY: docker-build-netmesh
 docker-build-netmesh: docker-build-release
-	@if [ "x${COMMIT}" == "x" ] ; then \
-		${DOCKERBUILD} -t ${DOCKER_NETMESH} -f build/Dockerfile.nsm . ;\
-	else \
-		${DOCKERBUILD} -t ${DOCKER_NETMESH}:${COMMIT} -f build/Dockerfile.nsm . ;\
+	@${DOCKERBUILD} -t ${DOCKER_NETMESH} -f build/Dockerfile.nsm .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NETMESH} ${DOCKER_NETMESH}:${COMMIT} ;\
 	fi
 
 .PHONY: docker-build-simple-dataplane
 docker-build-simple-dataplane: docker-build-release
-	@if [ "x${COMMIT}" == "x" ] ; then \
-		${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/Dockerfile.simple-dataplane . ;\
-	else \
-		${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} -f build/Dockerfile.simple-dataplane . ;\
+	@${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/Dockerfile.simple-dataplane .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_SIMPLE_DATAPLANE} ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ;\
 	fi
 
 .PHONY: docker-build-nsm-init
 docker-build-nsm-init: docker-build-release
-	@if [ "x${COMMIT}" == "x" ] ; then \
-		${DOCKERBUILD} -t ${DOCKER_NSM_INIT} -f build/Dockerfile.nsm-init . ;\
-	else \
-		${DOCKERBUILD} -t ${DOCKER_NSM_INIT}:${COMMIT} -f build/Dockerfile.nsm-init . ;\
+	@${DOCKERBUILD} -t ${DOCKER_NSM_INIT} -f build/Dockerfile.nsm-init .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NSM_INIT} ${DOCKER_NSM_INIT}:${COMMIT} ;\
 	fi
 
 .PHONY: docker-build-nse
 docker-build-nse: docker-build-release
-	@if [ "x${COMMIT}" == "x" ] ; then \
-		${DOCKERBUILD} -t ${DOCKER_NSE} -f build/Dockerfile.nse . ;\
-	else \
-		${DOCKERBUILD} -t ${DOCKER_NSE}:${COMMIT} -f build/Dockerfile.nse . ;\
+	@${DOCKERBUILD} -t ${DOCKER_NSE} -f build/Dockerfile.nse .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NSE} ${DOCKER_NSE}:${COMMIT} ;\
 	fi
 
 #
