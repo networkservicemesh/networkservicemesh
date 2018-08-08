@@ -68,6 +68,7 @@ This will define the DaemonSet to be run in each Pod.
 ### End User YAML File
 To use the plugin the end user will need to add the following to their Pod Yaml file. Need to provide an example how to integrate into a simple application.
 
+<<<<<<< HEAD
 **Todo not sure about this step**
 
 # Proposed Directory Structure
@@ -126,3 +127,6 @@ A proposed sample tree is shown below:
                                                      │ └───────────────┘
                                                      │
                                                      │
+=======
+**Todo not sure about this step**
+>>>>>>> c10ccd8... added some more detail around end user case
