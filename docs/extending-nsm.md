@@ -69,6 +69,9 @@ This will define the DaemonSet to be run in each Pod.
 To use the plugin the end user will need to add the following to their Pod Yaml file. Need to provide an example how to integrate into a simple application.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> fb0d4f4... added a sample directory structure for new networks
 **Todo not sure about this step**
 
 # Proposed Directory Structure
@@ -126,7 +129,11 @@ A proposed sample tree is shown below:
                                                      ├─┤serverpod.yaml │
                                                      │ └───────────────┘
                                                      │
+<<<<<<< HEAD
                                                      │
 =======
 **Todo not sure about this step**
 >>>>>>> c10ccd8... added some more detail around end user case
+=======
+                                                     │
+>>>>>>> fb0d4f4... added a sample directory structure for new networks
