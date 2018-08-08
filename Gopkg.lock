@@ -160,11 +160,12 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:bb3cc4c1b21ea18cfa4e3e47440fc74d316ab25b0cf42927e8c1274917bd9891"
+  digest = "1:3e551bbb3a7c0ab2a2bf4660e7fcad16db089fdcfbb44b0199e62838038623ea"
   name = "github.com/json-iterator/go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "f2b4162afba35581b6d4a50d3b8f34e33c144682"
+  revision = "1624edc4454b8682399def8740d46db5e4362ba4"
+  version = "1.1.5"
 
 [[projects]]
   digest = "1:0311454ea22893302627edc0352634398feb7e9fd18e42743680db02743b5bb4"
