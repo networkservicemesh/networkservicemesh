@@ -72,8 +72,11 @@ To use the plugin the end user will need to add the following to their Pod Yaml 
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> fb0d4f4... added a sample directory structure for new networks
+=======
+>>>>>>> 1153d93... added a sample directory structure for new networks
 **Todo not sure about this step**
 
 # Proposed Directory Structure
@@ -132,6 +135,7 @@ A proposed sample tree is shown below:
                                                      │ └───────────────┘
                                                      │
 <<<<<<< HEAD
+<<<<<<< HEAD
                                                      │
 =======
 **Todo not sure about this step**
@@ -147,3 +151,6 @@ To use the plugin the end user will need to add the following to their Pod Yaml 
 
 **Todo not sure about this step**
 >>>>>>> a4dc94f... adding documentation for extending NSM
+=======
+                                                     │
+>>>>>>> 1153d93... added a sample directory structure for new networks
