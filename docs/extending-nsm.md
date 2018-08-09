@@ -24,12 +24,12 @@ docker-push: add "docker-push-cnf-dataplane"
 
 ## Dockerfile
 
-A new dockerfile is added: networkservicemesh/build/Dockerfile-cnf.dataplane
+A new dockerfile is added: networkservicemesh/build/Dockerfile.cnf-dataplane
 
 
 ## API Directory and Interface Definition
 
-Create a new directory for the cnf-dataplane daemonset CRD interface definition.
+Create a new directory for the cnf-dataplane daemonset API interface definition.
 
 The new directory is: networkservicemesh/pkg/nsm/apis/cnfdataplane
 
@@ -61,7 +61,7 @@ A new file is created in the directory: networkservicemesh/cmd/cnf-dataplane/cnd
 ### DaemonSet YAML File
 To activate the NSM plugin end users need to create a YAML file to deploy the DaemonSet. 
 
-This file should be created: networkservicemesh/conf/sample/vnf-dataplane.yaml
+This file should be created: networkservicemesh/conf/sample/cnf-dataplane.yaml
 
 This will define the DaemonSet to be run in each Pod.
 
