@@ -20,6 +20,10 @@ A Network Service Mesh is an extension of the Service Mesh concept common in app
 
 See [/docs/BUILD.md](/docs/BUILD.md) for build instructions.
 
+Note: The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
+Dependabot pushes out dependency updates to ensure our dependencies remain current and we're not stuck
+with code with known vulnerabilities.
+
 ## Getting Involved
 
 We encourage discussion on our mailing list and IRC channel and accept pull requests.
