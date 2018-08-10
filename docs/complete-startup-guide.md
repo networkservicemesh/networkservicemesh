@@ -1,31 +1,36 @@
-# Getting started with Network Service Mesh
+# Comprehensive Start Up Guide - Network Service Mesh
 
 This document illustrates the procedure to install and start network service mesh from a bare bones system.
 
 ## Table of Contents
-1. [Introduction](#"Introduction")
-2. [Quick Start](#'quick')
-3. [Set up Virtualization](#"Nested')
-4. [Install on Ubuntu](#"Ubuntu")
-5. [Install on Fedora.](#"Fedora")
-6. [Install pre-requisites](#"prereq")
-7. [Install docker](#"docker")
-8. [Install docker CE](#"dockerCE")
-9. [Install kubernetes](#'kube')
-10. [Install virt and kvm](#'virt')
-11. [Install kubectl](#'kubectl')
-12. [Install golang](#'golang')
-13. [Install minikube ](#'minikube')
-14. [Install kvm2 driver](#'kvm2')
-15. [Local docker images](#'Local')
-16. [Install protobuf](#'proto')
-17. [Install NSM](#'NSM')
-18. [Verify NSM](#'NSMverify')
-19. [Simple Make](#'simplemake')
-20. [Run NSM](#'runNSM')
-21. [Manual steps](#'Manual')
-22. [TODO](#'TODO')
-23. [Credits](#'credit')
+* [Introduction](#"Introduction")
+* [Quick Start](/docs/QUICK-START.md)
+
+### Steps
+
+* [Set up Virtualization](#"Nested')
+* [Install on Ubuntu](#"Ubuntu")
+* [Install on Fedora.](#"Fedora")
+* [Install pre-requisites](#"prereq")
+* [Install docker](#"docker")
+* [Install docker CE](#"dockerCE")
+* [Install kubernetes](#'kube')
+* [Install virt and kvm](#'virt')
+* [Install kubectl](#'kubectl')
+* [Install golang](#'golang')
+* [Install minikube ](#'minikube')
+* [Install kvm2 driver](#'kvm2')
+* [Local docker images](#'Local')
+* [Install protobuf](#'proto')
+* [Install NSM](#'NSM')
+* [Verify NSM](#'NSMverify')
+* [Simple Make](#'simplemake')
+* [Run NSM](#'runNSM')
+* [Manual steps](#'Manual')
+
+[TODO](#'TODO')
+
+[Credits](#'credit')
 
 ## Introduction <a name="Introduction"></a>
 
@@ -38,7 +43,7 @@ The steps here have analogies for other distros.  Also, this procedure uses the 
 
 ## Quick Start
 
-If you may prefer the fast path straight to running. Assuming you already have a kubernetes cluster, probably minikube installed  and all packages such as golang, docker and kubernetes installed. Once you have installed network service mesh source code, go to straght to [Quick Start](#'quick')
+If you may prefer the fast path straight to running. Assuming you already have a kubernetes cluster, probably minikube installed  and all packages such as golang, docker and kubernetes installed. Once you have installed network service mesh source code, you may go to straght to [Quick Start: Run Network Service Mesh](/docs/QUICK-START.md)
 
 ## Set up Nested Virtualization <a name="Nested"></a>
 
