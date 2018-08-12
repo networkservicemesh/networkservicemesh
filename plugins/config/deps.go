@@ -14,7 +14,9 @@
 
 package config
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 // Deps is the dependencies for config.Plugin
 //      Name:          Name of the config.Plugin  Used as the key for the
