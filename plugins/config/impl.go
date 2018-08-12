@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/ligato/networkservicemesh/utils/helper/errtools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"github.com/ligato/networkservicemesh/utils/registry"
 	"github.com/spf13/viper"
@@ -41,7 +42,7 @@ type Plugin struct {
 
 // Init initializes the Plugin
 func (p *Plugin) Init() error {
-	return p.Impl.IdempotentInit(p.init)
+	return errtools.Wrap(p.Impl.IdempotentInit(p.init))
 }
 
 // TODO: Add WatchConfig
@@ -51,7 +52,7 @@ func (p *Plugin) init() error {
 
 // Close closes the plugin
 func (p *Plugin) Close() error {
-	return p.Impl.IdempotentClose(p.close)
+	return errtools.Wrap(p.Impl.IdempotentClose(p.close))
 }
 
 // TODO: Add WatchConfig
