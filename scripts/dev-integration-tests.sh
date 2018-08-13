@@ -44,6 +44,12 @@ then
     echo "Please build the image before running integration tests"
     exit 1
 fi
+if [ "x$(docker images|grep networkservicemesh/sidecar-injector)" == "x" ]
+then
+    echo "Docker image networkservicemesh/sidecar-injector not found"
+    echo "Please build the image before running integration tests"
+    exit 0
+fi
 
 # run_tests returns an error on failure
 run_tests
