@@ -328,20 +328,20 @@
   revision = "7c0cea34c8ece3fbeb2b27ab9b59511d360fb394"
 
 [[projects]]
-  digest = "1:9424f440bba8f7508b69414634aef3b2b3a877e522d8a4624692412805407bb7"
+  digest = "1:dab83a1bbc7ad3d7a6ba1a1cc1760f25ac38cdf7d96a5cdd55cd915a4f5ceaf9"
   name = "github.com/spf13/pflag"
   packages = ["."]
   pruneopts = "UT"
-  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
-  version = "v1.0.1"
+  revision = "9a97c102cda95a86cec2345a6f09f55a939babf5"
+  version = "v1.0.2"
 
 [[projects]]
-  digest = "1:59e7dceb53b4a1e57eb1eb0bf9951ff0c25912df7660004a789b62b4e8cdca3b"
+  digest = "1:4fc8a61287ccfb4286e1ca5ad2ce3b0b301d746053bf44ac38cf34e40ae10372"
   name = "github.com/spf13/viper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
-  version = "v1.0.2"
+  revision = "907c19d40d9a6c9bb55f040ff4ae45271a4754b9"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:2d9d06cb9d46dacfdbb45f8575b39fc0126d083841a29d4fbf8d97708f43107e"
@@ -367,7 +367,7 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "56440b844dfe139a8ac053f4ecac0b20b79058f4"
+  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
 
 [[projects]]
   branch = "master"
@@ -390,14 +390,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bdd70b95d2f0faaad6d9e259aad84738c6bdeb8f45245be6487e88df45f5a0f1"
+  digest = "1:a60cae5be8993938498243605b120290533a5208fd5cac81c932afbad3642fb0"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "0ffbfd41fbef8ffcf9b62b0b0aa3a5873ed7a4fe"
+  revision = "98c5dad5d1a0e8a73845ecc8897d0bd56586511d"
 
 [[projects]]
   digest = "1:436b24586f8fee329e0dd65fd67c817681420cda1d7f934345c13fe78c212a73"
@@ -444,7 +444,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e1c96c8c8ce0af57da9dccb008e540b3d13b55ea04b530fb4fceb81706082bdd"
+  digest = "1:a05bd2d296bc727082abcb63ff52615b4dcc6219d8b61e99fd83d605dc779a18"
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
@@ -452,7 +452,7 @@
     "internal/fastwalk",
   ]
   pruneopts = "UT"
-  revision = "82515cf89538b3e8a206be74377c01dee420b76d"
+  revision = "27709f6afec43b6c6d899bd199bf0f39c731216c"
 
 [[projects]]
   branch = "master"
@@ -460,7 +460,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "daca94659cb50e9f37c1b834680f2e46358f10b0"
+  revision = "383e8b2c3b9e36c4076b235b32537292176bae20"
 
 [[projects]]
   digest = "1:3dd7996ce6bf52dec6a2f69fa43e7c4cefea1d4dfa3c8ab7a5f8a9f7434e239d"
@@ -743,7 +743,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fb0b799b5c7bd70d1cef3537e864457291f62e5a2e94ab659232e9958be5a869"
+  digest = "1:5249c83f0fb9e277b2d28c19eca814feac7ef05dc762e4deaf0a2e4b1a7c5df3"
   name = "k8s.io/gengo"
   packages = [
     "args",
@@ -756,7 +756,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "906d99f89cd644eecf75ab547b29bf9f876f0b59"
+  revision = "c42f3cdacc394f43077ff17e327d1b351c0304e4"
 
 [[projects]]
   branch = "master"
@@ -777,6 +777,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
