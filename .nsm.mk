@@ -22,6 +22,7 @@ DOCKER_SIMPLE_DATAPLANE=networkservicemesh/simple-dataplane
 DOCKER_NSM_INIT=networkservicemesh/nsm-init
 DOCKER_NSE=networkservicemesh/nse
 DOCKER_RELEASE=networkservicemesh/release
+DOCKER_SIDECAR_INJECTOR=networkservicemesh/sidecar-injector
 
 #
 # Targets to build docker images
@@ -72,6 +73,13 @@ docker-build-nse: docker-build-release
 		docker tag ${DOCKER_NSE} ${DOCKER_NSE}:${COMMIT} ;\
 	fi
 
+.PHONY: docker-build-sidecar-injector
+docker-build-sidecar-injector: docker-build-release
+	@${DOCKERBUILD} -t ${DOCKER_SIDECAR_INJECTOR}  -f build/Dockerfile.sidecar-injector .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_SIDECAR_INJECTOR} ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ;\
+	fi
+
 #
 # Targets to push docker images
 #
@@ -104,3 +112,9 @@ docker-push-nse: docker-login
 	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${TAG}
 	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:travis-${TRAVIS_BUILD_NUMBER}
 	docker push ${DOCKER_NSE}
+
+.PHONY: docker-push-sidecar-injector
+docker-push-sidecar-injector: docker-login
+	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:${TAG}
+	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_SIDECAR_INJECTOR}

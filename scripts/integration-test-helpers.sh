@@ -121,6 +121,13 @@ function error_collection() {
         kubectl logs "$dataplane" -n "$namespace"  || true
         kubectl logs "$dataplane" -n "$namespace"  -p || true
     fi 
+    sidecar=$(kubectl get pods --all-namespaces | grep sidecar-injector-webhook | awk '{print $2}')
+    if [[ "x$sidecar" != "x" ]]; then
+        kubectl describe pod "$sidecar" -n "$namespace" || true
+        kubectl logs "$sidecar" -n "$namespace"  || true
+        kubectl logs "$sidecar" -n "$namespace"  -p || true
+    fi
+    kubectl get nodes --show-label
     sudo docker images
 }
 
