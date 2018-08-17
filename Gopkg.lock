@@ -371,7 +371,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a4776e9e1debb1082a31dab6be6214995d675373e823b06c3a5b3e4a6c98612"
+  digest = "1:45a82a8ac7142612c6e724644e199fbeab8fc4ae949cb07a28d2f7a65bee50d3"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -386,7 +386,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "c39426892332e1bb5ec0a434a079bf82f5d30c54"
+  revision = "aaf60122140d3fcf75376d319f0554393160eb50"
 
 [[projects]]
   branch = "master"
@@ -517,7 +517,6 @@
   digest = "1:34ffbf9ed5e63a11e4e0aaab597dc36c552da8b5b6bd49d8f73dadd4afd7e677"
   name = "k8s.io/api"
   packages = [
-    "admission/v1beta1",
     "admissionregistration/v1alpha1",
     "admissionregistration/v1beta1",
     "apps/v1",
