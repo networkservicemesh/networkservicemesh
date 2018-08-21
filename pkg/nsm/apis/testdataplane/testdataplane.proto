@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package simpledataplane;
+package testdataplane;
 
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 

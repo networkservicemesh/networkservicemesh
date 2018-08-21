@@ -71,10 +71,10 @@ verify:
 	@./scripts/verify-codegen.sh
 
 # Individual targets are found in .nsm.mk
-docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-simple-dataplane docker-build-sidecar-injector
+docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-test-dataplane docker-build-sidecar-injector
 
 # Individual targets are found in .nsm.mk
-docker-push: docker-login docker-push-netmesh docker-push-simple-dataplane docker-push-nsm-init docker-push-nse docker-push-sidecar-injector
+docker-push: docker-login docker-push-netmesh docker-push-test-dataplane docker-push-nsm-init docker-push-nse docker-push-sidecar-injector
 
 
 .PHONY: format deps generate install test test-race vet
