@@ -7,6 +7,9 @@
 A Network Service Mesh is an extension of the Service Mesh concept common in applications to Network Services.  It is part of an attempt to reimagine NFV in a Cloud-native way.
 
 - [Network Service Mesh: A Narrative Introduction](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.p) <- Start Here
+  - [Sarah and the secure-intranet-connectivity](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_7)
+     - [Presented to Kubernetes Resource Management Working Group](https://www.youtube.com/watch?v=pToCYxp5Kgs)
+  - [Hannah and the Hardware NICs](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_16)
 - [Network Service Mesh Intro slides](https://docs.google.com/presentation/d/1C3r91ev0tWnFFUjiV4W84Hp965YGR1D9lChZo73Jwq0/edit#slide=id.g375263091c_1_0)
 - [Network Service Mesh Intro slides presented](https://www.youtube.com/watch?v=f2FV6C_dSk4)
 - [Network Service Mesh: HW Interfaces](https://drive.google.com/open?id=1_nwt1tTy-RWYHDj70-2g6g7OvBuuyGpCbyEREjdZkNU)
@@ -39,3 +42,4 @@ We encourage discussion on our mailing list and IRC channel and accept pull requ
 ### Documentation
 - [What is Network Service Mesh](/docs/What-is-nsm.md)
 * [Documentation](/docs/README.md)
+
