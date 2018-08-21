@@ -452,7 +452,7 @@
     "internal/fastwalk",
   ]
   pruneopts = "UT"
-  revision = "c1406c36efe20fb423f43a73518f0454febeed1f"
+  revision = "5fad05c81888302518e9dfb20b55b3e1790c7a11"
 
 [[projects]]
   branch = "master"
