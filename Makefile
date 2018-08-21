@@ -102,6 +102,11 @@ test-race:
 vet:
 	${GOVET} ${GOVETTARGETS}
 
+# Check state of dependencies
+dep-check: get-dep
+	@echo "=> checking dependencies"
+	dep check
+
 # Test target to debug proxy issues
 checkproxy:
 	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
