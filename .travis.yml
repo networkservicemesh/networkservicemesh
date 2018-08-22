@@ -11,7 +11,7 @@ go:
 go_import_path: github.com/ligato/networkservicemesh
 
 before_install:
-  - sudo apt-get install yamllint
+  - pip install --user yamllint
   - ./.travis/update-docker.sh
   - make travis
 
