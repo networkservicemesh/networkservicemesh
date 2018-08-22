@@ -1,3 +1,4 @@
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -12,6 +13,6 @@ spec:
         app: sleep
     spec:
       containers:
-      - name: sleep
-        image: tutum/curl
-        command: ["/bin/sleep","infinity"]
+        - name: sleep
+          image: tutum/curl
+          command: ["/bin/sleep", "infinity"]

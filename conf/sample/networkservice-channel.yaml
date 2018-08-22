@@ -1,3 +1,4 @@
+---
 apiVersion: networkservicemesh.io/v1
 kind: NetworkServiceChannel
 metadata:
