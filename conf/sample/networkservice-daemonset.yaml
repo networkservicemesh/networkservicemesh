@@ -1,3 +1,4 @@
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
@@ -16,10 +17,10 @@ spec:
           image: networkservicemesh/netmesh
           imagePullPolicy: IfNotPresent
           volumeMounts:
-          - name: kubelet-socket
-            mountPath: /var/lib/kubelet/device-plugins
-          - name: nsm-socket
-            mountPath: /var/lib/networkservicemesh
+            - name: kubelet-socket
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
       volumes:
         - hostPath:
             path: /var/lib/kubelet/device-plugins
@@ -42,27 +43,27 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: crd-creater
 rules:
-- apiGroups: ["networkservicemesh.io"]
-  resources: ["*"]
-  verbs: ["*"]
-- apiGroups: ["apiextensions.k8s.io"]
-  resources: ["customresourcedefinitions"]
-  verbs: ["*"]
-- apiGroups: ["extensions"]
-  resources: ["thirdpartyresources", "thirdpartyresources.extensions"]
-  verbs: ["*"]
-- apiGroups: ["*"] 
-  resources: ["pods"]
-  verbs: ["*"]
+  - apiGroups: ["networkservicemesh.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["*"]
+  - apiGroups: ["extensions"]
+    resources: ["thirdpartyresources", "thirdpartyresources.extensions"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["pods"]
+    verbs: ["*"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: crd-creater-binding
 subjects:
-- kind: ServiceAccount
-  namespace: default
-  name: networkservicemesh
+  - kind: ServiceAccount
+    namespace: default
+    name: networkservicemesh
 roleRef:
   kind: ClusterRole
   name: crd-creater
