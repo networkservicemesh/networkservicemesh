@@ -18,7 +18,7 @@
 
 DOCKER_NETMESH_TEST=networkservicemesh/netmesh-test
 DOCKER_NETMESH=networkservicemesh/netmesh
-DOCKER_SIMPLE_DATAPLANE=networkservicemesh/simple-dataplane
+DOCKER_TEST_DATAPLANE=networkservicemesh/test-dataplane
 DOCKER_NSM_INIT=networkservicemesh/nsm-init
 DOCKER_NSE=networkservicemesh/nse
 DOCKER_RELEASE=networkservicemesh/release
@@ -52,11 +52,11 @@ docker-build-netmesh: docker-build-release
 		docker tag ${DOCKER_NETMESH} ${DOCKER_NETMESH}:${COMMIT} ;\
 	fi
 
-.PHONY: docker-build-simple-dataplane
-docker-build-simple-dataplane: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_SIMPLE_DATAPLANE} -f build/Dockerfile.simple-dataplane .
+.PHONY: docker-build-test-dataplane
+docker-build-test-dataplane: docker-build-release
+	@${DOCKERBUILD} -t ${DOCKER_TEST_DATAPLANE} -f build/Dockerfile.test-dataplane .
 	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_SIMPLE_DATAPLANE} ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ;\
+		docker tag ${DOCKER_TEST_DATAPLANE} ${DOCKER_TEST_DATAPLANE}:${COMMIT} ;\
 	fi
 
 .PHONY: docker-build-nsm-init
@@ -95,11 +95,11 @@ docker-push-netmesh: docker-login
 	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:travis-${TRAVIS_BUILD_NUMBER}
 	docker push ${DOCKER_NETMESH}
 
-.PHONY: docker-push-simple-dataplane
-docker-push-simple-dataplane: docker-login
-	docker tag ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ${DOCKER_SIMPLE_DATAPLANE}:${TAG}
-	docker tag ${DOCKER_SIMPLE_DATAPLANE}:${COMMIT} ${DOCKER_SIMPLE_DATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
-	docker push ${DOCKER_SIMPLE_DATAPLANE}
+.PHONY: docker-push-test-dataplane
+docker-push-test-dataplane: docker-login
+	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:${TAG}
+	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_TEST_DATAPLANE}
 
 .PHONY: docker-push-nsm-init
 docker-push-nsm-init: docker-login

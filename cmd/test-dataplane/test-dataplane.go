@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/sirupsen/logrus"
@@ -58,13 +58,13 @@ type DataplaneController struct {
 	dataplaneServer *grpc.Server
 }
 
-// RequestDeleteConnect implements method for simpledataplane proto
-func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *simpledataplane.DeleteConnectRequest) (*simpledataplane.DeleteConnectReply, error) {
+// RequestDeleteConnect implements method for testdataplane proto
+func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *testdataplane.DeleteConnectRequest) (*testdataplane.DeleteConnectReply, error) {
 
 	podName := in.Pod.Metadata.Name
 	if podName == "" {
-		logrus.Error("simple-dataplane: missing required pod name")
-		return &simpledataplane.DeleteConnectReply{
+		logrus.Error("test-dataplane: missing required pod name")
+		return &testdataplane.DeleteConnectReply{
 			Deleted:     false,
 			DeleteError: fmt.Sprint("missing required name for pod"),
 		}, status.Error(codes.NotFound, "missing required pod name")
@@ -75,34 +75,34 @@ func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *simpl
 	}
 
 	switch in.PodType {
-	case simpledataplane.NSMPodType_NSE:
-	case simpledataplane.NSMPodType_NSMCLIENT:
+	case testdataplane.NSMPodType_NSE:
+	case testdataplane.NSMPodType_NSMCLIENT:
 	default:
-		logrus.Error("simple-dataplane: invalid pod type")
-		return &simpledataplane.DeleteConnectReply{
+		logrus.Error("test-dataplane: invalid pod type")
+		return &testdataplane.DeleteConnectReply{
 			Deleted:     false,
 			DeleteError: fmt.Sprintf("invalid pod type detected for pod %s/%s", podNamespace, podName),
 		}, status.Error(codes.Aborted, "nvalid pod type")
 	}
 	if err := deleteLink(d.k8s, podName, podNamespace, in.PodType); err != nil {
-		return &simpledataplane.DeleteConnectReply{
+		return &testdataplane.DeleteConnectReply{
 			Deleted:     false,
 			DeleteError: fmt.Sprintf("failed to delete interface(s) for pod %s/%s with error: %+v", podNamespace, podName, err),
 		}, status.Error(codes.Aborted, "failed to delete interface(s) for pod")
 	}
 
-	return &simpledataplane.DeleteConnectReply{
+	return &testdataplane.DeleteConnectReply{
 		Deleted: true,
 	}, nil
 }
 
-// RequestBuildConnect implements method for simpledataplane proto
-func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simpledataplane.BuildConnectRequest) (*simpledataplane.BuildConnectReply, error) {
+// RequestBuildConnect implements method for testdataplane proto
+func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *testdataplane.BuildConnectRequest) (*testdataplane.BuildConnectReply, error) {
 
 	podName1 := in.SourcePod.Metadata.Name
 	if podName1 == "" {
-		logrus.Error("simple-dataplane: missing required pod name")
-		return &simpledataplane.BuildConnectReply{
+		logrus.Error("test-dataplane: missing required pod name")
+		return &testdataplane.BuildConnectReply{
 			Built:      false,
 			BuildError: fmt.Sprint("missing required name for pod 1"),
 		}, status.Error(codes.NotFound, "missing required pod name")
@@ -114,8 +114,8 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 
 	podName2 := in.DestinationPod.Metadata.Name
 	if podName2 == "" {
-		logrus.Error("simple-dataplane: missing required pod name")
-		return &simpledataplane.BuildConnectReply{
+		logrus.Error("test-dataplane: missing required pod name")
+		return &testdataplane.BuildConnectReply{
 			Built:      false,
 			BuildError: fmt.Sprint("missing required name for pod 2"),
 		}, status.Error(codes.NotFound, "missing required pod name")
@@ -125,22 +125,22 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 		podNamespace2 = in.DestinationPod.Metadata.Namespace
 	}
 
-	logrus.Infof("simple-dataplane: attempting to interconnect pods %s/%s and %s/%s",
+	logrus.Infof("test-dataplane: attempting to interconnect pods %s/%s and %s/%s",
 		podNamespace1,
 		podName1,
 		podNamespace2,
 		podName2)
 	// TODO (sbezverk) Add ip address check
 	if err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2); err != nil {
-		logrus.Errorf("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+		logrus.Errorf("test-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1,
 			podName1,
 			podNamespace2,
 			podName2,
 			err)
-		return &simpledataplane.BuildConnectReply{
+		return &testdataplane.BuildConnectReply{
 			Built: false,
-			BuildError: fmt.Sprintf("simple-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
+			BuildError: fmt.Sprintf("test-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 				podNamespace1,
 				podName1,
 				podNamespace2,
@@ -152,13 +152,13 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *simple
 	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
 	// to clean up injected dataplane interfaces without any race.
 	if err := finalizerutils.AddPodFinalizer(d.k8s, podName1, podNamespace1); err != nil {
-		logrus.Errorf("simple-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace1, podName1, err)
+		logrus.Errorf("test-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace1, podName1, err)
 	}
 	if err := finalizerutils.AddPodFinalizer(d.k8s, podName2, podNamespace2); err != nil {
-		logrus.Errorf("simple-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace2, podName2, err)
+		logrus.Errorf("test-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace2, podName2, err)
 	}
 
-	return &simpledataplane.BuildConnectReply{
+	return &testdataplane.BuildConnectReply{
 		Built: true,
 	}, nil
 }
@@ -212,11 +212,11 @@ func getContainerID(k8s *kubernetes.Clientset, pn, ns string) (string, error) {
 					}
 				}
 			}
-			return "", fmt.Errorf("simple-dataplane: none of containers of pod %s/%s is in running state", p.ObjectMeta.Namespace, p.ObjectMeta.Name)
+			return "", fmt.Errorf("test-dataplane: none of containers of pod %s/%s is in running state", p.ObjectMeta.Namespace, p.ObjectMeta.Name)
 		}
 	}
 
-	return "", fmt.Errorf("simple-dataplane: pod %s/%s not found", ns, pn)
+	return "", fmt.Errorf("test-dataplane: pod %s/%s not found", ns, pn)
 }
 
 func deleteVethInterface(ns netns.NsHandle, interfacePrefix string) error {
@@ -376,29 +376,29 @@ func main() {
 
 	socket := *dataplane
 	if err := tools.SocketCleanup(socket); err != nil {
-		logrus.Fatalf("simple-dataplane: failure to cleanup stale socket %s with error: %+v", socket, err)
+		logrus.Fatalf("test-dataplane: failure to cleanup stale socket %s with error: %+v", socket, err)
 	}
 	dataplaneConn, err := net.Listen("unix", socket)
 	if err != nil {
-		logrus.Fatalf("simple-dataplane: fail to open socket %s with error: %+v", socket, err)
+		logrus.Fatalf("test-dataplane: fail to open socket %s with error: %+v", socket, err)
 	}
 	dataplaneController.dataplaneServer = grpc.NewServer()
-	simpledataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
+	testdataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 
 	go func() {
 		wg.Add(1)
 		if err := dataplaneController.dataplaneServer.Serve(dataplaneConn); err != nil {
-			logrus.Fatalf("simple-dataplane: failed to start grpc server on socket %s with error: %+v ", socket, err)
+			logrus.Fatalf("test-dataplane: failed to start grpc server on socket %s with error: %+v ", socket, err)
 		}
 	}()
 	// Check if the socket of device plugin server is operation
 	testSocket, err := tools.SocketOperationCheck(socket)
 	if err != nil {
-		logrus.Fatalf("simple-dataplane: failure to communicate with the socket %s with error: %+v", socket, err)
+		logrus.Fatalf("test-dataplane: failure to communicate with the socket %s with error: %+v", socket, err)
 	}
 	testSocket.Close()
 
-	logrus.Infof("simple-dataplane: Simple Dataplane controller is ready to serve...")
+	logrus.Infof("test-dataplane: Test Dataplane controller is ready to serve...")
 	// Now block on WaitGroup
 	wg.Wait()
 }
@@ -447,7 +447,7 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 	return nil
 }
 
-func deleteLink(k8s *kubernetes.Clientset, podName string, namespace string, podType simpledataplane.NSMPodType) error {
+func deleteLink(k8s *kubernetes.Clientset, podName string, namespace string, podType testdataplane.NSMPodType) error {
 	cid, err := getContainerID(k8s, podName, namespace)
 	if err != nil {
 		return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace, podName, err)
@@ -460,10 +460,10 @@ func deleteLink(k8s *kubernetes.Clientset, podName string, namespace string, pod
 	}
 	var interfacePrefix string
 	switch podType {
-	case simpledataplane.NSMPodType_NSE:
+	case testdataplane.NSMPodType_NSE:
 		interfacePrefix = "nsm"
 
-	case simpledataplane.NSMPodType_NSMCLIENT:
+	case testdataplane.NSMPodType_NSMCLIENT:
 		interfacePrefix = "nse"
 	}
 	if err := deleteVethInterface(ns, interfacePrefix); err != nil {
