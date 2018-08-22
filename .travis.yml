@@ -19,6 +19,7 @@ before_script:
 - sudo mount --make-rshared /var/run
 
 script:
+- make dep-check
 - make all && ./scripts/travis-integration-tests.sh minikube
 
 # We only want to push docker images on a push to master, not a pull request

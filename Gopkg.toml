@@ -101,6 +101,10 @@ required = [
     unused-packages = false
     go-tests = false
 
+  [[prune.project]]
+    name = "github.com/go-errors/errors"
+    non-go = true
+
 [[constraint]]
   name = "github.com/go-errors/errors"
   version = "1.0.1"
