@@ -1,3 +1,4 @@
+---
 sudo: required
 
 language: go
@@ -10,21 +11,23 @@ go:
 go_import_path: github.com/ligato/networkservicemesh
 
 before_install:
-- ./.travis/update-docker.sh
-- make travis
+  - pip install --user yamllint
+  - ./.travis/update-docker.sh
+  - make travis
 
 before_script:
-- sudo mount --make-rshared /
-- sudo mount --make-rshared /sys
-- sudo mount --make-rshared /var/run
+  - sudo mount --make-rshared /
+  - sudo mount --make-rshared /sys
+  - sudo mount --make-rshared /var/run
 
 script:
-- make dep-check
-- make all && ./scripts/travis-integration-tests.sh minikube
+  - make dep-check
+  - yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
+  - make all && ./scripts/travis-integration-tests.sh minikube
 
 # We only want to push docker images on a push to master, not a pull request
 after_success:
-- if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi` && make docker-push ; fi
+  - if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi` && make docker-push ; fi
 
 notifications:
   irc:
@@ -32,7 +35,7 @@ notifications:
 
 env:
   global:
-  - COMMIT=${TRAVIS_COMMIT::8}
-  - secure: P3x5fQd4nasnulf51QDobnKHisjXzoFvxXvEXMeP0CP05s5Nsohr6uKAwcFVXB3ylHPx9RZ/Aiv9DuCaxl9bRhBRAcMYvJ/5KEFxkdbej7IbQ074X8Dg1d0XcPkfiNURRRNtm5C3n32NnH2+LwU6fqp7ggxHaS8H79Fpzp03thqVubUn5LBoBWjJAQipmLBFdwVbwmdP09cd/4eFsmShUxrAqYiOrVvOrJhzlp+Qb16rx2eKY8BNxNCfN6BOlXhyqwkpIDxsRpaG/rMBz45pwWLn9QsbgsJwrqW7u9YiajAadJJ7z+D8uT5UzW1JqKUByZUMSTznfVGybobn32GvcUuGIwRpe0yF/abUFdrzMCT7H8Tv2VmBS6N9KcP+XLSK5IcrwlBKh3KETGxkwgqN5ea3EAb0TUqr4LLQz1pcVXtY5W58087F38lgbGy48uMKDzCL0Zu02h5tCdH/eXT6FFp82kUFAxjuMHwAG/TVcu2n9ZthNdtmS7+mW8+VVgo/NlYr2JK8VjanBbO36uPghQAptve3DwQzh7Ww6ljM9FWZFN40KUWHA5P0tPsehHXklZTigt8zGRNN/eQ8Z+M1HsOgoXazWyn8ne0IzCX1Nd7MBGCHHsjWjf7Tu8zH22doTOzwnUslnQ2lJD3fbKMzE+k6+6q78Cr4cmcgly6vto8=
-  - secure: h5kmMXDuan1z1ZuMOQwGUwcvpJ9jOq2N/44VtrlHBakdna3QYDYXsiiOB6prMO7rAQYcGpbdZKdBwiuZYdj4YUcUq1xva1/as79+DOb3ym6m1ezb5YciR1AHpQGD/zZXlxcR36wuIv/vuJp4X6k7hzU5kkhjh0NMx5zsnmgYJenSNVUblzeJ7pzbEmLt8bPUPbJokuBK0sNGh6pgd6WI/euXtgCmiYc3f8FGvVzZ135/6yGl98rfeiO8yyeDXTrGgAm8Jepym6gELVQSmqlYe37p4B69fHl5ujXBnQ1e6bqwDeJQCytrUzsoyxLkc/UqMjmWSQGFKy4UDbpybyBhCXWatSL3J8512xrt4X514zk45LU9eB0++xZw7xrvylnPbMRjVkqGNSgHBvEwfMrmSrOCs861+9NA5gnMP/XmbGM4FkRtvVMXPtROBcRoEH/unYmLfjUKOGsgNd+jIBUH49J5lcGL9hon0LV60DXbM81t/P3DaSeMYqsGNnkFj5dYjxjOkiQ2Cr12ts/eby58oden0nMM6yT7o0FJsfbdkljNW7TKOXC2lw33ur9GEjXP+sOE5nrI6XTv+sI6gfxIm90ZM/FAos2qRE7hjMW9qf1ix5V1TOzBDBqClc/h03n2Wt0GloPN4R4iT+i7elmKypxWJ/BZGrMsxHG9B2G87hE=
-  - secure: q2GUOyvfVXEKGp5UHKbTcvhBcR9l+UlSDfMyJXV5b+oBshJeNpilKlKhX/5P8J/eMfNz01XoNDdqgiQQPqmoRbyplOBbc9PrB6HtS89cv/vYzsbbu92+4jBuI1u9Y3GTaQzRbNGLznUQ9uj27DvFhmkQwJLhY64JV7tlddnbSXpD7W6iS7kZGTrNn6b4hhyalP0FS/endcryU5Lf8aQB5pAj0+zpRCaYqubP4wx0pu04OoWx15Okghffzulf8cVztjBW7I/sSaKI6ElrG4ua8VbiJS7HA4jacjVQMZBoQjksFVd7skZ5I2G651haZIVLlTCH+HQNRPwvpPEnepV7F498cEQGjEmmf1yhAZpE4zDkMBh6a65EYIw9AtT+hTHBkV3h7OTQRqxowjAgQosp24lhu8Pg5RkHQGHsOvpybMSKyboexusARwieuajby48fl8ixbFPKlL8km3MdOTwhFbN/M2QAUzmIKrm8RYvRsztu4jmoHpGDIVVOMvbIvB84pdj82WAjBjj7er//hE6QX/sXAlc0mF1P/9lMMsqX6LTdaBohXzva/jt3Hpds9+wC3QDez8LlDNBJgzuHOebrrr0XoWZSzuzP99WKCTHfTL2VwT6sgDYTUaFZXwSLepCvvYvnFXnf1sLPB3JGfHrXYKhSouLKe0Sn/voee/rsTWA=
+    - COMMIT=${TRAVIS_COMMIT::8}
+    - secure: P3x5fQd4nasnulf51QDobnKHisjXzoFvxXvEXMeP0CP05s5Nsohr6uKAwcFVXB3ylHPx9RZ/Aiv9DuCaxl9bRhBRAcMYvJ/5KEFxkdbej7IbQ074X8Dg1d0XcPkfiNURRRNtm5C3n32NnH2+LwU6fqp7ggxHaS8H79Fpzp03thqVubUn5LBoBWjJAQipmLBFdwVbwmdP09cd/4eFsmShUxrAqYiOrVvOrJhzlp+Qb16rx2eKY8BNxNCfN6BOlXhyqwkpIDxsRpaG/rMBz45pwWLn9QsbgsJwrqW7u9YiajAadJJ7z+D8uT5UzW1JqKUByZUMSTznfVGybobn32GvcUuGIwRpe0yF/abUFdrzMCT7H8Tv2VmBS6N9KcP+XLSK5IcrwlBKh3KETGxkwgqN5ea3EAb0TUqr4LLQz1pcVXtY5W58087F38lgbGy48uMKDzCL0Zu02h5tCdH/eXT6FFp82kUFAxjuMHwAG/TVcu2n9ZthNdtmS7+mW8+VVgo/NlYr2JK8VjanBbO36uPghQAptve3DwQzh7Ww6ljM9FWZFN40KUWHA5P0tPsehHXklZTigt8zGRNN/eQ8Z+M1HsOgoXazWyn8ne0IzCX1Nd7MBGCHHsjWjf7Tu8zH22doTOzwnUslnQ2lJD3fbKMzE+k6+6q78Cr4cmcgly6vto8=
+    - secure: h5kmMXDuan1z1ZuMOQwGUwcvpJ9jOq2N/44VtrlHBakdna3QYDYXsiiOB6prMO7rAQYcGpbdZKdBwiuZYdj4YUcUq1xva1/as79+DOb3ym6m1ezb5YciR1AHpQGD/zZXlxcR36wuIv/vuJp4X6k7hzU5kkhjh0NMx5zsnmgYJenSNVUblzeJ7pzbEmLt8bPUPbJokuBK0sNGh6pgd6WI/euXtgCmiYc3f8FGvVzZ135/6yGl98rfeiO8yyeDXTrGgAm8Jepym6gELVQSmqlYe37p4B69fHl5ujXBnQ1e6bqwDeJQCytrUzsoyxLkc/UqMjmWSQGFKy4UDbpybyBhCXWatSL3J8512xrt4X514zk45LU9eB0++xZw7xrvylnPbMRjVkqGNSgHBvEwfMrmSrOCs861+9NA5gnMP/XmbGM4FkRtvVMXPtROBcRoEH/unYmLfjUKOGsgNd+jIBUH49J5lcGL9hon0LV60DXbM81t/P3DaSeMYqsGNnkFj5dYjxjOkiQ2Cr12ts/eby58oden0nMM6yT7o0FJsfbdkljNW7TKOXC2lw33ur9GEjXP+sOE5nrI6XTv+sI6gfxIm90ZM/FAos2qRE7hjMW9qf1ix5V1TOzBDBqClc/h03n2Wt0GloPN4R4iT+i7elmKypxWJ/BZGrMsxHG9B2G87hE=
+    - secure: q2GUOyvfVXEKGp5UHKbTcvhBcR9l+UlSDfMyJXV5b+oBshJeNpilKlKhX/5P8J/eMfNz01XoNDdqgiQQPqmoRbyplOBbc9PrB6HtS89cv/vYzsbbu92+4jBuI1u9Y3GTaQzRbNGLznUQ9uj27DvFhmkQwJLhY64JV7tlddnbSXpD7W6iS7kZGTrNn6b4hhyalP0FS/endcryU5Lf8aQB5pAj0+zpRCaYqubP4wx0pu04OoWx15Okghffzulf8cVztjBW7I/sSaKI6ElrG4ua8VbiJS7HA4jacjVQMZBoQjksFVd7skZ5I2G651haZIVLlTCH+HQNRPwvpPEnepV7F498cEQGjEmmf1yhAZpE4zDkMBh6a65EYIw9AtT+hTHBkV3h7OTQRqxowjAgQosp24lhu8Pg5RkHQGHsOvpybMSKyboexusARwieuajby48fl8ixbFPKlL8km3MdOTwhFbN/M2QAUzmIKrm8RYvRsztu4jmoHpGDIVVOMvbIvB84pdj82WAjBjj7er//hE6QX/sXAlc0mF1P/9lMMsqX6LTdaBohXzva/jt3Hpds9+wC3QDez8LlDNBJgzuHOebrrr0XoWZSzuzP99WKCTHfTL2VwT6sgDYTUaFZXwSLepCvvYvnFXnf1sLPB3JGfHrXYKhSouLKe0Sn/voee/rsTWA=
