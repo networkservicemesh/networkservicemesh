@@ -117,6 +117,16 @@ travis:
 	@echo "Files:"
 	@echo "$$(git diff --name-only $$TRAVIS_COMMIT_RANGE)"
 
+# Get dependency manager tool
+get-dep:
+	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+	dep version
+
+# Check state of dependencies
+dep-check: get-dep
+	@echo "=> checking dependencies"
+	dep check
+
 # Test target to debug proxy issues
 checkproxy:
 	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
