@@ -16,12 +16,12 @@ metadata:
   namespace: default
 rules:
   - apiGroups:
-  - ""
-resources:
-  - pods
-verbs:
-  - get
-  - list
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -61,12 +61,12 @@ spec:
           env:
             - name: INIT_NAMESPACE
               valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
       volumes:
         - hostPath:
-          path: /var/lib/networkservicemesh
-          type: DirectoryOrCreate
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
           name: nsm-socket
 metadata:
   name: nse-1

@@ -75,16 +75,16 @@ spec:
               mountPath: /sys
       volumes:
         - hostPath:
-          path: /var/lib/networkservicemesh
-          type: DirectoryOrCreate
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
           name: dataplane-socket
         - hostPath:
-          path: /var/run
-          type: DirectoryOrCreate
+            path: /var/run
+            type: DirectoryOrCreate
           name: run
         - hostPath:
-          path: /sys
-          type: DirectoryOrCreate
+            path: /sys
+            type: DirectoryOrCreate
           name: sys
 metadata:
   name: test-dataplane
