@@ -22,7 +22,7 @@ before_script:
 
 script:
   - make dep-check
-  - yamllint -c .yamllint.yml --strict $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
+  - yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
   - make all && ./scripts/travis-integration-tests.sh minikube
 
 # We only want to push docker images on a push to master, not a pull request
