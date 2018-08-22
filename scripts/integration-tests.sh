@@ -62,7 +62,7 @@ function run_tests() {
     # Starting nse pod which will advertise a channel for gold-network
     # network service
     kubectl create -f conf/sample/nse.yaml
-    kubectl create -f conf/sample/simple-dataplane.yaml
+    kubectl create -f conf/sample/test-dataplane.yaml
     wait_for_pods default
  
     #
@@ -150,7 +150,7 @@ function run_tests() {
     kubectl get crd
     kubectl logs "$(kubectl get pods -o name | grep nse )"
     kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
-    kubectl logs "$(kubectl get pods -o name | grep simple-dataplane )"
+    kubectl logs "$(kubectl get pods -o name | grep test-dataplane )"
     kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
 
     # Need to get kubeconfig full path

@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/simpledataplane"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"golang.org/x/net/context"
 )
@@ -42,18 +42,18 @@ func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) error 
 	}
 	defer dataplaneConn.Close()
 
-	dataplaneClient := simpledataplane.NewBuildConnectClient(dataplaneConn)
+	dataplaneClient := testdataplane.NewBuildConnectClient(dataplaneConn)
 
 	ctx, Cancel := context.WithTimeout(context.Background(), dataplaneConnectionTimeout)
 	defer Cancel()
-	buildConnectRequest := &simpledataplane.BuildConnectRequest{
-		SourcePod: &simpledataplane.Pod{
+	buildConnectRequest := &testdataplane.BuildConnectRequest{
+		SourcePod: &testdataplane.Pod{
 			Metadata: &common.Metadata{
 				Name:      podName1,
 				Namespace: podNamespace1,
 			},
 		},
-		DestinationPod: &simpledataplane.Pod{
+		DestinationPod: &testdataplane.Pod{
 			Metadata: &common.Metadata{
 				Name:      podName2,
 				Namespace: podNamespace2,
@@ -73,7 +73,7 @@ func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) error 
 
 // CleanupPodDataplane cleans up from the given pod previsouly injected  dataplane
 // interfaces
-func CleanupPodDataplane(podName string, podNamespace string, podType simpledataplane.NSMPodType) error {
+func CleanupPodDataplane(podName string, podNamespace string, podType testdataplane.NSMPodType) error {
 
 	dataplaneConn, err := tools.SocketOperationCheck(dataplaneSocket)
 	if err != nil {
@@ -81,12 +81,12 @@ func CleanupPodDataplane(podName string, podNamespace string, podType simpledata
 	}
 	defer dataplaneConn.Close()
 
-	dataplaneClient := simpledataplane.NewDeleteConnectClient(dataplaneConn)
+	dataplaneClient := testdataplane.NewDeleteConnectClient(dataplaneConn)
 
 	ctx, Cancel := context.WithTimeout(context.Background(), dataplaneConnectionTimeout)
 	defer Cancel()
-	deleteConnectRequest := &simpledataplane.DeleteConnectRequest{
-		Pod: &simpledataplane.Pod{
+	deleteConnectRequest := &testdataplane.DeleteConnectRequest{
+		Pod: &testdataplane.Pod{
 			Metadata: &common.Metadata{
 				Name:      podName,
 				Namespace: podNamespace,

@@ -26,9 +26,9 @@ then
     echo "Please build the image before running integration tests"
     exit 1
 fi
-if [ "x$(docker images|grep networkservicemesh/simple-dataplane)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/test-dataplane)" == "x" ]
 then
-    echo "Docker image networkservicemesh/simple-dataplane not found"
+    echo "Docker image networkservicemesh/test-dataplane not found"
     echo "Please build the image before running integration tests"
     exit 1
 fi
