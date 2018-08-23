@@ -8,8 +8,6 @@ spec:
       labels:
         app: networkservice-ds
     spec:
-      nodeSelector:
-        app: networkservice-node
       serviceAccountName: networkservicemesh
       containers:
         - name: netmesh
