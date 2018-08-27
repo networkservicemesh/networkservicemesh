@@ -1,3 +1,4 @@
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 spec:
@@ -9,7 +10,7 @@ spec:
     spec:
       containers:
         - image: networkservicemesh/sriov-client-image:latest
-          name: nsm-sriov 
+          name: nsm-sriov
           command:
             - /bin/sh
             - -xec
@@ -21,12 +22,12 @@ spec:
               networkservicemesh.io/sriov-ns-1: 1
               networkservicemesh.io/sriov-ns-2: 1
               networkservicemesh.io/sriov-ns-3: 1
-              networkservicemesh.io/sriov-ns-4: 1    
+              networkservicemesh.io/sriov-ns-4: 1
           securityContext:
             capabilities:
               add:
-              - IPC_LOCK
-              - SYS_RESOURCE
+                - IPC_LOCK
+                - SYS_RESOURCE
 metadata:
-   name: nsm-sriov
-   namespace: default
+  name: nsm-sriov
+  namespace: default
