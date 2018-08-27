@@ -27,6 +27,7 @@ GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
 GOVET=${GOCMD} tool vet
 GOVETTARGETS=cmd \
+    controllera \
 	pkg/apis/networkservicemesh.io/v1 \
 	pkg/nsm \
 	plugins \
