@@ -1,5 +1,8 @@
 # SRIOV controller
 
+**Note:** Currently, due to CI limitations, the controller code does not get tested by CI/CD. However, the code
+was tested in a local test bed with Intel SRIOV NICs and proved to be functional.
+
 SRIOV controller is a daemonset which parsing host's SRIOV VF information 
 from sriov config map and advertises it to kubelet via Device plugin API. Once SRIOV
 network service information is advertised to kubelet, POD can request SRIOV network services.
