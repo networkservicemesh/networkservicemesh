@@ -107,7 +107,7 @@ func (s *serviceController) processDeleteEntry(msg configMessage) {
 	if !ok {
 		// Network Service instance is not found, it should not happened
 		logrus.Infof("Deleting %s device of Network Service instance: %s, it should not happen as the Network Service instahce is unknown ",
-			msg.pciAddr, msg.vf.NetworkService, msg.vf.NetworkService)
+			msg.pciAddr, msg.vf.NetworkService)
 		return
 	}
 	// Network Service instance already exists, just need to inform about deleted VF
