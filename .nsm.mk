@@ -23,6 +23,7 @@ DOCKER_NSM_INIT=networkservicemesh/nsm-init
 DOCKER_NSE=networkservicemesh/nse
 DOCKER_RELEASE=networkservicemesh/release
 DOCKER_SIDECAR_INJECTOR=networkservicemesh/sidecar-injector
+DOCKER_SRIOV_CONTROLLER=networkservicemesh/sriov-controller
 
 #
 # Targets to build docker images
@@ -80,6 +81,13 @@ docker-build-sidecar-injector: docker-build-release
 		docker tag ${DOCKER_SIDECAR_INJECTOR} ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ;\
 	fi
 
+.PHONY: docker-build-sriov-controller
+docker-build-sriov-controller: docker-build-release
+	@${DOCKERBUILD} -t ${DOCKER_SRIOV_CONTROLLER}  -f build/Dockerfile.sriov-controller .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_SRIOV_CONTROLLER} ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ;\
+	fi
+
 #
 # Targets to push docker images
 #
@@ -118,3 +126,9 @@ docker-push-sidecar-injector: docker-login
 	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:${TAG}
 	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:travis-${TRAVIS_BUILD_NUMBER}
 	docker push ${DOCKER_SIDECAR_INJECTOR}
+
+.PHONY: docker-push-sriov-controller
+docker-push-sriov-controller: docker-login
+	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:${TAG}
+	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:travis-${TRAVIS_BUILD_NUMBER}
+	docker push ${DOCKER_SRIOV_CONTROLLER}
