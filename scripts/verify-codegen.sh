@@ -48,6 +48,5 @@ else
 fi
 
 # smoke test
-df
 echo "Smoke testing pkg by compiling..."
 go build "${SCRIPT_ROOT}/pkg/..."
