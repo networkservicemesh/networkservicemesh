@@ -190,7 +190,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 
 				data, err := ioutil.ReadFile(pciVendorPath)
 				if err != nil {
-					logrus.Errorf("cannot read PCI vendor file for %s, VF %v is %s", dev, vf, pciAddr, err)
+					logrus.Errorf("cannot read PCI vendor file for %s, VF %v is %s with error: %+v", dev, vf, pciAddr, err)
 					continue
 				}
 				data = bytes.Trim(data, "\n")
@@ -201,7 +201,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 				}
 				data, err = ioutil.ReadFile(pciTypePath)
 				if err != nil {
-					logrus.Errorf("cannot read PCI type file for %s, VF %v is %s", dev, vf, pciAddr, err)
+					logrus.Errorf("cannot read PCI type file for %s, VF %v is %s with error: %+v", dev, vf, pciAddr, err)
 					continue
 				}
 				data = bytes.Trim(data, "\n")
