@@ -6,6 +6,8 @@
 
 A Network Service Mesh is an extension of the Service Mesh concept common in applications to Network Services.  It is part of an attempt to reimagine NFV in a Cloud-native way.
 
+- [Network Service Mesh Project Landing Page](https://www.networkservicemesh.io/)
+
 - [Network Service Mesh: A Narrative Introduction](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.p) <- Start Here
   - [Sarah and the secure-intranet-connectivity](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_7)
      - [Presented to Kubernetes Resource Management Working Group](https://www.youtube.com/watch?v=pToCYxp5Kgs)
