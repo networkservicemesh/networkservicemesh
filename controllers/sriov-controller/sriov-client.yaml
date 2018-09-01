@@ -1,4 +1,3 @@
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 spec:
@@ -6,11 +5,11 @@ spec:
   template:
     metadata:
       labels:
-        app: nsm-sriov
+        app: nsm-sriov-client
     spec:
       containers:
-        - image: networkservicemesh/sriov-client-image:latest
-          name: nsm-sriov
+        - image: docker.io/alpine:latest
+          name: nsm-sriov-client
           command:
             - /bin/sh
             - -xec
@@ -19,15 +18,19 @@ spec:
           imagePullPolicy: Always
           resources:
             limits:
-              networkservicemesh.io/sriov-ns-1: 1
-              networkservicemesh.io/sriov-ns-2: 1
-              networkservicemesh.io/sriov-ns-3: 1
-              networkservicemesh.io/sriov-ns-4: 1
+#
+# Specify the list of network services required for a client pod.
+# The format should be: networkservicemesh.io/sriov-{network service name}: {number of services}
+#
+#              networkservicemesh.io/sriov-trunk: 2
+#              networkservicemesh.io/sriov-vlan10: 1
+#              networkservicemesh.io/sriov-vlan20: 1
+#              networkservicemesh.io/sriov-mgmt: 1    
           securityContext:
             capabilities:
               add:
-                - IPC_LOCK
-                - SYS_RESOURCE
+              - IPC_LOCK
+              - SYS_RESOURCE
 metadata:
-  name: nsm-sriov
-  namespace: default
+   name: nsm-sriov-client
+   namespace: default
