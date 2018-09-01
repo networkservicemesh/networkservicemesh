@@ -1,21 +1,8 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at:
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -33,7 +20,12 @@ import (
 )
 
 const (
-	nsmLabel = "networkservicemesh.io/sriov=config"
+	nsmSRIOVNodeName = "networkservicemesh.io/sriov-node-name"
+	// containersConfigPath specifies location where sriov controller stores per POD network service
+	// configuration file.
+	// TODO (sbezverk) 1. how to clean up after POD which is using this file is gone? The controller could cleanup
+	// this folder during a boot up, but how to detect which one is used and whcih one not?
+	containersConfigPath = "/var/lib/networkservicemesh/sriov-controller/config"
 )
 
 type operationType int
@@ -58,6 +50,7 @@ type message struct {
 // VF describes a single instance of VF
 type VF struct {
 	NetworkService string `yaml:"networkService" json:"networkService"`
+	PCIAddr        string `yaml:"pciAddr" json:"pciAddr"`
 	ParentDevice   string `yaml:"parentDevice" json:"parentDevice"`
 	VFLocalID      int32  `yaml:"vfLocalID" json:"vfLocalID"`
 	VFIODevice     string `yaml:"vfioDevice" json:"vfioDevice"`
@@ -88,6 +81,7 @@ type configController struct {
 	k8sClientset *kubernetes.Clientset
 	informer     cache.SharedIndexInformer
 	vfs          *VFs
+	nodeName     string
 }
 
 func newConfigController() *configController {
@@ -130,11 +124,13 @@ func initConfigController(cc *configController) error {
 	cc.informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.LabelSelector = nsmLabel
+				// Only List configmap for the local node
+				options.LabelSelector = fmt.Sprintf("%s=%s", nsmSRIOVNodeName, cc.nodeName)
 				return cc.k8sClientset.CoreV1().ConfigMaps(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.LabelSelector = nsmLabel
+				// Only Watch configmap for the local node
+				options.LabelSelector = fmt.Sprintf("%s=%s", nsmSRIOVNodeName, cc.nodeName)
 				return cc.k8sClientset.CoreV1().ConfigMaps(metav1.NamespaceAll).Watch(options)
 			},
 		},
@@ -223,7 +219,7 @@ func processConfigMapAdd(cc *configController, configMap *v1.ConfigMap) error {
 	cc.vfs.Lock()
 	cc.vfs.vfs = vfs
 	cc.vfs.Unlock()
-	logrus.Infof("Imported: %d VF configuration(s). Sending configuration to serviceController.", cc.vfs)
+	logrus.Infof("Imported: %d VF configuration(s). Sending configuration to serviceController.", len(cc.vfs.vfs))
 	for k, vf := range cc.vfs.vfs {
 		cc.configCh <- configMessage{op: operationAdd, pciAddr: k, vf: *vf}
 	}
@@ -295,6 +291,15 @@ func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
+	// creating directory to store pods' network services configuration files
+	if _, err := os.Stat(containersConfigPath); err != nil {
+		if os.IsNotExist(err) {
+			os.MkdirAll(containersConfigPath, 0644)
+		} else {
+			logrus.Errorf("failure to access folder %s with error: %+v", containersConfigPath, err)
+			os.Exit(1)
+		}
+	}
 	// Instantiating config controller
 	cc := newConfigController()
 	cc.stopCh = make(chan struct{})
@@ -306,7 +311,14 @@ func main() {
 		os.Exit(1)
 	}
 	cc.k8sClientset = k8sClientset
-
+	// Need to figure out host name since controller has to watch the configmap with VFs which belongs
+	// to the local node.
+	nodeName := os.Getenv("NODE_NAME")
+	if nodeName == "" {
+		logrus.Error("environment variable NODE_NAME must be set via Downward API for the sriov controller, exiting... ")
+		os.Exit(1)
+	}
+	cc.nodeName = nodeName
 	// Instantiating service controller
 	sc := newServiceController()
 	sc.configCh = configCh
