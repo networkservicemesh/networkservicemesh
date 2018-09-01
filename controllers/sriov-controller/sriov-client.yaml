@@ -1,3 +1,4 @@
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 spec:
@@ -25,12 +26,12 @@ spec:
 #              networkservicemesh.io/sriov-trunk: 2
 #              networkservicemesh.io/sriov-vlan10: 1
 #              networkservicemesh.io/sriov-vlan20: 1
-#              networkservicemesh.io/sriov-mgmt: 1    
+#              networkservicemesh.io/sriov-mgmt: 1
           securityContext:
             capabilities:
               add:
-              - IPC_LOCK
-              - SYS_RESOURCE
+                - IPC_LOCK
+                - SYS_RESOURCE
 metadata:
-   name: nsm-sriov-client
-   namespace: default
+  name: nsm-sriov-client
+  namespace: default
