@@ -31,6 +31,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -42,19 +44,22 @@ const (
 	// SRIOV VFs found on a host. Further editing might be required to map VF to real
 	// Network Services
 	nsmSRIOVDefaultNetworkServiceName = "networkservicemesh.io/sriov-nsm-default"
+	nsmSRIOVNodeName                  = "networkservicemesh.io/sriov-node-name"
 )
 
 var (
 	noRebind    = flag.Bool("no-rebind", false, "Prevents rebinding discovered VFs from the current driver to vfio driver.")
 	noConfigMap = flag.Bool("no-configmap", false, "Prevents generating a configmap with discovered VFs information.")
+	kubeconfig  = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
+	excludedPF  = flag.String("exclude-pf", "", "Comma separated list of PFs to exclude from VF's processing")
 )
 
 // VF describes a single instance of VF
 type VF struct {
 	// NetworkService defines a network service which is offered by this VF
 	NetworkService string `yaml:"networkService" json:"networkService"`
-	// pciAddr in a form of string with ':' replaced by '-', used as a key in VFs map
-	pciAddr string // `yaml:"pciAddr" json:"pciAddr"`
+	// PCIAddr in a form of string with ':' replaced by '-', used as a key in VFs map
+	PCIAddr string `yaml:"pciAddr" json:"pciAddr"`
 	// PF which this VF belogs to
 	ParentDevice string `yaml:"parentDevice" json:"parentDevice"`
 	// VF's ID in relation to PF
@@ -101,8 +106,11 @@ func getSriovPfList() ([]string, error) {
 		sriovFilePath := filepath.Join(netDirectory, dev.Name(), "device", "sriov_numvfs")
 		f, err := os.Lstat(sriovFilePath)
 		if err == nil {
-			if f.Mode().IsRegular() { // and its a regular file
-				sriovNetDevices = append(sriovNetDevices, dev.Name())
+			if f.Mode().IsRegular() {
+				// Check with the list of PFs to exclude from VFs processing, if it is on the list, ignore it.
+				if !strings.Contains(*excludedPF, dev.Name()) {
+					sriovNetDevices = append(sriovNetDevices, dev.Name())
+				}
 			}
 		}
 	}
@@ -178,7 +186,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 				vfDir := fmt.Sprintf("/sys/class/net/%s/device/virtfn%d", dev, vf)
 				pciInfo, err := readLinkData(vfDir)
 				if err != nil {
-					logrus.Errorf("cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. Err: %v", dev, vf, err)
+					logrus.Errorf("cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. with error: %+v", dev, vf, err)
 					continue
 				}
 				pciAddr := pciInfo[len("../"):]
@@ -219,7 +227,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 				iommuGroup = strings.Split(iommuGroup, "/")[len(strings.Split(iommuGroup, "/"))-1]
 				pciAddr = strings.Replace(pciAddr, ":", "-", -1)
 				discoveredVFs.vfs[pciAddr] = &VF{}
-				discoveredVFs.vfs[pciAddr].pciAddr = pciAddr
+				discoveredVFs.vfs[pciAddr].PCIAddr = pciAddr
 				discoveredVFs.vfs[pciAddr].iommuGroup = iommuGroup
 				discoveredVFs.vfs[pciAddr].ParentDevice = dev
 				discoveredVFs.vfs[pciAddr].pciType = pciType
@@ -249,11 +257,14 @@ func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
 	}
 	dataString := make(map[string]string, 0)
 	for _, vf := range discoveredVFs.vfs {
+		// PCIAddress containes ":" character which is not acceptable in map[string]string in a key
+		key := vf.PCIAddr
+		vf.PCIAddr = strings.Replace(vf.PCIAddr, "-", ":", -1)
 		data, err := yaml.Marshal(vf)
 		if err != nil {
 			return v1.ConfigMap{}, err
 		}
-		dataString[vf.pciAddr] = string(data)
+		dataString[key] = string(data)
 	}
 	configMap.Data = dataString
 
@@ -291,9 +302,9 @@ func buildVFIODevices(discoveredVFs *VFs) error {
 		iommuGroup, err := strconv.Atoi(vf.iommuGroup)
 		if err != nil {
 			// Something wrong with iommu group for this VF
-			delete(discoveredVFs.vfs, vf.pciAddr)
+			delete(discoveredVFs.vfs, vf.PCIAddr)
 			logrus.Errorf("fail to convert iommu group with error: %+v for pci address: %s",
-				err, strings.Replace(vf.pciAddr, "-", ":", -1))
+				err, strings.Replace(vf.PCIAddr, "-", ":", -1))
 			continue
 		}
 		vfioDevice := fmt.Sprintf("/dev/vfio/%d", iommuGroup)
@@ -302,18 +313,18 @@ func buildVFIODevices(discoveredVFs *VFs) error {
 			// Something wrong with access vfio path for iommu group
 			// it is safer to skip it and remove from the list of available VFs
 			// on the host.
-			delete(discoveredVFs.vfs, vf.pciAddr)
+			delete(discoveredVFs.vfs, vf.PCIAddr)
 			logrus.Errorf("fail to check for existing vfio device with error: %+v for pci address: %s",
-				err, strings.Replace(vf.pciAddr, "-", ":", -1))
+				err, strings.Replace(vf.PCIAddr, "-", ":", -1))
 			continue
 		}
 		// vfio device for iommu group does not exist, need to create it
-		discoveredVFs.vfs[vf.pciAddr].VFIODevice = vfioDevice
+		discoveredVFs.vfs[vf.PCIAddr].VFIODevice = vfioDevice
 		if err := bindVF(vf); err != nil {
 			// Could not bind, cannot use, delete this VF
 			logrus.Errorf("fail to bind VF to vfio device with error: %+v for pci address: %s",
-				err, strings.Replace(vf.pciAddr, "-", ":", -1))
-			delete(discoveredVFs.vfs, vf.pciAddr)
+				err, strings.Replace(vf.PCIAddr, "-", ":", -1))
+			delete(discoveredVFs.vfs, vf.PCIAddr)
 			continue
 		}
 	}
@@ -337,7 +348,7 @@ func waitAndRetry(timeout time.Duration, retries int, check func() bool) error {
 
 // bindVF unbinds VF's from whatever driver currently owns it and rebinds to vfio device
 func bindVF(vf *VF) error {
-	pciAddr := strings.Replace(vf.pciAddr, "-", ":", -1)
+	pciAddr := strings.Replace(vf.PCIAddr, "-", ":", -1)
 	unbindPath := fmt.Sprintf("/sys/bus/pci/devices/%s/driver/unbind", pciAddr)
 	cmdUnbind := exec.Command("echo", pciAddr)
 	u, err := os.OpenFile(unbindPath, os.O_WRONLY, 0200)
@@ -372,6 +383,19 @@ func bindVF(vf *VF) error {
 	})
 }
 
+func buildClient() (*kubernetes.Clientset, error) {
+	k8sClientConfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		return nil, err
+
+	}
+	k8sClientset, err := kubernetes.NewForConfig(k8sClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	return k8sClientset, nil
+}
+
 func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
@@ -395,20 +419,40 @@ func main() {
 	}
 	// Check if noConfigMap is selected
 	if !*noConfigMap {
-		cf, err := buildSRIOVConfigMap(discoveredVFs)
-		if err != nil {
-			logrus.Errorf("failed to build SRIOV config map with error: %+v", err)
+		if err := generateConfigMap(discoveredVFs); err != nil {
+			logrus.Errorf("%+v", err)
 			os.Exit(1)
 		}
-		configMap, err := yaml.Marshal(cf)
-		if err != nil {
-			logrus.Errorf("failed to marshal SRIOV config map with error: %+v", err)
-			os.Exit(1)
-		}
-		if err := ioutil.WriteFile("nsm-sriov-configmap.yaml", configMap, 0644); err != nil {
-			logrus.Errorf("failed to save  SRIOV config map with error: %+v", err)
-			os.Exit(1)
-		}
-		logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
 	}
+}
+
+func generateConfigMap(discoveredVFs *VFs) error {
+	cf, err := buildSRIOVConfigMap(discoveredVFs)
+	if err != nil {
+		return fmt.Errorf("failed to build SRIOV config map with error: %+v", err)
+	}
+	// Adding name of the node where VFs were discovered
+	k8s, err := buildClient()
+	if err != nil {
+		return fmt.Errorf("failed to build kubernetes client with error: %+v", err)
+	}
+	hostName, err := os.Hostname()
+	if err != nil {
+		return fmt.Errorf("failed to get hostname of a node with error: %+v", err)
+	}
+	_, err = k8s.CoreV1().Nodes().Get(hostName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("hostname %s does not appear to be a valid node name in kuebrnetes cluster, error: %+v", hostName, err)
+	}
+	// It was found, adding it as a label to the config map
+	cf.ObjectMeta.Labels[nsmSRIOVNodeName] = hostName
+	configMap, err := yaml.Marshal(cf)
+	if err != nil {
+		return fmt.Errorf("failed to marshal SRIOV config map with error: %+v", err)
+	}
+	if err := ioutil.WriteFile("nsm-sriov-configmap.yaml", configMap, 0644); err != nil {
+		return fmt.Errorf("failed to save  SRIOV config map with error: %+v", err)
+	}
+	logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
+	return nil
 }
