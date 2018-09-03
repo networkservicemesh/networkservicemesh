@@ -9,7 +9,7 @@ spec:
         app: nsm-sriov-client
     spec:
       containers:
-        - image: docker.io/alpine:latest
+        - image: docker.io/alpine:3.8
           name: nsm-sriov-client
           command:
             - /bin/sh
