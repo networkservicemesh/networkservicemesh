@@ -89,14 +89,14 @@ func (s *serviceController) processAdd(msg configMessage) {
 		}
 		s.sriovNetServices[msg.vf.NetworkService] = si
 		// Instantiating Service Instance controller
-		sic := newServiceInstanceController()
-		sic.configCh = si.configCh
-		sic.stopCh = si.stopCh
-		sic.doneCh = si.doneCh
+		sic := newServiceInstanceController(si.configCh, si.stopCh, si.doneCh)
 		go sic.Run()
 	}
-	// Network Service instance already exists, just need to inform about new VF
+	// Network Service instance already exists, just need to add to VFS map and inform about new VF
+	s.Lock()
+	defer s.Unlock()
 	nsi := s.sriovNetServices[msg.vf.NetworkService]
+	nsi.vfs[msg.pciAddr] = &msg.vf
 	nsi.configCh <- msg
 }
 
