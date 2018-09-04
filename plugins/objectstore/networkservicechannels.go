@@ -41,7 +41,7 @@ func (n *networkServiceChannelsStore) AddChannel(nch *netmesh.NetworkServiceChan
 	defer n.Unlock()
 
 	key := meta{
-		name:      nch.NseProviderName,
+		name:      nch.Nseprovidername,
 		namespace: nch.Metadata.Namespace,
 	}
 	found := false
@@ -69,7 +69,7 @@ func (n *networkServiceChannelsStore) DeleteChannel(nch *netmesh.NetworkServiceC
 	defer n.Unlock()
 
 	key := meta{
-		name:      nch.NseProviderName,
+		name:      nch.Nseprovidername,
 		namespace: nch.Metadata.Namespace,
 	}
 	if channels, ok := n.networkServiceChannel[key]; ok {

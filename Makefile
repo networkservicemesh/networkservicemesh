@@ -73,7 +73,7 @@ check:
 	@shellcheck `find . -name "*.sh" -not -path "./vendor/*"`
 
 verify:
-	@./scripts/verify-codegen.sh
+	@./scripts/update-codegen.sh && ./scripts/add-openapi-bits.sh && ./scripts/verify-codegen.sh
 
 # Individual targets are found in .nsm.mk
 docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-test-dataplane docker-build-sidecar-injector

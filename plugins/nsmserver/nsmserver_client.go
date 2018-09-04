@@ -166,9 +166,9 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.Unlock()
 
 	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
-	nseConn, err := tools.SocketOperationCheck(channel.SocketLocation)
+	nseConn, err := tools.SocketOperationCheck(channel.Socketlocation)
 	if err != nil {
-		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
+		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.Socketlocation, err)
 		cleanConnectionRequest(cr.RequestId, n)
 		return &nsmconnect.ConnectionAccept{
 			Accepted:       false,
@@ -280,18 +280,18 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 	for _, c := range cr.NetmeshChannel {
 
 		// Ignoring path since it is local to NSE path, completely useless for server, but keeping NSE socket name
-		_, clientSocket := path.Split(c.SocketLocation)
+		_, clientSocket := path.Split(c.Socketlocation)
 		// Extracting the location of actual server's socket for this specific connection
 		// from the peer struct which is a part of the context passed to gRPC method
 		if peer, ok := peer.FromContext(ctx); ok {
 			// Keeping server path, because this is where NSE socket would be located
 			serverPath, _ := path.Split(peer.Addr.(*net.UnixAddr).Name)
 			// Updating socket location to actual location of NSE socket on the server
-			c.SocketLocation = path.Join(serverPath, clientSocket)
+			c.Socketlocation = path.Join(serverPath, clientSocket)
 		}
-		n.logger.Infof("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
+		n.logger.Infof("For NetworkService: %s channel: %s channel's socket location: %s", c.Networkservicename, c.Metadata.Name, c.Socketlocation)
 
-		networkServiceName := c.NetworkServiceName
+		networkServiceName := c.Networkservicename
 		networkServiceNamespace := "default"
 		if c.Metadata.Namespace != "" {
 			networkServiceNamespace = c.Metadata.Namespace
@@ -306,7 +306,7 @@ func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *ns
 			// Since it was discovered that NetworkService Object exists, calling method to add the channel to NetworkService.
 
 			// Adding advertised channel to Object Store of NSEs and channels.
-			n.logger.Infof("Adding channel %s/%s for NSE %s/%s", c.Metadata.Namespace, c.Metadata.Name, c.Metadata.Namespace, c.NseProviderName)
+			n.logger.Infof("Adding channel %s/%s for NSE %s/%s", c.Metadata.Namespace, c.Metadata.Name, c.Metadata.Namespace, c.Nseprovidername)
 			n.objectStore.AddChannel(c)
 
 			if err := n.objectStore.AddChannelToNetworkService(networkServiceName, networkServiceNamespace, c); err != nil {
