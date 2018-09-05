@@ -17,6 +17,12 @@ package main
 import (
 	"context"
 	"flag"
+	"net"
+	"os"
+	"path"
+	"path/filepath"
+	"sync"
+
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
@@ -25,11 +31,6 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"net"
-	"os"
-	"path"
-	"path/filepath"
-	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

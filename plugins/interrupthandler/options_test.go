@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package interupthandler_test
+package interrupthandler_test
 
 import (
 	"os"
@@ -20,7 +20,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/ligato/networkservicemesh/plugins/interupthandler"
+	"github.com/ligato/networkservicemesh/plugins/interrupthandler"
 
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 )
@@ -47,7 +47,7 @@ func (p *Plugin) close() error {
 
 func TestWrap(t *testing.T) {
 	plugin := &Plugin{}
-	interupt := interupthandler.Wrap(plugin)
+	interupt := interrupthandler.Wrap(plugin)
 	interupt.Init()
 	wg := sync.WaitGroup{}
 	wg.Add(1)
