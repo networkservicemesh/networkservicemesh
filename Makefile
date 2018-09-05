@@ -15,6 +15,10 @@
 # We want to use bash
 SHELL:=/bin/bash
 
+# Default target, no other targets should be before default
+.PHONY: default
+default: all
+
 # Pull in Docker image names
 include .nsm.mk
 
