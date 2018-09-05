@@ -26,7 +26,7 @@ func main() {
 	cmd := &cobra.Command{Use: "netmesh"}
 	command.SetRootCmd(cmd)
 	nsm := nsmcommand.NewPlugin()
-	interupt := interupthandler.Wrap(nsm)
-	interupt.Init()
-	interupt.Wait()
+	interrupt := interupthandler.Wrap(nsm)
+	interrupt.Init()
+	interrupt.Wait()
 }
