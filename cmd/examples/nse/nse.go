@@ -185,10 +185,10 @@ func main() {
 		Metadata: &common.Metadata{
 			Name: "gold-net-channel-1",
 		},
-		Nseprovidername:    podName,
-		Networkservicename: networkServiceName,
+		NseProviderName:    podName,
+		NetworkServiceName: networkServiceName,
 		Payload:            "ipv4",
-		Socketlocation:     nseSocket,
+		SocketLocation:     nseSocket,
 		Interface: []*common.Interface{
 			{
 				Type: common.InterfaceType_KERNEL_INTERFACE,

@@ -28,4 +28,5 @@ echo "Generating openapi structures"
 "${GOPATH}"/bin/openapi-gen \
   --input-dirs ./pkg/apis/networkservicemesh.io/v1 --input-dirs ./pkg/nsm/apis/netmesh \
   --output-package github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1 \
-  --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt"
+  --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt" \
+  --report-filename="${SCRIPT_ROOT}"/.api_violations.report

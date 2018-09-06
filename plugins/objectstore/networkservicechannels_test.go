@@ -34,8 +34,8 @@ func TestChannelStore(t *testing.T) {
 			Name:      "channel-1",
 			Namespace: "default",
 		},
-		Nseprovidername:    "host1",
-		Networkservicename: "network-service-1",
+		NseProviderName:    "host1",
+		NetworkServiceName: "network-service-1",
 	}
 
 	nsc2 := netmesh.NetworkServiceChannel{
@@ -43,8 +43,8 @@ func TestChannelStore(t *testing.T) {
 			Name:      "channel-2",
 			Namespace: "default",
 		},
-		Nseprovidername:    "host1",
-		Networkservicename: "network-service-1",
+		NseProviderName:    "host1",
+		NetworkServiceName: "network-service-1",
 	}
 
 	channels.networkServiceChannelsStore.AddChannel(&nsc1)

@@ -79,8 +79,8 @@ func TestAddChannelToNetworkService(t *testing.T) {
 			Name:      nchTestName,
 			Namespace: nchTestNamespace,
 		},
-		Networkservicename: nsTestName,
-		Nseprovidername:    nseTestProviderName,
+		NetworkServiceName: nsTestName,
+		NseProviderName:    nseTestProviderName,
 	}
 
 	networkservices.networkServicesStore.Add(&ns)
@@ -116,8 +116,8 @@ func TestDeletehannelToNetworkService(t *testing.T) {
 			Name:      nchTestName,
 			Namespace: nchTestNamespace,
 		},
-		Networkservicename: nsTestName,
-		Nseprovidername:    nseTestProviderName,
+		NetworkServiceName: nsTestName,
+		NseProviderName:    nseTestProviderName,
 	}
 
 	networkservices.networkServicesStore.Add(&ns)

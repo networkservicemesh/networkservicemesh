@@ -349,13 +349,13 @@ func schema_pkg_nsm_apis_netmesh_NetworkServiceChannel(ref common.ReferenceCallb
 							Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata"),
 						},
 					},
-					"networkservicename": {
+					"network_service_name": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
 						},
 					},
-					"nseprovidername": {
+					"nse_provider_name": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -367,7 +367,7 @@ func schema_pkg_nsm_apis_netmesh_NetworkServiceChannel(ref common.ReferenceCallb
 							Format: "",
 						},
 					},
-					"socketlocation": {
+					"socket_location": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
