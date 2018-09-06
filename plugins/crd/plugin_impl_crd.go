@@ -153,7 +153,6 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 // afterInit This will create all of the CRDs for NetworkServiceMesh.
 func (plugin *Plugin) afterInit() error {
 	var err error
-	var crdname string
 
 	// Create clientset and create our CRD, this only needs to run once
 	plugin.apiclientset, err = apiextcs.NewForConfig(plugin.K8sclient.GetClientConfig())
@@ -168,36 +167,33 @@ func (plugin *Plugin) afterInit() error {
 		panic(err.Error())
 	}
 
-	crdname = reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name()
-	err = createCRD(plugin, v1.FullNSMEPName,
+	err = newCustomResourceDefinition(plugin, v1.FullNSMEPName,
 		v1.NSMGroup,
 		v1.NSMGroupVersion,
 		v1.NSMEPPlural,
-		crdname)
+		v1.NSMEPTypeName)
 
 	if err != nil {
 		plugin.Log.Error("Error initializing NetworkServiceEndpoint CRD")
 		return err
 	}
 
-	crdname = reflect.TypeOf(v1.NetworkServiceChannel{}).Name()
-	err = createCRD(plugin, v1.FullNSMChannelName,
+	err = newCustomResourceDefinition(plugin, v1.FullNSMChannelName,
 		v1.NSMGroup,
 		v1.NSMGroupVersion,
 		v1.NSMChannelPlural,
-		crdname)
+		v1.NSMChannelTypeName)
 
 	if err != nil {
 		plugin.Log.Error("Error initializing NetworkServiceChannel CRD")
 		return err
 	}
 
-	crdname = reflect.TypeOf(v1.NetworkService{}).Name()
-	err = createCRD(plugin, v1.FullNSMName,
+	err = newCustomResourceDefinition(plugin, v1.FullNSMName,
 		v1.NSMGroup,
 		v1.NSMGroupVersion,
 		v1.NSMPlural,
-		crdname)
+		v1.NSMTypeName)
 
 	if err != nil {
 		plugin.Log.Error("Error initializing NetworkService CRD")

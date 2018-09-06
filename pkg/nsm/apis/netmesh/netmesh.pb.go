@@ -19,6 +19,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// +k8s:openapi-gen=true
 type NetworkServiceChannel struct {
 	Metadata             *common.Metadata    `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	NetworkServiceName   string              `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
@@ -97,6 +98,7 @@ func (m *NetworkServiceChannel) GetInterface() []*common.Interface {
 	return nil
 }
 
+// +k8s:openapi-gen=true
 type NetworkServiceEndpoint struct {
 	Metadata             *common.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
@@ -135,6 +137,7 @@ func (m *NetworkServiceEndpoint) GetMetadata() *common.Metadata {
 	return nil
 }
 
+// +k8s:openapi-gen=true
 type NetworkService struct {
 	Metadata             *common.Metadata         `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	Channel              []*NetworkServiceChannel `protobuf:"bytes,2,rep,name=channel,proto3" json:"channel,omitempty"`
