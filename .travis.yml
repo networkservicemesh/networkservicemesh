@@ -16,6 +16,7 @@ before_install:
   - make travis
 
 before_script:
+  - go install ./vendor/k8s.io/code-generator/cmd/openapi-gen
   - sudo mount --make-rshared /
   - sudo mount --make-rshared /sys
   - sudo mount --make-rshared /var/run
