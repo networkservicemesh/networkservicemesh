@@ -29,4 +29,5 @@ type API interface {
 // PluginAPI for k8sclient
 type PluginAPI interface {
 	idempotent.PluginAPI
+	API
 }

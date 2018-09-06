@@ -1,18 +1,4 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at:
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-package main
+package sriovconfigmapcommand
 
 import (
 	"bytes"
@@ -28,12 +14,34 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"github.com/sirupsen/logrus"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
+
+type Plugin struct {
+	Deps
+	idempotent.Impl
+}
+
+func (p *Plugin) Init() error {
+	return p.Impl.IdempotentInit(p.init)
+}
+
+func (p *Plugin) init() error {
+	return nil
+}
+
+func (p *Plugin) Close() error {
+	return p.Impl.IdempotentClose(p.close)
+}
+
+func (p *Plugin) close() error {
+	return nil
+}
 
 const (
 	netDirectory    = "/sys/class/net/"
@@ -79,7 +87,7 @@ type VFs struct {
 	vfs map[string]*VF
 }
 
-func newVFs() *VFs {
+func (p *Plugin) newVFs() *VFs {
 	v := &VFs{}
 	vfs := map[string]*VF{}
 	v.vfs = vfs
@@ -87,7 +95,7 @@ func newVFs() *VFs {
 }
 
 // Returns a list of SRIOV capable PF names as string
-func getSriovPfList() ([]string, error) {
+func (p *Plugin) getSriovPfList() ([]string, error) {
 
 	sriovNetDevices := []string{}
 
@@ -118,32 +126,14 @@ func getSriovPfList() ([]string, error) {
 	return sriovNetDevices, nil
 }
 
-func readLinkData(link string) (string, error) {
-	dirInfo, err := os.Lstat(link)
-	if err != nil {
-		return "", fmt.Errorf("could not get directory information %s with error: %v", link, err)
-	}
-
-	if (dirInfo.Mode() & os.ModeSymlink) == 0 {
-		return "", fmt.Errorf("no symbolic link %s", link)
-	}
-
-	info, err := os.Readlink(link)
-	if err != nil {
-		return "", fmt.Errorf("cannot read symbolic %s with error: %+v", link, err)
-	}
-
-	return info, nil
-}
-
 //Reads DeviceName and gets PCI Addresses of VFs configured
-func discoverNetworks(discoveredVFs *VFs) error {
+func (p *Plugin) discoverNetworks(discoveredVFs *VFs) error {
 
 	var pciVendor, pciType string
 	// Get a list of SRIOV capable NICs in the host
 	v := make(map[string]*VF, 0)
 	discoveredVFs.vfs = v
-	pfList, err := getSriovPfList()
+	pfList, err := p.getSriovPfList()
 
 	if err != nil {
 		return err
@@ -184,7 +174,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 			//get PCI IDs for VFs
 			for vf := 0; vf < numconfiguredvfs; vf++ {
 				vfDir := fmt.Sprintf("/sys/class/net/%s/device/virtfn%d", dev, vf)
-				pciInfo, err := readLinkData(vfDir)
+				pciInfo, err := p.Utilities.ReadLinkData(vfDir)
 				if err != nil {
 					logrus.Errorf("cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. with error: %+v", dev, vf, err)
 					continue
@@ -219,7 +209,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 					pciType = string(data)
 				}
 
-				iommuGroup, err := readLinkData(iommuGroupPath)
+				iommuGroup, err := p.Utilities.ReadLinkData(iommuGroupPath)
 				if err != nil {
 					logrus.Errorf("cannot read symbolic link between virtual function and PCI - Device: %s, VF: %v. Err: %v", dev, vf, err)
 					continue
@@ -242,7 +232,7 @@ func discoverNetworks(discoveredVFs *VFs) error {
 
 // buildSRIOVConfigMap goes through the list of VFs and marshal them into a yaml.
 // Generated yaml is added to Data's of configmap keyed by pci address of each VF.
-func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
+func (p *Plugin) buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
 	configMap := v1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -272,7 +262,7 @@ func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
 }
 
 // checkVFIOModule checks if vfio kernel module is loaded and of not loads it.
-func checkVFIOModule() error {
+func (p *Plugin) checkVFIOModule() error {
 	// Checking if module vfio-pci is loaded
 	out, err := exec.Command("lsmod").Output()
 	if err != nil {
@@ -291,8 +281,8 @@ func checkVFIOModule() error {
 }
 
 // buildVFIODevices goes through the list of discovered VFs and calls bindVF to bind them to vfio device
-func buildVFIODevices(discoveredVFs *VFs) error {
-	if err := checkVFIOModule(); err != nil {
+func (p *Plugin) buildVFIODevices(discoveredVFs *VFs) error {
+	if err := p.checkVFIOModule(); err != nil {
 		return err
 	}
 
@@ -320,7 +310,7 @@ func buildVFIODevices(discoveredVFs *VFs) error {
 		}
 		// vfio device for iommu group does not exist, need to create it
 		discoveredVFs.vfs[vf.PCIAddr].VFIODevice = vfioDevice
-		if err := bindVF(vf); err != nil {
+		if err := p.bindVF(vf); err != nil {
 			// Could not bind, cannot use, delete this VF
 			logrus.Errorf("fail to bind VF to vfio device with error: %+v for pci address: %s",
 				err, strings.Replace(vf.PCIAddr, "-", ":", -1))
@@ -331,7 +321,7 @@ func buildVFIODevices(discoveredVFs *VFs) error {
 	return nil
 }
 
-func waitAndRetry(timeout time.Duration, retries int, check func() bool) error {
+func (p *Plugin) waitAndRetry(timeout time.Duration, retries int, check func() bool) error {
 	ticker := time.NewTicker(timeout)
 	for r := 0; r < retries; r++ {
 		select {
@@ -347,7 +337,7 @@ func waitAndRetry(timeout time.Duration, retries int, check func() bool) error {
 }
 
 // bindVF unbinds VF's from whatever driver currently owns it and rebinds to vfio device
-func bindVF(vf *VF) error {
+func (p *Plugin) bindVF(vf *VF) error {
 	pciAddr := strings.Replace(vf.PCIAddr, "-", ":", -1)
 	unbindPath := fmt.Sprintf("/sys/bus/pci/devices/%s/driver/unbind", pciAddr)
 	cmdUnbind := exec.Command("echo", pciAddr)
@@ -374,7 +364,7 @@ func bindVF(vf *VF) error {
 		return fmt.Errorf("bind failed with error: %+v", err)
 	}
 
-	return waitAndRetry(200*time.Millisecond, 5, func() bool {
+	return p.waitAndRetry(200*time.Millisecond, 5, func() bool {
 		_, err := os.Stat(vf.VFIODevice)
 		if err == nil {
 			return true
@@ -383,24 +373,15 @@ func bindVF(vf *VF) error {
 	})
 }
 
-func buildClient() (*kubernetes.Clientset, error) {
-	k8sClientConfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		return nil, err
-
-	}
-	k8sClientset, err := kubernetes.NewForConfig(k8sClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	return k8sClientset, nil
+func (p *Plugin) buildClient() *kubernetes.Clientset {
+	return p.K8sClient.GetClientset()
 }
 
-func main() {
+func (p *Plugin) Run() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
-	discoveredVFs := newVFs()
-	if err := discoverNetworks(discoveredVFs); err != nil {
+	discoveredVFs := p.newVFs()
+	if err := p.discoverNetworks(discoveredVFs); err != nil {
 		logrus.Errorf("%+v", err)
 		os.Exit(1)
 	}
@@ -412,30 +393,27 @@ func main() {
 	// Check if noRebind is selected
 	if !*noRebind {
 		// Building vfio device for each VF
-		if err := buildVFIODevices(discoveredVFs); err != nil {
+		if err := p.buildVFIODevices(discoveredVFs); err != nil {
 			logrus.Errorf("failed to build VFIO devices for VFs with error: %+v", err)
 			os.Exit(1)
 		}
 	}
 	// Check if noConfigMap is selected
 	if !*noConfigMap {
-		if err := generateConfigMap(discoveredVFs); err != nil {
+		if err := p.generateConfigMap(discoveredVFs); err != nil {
 			logrus.Errorf("%+v", err)
 			os.Exit(1)
 		}
 	}
 }
 
-func generateConfigMap(discoveredVFs *VFs) error {
-	cf, err := buildSRIOVConfigMap(discoveredVFs)
+func (p *Plugin) generateConfigMap(discoveredVFs *VFs) error {
+	cf, err := p.buildSRIOVConfigMap(discoveredVFs)
 	if err != nil {
 		return fmt.Errorf("failed to build SRIOV config map with error: %+v", err)
 	}
 	// Adding name of the node where VFs were discovered
-	k8s, err := buildClient()
-	if err != nil {
-		return fmt.Errorf("failed to build kubernetes client with error: %+v", err)
-	}
+	k8s := p.buildClient()
 	hostName, err := os.Hostname()
 	if err != nil {
 		return fmt.Errorf("failed to get hostname of a node with error: %+v", err)
