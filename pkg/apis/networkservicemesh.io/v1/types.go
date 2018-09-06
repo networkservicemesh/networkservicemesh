@@ -15,6 +15,8 @@
 package v1
 
 import (
+	"reflect"
+
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
@@ -24,17 +26,34 @@ import (
 const (
 	NSMGroup           = "networkservicemesh.io"
 	NSMGroupVersion    = "v1"
-	NSMEPPlural        = "networkserviceendpoints"
-	FullNSMEPName      = NSMEPPlural + "." + NSMGroup
-	NSMChannelPlural   = "networkservicechannels"
-	FullNSMChannelName = NSMChannelPlural + "." + NSMGroup
-	NSMPlural          = "networkservices"
-	FullNSMName        = NSMPlural + "." + NSMGroup
+	NSMSpecPath        = "github.com/ligato/networkservicemesh/pkg/apis/" + NSMGroup
+	NSMEPSingular      = "networkserviceendpoint"
+	NSMEPPlural        = NSMEPSingular + "s"
+	NSMChannelSingular = "networkservicechannel"
+	NSMChannelPlural   = NSMChannelSingular + "s"
+	NSMSingular        = "networkservice"
+	NSMPlural          = NSMSingular + "s"
+)
+
+var (
+	// NSMEPTypeName is the reflected type name of a NetworkServiceEndpoint
+	NSMEPTypeName = reflect.TypeOf(NetworkServiceEndpoint{}).Name()
+	// FullNSMEPName is the full name (including path) of NetworkServiceEndpoints
+	FullNSMEPName = NSMSpecPath + "/" + NSMGroupVersion + "." + NSMEPTypeName
+	// NSMChannelTypeName is the reflected type name of a NetworkServiceChannel
+	NSMChannelTypeName = reflect.TypeOf(NetworkServiceChannel{}).Name()
+	// FullNSMChannelName is the full name (including path) of NetworkServiceChannels
+	FullNSMChannelName = NSMSpecPath + "/" + NSMGroupVersion + "." + NSMChannelTypeName
+	// NSMTypeName is the reflected type name of a NetworkService
+	NSMTypeName = reflect.TypeOf(NetworkService{}).Name()
+	// FullNSMName is the full name (including path) of NetworkServices
+	FullNSMName = NSMSpecPath + "/" + NSMGroupVersion + "." + NSMTypeName
 )
 
 // NetworkServiceEndpoint CRD
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type NetworkServiceEndpoint struct {
 	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata,omitempty"`
@@ -51,6 +70,7 @@ type NetworkServiceEndpointStatus struct {
 // NetworkServiceEndpointList is the list schema for this CRD
 // -genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type NetworkServiceEndpointList struct {
 	meta.TypeMeta `json:",inline"`
 	// +optional
@@ -61,6 +81,7 @@ type NetworkServiceEndpointList struct {
 // NetworkServiceChannel CRD
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type NetworkServiceChannel struct {
 	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata,omitempty"`
@@ -77,6 +98,7 @@ type NetworkServiceChannelStatus struct {
 // NetworkServiceChannelList is the list schema for this CRD
 // -genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type NetworkServiceChannelList struct {
 	meta.TypeMeta `json:",inline"`
 	// +optional
@@ -87,6 +109,7 @@ type NetworkServiceChannelList struct {
 // NetworkService CRD
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type NetworkService struct {
 	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata,omitempty"`
@@ -103,6 +126,7 @@ type NetworkServiceStatus struct {
 // NetworkServiceList is the list schema for this CRD
 // -genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type NetworkServiceList struct {
 	meta.TypeMeta `json:",inline"`
 	// +optional
