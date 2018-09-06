@@ -16,12 +16,12 @@ before_install:
   - make travis
 
 before_script:
-  - go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
   - sudo mount --make-rshared /
   - sudo mount --make-rshared /sys
   - sudo mount --make-rshared /var/run
 
 script:
+  - go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
   - make dep-check
   - yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
   - make all && ./scripts/travis-integration-tests.sh minikube
