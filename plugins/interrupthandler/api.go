@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package interupthandler
+package interrupthandler
 
 import "github.com/ligato/networkservicemesh/plugins/idempotent"
 
-// Deps for interupthandler.Plugin
-type Deps struct {
-	Wrap idempotent.PluginAPI
+// PluginAPI provides an API for interupthandler
+type PluginAPI interface {
+	idempotent.PluginAPI
+	After() <-chan struct{}
+	Wait()
 }

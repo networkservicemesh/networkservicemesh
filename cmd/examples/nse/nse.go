@@ -22,7 +22,6 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
@@ -40,14 +39,8 @@ import (
 )
 
 const (
-	// clientConnectionTimeout defines time the client waits for establishing connection with the server
-	clientConnectionTimeout = time.Second * 60
 	// networkServiceName defines Network Service Name the NSE is serving for
 	networkServiceName = "gold-network"
-	// location of network namespace for a process
-	netnsfile = "/proc/self/ns/net"
-	// MaxSymLink is maximum length of Symbolic Link
-	MaxSymLink = 8192
 )
 
 var (
