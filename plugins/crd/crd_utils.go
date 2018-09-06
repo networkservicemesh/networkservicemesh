@@ -23,6 +23,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -45,12 +46,31 @@ func newCustomResourceDefinition(plugin *Plugin, FullName, Group, Version, Plura
 		GetOpenAPIDefinitions: v1.GetOpenAPIDefinitions,
 	})
 
-	plugin.Log.Infof("Dumping CRD: %+v\n", crd)
+	crdClient := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions()
 
-	_, cserr := plugin.apiclientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-	if apierrors.IsAlreadyExists(cserr) {
-		return nil
+	// First check if the CRD already exists
+	oldCRD, err := crdClient.Get(crd.Name, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		plugin.Log.Errorf("error getting CRD %s, type %s", crd.Name, crd.Spec.Names.Kind)
+		return err
+	}
+	if apierrors.IsNotFound(err) {
+		// If the CRD does not exist, try to create it
+		if _, err := crdClient.Create(crd); err != nil {
+			plugin.Log.Errorf("error creating CRD %s, type %s", crd.Name, crd.Spec.Names.Kind)
+			return err
+		}
+		plugin.Log.Infof("created CRD %s, type %s", crd.Name, crd.Spec.Names.Kind)
+	}
+	if err == nil {
+		// Now we try to update the CRD
+		crd.ResourceVersion = oldCRD.ResourceVersion
+		if _, err := crdClient.Update(crd); err != nil {
+			plugin.Log.Errorf("error updating CRD %s, type %s", crd.Name, crd.Spec.Names.Kind)
+			return err
+		}
+		plugin.Log.Infof("updated CRD %s, type %s", crd.Name, crd.Spec.Names.Kind)
 	}
 
-	return cserr
+	return nil
 }
