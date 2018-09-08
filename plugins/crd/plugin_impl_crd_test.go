@@ -14,17 +14,21 @@
 
 // //go:generate protoc -I ./model/pod --go_out=plugins=grpc:./model/pod ./model/pod/pod.proto
 
-package crd_test
+package crd
 
 import (
 	"flag"
+	"fmt"
 	"testing"
+	"time"
 
+	crdutils "github.com/ant31/crd-validation/pkg"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	networkservicemesh "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	corev1 "k8s.io/api/core/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -338,5 +342,182 @@ func TestCRDValidation(t *testing.T) {
 			}
 		}
 	}
+}
 
+//
+// CRD versions proposal
+//
+
+type crdTest struct {
+	testName         string
+	oldCRD           *apiextv1beta1.CustomResourceDefinition
+	createOld        bool
+	newCRD           *apiextv1beta1.CustomResourceDefinition
+	newCRDAnnotation map[string]string
+	oldCRDAnnotation map[string]string
+	shouldFail       bool
+}
+
+type crdParameters struct {
+	fullName     string
+	group        string
+	groupVersion string
+	plural       string
+	typeName     string
+}
+
+func TestCreateCRDObject(t *testing.T) {
+	crds := []crdParameters{
+		{
+			fullName:     v1.FullNSMEPName,
+			group:        v1.NSMGroup,
+			groupVersion: v1.NSMGroupVersion,
+			plural:       v1.NSMEPPlural,
+			typeName:     v1.NSMEPTypeName,
+		},
+		{
+			fullName:     v1.FullNSMChannelName,
+			group:        v1.NSMGroup,
+			groupVersion: v1.NSMGroupVersion,
+			plural:       v1.NSMChannelPlural,
+			typeName:     v1.NSMChannelTypeName,
+		},
+		{
+			fullName:     v1.FullNSMName,
+			group:        v1.NSMGroup,
+			groupVersion: v1.NSMGroupVersion,
+			plural:       v1.NSMPlural,
+			typeName:     v1.NSMTypeName,
+		},
+	}
+	tests := []crdTest{
+		{
+			testName:  "Simple CRD creation",
+			createOld: false,
+			newCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.1",
+			},
+			shouldFail: false,
+		},
+		{
+			testName:  "old CRD version < then new CRD version",
+			createOld: true,
+			oldCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.1",
+			},
+			newCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.2",
+			},
+			shouldFail: false,
+		},
+		{
+			testName:  "old CRD version == new CRD version",
+			createOld: true,
+			oldCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.1",
+			},
+			newCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.1",
+			},
+			shouldFail: false,
+		},
+		{
+			testName:  "old CRD version > new CRD version",
+			createOld: true,
+			oldCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.2",
+			},
+			newCRDAnnotation: map[string]string{
+				nsmCRDVersionAnnotationKey: "0.0.1",
+			},
+			shouldFail: true,
+		},
+	}
+
+	if kubeconfig == "" {
+		t.Skip("This test requires a valid kubeconfig file, skipping...")
+	}
+	k8sClient, apiextClient, _, err := k8sClient(kubeconfig)
+	if err != nil {
+		t.Skipf("Fail to get k8s client with error: %+v", err)
+	}
+	if err := setupEnv(k8sClient, apiextClient); err != nil {
+		t.Errorf("Fail to setup test environment with error: %+v", err)
+	}
+	defer func() {
+		if err := cleanupEnv(k8sClient, apiextClient); err != nil {
+			t.Errorf("Fail to cleanup test environment with error: %+v", err)
+		}
+	}()
+
+	for _, crd := range crds {
+		for _, test := range tests {
+			if test.createOld {
+				test.oldCRD = crdutils.NewCustomResourceDefinition(crdutils.Config{
+					SpecDefinitionName:    crd.fullName,
+					EnableValidation:      true,
+					Labels:                crdutils.Labels{LabelsMap: cfg.Labels.LabelsMap},
+					ResourceScope:         string(apiextv1beta1.NamespaceScoped),
+					Group:                 crd.group,
+					Kind:                  crd.typeName,
+					Version:               crd.groupVersion,
+					Plural:                crd.plural,
+					GetOpenAPIDefinitions: v1.GetOpenAPIDefinitions,
+				})
+				test.oldCRD.Spec.Subresources.Scale.SpecReplicasPath = ".spec.replicas"
+				test.oldCRD.Spec.Subresources.Scale.StatusReplicasPath = ".status.replicas"
+				test.oldCRD.ObjectMeta.Annotations = test.oldCRDAnnotation
+				if err := createCRDObject(test.oldCRD, apiextClient); err != nil {
+					t.Fatalf("test %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+				}
+				if err := waitForCRD(apiextClient, test.oldCRD, 2*time.Second); err != nil {
+					t.Fatalf("est %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+				}
+			}
+			test.newCRD = crdutils.NewCustomResourceDefinition(crdutils.Config{
+				SpecDefinitionName:    crd.fullName,
+				EnableValidation:      true,
+				Labels:                crdutils.Labels{LabelsMap: cfg.Labels.LabelsMap},
+				ResourceScope:         string(apiextv1beta1.NamespaceScoped),
+				Group:                 crd.group,
+				Kind:                  crd.typeName,
+				Version:               crd.groupVersion,
+				Plural:                crd.plural,
+				GetOpenAPIDefinitions: v1.GetOpenAPIDefinitions,
+			})
+			test.newCRD.Spec.Subresources.Scale.SpecReplicasPath = ".spec.replicas"
+			test.newCRD.Spec.Subresources.Scale.StatusReplicasPath = ".status.replicas"
+			test.newCRD.ObjectMeta.Annotations = test.newCRDAnnotation
+			err := createCRDObject(test.newCRD, apiextClient)
+			if err != nil {
+				if !test.shouldFail {
+					t.Fatalf("test %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+				}
+			}
+			if err := waitForCRD(apiextClient, test.newCRD, 2*time.Second); err != nil {
+				t.Fatalf("est %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+			}
+			// Test was successful, need to clean up for the next test
+			if err := apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(test.newCRD.ObjectMeta.Name,
+				&meta.DeleteOptions{}); err != nil {
+				t.Fatalf("failed to clean up CRD %s with error: %+v", crd.typeName+"."+crd.group, err)
+			}
+		}
+	}
+}
+
+func waitForCRD(crdClient *apiextcs.Clientset, crd *apiextv1beta1.CustomResourceDefinition, timeout time.Duration) error {
+	stopCh := time.After(timeout)
+	for {
+		select {
+		case <-stopCh:
+			return fmt.Errorf("timeout expired waiting for CRD %s to be created", crd.ObjectMeta.Name)
+		default:
+			if c, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.ObjectMeta.Name, meta.GetOptions{}); err == nil {
+				if c.Status.Conditions[0].Status == apiextv1beta1.ConditionTrue {
+					return nil
+				}
+			}
+		}
+	}
 }
