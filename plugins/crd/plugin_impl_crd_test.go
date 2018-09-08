@@ -37,7 +37,8 @@ import (
 )
 
 const (
-	nsmTestNamespace = "networkservicemesh-test"
+	nsmTestNamespace     = "networkservicemesh-test"
+	crdCompletionTimeout = 2 * time.Second
 )
 
 var kubeconfig string
@@ -470,8 +471,8 @@ func TestCreateCRDObject(t *testing.T) {
 				if err := createCRDObject(test.oldCRD, apiextClient); err != nil {
 					t.Fatalf("test %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
 				}
-				if err := waitForCRD(apiextClient, test.oldCRD, 2*time.Second); err != nil {
-					t.Fatalf("est %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+				if err := waitForCRDCreate(apiextClient, test.oldCRD, crdCompletionTimeout); err != nil {
+					t.Fatalf("waitForCRD %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
 				}
 			}
 			test.newCRD = crdutils.NewCustomResourceDefinition(crdutils.Config{
@@ -494,29 +495,46 @@ func TestCreateCRDObject(t *testing.T) {
 					t.Fatalf("test %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
 				}
 			}
-			if err := waitForCRD(apiextClient, test.newCRD, 2*time.Second); err != nil {
-				t.Fatalf("est %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+			if err := waitForCRDCreate(apiextClient, test.newCRD, crdCompletionTimeout); err != nil {
+				t.Fatalf("waitForCRD %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
 			}
 			// Test was successful, need to clean up for the next test
 			if err := apiextClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(test.newCRD.ObjectMeta.Name,
 				&meta.DeleteOptions{}); err != nil {
 				t.Fatalf("failed to clean up CRD %s with error: %+v", crd.typeName+"."+crd.group, err)
 			}
+			if err := waitForCRDDelete(apiextClient, test.newCRD, crdCompletionTimeout); err != nil {
+				t.Fatalf("waitForCRDDelete %s failed with error: %s, CRD name: %s CRD kind: %s", test.testName, err.Error(), crd.fullName, crd.typeName)
+			}
 		}
 	}
 }
 
-func waitForCRD(crdClient *apiextcs.Clientset, crd *apiextv1beta1.CustomResourceDefinition, timeout time.Duration) error {
+func waitForCRDCreate(crdClient *apiextcs.Clientset, crd *apiextv1beta1.CustomResourceDefinition, timeout time.Duration) error {
 	stopCh := time.After(timeout)
 	for {
 		select {
 		case <-stopCh:
 			return fmt.Errorf("timeout expired waiting for CRD %s to be created", crd.ObjectMeta.Name)
 		default:
-			if c, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.ObjectMeta.Name, meta.GetOptions{}); err == nil {
-				if c.Status.Conditions[0].Status == apiextv1beta1.ConditionTrue {
-					return nil
-				}
+			_, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.ObjectMeta.Name, meta.GetOptions{})
+			if err == nil {
+				return nil
+			}
+		}
+	}
+}
+
+func waitForCRDDelete(crdClient *apiextcs.Clientset, crd *apiextv1beta1.CustomResourceDefinition, timeout time.Duration) error {
+	stopCh := time.After(timeout)
+	for {
+		select {
+		case <-stopCh:
+			return fmt.Errorf("timeout expired waiting for CRD %s to be created", crd.ObjectMeta.Name)
+		default:
+			_, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.ObjectMeta.Name, meta.GetOptions{})
+			if err != nil && apierrors.IsNotFound(err) {
+				return nil
 			}
 		}
 	}

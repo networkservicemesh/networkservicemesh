@@ -32,6 +32,7 @@ import (
 const (
 	nsmCRDVersion              = "0.0.1"
 	nsmCRDVersionAnnotationKey = "networkservicemesh.io/nsm-crd-version"
+	nsmObjectUpdateRetries     = 5
 )
 
 var (
@@ -69,14 +70,14 @@ func newCustomResourceDefinition(plugin *Plugin, FullName, Group, Version, Plura
 
 func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *apiextcs.Clientset) error {
 	// First check if the CRD already exists
-	oldCRD, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCRD.Name, metav1.GetOptions{})
+	oldCRD, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCRD.ObjectMeta.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error getting CRD %s, type %s", newCRD.Name, newCRD.Spec.Names.Kind)
+		return fmt.Errorf("error getting CRD %s, type %s with error: %+v", newCRD.ObjectMeta.Name, newCRD.Spec.Names.Kind, err)
 	}
 	if apierrors.IsNotFound(err) {
 		// If the CRD does not exist, try to create it
 		if _, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(newCRD); err != nil {
-			return fmt.Errorf("fail creating CRD %s, type %s with error: %#v", newCRD.Name, newCRD.Spec.Names.Kind, err)
+			return fmt.Errorf("fail creating CRD %s, type %s with error: %#v", newCRD.ObjectMeta.Name, newCRD.Spec.Names.Kind, err)
 		}
 		return nil
 	}
@@ -86,7 +87,7 @@ func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *
 	if !ok {
 		// Exisiting CRD does not have the version annotation, updating it to new definition
 		// uncoditionally
-		return updateCRD(newCRD, oldCRD.ResourceVersion, crdClient)
+		return updateCRD(newCRD, crdClient)
 	}
 	// Existing CRD has version info, next check is to see if existing CRD version is "<" or "==" or ">"
 	// if "<" than new CRD, it will be updated, if "==", then no action , if ">" than new CRD, then we will fail as
@@ -94,12 +95,12 @@ func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *
 	existingVersion, err := semver.NewVersion(version)
 	if err != nil {
 		// Since we failed to process existing CRD version, then we update CRD attempting to bring it to the right level
-		return updateCRD(newCRD, oldCRD.ResourceVersion, crdClient)
+		return updateCRD(newCRD, crdClient)
 	}
 	newVersion, _ := semver.NewVersion(newCRD.ObjectMeta.Annotations[nsmCRDVersionAnnotationKey])
 	if existingVersion.LessThan(newVersion) {
 		// It is upgrade case, updating CRD to the new CRD version
-		return updateCRD(newCRD, oldCRD.ResourceVersion, crdClient)
+		return updateCRD(newCRD, crdClient)
 	}
 	if existingVersion.GreaterThan(newVersion) {
 		// Downgrade scenario, we have to fail and let the user to resolve this inconsistency
@@ -110,10 +111,22 @@ func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *
 	return nil
 }
 
-func updateCRD(newCRD *apiextv1beta1.CustomResourceDefinition, resourceVersion string, crdClient *apiextcs.Clientset) error {
-	newCRD.ResourceVersion = resourceVersion
-	if _, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Update(newCRD); err != nil {
-		return fmt.Errorf("fail updating CRD %s, type %s with error: %#v", newCRD.Name, newCRD.Spec.Names.Kind, err)
+// updateCRD attempts to update existing CRD with new definitions. number of attempts is defined in
+// nsmObjectUpdateRetries. In case of a conflict error code is returned, the update is re-attempted
+// as per optimistic concurrency approach.
+func updateCRD(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *apiextcs.Clientset) error {
+	for i := 0; i < nsmObjectUpdateRetries; i++ {
+		oldCRD, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCRD.ObjectMeta.Name, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("update: error getting CRD %s, type %s with error: %+v", newCRD.ObjectMeta.Name, newCRD.Spec.Names.Kind, err)
+		}
+		newCRD.ResourceVersion = oldCRD.ResourceVersion
+		_, err = crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Update(newCRD)
+		if err == nil {
+			return nil
+		} else if !apierrors.IsConflict(err) {
+			return fmt.Errorf("update: fail updating CRD %s, type %s with error: %#v", newCRD.ObjectMeta.Name, newCRD.Spec.Names.Kind, err)
+		}
 	}
-	return nil
+	return fmt.Errorf("update: fail to update CRD after %d retries", nsmObjectUpdateRetries)
 }
