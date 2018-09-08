@@ -31,8 +31,7 @@ required = [
   "k8s.io/code-generator/cmd/defaulter-gen",
   "k8s.io/code-generator/cmd/informer-gen",
   "k8s.io/code-generator/cmd/lister-gen",
-  "k8s.io/kube-openapi/cmd/openapi-gen",
-  "github.com/Masterminds/semver"
+  "k8s.io/kube-openapi/cmd/openapi-gen"
 ]
 
 [[override]]
@@ -105,6 +104,10 @@ required = [
 [[constraint]]
   branch = "master"
   name = "k8s.io/kube-openapi"
+
+[[constraint]]
+  branch = "2.x"
+  name = "github.com/Masterminds/semver"
 
 [prune]
   go-tests = true
