@@ -60,6 +60,11 @@ func newCustomResourceDefinition(plugin *Plugin, FullName, Group, Version, Plura
 	crd.ObjectMeta.Annotations = map[string]string{
 		nsmCRDVersionAnnotationKey: nsmCRDVersion,
 	}
+	// Starting with 1.11.X SpecReplicasPath and StatusReplicasPath have become mandatory fields,
+	// but since NewCustomResourceDefinition function does not set them, CRD creation fails in > 1.11.0 k8s clusters.
+	// As a workaround, setting these two fields manually here.
+	crd.Spec.Subresources.Scale.SpecReplicasPath = ".spec.replicas"
+	crd.Spec.Subresources.Scale.StatusReplicasPath = ".status.replicas"
 	if err := createCRDObject(crd, crdClient); err != nil {
 		plugin.Log.Errorf("fail to create CRD with error: %#v", err)
 		return err
