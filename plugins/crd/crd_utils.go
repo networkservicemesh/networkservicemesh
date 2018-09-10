@@ -61,7 +61,7 @@ func newCustomResourceDefinition(plugin *Plugin, FullName, Group, Version, Plura
 		nsmCRDVersionAnnotationKey: nsmCRDVersion,
 	}
 	// Starting with 1.11.X SpecReplicasPath and StatusReplicasPath have become mandatory fields,
-	// but since NewCustomResourceDefinition function does not set them, CRD creation fails in > 1.11.0 k8s clusters.
+	// but since NewCustomResourceDefinition function does not set them, CRD creation fails in +1.11.0 k8s clusters.
 	// As a workaround, setting these two fields manually here.
 	crd.Spec.Subresources.Scale.SpecReplicasPath = ".spec.replicas"
 	crd.Spec.Subresources.Scale.StatusReplicasPath = ".status.replicas"

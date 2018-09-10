@@ -345,10 +345,6 @@ func TestCRDValidation(t *testing.T) {
 	}
 }
 
-//
-// CRD versions proposal
-//
-
 type crdTest struct {
 	testName         string
 	oldCRD           *apiextv1beta1.CustomResourceDefinition
