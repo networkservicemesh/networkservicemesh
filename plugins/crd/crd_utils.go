@@ -80,8 +80,12 @@ func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *
 		return fmt.Errorf("error getting CRD %s, type %s with error: %+v", newCRD.ObjectMeta.Name, newCRD.Spec.Names.Kind, err)
 	}
 	if apierrors.IsNotFound(err) {
-		// If the CRD does not exist, try to create it
-		if _, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(newCRD); err != nil {
+		// If the CRD does not exist, try to create it. There is a check for possible race condition
+		// when another NSM daemon manages to create CRDs between CustomResourceDefinitions().Get()
+		// and CustomResourceDefinitions().Create(), if Create returns error AlreadyExists, then createCRDObject
+		// does not fail.
+		_, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(newCRD)
+		if err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("fail creating CRD %s, type %s with error: %#v", newCRD.ObjectMeta.Name, newCRD.Spec.Names.Kind, err)
 		}
 		return nil
