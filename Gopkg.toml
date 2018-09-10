@@ -105,6 +105,10 @@ required = [
   branch = "master"
   name = "k8s.io/kube-openapi"
 
+[[constraint]]
+  branch = "2.x"
+  name = "github.com/Masterminds/semver"
+
 [prune]
   go-tests = true
   unused-packages = true
