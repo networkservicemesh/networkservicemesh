@@ -124,8 +124,7 @@ message NetworkServiceEndpoint {
 
 ### Local NSM to remote NSM not yet implemented
 
-When NSM local to NSM client discovers that NSE providing requested Network Service is not local, it needs to communicate with gRPC message via
-tcp/ip network with NSE&#39;s local NSM for completing control plane signalling and NSE&#39;s dataplane programming.
+When NSM local to NSM client discovers that NSE providing requested Network Service is not local, **network_service_host** in NSE custom resource object does not match the local NSM name, local NSM attempts to proxy client's request to remote NSM. gRPC over well known TCP socket is used for NSM to NSM communication. This method supports as "in-cluster" mode when NSM pod's DNS named is used as "out-of-cluster" when routable IP of external NSM is used to establish TCP connection.
 
 - Proxy Connection request
 
