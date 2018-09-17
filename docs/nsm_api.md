@@ -53,7 +53,7 @@ Network Service Mesh concepts are highly genericizable.
 <dl>
     <dt>Network Service Dataplane (NSD)</dt>
     <dd>
-        Within the Network Service Manager domain, the Network Service Dataplan is the dataplane managed by the Network Service Manager to 
+        Within the Network Service Manager domain, the Network Service Dataplane is the dataplane managed by the Network Service Manager to 
         <ul>
             <li>Connect Network Service Clients in its domain to Network Service Endpoints.  The Network Service Endpoints need not be in the Network Service Managers domain.</li>
             <li>Connect Network Service Endpoints in its domain to Network Service Clients.  The Network Service Clients need not be in the Network Service Managers domain, nor within any Service Registry Domain that the Network Service Manager participates in.</li>
@@ -61,7 +61,7 @@ Network Service Mesh concepts are highly genericizable.
     </dd>
     <dt>Network Service Manager (NSM)</dt>
     <dd>
-        A Network Service Manager (NSM) manages a colletion of Network Service Clients, Network Service Endpoints, and the Network Service Dataplane for those NSCs and NSEs within its Network Service Manager Domain.  An example of a Network Service Manager Domain would be a single Kubernetes Node.  A Network Service Manager is responsible to
+        A Network Service Manager (NSM) manages a collection of Network Service Clients, Network Service Endpoints, and the Network Service Dataplane for those NSCs and NSEs within its Network Service Manager Domain.  An example of a Network Service Manager Domain would be a single Kubernetes Node.  A Network Service Manager is responsible to
         <ul> 
             <li>Advertise Network Service Endpoints in its domain to zero or more Network Service Registries</li>
             <li>Establish L2/L3 Connections directly between Network Service Clients in its domain and Network Service Endpoints in its domain.
@@ -77,7 +77,7 @@ Network Service Mesh concepts are highly genericizable.
             <li>Network Service Endpoints</li>
         </ul>
         A Network Service Registry allows Network Service Managers to advertise and find each others Network Service Endpoints within its Network Service Registy Domain.
-        An example of a Network Service Registry would be Network Service CRDs and Network Service Endpoint CRDs stored in the Kubernetes API server for a Kubernetes Cluster.
+        An example of a Network Service Registry would be Network Service CRs and Network Service Endpoint CRs stored in the Kubernetes API server for a Kubernetes Cluster.
     </dd>
 </dl>
 
@@ -87,8 +87,8 @@ Network Service Mesh concepts are highly genericizable.
 
 Within the context of Kubernetes:
 
-- The Kubernetes Cluster is a **Service Registry Domain**, with CRDs for Network Service and Network Service Endpoint stored in the Kubernetes API Server as a Service Registry.
-- Each **Node** is a **Network Service Manager Domain** with its own **Network Service Manage** running as a daemonset.
+- The Kubernetes Cluster is a **Service Registry Domain**, with CRs for Network Service and Network Service Endpoint stored in the Kubernetes API Server as a Service Registry.
+- Each **Node** is a **Network Service Manager Domain** with its own **Network Service Manager** running as a daemonset.
 - **Network Service Clients** and **Network Service Endpoints** running within the Kubernetes Cluster are **Pods**, running on a **Node**.
 - The **Network Service Manager** for a **Node** utilize one or more **Network Service Dataplanes**.  Examples: VPP, Kernel, etc.
 - The **Network Service Manager** for a **Node** must be able to facilitate a **Network Service Client** (Pod) or **Network Service Endpoint** (Pod) initiating/accepting an L2/L3 Connection throughout their lifecycles, not just at Pod startup time.
