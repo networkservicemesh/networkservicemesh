@@ -19,7 +19,7 @@ In a simplified form, the flow starts with NSM client requesting a specific type
 
 The following diagram gives visual representation of the flow:
 
-![NSM Diagram](./images/nsm_diagram.jpg)
+![NSM Diagram](./images/nsm_diagram.png)
 
 ## List of identified API calls
 
