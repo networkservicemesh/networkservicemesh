@@ -24,9 +24,10 @@ go test ./...
 
 # Regenerating Generated Code
 
-To generate the deepcopy functions, clientset, listers and informers, run the following command:
+To generate the deepcopy functions, clientset, listers and informers, run the following commands:
 
 ```
+go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
 GOPATH=<path to go base> ./scripts/update-codegen.sh
 ```
 
