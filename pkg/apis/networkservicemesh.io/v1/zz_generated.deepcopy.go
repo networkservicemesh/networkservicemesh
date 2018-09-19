@@ -19,6 +19,7 @@
 package v1
 
 import (
+	netmesh "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -27,7 +28,11 @@ func (in *NetworkService) DeepCopyInto(out *NetworkService) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.Spec.DeepCopyInto(&out.Spec)
+	if in.Spec != nil {
+		in, out := &in.Spec, &out.Spec
+		*out = new(netmesh.NetworkService)
+		(*in).DeepCopyInto(*out)
+	}
 	out.Status = in.Status
 	return
 }
@@ -55,7 +60,11 @@ func (in *NetworkServiceEndpoint) DeepCopyInto(out *NetworkServiceEndpoint) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.Spec.DeepCopyInto(&out.Spec)
+	if in.Spec != nil {
+		in, out := &in.Spec, &out.Spec
+		*out = new(netmesh.NetworkServiceEndpoint)
+		(*in).DeepCopyInto(*out)
+	}
 	out.Status = in.Status
 	return
 }

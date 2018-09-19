@@ -15,17 +15,23 @@
 package nsmserver
 
 import (
+	"fmt"
 	"net"
+	"os"
 	"path"
 
+	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -33,20 +39,76 @@ const (
 	EndpointSocketBaseDir = "/var/lib/networkservicemesh"
 	// EndpointSocket defines the name of NSM Endpoints operations socket
 	EndpointSocket = "nsm.endpoint.io.sock"
+	// EndpointServiceLabel is a label which is used to select all Endpoint object
+	// for a specific Network Service
+	EndpointServiceLabel = "networkservicemesh.io/network-service-name"
 )
 
 type nsmEndpointServer struct {
 	logger             logger.FieldLoggerPlugin
 	objectStore        objectstore.Interface
-	client             k8sclient.PluginAPI
+	k8sClient          *kubernetes.Clientset
+	nsmClient          *nsmclient.Clientset
 	grpcServer         *grpc.Server
 	endPointSocketPath string
 	stopChannel        chan bool
+	nsmNamespace       string
 }
 
 func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 	ar *nseconnect.EndpointAdvertiseRequest) (*nseconnect.EndpointAdvertiseReply, error) {
-	e.logger.Infof("Received Endpoint Advertise request: %+v", ar)
+	e.logger.Infof("Received Endpoint Advertise request: %s", ar.RequestId)
+
+	// Compose a new Network Service Endpoint object name from Request_id which is NSE's pod
+	// UUID and Network Service Name.
+	endpointName := ar.RequestId + "-" + ar.NetworkEndpoint.NetworkServiceName
+
+	// Check if there is already Network Service Endpoint object with the same name, if there is
+	// success will be returned to NSE, since it is a case of NSE pod coming back up.
+	_, err := e.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(e.nsmNamespace).Get(endpointName, metav1.GetOptions{})
+	if err == nil {
+		e.logger.Warnf("Network Service Endpoint object %s already exists", endpointName)
+		return &nseconnect.EndpointAdvertiseReply{
+			RequestId: ar.RequestId,
+			Accepted:  true,
+		}, nil
+	}
+	if apierrors.IsNotFound(err) {
+		// something bad happened while attempting to check if the object already exists,
+		// it is safer to record the error and bail out.
+		e.logger.Errorf("advertise request %s fail to check if %s already exists with error: %+v", ar.RequestId, endpointName, err)
+		return &nseconnect.EndpointAdvertiseReply{
+			RequestId:      ar.RequestId,
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("advertise request %s fail to check if %s already exists with error: %+v", ar.RequestId, endpointName, err),
+		}, err
+	}
+	endpoint := nsmapi.NetworkServiceEndpoint{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkServiceEndpoint",
+			APIVersion: "networkservicemesh.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      endpointName,
+			Namespace: e.nsmNamespace,
+			Labels:    map[string]string{EndpointServiceLabel: ar.NetworkEndpoint.NetworkServiceName},
+		},
+		Spec: ar.NetworkEndpoint,
+	}
+
+	e.logger.Infof("Object to be created: %+v", endpoint)
+	e.logger.Infof("Object to be created: %+v", *ar.NetworkEndpoint)
+
+	_, err = e.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(e.nsmNamespace).Create(&endpoint)
+	if err != nil {
+		// something bad happened while attempting to create a new object, logging error and exit.
+		e.logger.Errorf("advertise request %s fail to create a new Network Service Endpoint object %s with error: %+v", ar.RequestId, endpointName, err)
+		return &nseconnect.EndpointAdvertiseReply{
+			RequestId:      ar.RequestId,
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("advertise request %s fail to create a new Network Service Endpoint object %s with error: %+v", ar.RequestId, endpointName, err),
+		}, err
+	}
 	return &nseconnect.EndpointAdvertiseReply{
 		RequestId: ar.RequestId,
 		Accepted:  true,
@@ -108,13 +170,24 @@ func startEndpointServer(endpointServer *nsmEndpointServer) error {
 // NewNSMEndpointServer registers and starts gRPC server which is listening for
 // Network Service Endpoint advertise/remove calls and act accordingly
 func NewNSMEndpointServer(p *Plugin) error {
+
+	k8sclient := p.Deps.Client.GetClientset()
+	nsmClient := nsmclient.New(k8sclient.RESTClient())
+
+	namespace := os.Getenv("NSM_NAMESPACE")
+	if namespace == "" {
+		return fmt.Errorf("cannot detect namespace, make sure NAMESPACE variable is set via downward api")
+	}
+
 	endpointServer := &nsmEndpointServer{
 		logger:             p.Deps.Log,
 		objectStore:        p.Deps.ObjectStore,
-		client:             p.Deps.Client,
+		k8sClient:          k8sclient,
+		nsmClient:          nsmClient,
 		grpcServer:         grpc.NewServer(),
 		endPointSocketPath: path.Join(EndpointSocketBaseDir, EndpointSocket),
 		stopChannel:        make(chan bool),
+		nsmNamespace:       namespace,
 	}
 
 	var err error

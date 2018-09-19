@@ -51,8 +51,8 @@ var (
 type NetworkServiceEndpoint struct {
 	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata,omitempty"`
-	Spec            netmesh.NetworkServiceEndpoint `json:"spec"`
-	Status          NetworkServiceEndpointStatus   `json:"status,omitempty"`
+	Spec            *netmesh.NetworkServiceEndpoint `json:"spec"`
+	Status          NetworkServiceEndpointStatus    `json:"status,omitempty"`
 }
 
 //NetworkServiceEndpointStatus is the status schema for this CRD
@@ -79,8 +79,8 @@ type NetworkServiceEndpointList struct {
 type NetworkService struct {
 	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata,omitempty"`
-	Spec            netmesh.NetworkService `json:"spec"`
-	Status          NetworkServiceStatus   `json:"status,omitempty"`
+	Spec            *netmesh.NetworkService `json:"spec"`
+	Status          NetworkServiceStatus    `json:"status,omitempty"`
 }
 
 // NetworkServiceStatus is the status schema for this CRD
