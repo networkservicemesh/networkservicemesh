@@ -22,21 +22,15 @@ package netmesh;
 
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
-
-message NetworkServiceChannel {
-    common.Metadata metadata = 1;
-    string network_service_name = 2;
+message NetworkServiceEndpoint {
+    string network_service_name = 1;
+    string network_service_host = 2;
     string nse_provider_name = 3;
-    string payload = 4;
+    string nse_provider_namespace = 4;
     string socket_location = 5;
     repeated common.Interface interface = 6;
-}
-
-message NetworkServiceEndpoint {
-    common.Metadata metadata = 1;
-}
+ }
 
 message NetworkService {
-    common.Metadata metadata = 1;
-    repeated NetworkServiceChannel channel = 2;
+    string network_service_name = 1;
 }

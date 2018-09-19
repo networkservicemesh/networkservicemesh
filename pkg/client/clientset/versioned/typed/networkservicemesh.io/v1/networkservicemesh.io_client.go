@@ -26,7 +26,6 @@ import (
 type NetworkserviceV1Interface interface {
 	RESTClient() rest.Interface
 	NetworkServicesGetter
-	NetworkServiceChannelsGetter
 	NetworkServiceEndpointsGetter
 }
 
@@ -37,10 +36,6 @@ type NetworkserviceV1Client struct {
 
 func (c *NetworkserviceV1Client) NetworkServices(namespace string) NetworkServiceInterface {
 	return newNetworkServices(c, namespace)
-}
-
-func (c *NetworkserviceV1Client) NetworkServiceChannels(namespace string) NetworkServiceChannelInterface {
-	return newNetworkServiceChannels(c, namespace)
 }
 
 func (c *NetworkserviceV1Client) NetworkServiceEndpoints(namespace string) NetworkServiceEndpointInterface {

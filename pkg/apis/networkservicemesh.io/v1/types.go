@@ -24,15 +24,13 @@ import (
 
 // Constants to register CRDs for our resources
 const (
-	NSMGroup           = "networkservicemesh.io"
-	NSMGroupVersion    = "v1"
-	NSMSpecPath        = "github.com/ligato/networkservicemesh/pkg/apis/" + NSMGroup
-	NSMEPSingular      = "networkserviceendpoint"
-	NSMEPPlural        = NSMEPSingular + "s"
-	NSMChannelSingular = "networkservicechannel"
-	NSMChannelPlural   = NSMChannelSingular + "s"
-	NSMSingular        = "networkservice"
-	NSMPlural          = NSMSingular + "s"
+	NSMGroup        = "networkservicemesh.io"
+	NSMGroupVersion = "v1"
+	NSMSpecPath     = "github.com/ligato/networkservicemesh/pkg/apis/" + NSMGroup
+	NSMEPSingular   = "networkserviceendpoint"
+	NSMEPPlural     = NSMEPSingular + "s"
+	NSMSingular     = "networkservice"
+	NSMPlural       = NSMSingular + "s"
 )
 
 var (
@@ -40,10 +38,6 @@ var (
 	NSMEPTypeName = reflect.TypeOf(NetworkServiceEndpoint{}).Name()
 	// FullNSMEPName is the full name (including path) of NetworkServiceEndpoints
 	FullNSMEPName = NSMSpecPath + "/" + NSMGroupVersion + "." + NSMEPTypeName
-	// NSMChannelTypeName is the reflected type name of a NetworkServiceChannel
-	NSMChannelTypeName = reflect.TypeOf(NetworkServiceChannel{}).Name()
-	// FullNSMChannelName is the full name (including path) of NetworkServiceChannels
-	FullNSMChannelName = NSMSpecPath + "/" + NSMGroupVersion + "." + NSMChannelTypeName
 	// NSMTypeName is the reflected type name of a NetworkService
 	NSMTypeName = reflect.TypeOf(NetworkService{}).Name()
 	// FullNSMName is the full name (including path) of NetworkServices
@@ -76,34 +70,6 @@ type NetworkServiceEndpointList struct {
 	// +optional
 	meta.ListMeta `json:"metadata,omitempty"`
 	Items         []NetworkServiceEndpoint `json:"items"`
-}
-
-// NetworkServiceChannel CRD
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
-type NetworkServiceChannel struct {
-	meta.TypeMeta   `json:",inline"`
-	meta.ObjectMeta `json:"metadata,omitempty"`
-	Spec            netmesh.NetworkServiceChannel `json:"spec"`
-	Status          NetworkServiceChannelStatus   `json:"status,omitempty"`
-}
-
-// NetworkServiceChannelStatus is the status schema for this CRD
-type NetworkServiceChannelStatus struct {
-	State   string `json:"state,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
-// NetworkServiceChannelList is the list schema for this CRD
-// -genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
-type NetworkServiceChannelList struct {
-	meta.TypeMeta `json:",inline"`
-	// +optional
-	meta.ListMeta `json:"metadata,omitempty"`
-	Items         []NetworkServiceChannel `json:"items"`
 }
 
 // NetworkService CRD

@@ -18,7 +18,7 @@ import (
 	"reflect"
 
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	// "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
@@ -35,15 +35,11 @@ type meta struct {
 // ObjectStore stores information about all objects learned by CRDs controller
 type objectStore struct {
 	*networkServicesStore
-	*networkServiceChannelsStore
-	*networkServiceEndpointsStore
 }
 
 func newObjectStore() *objectStore {
 	objectStore := &objectStore{}
 	objectStore.networkServicesStore = newNetworkServicesStore()
-	objectStore.networkServiceChannelsStore = newNetworkServiceChannelsStore()
-	objectStore.networkServiceEndpointsStore = newNetworkServiceEndpointsStore()
 	return objectStore
 }
 
@@ -89,40 +85,35 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 
 	switch obj.(type) {
 	case *v1.NetworkService:
-		ns := obj.(*v1.NetworkService).Spec
-		p.objects.networkServicesStore.Add(&ns)
+		ns := obj.(*v1.NetworkService)
+		p.objects.networkServicesStore.Add(ns)
 		p.Log.Infof("number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
-	case *v1.NetworkServiceChannel:
-		nsc := obj.(*v1.NetworkServiceChannel).Spec
-		p.objects.networkServiceChannelsStore.AddChannel(&nsc)
-	case *v1.NetworkServiceEndpoint:
-		nse := obj.(*v1.NetworkServiceEndpoint).Spec
-		p.objects.networkServiceEndpointsStore.Add(&nse)
 	default:
 		p.Log.Infof("found object of unknown type: %s", reflect.TypeOf(obj))
 	}
 }
 
 // GetNetworkService get NetworkService object for name and namespace specified
-func (p *Plugin) GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService {
+func (p *Plugin) GetNetworkService(nsName string) *v1.NetworkService {
 	p.Log.Info("ObjectStore.GetNetworkService.")
-	return p.objects.networkServicesStore.Get(nsName, nsNamespace)
+	return p.objects.networkServicesStore.Get(nsName)
 }
 
-// AddChannelToNetworkService adds a channel to Existing in the ObjectStore NetworkService object
-func (p *Plugin) AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
-	p.Log.Info("ObjectStore.AddChannelToNetworkService.")
-	return p.objects.networkServicesStore.AddChannelToNetworkService(nsName, nsNamespace, ch)
+/*
+// AddEndpointToNetworkService adds a Endpoint to Existing in the ObjectStore NetworkService object
+func (p *Plugin) AddEndpointToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error {
+	p.Log.Info("ObjectStore.AddEndpointToNetworkService.")
+	return p.objects.networkServicesStore.AddEndpointToNetworkService(nsName, nsNamespace, ch)
 }
 
-// DeleteChannelFromNetworkService deletes a channel from the ObjectStore NetworkService object
-func (p *Plugin) DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error {
-	p.Log.Info("ObjectStore.DeleteChannelFromNetworkService.")
-	return p.objects.networkServicesStore.DeleteChannelFromNetworkService(nsName, nsNamespace, ch)
+// DeleteEndpointFromNetworkService deletes a Endpoint from the ObjectStore NetworkService object
+func (p *Plugin) DeleteEndpointFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error {
+	p.Log.Info("ObjectStore.DeleteEndpointFromNetworkService.")
+	return p.objects.networkServicesStore.DeleteEndpointFromNetworkService(nsName, nsNamespace, ch)
 }
-
+*/
 // ListNetworkServices lists all stored NetworkService objects
-func (p *Plugin) ListNetworkServices() []*netmesh.NetworkService {
+func (p *Plugin) ListNetworkServices() []*v1.NetworkService {
 	p.Log.Info("ObjectStore.ListNetworkServices.")
 	return p.objects.networkServicesStore.List()
 }
@@ -132,38 +123,34 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 	p.Log.Infof("ObjectStore.ObjectDeleted: %s", obj)
 	switch obj.(type) {
 	case *v1.NetworkService:
-		ns := obj.(*v1.NetworkService).Spec
-		p.objects.networkServicesStore.Delete(meta{name: ns.Metadata.Name, namespace: ns.Metadata.Namespace})
-	case *v1.NetworkServiceChannel:
-		nsc := obj.(*v1.NetworkServiceChannel).Spec
-		p.objects.networkServiceChannelsStore.DeleteChannel(&nsc)
-	case *v1.NetworkServiceEndpoint:
-		nse := obj.(*v1.NetworkServiceEndpoint).Spec
-		p.objects.networkServiceEndpointsStore.Delete(meta{name: nse.Metadata.Name, namespace: nse.Metadata.Namespace})
+		ns := obj.(*v1.NetworkService)
+		p.objects.networkServicesStore.Delete(ns.ObjectMeta.Name)
 	}
 }
 
-// GetChannelsByNSEServerProvider lists all stored NetworkServiceChannel objects for a given nse server
-func (p *Plugin) GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel {
-	p.Log.Info("ObjectStore.GetChannelsByNSEServerProvider for %s/%s", nseServer, namespace)
-	return p.objects.networkServiceChannelsStore.GetChannelsByNSEServerProvider(nseServer, namespace)
+/*
+// GetEndpointsByNSEServerProvider lists all stored NetworkServiceEndpoint objects for a given nse server
+func (p *Plugin) GetEndpointsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceEndpoint {
+	p.Log.Info("ObjectStore.GetEndpointsByNSEServerProvider for %s/%s", nseServer, namespace)
+	return p.objects.NetworkServiceEndpointsStore.GetEndpointsByNSEServerProvider(nseServer, namespace)
 }
 
-// DeleteNSE delete all channels associated with given NSE
+// DeleteNSE delete all Endpoints associated with given NSE
 func (p *Plugin) DeleteNSE(nseServer, namespace string) {
 	p.Log.Info("ObjectStore.DeleteNSE")
-	p.objects.networkServiceChannelsStore.DeleteNSE(nseServer, namespace)
+	p.objects.NetworkServiceEndpointsStore.DeleteNSE(nseServer, namespace)
 }
 
-// DeleteChannel delete all channels associated with given NSE
-func (p *Plugin) DeleteChannel(nch *netmesh.NetworkServiceChannel) {
-	p.Log.Info("ObjectStore.DeleteChannel")
-	p.objects.networkServiceChannelsStore.DeleteChannel(nch)
+// DeleteEndpoint delete all Endpoints associated with given NSE
+func (p *Plugin) DeleteEndpoint(nch *netmesh.NetworkServiceEndpoint) {
+	p.Log.Info("ObjectStore.DeleteEndpoint")
+	p.objects.NetworkServiceEndpointsStore.DeleteEndpoint(nch)
 }
 
-// AddChannel checks if advertised NSE already exists and then add given channel to its list,
-// othewise NSE gets created and then new channel gets added.
-func (p *Plugin) AddChannel(nch *netmesh.NetworkServiceChannel) {
-	p.Log.Info("ObjectStore.AddChannel")
-	p.objects.networkServiceChannelsStore.AddChannel(nch)
+// AddEndpoint checks if advertised NSE already exists and then add given Endpoint to its list,
+// othewise NSE gets created and then new Endpoint gets added.
+func (p *Plugin) AddEndpoint(nch *netmesh.NetworkServiceEndpoint) {
+	p.Log.Info("ObjectStore.AddEndpoint")
+	p.objects.NetworkServiceEndpointsStore.AddEndpoint(nch)
 }
+*/

@@ -188,15 +188,17 @@ func main() {
 		os.Exit(0)
 	}
 	logrus.Info("nsm client: list of discovered network services:")
-	for _, s := range availablaNetworkServices {
-		logrus.Infof("      network service: %s/%s", s.Metadata.Namespace, s.Metadata.Name)
-		for _, c := range s.Channel {
-			logrus.Infof("            Channel: %s/%s", c.Metadata.Namespace, c.Metadata.Name)
-			for _, i := range c.Interface {
-				logrus.Infof("                  Interface type: %s preference: %s", i.GetType(), i.GetPreference())
+	/*
+		for _, s := range availablaNetworkServices {
+			logrus.Infof("      network service: %s/%s", s.Metadata.Namespace, s.Metadata.Name)
+			for _, c := range s.Channel {
+				logrus.Infof("            Channel: %s/%s", c.Metadata.Namespace, c.Metadata.Name)
+				for _, i := range c.Interface {
+					logrus.Infof("                  Interface type: %s preference: %s", i.GetType(), i.GetPreference())
+				}
 			}
 		}
-	}
+	*/
 	logrus.Infof("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
 
 	// For NSM to program container's dataplane, container's linux namespace must be sent to NSM
@@ -212,10 +214,10 @@ func main() {
 	for _, ns := range networkServices {
 		cReq := nsmconnect.ConnectionRequest{
 			RequestId: podUID,
-			Metadata: &common.Metadata{
+			/* Metadata: &common.Metadata{
 				Name:      podName,
 				Namespace: namespace,
-			},
+			}, */
 			NetworkServiceName: ns.Name,
 			LinuxNamespace:     linuxNS,
 			Interface:          ns.ServiceInterface,

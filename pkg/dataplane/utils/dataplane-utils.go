@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"golang.org/x/net/context"
@@ -48,13 +47,13 @@ func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) error 
 	defer Cancel()
 	buildConnectRequest := &testdataplane.BuildConnectRequest{
 		SourcePod: &testdataplane.Pod{
-			Metadata: &common.Metadata{
+			Metadata: &testdataplane.Metadata{
 				Name:      podName1,
 				Namespace: podNamespace1,
 			},
 		},
 		DestinationPod: &testdataplane.Pod{
-			Metadata: &common.Metadata{
+			Metadata: &testdataplane.Metadata{
 				Name:      podName2,
 				Namespace: podNamespace2,
 			},
@@ -87,7 +86,7 @@ func CleanupPodDataplane(podName string, podNamespace string, podType testdatapl
 	defer Cancel()
 	deleteConnectRequest := &testdataplane.DeleteConnectRequest{
 		Pod: &testdataplane.Pod{
-			Metadata: &common.Metadata{
+			Metadata: &testdataplane.Metadata{
 				Name:      podName,
 				Namespace: podNamespace,
 			},

@@ -22,7 +22,6 @@ package nsmserver
 import (
 	"fmt"
 	"net"
-	"os"
 	"path"
 	"strconv"
 	"time"
@@ -71,16 +70,10 @@ func Register(kubeletEndpoint string) error {
 }
 
 func startDeviceServer(nsm *nsmClientEndpoints) error {
-	// Initial socket clean up
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
-	// TODO (sbezverk) make it as a function
-	fi, err := os.Stat(listenEndpoint)
-	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
-		if err := os.Remove(listenEndpoint); err != nil {
-			return err
-		}
+	if err := tools.SocketCleanup(listenEndpoint); err != nil {
+		return err
 	}
-
 	sock, err := net.Listen("unix", listenEndpoint)
 	if err != nil {
 		return err
@@ -104,8 +97,8 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	return nil
 }
 
-// NewNSMDevicePlugin registers and starts Kubelet's device plugin
-func NewNSMDevicePlugin(logger logger.FieldLoggerPlugin, os objectstore.Interface) error {
+// NewNSMDeviceServer registers and starts Kubelet's device plugin
+func NewNSMDeviceServer(logger logger.FieldLoggerPlugin, os objectstore.Interface) error {
 	nsm := &nsmClientEndpoints{
 		nsmSockets:        map[string]nsmSocket{},
 		logger:            logger,

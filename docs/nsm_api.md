@@ -292,6 +292,10 @@ The following diagram gives visual representation of the flow:
 - Endpoint Advertise Request
 - Endpoint Advertise Reply
 
+### NSE to its local NSM
+- Endpoint Remove Request
+- Endpoint Remove Reply
+
 ### Local NSM to remote NSM   **Currently not implemented**
 - Proxy Connection request
 - Proxy Connection reply
@@ -310,10 +314,10 @@ Connectivity between NSM client and NSM daemoset occurs over a linux named socke
 
 ```proto
 message ConnectionRequest {
-   string request_id = 1;
-   string network_service_name = 2;
-   string linux_namespace = 3;
-   repeated common.Interface interface = 4;
+    string request_id = 1;
+    string network_service_name = 2;
+    string linux_namespace = 3;
+    repeated common.Interface interface = 4;
 }
 ```
 **Where:**
@@ -334,10 +338,11 @@ NSM Client connection reply message  is returned to inform the client if its req
 
 ```proto
 message ConnectionReply {
-   bool accepted = 1;
-   string admission_error = 2;
-   ConnectionParameters connection_parameters = 3;
-   common.Interface interface = 4;
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+    ConnectionParameters connection_parameters = 4;
+    common.Interface interface = 5;
 }
 ```
 **Where:**
@@ -359,16 +364,17 @@ NSE is the actual provider of a network service, to make aware NSM of the servic
 
 ```proto
 message EndpointAdvertiseRequest {
-   repeated netmesh.NetworkServiceEndpoint network\_endpoint = 1;
+    string request_id = 1;
+    netmesh.NetworkServiceEndpoint network_endpoint = 2;
 }
 
 message NetworkServiceEndpoint {
-   string network_service_name = 1;
-   string network_service_host = 2;
-   string nse_provider_name = 3;
-   string nse_provider_namesapce = 4;
-   string socket_location = 5;
-   repeated common.Interface interface = 6;
+    string network_service_name = 1;
+    string network_service_host = 2;
+    string nse_provider_name = 3;
+    string nse_provider_namespace = 4;
+    string socket_location = 5;
+    repeated common.Interface interface = 6;
 }
 ```
 **Where:**
@@ -383,6 +389,41 @@ message NetworkServiceEndpoint {
 
 **socket\_location** informs NSM about linux named socket it has to use to communicate with NSE for connection requests
 
+- Endpoint AdvertiseReply message
+
+With this message, local to NSE's NSM confirms successful registration and advertisement of a Network Service provided by NSE. In case of an error, **admission_error** will have more details for the cause of a failure.
+
+```proto
+message EndpointAdvertiseReply {
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+}
+```
+
+- Endpoint RemoveRequest message
+
+This message is sent by NSE to inform its local NSM that it does not provide corresponding Network Service and NSM needs remove previously created Network Service Endpoint Custom Resource.
+
+```proto
+message EndpointRemoveRequest {
+    string request_id = 1;
+    netmesh.NetworkServiceEndpoint network_endpoint = 2;
+}
+```
+
+- Endpoint AdvertiseReply message
+
+With this message, local to NSE's NSM confirms successful removal of Network Service Endpoint custom reosurce.
+
+```proto
+message EndpointAdvertiseReply {
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+}
+```
+
 ### Local NSM to remote NSM not yet implemented
 
 When NSM local to NSM client discovers that NSE providing requested Network Service is not local, **network_service_host** in NSE custom resource object does not match the local NSM name, local NSM attempts to proxy client's request to remote NSM. gRPC over well known TCP socket is used for NSM to NSM communication. This method supports as "in-cluster" mode when NSM pod's DNS named is used as "out-of-cluster" when routable IP of external NSM is used to establish TCP connection. In order to facilitate NSM discovery for "in-cluster" mode, each NSM creates a kubernetes **Service** object with matching to NSM daemonset name. For each **Service**, a corresponding DNS entry is automatically created
@@ -394,10 +435,10 @@ In this message Client&#39;s local NSM proxying Network Service request to NSE&#
 
 ```proto
 message ProxyConnectionRequest {
-   string request_id = 1;
-   string network_service_name = 2;
-   string nse_provider_name = 3;
-   repeated common.Tunnels tunnel_type = 4;
+    string request_id = 1;
+    string network_service_name = 2;
+    string nse_provider_name = 3;
+    repeated common.Tunnels tunnel_type = 4;
 }
 ```
 **Where:**
@@ -416,9 +457,10 @@ After completing control plane signalling, programming of the dataplane for NSE 
 
 ```proto
 message ProxyConnectionReply {
-   bool accepted = 1;
-   string admission_error = 2;
-   common.Tunnel tunnel = 4;
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+    common.Tunnel tunnel = 4;
 }
 ```
 **Where:**
@@ -477,8 +519,8 @@ message InterfaceParameters {
 
 message Interface {
   InterfaceType type = 1;
-  InterfacePreference preference = 3;
-  InterfaceParameters parmeters = 4;
+  InterfacePreference preference = 2;
+  InterfaceParameters parmeters = 3;
 }
 
 enum InterfaceType {

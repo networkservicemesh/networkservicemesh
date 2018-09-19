@@ -3,32 +3,51 @@ syntax = "proto3";
 package nseconnect;
 
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
-import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
-// ConnectionRequest is sent by a NSM to NSE to build a connection.
-    message NSEConnectionRequest {
+// EndpointConnectionRequest is sent by a NSM to NSE to build a connection.
+    message EndpointConnectionRequest {
         string request_id = 1;
-    
-        common.Metadata metadata = 2;
-
-        netmesh.NetworkServiceChannel channel = 3;
+        string network_service_name = 2;
     }
     
-    
-    // NSEConnectionReply is sent back by NSE to NSM with information required for
-    // dataplane programming.
-    message NSEConnectionReply {
+// EndpointConnectionReply is sent back by NSE to NSM with information required for
+// dataplane programming.
+    message EndpointConnectionReply {
         string request_id = 1;
-        // Metadata contains NSE's POD name and namespace which will be needed for
-        // dataplane programming
-        common.Metadata metadata = 2;
-
-        string network_service_name = 3;
-
-        string linux_namespace = 4;
+        string network_service_name = 2;
+        string linux_namespace = 3;
     }
 
-    service NSEConnection {
-        rpc RequestNSEConnection (NSEConnectionRequest) returns (NSEConnectionReply);
+    service EndpointConnection {
+        rpc RequestEndpointConnection (EndpointConnectionRequest) returns (EndpointConnectionReply);
     }
     
+    message EndpointAdvertiseRequest {
+        string request_id = 1;
+        netmesh.NetworkServiceEndpoint network_endpoint = 2;
+     }
+
+     message EndpointAdvertiseReply {
+        string request_id = 1;
+        bool accepted = 2;
+        string admission_error = 3;
+     }
+ 
+     service EndpointOperations {
+        rpc AdvertiseEndpoint (EndpointAdvertiseRequest) returns (EndpointAdvertiseReply);
+        rpc RemoveEndpoint (EndpointRemoveRequest) returns (EndpointRemoveReply);
+    }
+
+// Message sent by NSE to NSM informing of a removal previously advertised
+// endpoint. NSM will attempt to locate Customer Resource and delete it.
+//
+    message EndpointRemoveRequest {
+        string request_id = 1;
+        netmesh.NetworkServiceEndpoint network_endpoint = 2;
+     }
+
+     message EndpointRemoveReply {
+        string request_id = 1;
+        bool accepted = 2;
+        string admission_error = 3;
+     }

@@ -2,7 +2,10 @@ syntax = "proto3";
 
 package testdataplane;
 
-import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+message Metadata {
+    string name = 1;
+    string namespace = 2;
+}
 
 enum NSMPodType {
     DEFAULT_POD = 0;
@@ -10,7 +13,7 @@ enum NSMPodType {
     NSE = 2;
 }
 message Pod {
-    common.Metadata metadata = 1;
+    Metadata metadata = 1;
     string ip_address = 2;
 }
 

@@ -11,14 +11,9 @@ message ConnectionRequest {
 // executed by NSM for a client to address idempotency, request_id
 // will be tracked.
     string request_id = 1;
-
-    common.Metadata metadata = 2;
-    
-    string network_service_name = 3;
-
-    string linux_namespace = 4;
-
-    repeated common.Interface interface = 5;
+    string network_service_name = 2;
+    string linux_namespace = 3;
+    repeated common.Interface interface = 4;
 }
 
 message ConnectionParameters {
@@ -26,17 +21,14 @@ message ConnectionParameters {
     repeated string route = 2;
 }
 
-// ConnectionAccept is sent back by NSM as a reply to ConnectionRequest
+// ConnectionReply is sent back by NSM as a reply to ConnectionRequest
 // accepted true will indicate that the connection is accepted, otherwise false
 // indicates that connection was refused and admission_error will provide details
 // why connection was refused.
-message ConnectionAccept {
+message ConnectionReply {
     bool accepted = 1;
-
     string admission_error = 2;
-
     ConnectionParameters connection_parameters = 3;
-
     common.Interface interface = 4;
 }
 
@@ -50,17 +42,17 @@ message DiscoveryResponse {
 }
 
 // ChannelAdvertiseRequest used by NSE to advertise its available channels
-message ChannelAdvertiseRequest {
-    repeated netmesh.NetworkServiceChannel netmesh_channel = 1;
-}
+//message ChannelAdvertiseRequest {
+//    repeated netmesh.NetworkServiceChannel netmesh_channel = 1;
+//}
 
 // ChannelAdvertiseResponse used by NSM to confirm if Channel Object has been created successfully
-message ChannelAdvertiseResponse {
-    bool success = 1;
-}
+//message ChannelAdvertiseResponse {
+//    bool success = 1;
+//}
 
 service ClientConnection {
-    rpc RequestConnection (ConnectionRequest) returns (ConnectionAccept);
+    rpc RequestConnection (ConnectionRequest) returns (ConnectionReply);
     rpc RequestDiscovery (DiscoveryRequest) returns (DiscoveryResponse);
-    rpc RequestAdvertiseChannel (ChannelAdvertiseRequest) returns (ChannelAdvertiseResponse);
+//    rpc RequestAdvertiseChannel (ChannelAdvertiseRequest) returns (ChannelAdvertiseResponse);
 }

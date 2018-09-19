@@ -28,14 +28,9 @@ import (
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkService":             schema_pkg_apis_networkservicemeshio_v1_NetworkService(ref),
-		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceChannel":      schema_pkg_apis_networkservicemeshio_v1_NetworkServiceChannel(ref),
-		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceChannelList":  schema_pkg_apis_networkservicemeshio_v1_NetworkServiceChannelList(ref),
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceEndpoint":     schema_pkg_apis_networkservicemeshio_v1_NetworkServiceEndpoint(ref),
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceEndpointList": schema_pkg_apis_networkservicemeshio_v1_NetworkServiceEndpointList(ref),
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceList":         schema_pkg_apis_networkservicemeshio_v1_NetworkServiceList(ref),
-		"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkService":                          schema_pkg_nsm_apis_netmesh_NetworkService(ref),
-		"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceChannel":                   schema_pkg_nsm_apis_netmesh_NetworkServiceChannel(ref),
-		"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceEndpoint":                  schema_pkg_nsm_apis_netmesh_NetworkServiceEndpoint(ref),
 	}
 }
 
@@ -80,96 +75,6 @@ func schema_pkg_apis_networkservicemeshio_v1_NetworkService(ref common.Reference
 		},
 		Dependencies: []string{
 			"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceStatus", "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkService", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_networkservicemeshio_v1_NetworkServiceChannel(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "NetworkServiceChannel CRD",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceChannel"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceChannelStatus"),
-						},
-					},
-				},
-				Required: []string{"spec"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceChannelStatus", "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceChannel", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_networkservicemeshio_v1_NetworkServiceChannelList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "NetworkServiceChannelList is the list schema for this CRD -genclient",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceChannel"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceChannel", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -306,107 +211,5 @@ func schema_pkg_apis_networkservicemeshio_v1_NetworkServiceList(ref common.Refer
 		},
 		Dependencies: []string{
 			"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkService", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
-func schema_pkg_nsm_apis_netmesh_NetworkService(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata"),
-						},
-					},
-					"channel": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceChannel"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata", "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceChannel"},
-	}
-}
-
-func schema_pkg_nsm_apis_netmesh_NetworkServiceChannel(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata"),
-						},
-					},
-					"network_service_name": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"nse_provider_name": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"payload": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"socket_location": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"interface": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Interface"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Interface", "github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata"},
-	}
-}
-
-func schema_pkg_nsm_apis_netmesh_NetworkServiceEndpoint(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Metadata"},
 	}
 }

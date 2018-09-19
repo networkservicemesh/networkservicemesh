@@ -55,9 +55,7 @@ type Plugin struct {
 
 	// These can be used to stop all the informers, as well as control loops
 	// within the application.
-	stopChNS  chan struct{}
-	stopChNSE chan struct{}
-	stopChNSC chan struct{}
+	stopChNS chan struct{}
 	// sharedFactory is a shared informer factory used as a cache for
 	// items in the API server. It saves each informer listing and watches the
 	// same resources independently of each other, thus providing more up to
@@ -65,9 +63,7 @@ type Plugin struct {
 	sharedFactory factory.SharedInformerFactory
 
 	// Informer factories per CRD object
-	informerNS  cache.SharedIndexInformer
-	informerNSE cache.SharedIndexInformer
-	informerNSC cache.SharedIndexInformer
+	informerNS cache.SharedIndexInformer
 }
 
 // Deps defines dependencies of CRD plugin.
@@ -93,12 +89,8 @@ func (plugin *Plugin) init() error {
 		return err
 	}
 	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
-
 	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
-
 	plugin.stopChNS = make(chan struct{})
-	plugin.stopChNSC = make(chan struct{})
-	plugin.stopChNSE = make(chan struct{})
 
 	return plugin.afterInit()
 }
@@ -178,17 +170,6 @@ func (plugin *Plugin) afterInit() error {
 		return err
 	}
 
-	err = newCustomResourceDefinition(plugin, v1.FullNSMChannelName,
-		v1.NSMGroup,
-		v1.NSMGroupVersion,
-		v1.NSMChannelPlural,
-		v1.NSMChannelTypeName)
-
-	if err != nil {
-		plugin.Log.Error("Error initializing NetworkServiceChannel CRD")
-		return err
-	}
-
 	err = newCustomResourceDefinition(plugin, v1.FullNSMName,
 		v1.NSMGroup,
 		v1.NSMGroupVersion,
@@ -208,10 +189,6 @@ func (plugin *Plugin) afterInit() error {
 
 	plugin.informerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Informer()
 	setupInformer(plugin.informerNS, queueNS)
-	plugin.informerNSC = plugin.sharedFactory.Networkservice().V1().NetworkServiceChannels().Informer()
-	setupInformer(plugin.informerNSC, queueNSC)
-	plugin.informerNSE = plugin.sharedFactory.Networkservice().V1().NetworkServiceEndpoints().Informer()
-	setupInformer(plugin.informerNSE, queueNSE)
 
 	// Start the informer. This will cause it to begin receiving updates from
 	// the configured API server and firing event handlers in response.
@@ -220,15 +197,13 @@ func (plugin *Plugin) afterInit() error {
 
 	// Wait for the informer caches to finish performing it's initial sync of
 	// resources
-	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced, plugin.informerNSC.HasSynced, plugin.informerNSE.HasSynced) {
+	if !cache.WaitForCacheSync(plugin.stopChNS, plugin.informerNS.HasSynced) {
 		plugin.Log.Error("Error waiting for informer cache to sync")
 	}
 	plugin.Log.Info("Informer cache is ready")
 
 	// Read forever from the work queue
 	go workforever(plugin, queueNS, plugin.informerNS, plugin.stopChNS)
-	go workforever(plugin, queueNSC, plugin.informerNSC, plugin.stopChNSC)
-	go workforever(plugin, queueNSE, plugin.informerNSE, plugin.stopChNSE)
 
 	return nil
 }

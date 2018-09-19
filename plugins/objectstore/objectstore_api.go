@@ -17,7 +17,8 @@ package objectstore
 import (
 	"time"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	// "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
 
@@ -32,13 +33,13 @@ const (
 type Interface interface {
 	ObjectCreated(obj interface{})
 	ObjectDeleted(obj interface{})
-	GetNetworkService(nsName, nsNamespace string) *netmesh.NetworkService
-	AddChannelToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
-	AddChannel(nch *netmesh.NetworkServiceChannel)
-	DeleteChannelFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceChannel) error
-	DeleteNSE(nseServer, namespace string)
-	ListNetworkServices() []*netmesh.NetworkService
-	GetChannelsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceChannel
+	GetNetworkService(nsName string) *v1.NetworkService
+	//	AddEndpointToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error
+	//	AddEndpoint(nch *netmesh.NetworkServiceEndpoint)
+	//	DeleteEndpointFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error
+	//	DeleteNSE(nseServer, namespace string)
+	ListNetworkServices() []*v1.NetworkService
+	//	GetEndpointsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceEndpoint
 }
 
 // PluginAPI - API for the Plugin

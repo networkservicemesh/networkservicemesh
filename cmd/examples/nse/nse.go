@@ -20,15 +20,12 @@ import (
 	"net"
 	"os"
 	"path"
-	"path/filepath"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -41,27 +38,26 @@ import (
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
 	networkServiceName = "gold-network"
+	// EndpointSocketBaseDir defines the location of NSM Endpoints listen socket
+	EndpointSocketBaseDir = "/var/lib/networkservicemesh"
+	// EndpointSocket defines the name of NSM Endpoints operations socket
+	EndpointSocket = "nsm.endpoint.io.sock"
 )
 
 var (
-	clientSocketPath     = path.Join(nsmserver.SocketBaseDir, nsmserver.ServerSock)
-	clientSocketUserPath = flag.String("nsm-socket", "", "Location of NSM process client access socket")
-	nseSocketName        = flag.String("nse-socket", "nse.ligato.io.sock", "Name of NSE socket whcih will be used by NSM for Connection Request call")
-	kubeconfig           = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
+	kubeconfig = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
 )
 
 type nseConnection struct {
-	metadata           *common.Metadata
 	podUID             string
 	networkServiceName string
 	linuxNamespace     string
 }
 
-func (n nseConnection) RequestNSEConnection(ctx context.Context, req *nseconnect.NSEConnectionRequest) (*nseconnect.NSEConnectionReply, error) {
+func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseconnect.EndpointConnectionRequest) (*nseconnect.EndpointConnectionReply, error) {
 
-	return &nseconnect.NSEConnectionReply{
+	return &nseconnect.EndpointConnectionReply{
 		RequestId:          n.podUID,
-		Metadata:           n.metadata,
 		NetworkServiceName: n.networkServiceName,
 		LinuxNamespace:     n.linuxNamespace,
 	}, nil
@@ -126,92 +122,81 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Checking if non default location of NSM socket was provided
-	clientSocket := clientSocketPath
-	if clientSocketUserPath != nil {
-		clientSocket = *clientSocketUserPath
-	}
-
-	if _, err := os.Stat(clientSocket); err != nil {
-		logrus.Fatalf("nse: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
-	}
-
-	conn, err := tools.SocketOperationCheck(clientSocket)
-	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with nsm on the socket %s with error: %+v", clientSocket, err)
-	}
-	logrus.Infof("nse: connection to nsm server on the socket: %s succeeded.", clientSocket)
-	defer conn.Close()
-
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
-	nsePath, _ := filepath.Split(clientSocket)
-	nseSocket := path.Join(nsePath, *nseSocketName)
-	if err := tools.SocketCleanup(nseSocket); err != nil {
-		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", nseSocket, err)
+	connectionServerSocket := path.Join(EndpointSocketBaseDir, podUID+".nse.io.sock")
+	if err := tools.SocketCleanup(connectionServerSocket); err != nil {
+		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", connectionServerSocket, err)
 	}
-	nse, err := net.Listen("unix", nseSocket)
+
+	logrus.Infof("nse: listening socket %s", connectionServerSocket)
+	connectionServer, err := net.Listen("unix", connectionServerSocket)
+	if err != nil {
+		logrus.Fatalf("nse: failure to listen on a socket %s with error: %+v", connectionServerSocket, err)
+	}
 	grpcServer := grpc.NewServer()
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
 	nseConn := nseConnection{
-		metadata: &common.Metadata{
-			Name:      podName,
-			Namespace: namespace,
-		},
 		podUID:             podUID,
 		networkServiceName: networkServiceName,
 		linuxNamespace:     linuxNS,
 	}
 
-	nseconnect.RegisterNSEConnectionServer(grpcServer, nseConn)
+	nseconnect.RegisterEndpointConnectionServer(grpcServer, nseConn)
 	go func() {
 		wg.Add(1)
-		if err := grpcServer.Serve(nse); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %+v ", nseSocket, err)
+		if err := grpcServer.Serve(connectionServer); err != nil {
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %+v ", connectionServerSocket, err)
 		}
 	}()
-	// Check if the socket of device plugin server is operation
-	testSocket, err := tools.SocketOperationCheck(nseSocket)
+	// Check if the socket of Endpoint Connection Server is operation
+	testSocket, err := tools.SocketOperationCheck(connectionServerSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", nseSocket, err)
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", connectionServerSocket, err)
 	}
 	testSocket.Close()
 
-	// Ok, NSE server is ready and now the channel can be advertised to NSM
-	nsmClient := nsmconnect.NewClientConnectionClient(conn)
+	// NSE connection server is ready and now endpoints can be advertised to NSM
+	advertiseSocket := path.Join(EndpointSocketBaseDir, EndpointSocket)
 
-	channel := netmesh.NetworkServiceChannel{
-		Metadata: &common.Metadata{
-			Name: "gold-net-channel-1",
-		},
+	if _, err := os.Stat(advertiseSocket); err != nil {
+		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", advertiseSocket, err)
+		os.Exit(1)
+	}
+
+	conn, err := tools.SocketOperationCheck(advertiseSocket)
+	if err != nil {
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", advertiseSocket, err)
+	}
+	defer conn.Close()
+	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", advertiseSocket)
+
+	advertieConnection := nseconnect.NewEndpointOperationsClient(conn)
+
+	endpoint := netmesh.NetworkServiceEndpoint{
 		NseProviderName:    podName,
 		NetworkServiceName: networkServiceName,
-		Payload:            "ipv4",
-		SocketLocation:     nseSocket,
+		SocketLocation:     connectionServerSocket,
 		Interface: []*common.Interface{
 			{
-				Type: common.InterfaceType_KERNEL_INTERFACE,
-				Metadata: &common.Metadata{
-					Name: "kernel_interface_1",
-				},
+				Type:       common.InterfaceType_KERNEL_INTERFACE,
 				Preference: common.InterfacePreference_FIRST,
 			},
 		},
 	}
-	channels := make([]*netmesh.NetworkServiceChannel, 0)
-	channels = append(channels, &channel)
-	resp, err := nsmClient.RequestAdvertiseChannel(context.Background(), &nsmconnect.ChannelAdvertiseRequest{
-		NetmeshChannel: channels,
+	resp, err := advertieConnection.AdvertiseEndpoint(context.Background(), &nseconnect.EndpointAdvertiseRequest{
+		RequestId:       podUID,
+		NetworkEndpoint: &endpoint,
 	})
 	if err != nil {
 		grpcServer.Stop()
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", clientSocket, err)
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", advertiseSocket, err)
 
 	}
-	if !resp.Success {
+	if !resp.Accepted {
 		grpcServer.Stop()
-		logrus.Fatalf("nse: NSM response is inidcating failure of accepting Channel Advertisiment.")
+		logrus.Fatalf("nse: NSM response is inidcating failure of accepting endpoint Advertisiment.")
 	}
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")

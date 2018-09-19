@@ -18,6 +18,4 @@ package v1
 
 type NetworkServiceExpansion interface{}
 
-type NetworkServiceChannelExpansion interface{}
-
 type NetworkServiceEndpointExpansion interface{}

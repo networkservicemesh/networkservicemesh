@@ -17,6 +17,7 @@
 package nsmserver
 
 import (
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
@@ -24,8 +25,7 @@ import (
 	"github.com/ligato/networkservicemesh/utils/registry"
 )
 
-// Plugin watches K8s resources and causes all changes to be reflected in the ETCD
-// data store.
+// Plugin groups together resources and functions required for nsm server to run
 type Plugin struct {
 	Deps
 	nsmClientEndpoints nsmClientEndpoints
@@ -38,6 +38,8 @@ type Deps struct {
 	Name        string
 	Log         logger.FieldLoggerPlugin
 	ObjectStore objectstore.PluginAPI
+	Client      k8sclient.PluginAPI
+	KubeConfig  string `empty_value_ok:"true"`
 }
 
 // Init initializes ObjectStore plugin
@@ -51,8 +53,13 @@ func (p *Plugin) init() error {
 	if err != nil {
 		return err
 	}
-	err = NewNSMDevicePlugin(p.Deps.Log, p.Deps.ObjectStore)
-	return err
+	if err := NewNSMDeviceServer(p.Deps.Log, p.Deps.ObjectStore); err != nil {
+		return err
+	}
+	if err := NewNSMEndpointServer(p); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close is called when the plugin is being stopped
