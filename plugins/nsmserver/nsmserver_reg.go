@@ -105,6 +105,7 @@ func NewNSMDeviceServer(p *Plugin) error {
 		k8sClient:         p.Deps.Client.GetClientset(),
 		nsmClient:         p.Deps.Client.GetNSMClientset(),
 		namespace:         p.namespace,
+		nsmPodIPAddress:   p.nsmPodIPAddress,
 	}
 	for i := 0; i < initDeviceCount; i++ {
 		nsm.nsmSockets[strconv.Itoa(i)] = nsmSocket{device: &pluginapi.Device{ID: strconv.Itoa(i), Health: pluginapi.Healthy}}

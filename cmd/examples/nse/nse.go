@@ -175,17 +175,15 @@ func main() {
 	advertieConnection := nseconnect.NewEndpointOperationsClient(conn)
 
 	endpoint := netmesh.NetworkServiceEndpoint{
-		NseProviderName:    podName,
+		NseProviderName:    podUID,
 		NetworkServiceName: networkServiceName,
 		SocketLocation:     connectionServerSocket,
 		Interface: []*common.Interface{
 			{
-				Type:       common.InterfaceType_KERNEL_INTERFACE,
-				Preference: common.InterfacePreference_FIRST,
+				Type: common.InterfaceType_KERNEL_INTERFACE,
 			},
 		},
 	}
-	logrus.Infof("Endpoint %+v \n %T", endpoint, endpoint)
 	resp, err := advertieConnection.AdvertiseEndpoint(context.Background(), &nseconnect.EndpointAdvertiseRequest{
 		RequestId:       podUID,
 		NetworkEndpoint: &endpoint,

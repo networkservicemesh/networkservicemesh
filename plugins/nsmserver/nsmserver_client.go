@@ -21,9 +21,11 @@ package nsmserver
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
@@ -63,9 +65,10 @@ type nsmClientEndpoints struct {
 	// Second key is NetworkService name
 	clientConnections map[string]map[string]*clientNetworkService
 	sync.RWMutex
-	k8sClient *kubernetes.Clientset
-	nsmClient *nsmclient.Clientset
-	namespace string
+	k8sClient       *kubernetes.Clientset
+	nsmClient       *nsmclient.Clientset
+	namespace       string
+	nsmPodIPAddress string
 }
 
 type nsmSocket struct {
@@ -113,6 +116,18 @@ func getNetworkServiceEndpoint(
 		return nil, err
 	}
 	return endpointList.Items, nil
+}
+
+// getLocalEndpoint returns a slice of nsmapi.NetworkServiceEndpoint with only
+// entries matching NSM Pod ip address.
+func getLocalEndpoint(endpointList []nsmapi.NetworkServiceEndpoint, nsmPodIPAddress string) []nsmapi.NetworkServiceEndpoint {
+	localEndpoints := []nsmapi.NetworkServiceEndpoint{}
+	for _, ep := range endpointList {
+		if ep.Spec.NetworkServiceHost == nsmPodIPAddress {
+			localEndpoints = append(localEndpoints, ep)
+		}
+	}
+	return localEndpoints
 }
 
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
@@ -172,23 +187,43 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 				cr.RequestId, cr.NetworkServiceName),
 		}, status.Error(codes.NotFound, "failed no endpoints were found for requested Network Service")
 	}
+
+	// At this point there is a list of Endpoints providing a network service requested by the client.
+	// The following code goes through a selection process, starting from identifying local to NSM
+	// Endpoints.
+	// TODO (sbezverk) When support for Remote Endpoints get added, then this error message should be removed.
+	endpoints := getLocalEndpoint(endpointList, n.nsmPodIPAddress)
+	if len(endpoints) == 0 {
+		return &nsmconnect.ConnectionReply{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("connection request %s failed no local endpoints were found for requested Network Service %s, but remote endpoints are not yet supported",
+				cr.RequestId, cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "failed no local endpoints were found for requested Network Service")
+	}
+	// It is a new Connection request for known NetworkService, need to check if requested interface
+	// parameters have a match with ones of known Network Service Endpoints. If not, return error
+	sortedInterfaces := sortedInterfaceList{}
+	sortedInterfaces.interfaceList = cr.Interface
+	sort.Sort(sortedInterfaces)
+
+	// getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
+	// only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
+	endpoints = getEndpointWithInterface(endpoints, sortedInterfaces.interfaceList)
+	if len(endpoints) == 0 {
+		return &nsmconnect.ConnectionReply{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("no advertised endpoints for Network Service %s, support required interface", cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "required interface type not found")
+	}
+
+	// At this point endpoints contains slice of endpoints matching requested network service and matching client's requested
+	// interface type. Until more sofisticated algorithm is proposed, selecting a random entry from the slice.
+	src := rand.NewSource(time.Now().Unix())
+	rnd := rand.New(src)
+	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
+	n.logger.Infof("Endpoint (%+v) selected for network service %s", selectedEndpoint, cr.NetworkServiceName)
+
 	/*
-		// It is a new Connection request for known NetworkService, need to check if requested interface
-		// parameters have a match with ones of known NetworkService. If not, return error
-		sortedInterfaces := sortedInterfaceList{}
-		sortedInterfaces.interfaceList = cr.Interface
-		sort.Sort(sortedInterfaces)
-
-		// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm, possible consider
-		// other attributes.
-		channel, found := findInterface(ns, sortedInterfaces.interfaceList)
-		if !found {
-			return &nsmconnect.ConnectionAccept{
-				Accepted:       false,
-				AdmissionError: fmt.Sprintf("no advertised channels for Network Service %s, support required interface", cr.NetworkServiceName),
-			}, status.Error(codes.NotFound, "required interface type not found")
-		}
-
 		// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
 		// and wait for complition.
 		clientNS := clientNetworkService{
@@ -285,20 +320,31 @@ func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
 	n.Unlock()
 }
 
-/*
-func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Interface) (*netmesh.NetworkServiceChannel, bool) {
-	for _, c := range ns.Channel {
-		for _, i := range c.Interface {
-			for _, iReq := range reqInterfacesSorted {
-				if i.Type == iReq.Type {
-					return c, true
+// getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
+// only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
+func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqInterfacesSorted []*common.Interface) []nsmapi.NetworkServiceEndpoint {
+	endpoints := []nsmapi.NetworkServiceEndpoint{}
+	found := false
+	// Loop over a list of required interfaces, since it is sorted, the loop starts with first choice.
+	// if no first choice matches found, loop goes to the second choice, etc., otherwise function
+	// returns collected slice of endpoints with matching interface type.
+	for _, iReq := range reqInterfacesSorted {
+		for _, ep := range endpointList {
+			for _, intf := range ep.Spec.Interface {
+				if iReq.Type == intf.Type {
+					found = true
+					endpoints = append(endpoints, ep)
 				}
 			}
 		}
+		if found {
+			break
+		}
 	}
-	return nil, false
+
+	return endpoints
 }
-*/
+
 // TODO (sbezverk) Current assumption is that NSM client is requesting connection for  NetworkService
 // from the same namespace. If it changes, refactor maybe required.
 func isInProgress(networkService *clientNetworkService) bool {

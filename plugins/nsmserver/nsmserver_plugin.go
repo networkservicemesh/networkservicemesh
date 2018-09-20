@@ -34,6 +34,7 @@ type Plugin struct {
 	nsmClientEndpoints nsmClientEndpoints
 	pluginStopCh       chan bool
 	namespace          string
+	nsmPodIPAddress    string
 	idempotent.Impl
 }
 
@@ -60,7 +61,11 @@ func (p *Plugin) init() error {
 	// Getting NSM's Namespace
 	p.namespace = os.Getenv("NSM_NAMESPACE")
 	if p.namespace == "" {
-		return fmt.Errorf("cannot detect namespace, make sure NAMESPACE variable is set via downward api")
+		return fmt.Errorf("cannot detect namespace, make sure NSM_NAMESPACE variable is set via downward api")
+	}
+	p.nsmPodIPAddress = os.Getenv("NSM_IPADDRESS")
+	if p.nsmPodIPAddress == "" {
+		return fmt.Errorf("cannot detect nsm pod ip address, make sure NSM_IPADDRESS variable is set via downward api")
 	}
 	if err := NewNSMDeviceServer(p); err != nil {
 		return err

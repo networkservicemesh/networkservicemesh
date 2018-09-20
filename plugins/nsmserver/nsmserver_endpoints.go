@@ -52,6 +52,7 @@ type nsmEndpointServer struct {
 	endPointSocketPath string
 	stopChannel        chan bool
 	nsmNamespace       string
+	nsmPodIPAddress    string
 }
 
 func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
@@ -95,6 +96,11 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 		},
 		Spec: ar.NetworkEndpoint,
 	}
+	// nsmPodIPAddress in Network Service Endpoint object will indicate that
+	// it was orginated by this specific NSM and remote NSM will use this IP address
+	// for NSM2NSM gRPC communication.
+	endpoint.Spec.NetworkServiceHost = e.nsmPodIPAddress
+	endpoint.Spec.NseProviderNamespace = e.nsmNamespace
 	_, err = e.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(e.nsmNamespace).Create(endpoint)
 	if err != nil {
 		// something bad happened while attempting to create a new object, logging error and exit.
@@ -175,6 +181,7 @@ func NewNSMEndpointServer(p *Plugin) error {
 		endPointSocketPath: path.Join(EndpointSocketBaseDir, EndpointSocket),
 		stopChannel:        make(chan bool),
 		nsmNamespace:       p.namespace,
+		nsmPodIPAddress:    p.nsmPodIPAddress,
 	}
 
 	var err error
