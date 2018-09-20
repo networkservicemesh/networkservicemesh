@@ -118,74 +118,151 @@ The Network Service Manager API is defined in protobuf for communication over gr
 In this message Client&#39;s local NSM proxying Network Service request to NSE&#39;s local NSM.  2 NSMs need to agree upon a tunneling technology supported by both, hence a list of tunnel types is a part of the request message.
 
 ```proto
+/*
+ *  RemoteConnectionRequest is sent from one NSM1 to NSM2 to seek to establish an L2/L3 connection to an NSE
+ *  being 'managed' by NSM2 on behalf of an NSC being managed by NSM1.  
+ *
+ *  request_id - id for the request, should be unique between NSM1 and NSM2
+ *  network_service_name - the name of the network service NSM1 is seeking to connect to
+ *  network_service_endpoint_name - the name of the network service endpoint NSM1 is seeking to connect to
+ *  nse_provider_name - the name of the nse we are seeking a request to.  This should match the name in the 
+ *                      Network Service Registry for the NSE
+ *  remote_mechanisms - a list of remote mechanisms that can be used for the L2/L3 connection.
+ *                           The list should be interpreted with descending order of priority.  NSM2 should
+ *                           Seek to provide the highest priority remote mechanism it can.
+ */
 message RemoteConnectionRequest {
    required string request_id = 1;
-   optional string network_registry_name = 2; // Do we want to have a way to identify the registry domain here?
-   required string network_service_name = 3;
-   string nse_provider_name = 4;
-   repeated RemoteMechanismRequest tunnel_type = 5;
+   required string network_service_name = 2;
+   required string nse_provider_name = 4;
+   repeated RemoteMechanismRequest remote_mechanisms = 5;
 }
 
-message RemoteConnectionReply {
-    required string request_id = 1;
-    required bool accepted = 2;
-    optional admission_error = 3;
-    required RemoteMechanismReply = 4;
+/* 
+ * RemoteMechnismRequest defines a request for a particular remote mechanism
+ *
+ * RemoteMechanismType - type of remote mechanism being requested
+ * constraints - constraints on the remote mechanism.
+ */
+message RemoteMechanismRequest {
+    required RemoteMechanismType = 1;
+    repeated constraints RemoteMechanismConstrint = 2
 }
 
 /* 
  *  Initial attempt to define remote mechanism types.  Very preliminary
  */
 enum RemoteMechanismType {
-    NONE = 1; // For use when connection is not accepted
-    VXLAN = 2;
-    VXLAN-GPE = 3;
-    GRE = 4;
-    MPLSoEthernet = 5;
-    MPLSoGRE = 6;
-    MPLSoUDP = 7;
+    NONE = 0; // For use when connection is not accepted
+    VXLAN = 1;
+    VXLAN-GPE = 2;
+    GRE = 3;
+    MPLSoEthernet = 4;
+    MPLSoGRE = 5;
+    MPLSoUDP = 6;
+}
+
+message RemoteMechanismConstraint {
+    required oneof constraint {
+        None_Constraint none_constraint = 1;
+        Vxlan_Constaint vxlan_constraint = 2;
+        Vxlan_Gpe_Constraint vxlan_gpe_request = 3;
+        Gre_Constraint gre_constraint = 4;
+        Mpls_O_Ethernet_Constraint mpls_o_ethernet_constraint = 5;
+        Mpls_O_Gre_Constraint mpls_o_gre_constraint = 6;
+        Mpls_O_Udp_Constraint mpls_o_udp_constraint = 7;
+    }
 }
 
 /*
- * Vxlan used as example, others will have to be filled out
+ * VxlanConstraint - represents a set of constraints communicated by NSM1 to NSM2
+ *                   describing acceptable vxlan parameters
+ * requestor_ip - Acceptable source ip on NSM1 for the VXLAN tunnel
+ * requestor_port - Acceptable port on NSM1 for the VXLAN tunnel
+ * excluded_vnis - a list of the VNI ranges not usable on NSM1 for the ip:port
  */
-message Vxlan_Parameters {
-    required bytes src_ip = 1;
-    required bytes dst_ip = 2;
-    optional bytes src_port = 3;
-    optional bytes dst_port = 4;
-    required unint32 vni = 5;
+message VxlanConstraint {
+    required bytes requestor_ip = 1;
+    required bytes requestor_port = 2;
+    repeated VniRange exclude_vnis = 3;
+}
+
+/*
+ * VniRange - a range of VNIs
+ * 
+ * vni - start vni of the range
+ * count - number of vnis in the range
+ */
+message VniRange {
+    required uint32 vni = 1;
+    required uint32 count = 2;
+}
+
+/*
+ * TODO - Define other types of constraints here 
+ */
+
+
+/* 
+ * RemoteConnectionReply - response sent from NSM2 to NSM1 in response to a 
+ *                         RemoteConnectionRequest
+ * request_id - Request id sent by NSM1 to NSM2 in the RemoteConnectionRequest
+ *              this is a reply to
+ * accepted - true if the connection is accepted, false if the connection is rejected
+ * admission_error - optional string representing the error if accepted == false
+ * remote_mechanism_type - remote mechanism seleted by NSM2 from the options presented by
+ *                         NSM1
+ * remote_mechanism_parameters - parameters selected by NSM2 for the remote mechanism
+ */
+message RemoteConnectionReply {
+    required string request_id = 1;
+    required bool accepted = 2;
+    optional string admission_error = 3;
+    required RemoteMechanismType remote_mechanism_type = 4;
+    required RemoteMechanismParameters remote_mechanism_parameters= 5;
 }
 
 message RemoteMechanismParameters {
-    oneof {
+    oneof mechanism {
         None_Parameters = 1;
         Vxlan_Parameters = 2; // Only vxlan parameters specified so far
         Vxlan_Gpe_Parameters = 3;
         Gre_Parameters = 4;
-        Mpls_O_Ethernet = 5;
-        Mpls_O_Gre = 6;
-        Mpls_O_Udp = 7;
+        Mpls_O_Ethernet_Parameters = 5;
+        Mpls_O_Gre_Parameters = 6;
+        Mpls_O_Udp_Parameters = 7;
     }
 }
 
-message RemoteMechanismRequest {
-    required RemoteMechanismType = 1;
-    oneof {
-        None_Constraints = 1;
-        Vxlan_Constaints = 2;
-        Vxlan_Gpe_Constraints = 3;
-        Gre_Constraints = 4;
-        Mpls_O_Ethernet_Constraints = 5;
-        Mpls_O_Gre_Constraint = 6;
-        Mpls_O_Udp_Constraint = 7;
-    } 
+/*
+ * Vxlan used as example, others will have to be filled out
+ * 
+ * requestor_ip - ip of the requestor's (NSM1) end of the tunnel
+ * requestee_ip - ip of the requestee's (NSM2) end of the tunnel
+ * requestor_port - port of the requestor's (NSM1) end of the tunnel
+ * requetee_port - port of the requestee's (NSM2) end of the tunnel
+ * vni - vxlan vni
+ */
+message Vxlan_Parameters {
+    required bytes requestor_ip = 1;
+    required bytes requestee_ip = 2;
+    required bytes requestor_port = 3;
+    required bytes requestee_port = 4;
+    required unint32 vni = 5;
 }
 
-message RemoteMechanismReply {
-    required RemoteMechanismType = 1;
-    required RemoteMechanismParameterReply = 2;
+message Vxlan_Gpe_Parameters {
+    required Vxlan_Parameters vxlan_parameters = 1;
+    requited uint32 next_proto = 2;
 }
+
+/*
+ * TODO - other RemoteMechanismParameters
+ */ 
+
+/* 
+ * TODO - we currently cover tunnel negotiation here, we need to also handle address/route negotiation as well
+ */
 ```
 
 
