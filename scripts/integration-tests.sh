@@ -34,11 +34,6 @@ function run_tests() {
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
     typeset -i cnt=240
-    until kubectl get crd | grep networkservicechannels.networkservicemesh.io ; do
-        ((cnt=cnt-1)) || return 1
-        sleep 2
-    done
-    typeset -i cnt=240
     until kubectl get crd | grep networkserviceendpoints.networkservicemesh.io ; do
         ((cnt=cnt-1)) || return 1
         sleep 2
@@ -57,7 +52,7 @@ function run_tests() {
     wait_for_networkservice default
 
     #
-    # Starting nse pod which will advertise a channel for gold-network
+    # Starting nse pod which will advertise an endpoint for gold-network
     # network service
     kubectl create -f conf/sample/nse.yaml
     kubectl create -f conf/sample/test-dataplane.yaml
@@ -65,7 +60,7 @@ function run_tests() {
  
     #
     # Starting nsm client pod, nsm-client pod should discover gold-network
-    # network service along with its channel and interface
+    # network service along with its endpoint and interface
     kubectl create -f conf/sample/nsm-client.yaml
 
     #
@@ -149,7 +144,7 @@ function run_tests() {
     kubectl logs "$(kubectl get pods -o name | grep nse )"
     kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
     kubectl logs "$(kubectl get pods -o name | grep test-dataplane )"
-    kubectl get NetworkService,NetworkServiceEndpoint,NetworkServiceChannel --all-namespaces
+    kubectl get NetworkService,NetworkServiceEndpoint --all-namespaces
 
     # Need to get kubeconfig full path
     # NOTE: Disable this for now until we fix the timing issue
