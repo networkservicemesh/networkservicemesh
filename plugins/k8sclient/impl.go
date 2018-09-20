@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
@@ -35,6 +36,7 @@ type Plugin struct {
 
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
+	nsmClient       *nsmclient.Clientset
 }
 
 // Init Plugin
@@ -56,6 +58,10 @@ func (p *Plugin) init() error {
 	p.k8sClientset, err = kubernetes.NewForConfig(p.k8sClientConfig)
 	if err != nil {
 		return fmt.Errorf("failed to build kubernetes client: %s", err)
+	}
+	p.nsmClient, err = nsmclient.NewForConfig(p.k8sClientConfig)
+	if err != nil {
+		return fmt.Errorf("failed to build networkservicemesh client: %s", err)
 	}
 
 	return nil
@@ -79,4 +85,9 @@ func (p *Plugin) GetClientConfig() *rest.Config {
 // GetClientset returns a pointer to our kubernetes.Clientset object
 func (p *Plugin) GetClientset() *kubernetes.Clientset {
 	return p.k8sClientset
+}
+
+// GetNSMClientset returns a pointer to our nsmClient.Clientset object
+func (p *Plugin) GetNSMClientset() *nsmclient.Clientset {
+	return p.nsmClient
 }
