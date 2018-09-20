@@ -16,7 +16,7 @@ package nsmcommand
 
 import (
 	"github.com/ligato/networkservicemesh/plugins/crd"
-	// "github.com/ligato/networkservicemesh/plugins/finalizer"
+	"github.com/ligato/networkservicemesh/plugins/finalizer"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -31,5 +31,5 @@ type Deps struct {
 	NSMServer   nsmserver.PluginAPI
 	CRD         crd.PluginAPI
 	ObjectStore objectstore.Interface
-	// Finalizer   finalizer.PluginAPI
+	Finalizer   finalizer.PluginAPI
 }

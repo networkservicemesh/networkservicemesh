@@ -31,8 +31,12 @@ import (
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
+	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
+	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -43,10 +47,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
-	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
-
-	// apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -81,7 +81,8 @@ type nsmSocket struct {
 // clientNetworkService struct represents requested by a NSM client NetworkService and its state, isInProgress true
 // indicates that DataPlane programming operation is on going, so no duplicate request for Dataplane processing should occur.
 type clientNetworkService struct {
-	networkService       *netmesh.NetworkService
+	networkService       *nsmapi.NetworkService
+	endpoint             *nsmapi.NetworkServiceEndpoint
 	ConnectionParameters *nsmconnect.ConnectionParameters
 	// isInProgress indicates ongoing dataplane programming
 	isInProgress bool
@@ -221,97 +222,117 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	src := rand.NewSource(time.Now().Unix())
 	rnd := rand.New(src)
 	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
-	n.logger.Infof("Endpoint (%+v) selected for network service %s", selectedEndpoint, cr.NetworkServiceName)
+	n.logger.Infof("Endpoint (%+v) selected for network service %s", selectedEndpoint.Spec, cr.NetworkServiceName)
 
-	/*
-		// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
-		// and wait for complition.
-		clientNS := clientNetworkService{
-			networkService: &netmesh.NetworkService{
-				Metadata: ns.Metadata,
-				Channel:  []*netmesh.NetworkServiceChannel{channel},
+	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
+	// and wait for complition.
+	clientNS := clientNetworkService{
+		networkService: &nsmapi.NetworkService{
+			Spec: &netmesh.NetworkService{
+				NetworkServiceName: cr.NetworkServiceName,
 			},
-			isInProgress:         true,
-			ConnectionParameters: &nsmconnect.ConnectionParameters{},
-		}
-		n.Lock()
-		n.clientConnections[cr.RequestId] = make(map[string]*clientNetworkService, 0)
-		n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
-		n.Unlock()
+		},
+		endpoint:             &selectedEndpoint,
+		isInProgress:         true,
+		ConnectionParameters: &nsmconnect.ConnectionParameters{},
+	}
+	n.Lock()
+	n.clientConnections[cr.RequestId] = make(map[string]*clientNetworkService, 0)
+	n.clientConnections[cr.RequestId][cr.NetworkServiceName] = &clientNS
+	n.Unlock()
 
-		// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
-		nseConn, err := tools.SocketOperationCheck(channel.SocketLocation)
-		if err != nil {
-			n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
+	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
+	// There are three path where selectedEndpoint points to:
+	// 1 - local NSE,
+	// 2 - remote NSE (not implmented), local NSM contacts remote NSM and in case of success attempts to build local
+	//     end of a tunnel between NSM client pod and NSE providiong requested service.
+	// 3 - Network Service Wiring (not implemented).
+
+	// Local NSE case
+	if selectedEndpoint.Spec.NetworkServiceHost == n.nsmPodIPAddress {
+		if err := localNSE(n, cr.RequestId, cr.NetworkServiceName); err != nil {
+			n.logger.Errorf("nsm: failed to communicate with local NSE over the socket %s with error: %+v", selectedEndpoint.Spec.SocketLocation, err)
 			cleanConnectionRequest(cr.RequestId, n)
-			return &nsmconnect.ConnectionAccept{
+			return &nsmconnect.ConnectionReply{
 				Accepted:       false,
-				AdmissionError: fmt.Sprintf("failed to communicate with NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
-			}, status.Error(codes.Aborted, "communication failure with NSE")
+				AdmissionError: fmt.Sprintf("failed to communicate with local NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
+			}, status.Error(codes.Aborted, "communication failure with local NSE")
 		}
-		defer nseConn.Close()
-		nseClient := nseconnect.NewNSEConnectionClient(nseConn)
-
-		nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-		defer nseCancel()
-		nseRepl, err := nseClient.RequestNSEConnection(nseCtx, &nseconnect.NSEConnectionRequest{
-			RequestId: cr.RequestId,
-			Metadata:  cr.Metadata,
-			Channel:   channel,
-		})
-		if err != nil {
-			n.logger.Errorf("nsm: failed to get information from NSE with error: %+v", err)
-			cleanConnectionRequest(cr.RequestId, n)
-			return &nsmconnect.ConnectionAccept{
-				Accepted:       false,
-				AdmissionError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
-			}, status.Error(codes.Aborted, "communication failure with NSE")
-		}
-		n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
-
-		// podName1/podNamespace1 represents nsm client requesting access to a network service
-		podName1 := cr.Metadata.Name
-		podNamespace1 := "default"
-		if cr.Metadata.Namespace != "" {
-			podNamespace1 = cr.Metadata.Namespace
-		}
-
-		// podName2/podNamespace2 represents nse pod
-		podName2 := nseRepl.Metadata.Name
-		podNamespace2 := "default"
-		if cr.Metadata.Namespace != "" {
-			podNamespace2 = cr.Metadata.Namespace
-		}
-
-		if err := dataplaneutils.ConnectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
-			n.logger.Errorf("nsm: failed to interconnect pods %s/%s and %s/%s with error: %+v",
-				podNamespace1,
-				podName1,
-				podNamespace2,
-				podName2,
-				err)
-			return &nsmconnect.ConnectionAccept{
-				Accepted: false,
-				AdmissionError: fmt.Sprintf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
-					podNamespace1,
-					podName1,
-					podNamespace2,
-					podName2,
-					err),
-			}, status.Error(codes.Aborted, "failed to interconnect pods")
-		}
-		// Simulating sucessfull end
 		n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
 			cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
 
 		// nsm client requesting connection is one time operation and it does not seem require to keep state
 		// after it either succeeded or failed. It seems safe to delete completed Connection Request.
 		cleanConnectionRequest(cr.RequestId, n)
-	*/
+		return &nsmconnect.ConnectionReply{
+			Accepted:             true,
+			ConnectionParameters: &nsmconnect.ConnectionParameters{},
+		}, nil
+	}
+	// Remote NSE case (not implemented)
+	n.logger.Error("nsm: connection with remote NSE is not implemented, come back later")
+	cleanConnectionRequest(cr.RequestId, n)
 	return &nsmconnect.ConnectionReply{
-		Accepted:             true,
-		ConnectionParameters: &nsmconnect.ConnectionParameters{},
-	}, nil
+		Accepted:       false,
+		AdmissionError: fmt.Sprintf("connection with remote NSE is not implemented, come back later"),
+	}, status.Error(codes.Aborted, "connection with remote NSE is not implemented, come back later")
+}
+
+func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error {
+	client := n.clientConnections[requestID][networkServiceName]
+	nseConn, err := tools.SocketOperationCheck(client.endpoint.Spec.SocketLocation)
+	if err != nil {
+		return err
+	}
+	defer nseConn.Close()
+	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
+
+	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer nseCancel()
+	nseRepl, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
+		RequestId: requestID,
+	})
+	if err != nil {
+		return err
+	}
+	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
+
+	// TODO (sbezverk) It must be refactor as soon as possible to call dataplane interface
+
+	// podName1/podNamespace1 represents nsm client requesting access to a network service
+	podName1, err := getPodNameByUUID(n.k8sClient, requestID, n.namespace)
+	if err != nil {
+		return err
+	}
+	podNamespace1 := n.namespace
+
+	// podName2/podNamespace2 represents nse pod
+	podName2, err := getPodNameByUUID(n.k8sClient, string(client.endpoint.ObjectMeta.UID), n.namespace)
+	if err != nil {
+		return err
+	}
+	podNamespace2 := n.namespace
+
+	if err := dataplaneutils.ConnectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
+		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
+			podNamespace1, podName1, podNamespace2, podName2, err)
+	}
+
+	return nil
+}
+
+func getPodNameByUUID(k8s *kubernetes.Clientset, uuid, namespace string) (string, error) {
+	podList, err := k8s.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+	for _, pod := range podList.Items {
+		if string(pod.ObjectMeta.UID) == uuid {
+			return pod.ObjectMeta.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("fail to find POD with UID %s in the namespace %s", uuid, namespace)
 }
 
 func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
