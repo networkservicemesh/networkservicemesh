@@ -45,6 +45,7 @@ const (
 	// Network Services
 	nsmSRIOVDefaultNetworkServiceName = "networkservicemesh.io/sriov-nsm-default"
 	nsmSRIOVNodeName                  = "networkservicemesh.io/sriov-node-name"
+	nsmConfigmapNamePrefix            = "nsm-sriov-configmap-"
 )
 
 var (
@@ -52,6 +53,7 @@ var (
 	noConfigMap = flag.Bool("no-configmap", false, "Prevents generating a configmap with discovered VFs information.")
 	kubeconfig  = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
 	excludedPF  = flag.String("exclude-pf", "", "Comma separated list of PFs to exclude from VF's processing")
+	nameSpace   = flag.String("namespace", "default", "Namespace for kubernetes configmap object")
 )
 
 // VF describes a single instance of VF
@@ -242,15 +244,15 @@ func discoverNetworks(discoveredVFs *VFs) error {
 
 // buildSRIOVConfigMap goes through the list of VFs and marshal them into a yaml.
 // Generated yaml is added to Data's of configmap keyed by pci address of each VF.
-func buildSRIOVConfigMap(discoveredVFs *VFs) (v1.ConfigMap, error) {
+func buildSRIOVConfigMap(discoveredVFs *VFs, hostName string) (v1.ConfigMap, error) {
 	configMap := v1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "nsm-sriov-vf-list",
-			Namespace: "default",
+			Name:      "nsm-sriov-vf-list-" + hostName,
+			Namespace: *nameSpace,
 			Labels:    map[string]string{"networkservicemesh.io/sriov": "config"},
 		},
 		Data: make(map[string]string),
@@ -427,10 +429,6 @@ func main() {
 }
 
 func generateConfigMap(discoveredVFs *VFs) error {
-	cf, err := buildSRIOVConfigMap(discoveredVFs)
-	if err != nil {
-		return fmt.Errorf("failed to build SRIOV config map with error: %+v", err)
-	}
 	// Adding name of the node where VFs were discovered
 	k8s, err := buildClient()
 	if err != nil {
@@ -444,15 +442,21 @@ func generateConfigMap(discoveredVFs *VFs) error {
 	if err != nil {
 		return fmt.Errorf("hostname %s does not appear to be a valid node name in kuebrnetes cluster, error: %+v", hostName, err)
 	}
+	cf, err := buildSRIOVConfigMap(discoveredVFs, hostName)
+	if err != nil {
+		return fmt.Errorf("failed to build SRIOV config map with error: %+v", err)
+	}
 	// It was found, adding it as a label to the config map
 	cf.ObjectMeta.Labels[nsmSRIOVNodeName] = hostName
 	configMap, err := yaml.Marshal(cf)
 	if err != nil {
 		return fmt.Errorf("failed to marshal SRIOV config map with error: %+v", err)
 	}
-	if err := ioutil.WriteFile("nsm-sriov-configmap.yaml", configMap, 0644); err != nil {
-		return fmt.Errorf("failed to save  SRIOV config map with error: %+v", err)
+	// Constructing per host file name
+	configmapFileName := nsmConfigmapNamePrefix + hostName + ".yaml"
+	if err := ioutil.WriteFile(configmapFileName, configMap, 0644); err != nil {
+		return fmt.Errorf("failed to save SRIOV config map with error: %+v", err)
 	}
-	logrus.Info("sriov configmap for Network service mesh has been saved in nsm-sriov-configmap.yaml")
+	logrus.Infof("sriov configmap for Network service mesh has been saved in %s", configmapFileName)
 	return nil
 }
