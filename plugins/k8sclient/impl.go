@@ -36,7 +36,7 @@ type Plugin struct {
 
 	k8sClientConfig *rest.Config
 	k8sClientset    *kubernetes.Clientset
-	nsmClient       *nsmclient.CLientset
+	nsmClient       *nsmclient.Clientset
 }
 
 // Init Plugin
