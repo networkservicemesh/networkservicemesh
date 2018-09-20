@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package nsmconnect;
 
-import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
 // ConnectionRequest is sent by a NSM client to build a connection.
@@ -32,27 +31,6 @@ message ConnectionReply {
     common.Interface interface = 4;
 }
 
-// DiscoveryRequest requests NSM to send back all available/known NetworkServices
-message DiscoveryRequest {
-}
-
-// DiscoveryRespons carries a list of all available/known to NSM NetworkServices
-message DiscoveryResponse {
-    repeated  netmesh.NetworkService network_service = 1;
-}
-
-// ChannelAdvertiseRequest used by NSE to advertise its available channels
-//message ChannelAdvertiseRequest {
-//    repeated netmesh.NetworkServiceChannel netmesh_channel = 1;
-//}
-
-// ChannelAdvertiseResponse used by NSM to confirm if Channel Object has been created successfully
-//message ChannelAdvertiseResponse {
-//    bool success = 1;
-//}
-
 service ClientConnection {
     rpc RequestConnection (ConnectionRequest) returns (ConnectionReply);
-    rpc RequestDiscovery (DiscoveryRequest) returns (DiscoveryResponse);
-//    rpc RequestAdvertiseChannel (ChannelAdvertiseRequest) returns (ChannelAdvertiseResponse);
 }

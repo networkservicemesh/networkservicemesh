@@ -18,7 +18,6 @@ import (
 	"reflect"
 
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
-	// "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
@@ -99,19 +98,6 @@ func (p *Plugin) GetNetworkService(nsName string) *v1.NetworkService {
 	return p.objects.networkServicesStore.Get(nsName)
 }
 
-/*
-// AddEndpointToNetworkService adds a Endpoint to Existing in the ObjectStore NetworkService object
-func (p *Plugin) AddEndpointToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error {
-	p.Log.Info("ObjectStore.AddEndpointToNetworkService.")
-	return p.objects.networkServicesStore.AddEndpointToNetworkService(nsName, nsNamespace, ch)
-}
-
-// DeleteEndpointFromNetworkService deletes a Endpoint from the ObjectStore NetworkService object
-func (p *Plugin) DeleteEndpointFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error {
-	p.Log.Info("ObjectStore.DeleteEndpointFromNetworkService.")
-	return p.objects.networkServicesStore.DeleteEndpointFromNetworkService(nsName, nsNamespace, ch)
-}
-*/
 // ListNetworkServices lists all stored NetworkService objects
 func (p *Plugin) ListNetworkServices() []*v1.NetworkService {
 	p.Log.Info("ObjectStore.ListNetworkServices.")
@@ -127,30 +113,3 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 		p.objects.networkServicesStore.Delete(ns.ObjectMeta.Name)
 	}
 }
-
-/*
-// GetEndpointsByNSEServerProvider lists all stored NetworkServiceEndpoint objects for a given nse server
-func (p *Plugin) GetEndpointsByNSEServerProvider(nseServer, namespace string) []*netmesh.NetworkServiceEndpoint {
-	p.Log.Info("ObjectStore.GetEndpointsByNSEServerProvider for %s/%s", nseServer, namespace)
-	return p.objects.NetworkServiceEndpointsStore.GetEndpointsByNSEServerProvider(nseServer, namespace)
-}
-
-// DeleteNSE delete all Endpoints associated with given NSE
-func (p *Plugin) DeleteNSE(nseServer, namespace string) {
-	p.Log.Info("ObjectStore.DeleteNSE")
-	p.objects.NetworkServiceEndpointsStore.DeleteNSE(nseServer, namespace)
-}
-
-// DeleteEndpoint delete all Endpoints associated with given NSE
-func (p *Plugin) DeleteEndpoint(nch *netmesh.NetworkServiceEndpoint) {
-	p.Log.Info("ObjectStore.DeleteEndpoint")
-	p.objects.NetworkServiceEndpointsStore.DeleteEndpoint(nch)
-}
-
-// AddEndpoint checks if advertised NSE already exists and then add given Endpoint to its list,
-// othewise NSE gets created and then new Endpoint gets added.
-func (p *Plugin) AddEndpoint(nch *netmesh.NetworkServiceEndpoint) {
-	p.Log.Info("ObjectStore.AddEndpoint")
-	p.objects.NetworkServiceEndpointsStore.AddEndpoint(nch)
-}
-*/

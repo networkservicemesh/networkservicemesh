@@ -18,7 +18,6 @@ import (
 	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
-	// "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 // NetworkServicesStore map stores all discovered Network Service Object
@@ -40,12 +39,7 @@ func newNetworkServicesStore() *networkServicesStore {
 func (n *networkServicesStore) Add(ns *v1.NetworkService) {
 	n.Lock()
 	defer n.Unlock()
-	/*
-		key := meta{
-			name:      ns.ObjectMeta.Name,
-			namespace: ns.ObjectMeta.Namespace,
-		}
-	*/
+
 	if _, ok := n.networkService[ns.ObjectMeta.Name]; !ok {
 		// Not in the store, adding it.
 		n.networkService[ns.ObjectMeta.Name] = ns
@@ -57,12 +51,7 @@ func (n *networkServicesStore) Add(ns *v1.NetworkService) {
 func (n *networkServicesStore) Get(nsName string) *v1.NetworkService {
 	n.Lock()
 	defer n.Unlock()
-	/*
-		key := meta{
-			name:      nsName,
-			namespace: nsNamespace,
-		}
-	*/
+
 	ns, ok := n.networkService[nsName]
 	if !ok {
 		return nil
@@ -70,65 +59,6 @@ func (n *networkServicesStore) Get(nsName string) *v1.NetworkService {
 	return ns
 }
 
-// Get method returns NetworkService, if it does not
-// already it returns nil.
-/* func (n *networkServicesStore) AddEndpointToNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error {
-	n.Lock()
-	defer n.Unlock()
-
-	key := meta{
-		name:      nsName,
-		namespace: nsNamespace,
-	}
-	ns, ok := n.networkService[key]
-	if !ok {
-		return fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
-	}
-
-	// Need to check if NetworkService has already Endpoint with the same name and namespace, Endpoints must
-	// be unique for Name and Namspace pair.
-	found := false
-	for _, c := range ns.Endpoint {
-		if c.Metadata.Name == ch.Metadata.Name && c.Metadata.Namespace == ch.Metadata.Namespace {
-			found = true
-			break
-		}
-	}
-	if found {
-		return fmt.Errorf("failed to add Endpoint %s/%s to network service %s/%s, the Endpoint already exists in the object store",
-			ch.Metadata.Namespace, ch.Metadata.Name, key.namespace, key.name)
-	}
-	ns.Endpoint = append(ns.Endpoint, ch)
-
-	return nil
-}
-
-// DeleteEndpoint deletes Endpoint from Network Service
-func (n *networkServicesStore) DeleteEndpointFromNetworkService(nsName string, nsNamespace string, ch *netmesh.NetworkServiceEndpoint) error {
-	n.Lock()
-	defer n.Unlock()
-
-	key := meta{
-		name:      nsName,
-		namespace: nsNamespace,
-	}
-	ns, ok := n.networkService[key]
-	if !ok {
-		return fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
-	}
-
-	// Need to check if NetworkService has already Endpoint with the same name and namespace, Endpoints must
-	// be unique for Name and Namspace pair.
-	for i, c := range ns.Endpoint {
-		if c.Metadata.Name == ch.Metadata.Name && c.Metadata.Namespace == ch.Metadata.Namespace {
-			ns.Endpoint = append(ns.Endpoint[:i], ns.Endpoint[i+1:]...)
-			return nil
-		}
-	}
-	return fmt.Errorf("failed to delete Endpoint %s/%s from network service %s/%s, the Endpoint does not exist in the object store",
-		ch.Metadata.Namespace, ch.Metadata.Name, key.namespace, key.name)
-}
-*/
 // Delete method deletes removed NetworkService object from the store.
 func (n *networkServicesStore) Delete(ns string) {
 	n.Lock()
@@ -149,20 +79,3 @@ func (n *networkServicesStore) List() []*v1.NetworkService {
 	}
 	return networkServices
 }
-
-/*
-func (n *networkServicesStore) ListEndpointsForNetworkService(ns *netmesh.NetworkService) ([]*netmesh.NetworkServiceEndpoint, error) {
-	n.Lock()
-	defer n.Unlock()
-
-	key := meta{
-		name:      ns.Metadata.Name,
-		namespace: ns.Metadata.Namespace,
-	}
-	ns, ok := n.networkService[key]
-	if !ok {
-		return nil, fmt.Errorf("failed to find network service %s/%s in the object store", key.namespace, key.name)
-	}
-	return ns.Endpoint, nil
-}
-*/

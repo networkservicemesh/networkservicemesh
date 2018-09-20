@@ -17,7 +17,6 @@ package nsmserver
 import (
 	"fmt"
 	"net"
-	"os"
 	"path"
 
 	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
@@ -73,7 +72,7 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 		}, nil
 	}
 
-	if apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		// something bad happened while attempting to check if the object already exists,
 		// it is safer to record the error and bail out.
 		e.logger.Errorf("advertise request %s fail to check if %s already exists with error: %+v", ar.RequestId, endpointName, err)
@@ -167,12 +166,6 @@ func startEndpointServer(endpointServer *nsmEndpointServer) error {
 // NewNSMEndpointServer registers and starts gRPC server which is listening for
 // Network Service Endpoint advertise/remove calls and act accordingly
 func NewNSMEndpointServer(p *Plugin) error {
-
-	namespace := os.Getenv("NSM_NAMESPACE")
-	if namespace == "" {
-		return fmt.Errorf("cannot detect namespace, make sure NAMESPACE variable is set via downward api")
-	}
-
 	endpointServer := &nsmEndpointServer{
 		logger:             p.Deps.Log,
 		objectStore:        p.Deps.ObjectStore,
@@ -181,7 +174,7 @@ func NewNSMEndpointServer(p *Plugin) error {
 		grpcServer:         grpc.NewServer(),
 		endPointSocketPath: path.Join(EndpointSocketBaseDir, EndpointSocket),
 		stopChannel:        make(chan bool),
-		nsmNamespace:       namespace,
+		nsmNamespace:       p.namespace,
 	}
 
 	var err error

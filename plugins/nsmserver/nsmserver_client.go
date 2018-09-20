@@ -38,6 +38,16 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
+
+	// apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -53,6 +63,9 @@ type nsmClientEndpoints struct {
 	// Second key is NetworkService name
 	clientConnections map[string]map[string]*clientNetworkService
 	sync.RWMutex
+	k8sClient *kubernetes.Clientset
+	nsmClient *nsmclient.Clientset
+	namespace string
 }
 
 type nsmSocket struct {
@@ -87,45 +100,79 @@ func (s sortedInterfaceList) Less(i, j int) bool {
 	return s.interfaceList[i].Preference < s.interfaceList[j].Preference
 }
 
+// getNetworkServiceEndpoint gets all advertised Endpoints for a specific Network Service
+func getNetworkServiceEndpoint(
+	k8sClient *kubernetes.Clientset,
+	nsmClient *nsmclient.Clientset,
+	networkService string,
+	namespace string) ([]nsmapi.NetworkServiceEndpoint, error) {
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{EndpointServiceLabel: networkService}))
+	options := metav1.ListOptions{LabelSelector: selector.String()}
+	endpointList, err := nsmClient.NetworkserviceV1().NetworkServiceEndpoints(namespace).List(options)
+	if err != nil {
+		return nil, err
+	}
+	return endpointList.Items, nil
+}
+
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
 // return to NSM client result.
 func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionReply, error) {
 	n.logger.Infof("received connection request id: %s from pod: %s/%s, requesting network service: %s for linux namespace: %s",
 		cr.RequestId, cr.NetworkServiceName, cr.LinuxNamespace)
-	/*
-		// first check to see if requested NetworkService exists in objectStore
-		ns := n.objectStore.GetNetworkService(cr.NetworkServiceName)
-		if ns == nil {
-			// Unknown NetworkService fail Connection request
-			n.logger.Infof("not found network service object: %s", cr.RequestId)
-			return &nsmconnect.ConnectionAccept{
-				Accepted:       false,
-				AdmissionError: fmt.Sprintf("requested Network Service %s does not exist", cr.RequestId),
-			}, status.Error(codes.NotFound, "requested network service not found")
-		}
-		n.logger.Infof("found network service object: %+v", ns)
-		// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
-		// Connection request
-		if _, ok := n.clientConnections[cr.RequestId]; ok {
-			// Check if exisiting request for already requested NetworkService
-			if _, ok := n.clientConnections[cr.RequestId][cr.NetworkServiceName]; ok {
-				// Since it is duplicate request, need to check if it is already inProgress
-				if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
-					// Looks like dataplane programming is taking long time, responding client to wait and retry
-					return &nsmconnect.ConnectionAccept{
-						Accepted:       false,
-						AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s is still being programmed, retry", cr.RequestId),
-					}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
-				}
-				// Request is not inProgress which means potentially a success can be returned
-				// TODO (sbezverk) discuss this logic in case some corner cases might break it.
-				return &nsmconnect.ConnectionAccept{
-					Accepted:             true,
-					ConnectionParameters: &nsmconnect.ConnectionParameters{},
-				}, nil
+
+	// first check to see if requested NetworkService exists in objectStore
+	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName)
+	if ns == nil {
+		// Unknown NetworkService fail Connection request
+		n.logger.Infof("not found network service object: %s", cr.RequestId)
+		return &nsmconnect.ConnectionReply{
+			Accepted:       false,
+			AdmissionError: fmt.Sprintf("requested Network Service %s does not exist", cr.RequestId),
+		}, status.Error(codes.NotFound, "requested network service not found")
+	}
+	n.logger.Infof("found network service object: %+v", ns)
+
+	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
+	// Connection request
+	if _, ok := n.clientConnections[cr.RequestId]; ok {
+		// Check if exisiting request for already requested NetworkService
+		if _, ok := n.clientConnections[cr.RequestId][cr.NetworkServiceName]; ok {
+			// Since it is duplicate request, need to check if it is already inProgress
+			if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
+				// Looks like dataplane programming is taking long time, responding client to wait and retry
+				return &nsmconnect.ConnectionReply{
+					Accepted:       false,
+					AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s is still being programmed, retry", cr.RequestId),
+				}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
 			}
+			// Request is not inProgress which means potentially a success can be returned
+			// TODO (sbezverk) discuss this logic in case some corner cases might break it.
+			return &nsmconnect.ConnectionReply{
+				Accepted:             true,
+				ConnectionParameters: &nsmconnect.ConnectionParameters{},
+			}, nil
 		}
-		n.logger.Info("it is a new request")
+	}
+	n.logger.Info("it is a new request")
+
+	// Need to check if for requested network service, there are advertised NSE
+	endpointList, err := getNetworkServiceEndpoint(n.k8sClient, n.nsmClient, cr.NetworkServiceName, n.namespace)
+	if err != nil {
+		return &nsmconnect.ConnectionReply{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("connection request %s failed to get a list of endpoints for requested Network Service %s with error: %+v",
+				cr.RequestId, cr.NetworkServiceName, err),
+		}, status.Error(codes.Aborted, "failed to get a list of endpoints for requested Network Service")
+	}
+	if len(endpointList) == 0 {
+		return &nsmconnect.ConnectionReply{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("connection request %s failed no endpoints were found for requested Network Service %s",
+				cr.RequestId, cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "failed no endpoints were found for requested Network Service")
+	}
+	/*
 		// It is a new Connection request for known NetworkService, need to check if requested interface
 		// parameters have a match with ones of known NetworkService. If not, return error
 		sortedInterfaces := sortedInterfaceList{}
@@ -256,17 +303,6 @@ func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Int
 // from the same namespace. If it changes, refactor maybe required.
 func isInProgress(networkService *clientNetworkService) bool {
 	return networkService.isInProgress
-}
-
-func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
-	n.logger.Info("received Discovery request")
-	networkService := n.objectStore.ListNetworkServices()
-	n.logger.Infof("preparing Discovery response, number of returning NetworkServices: %d", len(networkService))
-	resp := &nsmconnect.DiscoveryResponse{
-		// HACK (sbezverk)
-		// NetworkService: networkService[0].Spec,
-	}
-	return resp, nil
 }
 
 // Define functions needed to meet the Kubernetes DevicePlugin API

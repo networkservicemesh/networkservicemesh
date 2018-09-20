@@ -1,8 +1,0 @@
----
-apiVersion: networkservicemesh.io/v1
-kind: NetworkServiceEndpoint
-metadata:
-  name: gold-endpoint-1
-spec:
-  metadata:
-    name: gold-endpoint-1

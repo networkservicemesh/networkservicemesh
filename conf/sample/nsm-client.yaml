@@ -23,6 +23,13 @@ rules:
     verbs:
       - get
       - list
+  - apiGroups:
+      - networkservicemesh.io 
+    resources:
+      - networkserviceendpoints 
+    verbs:
+      - get
+      - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

@@ -17,6 +17,9 @@
 package nsmserver
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -30,6 +33,7 @@ type Plugin struct {
 	Deps
 	nsmClientEndpoints nsmClientEndpoints
 	pluginStopCh       chan bool
+	namespace          string
 	idempotent.Impl
 }
 
@@ -53,7 +57,12 @@ func (p *Plugin) init() error {
 	if err != nil {
 		return err
 	}
-	if err := NewNSMDeviceServer(p.Deps.Log, p.Deps.ObjectStore); err != nil {
+	// Getting NSM's Namespace
+	p.namespace = os.Getenv("NSM_NAMESPACE")
+	if p.namespace == "" {
+		return fmt.Errorf("cannot detect namespace, make sure NAMESPACE variable is set via downward api")
+	}
+	if err := NewNSMDeviceServer(p); err != nil {
 		return err
 	}
 	if err := NewNSMEndpointServer(p); err != nil {

@@ -1,9 +1,0 @@
----
-apiVersion: networkservicemesh.io/v1
-kind: NetworkServiceChannel
-metadata:
-  name: gold-ethernet
-spec:
-  metadata:
-    name: gold-ethernet
-  payload: ethernet
