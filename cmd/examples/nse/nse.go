@@ -185,6 +185,7 @@ func main() {
 			},
 		},
 	}
+	logrus.Infof("Endpoint %+v \n %T", endpoint, endpoint)
 	resp, err := advertieConnection.AdvertiseEndpoint(context.Background(), &nseconnect.EndpointAdvertiseRequest{
 		RequestId:       podUID,
 		NetworkEndpoint: &endpoint,

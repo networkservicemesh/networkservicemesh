@@ -62,7 +62,6 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 	// Compose a new Network Service Endpoint object name from Request_id which is NSE's pod
 	// UUID and Network Service Name.
 	endpointName := ar.RequestId + "-" + ar.NetworkEndpoint.NetworkServiceName
-
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
 	_, err := e.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(e.nsmNamespace).Get(endpointName, metav1.GetOptions{})
@@ -73,6 +72,7 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 			Accepted:  true,
 		}, nil
 	}
+
 	if apierrors.IsNotFound(err) {
 		// something bad happened while attempting to check if the object already exists,
 		// it is safer to record the error and bail out.
@@ -83,7 +83,8 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 			AdmissionError: fmt.Sprintf("advertise request %s fail to check if %s already exists with error: %+v", ar.RequestId, endpointName, err),
 		}, err
 	}
-	endpoint := nsmapi.NetworkServiceEndpoint{
+
+	endpoint := &nsmapi.NetworkServiceEndpoint{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkServiceEndpoint",
 			APIVersion: "networkservicemesh.io/v1",
@@ -95,11 +96,7 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 		},
 		Spec: ar.NetworkEndpoint,
 	}
-
-	e.logger.Infof("Object to be created: %+v", endpoint)
-	e.logger.Infof("Object to be created: %+v", *ar.NetworkEndpoint)
-
-	_, err = e.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(e.nsmNamespace).Create(&endpoint)
+	_, err = e.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(e.nsmNamespace).Create(endpoint)
 	if err != nil {
 		// something bad happened while attempting to create a new object, logging error and exit.
 		e.logger.Errorf("advertise request %s fail to create a new Network Service Endpoint object %s with error: %+v", ar.RequestId, endpointName, err)
@@ -171,9 +168,6 @@ func startEndpointServer(endpointServer *nsmEndpointServer) error {
 // Network Service Endpoint advertise/remove calls and act accordingly
 func NewNSMEndpointServer(p *Plugin) error {
 
-	k8sclient := p.Deps.Client.GetClientset()
-	nsmClient := nsmclient.New(k8sclient.RESTClient())
-
 	namespace := os.Getenv("NSM_NAMESPACE")
 	if namespace == "" {
 		return fmt.Errorf("cannot detect namespace, make sure NAMESPACE variable is set via downward api")
@@ -182,8 +176,8 @@ func NewNSMEndpointServer(p *Plugin) error {
 	endpointServer := &nsmEndpointServer{
 		logger:             p.Deps.Log,
 		objectStore:        p.Deps.ObjectStore,
-		k8sClient:          k8sclient,
-		nsmClient:          nsmClient,
+		k8sClient:          p.Deps.Client.GetClientset(),
+		nsmClient:          p.Deps.Client.GetNSMClientset(),
 		grpcServer:         grpc.NewServer(),
 		endPointSocketPath: path.Join(EndpointSocketBaseDir, EndpointSocket),
 		stopChannel:        make(chan bool),
