@@ -24,9 +24,9 @@ rules:
       - get
       - list
   - apiGroups:
-      - networkservicemesh.io 
+      - networkservicemesh.io
     resources:
-      - networkserviceendpoints 
+      - networkserviceendpoints
     verbs:
       - get
       - list
