@@ -120,6 +120,7 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 					plugin.Log.Errorf("Informer cached version of object (%s/%s) different than worker queue version", namespace, name)
 				}
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)
+				plugin.Log.Infof("><SB> Object: %+v", message.(objectMessage).obj)
 				plugin.ObjectStore.ObjectCreated(message.(objectMessage).obj)
 			case deleteOp:
 				plugin.Log.Infof("Got most up to date version of '%s/%s'. Syncing...", namespace, name)

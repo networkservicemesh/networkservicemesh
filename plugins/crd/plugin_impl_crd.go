@@ -17,6 +17,8 @@
 package crd
 
 import (
+	"fmt"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -36,7 +38,6 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
-	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -64,14 +65,15 @@ type Plugin struct {
 
 	// Informer factories per CRD object
 	informerNS cache.SharedIndexInformer
+
+	// namespace in which crd controller runs
+	namespace string
 }
 
 // Deps defines dependencies of CRD plugin.
 type Deps struct {
-	Name string
-	Log  logger.FieldLoggerPlugin
-	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig  string `empty_value_ok:"true"`
+	Name        string
+	Log         logger.FieldLoggerPlugin
 	Handler     handler.API
 	ObjectStore objectstore.Interface
 	K8sclient   k8sclient.API
@@ -88,9 +90,12 @@ func (plugin *Plugin) init() error {
 	if err != nil {
 		return err
 	}
-	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
-	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
 	plugin.stopChNS = make(chan struct{})
+	// Getting NSM's Namespace
+	plugin.namespace = os.Getenv("NSM_NAMESPACE")
+	if plugin.namespace == "" {
+		return fmt.Errorf("cannot detect namespace, make sure NSM_NAMESPACE variable is set via downward api")
+	}
 
 	return plugin.afterInit()
 }
@@ -153,11 +158,7 @@ func (plugin *Plugin) afterInit() error {
 	}
 
 	// Create an instance of our own API client
-	plugin.crdClient, err = client.NewForConfig(plugin.K8sclient.GetClientConfig())
-	if err != nil {
-		plugin.Log.Errorf("Error creating CRD client: %s", err.Error())
-		panic(err.Error())
-	}
+	plugin.crdClient = plugin.K8sclient.GetNSMClientset()
 
 	err = newCustomResourceDefinition(plugin, v1.FullNSMEPName,
 		v1.NSMGroup,
@@ -185,7 +186,11 @@ func (plugin *Plugin) afterInit() error {
 	// API as we grow our application and so state is consistent between our
 	// control loops. We set a resync period of 30 seconds, in case any
 	// create/replace/update/delete operations are missed when watching
-	plugin.sharedFactory = factory.NewSharedInformerFactory(plugin.crdClient, time.Second*30)
+	// also controller will be watching for v1.NetworkService objects created
+	// ONLY in the namespace where it runs.
+	plugin.sharedFactory = factory.NewSharedInformerFactoryWithOptions(plugin.crdClient,
+		time.Second*30,
+		factory.WithNamespace(plugin.namespace))
 
 	plugin.informerNS = plugin.sharedFactory.Networkservice().V1().NetworkServices().Informer()
 	setupInformer(plugin.informerNS, queueNS)

@@ -21,7 +21,6 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/handler"
 
 	"github.com/ligato/networkservicemesh/plugins/logger"
-	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/registry"
 )
 
@@ -65,7 +64,7 @@ func UseDeps(deps *Deps) Option {
 		d.Handler = deps.Handler
 		d.ObjectStore = deps.ObjectStore
 		d.K8sclient = deps.K8sclient
-		d.KubeConfig = deps.KubeConfig
+		// d.KubeConfig = deps.KubeConfig
 	}
 }
 
@@ -88,14 +87,6 @@ func DefaultDeps() Option {
 		}
 		if d.K8sclient == nil {
 			d.K8sclient = k8sclient.SharedPlugin()
-		}
-		if d.KubeConfig == "" {
-			cmd := command.RootCmd()
-			flag := cmd.Flags().Lookup(KubeConfigFlagName)
-			if flag == nil {
-				cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
-				flag = cmd.Flags().Lookup(KubeConfigFlagName)
-			}
 		}
 	}
 }
