@@ -155,11 +155,12 @@ message RemoteMechanismRequest {
 enum RemoteMechanismType {
     NONE = 0; // For use when connection is not accepted
     VXLAN = 1;
-    VXLAN-GPE = 2;
+    VXLAN_GPE = 2;
     GRE = 3;
-    MPLSoEthernet = 4;
-    MPLSoGRE = 5;
-    MPLSoUDP = 6;
+    SRV6 = 4;
+    MPLSoEthernet = 5;
+    MPLSoGRE = 6;
+    MPLSoUDP = 7;
 }
 
 message RemoteMechanismConstraint {
@@ -167,10 +168,11 @@ message RemoteMechanismConstraint {
         None_Constraint none_constraint = 1;
         Vxlan_Constaint vxlan_constraint = 2;
         Vxlan_Gpe_Constraint vxlan_gpe_request = 3;
-        Gre_Constraint gre_constraint = 4;
-        Mpls_O_Ethernet_Constraint mpls_o_ethernet_constraint = 5;
-        Mpls_O_Gre_Constraint mpls_o_gre_constraint = 6;
-        Mpls_O_Udp_Constraint mpls_o_udp_constraint = 7;
+        SRv6_Constraints srv6_constraints = 4;
+        Gre_Constraint gre_constraint = 5;
+        Mpls_O_Ethernet_Constraint mpls_o_ethernet_constraint = 6;
+        Mpls_O_Gre_Constraint mpls_o_gre_constraint = 7;
+        Mpls_O_Udp_Constraint mpls_o_udp_constraint = 8;
     }
 }
 
