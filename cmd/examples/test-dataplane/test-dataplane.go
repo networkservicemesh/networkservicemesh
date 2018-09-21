@@ -425,8 +425,12 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
 
-	podName1 = "nse-" + podName1[:interfaceNameMaxLength-4]
-	podName2 = "nsm-" + podName2[:interfaceNameMaxLength-4]
+	if len(podName1) > interfaceNameMaxLength {
+		podName1 = podName1[:interfaceNameMaxLength]
+	}
+	if len(podName2) > interfaceNameMaxLength {
+		podName2 = podName2[:interfaceNameMaxLength]
+	}
 
 	if err := setVethPair(ns1, ns2, podName1, podName2); err != nil {
 		return fmt.Errorf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",

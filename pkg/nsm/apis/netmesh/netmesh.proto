@@ -26,9 +26,8 @@ message NetworkServiceEndpoint {
     string network_service_name = 1;
     string network_service_host = 2;
     string nse_provider_name = 3;
-    string nse_provider_namespace = 4;
-    string socket_location = 5;
-    repeated common.Interface interface = 6;
+    string socket_location = 4;
+    repeated common.Interface interface = 5;
  }
 
 message NetworkService {

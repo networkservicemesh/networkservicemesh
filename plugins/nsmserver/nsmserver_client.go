@@ -26,6 +26,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -134,20 +135,20 @@ func getLocalEndpoint(endpointList []nsmapi.NetworkServiceEndpoint, nsmPodIPAddr
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
 // return to NSM client result.
 func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionReply, error) {
-	n.logger.Infof("received connection request id: %s from pod: %s/%s, requesting network service: %s for linux namespace: %s",
+	n.logger.Infof("received connection request id: %s, requesting network service: %s for linux namespace: %s",
 		cr.RequestId, cr.NetworkServiceName, cr.LinuxNamespace)
 
 	// first check to see if requested NetworkService exists in objectStore
 	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName)
 	if ns == nil {
 		// Unknown NetworkService fail Connection request
-		n.logger.Infof("not found network service object: %s", cr.RequestId)
+		n.logger.Errorf("not found network service object: %s", cr.RequestId)
 		return &nsmconnect.ConnectionReply{
 			Accepted:       false,
 			AdmissionError: fmt.Sprintf("requested Network Service %s does not exist", cr.RequestId),
 		}, status.Error(codes.NotFound, "requested network service not found")
 	}
-	n.logger.Infof("found network service object: %+v", ns)
+	n.logger.Infof("Requested network service: %s, found network service object: (%+v)", cr.NetworkServiceName, ns)
 
 	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
 	// Connection request
@@ -170,9 +171,8 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 			}, nil
 		}
 	}
-	n.logger.Info("it is a new request")
 
-	// Need to check if for requested network service, there are advertised NSE
+	// Need to check if for requested network service, there are advertised Endpoints
 	endpointList, err := getNetworkServiceEndpoint(n.k8sClient, n.nsmClient, cr.NetworkServiceName, n.namespace)
 	if err != nil {
 		return &nsmconnect.ConnectionReply{
@@ -222,7 +222,9 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	src := rand.NewSource(time.Now().Unix())
 	rnd := rand.New(src)
 	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
-	n.logger.Infof("Endpoint (%+v) selected for network service %s", selectedEndpoint.Spec, cr.NetworkServiceName)
+	n.logger.Infof("Endpoint %s/%s pod uid (%s) selected for network service %s", selectedEndpoint.ObjectMeta.Namespace,
+		selectedEndpoint.ObjectMeta.Name, selectedEndpoint.Spec.NseProviderName,
+		cr.NetworkServiceName)
 
 	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
 	// and wait for complition.
@@ -258,8 +260,8 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 				AdmissionError: fmt.Sprintf("failed to communicate with local NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
 			}, status.Error(codes.Aborted, "communication failure with local NSE")
 		}
-		n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
-			cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
+		n.logger.Infof("successfully create client connection for request id: %s networkservice: %s",
+			cr.RequestId, cr.NetworkServiceName)
 
 		// nsm client requesting connection is one time operation and it does not seem require to keep state
 		// after it either succeeded or failed. It seems safe to delete completed Connection Request.
@@ -295,24 +297,22 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 	if err != nil {
 		return err
 	}
-	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
+	n.logger.Infof("successfuly received information from NSE: %s", nseRepl.RequestId)
 
 	// TODO (sbezverk) It must be refactor as soon as possible to call dataplane interface
 
 	// podName1/podNamespace1 represents nsm client requesting access to a network service
-	podName1, err := getPodNameByUUID(n.k8sClient, requestID, n.namespace)
+	podName1, err := getPodNameByUID(n, n.k8sClient, requestID, n.namespace)
 	if err != nil {
 		return err
 	}
 	podNamespace1 := n.namespace
-
 	// podName2/podNamespace2 represents nse pod
-	podName2, err := getPodNameByUUID(n.k8sClient, string(client.endpoint.ObjectMeta.UID), n.namespace)
+	podName2, err := getPodNameByUID(n, n.k8sClient, string(client.endpoint.Spec.NseProviderName), n.namespace)
 	if err != nil {
 		return err
 	}
 	podNamespace2 := n.namespace
-
 	if err := dataplaneutils.ConnectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
 		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1, podName1, podNamespace2, podName2, err)
@@ -321,18 +321,18 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 	return nil
 }
 
-func getPodNameByUUID(k8s *kubernetes.Clientset, uuid, namespace string) (string, error) {
+func getPodNameByUID(n *nsmClientEndpoints, k8s *kubernetes.Clientset, uid, namespace string) (string, error) {
 	podList, err := k8s.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 	for _, pod := range podList.Items {
-		if string(pod.ObjectMeta.UID) == uuid {
+		if strings.Compare(string(pod.ObjectMeta.UID), uid) == 0 {
 			return pod.ObjectMeta.Name, nil
 		}
 	}
 
-	return "", fmt.Errorf("fail to find POD with UID %s in the namespace %s", uuid, namespace)
+	return "", fmt.Errorf("fail to find POD with UID %s in the namespace %s", uid, namespace)
 }
 
 func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
