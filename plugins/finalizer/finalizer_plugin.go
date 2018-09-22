@@ -15,6 +15,8 @@
 package finalizer
 
 import (
+	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -22,7 +24,6 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
-	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
@@ -33,6 +34,11 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+
+	// nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -48,22 +54,20 @@ const (
 type Plugin struct {
 	idempotent.Impl
 	Deps
-
-	pluginStopCh chan struct{}
-	wg           sync.WaitGroup
-
+	pluginStopCh  chan struct{}
+	wg            sync.WaitGroup
 	StatusMonitor statuscheck.StatusReader
-
-	stopCh   chan struct{}
-	informer cache.SharedIndexInformer
+	stopCh        chan struct{}
+	informer      cache.SharedIndexInformer
+	k8sClient     *kubernetes.Clientset
+	nsmClient     *nsmclient.Clientset
+	namespace     string
 }
 
 // Deps defines dependencies of CRD plugin.
 type Deps struct {
-	Name string
-	Log  logger.FieldLoggerPlugin
-	// Kubeconfig with k8s cluster address and access credentials to use.
-	KubeConfig  string `empty_value_ok:"true"`
+	Name        string
+	Log         logger.FieldLoggerPlugin
 	ObjectStore objectstore.Interface
 	K8sclient   k8sclient.API
 }
@@ -80,20 +84,26 @@ func (plugin *Plugin) init() error {
 	if err != nil {
 		return err
 	}
-	plugin.KubeConfig = command.RootCmd().Flags().Lookup(KubeConfigFlagName).Value.String()
-
-	plugin.Log.WithField("kubeconfig", plugin.KubeConfig).Info("Loading kubernetes client config")
-
+	plugin.k8sClient = plugin.K8sclient.GetClientset()
+	plugin.nsmClient = plugin.K8sclient.GetNSMClientset()
 	plugin.stopCh = make(chan struct{})
-
+	// Getting NSM's Namespace
+	plugin.namespace = os.Getenv("NSM_NAMESPACE")
+	if plugin.namespace == "" {
+		return fmt.Errorf("cannot detect namespace, make sure NSM_NAMESPACE variable is set via downward api")
+	}
 	return plugin.afterInit()
 }
 
 func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimitingInterface) {
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			DeleteFunc: func(obj interface{}) {
-				queue.Add(obj)
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				oldPod := oldObj.(*v1.Pod)
+				newPod := newObj.(*v1.Pod)
+				if oldPod.ObjectMeta.DeletionTimestamp != newPod.ObjectMeta.DeletionTimestamp {
+					queue.Add(newObj)
+				}
 			},
 		},
 	)
@@ -113,12 +123,14 @@ func (plugin *Plugin) afterInit() error {
 	plugin.informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.LabelSelector = nsmLabel + "=true"
-				return plugin.K8sclient.GetClientset().CoreV1().Pods(metav1.NamespaceAll).List(options)
+				selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmLabel: "=true"}))
+				options = metav1.ListOptions{LabelSelector: selector.String()}
+				return plugin.k8sClient.CoreV1().Pods(plugin.namespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.LabelSelector = nsmLabel + "=true"
-				return plugin.K8sclient.GetClientset().CoreV1().Pods(metav1.NamespaceAll).Watch(options)
+				selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmLabel: "=true"}))
+				options = metav1.ListOptions{LabelSelector: selector.String()}
+				return plugin.k8sClient.CoreV1().Pods(plugin.namespace).Watch(options)
 			},
 		},
 		&v1.Pod{},

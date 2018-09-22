@@ -28,7 +28,6 @@ import (
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
-	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
@@ -60,7 +59,7 @@ type DataplaneController struct {
 
 // RequestDeleteConnect implements method for testdataplane proto
 func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *testdataplane.DeleteConnectRequest) (*testdataplane.DeleteConnectReply, error) {
-
+	logrus.Infof("Request Delete Connect received for pod: %s/%s pod type: %v", in.Pod.Metadata.Namespace, in.Pod.Metadata.Name, in.PodType)
 	podName := in.Pod.Metadata.Name
 	if podName == "" {
 		logrus.Error("test-dataplane: missing required pod name")
@@ -85,12 +84,13 @@ func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *testd
 		}, status.Error(codes.Aborted, "nvalid pod type")
 	}
 	if err := deleteLink(d.k8s, podName, podNamespace, in.PodType); err != nil {
+		logrus.Errorf("Request Delete Connect failed for pod: %s/%s pod type: %v with error: %+v", in.Pod.Metadata.Namespace, in.Pod.Metadata.Name, in.PodType, err)
 		return &testdataplane.DeleteConnectReply{
 			Deleted:     false,
 			DeleteError: fmt.Sprintf("failed to delete interface(s) for pod %s/%s with error: %+v", podNamespace, podName, err),
 		}, status.Error(codes.Aborted, "failed to delete interface(s) for pod")
 	}
-
+	logrus.Infof("Request Delete Connect succeeded for pod: %s/%s pod type: %v", in.Pod.Metadata.Namespace, in.Pod.Metadata.Name, in.PodType)
 	return &testdataplane.DeleteConnectReply{
 		Deleted: true,
 	}, nil
@@ -147,15 +147,6 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *testda
 				podName2,
 				err),
 		}, status.Error(codes.Aborted, "failure to interconnect pods")
-	}
-
-	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
-	// to clean up injected dataplane interfaces without any race.
-	if err := finalizerutils.AddPodFinalizer(d.k8s, podName1, podNamespace1); err != nil {
-		logrus.Errorf("test-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace1, podName1, err)
-	}
-	if err := finalizerutils.AddPodFinalizer(d.k8s, podName2, podNamespace2); err != nil {
-		logrus.Errorf("test-dataplane: failed to add finalizer to pod %s/%s with error: %+v", podNamespace2, podName2, err)
 	}
 
 	return &testdataplane.BuildConnectReply{
@@ -384,7 +375,7 @@ func main() {
 	}
 	dataplaneController.dataplaneServer = grpc.NewServer()
 	testdataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
-
+	testdataplane.RegisterDeleteConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 	go func() {
 		wg.Add(1)
 		if err := dataplaneController.dataplaneServer.Serve(dataplaneConn); err != nil {

@@ -80,7 +80,7 @@ func (p *Plugin) close() error {
 
 // ObjectCreated is called when an object is created
 func (p *Plugin) ObjectCreated(obj interface{}) {
-	p.Log.Infof("ObjectStore.ObjectCreated: %+v", obj)
+	p.Log.Infof("ObjectStore.ObjectCreated: %s", reflect.TypeOf(obj))
 
 	switch obj.(type) {
 	case *v1.NetworkService:

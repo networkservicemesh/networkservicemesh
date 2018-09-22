@@ -40,6 +40,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
@@ -148,7 +149,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 			AdmissionError: fmt.Sprintf("requested Network Service %s does not exist", cr.RequestId),
 		}, status.Error(codes.NotFound, "requested network service not found")
 	}
-	n.logger.Infof("Requested network service: %s, found network service object: (%+v)", cr.NetworkServiceName, ns)
+	n.logger.Infof("Requested network service: %s, found network service object: (%s/%s)", cr.NetworkServiceName, ns.ObjectMeta.Namespace, ns.ObjectMeta.Name)
 
 	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
 	// Connection request
@@ -317,7 +318,14 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1, podName1, podNamespace2, podName2, err)
 	}
-
+	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
+	// to clean up injected dataplane interfaces without any race.
+	if err := finalizerutils.AddPodFinalizer(n.k8sClient, podName1, podNamespace1); err != nil {
+		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", podNamespace1, podName1, err)
+	}
+	if err := finalizerutils.AddPodFinalizer(n.k8sClient, podName2, podNamespace2); err != nil {
+		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", podNamespace2, podName2, err)
+	}
 	return nil
 }
 

@@ -17,11 +17,13 @@ package finalizer
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -58,11 +60,12 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 
 func cleanUp(plugin *Plugin, pod *v1.Pod) error {
 	var err error
+
 	label, ok := pod.ObjectMeta.Labels[nsmAppLabel]
 	if !ok {
 		return fmt.Errorf("pod %s/%s is missing %s label, stopping cleanup", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel)
 	}
-	plugin.Log.Infof("found nsm pod %s/%s with label: %s : %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel, label)
+	plugin.Log.Infof("found pod %s/%s with label: %s : %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, nsmAppLabel, label)
 
 	switch label {
 	case nsmAppNSE:
@@ -77,37 +80,34 @@ func cleanUp(plugin *Plugin, pod *v1.Pod) error {
 
 func cleanUpNSE(plugin *Plugin, pod *v1.Pod) error {
 	plugin.Log.Infof("cleanup requested for NSE pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-	/*
-		// Step 1 getting a slice of channels advertised by about to be deleted pod
-		channels := plugin.ObjectStore.GetChannelsByNSEServerProvider(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
-		if channels == nil {
-			plugin.Log.Infof("no advertised channels found for NSE pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-			return nil
-		}
-		// Step 2 range through received list of channels and for each found NetworkService, remove the channel
-		// from NetworkService object.
-		plugin.Log.Infof("found %d advertised channels for NSE pod %s/%s", len(channels), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-		for _, ch := range channels {
-			plugin.Log.Infof("channel %s/%s was used by netowrk service %s, deleting it...", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName)
-			if err := plugin.ObjectStore.DeleteChannelFromNetworkService(ch.NetworkServiceName, ch.Metadata.Namespace, ch); err != nil {
-				plugin.Log.Errorf("failed channel %s/%s from netowrk service %s with error: %+v", ch.Metadata.Namespace, ch.Metadata.Name, ch.NetworkServiceName, err)
-				return err
+	// Since NSE gets deleted, cleanUpNSE will remove all NetwordServiceEndpoint objected advertied by this NSE
+	endpointsList, err := plugin.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(plugin.namespace).List(metav1.ListOptions{})
+	if err == nil {
+		if len(endpointsList.Items) != 0 {
+			for _, endpoint := range endpointsList.Items {
+				if strings.Compare(endpoint.Spec.NseProviderName, string(pod.ObjectMeta.UID)) == 0 {
+					// Removing NetworkServiceEndpoint since it was provided by NSE pod about to be deleted
+					plugin.nsmClient.NetworkserviceV1().NetworkServiceEndpoints(plugin.namespace).Delete(endpoint.ObjectMeta.Name, &metav1.DeleteOptions{})
+				}
 			}
+		} else {
+			plugin.Log.Warnf("NSE pod %s/%s has not been providing any Network Service Endpoints", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		}
-		// Step 3 last step is to remove from Channels map all channels advertised by the pod
-		plugin.ObjectStore.DeleteNSE(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
-		plugin.Log.Infof("all channels advertised by NSE %s/%s were deleted", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-		// Step 4 Clean up dataplane
-		if err := dataplaneutils.CleanupPodDataplane(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace, testdataplane.NSMPodType_NSE); err != nil {
-			// NSE pod is about to be deleted as such there is no reason to fail cleanUpNSE, even if
-			// dataplane cleanup failed, simply print an error message is sufficient
-			plugin.Log.Errorf("failed to clean up pod %s/%s dataplane with error: %+v, please review dataplane controller log if further debugging is required",
-				pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
-		}
-		// Step 5 removing finalizer and allowing k8s to delete pod, if pod does not have a finalizer,
-		// this call is just no-op.
-		finalizerutils.RemovePodFinalizer(plugin.K8sclient.GetClientset(), pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
-	*/
+	} else {
+		plugin.Log.Errorf("fail to list Network Service Endpoints while deleting NSE pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	}
+	if err := dataplaneutils.CleanupPodDataplane(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace, testdataplane.NSMPodType_NSE); err != nil {
+		// NSE pod is about to be deleted as such there is no reason to fail, even if
+		// dataplane cleanup failed, simply print an error message is sufficient
+		plugin.Log.Errorf("failed to clean up pod %s/%s dataplane with error: %+v, please review dataplane controller log if further debugging is required",
+			pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
+	}
+	if err := finalizerutils.RemovePodFinalizer(plugin.k8sClient, pod.ObjectMeta.Name, pod.ObjectMeta.Namespace); err != nil {
+		plugin.Log.Warnf("fail to remove finalizers from NSM pod %s/%s with error: %+v", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
+	} else {
+		plugin.Log.Infof("successfully removed finalizers from NSM pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	}
+
 	return nil
 }
 
@@ -115,12 +115,17 @@ func cleanUpNSMClient(plugin *Plugin, pod *v1.Pod) error {
 	plugin.Log.Infof("cleanup requested for NSM Client pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 
 	if err := dataplaneutils.CleanupPodDataplane(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace, testdataplane.NSMPodType_NSMCLIENT); err != nil {
-		// NSM pod is about to be deleted as such there is no reason to fail cleanUpNSMClient, even if
+		// NSM pod is about to be deleted as such there is no reason to fail, even if
 		// dataplane cleanup failed, simply print an error message is sufficient
 		plugin.Log.Errorf("failed to clean up pod %s/%s dataplane with error: %+v, please review dataplane controller log if further debugging is required",
 			pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
 	}
-	finalizerutils.RemovePodFinalizer(plugin.K8sclient.GetClientset(), pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+	plugin.Log.Infof("successfully removed dataplane from NSM pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	if err := finalizerutils.RemovePodFinalizer(plugin.k8sClient, pod.ObjectMeta.Name, pod.ObjectMeta.Namespace); err != nil {
+		plugin.Log.Warnf("fail to remove finalizers from NSM pod %s/%s with error: %+v", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
+	} else {
+		plugin.Log.Infof("successfully removed finalizers from NSM pod %s/%s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	}
 
 	return nil
 }
