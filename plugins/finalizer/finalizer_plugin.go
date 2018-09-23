@@ -33,9 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 
-	// nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -47,6 +45,16 @@ const (
 	nsmAppLabel  = "networkservicemesh.io/app"
 	nsmAppNSE    = "nse"
 	nsmAppClient = "nsm-client"
+	// NSMFinalizer defines a finalizer which is add to every nsm client after successful programming
+	// of its dataplane.
+	NSMFinalizer = "nsm-client.networkservicemesh.io/nsm"
+	// NSEFinalizerSuffix is a part of the finalizer name nsm cient pod name + this suffix
+	// it allows to track all clients using the specific nse
+	NSEFinalizerSuffix = ".networkservicemesh.io/nsm"
+	// EndpointFinalizer is a finalizer added to each nse pod whose endpoint
+	// was successfully advertised. It allows to clean up endpoints advertised for the nse pod
+	// before it will be deleted.
+	EndpointFinalizer = "endpoints.networkservicemesh.io/nsm"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD
@@ -62,6 +70,11 @@ type Plugin struct {
 	k8sClient     *kubernetes.Clientset
 	nsmClient     *nsmclient.Clientset
 	namespace     string
+	// Store used to track objects which are in the process of being delete,
+	// it will help prevent calling cleanup functions multiple times for the
+	// same objects
+	store map[string]bool
+	lock  sync.RWMutex
 }
 
 // Deps defines dependencies of CRD plugin.
@@ -95,14 +108,32 @@ func (plugin *Plugin) init() error {
 	return plugin.afterInit()
 }
 
-func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimitingInterface) {
-	informer.AddEventHandler(
+func setupInformer(plugin *Plugin) {
+	plugin.informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				oldPod := oldObj.(*v1.Pod)
 				newPod := newObj.(*v1.Pod)
-				if oldPod.ObjectMeta.DeletionTimestamp != newPod.ObjectMeta.DeletionTimestamp {
-					queue.Add(newObj)
+				if oldPod.ObjectMeta.ResourceVersion != newPod.ObjectMeta.ResourceVersion {
+					if newPod.ObjectMeta.DeletionTimestamp != nil {
+						plugin.Log.Infof("finalizer controller: Match for pod %s/%s: New DeletionTimestamp: %s; New ResourceVersion: %s",
+							newPod.ObjectMeta.Namespace,
+							newPod.ObjectMeta.Name,
+							newPod.ObjectMeta.DeletionTimestamp,
+							newPod.ObjectMeta.ResourceVersion)
+						plugin.CleanUp(newPod)
+					}
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				pod := obj.(*v1.Pod)
+				if _, ok := plugin.store[string(pod.ObjectMeta.UID)]; ok {
+					// All processing on the object is completed and k8s is ready to delete it,
+					// if it was one of NSM objects, it is time to remove it from the plugin's store.
+					plugin.lock.Lock()
+					delete(plugin.store, string(pod.ObjectMeta.UID))
+					plugin.lock.Unlock()
+					plugin.Log.Infof("Removing pod %s/%s from the store", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 				}
 			},
 		},
@@ -117,29 +148,27 @@ func (plugin *Plugin) afterInit() error {
 		plugin.Log.Error("Error initializing Finalizer plugin")
 		return err
 	}
-
-	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
-
+	plugin.store = map[string]bool{}
+	// plugin.queue = workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 	plugin.informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmLabel: "=true"}))
+				selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmLabel: "true"}))
 				options = metav1.ListOptions{LabelSelector: selector.String()}
 				return plugin.k8sClient.CoreV1().Pods(plugin.namespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmLabel: "=true"}))
+				selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmLabel: "true"}))
 				options = metav1.ListOptions{LabelSelector: selector.String()}
 				return plugin.k8sClient.CoreV1().Pods(plugin.namespace).Watch(options)
 			},
 		},
 		&v1.Pod{},
-		10*time.Second,
+		60*time.Second,
 		cache.Indexers{},
 	)
 
-	setupInformer(plugin.informer, queue)
-
+	setupInformer(plugin)
 	go plugin.informer.Run(plugin.stopCh)
 	plugin.Log.Info("Started  Finalizer's shared informer factory.")
 
@@ -149,9 +178,6 @@ func (plugin *Plugin) afterInit() error {
 		plugin.Log.Error("Error waiting for informer cache to sync")
 	}
 	plugin.Log.Info("Finalizer's Informer cache is ready")
-
-	// Read forever from the work queue
-	go workforever(plugin, queue, plugin.informer, plugin.stopCh)
 
 	return nil
 }

@@ -40,6 +40,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/ligato/networkservicemesh/plugins/finalizer"
 	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -196,6 +197,8 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	// TODO (sbezverk) When support for Remote Endpoints get added, then this error message should be removed.
 	endpoints := getLocalEndpoint(endpointList, n.nsmPodIPAddress)
 	if len(endpoints) == 0 {
+		n.logger.Errorf("connection request %s failed no local endpoints were found for requested Network Service %s, but remote endpoints are not yet supported",
+			cr.RequestId, cr.NetworkServiceName)
 		return &nsmconnect.ConnectionReply{
 			Accepted: false,
 			AdmissionError: fmt.Sprintf("connection request %s failed no local endpoints were found for requested Network Service %s, but remote endpoints are not yet supported",
@@ -212,6 +215,7 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	// only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
 	endpoints = getEndpointWithInterface(endpoints, sortedInterfaces.interfaceList)
 	if len(endpoints) == 0 {
+		n.logger.Errorf("no advertised endpoints for Network Service %s, support required interface", cr.NetworkServiceName)
 		return &nsmconnect.ConnectionReply{
 			Accepted:       false,
 			AdmissionError: fmt.Sprintf("no advertised endpoints for Network Service %s, support required interface", cr.NetworkServiceName),
@@ -303,33 +307,33 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 	// TODO (sbezverk) It must be refactor as soon as possible to call dataplane interface
 
 	// podName1/podNamespace1 represents nsm client requesting access to a network service
-	podName1, err := getPodNameByUID(n, n.k8sClient, requestID, n.namespace)
+	nsmClientPodName, err := getPodNameByUID(n.k8sClient, requestID, n.namespace)
 	if err != nil {
 		return err
 	}
-	podNamespace1 := n.namespace
 	// podName2/podNamespace2 represents nse pod
-	podName2, err := getPodNameByUID(n, n.k8sClient, string(client.endpoint.Spec.NseProviderName), n.namespace)
+	nsePodName, err := getPodNameByUID(n.k8sClient, string(client.endpoint.Spec.NseProviderName), n.namespace)
 	if err != nil {
 		return err
 	}
-	podNamespace2 := n.namespace
-	if err := dataplaneutils.ConnectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
+	if err := dataplaneutils.ConnectPods(nsmClientPodName, nsePodName, n.namespace, n.namespace); err != nil {
 		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
-			podNamespace1, podName1, podNamespace2, podName2, err)
+			n.namespace, nsmClientPodName, n.namespace, nsePodName, err)
 	}
 	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
 	// to clean up injected dataplane interfaces without any race.
-	if err := finalizerutils.AddPodFinalizer(n.k8sClient, podName1, podNamespace1); err != nil {
-		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", podNamespace1, podName1, err)
+	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsmClientPodName, n.namespace, finalizer.NSMFinalizer); err != nil {
+		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsmClientPodName, err)
 	}
-	if err := finalizerutils.AddPodFinalizer(n.k8sClient, podName2, podNamespace2); err != nil {
-		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", podNamespace2, podName2, err)
+	// the finalizer for nse pod is a combination of a nsm client pod name + finalizer.NSEFinalizerSuffix,
+	// it will allow to check if nse pod is safe to delete or it is still used by nsm client(s)
+	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsePodName, n.namespace, nsmClientPodName+finalizer.NSEFinalizerSuffix); err != nil {
+		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsePodName, err)
 	}
 	return nil
 }
 
-func getPodNameByUID(n *nsmClientEndpoints, k8s *kubernetes.Clientset, uid, namespace string) (string, error) {
+func getPodNameByUID(k8s *kubernetes.Clientset, uid, namespace string) (string, error) {
 	podList, err := k8s.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err

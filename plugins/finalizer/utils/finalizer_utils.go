@@ -19,12 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	// nsmFinalizerName defines a finalizer string which gets added or removed to
-	// NSM pod with injected dataplane interfaces
-	nsmFinalizerName = "finalizer.networkservicemesh.io/nsm"
-)
-
 func findElement(ss []string, e string) (int, bool) {
 	for i, s := range ss {
 		if s == e {
@@ -35,16 +29,15 @@ func findElement(ss []string, e string) (int, bool) {
 }
 
 // AddPodFinalizer adds a specified finalizer to a pod
-func AddPodFinalizer(k8s kubernetes.Interface, pn, pns string) error {
+func AddPodFinalizer(k8s kubernetes.Interface, pn, pns, finalizer string) error {
 	tp, err := k8s.CoreV1().Pods(pns).Get(pn, meta_v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	newFinalizers := tp.GetFinalizers()
-	fn := nsmFinalizerName
-	_, found := findElement(newFinalizers, fn)
+	_, found := findElement(newFinalizers, finalizer)
 	if !found {
-		newFinalizers = append(newFinalizers, fn)
+		newFinalizers = append(newFinalizers, finalizer)
 	} else {
 		return nil
 	}
@@ -55,14 +48,13 @@ func AddPodFinalizer(k8s kubernetes.Interface, pn, pns string) error {
 }
 
 // RemovePodFinalizer removes a specified finalizer from a pod
-func RemovePodFinalizer(k8s kubernetes.Interface, pn, pns string) error {
+func RemovePodFinalizer(k8s kubernetes.Interface, pn, pns, finalizer string) error {
 	tp, err := k8s.CoreV1().Pods(pns).Get(pn, meta_v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	newFinalizers := tp.GetFinalizers()
-	fn := nsmFinalizerName
-	i, found := findElement(newFinalizers, fn)
+	i, found := findElement(newFinalizers, finalizer)
 	if found {
 		newFinalizers = append(newFinalizers[:i], newFinalizers[i+1:]...)
 	} else {

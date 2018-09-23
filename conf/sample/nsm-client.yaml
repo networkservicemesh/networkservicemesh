@@ -76,7 +76,7 @@ spec:
     metadata:
       labels:
         networkservicemesh.io: "true"
-        networkservicemesh.io/app: nsm-client  
+        networkservicemesh.io/app: nsm-client
     spec:
       serviceAccount: nsm-client-init
       initContainers:

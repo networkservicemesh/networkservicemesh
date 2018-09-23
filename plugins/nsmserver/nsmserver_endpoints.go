@@ -23,6 +23,8 @@ import (
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/ligato/networkservicemesh/plugins/finalizer"
+	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
@@ -109,6 +111,17 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 			Accepted:       false,
 			AdmissionError: fmt.Sprintf("advertise request %s fail to create a new Network Service Endpoint object %s with error: %+v", ar.RequestId, endpointName, err),
 		}, err
+	}
+	// Endpoint advertisement was successful, adding nsm finalizer to nse pod to be able to remove
+	// advertised endpoints before nse pod will be deleted.
+	nsePodName, err := getPodNameByUID(e.k8sClient, ar.NetworkEndpoint.NseProviderName, e.nsmNamespace)
+	if err != nil {
+		e.logger.Errorf("failed to get nse pod's name with UID: %s with error: %+v", ar.NetworkEndpoint.NseProviderName, err)
+	} else {
+		if err := finalizerutils.AddPodFinalizer(e.k8sClient, nsePodName, e.nsmNamespace, finalizer.EndpointFinalizer); err != nil {
+			// Even though adding finalizer failed, continue since it will not impact NSE functionality
+			e.logger.Errorf("failed to add finalizer to pod %s/%s with error: %+v", e.nsmNamespace, nsePodName, err)
+		}
 	}
 	return &nseconnect.EndpointAdvertiseReply{
 		RequestId: ar.RequestId,
