@@ -16,8 +16,7 @@ message ConnectionRequest {
 }
 
 message ConnectionParameters {
-    string address = 1;
-    repeated string route = 2;
+    map <string,string> connection_parameters = 1;
 }
 
 // ConnectionReply is sent back by NSM as a reply to ConnectionRequest

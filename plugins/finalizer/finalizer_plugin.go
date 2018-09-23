@@ -114,6 +114,13 @@ func setupInformer(plugin *Plugin) {
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				oldPod := oldObj.(*v1.Pod)
 				newPod := newObj.(*v1.Pod)
+				plugin.Log.Infof("finalizer controller: Update for pod %s/%s: Old/New DeletionTimestamp: %s/%s; Old/New ResourceVersion: %s/%s",
+					newPod.ObjectMeta.Namespace,
+					newPod.ObjectMeta.Name,
+					oldPod.ObjectMeta.DeletionTimestamp,
+					newPod.ObjectMeta.DeletionTimestamp,
+					oldPod.ObjectMeta.ResourceVersion,
+					newPod.ObjectMeta.ResourceVersion)
 				if oldPod.ObjectMeta.ResourceVersion != newPod.ObjectMeta.ResourceVersion {
 					if newPod.ObjectMeta.DeletionTimestamp != nil {
 						plugin.Log.Infof("finalizer controller: Match for pod %s/%s: New DeletionTimestamp: %s; New ResourceVersion: %s",
