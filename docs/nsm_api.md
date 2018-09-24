@@ -210,8 +210,8 @@ message VxlanConstraint {
  * count - number of vnis in the range
  */
 message VniRange {
-    required uint32 vni = 1;
-    required uint32 count = 2;
+    required int32 vni = 1;
+    required int32 count = 2;
 }
 
 /*
@@ -237,14 +237,14 @@ message ConnectionContextRequest {
  * PrefixRequest - request for additional prefixes
  *
  * address_family - address family of address being requested
- * size - size of requested prefix 
+ * len - len of requested prefix 
  *
  * TODO: We need to find a better name here than PrefixRequest since its used in Prefix 
  *
  */ 
 message PrefixRequest {
-    required uint32 address_family = 1; // See https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
-    required uint64 size = 2;
+    required int32 address_family = 1; // See https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
+    required int64 len = 2;
 }
 
 /*
@@ -308,7 +308,7 @@ message Vxlan_Parameters {
 
 message Vxlan_Gpe_Parameters {
     required Vxlan_Parameters vxlan_parameters = 1;
-    requited uint32 next_proto = 2;
+    requited int32 next_proto = 2;
 }
 
 /*
