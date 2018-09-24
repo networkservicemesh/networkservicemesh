@@ -144,12 +144,14 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
  *                           Seek to provide the highest priority remote mechanism it can.
  */
 message RemoteConnectionRequest {
-   required string request_id = 1;
-   required string network_service_name = 2;
-   optional string nse_name = 4;
-   optional map<string,string> labels = 5;
-   repeated RemoteMechanismRequest remote_mechanisms = 6;
-   optional ConnectionContextRequest connection_context_request = 7;
+   string request_id = 1;
+   string network_service_name = 2;
+   repeated RemoteMechanismRequest remote_mechanisms = 3;
+
+   /* fields below here are optional */
+   ConnectionContextRequest connection_context_request = 4;
+   optional string nse_name = 5;
+   optional map<string,string> labels = 6;
 }
 
 /* 
@@ -159,8 +161,8 @@ message RemoteConnectionRequest {
  * constraints - constraints on the remote mechanism.
  */
 message RemoteMechanismRequest {
-    required RemoteMechanismType = 1;
-    repeated constraints RemoteMechanismConstrint = 2
+    RemoteMechanismType type = 1;
+    repeated RemoteMechanismConstraint constraints = 2
 }
 
 /* 
@@ -198,8 +200,8 @@ message RemoteMechanismConstraint {
  * excluded_vnis - a list of the VNI ranges not usable on NSM1 for the ip:port
  */
 message VxlanConstraint {
-    required bytes requestor_ip = 1;
-    required bytes requestor_port = 2;
+    bytes requestor_ip = 1;
+    bytes requestor_port = 2;
     repeated VniRange exclude_vnis = 3;
 }
 
@@ -210,8 +212,8 @@ message VxlanConstraint {
  * count - number of vnis in the range
  */
 message VniRange {
-    required int32 vni = 1;
-    required int32 count = 2;
+    int32 vni = 1;
+    int32 count = 2;
 }
 
 /*
@@ -228,7 +230,9 @@ message VniRange {
   * 
   */
 message ConnectionContextRequest {
-    required bool connection_addressed = 1;
+    bool connection_addressed = 1;
+
+    /* fields below are optional */
     repeated Prefix excluded_prefixes = 2;
     repeated PrefixRequest additional_prefix_requests = 3;
 }
@@ -243,15 +247,15 @@ message ConnectionContextRequest {
  *
  */ 
 message PrefixRequest {
-    required int32 address_family = 1; // See https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
-    required int64 len = 2;
+    int32 address_family = 1; // See https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
+    int64 len = 2;
 }
 
 /*
  * Prefix - address prefix
  */
 message Prefix {
-    required PrefixRequest prefix_request = 1;
+    PrefixRequest prefix_request = 1;
     bytes prefix = 2;
 }
 
@@ -268,13 +272,16 @@ message Prefix {
  * labels - key value pairs to communicate arbitrary context about the reply
  */
 message RemoteConnectionReply {
-    required string request_id = 1;
-    required bool accepted = 2;
-    optional string admission_error = 3;
-    required RemoteMechanismType remote_mechanism_type = 4;
-    required RemoteMechanismParameters remote_mechanism_parameters= 5;
-    required ConnectionContext connection_context = 6;
-    optional map<string,string> labels = 7;
+    string request_id = 1;
+    bool accepted = 2;
+    RemoteMechanismType remote_mechanism_type = 4;
+    RemoteMechanismParameters remote_mechanism_parameters= 5;
+    ConnectionContext connection_context = 6;
+
+    /* fields below are optional */
+
+    map<string,string> labels = 7;
+    string admission_error = 3;
 }
 
 message RemoteMechanismParameters {
@@ -299,16 +306,16 @@ message RemoteMechanismParameters {
  * vni - vxlan vni
  */
 message Vxlan_Parameters {
-    required bytes requestor_ip = 1;
-    required bytes requestee_ip = 2;
-    required bytes requestor_port = 3;
-    required bytes requestee_port = 4;
-    required unint32 vni = 5;
+    bytes requestor_ip = 1;
+    bytes requestee_ip = 2;
+    bytes requestor_port = 3;
+    bytes requestee_port = 4;
+    int32 vni = 5;
 }
 
 message Vxlan_Gpe_Parameters {
-    required Vxlan_Parameters vxlan_parameters = 1;
-    requited int32 next_proto = 2;
+    Vxlan_Parameters vxlan_parameters = 1;
+    int32 next_proto = 2;
 }
 
 /*
@@ -325,8 +332,8 @@ message Vxlan_Gpe_Parameters {
  *                        and the network service being provided on that connection
  */
 message ConnectionContext {
-    optional Prefix nsc_connection_addresses = 1;
-    optional Prefix nse_connection_addresses = 2;
+    Prefix nsc_connection_addresses = 1;
+    Prefix nse_connection_addresses = 2;
     repeated Prefix routes = 3;
     repeated Prefix additional_addresses = 4;
 }
