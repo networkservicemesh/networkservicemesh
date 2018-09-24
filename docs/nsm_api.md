@@ -138,6 +138,7 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
  *  network_service_endpoint_name - the name of the network service endpoint NSM1 is seeking to connect to
  *  nse_provider_name - the name of the nse we are seeking a request to.  This should match the name in the 
  *                      Network Service Registry for the NSE
+ *  labels - labels to communicate arbitrary context around the request
  *  remote_mechanisms - a list of remote mechanisms that can be used for the L2/L3 connection.
  *                           The list should be interpreted with descending order of priority.  NSM2 should
  *                           Seek to provide the highest priority remote mechanism it can.
@@ -146,8 +147,9 @@ message RemoteConnectionRequest {
    required string request_id = 1;
    required string network_service_name = 2;
    required string nse_provider_name = 4;
-   repeated RemoteMechanismRequest remote_mechanisms = 5;
-   optional ConnectionContextRequest connection_context_request = 6;
+   optional map<string,string> labels = 5;
+   repeated RemoteMechanismRequest remote_mechanisms = 6;
+   optional ConnectionContextRequest connection_context_request = 7;
 }
 
 /* 
@@ -263,6 +265,7 @@ message Prefix {
  * remote_mechanism_type - remote mechanism seleted by NSM2 from the options presented by
  *                         NSM1
  * remote_mechanism_parameters - parameters selected by NSM2 for the remote mechanism
+ * labels - key value pairs to communicate arbitrary context about the reply
  */
 message RemoteConnectionReply {
     required string request_id = 1;
@@ -270,7 +273,8 @@ message RemoteConnectionReply {
     optional string admission_error = 3;
     required RemoteMechanismType remote_mechanism_type = 4;
     required RemoteMechanismParameters remote_mechanism_parameters= 5;
-    required ConnectionContext connection_context;
+    required ConnectionContext connection_context = 6;
+    optional map<string,string> labels = 7;
 }
 
 message RemoteMechanismParameters {
