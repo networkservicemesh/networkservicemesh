@@ -136,8 +136,8 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
  *  request_id - id for the request, should be unique between NSM1 and NSM2
  *  network_service_name - the name of the network service NSM1 is seeking to connect to
  *  network_service_endpoint_name - the name of the network service endpoint NSM1 is seeking to connect to
- *  nse_provider_name - the name of the nse we are seeking a request to.  This should match the name in the 
- *                      Network Service Registry for the NSE
+ *  nse_name - the name of the nse we are seeking a request to.  This should match the name in the 
+ *             Network Service Registry for the NSE
  *  labels - labels to communicate arbitrary context around the request
  *  remote_mechanisms - a list of remote mechanisms that can be used for the L2/L3 connection.
  *                           The list should be interpreted with descending order of priority.  NSM2 should
@@ -146,7 +146,7 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
 message RemoteConnectionRequest {
    required string request_id = 1;
    required string network_service_name = 2;
-   required string nse_provider_name = 4;
+   optional string nse_name = 4;
    optional map<string,string> labels = 5;
    repeated RemoteMechanismRequest remote_mechanisms = 6;
    optional ConnectionContextRequest connection_context_request = 7;
