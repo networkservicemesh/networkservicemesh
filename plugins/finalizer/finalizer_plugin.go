@@ -70,11 +70,6 @@ type Plugin struct {
 	k8sClient     *kubernetes.Clientset
 	nsmClient     *nsmclient.Clientset
 	namespace     string
-	// Store used to track objects which are in the process of being delete,
-	// it will help prevent calling cleanup functions multiple times for the
-	// same objects
-	store map[string]bool
-	lock  sync.RWMutex
 }
 
 // Deps defines dependencies of CRD plugin.
@@ -114,33 +109,9 @@ func setupInformer(plugin *Plugin) {
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				oldPod := oldObj.(*v1.Pod)
 				newPod := newObj.(*v1.Pod)
-				plugin.Log.Infof("finalizer controller: Update for pod %s/%s: Old/New DeletionTimestamp: %s/%s; Old/New ResourceVersion: %s/%s",
-					newPod.ObjectMeta.Namespace,
-					newPod.ObjectMeta.Name,
-					oldPod.ObjectMeta.DeletionTimestamp,
-					newPod.ObjectMeta.DeletionTimestamp,
-					oldPod.ObjectMeta.ResourceVersion,
-					newPod.ObjectMeta.ResourceVersion)
-				if oldPod.ObjectMeta.ResourceVersion != newPod.ObjectMeta.ResourceVersion {
-					if newPod.ObjectMeta.DeletionTimestamp != nil {
-						plugin.Log.Infof("finalizer controller: Match for pod %s/%s: New DeletionTimestamp: %s; New ResourceVersion: %s",
-							newPod.ObjectMeta.Namespace,
-							newPod.ObjectMeta.Name,
-							newPod.ObjectMeta.DeletionTimestamp,
-							newPod.ObjectMeta.ResourceVersion)
-						plugin.CleanUp(newPod)
-					}
-				}
-			},
-			DeleteFunc: func(obj interface{}) {
-				pod := obj.(*v1.Pod)
-				if _, ok := plugin.store[string(pod.ObjectMeta.UID)]; ok {
-					// All processing on the object is completed and k8s is ready to delete it,
-					// if it was one of NSM objects, it is time to remove it from the plugin's store.
-					plugin.lock.Lock()
-					delete(plugin.store, string(pod.ObjectMeta.UID))
-					plugin.lock.Unlock()
-					plugin.Log.Infof("Removing pod %s/%s from the store", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+				// This condition should be triggered only once when pod delete operation is initiated.
+				if oldPod.ObjectMeta.DeletionTimestamp == nil && newPod.ObjectMeta.DeletionTimestamp != nil {
+					plugin.CleanUp(newPod)
 				}
 			},
 		},
@@ -155,8 +126,7 @@ func (plugin *Plugin) afterInit() error {
 		plugin.Log.Error("Error initializing Finalizer plugin")
 		return err
 	}
-	plugin.store = map[string]bool{}
-	// plugin.queue = workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+
 	plugin.informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
