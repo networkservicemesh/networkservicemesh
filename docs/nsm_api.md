@@ -129,6 +129,11 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
 2. NSM2 makes selections which meet those selections and constraints, or rejects the connection.
 
 ```proto
+
+service NSM2NSM {
+    rpc RequestConnection(RemoteConnectionRequest) returns RemoteConnectionResponse;
+}
+
 /*
  *  RemoteConnectionRequest is sent from one NSM1 to NSM2 to seek to establish an L2/L3 connection to an NSE
  *  being 'managed' by NSM2 on behalf of an NSC being managed by NSM1.  
