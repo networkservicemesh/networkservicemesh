@@ -326,10 +326,6 @@ message ConnectionContext {
     repeated Prefix routes = 3;
     repeated Prefix additional_addresses = 4;
 }
-
-/* 
- * TODO - we currently cover tunnel negotiation here, we need to also handle address/route negotiation as well
- */
 ```
 
 
