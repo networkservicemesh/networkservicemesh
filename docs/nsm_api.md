@@ -347,7 +347,148 @@ message ConnectionContext {
 }
 ```
 
+#### Logical Structure of Network Service Registry Entries
 
+It is expected that initially, and possibly always, the major implementation of the Network Service Registry will be done with Custom Resources (CRs) in Kubernetes.  It is desireable that it be logically possible to have other Network Service Registry implementations.  To facilitate this, it is necessary to describe the minimum shell of information needed in the the Network Service Registry.
+
+The Network Service Registry contains two kinds of entries:
+
+- Network Service (NS)
+- Network Service Endpoint (NSE)
+
+A Network Service must minimally have the following information:
+
+<dl>
+    <dt>Name<dt>
+    <dd>The name of the Network Service.  This must be non-empty and unique within the Network Service Registry at any given moment in time.
+    <dt>Payload<dt>
+    <dd>The type of L2/L3 payload the Network Service accepts.  Examples include but are not limited to Ethernet, IPv4, Ipv6, IP (implied to be both IPv4 and IPv6), MPLS.  This value must be non-empty.</dd>
+</dl>
+
+A Network Service Endpoint must miniminally have the following information:
+
+<dl>
+    <dt>Name</dt>
+    <dd>The name of the Network Service Endpoint.  This must be non-empty and unique within the Network Service Registry at any given moment in time.</dd>
+    <dt>Network Service Name<dt>
+    <dd>The name of the Network Service the Endpoint provides.  This must be non-empty.</dd>
+    <dt>Network Service Manager ip:port</dt>
+    <dd>The ip and port used to contact the Network Service Manager that manages the Network Service Endpoint. This information must be provided.</dd>
+    <dt>Labels<dt>
+    <dd>A map of key value pairs, with both keys and values being strings.  It is acceptable to have no keys/value pairs in the labels field.  A Network Service Endpoint does not have to have any labels, but a Network Service Registry must have the ability for Network Service Endpoints to have labels.</dd>
+</dl>
+
+It is important to remember that a given entity (example: Pod) may expose multiple Network Services.  In the event a particular entity (example: Pod) exposes multiple Network Services, this results in multiple Network Service Endpoint entries in the Network Service Registry.
+
+It is possible for a given entity (example: Pod) to expose the same Network Service multiple times.  This may be done, for example, to expose the Network Service with different labels.  This should result in multiple Network Service Endpoint entries in the Network Service Registry with different names.
+
+### Network Service Mesh APIs in Kubernetes
+
+Network Service Mesh in Kubernetes uses the standard NSM2NSM API as defined above, and provides an implementation of a Network Service Registry via Custom Resources (CRs).  In addition, it has APIs specific to Kubernetes for various components to interact:
+
+![NSM Diagram](./images/k8s_nsm_apis.png)
+
+<dl>
+    <dt>NSC2NSM</dt>
+    <dd>Defines how a Pod interacts with a Network Service Manager (NSM) as a Network Service Client (NSC)</dd>
+    <dt>NSE2NSM</dt>
+    <dd>Defines how a Pod interacts with a Network Service Manager (NSM) as a Network Service Endpoint (NSE)</dd>
+    <dt>NSM2Dataplane</dt>
+    <dd>Defines how a Network Service Manager (NSM) interacts with a Network Service Mesh Dataplane (NSMD).</dd>
+</dl>
+
+#### NSM2Dataplane API
+
+A Network Service Mesh interacts with one or more Dataplanes.  The purpose of the Dataplane is to provide the actual dataplane that does cross connect between the Network Service Client (NSC) and a Network Service Endpoint (NSE).  
+
+A cross connect typically consists of a pair of mechanisms (remote or local).
+
+Examples:
+- A Network Service Client (NSC) which is connected to the local mechanism 'kernel interface' is cross connected to a Network Service Endpoint (NSE) via the remote mechanism 'VXLAN'.  This cross connect can be thought of as the pair ('kernel interface','VXLAN')
+- A Network Service Client (NSC) which is connected to a local mechanism 'memif' is cross conneted to a Network Service Endpoint (NSE) via a local mechanism 'memif' if they are both on the same Node.  This cross connect can be thought of as a pair ('memif','memif').
+- A Network Service Client (NSC) which is connected to a local mechanism 'memif' is cross connected to a Network Service Endpoint (NS) via the local mechanism 'kernel interface'.  This cross connect can be thought of as the pair ('memif','kernel interface')
+
+```proto
+
+service NSM2NSMD {
+    rpc CreateCrossConnnect(CreateCrossConnectRequest) returns CreateCrossConnectReply;
+    rpc UpdateCrossConnect(UpdateCrossConnectRequest) returns UpdateCrossConnectReply;
+    rpc DeleteCrossConnect(DeleteCrossConnectRequest) returns DeleteCrossConnectRequest;
+    rpc ListAndwatchCrossConnects(ListAndWatchCrossConnectRequest) returns (stream ListAndWatchCrossConnectReply)
+    rpc ListAndWatchCrossConnectMechanisms(ListAndWatchCrossConnectMechanismsRequest) returns (stream ListAndWatchCrossConnectMechanismsReply)
+}
+
+service NSMD2NSM {
+    rpc Register(NsmdRegistrationRequest) return NsmDRegistrationResponse
+}
+
+/*
+ * CreateCrossConnectRequest - Message to create a a CrossConnect
+ *
+ * id - id of the cross connect.  Must be unique in the context of this NSM and NSMD.
+ *      id is selected by the NSM.
+ * mechanism1 - The LocalMechanism to connect to a local NSC or NSE.
+ *              The presumption is that all cross connects involve at least one
+ *              Pod local to the Node.
+ * mechanism2 - The other end of the cross connect.  May be either a local mechanism
+ *              if cross connecting two Pods on the same Node, or a remote mechanism
+ *              if cross connecting to something remote from the Node.  Note:
+ *              RemoteMechanism here is the same message as used in NSM2NSM API.
+ */ 
+message CreateCrossConnectRequest {
+    string id = 1;
+    LocalMechanism mechanism1 = 2;
+    oneof mechanism2 {
+        RemoteMechanism remoteMechanism = 3;
+        LocalMechanism localMechanism = 4;
+    }
+}
+
+message UpdateCrossConnectRequest {
+    string id = 1;
+    LocalMechanism mechanism1 = 2;
+    oneof mechanism2 {
+        RemoteMechanism remoteMechanism = 3;
+        LocalMechanism localMechanism = 4;
+    }
+}
+
+message DeleteCrossConnectRequest {
+    string id = 1;
+}
+
+message LocalMechanism {
+    LocalMechanismType type = 1;
+    oneof parameters {
+        KernelInterfaceParameters = 1;
+        MemifParameters = 2;
+        VhostUserParameters = 3;
+    }
+}
+
+enum LocalMechanismType {
+    KERNEL_INTERFACE = 0;
+    MEMIF = 1;
+    VHOST_USER = 2;
+}
+
+message KernelInterfaceParameters {
+    string name = 1;
+    string network_namespace = 2;
+}
+
+message MemifParameters {
+
+}
+
+message VhostUserParameters {
+
+}
+
+
+```
+
+--------------------
 
 NSM consists of multiple components which interact between each other with a purpose of establishing connectivity requested by a user application for example: secure gateway, or L2 connectivity or some other form of connectivity. Here is the list of identified components:
 
