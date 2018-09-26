@@ -115,9 +115,25 @@ This means that in the abstract Network Service Mesh has:
 
 The Network Service Manager API is defined in protobuf for communication over grpc.
 
-In this message Client&#39;s local NSM proxying Network Service request to NSE&#39;s local NSM.  2 NSMs need to agree upon a tunneling technology supported by both, hence a list of tunnel types is a part of the request message.
+In this message Client&#39;s local NSM (hereafter called NSM1) proxying Network Service request to NSE&#39;s local NSM (hereafter called NSM2). NSM1 and NSM2 have to negotiate:
+
+<dl>
+    <dt>RemoteConnectionMechanism</dt>
+    <dd>The 'mechanism' (usually, but not necessarily a tunnel type and tunnel parameters) for the L2/L3 connection between the NSMs local dataplanes.</dd>
+    <dt>ConnectionContext<dt>
+    <dd>The L2/L3 Connection has 'context'.  Context includes addressing and routing information **for the L2/L3 connection**.</dd>
+</dl>
+
+The common pattern for negotiation of all of these matters between a NSM1 and NSM2 is:
+1. NSM1 communicates preferences and constraints
+2. NSM2 makes selections which meet those selections and constraints, or rejects the connection.
 
 ```proto
+
+service NSM2NSM {
+    rpc RequestRemoteConnection(RemoteConnectionRequest) returns RemoteConnectionResponse;
+}
+
 /*
  *  RemoteConnectionRequest is sent from one NSM1 to NSM2 to seek to establish an L2/L3 connection to an NSE
  *  being 'managed' by NSM2 on behalf of an NSC being managed by NSM1.  
@@ -125,17 +141,22 @@ In this message Client&#39;s local NSM proxying Network Service request to NSE&#
  *  request_id - id for the request, should be unique between NSM1 and NSM2
  *  network_service_name - the name of the network service NSM1 is seeking to connect to
  *  network_service_endpoint_name - the name of the network service endpoint NSM1 is seeking to connect to
- *  nse_provider_name - the name of the nse we are seeking a request to.  This should match the name in the 
- *                      Network Service Registry for the NSE
+ *  nse_name - the name of the nse we are seeking a request to.  This should match the name in the 
+ *             Network Service Registry for the NSE
+ *  labels - labels to communicate arbitrary context around the request
  *  remote_mechanisms - a list of remote mechanisms that can be used for the L2/L3 connection.
  *                           The list should be interpreted with descending order of priority.  NSM2 should
  *                           Seek to provide the highest priority remote mechanism it can.
  */
 message RemoteConnectionRequest {
-   required string request_id = 1;
-   required string network_service_name = 2;
-   required string nse_provider_name = 4;
-   repeated RemoteMechanismRequest remote_mechanisms = 5;
+   string request_id = 1;
+   string network_service_name = 2;
+   repeated RemoteMechanismRequest remote_mechanisms = 3;
+
+   /* fields below here are optional */
+   ConnectionContextRequest connection_context_request = 4;
+   string nse_name = 5;
+   map<string,string> labels = 6;
 }
 
 /* 
@@ -145,8 +166,8 @@ message RemoteConnectionRequest {
  * constraints - constraints on the remote mechanism.
  */
 message RemoteMechanismRequest {
-    required RemoteMechanismType = 1;
-    repeated constraints RemoteMechanismConstrint = 2
+    RemoteMechanismType type = 1;
+    repeated RemoteMechanismConstraint constraints = 2
 }
 
 /* 
@@ -184,8 +205,8 @@ message RemoteMechanismConstraint {
  * excluded_vnis - a list of the VNI ranges not usable on NSM1 for the ip:port
  */
 message VxlanConstraint {
-    required bytes requestor_ip = 1;
-    required bytes requestor_port = 2;
+    bytes requestor_ip = 1;
+    bytes requestor_port = 2;
     repeated VniRange exclude_vnis = 3;
 }
 
@@ -196,14 +217,52 @@ message VxlanConstraint {
  * count - number of vnis in the range
  */
 message VniRange {
-    required uint32 vni = 1;
-    required uint32 count = 2;
+    int32 vni = 1;
+    int32 count = 2;
 }
 
 /*
  * TODO - Define other types of constraints here 
  */
 
+ /*
+  *  ConnectionContextRequest - Constraints to put on ConnectionContexts
+  *
+  * connection_addressed - true if the NSC needs an address
+  * excluded_prefixes - prefixes which cannot be used in the context of the connection, including prefixes to route to the connection
+  *                     and addressing on the connection
+  * additional_prefix_request - request for blocks of additional addresses
+  * 
+  */
+message ConnectionContextRequest {
+    bool connection_addressed = 1;
+
+    /* fields below are optional */
+    repeated Prefix excluded_prefixes = 2;
+    repeated PrefixRequest additional_prefix_requests = 3;
+}
+
+/*
+ * PrefixRequest - request for additional prefixes
+ *
+ * address_family - address family of address being requested
+ * len - len of requested prefix 
+ *
+ * TODO: We need to find a better name here than PrefixRequest since its used in Prefix 
+ *
+ */ 
+message PrefixRequest {
+    int32 address_family = 1; // See https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
+    int64 len = 2;
+}
+
+/*
+ * Prefix - address prefix
+ */
+message Prefix {
+    PrefixRequest prefix_request = 1;
+    bytes prefix = 2;
+}
 
 /* 
  * RemoteConnectionReply - response sent from NSM2 to NSM1 in response to a 
@@ -215,13 +274,22 @@ message VniRange {
  * remote_mechanism_type - remote mechanism seleted by NSM2 from the options presented by
  *                         NSM1
  * remote_mechanism_parameters - parameters selected by NSM2 for the remote mechanism
+ * labels - key value pairs to communicate arbitrary context about the reply
  */
 message RemoteConnectionReply {
-    required string request_id = 1;
-    required bool accepted = 2;
-    optional string admission_error = 3;
-    required RemoteMechanismType remote_mechanism_type = 4;
-    required RemoteMechanismParameters remote_mechanism_parameters= 5;
+    string request_id = 1;
+    bool accepted = 2;
+    RemoteMechanismType remote_mechanism_type = 3;
+    RemoteMechanismParameters remote_mechanism_parameters= 4;
+    ConnectionContext connection_context = 5;
+
+    /* admission_error may be left at default value if the RemoteConnectionReply has accepted == true */
+
+    string admission_error = 6;
+
+    /* fields below are optional */
+
+    map<string,string> labels = 7;
 }
 
 message RemoteMechanismParameters {
@@ -246,25 +314,37 @@ message RemoteMechanismParameters {
  * vni - vxlan vni
  */
 message Vxlan_Parameters {
-    required bytes requestor_ip = 1;
-    required bytes requestee_ip = 2;
-    required bytes requestor_port = 3;
-    required bytes requestee_port = 4;
-    required unint32 vni = 5;
+    bytes requestor_ip = 1;
+    bytes requestee_ip = 2;
+    bytes requestor_port = 3;
+    bytes requestee_port = 4;
+    int32 vni = 5;
 }
 
 message Vxlan_Gpe_Parameters {
-    required Vxlan_Parameters vxlan_parameters = 1;
-    requited uint32 next_proto = 2;
+    Vxlan_Parameters vxlan_parameters = 1;
+    int32 next_proto = 2;
 }
 
 /*
  * TODO - other RemoteMechanismParameters
  */ 
 
-/* 
- * TODO - we currently cover tunnel negotiation here, we need to also handle address/route negotiation as well
+/*
+ * ConnectionContext - Context of the connection
+ * nsc_connection_addresses - address for the NSC on the connection
+ * nse_connection_addresses - address of the NSE on the connection
+ * routes - prefixes to be routed from the NSC to the connection
+ * additional_addresses - additional addresses provided to the NSC
+ *                        must be valid within the context of the connection
+ *                        and the network service being provided on that connection
  */
+message ConnectionContext {
+    Prefix nsc_connection_addresses = 1;
+    Prefix nse_connection_addresses = 2;
+    repeated Prefix routes = 3;
+    repeated Prefix additional_addresses = 4;
+}
 ```
 
 
