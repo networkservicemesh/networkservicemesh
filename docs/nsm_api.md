@@ -292,6 +292,10 @@ The following diagram gives visual representation of the flow:
 - Endpoint Advertise Request
 - Endpoint Advertise Reply
 
+### NSE to its local NSM
+- Endpoint Remove Request
+- Endpoint Remove Reply
+
 ### Local NSM to remote NSM   **Currently not implemented**
 - Proxy Connection request
 - Proxy Connection reply
@@ -310,10 +314,10 @@ Connectivity between NSM client and NSM daemoset occurs over a linux named socke
 
 ```proto
 message ConnectionRequest {
-   string request_id = 1;
-   string network_service_name = 2;
-   string linux_namespace = 3;
-   repeated common.Interface interface = 4;
+    string request_id = 1;
+    string network_service_name = 2;
+    string linux_namespace = 3;
+    repeated common.Interface interface = 4;
 }
 ```
 **Where:**
@@ -334,10 +338,10 @@ NSM Client connection reply message  is returned to inform the client if its req
 
 ```proto
 message ConnectionReply {
-   bool accepted = 1;
-   string admission_error = 2;
-   ConnectionParameters connection_parameters = 3;
-   common.Interface interface = 4;
+    bool accepted = 1;
+    string admission_error = 2;
+    ConnectionParameters connection_parameters = 3;
+    common.Interface interface = 4;
 }
 ```
 **Where:**
@@ -353,22 +357,22 @@ message ConnectionReply {
 
 ### NSE to its local NSM
 
-NSE is the actual provider of a network service, to make aware NSM of the service and some specific service parameters, NSE uses EndpointAdvertiseRequest message. Depending on NSE application, it can advertise multiple Network Services in a single message. NSM confirms acceptance of the advertisement in EndPointAdvertiseResponse message.
+NSE is the actual provider of a network service, to make aware NSM of the service and some specific service parameters, NSE uses EndpointAdvertiseRequest message. Depending on NSE application.  NSM confirms acceptance of the advertisement in EndPointAdvertiseResponse message.
 
 - Endpoint AdvertiseRequest message
 
 ```proto
 message EndpointAdvertiseRequest {
-   repeated netmesh.NetworkServiceEndpoint network\_endpoint = 1;
+    string request_id = 1;
+    netmesh.NetworkServiceEndpoint network_endpoint = 2;
 }
 
 message NetworkServiceEndpoint {
-   string network_service_name = 1;
-   string network_service_host = 2;
-   string nse_provider_name = 3;
-   string nse_provider_namesapce = 4;
-   string socket_location = 5;
-   repeated common.Interface interface = 6;
+    string network_service_name = 1;
+    string network_service_host = 2;
+    string nse_provider_name = 3;
+    string socket_location = 4;
+    repeated common.Interface interface = 5;
 }
 ```
 **Where:**
@@ -377,11 +381,58 @@ message NetworkServiceEndpoint {
 
 **network\_service\_host** defines a name of a host where NSE runs
 
-**nse\_provider\_name** specifies NSE name, NSM used it to differentiate between multiple NSEs providing the same service
-
-**nse\_provider\_namespace** specifies NSE&#39;s kubernetes object namespace, NSM used it to differentiate between multiple NSEs providing the same service
+**nse\_provider\_name** specifies NSE pod's unique ID
 
 **socket\_location** informs NSM about linux named socket it has to use to communicate with NSE for connection requests
+
+- Endpoint AdvertiseReply message
+
+With this message, local to NSE's NSM confirms successful registration and advertisement of a Network Service provided by NSE. In case of an error, **admission_error** will have more details for the cause of a failure.
+
+```proto
+message EndpointAdvertiseReply {
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+}
+```
+**Where:**
+
+**request\_id** is POD UID which is unique and immutable identifier existing throughout POD&#39;s life.
+
+**accepted** true will indicate that the connection is accepted, otherwise false
+
+**admission\_error** will provide details why connection was refused.
+
+
+- Endpoint RemoveRequest message
+
+This message is sent by NSE to inform its local NSM that it does not provide corresponding Network Service and NSM needs remove previously created Network Service Endpoint Custom Resource.
+
+```proto
+message EndpointRemoveRequest {
+    string request_id = 1;
+    netmesh.NetworkServiceEndpoint network_endpoint = 2;
+}
+```
+**Where:**
+
+**request\_id** is POD UID which is unique and immutable identifier existing throughout POD&#39;s life.
+
+**network\_endpoint** is endpoint which NSM needs to remove.
+
+
+- Endpoint RemoveReply message
+
+With this message, local to NSE's NSM confirms successful removal of Network Service Endpoint custom reosurce.
+
+```proto
+message EndpointRemoveReply {
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+}
+```
 
 ### Local NSM to remote NSM not yet implemented
 
@@ -394,10 +445,10 @@ In this message Client&#39;s local NSM proxying Network Service request to NSE&#
 
 ```proto
 message ProxyConnectionRequest {
-   string request_id = 1;
-   string network_service_name = 2;
-   string nse_provider_name = 3;
-   repeated common.Tunnels tunnel_type = 4;
+    string request_id = 1;
+    string network_service_name = 2;
+    string nse_provider_name = 3;
+    repeated common.Tunnels tunnel_type = 4;
 }
 ```
 **Where:**
@@ -416,9 +467,10 @@ After completing control plane signalling, programming of the dataplane for NSE 
 
 ```proto
 message ProxyConnectionReply {
-   bool accepted = 1;
-   string admission_error = 2;
-   common.Tunnel tunnel = 4;
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+    common.Tunnel tunnel = 4;
 }
 ```
 **Where:**
@@ -472,13 +524,18 @@ NSM&#39;s responsibility not just complete control plane signaling but also prog
 ```proto
 
 message InterfaceParameters {
-// No parameters defined currently
+  map <string,string> interface_parameters = 1;
 }
+```
+**Where**
 
+**interface\_parameters** is a map, used to provide specific to an interface type key/value information. It used in different messages.
+
+```
 message Interface {
   InterfaceType type = 1;
-  InterfacePreference preference = 3;
-  InterfaceParameters parmeters = 4;
+  InterfacePreference preference = 2;
+  InterfaceParameters parmeters = 3;
 }
 
 enum InterfaceType {
@@ -513,12 +570,10 @@ enum TunnelType {
     MPLSoEthernet = 6;
 }
 
-message Label {
-    map<string,string> selector = 1;
-}
-
 message ConnectionParameters {
-    string address = 1;
-    repeated string route = 2;
+  map <string,string> connection_parameters = 1;
 }
 ```
+**Where**
+
+**connection\_parameters** is a map, used to provide connection specific key/value information to NSM client in a connection reply message. Depending on type of accepted connecion, keys/values could carry different information.

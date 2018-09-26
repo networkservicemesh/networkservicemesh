@@ -4,8 +4,4 @@ kind: NetworkService
 metadata:
   name: gold-network
 spec:
-  metadata:
-    name: gold-network
-    namespace: default
-  selector:
-    app: routing
+  networkServiceName: gold-network

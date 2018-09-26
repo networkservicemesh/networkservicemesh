@@ -53,21 +53,19 @@ spec:
         - name: nse-1
           image: networkservicemesh/nse:latest
           imagePullPolicy: IfNotPresent
-          args:
-            - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
-          resources:
-            limits:
-              nsm.ligato.io/socket: 1
           env:
             - name: INIT_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+          volumeMounts:
+            - name: connect-socket
+              mountPath: /var/lib/networkservicemesh
       volumes:
         - hostPath:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
-          name: nsm-socket
+          name: connect-socket
 metadata:
   name: nse-1
   namespace: default

@@ -23,8 +23,9 @@ import (
 	"strings"
 	"time"
 
+	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
@@ -33,6 +34,7 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -62,15 +64,9 @@ func checkClientConfigMap(name, namespace string, k8s kubernetes.Interface) (*v1
 	return k8s.CoreV1().ConfigMaps(namespace).Get(name, metav1.GetOptions{})
 }
 
-func buildClient() (*kubernetes.Clientset, error) {
+func k8sBuildClient() (*kubernetes.Clientset, *nsmclient.Clientset, error) {
 	var config *rest.Config
 	var err error
-
-	kubeconfigEnv := os.Getenv("KUBECONFIG")
-
-	if kubeconfigEnv != "" {
-		kubeconfig = &kubeconfigEnv
-	}
 
 	if *kubeconfig != "" {
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
@@ -78,14 +74,18 @@ func buildClient() (*kubernetes.Clientset, error) {
 		config, err = rest.InClusterConfig()
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to create config: %v", err)
 	}
 	k8s, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to create client: %v", err)
+	}
+	customResourceClient, err := nsmclient.NewForConfig(config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create customresource clientset: %v", err)
 	}
 
-	return k8s, nil
+	return k8s, customResourceClient, nil
 }
 
 func parseConfigMap(cm *v1.ConfigMap) ([]*networkService, error) {
@@ -109,7 +109,7 @@ func main() {
 	flag.Set("logtostderr", "true")
 
 	// Building kubernetes client
-	k8s, err := buildClient()
+	k8sClient, nsmClient, err := k8sBuildClient()
 	if err != nil {
 		logrus.Errorf("nsm client: fail to build kubernetes client with error: %+v, exiting...", err)
 		os.Exit(1)
@@ -132,13 +132,13 @@ func main() {
 
 	// podUID is used as a unique identifier for nsm init process, it will stay the same throughout life of
 	// pod and will guarantee idempotency of possible repeated requests to NSM
-	pod, err := k8s.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
 		logrus.Errorf("nsm client: failure to get pod  %s/%s with error: %+v, exiting...", namespace, podName, err)
 		os.Exit(1)
 	}
 	podUID := string(pod.GetUID())
-	configMap, err := checkClientConfigMap(name, namespace, k8s)
+	configMap, err := checkClientConfigMap(name, namespace, k8sClient)
 	if err != nil {
 		logrus.Errorf("nsm client: failure to access client's configmap at %s/%s with error: %+v, exiting...", namespace, name, err)
 		os.Exit(1)
@@ -154,6 +154,24 @@ func main() {
 	if len(networkServices) == 0 {
 		logrus.Infof("nsm client: no NetworkServices were discovered in client's configmap %s/%s, exiting...", namespace, name)
 		os.Exit(0)
+	}
+
+	for _, ns := range networkServices {
+		// Getting list of available Network Service Endpoint for each requested Network Service
+		availableEndpoints, err := getNetworkServiceEndpoint(k8sClient, nsmClient, ns.Name, namespace)
+		if err != nil {
+			logrus.Fatalf("nsm client: failed to get a list of NetworkServices from NSM with error: %+v, exiting...", err)
+			continue
+		}
+		if len(availableEndpoints) == 0 {
+			// Since local NSM has no any NetworkServices, then there is nothing to configure for the client
+			logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
+			continue
+		}
+		logrus.Infof("nsm client: list of endpoints discovered for Network service: %s", ns.Name)
+		for _, ep := range availableEndpoints {
+			logrus.Infof("        endpoint: %s", ep.ObjectMeta.Name)
+		}
 	}
 	// Checking if nsm client socket exists and of not crash init container
 	clientSocket := clientSocketPath
@@ -174,30 +192,7 @@ func main() {
 	logrus.Infof("nsm client: connection to nsm server on socket: %s succeeded.", clientSocket)
 
 	// Init related activities start here
-	nsmClient := nsmconnect.NewClientConnectionClient(conn)
-
-	// Getting list of available NetworkServices on local NSM server
-	availablaNetworkServices, err := getNetworkServices(nsmClient)
-	if err != nil {
-		logrus.Fatalf("nsm client: failed to get a list of NetworkServices from NSM with error: %+v, exiting...", err)
-		os.Exit(1)
-	}
-	if len(availablaNetworkServices) == 0 {
-		// Since local NSM has no any NetworkServices, then there is nothing to configure for the client
-		logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
-		os.Exit(0)
-	}
-	logrus.Info("nsm client: list of discovered network services:")
-	for _, s := range availablaNetworkServices {
-		logrus.Infof("      network service: %s/%s", s.Metadata.Namespace, s.Metadata.Name)
-		for _, c := range s.Channel {
-			logrus.Infof("            Channel: %s/%s", c.Metadata.Namespace, c.Metadata.Name)
-			for _, i := range c.Interface {
-				logrus.Infof("                  Interface type: %s preference: %s", i.GetType(), i.GetPreference())
-			}
-		}
-	}
-	logrus.Infof("nsm client: %d NetworkServices discovered from Local NSM.", len(availablaNetworkServices))
+	nsmConnectionClient := nsmconnect.NewClientConnectionClient(conn)
 
 	// For NSM to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
@@ -211,18 +206,14 @@ func main() {
 	// TODO (sbezverk) Discuss if a non-mandatory atrribute should be added to NetworkService config.
 	for _, ns := range networkServices {
 		cReq := nsmconnect.ConnectionRequest{
-			RequestId: podUID,
-			Metadata: &common.Metadata{
-				Name:      podName,
-				Namespace: namespace,
-			},
+			RequestId:          podUID,
 			NetworkServiceName: ns.Name,
 			LinuxNamespace:     linuxNS,
 			Interface:          ns.ServiceInterface,
 		}
 
 		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.Interface))
-		connParams, err := requestConnection(nsmClient, &cReq)
+		connParams, err := requestConnection(nsmConnectionClient, &cReq)
 		if err != nil {
 			logrus.Fatalf("nsm client: failed to request connection for Network Service %s with error: %+v, exiting...", ns.Name, err)
 			os.Exit(1)
@@ -233,24 +224,18 @@ func main() {
 	logrus.Info("nsm client: initialization is completed successfully, exiting...")
 }
 
-func getNetworkServices(nsmClient nsmconnect.ClientConnectionClient) ([]*netmesh.NetworkService, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
-	defer cancel()
-	ticker := time.NewTicker(clientConnectionRetry)
-	defer ticker.Stop()
-	var err error
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, fmt.Errorf("nsm client: Discovery request did not succeed within %d seconds, last known error: %+v", clientConnectionTimeout, err)
-		case <-ticker.C:
-			resp, err := nsmClient.RequestDiscovery(ctx, &nsmconnect.DiscoveryRequest{})
-			if err == nil {
-				return resp.NetworkService, nil
-			}
-			logrus.Infof("nsm client: Discovery request failed with: %+v, re-attempting in %d seconds", err, clientConnectionRetry)
-		}
+func getNetworkServiceEndpoint(
+	k8sClient *kubernetes.Clientset,
+	nsmClient *nsmclient.Clientset,
+	networkService string,
+	namespace string) ([]nsmapi.NetworkServiceEndpoint, error) {
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{nsmserver.EndpointServiceLabel: networkService}))
+	options := metav1.ListOptions{LabelSelector: selector.String()}
+	endpointList, err := nsmClient.NetworkserviceV1().NetworkServiceEndpoints(namespace).List(options)
+	if err != nil {
+		return nil, err
 	}
+	return endpointList.Items, nil
 }
 
 func requestConnection(nsmClient nsmconnect.ClientConnectionClient, cReq *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionParameters, error) {

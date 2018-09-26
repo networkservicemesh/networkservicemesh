@@ -18,6 +18,7 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/registry"
 
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 )
 
@@ -53,6 +54,7 @@ func UseDeps(deps *Deps) Option {
 		d.Name = deps.Name
 		d.Log = deps.Log
 		d.ObjectStore = deps.ObjectStore
+		d.Client = deps.Client
 	}
 }
 
@@ -69,6 +71,9 @@ func DefaultDeps() Option {
 		}
 		if d.ObjectStore == nil {
 			d.ObjectStore = objectstore.SharedPlugin()
+		}
+		if d.Client == nil {
+			d.Client = k8sclient.SharedPlugin()
 		}
 	}
 }

@@ -44,9 +44,7 @@ var (
 	// These are queues of resources to be processed. They each performs
 	// exponential backoff rate limiting, with a minimum retry period of 5
 	// seconds and a maximum of 1 minute.
-	queueNS  = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
-	queueNSC = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
-	queueNSE = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
+	queueNS = workqueue.NewRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(time.Second*5, time.Minute))
 )
 
 // This file contains the work queue backends for each of the CRDs we create in the
@@ -105,6 +103,15 @@ func workforever(plugin *Plugin, queue workqueue.RateLimitingInterface, informer
 
 			plugin.Log.Infof("Found object of type: %s", reflect.TypeOf(message.(objectMessage).obj))
 			// Check if this is a create or delete operation
+
+			// TODO (sbezverk) Since we watch only for creation/deletion of Network Service Object
+			// the following can be significantly simplified.
+
+			// TODO (sbezverk) Network Service Endpoint gets created by NSM as a result of Endpoint Advertise call
+			// from NSE. How do we clean these objects up when NSE pod goes away?
+			// Proposing a controller which is watchig for ALL NSE PODs in a cluster and on delete, cleans up
+			// all associated with NSE pod Endpoint Custon Resources.
+
 			switch message.(objectMessage).operation {
 			case createOp:
 				// Verify and log if the informer cached version of the object is different than the

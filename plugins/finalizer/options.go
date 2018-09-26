@@ -22,18 +22,11 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 
 	"github.com/ligato/networkservicemesh/plugins/logger"
-	"github.com/ligato/networkservicemesh/utils/command"
 )
 
 const (
 	// DefaultName of the finalizer.Plugin
 	DefaultName = "finalizer"
-	// KubeConfigFlagName - Cmd line flag for specifying kubeconfig filename
-	KubeConfigFlagName = "kube-config"
-	// KubeConfigFlagDefault - default value of KubeConfig
-	KubeConfigFlagDefault = ""
-	// KubeConfigFlagUsage - usage for flag for specifying kubeconfig filename
-	KubeConfigFlagUsage = "Path to the kubeconfig file to use for the client connection to K8s cluster"
 )
 
 // Option acts on a Plugin in order to set its Deps or Config
@@ -89,7 +82,6 @@ func UseDeps(deps *Deps) Option {
 		d.Log = deps.Log
 		d.ObjectStore = deps.ObjectStore
 		d.K8sclient = deps.K8sclient
-		d.KubeConfig = deps.KubeConfig
 	}
 }
 
@@ -109,14 +101,6 @@ func DefaultDeps() Option {
 		}
 		if d.K8sclient == nil {
 			d.K8sclient = k8sclient.SharedPlugin()
-		}
-		if d.KubeConfig == "" {
-			cmd := command.RootCmd()
-			flag := cmd.Flags().Lookup(KubeConfigFlagName)
-			if flag == nil {
-				cmd.Flags().String(KubeConfigFlagName, KubeConfigFlagDefault, KubeConfigFlagUsage)
-				flag = cmd.Flags().Lookup(KubeConfigFlagName)
-			}
 		}
 	}
 }
