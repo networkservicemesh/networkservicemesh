@@ -131,7 +131,7 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
 ```proto
 
 service NSM2NSM {
-    rpc RequestConnection(RemoteConnectionRequest) returns RemoteConnectionResponse;
+    rpc RequestRemoteConnection(RemoteConnectionRequest) returns RemoteConnectionResponse;
 }
 
 /*
@@ -155,8 +155,8 @@ message RemoteConnectionRequest {
 
    /* fields below here are optional */
    ConnectionContextRequest connection_context_request = 4;
-   optional string nse_name = 5;
-   optional map<string,string> labels = 6;
+   string nse_name = 5;
+   map<string,string> labels = 6;
 }
 
 /* 
