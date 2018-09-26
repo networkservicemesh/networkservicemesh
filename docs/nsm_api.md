@@ -279,14 +279,17 @@ message Prefix {
 message RemoteConnectionReply {
     string request_id = 1;
     bool accepted = 2;
-    RemoteMechanismType remote_mechanism_type = 4;
-    RemoteMechanismParameters remote_mechanism_parameters= 5;
-    ConnectionContext connection_context = 6;
+    RemoteMechanismType remote_mechanism_type = 3;
+    RemoteMechanismParameters remote_mechanism_parameters= 4;
+    ConnectionContext connection_context = 5;
+
+    /* admission_error may be left at default value if the RemoteConnectionReply has accepted == true */
+
+    string admission_error = 6;
 
     /* fields below are optional */
 
     map<string,string> labels = 7;
-    string admission_error = 3;
 }
 
 message RemoteMechanismParameters {
