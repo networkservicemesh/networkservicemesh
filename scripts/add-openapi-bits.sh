@@ -23,9 +23,8 @@ SCRIPT_ROOT=$(dirname "${BASH_SOURCE[@]}")/..
 FILE="${SCRIPT_ROOT}/pkg/nsm/apis/netmesh/netmesh.pb.go"
 
 WHATTOADD="// +k8s:openapi-gen=true"
-PATTERN1="type NetworkServiceChannel struct {"
-PATTERN2="type NetworkServiceEndpoint struct {"
-PATTERN3="type NetworkService struct {"
+PATTERN1="type NetworkServiceEndpoint struct {"
+PATTERN2="type NetworkService struct {"
 
 if [ "${DEBUG}" == "True" ] ; then
 	set -xe
@@ -49,7 +48,7 @@ fi
 
 # Add the openapi-gen message
 #
-# The logic below simply adds ${WHATTOADD} iff it doesn't exist after each
+# The logic below simply adds ${WHATTOADD} if it doesn't exist after each
 # of the ${PATTERN}'s above.
 
 SEARCH1="$(grep -A 1 "${WHATTOADD}" "${FILE}" || echo "X")"
@@ -70,11 +69,3 @@ else
 	${SED} -i "/${PATTERN2}/i${WHATTOADD}" "${FILE}"
 fi
 
-SEARCH3="$(grep -A 1 "${WHATTOADD}" "${FILE}" || echo "X")"
-if [ "${SEARCH3}" != "X" ] ; then
-	if [ "$(echo "${SEARCH3}" | grep "${PATTERN3}")" == "" ] ; then
-		${SED} -i "/${PATTERN3}/i${WHATTOADD}" "${FILE}"
-	fi
-else
-	${SED} -i "/${PATTERN3}/i${WHATTOADD}" "${FILE}"
-fi

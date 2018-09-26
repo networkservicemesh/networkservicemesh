@@ -30,10 +30,6 @@ func (c *FakeNetworkserviceV1) NetworkServices(namespace string) v1.NetworkServi
 	return &FakeNetworkServices{c, namespace}
 }
 
-func (c *FakeNetworkserviceV1) NetworkServiceChannels(namespace string) v1.NetworkServiceChannelInterface {
-	return &FakeNetworkServiceChannels{c, namespace}
-}
-
 func (c *FakeNetworkserviceV1) NetworkServiceEndpoints(namespace string) v1.NetworkServiceEndpointInterface {
 	return &FakeNetworkServiceEndpoints{c, namespace}
 }

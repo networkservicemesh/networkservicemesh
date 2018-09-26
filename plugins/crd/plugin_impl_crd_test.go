@@ -25,7 +25,6 @@ import (
 	crdutils "github.com/ant31/crd-validation/pkg"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	networkservicemesh "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -102,7 +101,7 @@ func cleanupEnv(k8s *kubernetes.Clientset, _ *apiextcs.Clientset) error {
 	return nil
 }
 
-func TestCRDValidation(t *testing.T) {
+func TestCRValidation(t *testing.T) {
 
 	if kubeconfig == "" {
 		t.Skip("This test requires a valid kubeconfig file, skipping...")
@@ -132,11 +131,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-1",
-						Namespace: "nsm-service-1-namespace",
-					},
+				Spec: &netmesh.NetworkService{
+					NetworkServiceName: "nsm-service-1",
 				},
 			},
 			expectFail: false,
@@ -148,11 +144,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-serv%ice-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService{
-					Metadata: &common.Metadata{
-						Name:      "nsm-serv%ice-1",
-						Namespace: "nsm-service-1-namespace",
-					},
+				Spec: &netmesh.NetworkService{
+					NetworkServiceName: "nsm-serv%ice-1",
 				},
 			},
 			expectFail: true,
@@ -164,11 +157,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkService{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-1",
-						Namespace: "nsm-service-1-$namespace",
-					},
+				Spec: &netmesh.NetworkService{
+					NetworkServiceName: "nsm-service-1",
 				},
 			},
 			expectFail: true,
@@ -201,11 +191,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-endpoint-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkServiceEndpoint{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-endpoint-1",
-						Namespace: "nsm-service-endpoint-1-namespace",
-					},
+				Spec: &netmesh.NetworkServiceEndpoint{
+					NetworkServiceName: "nsm-service-endpoint-1",
 				},
 			},
 			expectFail: false,
@@ -217,11 +204,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-serv%ice-endpoint-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkServiceEndpoint{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-%endpoint-1",
-						Namespace: "nsm-service-endpoint-1-namespace",
-					},
+				Spec: &netmesh.NetworkServiceEndpoint{
+					NetworkServiceName: "nsm-service-%endpoint-1",
 				},
 			},
 			expectFail: true,
@@ -233,11 +217,8 @@ func TestCRDValidation(t *testing.T) {
 					Name:      "nsm-service-endpoint-1",
 					Namespace: nsmTestNamespace,
 				},
-				Spec: netmesh.NetworkServiceEndpoint{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-endpoint-1",
-						Namespace: "nsm-service-endpoint-1-name$space",
-					},
+				Spec: &netmesh.NetworkServiceEndpoint{
+					NetworkServiceName: "nsm-service-endpoint-1",
 				},
 			},
 			expectFail: true,
@@ -245,92 +226,6 @@ func TestCRDValidation(t *testing.T) {
 	}
 	for _, test := range testsEP {
 		_, err := crdClient.Networkservice().NetworkServiceEndpoints(nsmTestNamespace).Create(&test.ns)
-		if err != nil {
-			if !test.expectFail {
-				t.Errorf("Test '%s' is supposed to succeed but fail with error: %+v", test.testName, err)
-				continue
-			}
-		} else {
-			if test.expectFail {
-				t.Errorf("Test '%s' is supposed to fail but succeeded.", test.testName)
-				continue
-			}
-		}
-	}
-
-	testsCH := []struct {
-		testName   string
-		ns         v1.NetworkServiceChannel
-		expectFail bool
-	}{
-		{
-			testName: "Network Service Channel All Good",
-			ns: v1.NetworkServiceChannel{
-				ObjectMeta: meta.ObjectMeta{
-					Name:      "nsm-service-channel-1",
-					Namespace: nsmTestNamespace,
-				},
-				Spec: netmesh.NetworkServiceChannel{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-channel-1",
-						Namespace: "nsm-service-channel-1-namespace",
-					},
-				},
-			},
-			expectFail: false,
-		},
-		{
-			testName: "Network Service Channel incorrect name",
-			ns: v1.NetworkServiceChannel{
-				ObjectMeta: meta.ObjectMeta{
-					Name:      "nsm-serv%ice-channel-1",
-					Namespace: nsmTestNamespace,
-				},
-				Spec: netmesh.NetworkServiceChannel{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-c%h&annel-1",
-						Namespace: "nsm-service-channel-1-namespace",
-					},
-				},
-			},
-			expectFail: true,
-		},
-		{
-			testName: "Network Service Channel incorrect namespace",
-			ns: v1.NetworkServiceChannel{
-				ObjectMeta: meta.ObjectMeta{
-					Name:      "nsm-service-channel-1",
-					Namespace: nsmTestNamespace,
-				},
-				Spec: netmesh.NetworkServiceChannel{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-channel-1",
-						Namespace: "nsm-service-cha&nnel-1-namespace",
-					},
-				},
-			},
-			expectFail: true,
-		},
-		{
-			testName: "Network Service Channel incorrect Payload",
-			ns: v1.NetworkServiceChannel{
-				ObjectMeta: meta.ObjectMeta{
-					Name:      "nsm-service-channel-1",
-					Namespace: nsmTestNamespace,
-				},
-				Spec: netmesh.NetworkServiceChannel{
-					Metadata: &common.Metadata{
-						Name:      "nsm-service-channel-1",
-						Namespace: "nsm-service-channel-1-namespace",
-					},
-					Payload: "IP%v4%",
-				},
-			},
-			expectFail: true,
-		},
-	}
-	for _, test := range testsCH {
-		_, err := crdClient.Networkservice().NetworkServiceChannels(nsmTestNamespace).Create(&test.ns)
 		if err != nil {
 			if !test.expectFail {
 				t.Errorf("Test '%s' is supposed to succeed but fail with error: %+v", test.testName, err)
@@ -371,13 +266,6 @@ func TestCreateCRDObject(t *testing.T) {
 			groupVersion: v1.NSMGroupVersion,
 			plural:       v1.NSMEPPlural,
 			typeName:     v1.NSMEPTypeName,
-		},
-		{
-			fullName:     v1.FullNSMChannelName,
-			group:        v1.NSMGroup,
-			groupVersion: v1.NSMGroupVersion,
-			plural:       v1.NSMChannelPlural,
-			typeName:     v1.NSMChannelTypeName,
 		},
 		{
 			fullName:     v1.FullNSMName,

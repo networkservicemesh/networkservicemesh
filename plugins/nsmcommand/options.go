@@ -65,7 +65,7 @@ func UseDeps(deps *Deps) Option {
 		d.CRD = deps.CRD
 		d.NSMServer = deps.NSMServer
 		d.ObjectStore = deps.ObjectStore
-		d.Finalizer = deps.Finalizer
+		// d.Finalizer = deps.Finalizer
 	}
 }
 

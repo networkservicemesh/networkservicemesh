@@ -22,14 +22,11 @@ package nsmserver
 import (
 	"fmt"
 	"net"
-	"os"
 	"path"
 	"strconv"
 	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/plugins/logger"
-	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
@@ -71,16 +68,10 @@ func Register(kubeletEndpoint string) error {
 }
 
 func startDeviceServer(nsm *nsmClientEndpoints) error {
-	// Initial socket clean up
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
-	// TODO (sbezverk) make it as a function
-	fi, err := os.Stat(listenEndpoint)
-	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
-		if err := os.Remove(listenEndpoint); err != nil {
-			return err
-		}
+	if err := tools.SocketCleanup(listenEndpoint); err != nil {
+		return err
 	}
-
 	sock, err := net.Listen("unix", listenEndpoint)
 	if err != nil {
 		return err
@@ -104,13 +95,17 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	return nil
 }
 
-// NewNSMDevicePlugin registers and starts Kubelet's device plugin
-func NewNSMDevicePlugin(logger logger.FieldLoggerPlugin, os objectstore.Interface) error {
+// NewNSMDeviceServer registers and starts Kubelet's device plugin
+func NewNSMDeviceServer(p *Plugin) error {
 	nsm := &nsmClientEndpoints{
 		nsmSockets:        map[string]nsmSocket{},
-		logger:            logger,
-		objectStore:       os,
+		logger:            p.Deps.Log,
+		objectStore:       p.Deps.ObjectStore,
 		clientConnections: make(map[string]map[string]*clientNetworkService, 0),
+		k8sClient:         p.Deps.Client.GetClientset(),
+		nsmClient:         p.Deps.Client.GetNSMClientset(),
+		namespace:         p.namespace,
+		nsmPodIPAddress:   p.nsmPodIPAddress,
 	}
 	for i := 0; i < initDeviceCount; i++ {
 		nsm.nsmSockets[strconv.Itoa(i)] = nsmSocket{device: &pluginapi.Device{ID: strconv.Itoa(i), Health: pluginapi.Healthy}}

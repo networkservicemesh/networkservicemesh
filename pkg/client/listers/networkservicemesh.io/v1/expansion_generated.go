@@ -24,14 +24,6 @@ type NetworkServiceListerExpansion interface{}
 // NetworkServiceNamespaceLister.
 type NetworkServiceNamespaceListerExpansion interface{}
 
-// NetworkServiceChannelListerExpansion allows custom methods to be added to
-// NetworkServiceChannelLister.
-type NetworkServiceChannelListerExpansion interface{}
-
-// NetworkServiceChannelNamespaceListerExpansion allows custom methods to be added to
-// NetworkServiceChannelNamespaceLister.
-type NetworkServiceChannelNamespaceListerExpansion interface{}
-
 // NetworkServiceEndpointListerExpansion allows custom methods to be added to
 // NetworkServiceEndpointLister.
 type NetworkServiceEndpointListerExpansion interface{}

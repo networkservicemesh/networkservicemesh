@@ -17,6 +17,10 @@
 package nsmserver
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
@@ -24,12 +28,13 @@ import (
 	"github.com/ligato/networkservicemesh/utils/registry"
 )
 
-// Plugin watches K8s resources and causes all changes to be reflected in the ETCD
-// data store.
+// Plugin groups together resources and functions required for nsm server to run
 type Plugin struct {
 	Deps
 	nsmClientEndpoints nsmClientEndpoints
 	pluginStopCh       chan bool
+	namespace          string
+	nsmPodIPAddress    string
 	idempotent.Impl
 }
 
@@ -38,6 +43,8 @@ type Deps struct {
 	Name        string
 	Log         logger.FieldLoggerPlugin
 	ObjectStore objectstore.PluginAPI
+	Client      k8sclient.PluginAPI
+	KubeConfig  string `empty_value_ok:"true"`
 }
 
 // Init initializes ObjectStore plugin
@@ -51,8 +58,22 @@ func (p *Plugin) init() error {
 	if err != nil {
 		return err
 	}
-	err = NewNSMDevicePlugin(p.Deps.Log, p.Deps.ObjectStore)
-	return err
+	// Getting NSM's Namespace
+	p.namespace = os.Getenv("NSM_NAMESPACE")
+	if p.namespace == "" {
+		return fmt.Errorf("cannot detect namespace, make sure NSM_NAMESPACE variable is set via downward api")
+	}
+	p.nsmPodIPAddress = os.Getenv("NSM_IPADDRESS")
+	if p.nsmPodIPAddress == "" {
+		return fmt.Errorf("cannot detect nsm pod ip address, make sure NSM_IPADDRESS variable is set via downward api")
+	}
+	if err := NewNSMDeviceServer(p); err != nil {
+		return err
+	}
+	if err := NewNSMEndpointServer(p); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close is called when the plugin is being stopped

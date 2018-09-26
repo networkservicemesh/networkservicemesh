@@ -21,24 +21,27 @@ package nsmserver
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
-	"google.golang.org/grpc/peer"
-
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
-
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
+	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/ligato/networkservicemesh/plugins/finalizer"
+	finalizerutils "github.com/ligato/networkservicemesh/plugins/finalizer/utils"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/net/context"
@@ -46,6 +49,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -61,6 +68,10 @@ type nsmClientEndpoints struct {
 	// Second key is NetworkService name
 	clientConnections map[string]map[string]*clientNetworkService
 	sync.RWMutex
+	k8sClient       *kubernetes.Clientset
+	nsmClient       *nsmclient.Clientset
+	namespace       string
+	nsmPodIPAddress string
 }
 
 type nsmSocket struct {
@@ -73,7 +84,8 @@ type nsmSocket struct {
 // clientNetworkService struct represents requested by a NSM client NetworkService and its state, isInProgress true
 // indicates that DataPlane programming operation is on going, so no duplicate request for Dataplane processing should occur.
 type clientNetworkService struct {
-	networkService       *netmesh.NetworkService
+	networkService       *nsmapi.NetworkService
+	endpoint             *nsmapi.NetworkServiceEndpoint
 	ConnectionParameters *nsmconnect.ConnectionParameters
 	// isInProgress indicates ongoing dataplane programming
 	isInProgress bool
@@ -95,23 +107,51 @@ func (s sortedInterfaceList) Less(i, j int) bool {
 	return s.interfaceList[i].Preference < s.interfaceList[j].Preference
 }
 
+// getNetworkServiceEndpoint gets all advertised Endpoints for a specific Network Service
+func getNetworkServiceEndpoint(
+	k8sClient *kubernetes.Clientset,
+	nsmClient *nsmclient.Clientset,
+	networkService string,
+	namespace string) ([]nsmapi.NetworkServiceEndpoint, error) {
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{EndpointServiceLabel: networkService}))
+	options := metav1.ListOptions{LabelSelector: selector.String()}
+	endpointList, err := nsmClient.NetworkserviceV1().NetworkServiceEndpoints(namespace).List(options)
+	if err != nil {
+		return nil, err
+	}
+	return endpointList.Items, nil
+}
+
+// getLocalEndpoint returns a slice of nsmapi.NetworkServiceEndpoint with only
+// entries matching NSM Pod ip address.
+func getLocalEndpoint(endpointList []nsmapi.NetworkServiceEndpoint, nsmPodIPAddress string) []nsmapi.NetworkServiceEndpoint {
+	localEndpoints := []nsmapi.NetworkServiceEndpoint{}
+	for _, ep := range endpointList {
+		if ep.Spec.NetworkServiceHost == nsmPodIPAddress {
+			localEndpoints = append(localEndpoints, ep)
+		}
+	}
+	return localEndpoints
+}
+
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
 // return to NSM client result.
-func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionAccept, error) {
-	n.logger.Infof("received connection request id: %s from pod: %s/%s, requesting network service: %s for linux namespace: %s",
-		cr.RequestId, cr.Metadata.Namespace, cr.Metadata.Name, cr.NetworkServiceName, cr.LinuxNamespace)
+func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionReply, error) {
+	n.logger.Infof("received connection request id: %s, requesting network service: %s for linux namespace: %s",
+		cr.RequestId, cr.NetworkServiceName, cr.LinuxNamespace)
 
 	// first check to see if requested NetworkService exists in objectStore
-	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName, cr.Metadata.Namespace)
+	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName)
 	if ns == nil {
 		// Unknown NetworkService fail Connection request
-		n.logger.Infof("not found network service object: %s/%s", cr.Metadata.Namespace, cr.NetworkServiceName)
-		return &nsmconnect.ConnectionAccept{
+		n.logger.Errorf("not found network service object: %s", cr.RequestId)
+		return &nsmconnect.ConnectionReply{
 			Accepted:       false,
-			AdmissionError: fmt.Sprintf("requested Network Service %s/%s does not exist", cr.Metadata.Namespace, cr.NetworkServiceName),
+			AdmissionError: fmt.Sprintf("requested Network Service %s does not exist", cr.RequestId),
 		}, status.Error(codes.NotFound, "requested network service not found")
 	}
-	n.logger.Infof("found network service object: %+v", ns)
+	n.logger.Infof("Requested network service: %s, found network service object: (%s/%s)", cr.NetworkServiceName, ns.ObjectMeta.Namespace, ns.ObjectMeta.Name)
+
 	// second check to see if requested NetworkService exists in n.clientConnections which means it is not first
 	// Connection request
 	if _, ok := n.clientConnections[cr.RequestId]; ok {
@@ -120,43 +160,86 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 			// Since it is duplicate request, need to check if it is already inProgress
 			if isInProgress(n.clientConnections[cr.RequestId][cr.NetworkServiceName]) {
 				// Looks like dataplane programming is taking long time, responding client to wait and retry
-				return &nsmconnect.ConnectionAccept{
+				return &nsmconnect.ConnectionReply{
 					Accepted:       false,
-					AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s/%s is still being programmed, retry", cr.Metadata.Namespace, cr.NetworkServiceName),
+					AdmissionError: fmt.Sprintf("dataplane for requested Network Service %s is still being programmed, retry", cr.RequestId),
 				}, status.Error(codes.AlreadyExists, "dataplane for requested network service is being programmed, retry")
 			}
 			// Request is not inProgress which means potentially a success can be returned
 			// TODO (sbezverk) discuss this logic in case some corner cases might break it.
-			return &nsmconnect.ConnectionAccept{
+			return &nsmconnect.ConnectionReply{
 				Accepted:             true,
 				ConnectionParameters: &nsmconnect.ConnectionParameters{},
 			}, nil
 		}
 	}
-	n.logger.Info("it is a new request")
+
+	// Need to check if for requested network service, there are advertised Endpoints
+	endpointList, err := getNetworkServiceEndpoint(n.k8sClient, n.nsmClient, cr.NetworkServiceName, n.namespace)
+	if err != nil {
+		return &nsmconnect.ConnectionReply{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("connection request %s failed to get a list of endpoints for requested Network Service %s with error: %+v",
+				cr.RequestId, cr.NetworkServiceName, err),
+		}, status.Error(codes.Aborted, "failed to get a list of endpoints for requested Network Service")
+	}
+	if len(endpointList) == 0 {
+		return &nsmconnect.ConnectionReply{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("connection request %s failed no endpoints were found for requested Network Service %s",
+				cr.RequestId, cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "failed no endpoints were found for requested Network Service")
+	}
+
+	// At this point there is a list of Endpoints providing a network service requested by the client.
+	// The following code goes through a selection process, starting from identifying local to NSM
+	// Endpoints.
+	// TODO (sbezverk) When support for Remote Endpoints get added, then this error message should be removed.
+	endpoints := getLocalEndpoint(endpointList, n.nsmPodIPAddress)
+	if len(endpoints) == 0 {
+		n.logger.Errorf("connection request %s failed no local endpoints were found for requested Network Service %s, but remote endpoints are not yet supported",
+			cr.RequestId, cr.NetworkServiceName)
+		return &nsmconnect.ConnectionReply{
+			Accepted: false,
+			AdmissionError: fmt.Sprintf("connection request %s failed no local endpoints were found for requested Network Service %s, but remote endpoints are not yet supported",
+				cr.RequestId, cr.NetworkServiceName),
+		}, status.Error(codes.NotFound, "failed no local endpoints were found for requested Network Service")
+	}
 	// It is a new Connection request for known NetworkService, need to check if requested interface
-	// parameters have a match with ones of known NetworkService. If not, return error
+	// parameters have a match with ones of known Network Service Endpoints. If not, return error
 	sortedInterfaces := sortedInterfaceList{}
 	sortedInterfaces.interfaceList = cr.Interface
 	sort.Sort(sortedInterfaces)
 
-	// TODO (sbezverk) needs to be refactored for more sofisticated matching algorithm, possible consider
-	// other attributes.
-	channel, found := findInterface(ns, sortedInterfaces.interfaceList)
-	if !found {
-		return &nsmconnect.ConnectionAccept{
+	// getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
+	// only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
+	endpoints = getEndpointWithInterface(endpoints, sortedInterfaces.interfaceList)
+	if len(endpoints) == 0 {
+		n.logger.Errorf("no advertised endpoints for Network Service %s, support required interface", cr.NetworkServiceName)
+		return &nsmconnect.ConnectionReply{
 			Accepted:       false,
-			AdmissionError: fmt.Sprintf("no advertised channels for Network Service %s, support required interface", cr.NetworkServiceName),
+			AdmissionError: fmt.Sprintf("no advertised endpoints for Network Service %s, support required interface", cr.NetworkServiceName),
 		}, status.Error(codes.NotFound, "required interface type not found")
 	}
+
+	// At this point endpoints contains slice of endpoints matching requested network service and matching client's requested
+	// interface type. Until more sofisticated algorithm is proposed, selecting a random entry from the slice.
+	src := rand.NewSource(time.Now().Unix())
+	rnd := rand.New(src)
+	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
+	n.logger.Infof("Endpoint %s/%s pod uid (%s) selected for network service %s", selectedEndpoint.ObjectMeta.Namespace,
+		selectedEndpoint.ObjectMeta.Name, selectedEndpoint.Spec.NseProviderName,
+		cr.NetworkServiceName)
 
 	// Add new Connection Request into n.clientConnection, set as inProgress and call DataPlane programming func
 	// and wait for complition.
 	clientNS := clientNetworkService{
-		networkService: &netmesh.NetworkService{
-			Metadata: ns.Metadata,
-			Channel:  []*netmesh.NetworkServiceChannel{channel},
+		networkService: &nsmapi.NetworkService{
+			Spec: &netmesh.NetworkService{
+				NetworkServiceName: cr.NetworkServiceName,
+			},
 		},
+		endpoint:             &selectedEndpoint,
 		isInProgress:         true,
 		ConnectionParameters: &nsmconnect.ConnectionParameters{},
 	}
@@ -166,78 +249,102 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	n.Unlock()
 
 	// At this point we have all information to call Connection Request to NSE providing requested NetworkSerice.
-	nseConn, err := tools.SocketOperationCheck(channel.SocketLocation)
-	if err != nil {
-		n.logger.Errorf("nsm: failed to communicate with NSE over the socket %s with error: %+v", channel.SocketLocation, err)
+	// There are three path where selectedEndpoint points to:
+	// 1 - local NSE,
+	// 2 - remote NSE (not implmented), local NSM contacts remote NSM and in case of success attempts to build local
+	//     end of a tunnel between NSM client pod and NSE providiong requested service.
+	// 3 - Network Service Wiring (not implemented).
+
+	// Local NSE case
+	if selectedEndpoint.Spec.NetworkServiceHost == n.nsmPodIPAddress {
+		if err := localNSE(n, cr.RequestId, cr.NetworkServiceName); err != nil {
+			n.logger.Errorf("nsm: failed to communicate with local NSE over the socket %s with error: %+v", selectedEndpoint.Spec.SocketLocation, err)
+			cleanConnectionRequest(cr.RequestId, n)
+			return &nsmconnect.ConnectionReply{
+				Accepted:       false,
+				AdmissionError: fmt.Sprintf("failed to communicate with local NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
+			}, status.Error(codes.Aborted, "communication failure with local NSE")
+		}
+		n.logger.Infof("successfully create client connection for request id: %s networkservice: %s",
+			cr.RequestId, cr.NetworkServiceName)
+
+		// nsm client requesting connection is one time operation and it does not seem require to keep state
+		// after it either succeeded or failed. It seems safe to delete completed Connection Request.
 		cleanConnectionRequest(cr.RequestId, n)
-		return &nsmconnect.ConnectionAccept{
-			Accepted:       false,
-			AdmissionError: fmt.Sprintf("failed to communicate with NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
-		}, status.Error(codes.Aborted, "communication failure with NSE")
+		return &nsmconnect.ConnectionReply{
+			Accepted:             true,
+			ConnectionParameters: &nsmconnect.ConnectionParameters{},
+		}, nil
+	}
+	// Remote NSE case (not implemented)
+	n.logger.Error("nsm: connection with remote NSE is not implemented, come back later")
+	cleanConnectionRequest(cr.RequestId, n)
+	return &nsmconnect.ConnectionReply{
+		Accepted:       false,
+		AdmissionError: fmt.Sprintf("connection with remote NSE is not implemented, come back later"),
+	}, status.Error(codes.Aborted, "connection with remote NSE is not implemented, come back later")
+}
+
+func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error {
+	client := n.clientConnections[requestID][networkServiceName]
+	nseConn, err := tools.SocketOperationCheck(client.endpoint.Spec.SocketLocation)
+	if err != nil {
+		return err
 	}
 	defer nseConn.Close()
-	nseClient := nseconnect.NewNSEConnectionClient(nseConn)
+	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
 
 	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer nseCancel()
-	nseRepl, err := nseClient.RequestNSEConnection(nseCtx, &nseconnect.NSEConnectionRequest{
-		RequestId: cr.RequestId,
-		Metadata:  cr.Metadata,
-		Channel:   channel,
+	nseRepl, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
+		RequestId: requestID,
 	})
 	if err != nil {
-		n.logger.Errorf("nsm: failed to get information from NSE with error: %+v", err)
-		cleanConnectionRequest(cr.RequestId, n)
-		return &nsmconnect.ConnectionAccept{
-			Accepted:       false,
-			AdmissionError: fmt.Sprintf("failed to get information from NSE for requested Network Service %s with error: %+v", cr.NetworkServiceName, err),
-		}, status.Error(codes.Aborted, "communication failure with NSE")
+		return err
 	}
-	n.logger.Infof("successfuly received information from NSE: %+v", nseRepl)
+	n.logger.Infof("successfuly received information from NSE: %s", nseRepl.RequestId)
+
+	// TODO (sbezverk) It must be refactor as soon as possible to call dataplane interface
 
 	// podName1/podNamespace1 represents nsm client requesting access to a network service
-	podName1 := cr.Metadata.Name
-	podNamespace1 := "default"
-	if cr.Metadata.Namespace != "" {
-		podNamespace1 = cr.Metadata.Namespace
+	nsmClientPodName, err := getPodNameByUID(n.k8sClient, requestID, n.namespace)
+	if err != nil {
+		return err
 	}
-
 	// podName2/podNamespace2 represents nse pod
-	podName2 := nseRepl.Metadata.Name
-	podNamespace2 := "default"
-	if cr.Metadata.Namespace != "" {
-		podNamespace2 = cr.Metadata.Namespace
+	nsePodName, err := getPodNameByUID(n.k8sClient, string(client.endpoint.Spec.NseProviderName), n.namespace)
+	if err != nil {
+		return err
+	}
+	if err := dataplaneutils.ConnectPods(nsmClientPodName, nsePodName, n.namespace, n.namespace); err != nil {
+		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
+			n.namespace, nsmClientPodName, n.namespace, nsePodName, err)
+	}
+	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
+	// to clean up injected dataplane interfaces without any race.
+	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsmClientPodName, n.namespace, finalizer.NSMFinalizer); err != nil {
+		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsmClientPodName, err)
+	}
+	// the finalizer for nse pod is a combination of a nsm client pod name + finalizer.NSEFinalizerSuffix,
+	// it will allow to check if nse pod is safe to delete or it is still used by nsm client(s)
+	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsePodName, n.namespace, nsmClientPodName+finalizer.NSEFinalizerSuffix); err != nil {
+		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsePodName, err)
+	}
+	return nil
+}
+
+func getPodNameByUID(k8s *kubernetes.Clientset, uid, namespace string) (string, error) {
+	podList, err := k8s.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+	for _, pod := range podList.Items {
+		if strings.Compare(string(pod.ObjectMeta.UID), uid) == 0 {
+			return pod.ObjectMeta.Name, nil
+		}
 	}
 
-	if err := dataplaneutils.ConnectPods(podName1, podName2, podNamespace1, podNamespace2); err != nil {
-		n.logger.Errorf("nsm: failed to interconnect pods %s/%s and %s/%s with error: %+v",
-			podNamespace1,
-			podName1,
-			podNamespace2,
-			podName2,
-			err)
-		return &nsmconnect.ConnectionAccept{
-			Accepted: false,
-			AdmissionError: fmt.Sprintf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
-				podNamespace1,
-				podName1,
-				podNamespace2,
-				podName2,
-				err),
-		}, status.Error(codes.Aborted, "failed to interconnect pods")
-	}
-	// Simulating sucessfull end
-	n.logger.Infof("successfully create client connection for request id: %s networkservice: %s clientNetworkService object: %+v",
-		cr.RequestId, cr.NetworkServiceName, n.clientConnections[cr.RequestId][cr.NetworkServiceName])
-
-	// nsm client requesting connection is one time operation and it does not seem require to keep state
-	// after it either succeeded or failed. It seems safe to delete completed Connection Request.
-	cleanConnectionRequest(cr.RequestId, n)
-
-	return &nsmconnect.ConnectionAccept{
-		Accepted:             true,
-		ConnectionParameters: &nsmconnect.ConnectionParameters{},
-	}, nil
+	return "", fmt.Errorf("fail to find POD with UID %s in the namespace %s", uid, namespace)
 }
 
 func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
@@ -246,82 +353,35 @@ func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
 	n.Unlock()
 }
 
-func findInterface(ns *netmesh.NetworkService, reqInterfacesSorted []*common.Interface) (*netmesh.NetworkServiceChannel, bool) {
-	for _, c := range ns.Channel {
-		for _, i := range c.Interface {
-			for _, iReq := range reqInterfacesSorted {
-				if i.Type == iReq.Type {
-					return c, true
+// getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
+// only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
+func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqInterfacesSorted []*common.Interface) []nsmapi.NetworkServiceEndpoint {
+	endpoints := []nsmapi.NetworkServiceEndpoint{}
+	found := false
+	// Loop over a list of required interfaces, since it is sorted, the loop starts with first choice.
+	// if no first choice matches found, loop goes to the second choice, etc., otherwise function
+	// returns collected slice of endpoints with matching interface type.
+	for _, iReq := range reqInterfacesSorted {
+		for _, ep := range endpointList {
+			for _, intf := range ep.Spec.Interface {
+				if iReq.Type == intf.Type {
+					found = true
+					endpoints = append(endpoints, ep)
 				}
 			}
 		}
+		if found {
+			break
+		}
 	}
-	return nil, false
+
+	return endpoints
 }
 
 // TODO (sbezverk) Current assumption is that NSM client is requesting connection for  NetworkService
 // from the same namespace. If it changes, refactor maybe required.
 func isInProgress(networkService *clientNetworkService) bool {
 	return networkService.isInProgress
-}
-
-func (n *nsmClientEndpoints) RequestDiscovery(ctx context.Context, cr *nsmconnect.DiscoveryRequest) (*nsmconnect.DiscoveryResponse, error) {
-	n.logger.Info("received Discovery request")
-	networkService := n.objectStore.ListNetworkServices()
-	n.logger.Infof("preparing Discovery response, number of returning NetworkServices: %d", len(networkService))
-	resp := &nsmconnect.DiscoveryResponse{
-		NetworkService: networkService,
-	}
-	return resp, nil
-}
-
-func (n *nsmClientEndpoints) RequestAdvertiseChannel(ctx context.Context, cr *nsmconnect.ChannelAdvertiseRequest) (*nsmconnect.ChannelAdvertiseResponse, error) {
-	n.logger.Printf("received Channel advertisement.")
-	for _, c := range cr.NetmeshChannel {
-
-		// Ignoring path since it is local to NSE path, completely useless for server, but keeping NSE socket name
-		_, clientSocket := path.Split(c.SocketLocation)
-		// Extracting the location of actual server's socket for this specific connection
-		// from the peer struct which is a part of the context passed to gRPC method
-		if peer, ok := peer.FromContext(ctx); ok {
-			// Keeping server path, because this is where NSE socket would be located
-			serverPath, _ := path.Split(peer.Addr.(*net.UnixAddr).Name)
-			// Updating socket location to actual location of NSE socket on the server
-			c.SocketLocation = path.Join(serverPath, clientSocket)
-		}
-		n.logger.Infof("For NetworkService: %s channel: %s channel's socket location: %s", c.NetworkServiceName, c.Metadata.Name, c.SocketLocation)
-
-		networkServiceName := c.NetworkServiceName
-		networkServiceNamespace := "default"
-		if c.Metadata.Namespace != "" {
-			networkServiceNamespace = c.Metadata.Namespace
-		} else {
-			c.Metadata.Namespace = "default"
-		}
-
-		networkService := n.objectStore.GetNetworkService(networkServiceName, networkServiceNamespace)
-		if networkService != nil {
-			n.logger.Infof("Found existing NetworkService %s/%s in the Object Store, will add channel %s to its list of channels",
-				networkServiceName, networkServiceNamespace, c.Metadata.Name)
-			// Since it was discovered that NetworkService Object exists, calling method to add the channel to NetworkService.
-
-			// Adding advertised channel to Object Store of NSEs and channels.
-			n.logger.Infof("Adding channel %s/%s for NSE %s/%s", c.Metadata.Namespace, c.Metadata.Name, c.Metadata.Namespace, c.NseProviderName)
-			n.objectStore.AddChannel(c)
-
-			if err := n.objectStore.AddChannelToNetworkService(networkServiceName, networkServiceNamespace, c); err != nil {
-				n.logger.Errorf("failed to add channel %s/%s to network service %s with error: %+v", networkServiceNamespace, networkServiceName, c.Metadata.Name, err)
-				return &nsmconnect.ChannelAdvertiseResponse{Success: false}, err
-			}
-			n.logger.Infof("Channel %s/%s has been successfully added to network service %s/%s in the Object Store",
-				c.Metadata.Namespace, c.Metadata.Name, networkServiceName, networkServiceNamespace)
-		} else {
-			n.logger.Infof("NetworkService %s/%s is not found in the Object Store", networkServiceNamespace, networkServiceName)
-			return &nsmconnect.ChannelAdvertiseResponse{Success: false}, fmt.Errorf("NetworkService %s/%s is not found in the Object Store",
-				networkServiceNamespace, networkServiceName)
-		}
-	}
-	return &nsmconnect.ChannelAdvertiseResponse{Success: true}, nil
 }
 
 // Define functions needed to meet the Kubernetes DevicePlugin API
@@ -429,24 +489,17 @@ func newCustomListener(socket string) (customListener, error) {
 	return customListener{}, err
 }
 
+// Client server starts for each client during Kulet's Allocate call
 func startClientServer(id string, endpoints *nsmClientEndpoints) {
 	client := endpoints.nsmSockets[id]
 	logger := endpoints.logger
 	listenEndpoint := client.socketPath
-	// TODO (sbezverk) make it as a function
-	fi, err := os.Stat(listenEndpoint)
-	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
-		if err := os.Remove(listenEndpoint); err != nil {
-			logger.Error("Cannot remove listen endpoint", listenEndpoint, err)
-		}
-	}
-	if err != nil && !os.IsNotExist(err) {
-		logger.Errorf("failure stat of socket file %s with error: %+v", client.socketPath, err)
+	if err := tools.SocketCleanup(listenEndpoint); err != nil {
 		client.allocated = false
 		return
 	}
-	unix.Umask(socketMask)
 
+	unix.Umask(socketMask)
 	sock, err := newCustomListener(listenEndpoint)
 	if err != nil {
 		logger.Errorf("failure to listen on socket %s with error: %+v", client.socketPath, err)
@@ -455,7 +508,7 @@ func startClientServer(id string, endpoints *nsmClientEndpoints) {
 	}
 
 	grpcServer := grpc.NewServer()
-	// PLugging NSM client Connection methods
+	// Plugging NSM client Connection methods
 	nsmconnect.RegisterClientConnectionServer(grpcServer, endpoints)
 	logger.Infof("Starting Client gRPC server listening on socket: %s", ServerSock)
 	go func() {

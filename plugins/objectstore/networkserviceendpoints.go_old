@@ -17,13 +17,14 @@ package objectstore
 import (
 	"sync"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
+	// "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 )
 
 // NetworkServiceEndpointsStore map stores all discovered Network Service Endpoint
 // Objects with a key composed of a name and a namespace
 type networkServiceEndpointsStore struct {
-	networkServiceEndpoint map[meta]*netmesh.NetworkServiceEndpoint
+	networkServiceEndpoint map[meta]*v1.NetworkServiceEndpoint
 	sync.RWMutex
 }
 
@@ -31,18 +32,18 @@ type networkServiceEndpointsStore struct {
 // NetworkServiceEndpoints store. It must be initialized before any controllers start.
 func newNetworkServiceEndpointsStore() *networkServiceEndpointsStore {
 	return &networkServiceEndpointsStore{
-		networkServiceEndpoint: map[meta]*netmesh.NetworkServiceEndpoint{}}
+		networkServiceEndpoint: map[meta]*v1.NetworkServiceEndpoint{}}
 }
 
 // Add method adds descovered NetworkServiceEndpoint if it does not
 // already exit in the store.
-func (n *networkServiceEndpointsStore) Add(ns *netmesh.NetworkServiceEndpoint) {
+func (n *networkServiceEndpointsStore) Add(ns *v1.NetworkServiceEndpoint) {
 	n.Lock()
 	defer n.Unlock()
 
 	key := meta{
-		name:      ns.Metadata.Name,
-		namespace: ns.Metadata.Namespace,
+		name:      ns.ObjectMeta.Name,
+		namespace: ns.ObjectMeta.Namespace,
 	}
 	if _, ok := n.networkServiceEndpoint[key]; !ok {
 		// Not in the store, adding it.
@@ -61,10 +62,10 @@ func (n *networkServiceEndpointsStore) Delete(key meta) {
 }
 
 // List method lists all known NetworkServiceEndpoint objects.
-func (n *networkServiceEndpointsStore) List() []*netmesh.NetworkServiceEndpoint {
+func (n *networkServiceEndpointsStore) List() []*v1.NetworkServiceEndpoint {
 	n.Lock()
 	defer n.Unlock()
-	networkServiceEndpoints := make([]*netmesh.NetworkServiceEndpoint, 0)
+	networkServiceEndpoints := make([]*v1.NetworkServiceEndpoint, 0)
 	for _, ns := range n.networkServiceEndpoint {
 		networkServiceEndpoints = append(networkServiceEndpoints, ns)
 	}
