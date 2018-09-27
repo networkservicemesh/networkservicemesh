@@ -98,7 +98,7 @@ func DefaultDeps() Option {
 			d.Finalizer = finalizer.SharedPlugin()
 		}
 		if d.DataplaneRegistrar == nil {
-			d.Finalizer = dataplaneregistrar.SharedPlugin()
+			d.DataplaneRegistrar = dataplaneregistrar.SharedPlugin()
 		}
 	}
 }
