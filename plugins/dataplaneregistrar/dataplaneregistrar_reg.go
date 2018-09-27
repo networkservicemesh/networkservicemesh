@@ -49,8 +49,8 @@ type dataplaneRegistrarServer struct {
 // dataplaneMonitor is per registered dataplane monitoring routine. It creates a grpc client
 // for the socket advertsied by the dataplane and listens for a stream of operational Parameters/Constraints changes.
 // All changes are reflected in the corresponding dataplane object in the object store.
-// If it detects a failure of the connection, it will indicate that dataplane is no longer operational. On this case
-// dataplaneMonitor will remove dataplane object from the object store and will terminate.
+// If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
+// dataplaneMonitor will remove dataplane object from the object store and will terminate itself.
 func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logger logger.FieldLoggerPlugin) {
 	var err error
 	dataplane := objStore.GetDataplane(dataplaneName)
@@ -70,14 +70,14 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &dataplaneinterface.Empty{})
 	if err != nil {
-		logger.Errorf("update grpc channel for Dataplane %s failed with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
+		logger.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 		objStore.ObjectDeleted(&dataplaneName)
 		return
 	}
 	for {
 		updates, err := stream.Recv()
 		if err != nil {
-			logger.Errorf("update grpc channel for Dataplane %s failed with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
+			logger.Errorf("fail to receive on update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 			objStore.ObjectDeleted(&dataplaneName)
 			return
 		}
