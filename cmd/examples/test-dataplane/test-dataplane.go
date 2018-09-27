@@ -21,13 +21,17 @@ import (
 	"log"
 	"net"
 	"os"
+	"path"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/ligato/networkservicemesh/plugins/dataplaneregistrar"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
@@ -47,14 +51,39 @@ const (
 )
 
 var (
-	dataplane  = flag.String("dataplane-socket", dataplaneSocket, "Location of the dataplane gRPC socket")
-	kubeconfig = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
+	dataplane       = flag.String("dataplane-socket", dataplaneSocket, "Location of the dataplane gRPC socket")
+	kubeconfig      = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
+	registrarSocket = path.Join(dataplaneregistrar.DataplaneRegistrarSocketBaseDir, dataplaneregistrar.DataplaneRegistrarSocket)
 )
 
 // DataplaneController keeps k8s client and gRPC server
 type DataplaneController struct {
 	k8s             *kubernetes.Clientset
 	dataplaneServer *grpc.Server
+	updateCh        chan Update
+}
+
+// Update is a message used to communicate any changes in operational parameters and constraints
+type Update struct {
+	update map[string]string
+}
+
+// UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
+// to operational prameters or constraints
+func (d DataplaneController) UpdateDataplane(empty *dataplaneinterface.Empty, updateSrv dataplaneinterface.DataplaneOperations_UpdateDataplaneServer) error {
+	logrus.Infof("Update dataplane was called")
+	for {
+		select {
+		// Waiting for any updates which might occur during a life of dataplane module and communicating
+		// them back to NSM.
+		case update := <-d.updateCh:
+			if err := updateSrv.Send(&dataplaneinterface.DataplaneUpdate{
+				DataplaneParameters: update.update,
+			}); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 // RequestDeleteConnect implements method for testdataplane proto
@@ -362,8 +391,15 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Failed to build kubernetes client, exitting...")
 	}
+	// Step 1: Start server on our dataplane socket, for now 2 API will be bound to this socket
+	// DataplaneInterface API (eventually it will become the only API needed), currently used to notify
+	// NSM for any changes in operational parameters and/or constraints and TestDataplane API which is used
+	// to actually used to connect pods together.
 
-	dataplaneController := DataplaneController{k8s: k8s}
+	dataplaneController := DataplaneController{
+		k8s:      k8s,
+		updateCh: make(chan Update),
+	}
 
 	socket := *dataplane
 	if err := tools.SocketCleanup(socket); err != nil {
@@ -374,8 +410,12 @@ func main() {
 		logrus.Fatalf("test-dataplane: fail to open socket %s with error: %+v", socket, err)
 	}
 	dataplaneController.dataplaneServer = grpc.NewServer()
+	// Binding testdataplane to gRPC server
 	testdataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 	testdataplane.RegisterDeleteConnectServer(dataplaneController.dataplaneServer, dataplaneController)
+	// Binding dataplane Interface API to gRPC server
+	dataplaneinterface.RegisterDataplaneOperationsServer(dataplaneController.dataplaneServer, dataplaneController)
+
 	go func() {
 		wg.Add(1)
 		if err := dataplaneController.dataplaneServer.Serve(dataplaneConn); err != nil {
@@ -388,8 +428,38 @@ func main() {
 		logrus.Fatalf("test-dataplane: failure to communicate with the socket %s with error: %+v", socket, err)
 	}
 	testSocket.Close()
-
 	logrus.Infof("test-dataplane: Test Dataplane controller is ready to serve...")
+
+	// Step 2: The server is ready now dataplane needs to register with NSM.
+	if _, err := os.Stat(registrarSocket); err != nil {
+		logrus.Errorf("test-dataplane: failure to access nsm socket at %s with error: %+v, exiting...", registrarSocket, err)
+		os.Exit(1)
+	}
+
+	conn, err := tools.SocketOperationCheck(registrarSocket)
+	if err != nil {
+		logrus.Fatalf("test-dataplane: failure to communicate with the socket %s with error: %+v", registrarSocket, err)
+	}
+	defer conn.Close()
+	logrus.Infof("test-dataplane: connection to dataplane registrar socket % succeeded.", registrarSocket)
+
+	registrarConnection := dataplaneregistrarapi.NewDataplaneRegistrationClient(conn)
+
+	dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
+		DataplaneName:   "test-dataplane",
+		DataplaneSocket: socket,
+		DataplaneParameters: map[string]string{
+			"parameter1": "value1",
+			"parameter2": "value2",
+		},
+	}
+
+	if _, err := registrarConnection.RequestDataplaneRegistration(context.Background(), &dataplane); err != nil {
+		dataplaneController.dataplaneServer.Stop()
+		logrus.Fatalf("test-dataplane: failure to communicate with the socket %s with error: %+v", registrarSocket, err)
+	}
+
+	logrus.Infof("test-dataplane: dataplane has successfully been registered, waiting for connection from NSM...")
 	// Now block on WaitGroup
 	wg.Wait()
 }

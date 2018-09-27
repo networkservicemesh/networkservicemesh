@@ -100,7 +100,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 		SocketLocation: req.DataplaneSocket,
 		Parameters:     req.DataplaneParameters,
 	}
-	r.objectStore.ObjectCreated(&dataplane)
+	r.objectStore.ObjectCreated(dataplane)
 	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket
 	// and will listen for operational parameters/constraints changes and reflecting these changes in the dataplane
 	// object.
