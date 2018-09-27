@@ -34,11 +34,13 @@ type meta struct {
 // ObjectStore stores information about all objects learned by CRDs controller
 type objectStore struct {
 	*networkServicesStore
+	*dataplaneStore
 }
 
 func newObjectStore() *objectStore {
 	objectStore := &objectStore{}
 	objectStore.networkServicesStore = newNetworkServicesStore()
+	objectStore.dataplaneStore = newDataplaneStore()
 	return objectStore
 }
 
@@ -87,9 +89,25 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 		ns := obj.(*v1.NetworkService)
 		p.objects.networkServicesStore.Add(ns)
 		p.Log.Infof("number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
+	case Dataplane:
+		dp := obj.(*Dataplane)
+		p.objects.dataplaneStore.Add(dp)
+		p.Log.Infof("number of dataplanes in Object Store %d", len(p.objects.dataplaneStore.List()))
 	default:
 		p.Log.Infof("found object of unknown type: %s", reflect.TypeOf(obj))
 	}
+}
+
+// GetDataplane get Dataplane object by registration name
+func (p *Plugin) GetDataplane(registeredName string) *Dataplane {
+	p.Log.Info("ObjectStore.GetDataplane.")
+	return p.objects.dataplaneStore.Get(registeredName)
+}
+
+// ListDataplanes lists all stored Dataplane objects
+func (p *Plugin) ListDataplanes() []*Dataplane {
+	p.Log.Info("ObjectStore.ListDataplane.")
+	return p.objects.dataplaneStore.List()
 }
 
 // GetNetworkService get NetworkService object for name and namespace specified
@@ -111,5 +129,8 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 	case *v1.NetworkService:
 		ns := obj.(*v1.NetworkService)
 		p.objects.networkServicesStore.Delete(ns.ObjectMeta.Name)
+	case *Dataplane:
+		dp := obj.(*Dataplane)
+		p.objects.dataplaneStore.Delete(dp.RegisteredName)
 	}
 }

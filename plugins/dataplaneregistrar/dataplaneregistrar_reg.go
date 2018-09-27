@@ -16,6 +16,7 @@ package dataplaneregistrar
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"path"
 
@@ -43,7 +44,35 @@ type dataplaneRegistrarServer struct {
 	stopChannel                  chan bool
 }
 
+// dataplaneMonitor is per registered dataplane monitoring routine. It creates a grpc client
+// for the socket advertsied by the dataplane and listens for a stream of operational Parameters/Constraints changes.
+// All changes are reflected in the corresponding dataplane object in the object store.
+// If it detects a failure of the connection, it will indicate that dataplane is no longer operational. On this case
+// dataplaneMonitor will remove dataplane object from the object store and will terminate.
+func dataplaneMonitor(dataplane *objectstore.Dataplane) {
+	for {
+	}
+}
+
 func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneRegistrationRequest) (*dataplaneregistrarapi.DataplaneRegistrationReply, error) {
+	r.logger.Infof("Received new dataplane registration requests from %s", req.DataplaneName)
+	// Need to check if name of dataplane already exists in the object store
+	if r.objectStore.GetDataplane(req.DataplaneName) != nil {
+		r.logger.Errorf("dataplane with name %s already exist", req.DataplaneName)
+		// TODO (sbezverk) Need to decide the right action, fail or not, failing for now
+		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registred: false}, fmt.Errorf("dataplane with name %s already registered", req.DataplaneName)
+	}
+	// Instantiating dataplane object with parameters from the request and creating a new object in the Object store
+	dataplane := &objectstore.Dataplane{
+		RegisteredName: req.DataplaneName,
+		SocketLocation: req.DataplaneSocket,
+		Parameters:     req.DataplaneParameters,
+	}
+	r.objectStore.ObjectCreated(&dataplane)
+	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket
+	// and will listen for operational parameters/constraints changes and reflecting these changes in the dataplane
+	// object.
+	go dataplaneMonitor(r.objectStore.GetDataplane(req.DataplaneName))
 
 	return &dataplaneregistrarapi.DataplaneRegistrationReply{Registred: true}, nil
 }
