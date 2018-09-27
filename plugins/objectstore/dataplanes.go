@@ -16,6 +16,10 @@ package objectstore
 
 import (
 	"sync"
+
+	"google.golang.org/grpc"
+
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
 )
 
 // dataplaneStore map stores all registered dataplane providers
@@ -34,6 +38,11 @@ type Dataplane struct {
 	// Mutex is required here to protect Parameters while they are being updated
 	// by dataplaneMonitoring routine.
 	sync.RWMutex
+	// Conn is grpc connection to Dataplane module, it is instantiated by dataplaneMonitor function
+	Conn *grpc.ClientConn
+	// DataplaneInterface is a pointer to all available Dataplane client related operations, defined
+	// in dataplaneinterface.proto API.
+	DataplaneClient dataplaneinterface.DataplaneOperationsClient
 }
 
 // newDataplaneStore instantiates a new instance of a dataplane store. The store will be populated

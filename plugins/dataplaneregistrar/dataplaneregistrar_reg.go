@@ -20,6 +20,8 @@ import (
 	"net"
 	"path"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
@@ -49,8 +51,38 @@ type dataplaneRegistrarServer struct {
 // All changes are reflected in the corresponding dataplane object in the object store.
 // If it detects a failure of the connection, it will indicate that dataplane is no longer operational. On this case
 // dataplaneMonitor will remove dataplane object from the object store and will terminate.
-func dataplaneMonitor(dataplane *objectstore.Dataplane) {
+func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logger logger.FieldLoggerPlugin) {
+	var err error
+	dataplane := objStore.GetDataplane(dataplaneName)
+	if dataplane == nil {
+		logger.Errorf("Dataplane object store does not have registered plugin %s", dataplaneName)
+		return
+	}
+	dataplane.Conn, err = tools.SocketOperationCheck(dataplane.SocketLocation)
+	if err != nil {
+		logger.Errorf("failure to communicate with the socket %s with error: %+v", dataplane.SocketLocation, err)
+		objStore.ObjectDeleted(&dataplaneName)
+		return
+	}
+	defer dataplane.Conn.Close()
+	dataplane.DataplaneClient = dataplaneinterface.NewDataplaneOperationsClient(dataplane.Conn)
+
+	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
+	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &dataplaneinterface.Empty{})
+	if err != nil {
+		logger.Errorf("update grpc channel for Dataplane %s failed with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
+		objStore.ObjectDeleted(&dataplaneName)
+		return
+	}
 	for {
+		updates, err := stream.Recv()
+		if err != nil {
+			logger.Errorf("update grpc channel for Dataplane %s failed with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
+			objStore.ObjectDeleted(&dataplaneName)
+			return
+		}
+		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.DataplaneParameters)
+		// TODO (sbezverk) Apply changes received from dataplane onto the corresponding dataplane object in the Object store
 	}
 }
 
@@ -72,7 +104,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket
 	// and will listen for operational parameters/constraints changes and reflecting these changes in the dataplane
 	// object.
-	go dataplaneMonitor(r.objectStore.GetDataplane(req.DataplaneName))
+	go dataplaneMonitor(r.objectStore, req.DataplaneName, r.logger)
 
 	return &dataplaneregistrarapi.DataplaneRegistrationReply{Registred: true}, nil
 }
