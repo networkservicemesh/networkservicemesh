@@ -88,10 +88,10 @@ required = [
 
 [[override]]
   name = "k8s.io/kubernetes"
+  version = "^1.11.3"
   # kubernetes-1.11.1 resolves to b1b29978270dc22fecc592ac55d903350454310a
   # We set the revision to work around a transitive constraint issue introduced
   # in an interaction between k8s.io/client-go and k8s.io/kubernetes
-  revision = "b1b29978270dc22fecc592ac55d903350454310a"
 
 [[constraint]]
   branch = "master"
