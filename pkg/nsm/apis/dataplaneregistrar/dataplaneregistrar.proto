@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package dataplaneregistrar;
+
+// DataplaneRegistrationRequest is sent by the dataplane to NSM
+// to advertise itself and inform NSM about the location of the dataplane socket
+// and its initially supported parameters.
+message DataplaneRegistrationRequest {
+  string dataplane_name = 1;
+  string dataplane_socket = 2;
+  map <string, string> dataplane_parameters = 3;  // this field is WIP, will be finalized based on @edwarnicke proposal.
+}
+
+message DataplaneRegistrationReply {
+  bool registred = 1;
+}
+
+service DataplaneRegistration {
+    rpc RequestDataplaneRegistration (DataplaneRegistrationRequest) returns (DataplaneRegistrationReply);
+}

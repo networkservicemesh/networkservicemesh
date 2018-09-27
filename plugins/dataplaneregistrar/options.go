@@ -12,23 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmcommand
+package dataplaneregistrar
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/dataplaneregistrar"
-	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
-	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/registry"
 
-	"github.com/ligato/networkservicemesh/plugins/crd"
-	"github.com/ligato/networkservicemesh/plugins/finalizer"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 )
 
 const (
-	// DefaultName of the nsmcommand.Plugin
-	DefaultName = "netmesh"
+	// DefaultName of the nsmserver.Plugin
+	DefaultName = "nsmserver"
 )
 
 // Option acts on a Plugin in order to set its Deps or Config
@@ -36,11 +31,6 @@ type Option func(*Plugin)
 
 // NewPlugin creates a new Plugin with Deps/Config set by the supplied opts
 func NewPlugin(opts ...Option) *Plugin {
-	p := newPlugin(opts...)
-	return p
-}
-
-func newPlugin(opts ...Option) *Plugin {
 	p := &Plugin{}
 	for _, o := range opts {
 		o(p)
@@ -52,7 +42,7 @@ func newPlugin(opts ...Option) *Plugin {
 // SharedPlugin provides a single shared Plugin that has the same Deps/Config as would result
 // from the application of opts
 func SharedPlugin(opts ...Option) *Plugin {
-	p := newPlugin(opts...)
+	p := NewPlugin(opts...)
 	return registry.Shared().LoadOrStore(p).(*Plugin)
 }
 
@@ -61,13 +51,8 @@ func UseDeps(deps *Deps) Option {
 	return func(p *Plugin) {
 		d := &p.Deps
 		d.Name = deps.Name
-		d.Cmd = deps.Cmd
 		d.Log = deps.Log
-		d.CRD = deps.CRD
-		d.NSMServer = deps.NSMServer
 		d.ObjectStore = deps.ObjectStore
-		d.Finalizer = deps.Finalizer
-		d.DataplaneRegistrar = deps.DataplaneRegistrar
 	}
 }
 
@@ -79,26 +64,11 @@ func DefaultDeps() Option {
 		if d.Name == "" {
 			d.Name = DefaultName
 		}
-		if d.Cmd == nil {
-			d.Cmd = command.RootCmd()
-		}
 		if d.Log == nil {
 			d.Log = logger.ByName(d.Name)
 		}
-		if d.CRD == nil {
-			d.CRD = crd.SharedPlugin()
-		}
-		if d.NSMServer == nil {
-			d.NSMServer = nsmserver.SharedPlugin()
-		}
 		if d.ObjectStore == nil {
 			d.ObjectStore = objectstore.SharedPlugin()
-		}
-		if d.Finalizer == nil {
-			d.Finalizer = finalizer.SharedPlugin()
-		}
-		if d.DataplaneRegistrar == nil {
-			d.Finalizer = dataplaneregistrar.SharedPlugin()
 		}
 	}
 }
