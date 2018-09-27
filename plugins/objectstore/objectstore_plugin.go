@@ -89,7 +89,7 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 		ns := obj.(*v1.NetworkService)
 		p.objects.networkServicesStore.Add(ns)
 		p.Log.Infof("number of network services in Object Store %d", len(p.objects.networkServicesStore.List()))
-	case Dataplane:
+	case *Dataplane:
 		dp := obj.(*Dataplane)
 		p.objects.dataplaneStore.Add(dp)
 		p.Log.Infof("number of dataplanes in Object Store %d", len(p.objects.dataplaneStore.List()))
@@ -124,7 +124,7 @@ func (p *Plugin) ListNetworkServices() []*v1.NetworkService {
 
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
-	p.Log.Infof("ObjectStore.ObjectDeleted: %s", obj)
+	p.Log.Infof("ObjectStore.ObjectDeleted: %s", reflect.TypeOf(obj))
 	switch obj.(type) {
 	case *v1.NetworkService:
 		ns := obj.(*v1.NetworkService)
