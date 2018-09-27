@@ -16,6 +16,7 @@ package nsmcommand
 
 import (
 	"github.com/ligato/networkservicemesh/plugins/crd"
+	"github.com/ligato/networkservicemesh/plugins/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/plugins/finalizer"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
@@ -25,11 +26,12 @@ import (
 
 // Deps - dependencies for Plugin
 type Deps struct {
-	Name        string
-	Log         logger.FieldLogger
-	Cmd         *cobra.Command
-	NSMServer   nsmserver.PluginAPI
-	CRD         crd.PluginAPI
-	ObjectStore objectstore.Interface
-	Finalizer   finalizer.PluginAPI
+	Name               string
+	Log                logger.FieldLogger
+	Cmd                *cobra.Command
+	NSMServer          nsmserver.PluginAPI
+	CRD                crd.PluginAPI
+	ObjectStore        objectstore.Interface
+	Finalizer          finalizer.PluginAPI
+	DataplaneRegistrar dataplaneregistrar.PluginAPI
 }
