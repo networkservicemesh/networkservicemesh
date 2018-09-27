@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
@@ -451,6 +452,11 @@ func main() {
 		DataplaneParameters: map[string]string{
 			"parameter1": "value1",
 			"parameter2": "value2",
+		},
+		SupportedInterface: []*common.Interface{
+			{
+				Type: common.InterfaceType_KERNEL_INTERFACE,
+			},
 		},
 	}
 
