@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
 )
 
@@ -35,6 +36,8 @@ type Dataplane struct {
 	RegisteredName string
 	SocketLocation string
 	Parameters     map[string]string
+	// List of supported interface types by a dataplane module.
+	SupportedInterface []*common.Interface
 	// Mutex is required here to protect Parameters while they are being updated
 	// by dataplaneMonitoring routine.
 	sync.RWMutex
