@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package dataplaneinterface;
+
+message Empty {
+}
+
+// Message sent by dataplane module informing NSM of any changes in its
+// operations parameters or constraints
+message DataplaneUpdate {
+    map <string, string> dataplane_parameters = 1; // this field is WIP, will be finalized based on @edwarnicke proposal.
+}
+
+// WIP DataplaneOperations will inlcude other operations which NSM will request dataplane module
+// to execute to establish connectivity requested by NSM clients.
+service DataplaneOperations {
+    rpc UpdateDataplane(Empty) returns (stream DataplaneUpdate);
+}
