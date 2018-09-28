@@ -181,7 +181,7 @@ message RemoteConnectionRequest {
  *                  vni=12
  *                  
  */
-message RemoteMechanismRequest {
+message RemoteMechanism {
     RemoteMechanismType type = 1;
     map<string,string> labels = 2
 }
