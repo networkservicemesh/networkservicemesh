@@ -19,15 +19,18 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -36,6 +39,7 @@ const (
 	// DataplaneRegistrarSocket defines the name of NSM dataplane registrar socket
 	DataplaneRegistrarSocket = "nsm.dataplane-registrar.io.sock"
 	socketMask               = 0077
+	livenessInterval         = 5
 )
 
 type dataplaneRegistrarServer struct {
@@ -68,7 +72,7 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 	dataplane.DataplaneClient = dataplaneinterface.NewDataplaneOperationsClient(dataplane.Conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &dataplaneinterface.Empty{})
+	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &common.Empty{})
 	if err != nil {
 		logger.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 		objStore.ObjectDeleted(&dataplaneName)
@@ -78,11 +82,25 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 		updates, err := stream.Recv()
 		if err != nil {
 			logger.Errorf("fail to receive on update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
-			objStore.ObjectDeleted(&dataplaneName)
+			objStore.ObjectDeleted(dataplane)
 			return
 		}
 		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.RemoteMechanism)
 		// TODO (sbezverk) Apply changes received from dataplane onto the corresponding dataplane object in the Object store
+	}
+}
+
+// RequestLiveness is a stream initiated by NSM to inform the dataplane that NSM is still alive and
+// no re-registration is required. Detection a failure on this "channel" will mean
+// that NSM is gone and the dataplane needs to start re-registration logic.
+func (r *dataplaneRegistrarServer) RequestLiveness(liveness dataplaneregistrarapi.DataplaneRegistration_RequestLivenessServer) error {
+	r.logger.Infof("Liveness Request received")
+	for {
+		if err := liveness.SendMsg(&common.Empty{}); err != nil {
+			r.logger.Errorf("deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+			return err
+		}
+		time.Sleep(time.Second * livenessInterval)
 	}
 }
 
@@ -92,7 +110,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	if r.objectStore.GetDataplane(req.DataplaneName) != nil {
 		r.logger.Errorf("dataplane with name %s already exist", req.DataplaneName)
 		// TODO (sbezverk) Need to decide the right action, fail or not, failing for now
-		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registred: false}, fmt.Errorf("dataplane with name %s already registered", req.DataplaneName)
+		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: false}, fmt.Errorf("dataplane with name %s already registered", req.DataplaneName)
 	}
 	// Instantiating dataplane object with parameters from the request and creating a new object in the Object store
 	dataplane := &objectstore.Dataplane{
@@ -107,7 +125,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	// object.
 	go dataplaneMonitor(r.objectStore, req.DataplaneName, r.logger)
 
-	return &dataplaneregistrarapi.DataplaneRegistrationReply{Registred: true}, nil
+	return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: true}, nil
 }
 
 // startDataplaneServer starts for a server listening for local NSEs advertise/remove
