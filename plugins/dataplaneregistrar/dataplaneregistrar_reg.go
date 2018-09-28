@@ -81,7 +81,7 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 			objStore.ObjectDeleted(&dataplaneName)
 			return
 		}
-		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.DataplaneParameters)
+		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.RemoteMechanism)
 		// TODO (sbezverk) Apply changes received from dataplane onto the corresponding dataplane object in the Object store
 	}
 }
@@ -98,7 +98,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	dataplane := &objectstore.Dataplane{
 		RegisteredName:     req.DataplaneName,
 		SocketLocation:     req.DataplaneSocket,
-		Parameters:         req.DataplaneParameters,
+		RemoteMechanism:    req.RemoteMechanism,
 		SupportedInterface: req.SupportedInterface,
 	}
 	r.objectStore.ObjectCreated(dataplane)

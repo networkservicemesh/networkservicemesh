@@ -66,7 +66,7 @@ type DataplaneController struct {
 
 // Update is a message used to communicate any changes in operational parameters and constraints
 type Update struct {
-	update map[string]string
+	remoteMechanism []*common.RemoteMechanism
 }
 
 // UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
@@ -79,7 +79,7 @@ func (d DataplaneController) UpdateDataplane(empty *dataplaneinterface.Empty, up
 		// them back to NSM.
 		case update := <-d.updateCh:
 			if err := updateSrv.Send(&dataplaneinterface.DataplaneUpdate{
-				DataplaneParameters: update.update,
+				RemoteMechanism: update.remoteMechanism,
 			}); err != nil {
 				return err
 			}
@@ -449,10 +449,7 @@ func main() {
 	dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
 		DataplaneName:   "test-dataplane",
 		DataplaneSocket: socket,
-		DataplaneParameters: map[string]string{
-			"parameter1": "value1",
-			"parameter2": "value2",
-		},
+		RemoteMechanism: []*common.RemoteMechanism{},
 		SupportedInterface: []*common.Interface{
 			{
 				Type: common.InterfaceType_KERNEL_INTERFACE,
