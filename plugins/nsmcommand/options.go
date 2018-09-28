@@ -15,7 +15,6 @@
 package nsmcommand
 
 import (
-	"github.com/ligato/networkservicemesh/plugins/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/plugins/nsmserver"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
 	"github.com/ligato/networkservicemesh/utils/command"
@@ -66,8 +65,7 @@ func UseDeps(deps *Deps) Option {
 		d.CRD = deps.CRD
 		d.NSMServer = deps.NSMServer
 		d.ObjectStore = deps.ObjectStore
-		d.Finalizer = deps.Finalizer
-		d.DataplaneRegistrar = deps.DataplaneRegistrar
+		// d.Finalizer = deps.Finalizer
 	}
 }
 
@@ -96,9 +94,6 @@ func DefaultDeps() Option {
 		}
 		if d.Finalizer == nil {
 			d.Finalizer = finalizer.SharedPlugin()
-		}
-		if d.DataplaneRegistrar == nil {
-			d.DataplaneRegistrar = dataplaneregistrar.SharedPlugin()
 		}
 	}
 }

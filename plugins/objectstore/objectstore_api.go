@@ -34,8 +34,6 @@ type Interface interface {
 	ObjectDeleted(obj interface{})
 	GetNetworkService(nsName string) *v1.NetworkService
 	ListNetworkServices() []*v1.NetworkService
-	GetDataplane(registeredName string) *Dataplane
-	ListDataplanes() []*Dataplane
 }
 
 // PluginAPI - API for the Plugin
