@@ -411,59 +411,79 @@ Examples:
 ```proto
 
 service NSM2NSMD {
-    rpc CreateCrossConnnect(CreateCrossConnectRequest) returns CreateCrossConnectReply;
-    rpc UpdateCrossConnect(UpdateCrossConnectRequest) returns UpdateCrossConnectReply;
-    rpc DeleteCrossConnect(DeleteCrossConnectRequest) returns DeleteCrossConnectRequest;
-    rpc ListAndwatchCrossConnects(ListAndWatchCrossConnectRequest) returns (stream ListAndWatchCrossConnectReply)
-    rpc ListAndWatchCrossConnectMechanisms(ListAndWatchCrossConnectMechanismsRequest) returns (stream ListAndWatchCrossConnectMechanismsReply)
-}
-
-service NSMD2NSM {
-    rpc Register(NsmdRegistrationRequest) return NsmDRegistrationResponse
+    rpc CreateCrossConnnect(CrossConnect) returns CrossConnectStatus;
+    rpc UpdateCrossConnect(CrossConnect) returns CrossConnectStatus;
+    rpc DeleteCrossConnect(CrossConnect) returns CrossConnectStatus;
+    rpc ListAndwatchCrossConnects(Empty) returns (stream CrossConnectStatus)
+    rpc ListAndWatchMechanisms(Empty) returns (stream Mechanism)
 }
 
 /*
  * CreateCrossConnectRequest - Message to create a a CrossConnect
  *
- * id - id of the cross connect.  Must be unique in the context of this NSM and NSMD.
- *      id is selected by the NSM.
- * mechanism1 - The LocalMechanism to connect to a local NSC or NSE.
- *              The presumption is that all cross connects involve at least one
- *              Pod local to the Node.
- * mechanism2 - The other end of the cross connect.  May be either a local mechanism
- *              if cross connecting two Pods on the same Node, or a remote mechanism
- *              if cross connecting to something remote from the Node.  Note:
- *              RemoteMechanism here is the same message as used in NSM2NSM API.
+ * Its helpful to think of a cross connect like a wire that carries
+ * a particular payload from one place to another bidirectionally.
+ * You can talk about that in terms of the pair of 'mechanisms' at either end.
+ * Examples:
+ *           (kernel interface, kernel interface)
+ *           (kernel interface, memif)
+ *           (memif, memif)
+ *           (memif, vxlan)
+ *           (memif, srv6)
+ *
+ * id         - id of the cross connect.  Must be unique in the context of this NSM and NSMD.
+ *              id is selected by the NSM.
+ * mechanism1 - A Cross Connect has two ends, each with a 'Mechanism'.  This is one of them.
+ * mechanism2 - A Cross Connect has two ends, each with a 'Mechanism'.  This is one of them.
  */ 
-message CreateCrossConnectRequest {
+message CrossConnect {
     string id = 1;
-    LocalMechanism mechanism1 = 2;
-    oneof mechanism2 {
-        RemoteMechanism remoteMechanism = 3;
-        LocalMechanism localMechanism = 4;
+    Mechanism mechanism1 = 2;
+    Mechanism mechanism2 = 3'
+}
+
+/* 
+ * Mechanism - A simple message that can be oneof LocalMechanism or RemoteMechanism
+ */
+message Mechanism {
+    oneof mechanism {
+        RemoteMechanism remoteMechanism = 1;
+        LocalMechanism localMechanism = 2;
     }
 }
 
-message UpdateCrossConnectRequest {
+/* 
+ * CrossConnectStatus - Status of a CrossConnect
+ *
+ * id     - id of the CrossConnect
+ * labels - key value pairs that can be used to convey operational data
+ *          about the cross connect.  Possible examples: stats, up/down state, health, etc
+ * TODO - flesh out the lexicon of status labels
+ */
+message CrossConnectStatus {
     string id = 1;
-    LocalMechanism mechanism1 = 2;
-    oneof mechanism2 {
-        RemoteMechanism remoteMechanism = 3;
-        LocalMechanism localMechanism = 4;
-    }
+    map<string,string> labels = 2;
 }
 
-message DeleteCrossConnectRequest {
-    string id = 1;
-}
-
+/*
+ * LocalMechanism - the mechanism used locally with a Pod to provide one end
+ *                  of an L2/L3 connection
+ * type           - The type of local mechanism.
+ *                  Examples: memif, kernel interface, vhost-user
+ * labels         - labels are key value pairs used to indicate parameters
+ *                  labels can be used to express preferences or constraints,
+ *                  or they can be used to communicate final values of a
+ *                  parameter.
+ *                  Examples:
+ *                      - For a LocalMechanism of type KERNEL_INTERFACE
+ *                        the label "name=eth2" indicates the desired or 
+ *                        actual name of the interface to be injected into
+ *                        the Pod
+ * TODO - fully document and specify all valid labels for each type
+ */
 message LocalMechanism {
     LocalMechanismType type = 1;
-    oneof parameters {
-        KernelInterfaceParameters = 1;
-        MemifParameters = 2;
-        VhostUserParameters = 3;
-    }
+    map<string,string> labels = 1;
 }
 
 enum LocalMechanismType {
@@ -472,19 +492,17 @@ enum LocalMechanismType {
     VHOST_USER = 2;
 }
 
-message KernelInterfaceParameters {
-    string name = 1;
-    string network_namespace = 2;
+service NSMD2NSM {
+    rpc Registration(RegisterRequest) return (Empty)
 }
 
-message MemifParameters {
-
+message RegisterRequest {
+    // Version of the API
+    string version = 1;
+    // Name of the unix socket the device plugin is listening on
+	// PATH = path.Join(NSMDPath, endpoint)
+    string endpoint = 2; 
 }
-
-message VhostUserParameters {
-
-}
-
 
 ```
 
