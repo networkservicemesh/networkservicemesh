@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package dataplaneinterface;
+
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+
+// Message sent by dataplane module informing NSM of any changes in its
+// operations parameters or constraints
+message DataplaneUpdate {
+    repeated common.RemoteMechanism remote_mechanism = 1;
+}
+
+// WIP DataplaneOperations will inlcude other operations which NSM will request dataplane module
+// to execute to establish connectivity requested by NSM clients.
+service DataplaneOperations {
+    rpc UpdateDataplane(common.Empty) returns (stream DataplaneUpdate);
+}
