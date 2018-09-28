@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package dataplaneregistrar;
+
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+
+// DataplaneRegistrationRequest is sent by the dataplane to NSM
+// to advertise itself and inform NSM about the location of the dataplane socket
+// and its initially supported parameters.
+message DataplaneRegistrationRequest {
+  string dataplane_name = 1;
+  string dataplane_socket = 2;
+  repeated common.Interface supported_interface = 3;
+  repeated common.RemoteMechanism remote_mechanism = 4;
+}
+
+message DataplaneRegistrationReply {
+  bool registered = 1;
+}
+
+service DataplaneRegistration {
+    rpc RequestDataplaneRegistration (DataplaneRegistrationRequest) returns (DataplaneRegistrationReply);
+    // RequestLiveness is a stream initiated by NSM to inform the dataplane that NSM is still alive and
+    // no re-registration is required. Detection a failure on this "channel" will mean
+    // that NSM is gone and the dataplane needs to start re-registration logic.
+    rpc RequestLiveness (stream common.Empty) returns (stream common.Empty);
+}

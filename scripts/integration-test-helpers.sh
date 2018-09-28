@@ -127,7 +127,7 @@ function error_collection() {
         kubectl logs "$sidecar" -n "$namespace"  || true
         kubectl logs "$sidecar" -n "$namespace"  -p || true
     fi
-    kubectl get nodes --show-label
+    kubectl get nodes
     sudo docker images
 }
 
