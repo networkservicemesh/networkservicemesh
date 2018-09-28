@@ -17,6 +17,7 @@ package utils
 import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 )
 
 func findElement(ss []string, e string) (int, bool) {
@@ -42,7 +43,10 @@ func AddPodFinalizer(k8s kubernetes.Interface, pn, pns, finalizer string) error 
 		return nil
 	}
 	tp.SetFinalizers(newFinalizers)
-	_, err = k8s.CoreV1().Pods(pns).Update(tp)
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() (err error) {
+		_, err = k8s.CoreV1().Pods(pns).Update(tp)
+		return
+	})
 
 	return err
 }
@@ -61,7 +65,10 @@ func RemovePodFinalizer(k8s kubernetes.Interface, pn, pns, finalizer string) err
 		return nil
 	}
 	tp.SetFinalizers(newFinalizers)
-	_, err = k8s.CoreV1().Pods(pns).Update(tp)
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() (err error) {
+		_, err = k8s.CoreV1().Pods(pns).Update(tp)
+		return
+	})
 
 	return err
 }
