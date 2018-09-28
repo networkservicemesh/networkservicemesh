@@ -151,7 +151,7 @@ service NSM2NSM {
 message RemoteConnectionRequest {
    string request_id = 1;
    string network_service_name = 2;
-   repeated RemoteMechanismRequest remote_mechanisms = 3;
+   repeated RemoteMechanism remote_mechanisms = 3;
 
    /* fields below here are optional */
    ConnectionContextRequest connection_context_request = 4;
@@ -160,14 +160,30 @@ message RemoteConnectionRequest {
 }
 
 /* 
- * RemoteMechnismRequest defines a request for a particular remote mechanism
+ * RemoteMechanism defines a request for a particular remote mechanism
  *
- * RemoteMechanismType - type of remote mechanism being requested
- * constraints - constraints on the remote mechanism.
+ * type   - type of remote mechanism being requested
+ *
+ * labels - a set of key value pairs that can be used
+ *                       to describe parameters or constraints on parameters
+ *                       for the RemoteMechanism
+ *
+ * Example:
+ *          VXLAN - would have labels src_ip, src_port, dst_ip, dest_port, vni, vnis
+ *                  when NSM1 sends a RemoteConnectionRequest to NSM2, it would specify
+ *                  src_ip, src_port, and vnis.  vnis is a range constructed list of
+ *                  vnis that could be used by NSM2 with this src_ip and src_port.
+ *                  vnis = 1-100, 200-450
+ *                  when NSM2 sends a RemoteConnectionReply, it would specify
+ *                  use the src_ip, src_port from the RemoteConnectionRequest,
+ *                  specify its own dst_ip, dst_port, and pic from the presented vnis
+ *                  the vni to be used
+ *                  vni=12
+ *                  
  */
 message RemoteMechanismRequest {
     RemoteMechanismType type = 1;
-    repeated RemoteMechanismConstraint constraints = 2
+    map<string,string> labels = 2
 }
 
 /* 
@@ -183,47 +199,6 @@ enum RemoteMechanismType {
     MPLSoGRE = 6;
     MPLSoUDP = 7;
 }
-
-message RemoteMechanismConstraint {
-    required oneof constraint {
-        None_Constraint none_constraint = 1;
-        Vxlan_Constaint vxlan_constraint = 2;
-        Vxlan_Gpe_Constraint vxlan_gpe_request = 3;
-        SRv6_Constraints srv6_constraints = 4;
-        Gre_Constraint gre_constraint = 5;
-        Mpls_O_Ethernet_Constraint mpls_o_ethernet_constraint = 6;
-        Mpls_O_Gre_Constraint mpls_o_gre_constraint = 7;
-        Mpls_O_Udp_Constraint mpls_o_udp_constraint = 8;
-    }
-}
-
-/*
- * VxlanConstraint - represents a set of constraints communicated by NSM1 to NSM2
- *                   describing acceptable vxlan parameters
- * requestor_ip - Acceptable source ip on NSM1 for the VXLAN tunnel
- * requestor_port - Acceptable port on NSM1 for the VXLAN tunnel
- * excluded_vnis - a list of the VNI ranges not usable on NSM1 for the ip:port
- */
-message VxlanConstraint {
-    bytes requestor_ip = 1;
-    bytes requestor_port = 2;
-    repeated VniRange exclude_vnis = 3;
-}
-
-/*
- * VniRange - a range of VNIs
- * 
- * vni - start vni of the range
- * count - number of vnis in the range
- */
-message VniRange {
-    int32 vni = 1;
-    int32 count = 2;
-}
-
-/*
- * TODO - Define other types of constraints here 
- */
 
  /*
   *  ConnectionContextRequest - Constraints to put on ConnectionContexts
@@ -271,16 +246,13 @@ message Prefix {
  *              this is a reply to
  * accepted - true if the connection is accepted, false if the connection is rejected
  * admission_error - optional string representing the error if accepted == false
- * remote_mechanism_type - remote mechanism seleted by NSM2 from the options presented by
- *                         NSM1
- * remote_mechanism_parameters - parameters selected by NSM2 for the remote mechanism
+ * remote_mechanism - the fully specified remote mechanism selected by NSM2
  * labels - key value pairs to communicate arbitrary context about the reply
  */
 message RemoteConnectionReply {
     string request_id = 1;
     bool accepted = 2;
-    RemoteMechanismType remote_mechanism_type = 3;
-    RemoteMechanismParameters remote_mechanism_parameters= 4;
+    RemoteMechanism remote_mechanism = 3;
     ConnectionContext connection_context = 5;
 
     /* admission_error may be left at default value if the RemoteConnectionReply has accepted == true */
@@ -291,44 +263,6 @@ message RemoteConnectionReply {
 
     map<string,string> labels = 7;
 }
-
-message RemoteMechanismParameters {
-    oneof mechanism {
-        None_Parameters = 1;
-        Vxlan_Parameters = 2; // Only vxlan parameters specified so far
-        Vxlan_Gpe_Parameters = 3;
-        Gre_Parameters = 4;
-        Mpls_O_Ethernet_Parameters = 5;
-        Mpls_O_Gre_Parameters = 6;
-        Mpls_O_Udp_Parameters = 7;
-    }
-}
-
-/*
- * Vxlan used as example, others will have to be filled out
- * 
- * requestor_ip - ip of the requestor's (NSM1) end of the tunnel
- * requestee_ip - ip of the requestee's (NSM2) end of the tunnel
- * requestor_port - port of the requestor's (NSM1) end of the tunnel
- * requetee_port - port of the requestee's (NSM2) end of the tunnel
- * vni - vxlan vni
- */
-message Vxlan_Parameters {
-    bytes requestor_ip = 1;
-    bytes requestee_ip = 2;
-    bytes requestor_port = 3;
-    bytes requestee_port = 4;
-    int32 vni = 5;
-}
-
-message Vxlan_Gpe_Parameters {
-    Vxlan_Parameters vxlan_parameters = 1;
-    int32 next_proto = 2;
-}
-
-/*
- * TODO - other RemoteMechanismParameters
- */ 
 
 /*
  * ConnectionContext - Context of the connection
