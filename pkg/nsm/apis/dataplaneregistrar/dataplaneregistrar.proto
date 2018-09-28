@@ -15,9 +15,13 @@ message DataplaneRegistrationRequest {
 }
 
 message DataplaneRegistrationReply {
-  bool registred = 1;
+  bool registered = 1;
 }
 
 service DataplaneRegistration {
     rpc RequestDataplaneRegistration (DataplaneRegistrationRequest) returns (DataplaneRegistrationReply);
+    // RequestLiveness is a stream initiated by NSM to inform the dataplane that NSM is still alive and
+    // no re-registration is required. Detection a failure on this "channel" will mean
+    // that NSM is gone and the dataplane needs to start re-registration logic.
+    rpc RequestLiveness (stream common.Empty) returns (stream common.Empty);
 }

@@ -4,9 +4,6 @@ package dataplaneinterface;
 
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
-message Empty {
-}
-
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
 message DataplaneUpdate {
@@ -16,5 +13,5 @@ message DataplaneUpdate {
 // WIP DataplaneOperations will inlcude other operations which NSM will request dataplane module
 // to execute to establish connectivity requested by NSM clients.
 service DataplaneOperations {
-    rpc UpdateDataplane(Empty) returns (stream DataplaneUpdate);
+    rpc UpdateDataplane(common.Empty) returns (stream DataplaneUpdate);
 }

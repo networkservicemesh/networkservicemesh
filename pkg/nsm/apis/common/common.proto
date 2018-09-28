@@ -24,6 +24,10 @@ package common;
 // proto messages in NSM API.
 //
 
+message Empty{
+
+}
+
 message InterfaceParameters {
    map <string,string> interface_parameters = 1;
 }
