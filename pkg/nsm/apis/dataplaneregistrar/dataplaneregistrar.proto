@@ -10,7 +10,7 @@ import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 message DataplaneRegistrationRequest {
   string dataplane_name = 1;
   string dataplane_socket = 2;
-  repeated common.Interface supported_interface = 3;
+  repeated common.LocalMechanism supported_interface = 3;
   repeated common.RemoteMechanism remote_mechanism = 4;
 }
 

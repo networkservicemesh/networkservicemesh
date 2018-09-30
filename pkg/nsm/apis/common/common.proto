@@ -28,17 +28,13 @@ message Empty{
 
 }
 
-message InterfaceParameters {
-   map <string,string> interface_parameters = 1;
+message LocalMechanism {
+   LocalMechanismType type = 1;
+   LocalMechanismPreference preference = 2;
+   map <string,string> parameters = 3;
 }
 
-message Interface {
-   InterfaceType type = 1;
-   InterfacePreference preference = 2;
-   InterfaceParameters parmeters = 3;
-}
-
-enum InterfaceType {
+enum LocalMechanismType {
     DEFAULT_INTERFACE = 0;
     KERNEL_INTERFACE = 1;
     VHOST_INTERFACE = 2;
@@ -47,7 +43,7 @@ enum InterfaceType {
     HW_INTERFACE = 5;
   }
 
-enum InterfacePreference {
+enum LocalMechanismPreference {
     NO_PREFERENCE = 0;
     FIRST = 1;
     SECOND = 2;
@@ -58,7 +54,7 @@ enum InterfacePreference {
 
 message RemoteMechanism {
     RemoteMechanismType type = 1;
-    map<string,string> constraints = 2;
+    map<string,string> parameters = 2;
 }
 
 enum RemoteMechanismType {
