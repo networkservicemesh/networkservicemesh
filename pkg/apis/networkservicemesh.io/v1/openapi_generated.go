@@ -269,7 +269,7 @@ func schema_pkg_nsm_apis_netmesh_NetworkServiceEndpoint(ref common.ReferenceCall
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Interface"),
+										Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.LocalMechanism"),
 									},
 								},
 							},
@@ -279,6 +279,6 @@ func schema_pkg_nsm_apis_netmesh_NetworkServiceEndpoint(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"github.com/ligato/networkservicemesh/pkg/nsm/apis/common.Interface"},
+			"github.com/ligato/networkservicemesh/pkg/nsm/apis/common.LocalMechanism"},
 	}
 }

@@ -49,11 +49,11 @@ func (in *NetworkServiceEndpoint) DeepCopyInto(out *NetworkServiceEndpoint) {
 	*out = *in
 	if in.Interface != nil {
 		in, out := &in.Interface, &out.Interface
-		*out = make([]*common.Interface, len(*in))
+		*out = make([]*common.LocalMechanism, len(*in))
 		for i := range *in {
 			if (*in)[i] != nil {
 				in, out := &(*in)[i], &(*out)[i]
-				*out = new(common.Interface)
+				*out = new(common.LocalMechanism)
 				(*in).DeepCopyInto(*out)
 			}
 		}

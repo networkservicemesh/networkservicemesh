@@ -56,8 +56,8 @@ var (
 )
 
 type networkService struct {
-	Name             string              `json:"name" yaml:"name"`
-	ServiceInterface []*common.Interface `json:"serviceInterface" yaml:"serviceInterface"`
+	Name             string                   `json:"name" yaml:"name"`
+	ServiceInterface []*common.LocalMechanism `json:"serviceInterface" yaml:"serviceInterface"`
 }
 
 func checkClientConfigMap(name, namespace string, k8s kubernetes.Interface) (*v1.ConfigMap, error) {

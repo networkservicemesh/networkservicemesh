@@ -28,17 +28,17 @@ message Empty{
 
 }
 
-message InterfaceParameters {
+message LocalMechanismParameters {
    map <string,string> interface_parameters = 1;
 }
 
-message Interface {
-   InterfaceType type = 1;
-   InterfacePreference preference = 2;
-   InterfaceParameters parmeters = 3;
+message LocalMechanism {
+   LocalMechanismType type = 1;
+   LocalMechanismPreference preference = 2;
+   LocalMechanismParameters parmeters = 3;
 }
 
-enum InterfaceType {
+enum LocalMechanismType {
     DEFAULT_INTERFACE = 0;
     KERNEL_INTERFACE = 1;
     VHOST_INTERFACE = 2;
@@ -47,7 +47,7 @@ enum InterfaceType {
     HW_INTERFACE = 5;
   }
 
-enum InterfacePreference {
+enum LocalMechanismPreference {
     NO_PREFERENCE = 0;
     FIRST = 1;
     SECOND = 2;

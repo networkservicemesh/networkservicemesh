@@ -473,9 +473,9 @@ func main() {
 			DataplaneName:   "test-dataplane",
 			DataplaneSocket: socket,
 			RemoteMechanism: []*common.RemoteMechanism{},
-			SupportedInterface: []*common.Interface{
+			SupportedInterface: []*common.LocalMechanism{
 				{
-					Type: common.InterfaceType_KERNEL_INTERFACE,
+					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				},
 			},
 		}

@@ -92,7 +92,7 @@ type clientNetworkService struct {
 }
 
 type sortedInterfaceList struct {
-	interfaceList []*common.Interface
+	interfaceList []*common.LocalMechanism
 }
 
 func (s sortedInterfaceList) Len() int {
@@ -355,7 +355,7 @@ func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
 
 // getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
 // only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
-func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqInterfacesSorted []*common.Interface) []nsmapi.NetworkServiceEndpoint {
+func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqInterfacesSorted []*common.LocalMechanism) []nsmapi.NetworkServiceEndpoint {
 	endpoints := []nsmapi.NetworkServiceEndpoint{}
 	found := false
 	// Loop over a list of required interfaces, since it is sorted, the loop starts with first choice.

@@ -37,7 +37,7 @@ type Dataplane struct {
 	SocketLocation  string
 	RemoteMechanism []*common.RemoteMechanism
 	// List of supported interface types by a dataplane module.
-	SupportedInterface []*common.Interface
+	SupportedInterface []*common.LocalMechanism
 	// Mutex is required here to protect Parameters while they are being updated
 	// by dataplaneMonitoring routine.
 	sync.RWMutex
