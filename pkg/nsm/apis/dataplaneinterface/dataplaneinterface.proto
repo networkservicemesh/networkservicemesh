@@ -7,7 +7,7 @@ import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
 message DataplaneUpdate {
-    repeated common.RemoteMechanism remote_mechanism = 1;
+    repeated common.Mechanism mechanisms = 1;
 }
 
 // WIP DataplaneOperations will inlcude other operations which NSM will request dataplane module

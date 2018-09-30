@@ -68,7 +68,7 @@ type DataplaneController struct {
 
 // Update is a message used to communicate any changes in operational parameters and constraints
 type Update struct {
-	remoteMechanism []*common.RemoteMechanism
+	mechanisms []*common.Mechanism
 }
 
 // livenessMonitor is a stream initiated by NSM to inform the dataplane that NSM is still alive and
@@ -99,7 +99,7 @@ func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv data
 		// them back to NSM.
 		case update := <-d.updateCh:
 			if err := updateSrv.Send(&dataplaneinterface.DataplaneUpdate{
-				RemoteMechanism: update.remoteMechanism,
+				Mechanisms: update.mechanisms,
 			}); err != nil {
 				logrus.Errorf("test-dataplane: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
@@ -472,10 +472,13 @@ func main() {
 		dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
 			DataplaneName:   "test-dataplane",
 			DataplaneSocket: socket,
-			RemoteMechanism: []*common.RemoteMechanism{},
-			SupportedInterface: []*common.Interface{
+			Mechanisms: []*common.Mechanism{
 				{
-					Type: common.InterfaceType_KERNEL_INTERFACE,
+					Mechanism: &common.Mechanism_LocalMechanism{
+						LocalMechanism: &common.LocalMechanism{
+							Type: common.LocalMechanismType_KERNEL_INTERFACE,
+						},
+					},
 				},
 			},
 		}
