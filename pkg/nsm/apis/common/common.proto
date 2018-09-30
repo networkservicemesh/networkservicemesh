@@ -67,3 +67,10 @@ enum RemoteMechanismType {
     MPLSoGRE = 6;
     MPLSoUDP = 7;
 }
+
+message Mechanism {
+    oneof mechanism {
+        LocalMechanism local_mechanism = 1;
+        RemoteMechanism remote_mechanism = 2;
+    }
+}
