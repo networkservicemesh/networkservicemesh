@@ -209,10 +209,10 @@ func main() {
 			RequestId:          podUID,
 			NetworkServiceName: ns.Name,
 			LinuxNamespace:     linuxNS,
-			Interface:          ns.ServiceInterface,
+			LocalMechanisms:    ns.ServiceInterface,
 		}
 
-		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.Interface))
+		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.LocalMechanisms))
 		connParams, err := requestConnection(nsmConnectionClient, &cReq)
 		if err != nil {
 			logrus.Fatalf("nsm client: failed to request connection for Network Service %s with error: %+v, exiting...", ns.Name, err)

@@ -12,7 +12,7 @@ message ConnectionRequest {
     string request_id = 1;
     string network_service_name = 2;
     string linux_namespace = 3;
-    repeated common.LocalMechanism interface = 4;
+    repeated common.LocalMechanism local_mechanisms = 4;
 }
 
 message ConnectionParameters {
@@ -27,7 +27,7 @@ message ConnectionReply {
     bool accepted = 1;
     string admission_error = 2;
     ConnectionParameters connection_parameters = 3;
-    common.LocalMechanism interface = 4;
+    common.LocalMechanism local_mechanism = 4;
 }
 
 service ClientConnection {
