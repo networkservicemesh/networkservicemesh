@@ -56,8 +56,8 @@ var (
 )
 
 type networkService struct {
-	Name             string              `json:"name" yaml:"name"`
-	ServiceInterface []*common.Interface `json:"serviceInterface" yaml:"serviceInterface"`
+	Name             string                   `json:"name" yaml:"name"`
+	ServiceInterface []*common.LocalMechanism `json:"serviceInterface" yaml:"serviceInterface"`
 }
 
 func checkClientConfigMap(name, namespace string, k8s kubernetes.Interface) (*v1.ConfigMap, error) {
@@ -209,10 +209,10 @@ func main() {
 			RequestId:          podUID,
 			NetworkServiceName: ns.Name,
 			LinuxNamespace:     linuxNS,
-			Interface:          ns.ServiceInterface,
+			LocalMechanisms:    ns.ServiceInterface,
 		}
 
-		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.Interface))
+		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.LocalMechanisms))
 		connParams, err := requestConnection(nsmConnectionClient, &cReq)
 		if err != nil {
 			logrus.Fatalf("nsm client: failed to request connection for Network Service %s with error: %+v, exiting...", ns.Name, err)

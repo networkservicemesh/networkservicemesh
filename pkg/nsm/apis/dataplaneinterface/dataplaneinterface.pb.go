@@ -27,7 +27,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
 type DataplaneUpdate struct {
-	RemoteMechanism      []*common.RemoteMechanism `protobuf:"bytes,1,rep,name=remote_mechanism,json=remoteMechanism,proto3" json:"remote_mechanism,omitempty"`
+	RemoteMechanism      []*common.RemoteMechanism `protobuf:"bytes,1,rep,name=remote_mechanism,json=remoteMechanism" json:"remote_mechanism,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -123,7 +123,8 @@ func (x *dataplaneOperationsUpdateDataplaneClient) Recv() (*DataplaneUpdate, err
 	return m, nil
 }
 
-// DataplaneOperationsServer is the server API for DataplaneOperations service.
+// Server API for DataplaneOperations service
+
 type DataplaneOperationsServer interface {
 	UpdateDataplane(*common.Empty, DataplaneOperations_UpdateDataplaneServer) error
 }

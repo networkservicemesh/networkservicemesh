@@ -470,12 +470,12 @@ func main() {
 
 		registrarConnection := dataplaneregistrarapi.NewDataplaneRegistrationClient(conn)
 		dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
-			DataplaneName:   "test-dataplane",
-			DataplaneSocket: socket,
-			RemoteMechanism: []*common.RemoteMechanism{},
-			SupportedInterface: []*common.Interface{
+			DataplaneName:    "test-dataplane",
+			DataplaneSocket:  socket,
+			RemoteMechanisms: []*common.RemoteMechanism{},
+			LocalMechanisms: []*common.LocalMechanism{
 				{
-					Type: common.InterfaceType_KERNEL_INTERFACE,
+					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				},
 			},
 		}
