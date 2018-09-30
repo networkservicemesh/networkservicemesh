@@ -25,7 +25,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -89,22 +88,6 @@ type clientNetworkService struct {
 	ConnectionParameters *nsmconnect.ConnectionParameters
 	// isInProgress indicates ongoing dataplane programming
 	isInProgress bool
-}
-
-type sortedInterfaceList struct {
-	interfaceList []*common.Interface
-}
-
-func (s sortedInterfaceList) Len() int {
-	return len(s.interfaceList)
-}
-
-func (s sortedInterfaceList) Swap(i, j int) {
-	s.interfaceList[i], s.interfaceList[j] = s.interfaceList[j], s.interfaceList[i]
-}
-
-func (s sortedInterfaceList) Less(i, j int) bool {
-	return s.interfaceList[i].Preference < s.interfaceList[j].Preference
 }
 
 // getNetworkServiceEndpoint gets all advertised Endpoints for a specific Network Service
@@ -205,15 +188,10 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 				cr.RequestId, cr.NetworkServiceName),
 		}, status.Error(codes.NotFound, "failed no local endpoints were found for requested Network Service")
 	}
-	// It is a new Connection request for known NetworkService, need to check if requested interface
-	// parameters have a match with ones of known Network Service Endpoints. If not, return error
-	sortedInterfaces := sortedInterfaceList{}
-	sortedInterfaces.interfaceList = cr.Interface
-	sort.Sort(sortedInterfaces)
 
 	// getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
 	// only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
-	endpoints = getEndpointWithInterface(endpoints, sortedInterfaces.interfaceList)
+	endpoints = getEndpointWithInterface(endpoints, cr.LocalMechanisms)
 	if len(endpoints) == 0 {
 		n.logger.Errorf("no advertised endpoints for Network Service %s, support required interface", cr.NetworkServiceName)
 		return &nsmconnect.ConnectionReply{
@@ -355,7 +333,7 @@ func cleanConnectionRequest(requestID string, n *nsmClientEndpoints) {
 
 // getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
 // only Endpoints offerring correct Interface type. Interface type comes from Client's Connection Request.
-func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqInterfacesSorted []*common.Interface) []nsmapi.NetworkServiceEndpoint {
+func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqInterfacesSorted []*common.LocalMechanism) []nsmapi.NetworkServiceEndpoint {
 	endpoints := []nsmapi.NetworkServiceEndpoint{}
 	found := false
 	// Loop over a list of required interfaces, since it is sorted, the loop starts with first choice.
@@ -363,7 +341,7 @@ func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqI
 	// returns collected slice of endpoints with matching interface type.
 	for _, iReq := range reqInterfacesSorted {
 		for _, ep := range endpointList {
-			for _, intf := range ep.Spec.Interface {
+			for _, intf := range ep.Spec.LocalMechanisms {
 				if iReq.Type == intf.Type {
 					found = true
 					endpoints = append(endpoints, ep)

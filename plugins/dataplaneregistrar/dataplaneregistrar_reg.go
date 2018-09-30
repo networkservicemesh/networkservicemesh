@@ -114,10 +114,10 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	}
 	// Instantiating dataplane object with parameters from the request and creating a new object in the Object store
 	dataplane := &objectstore.Dataplane{
-		RegisteredName:     req.DataplaneName,
-		SocketLocation:     req.DataplaneSocket,
-		RemoteMechanism:    req.RemoteMechanism,
-		SupportedInterface: req.SupportedInterface,
+		RegisteredName:   req.DataplaneName,
+		SocketLocation:   req.DataplaneSocket,
+		RemoteMechanisms: req.RemoteMechanisms,
+		LocalMechanisms:  req.LocalMechanisms,
 	}
 	r.objectStore.ObjectCreated(dataplane)
 	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket
