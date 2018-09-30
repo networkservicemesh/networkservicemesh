@@ -31,6 +31,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceEndpoint":     schema_pkg_apis_networkservicemeshio_v1_NetworkServiceEndpoint(ref),
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceEndpointList": schema_pkg_apis_networkservicemeshio_v1_NetworkServiceEndpointList(ref),
 		"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkServiceList":         schema_pkg_apis_networkservicemeshio_v1_NetworkServiceList(ref),
+		"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkService":                          schema_pkg_nsm_apis_netmesh_NetworkService(ref),
+		"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh.NetworkServiceEndpoint":                  schema_pkg_nsm_apis_netmesh_NetworkServiceEndpoint(ref),
 	}
 }
 
@@ -211,5 +213,72 @@ func schema_pkg_apis_networkservicemeshio_v1_NetworkServiceList(ref common.Refer
 		},
 		Dependencies: []string{
 			"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1.NetworkService", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_nsm_apis_netmesh_NetworkService(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"network_service_name": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_nsm_apis_netmesh_NetworkServiceEndpoint(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"network_service_name": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"network_service_host": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"nse_provider_name": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"socket_location": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"interface": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/ligato/networkservicemesh/pkg/nsm/apis/common.LocalMechanism"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/ligato/networkservicemesh/pkg/nsm/apis/common.LocalMechanism"},
 	}
 }

@@ -28,14 +28,10 @@ message Empty{
 
 }
 
-message LocalMechanismParameters {
-   map <string,string> interface_parameters = 1;
-}
-
 message LocalMechanism {
    LocalMechanismType type = 1;
    LocalMechanismPreference preference = 2;
-   LocalMechanismParameters parmeters = 3;
+   map <string,string> parameters = 3;
 }
 
 enum LocalMechanismType {
@@ -58,7 +54,7 @@ enum LocalMechanismPreference {
 
 message RemoteMechanism {
     RemoteMechanismType type = 1;
-    map<string,string> constraints = 2;
+    map<string,string> parameters = 2;
 }
 
 enum RemoteMechanismType {
