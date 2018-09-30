@@ -27,7 +27,7 @@ message NetworkServiceEndpoint {
     string network_service_host = 2;
     string nse_provider_name = 3;
     string socket_location = 4;
-    repeated common.LocalMechanism interface = 5;
+    repeated common.LocalMechanism local_mechanisms = 5;
  }
 
 message NetworkService {

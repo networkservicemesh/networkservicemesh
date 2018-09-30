@@ -178,7 +178,7 @@ func main() {
 		NseProviderName:    podUID,
 		NetworkServiceName: networkServiceName,
 		SocketLocation:     connectionServerSocket,
-		Interface: []*common.LocalMechanism{
+		LocalMechanisms: []*common.LocalMechanism{
 			{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 			},

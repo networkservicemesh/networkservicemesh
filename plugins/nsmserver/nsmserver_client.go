@@ -341,7 +341,7 @@ func getEndpointWithInterface(endpointList []nsmapi.NetworkServiceEndpoint, reqI
 	// returns collected slice of endpoints with matching interface type.
 	for _, iReq := range reqInterfacesSorted {
 		for _, ep := range endpointList {
-			for _, intf := range ep.Spec.Interface {
+			for _, intf := range ep.Spec.LocalMechanisms {
 				if iReq.Type == intf.Type {
 					found = true
 					endpoints = append(endpoints, ep)
