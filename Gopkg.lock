@@ -458,7 +458,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:87ebdb5bca696b2830474067e4f661e1ebc96b7a746bf552ef4df3609a2cb4cf"
+  digest = "1:67347ca8fd5d27b838c14af5d7bbdece58b1dec052e0cffd742517fa1f9b55be"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -473,7 +473,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "4dfa2610cdf3b287375bbba5b8f2a14d3b01d8de"
+  revision = "f5e5bdd778241bfefa8627f7124c39cd6ad8d74f"
 
 [[projects]]
   branch = "master"
