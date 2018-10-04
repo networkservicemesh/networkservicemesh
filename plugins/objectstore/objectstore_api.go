@@ -35,6 +35,7 @@ type Interface interface {
 	GetNetworkService(nsName string) *v1.NetworkService
 	ListNetworkServices() []*v1.NetworkService
 	GetDataplane(registeredName string) *Dataplane
+	RemoveDataplane(registeredName string)
 	ListDataplanes() []*Dataplane
 }
 
