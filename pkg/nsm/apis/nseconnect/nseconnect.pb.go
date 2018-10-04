@@ -26,8 +26,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // EndpointConnectionRequest is sent by a NSM to NSE to build a connection.
 type EndpointConnectionRequest struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -74,9 +74,9 @@ func (m *EndpointConnectionRequest) GetNetworkServiceName() string {
 // EndpointConnectionReply is sent back by NSE to NSM with information required for
 // dataplane programming.
 type EndpointConnectionReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
-	LinuxNamespace       string   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace" json:"linux_namespace,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	LinuxNamespace       string   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace,proto3" json:"linux_namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -128,8 +128,8 @@ func (m *EndpointConnectionReply) GetLinuxNamespace() string {
 }
 
 type EndpointAdvertiseRequest struct {
-	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint" json:"network_endpoint,omitempty"`
+	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint,proto3" json:"network_endpoint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
 	XXX_unrecognized     []byte                          `json:"-"`
 	XXX_sizecache        int32                           `json:"-"`
@@ -174,9 +174,9 @@ func (m *EndpointAdvertiseRequest) GetNetworkEndpoint() *netmesh.NetworkServiceE
 }
 
 type EndpointAdvertiseReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	Accepted             bool     `protobuf:"varint,2,opt,name=accepted" json:"accepted,omitempty"`
-	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Accepted             bool     `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -231,8 +231,8 @@ func (m *EndpointAdvertiseReply) GetAdmissionError() string {
 // endpoint. NSM will attempt to locate Customer Resource and delete it.
 //
 type EndpointRemoveRequest struct {
-	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint" json:"network_endpoint,omitempty"`
+	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint,proto3" json:"network_endpoint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
 	XXX_unrecognized     []byte                          `json:"-"`
 	XXX_sizecache        int32                           `json:"-"`
@@ -277,9 +277,9 @@ func (m *EndpointRemoveRequest) GetNetworkEndpoint() *netmesh.NetworkServiceEndp
 }
 
 type EndpointRemoveReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	Accepted             bool     `protobuf:"varint,2,opt,name=accepted" json:"accepted,omitempty"`
-	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Accepted             bool     `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -371,8 +371,7 @@ func (c *endpointConnectionClient) RequestEndpointConnection(ctx context.Context
 	return out, nil
 }
 
-// Server API for EndpointConnection service
-
+// EndpointConnectionServer is the server API for EndpointConnection service.
 type EndpointConnectionServer interface {
 	RequestEndpointConnection(context.Context, *EndpointConnectionRequest) (*EndpointConnectionReply, error)
 }
@@ -446,8 +445,7 @@ func (c *endpointOperationsClient) RemoveEndpoint(ctx context.Context, in *Endpo
 	return out, nil
 }
 
-// Server API for EndpointOperations service
-
+// EndpointOperationsServer is the server API for EndpointOperations service.
 type EndpointOperationsServer interface {
 	AdvertiseEndpoint(context.Context, *EndpointAdvertiseRequest) (*EndpointAdvertiseReply, error)
 	RemoveEndpoint(context.Context, *EndpointRemoveRequest) (*EndpointRemoveReply, error)

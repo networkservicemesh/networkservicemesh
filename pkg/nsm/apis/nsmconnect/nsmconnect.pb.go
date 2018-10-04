@@ -29,10 +29,10 @@ type ConnectionRequest struct {
 	// Since connection request will trigger certain actions
 	// executed by NSM for a client to address idempotency, request_id
 	// will be tracked.
-	RequestId            string                   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkServiceName   string                   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
-	LinuxNamespace       string                   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace" json:"linux_namespace,omitempty"`
-	LocalMechanisms      []*common.LocalMechanism `protobuf:"bytes,4,rep,name=local_mechanisms,json=localMechanisms" json:"local_mechanisms,omitempty"`
+	RequestId            string                   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkServiceName   string                   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	LinuxNamespace       string                   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace,proto3" json:"linux_namespace,omitempty"`
+	LocalMechanisms      []*common.LocalMechanism `protobuf:"bytes,4,rep,name=local_mechanisms,json=localMechanisms,proto3" json:"local_mechanisms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -91,7 +91,7 @@ func (m *ConnectionRequest) GetLocalMechanisms() []*common.LocalMechanism {
 }
 
 type ConnectionParameters struct {
-	ConnectionParameters map[string]string `protobuf:"bytes,1,rep,name=connection_parameters,json=connectionParameters" json:"connection_parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ConnectionParameters map[string]string `protobuf:"bytes,1,rep,name=connection_parameters,json=connectionParameters,proto3" json:"connection_parameters,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -133,10 +133,10 @@ func (m *ConnectionParameters) GetConnectionParameters() map[string]string {
 // indicates that connection was refused and admission_error will provide details
 // why connection was refused.
 type ConnectionReply struct {
-	Accepted             bool                   `protobuf:"varint,1,opt,name=accepted" json:"accepted,omitempty"`
-	AdmissionError       string                 `protobuf:"bytes,2,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
-	ConnectionParameters *ConnectionParameters  `protobuf:"bytes,3,opt,name=connection_parameters,json=connectionParameters" json:"connection_parameters,omitempty"`
-	LocalMechanism       *common.LocalMechanism `protobuf:"bytes,4,opt,name=local_mechanism,json=localMechanism" json:"local_mechanism,omitempty"`
+	Accepted             bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string                 `protobuf:"bytes,2,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
+	ConnectionParameters *ConnectionParameters  `protobuf:"bytes,3,opt,name=connection_parameters,json=connectionParameters,proto3" json:"connection_parameters,omitempty"`
+	LocalMechanism       *common.LocalMechanism `protobuf:"bytes,4,opt,name=local_mechanism,json=localMechanism,proto3" json:"local_mechanism,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -233,8 +233,7 @@ func (c *clientConnectionClient) RequestConnection(ctx context.Context, in *Conn
 	return out, nil
 }
 
-// Server API for ClientConnection service
-
+// ClientConnectionServer is the server API for ClientConnection service.
 type ClientConnectionServer interface {
 	RequestConnection(context.Context, *ConnectionRequest) (*ConnectionReply, error)
 }
