@@ -50,8 +50,8 @@ func (NSMPodType) EnumDescriptor() ([]byte, []int) {
 }
 
 type Metadata struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Namespace            string   `protobuf:"bytes,2,opt,name=namespace" json:"namespace,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Namespace            string   `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -96,8 +96,8 @@ func (m *Metadata) GetNamespace() string {
 }
 
 type Pod struct {
-	Metadata             *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
-	IpAddress            string    `protobuf:"bytes,2,opt,name=ip_address,json=ipAddress" json:"ip_address,omitempty"`
+	Metadata             *Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	IpAddress            string    `protobuf:"bytes,2,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -142,8 +142,8 @@ func (m *Pod) GetIpAddress() string {
 }
 
 type BuildConnectRequest struct {
-	SourcePod            *Pod     `protobuf:"bytes,1,opt,name=source_pod,json=sourcePod" json:"source_pod,omitempty"`
-	DestinationPod       *Pod     `protobuf:"bytes,2,opt,name=destination_pod,json=destinationPod" json:"destination_pod,omitempty"`
+	SourcePod            *Pod     `protobuf:"bytes,1,opt,name=source_pod,json=sourcePod,proto3" json:"source_pod,omitempty"`
+	DestinationPod       *Pod     `protobuf:"bytes,2,opt,name=destination_pod,json=destinationPod,proto3" json:"destination_pod,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -188,8 +188,8 @@ func (m *BuildConnectRequest) GetDestinationPod() *Pod {
 }
 
 type BuildConnectReply struct {
-	Built                bool     `protobuf:"varint,1,opt,name=built" json:"built,omitempty"`
-	BuildError           string   `protobuf:"bytes,2,opt,name=build_error,json=buildError" json:"build_error,omitempty"`
+	Built                bool     `protobuf:"varint,1,opt,name=built,proto3" json:"built,omitempty"`
+	BuildError           string   `protobuf:"bytes,2,opt,name=build_error,json=buildError,proto3" json:"build_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -234,8 +234,8 @@ func (m *BuildConnectReply) GetBuildError() string {
 }
 
 type DeleteConnectRequest struct {
-	Pod                  *Pod       `protobuf:"bytes,1,opt,name=pod" json:"pod,omitempty"`
-	PodType              NSMPodType `protobuf:"varint,2,opt,name=pod_type,json=podType,enum=testdataplane.NSMPodType" json:"pod_type,omitempty"`
+	Pod                  *Pod       `protobuf:"bytes,1,opt,name=pod,proto3" json:"pod,omitempty"`
+	PodType              NSMPodType `protobuf:"varint,2,opt,name=pod_type,json=podType,proto3,enum=testdataplane.NSMPodType" json:"pod_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -280,8 +280,8 @@ func (m *DeleteConnectRequest) GetPodType() NSMPodType {
 }
 
 type DeleteConnectReply struct {
-	Deleted              bool     `protobuf:"varint,1,opt,name=deleted" json:"deleted,omitempty"`
-	DeleteError          string   `protobuf:"bytes,2,opt,name=delete_error,json=deleteError" json:"delete_error,omitempty"`
+	Deleted              bool     `protobuf:"varint,1,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	DeleteError          string   `protobuf:"bytes,2,opt,name=delete_error,json=deleteError,proto3" json:"delete_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -367,8 +367,7 @@ func (c *buildConnectClient) RequestBuildConnect(ctx context.Context, in *BuildC
 	return out, nil
 }
 
-// Server API for BuildConnect service
-
+// BuildConnectServer is the server API for BuildConnect service.
 type BuildConnectServer interface {
 	RequestBuildConnect(context.Context, *BuildConnectRequest) (*BuildConnectReply, error)
 }
@@ -432,8 +431,7 @@ func (c *deleteConnectClient) RequestDeleteConnect(ctx context.Context, in *Dele
 	return out, nil
 }
 
-// Server API for DeleteConnect service
-
+// DeleteConnectServer is the server API for DeleteConnect service.
 type DeleteConnectServer interface {
 	RequestDeleteConnect(context.Context, *DeleteConnectRequest) (*DeleteConnectReply, error)
 }

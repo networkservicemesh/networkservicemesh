@@ -128,6 +128,15 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: true}, nil
 }
 
+func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneUnRegistrationRequest) (*dataplaneregistrarapi.DataplaneUnRegistrationReply, error) {
+	r.logger.Infof("Received dataplane un-registration requests from %s", req.DataplaneName)
+
+	// Removing dataplane from the store, if it does not exists, it does not matter as long as it is no longer there.
+	r.objectStore.RemoveDataplane(req.DataplaneName)
+
+	return &dataplaneregistrarapi.DataplaneUnRegistrationReply{UnRegistered: true}, nil
+}
+
 // startDataplaneServer starts for a server listening for local NSEs advertise/remove
 // dataplane registrar calls
 func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarServer) error {
@@ -146,6 +155,8 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 
 	// Plugging dataplane registrar operations methods
 	dataplaneregistrarapi.RegisterDataplaneRegistrationServer(dataplaneRegistrarServer.grpcServer, dataplaneRegistrarServer)
+	// Plugging dataplane registrar operations methods
+	dataplaneregistrarapi.RegisterDataplaneUnRegistrationServer(dataplaneRegistrarServer.grpcServer, dataplaneRegistrarServer)
 
 	logger.Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", dataplaneRegistrar)
 	go func() {

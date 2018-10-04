@@ -104,6 +104,13 @@ func (p *Plugin) GetDataplane(registeredName string) *Dataplane {
 	return p.objects.dataplaneStore.Get(registeredName)
 }
 
+// RemoveDataplane get Dataplane object by registration name
+func (p *Plugin) RemoveDataplane(registeredName string) {
+	p.Log.Info("ObjectStore.RemoveDataplane.")
+	p.objects.dataplaneStore.Delete(registeredName)
+	return
+}
+
 // ListDataplanes lists all stored Dataplane objects
 func (p *Plugin) ListDataplanes() []*Dataplane {
 	p.Log.Info("ObjectStore.ListDataplane.")

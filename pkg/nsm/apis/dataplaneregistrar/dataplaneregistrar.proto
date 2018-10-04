@@ -25,3 +25,17 @@ service DataplaneRegistration {
     // that NSM is gone and the dataplane needs to start re-registration logic.
     rpc RequestLiveness (stream common.Empty) returns (stream common.Empty);
 }
+
+// DataplaneUnRegistrationRequest is sent by the dataplane to NSM
+// to remove itself from the list of available dataplanes.
+message DataplaneUnRegistrationRequest {
+    string dataplane_name = 1;
+  }
+  
+  message DataplaneUnRegistrationReply {
+    bool un_registered = 1;
+  }
+  
+  service DataplaneUnRegistration {
+      rpc RequestDataplaneUnRegistration (DataplaneUnRegistrationRequest) returns (DataplaneUnRegistrationReply);
+  }
