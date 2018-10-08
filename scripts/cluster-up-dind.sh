@@ -16,7 +16,7 @@
 # limitations under the License.
 
 # Bring up kubeadm-dind-cluster (docker-in-docker k8s cluster)
-DIND_CLUSTER_SH=dind-cluster-v1.7.sh
+DIND_CLUSTER_SH=dind-cluster-v1.11.sh
 DIND_URL=https://cdn.rawgit.com/Mirantis/kubeadm-dind-cluster/master/fixed/${DIND_CLUSTER_SH}
 
 rm -f ${DIND_CLUSTER_SH}
