@@ -23,7 +23,7 @@ test -n "${TRAVIS_K8S_CONTEXT}" && set -- "${TRAVIS_K8S_CONTEXT}"
 
 export TEST_CONTEXT=${1:?}
 
-KUBECTL_VERSION=v1.11.0
+KUBECTL_VERSION=v1.12.0
 
 # Install kubectl
 curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
