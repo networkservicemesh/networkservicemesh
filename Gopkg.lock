@@ -641,7 +641,7 @@
   version = "kubernetes-1.12.0"
 
 [[projects]]
-  digest = "1:145647b653ff6a6882bbc2c4701ebcbce7be643007231d545560e4ce612ad5cb"
+  digest = "1:758efcf9cc97ed132a9f9f9e2b638a0cd401a2b1b9a98e91d037de46a84d2f5e"
   name = "k8s.io/apiextensions-apiserver"
   packages = [
     "pkg/apis/apiextensions",
@@ -651,8 +651,8 @@
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "06dfdaae5c2bd89e1243151ff65b9bf8ee050f28"
-  version = "kubernetes-1.11.1"
+  revision = "b05d9bb7cc74a62c5daac9cef31894343e5d2c9b"
+  version = "kubernetes-1.11.3"
 
 [[projects]]
   digest = "1:33730fb514340e487c72597b579737e896b51a79117aedd6a4e24b59f3e949dc"
