@@ -48,7 +48,6 @@ function run_tests() {
     # Since daemonset is up and running, create CRD resources
     #
     kubectl create -f conf/sample/networkservice.yaml
-    kubectl logs "$(kubectl get pods -o name | sed -e 's/.*\///')"
     wait_for_networkservice default
 
     #
