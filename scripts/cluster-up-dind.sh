@@ -22,6 +22,9 @@ DIND_URL=https://cdn.rawgit.com/Mirantis/kubeadm-dind-cluster/master/fixed/${DIN
 # The number of nodes to test with. For now, lets use a single node cluster
 export NUM_NODES=1
 
+# Enable RBAC on the API server
+export APISERVER_authorization_mode=RBAC
+
 rm -f ${DIND_CLUSTER_SH}
 wget ${DIND_URL}
 chmod +x ${DIND_CLUSTER_SH}
