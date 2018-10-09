@@ -23,4 +23,7 @@ rm -f ${DIND_CLUSTER_SH}
 wget ${DIND_URL}
 chmod +x ${DIND_CLUSTER_SH}
 ./${DIND_CLUSTER_SH} up
+export PATH="${HOME}/.kubeadm-dind-cluster:${PATH}"
+# Wait for Kubernetes to be up and ready
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
 # vim: sw=4 ts=4 et si
