@@ -19,6 +19,9 @@
 DIND_CLUSTER_SH=dind-cluster-v1.11.sh
 DIND_URL=https://cdn.rawgit.com/Mirantis/kubeadm-dind-cluster/master/fixed/${DIND_CLUSTER_SH}
 
+# The number of nodes to test with. For now, lets use a single node cluster
+export NUM_NODES=1
+
 rm -f ${DIND_CLUSTER_SH}
 wget ${DIND_URL}
 chmod +x ${DIND_CLUSTER_SH}
