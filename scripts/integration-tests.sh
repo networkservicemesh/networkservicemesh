@@ -21,7 +21,8 @@ function run_tests() {
     kubectl get nodes
     kubectl version
     kubectl api-versions
-    kubectl label --overwrite --all=true nodes app=networkservice-node
+    #kubectl label --overwrite --all=true nodes app=networkservice-node
+    kubectl label --overwrite nodes kube-node-1 app=networkservice-node
     kubectl create -f conf/sample/networkservice-daemonset.yaml
     #
     # Now let's wait for all pods to get into running state
