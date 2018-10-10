@@ -108,6 +108,20 @@ func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv data
 	}
 }
 
+// ConnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
+// of NSM Client or NSE.
+func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+	logrus.Infof("ConnectRequest was called")
+	return nil, fmt.Errorf("not implemented")
+}
+
+// DisconnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
+// of NSM Client or NSE.
+func (d DataplaneController) DisconnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+	logrus.Infof("DisconnectRequest was called")
+	return nil, fmt.Errorf("not implemented")
+}
+
 // RequestDeleteConnect implements method for testdataplane proto
 func (d DataplaneController) RequestDeleteConnect(ctx context.Context, in *testdataplane.DeleteConnectRequest) (*testdataplane.DeleteConnectReply, error) {
 	logrus.Infof("Request Delete Connect received for pod: %s/%s pod type: %v", in.Pod.Metadata.Namespace, in.Pod.Metadata.Name, in.PodType)
