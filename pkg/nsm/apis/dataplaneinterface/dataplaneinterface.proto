@@ -10,8 +10,31 @@ message DataplaneUpdate {
     repeated common.RemoteMechanism remote_mechanism = 1;
 }
 
-// WIP DataplaneOperations will inlcude other operations which NSM will request dataplane module
+// DataplaneOperations inlcudes other operations which NSM will request dataplane module
 // to execute to establish connectivity requested by NSM clients.
 service DataplaneOperations {
     rpc UpdateDataplane(common.Empty) returns (stream DataplaneUpdate);
+    rpc ConnectRequest (Connection) returns (Reply);
+    rpc DisconnectRequest (Connection) returns (Reply);
 }
+
+message Connection {
+    common.LocalMechanism local_source = 1;
+    oneof destination {
+        common.LocalMechanism local = 2;
+        common.RemoteMechanism remote = 3;
+    }
+    // For ConnectRequest this will be nil, but for DisconnectRequest it will 
+    // carry a connection id returned by the dataplane controller 
+    string connection_id = 4;
+}
+
+message Reply {
+    bool success = 1;
+    string extended_error = 2;
+    // ConnectRequest will populate this field with connection id returned by the 
+    // dataplane controller
+    // DisconnectRequest ignores this field
+    string connection_id = 3;
+}
+
