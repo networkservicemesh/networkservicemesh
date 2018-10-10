@@ -141,9 +141,13 @@ function run_tests() {
     kubectl get nodes
     kubectl get pods
     kubectl get crd
-    kubectl logs "$(kubectl get pods -o name | grep nse )"
-    kubectl logs "$(kubectl get pods -o name | grep nsm-client )" -c nsm-init
-    kubectl logs "$(kubectl get pods -o name | grep test-dataplane )"
+    kubectl logs "$(kubectl get pods -o name | grep nse)"
+    kubectl logs "$(kubectl get pods -o name | grep nsm-client)" -c nsm-init
+    kubectl logs "$(kubectl get pods -o name | grep test-dataplane | cut -d "/" -f 2)"
+    DATAPLANES="$(kubectl get pods -o name | grep test-dataplane | cut -d "/" -f 2)"
+    for TESTDP in ${DATAPLANES} ; do
+        kubectl logs "${TESTDP}"
+    done
     kubectl get NetworkService,NetworkServiceEndpoint --all-namespaces
 
     # Need to get kubeconfig full path
