@@ -733,7 +733,7 @@
   ]
   pruneopts = "UT"
   revision = "6dd46049f39503a1fc8d65de4bd566829e95faff"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.1"
 
 [[projects]]
   digest = "1:2450bbb3208ff07470518e051619747d43d97f7ae9a8f1004d025ec387fb32e5"
