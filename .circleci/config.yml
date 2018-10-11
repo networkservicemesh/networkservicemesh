@@ -5,13 +5,14 @@ version: 2
 jobs:
   build:
     docker: # use the docker executor type; machine and macos executors are also supported
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.10
 
     working_directory: /go/src/github.com/ligato/networkservicemesh
 
     steps:
       - checkout
-      - run: sudo apt-get install yamllint python3-pkg-resources
+      - setup_remote_docker
+      - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make dep-check
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
