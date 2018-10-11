@@ -521,10 +521,12 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 	}
 	logrus.Printf("Discovered Container ID %s for pod %s/%s", cid2, namespace2, podName2)
 
+	logrus.Printf("Debug: Calling getPidForContainer for container id %s", cid1)
 	pid1, err := getPidForContainer(cid1)
 	if err != nil {
 		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
 	}
+	logrus.Printf("Debug: Calling getPidForContainer for container id %s", cid2)
 	pid2, err := getPidForContainer(cid2)
 	if err != nil {
 		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
@@ -623,12 +625,13 @@ func listInterfaces(targetNS netns.NsHandle) error {
 
 func getPidForContainer(id string) (int, error) {
 	pid := 0
-
+	logrus.Printf("Debug: looking for cotainer id: %s", id)
 	// memory is chosen randomly, any cgroup used by docker works
 	cgroupType := "ns"
 
 	cgroupRoot, err := findCgroupMountpoint(cgroupType)
 	if err != nil {
+		logrus.Printf("Debug: findCgroupMountpoint returned error: %+v", err)
 		return pid, err
 	}
 	logrus.Printf("Debug: Found cgroup root at: %s", cgroupRoot)
