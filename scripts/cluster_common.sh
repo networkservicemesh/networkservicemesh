@@ -24,14 +24,14 @@ create_k8s_cluster() {
             echo "FATAL: bringing up k8s cluster '${ctx}' not supported"
             exit 255
         }
-        . ${cluster_up}
+        ${cluster_up}
     }
 }
 
 delete_k8s_cluster() {
     local ctx=${1:?}
     cluster_down=./scripts/cluster-down-"${ctx}".sh
-    test -f "${cluster_down}" && . ${cluster_down}
+    test -f "${cluster_down}" && ${cluster_down}
 }
 
 fixup_rbac() {

@@ -14,27 +14,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ ! -z "${CIRCLE_BUILD_NUM}" ] ; then
-    CLOUD_DEPLOYMENT_NAME=nsm-ci-${CIRCLE_BUILD_NUM}
-else
-    CLOUD_DEPLOYMENT_NAME=nsm-$$
+if [ -z ${PACKET_AUTH_TOKEN} ] ; then
+    echo "FATAL: for Packet.net deployment, PACKET_AUTH_TOKEN must be provided"
+    exit 255
 fi
 
-CLOUD_DEPLOYMENT_DATA=$(pwd)/.data
+if [ -z ${PACKET_PROJECT_ID} ] ; then
+    echo "FATAL: for Packet.net deployment, PACKET_PROJECT_ID must be provided"
+    exit 255
+fi
 
 docker run \
-  -v ${CLOUD_DEPLOYMENT_DATA}:/cncf/data \
+  -v "${K8S_DEPLOYMENT_DATA}":/cncf/data \
   --dns 147.75.69.23 --dns 8.8.8.8 \
-  -e NAME=${CLOUD_DEPLOYMENT_NAME} \
+  -e NAME="${K8S_DEPLOYMENT_NAME}" \
   -e CLOUD=packet    \
   -e COMMAND=deploy \
   -e BACKEND=file  \
-  -e PACKET_AUTH_TOKEN=${PACKET_AUTH_TOKEN} \
-  -e TF_VAR_packet_project_id=${PACKET_PROJECT_ID} \
+  -e PACKET_AUTH_TOKEN="${PACKET_AUTH_TOKEN}" \
+  -e TF_VAR_packet_project_id="${PACKET_PROJECT_ID}" \
   -ti registry.cncf.ci/cncf/cross-cloud/provisioning:production
 
-export KUBECONFIG=${CLOUD_DEPLOYMENT_DATA}/kubeconfig
-kubectl config rename-context ${CLOUD_DEPLOYMENT_NAME} packet
+cp "${K8S_DEPLOYMENT_DATA}"/kubeconfig "$HOME"/.kube/config
+kubectl config rename-context "${K8S_DEPLOYMENT_NAME}" packet
 
 # Adding cross-cloud's nameserver to resolve cluster IP
 # On ubuntu /etc/resolv.conf is actually a symlink
@@ -52,4 +54,3 @@ git clone --depth 1 https://github.com/crosscloudci/cross-cloud.git
 kubectl create -f ./cross-cloud/rbac/
 
 # End of workaround
-

@@ -15,12 +15,12 @@
 # limitations under the License.
 
 docker run \
-  -v ${CLOUD_DEPLOYMENT_DATA}:/cncf/data \
+  -v "${K8S_DEPLOYMENT_DATA}":/cncf/data \
   --dns 147.75.69.23 --dns 8.8.8.8 \
-  -e NAME=${CLOUD_DEPLOYMENT_NAME} \
+  -e NAME="${K8S_DEPLOYMENT_NAME}" \
   -e CLOUD=packet    \
   -e COMMAND=destroy \
   -e BACKEND=file  \
-  -e PACKET_AUTH_TOKEN=${PACKET_AUTH_TOKEN} \
-  -e TF_VAR_packet_project_id=${PACKET_PROJECT_ID} \
+  -e PACKET_AUTH_TOKEN="${PACKET_AUTH_TOKEN}" \
+  -e TF_VAR_packet_project_id="${PACKET_PROJECT_ID}" \
   -ti registry.cncf.ci/cncf/cross-cloud/provisioning:production

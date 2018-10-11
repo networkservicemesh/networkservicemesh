@@ -21,15 +21,33 @@ set -xe
 # try to bring up a local (dockerized) cluster
 # Other kubernetes contexts like "packet", "aws", etc will bring
 # up a cluster in the cloud
+#
+# For cloud deployments, cloud-specific environment variables
+# must be set as below:
+#
+# Packet.net:
+#   PACKET_AUTH_TOKEN
+#   PACKET_PROJECT_ID
+#
 test -n "${TRAVIS_K8S_CONTEXT}" && set -- "${TRAVIS_K8S_CONTEXT}"
 
 export TEST_CONTEXT=${1:?}
+
+if [ ! -z "${CIRCLE_BUILD_NUM}" ] ; then
+    K8S_DEPLOYMENT_NAME=nsm-ci-"${CIRCLE_BUILD_NUM}"
+else
+    K8S_DEPLOYMENT_NAME=nsm-$$
+fi
+K8S_DEPLOYMENT_DATA=$(pwd)/.data
+
+export K8S_DEPLOYMENT_NAME
+export K8S_DEPLOYMENT_DATA
 
 KUBECTL_VERSION=v1.11.0
 
 # Install kubectl
 curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
-	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+ 	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
 
 . scripts/cluster_common.sh
 . scripts/integration-tests.sh
