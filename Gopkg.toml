@@ -58,6 +58,16 @@ required = [
   # revision is set because verioned release is missing 2 important fixes
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
 
+[[override]]
+  name = "git.fd.io/govpp.git"
+  # revision is set because no version tag are available
+  revision = "0f731471ab258d9e01658f0ab70f8317fd0fb89c"
+
+[[override]]
+  name = "github.com/lunixbochs/struc"
+  # revision is set because no version tag are available
+  revision = "02e4c2afbb2ac4bae6876f52c8273fc4cf5a4b0a"
+
 [[constraint]]
   branch = "master"
   name = "golang.org/x/net"
@@ -129,3 +139,7 @@ required = [
 [[constraint]]
   name = "github.com/go-errors/errors"
   version = "1.0.1"
+
+[[constraint]]
+  branch = "master"
+  name = "git.fd.io/govpp.git"
