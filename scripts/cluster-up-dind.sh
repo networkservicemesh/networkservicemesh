@@ -16,11 +16,20 @@
 # limitations under the License.
 
 # Bring up kubeadm-dind-cluster (docker-in-docker k8s cluster)
-DIND_CLUSTER_SH=dind-cluster-v1.7.sh
+DIND_CLUSTER_SH=dind-cluster-v1.11.sh
 DIND_URL=https://cdn.rawgit.com/Mirantis/kubeadm-dind-cluster/master/fixed/${DIND_CLUSTER_SH}
+
+# The number of nodes to test with. For now, lets use a single node cluster
+export NUM_NODES=1
+
+# Enable RBAC on the API server
+export APISERVER_authorization_mode=RBAC
 
 rm -f ${DIND_CLUSTER_SH}
 wget ${DIND_URL}
 chmod +x ${DIND_CLUSTER_SH}
 ./${DIND_CLUSTER_SH} up
+export PATH="${HOME}/.kubeadm-dind-cluster:${PATH}"
+# Wait for Kubernetes to be up and ready
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
 # vim: sw=4 ts=4 et si
