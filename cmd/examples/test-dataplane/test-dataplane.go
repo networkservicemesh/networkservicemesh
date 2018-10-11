@@ -19,7 +19,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"path"
@@ -610,13 +609,13 @@ func listInterfaces(targetNS netns.NsHandle) error {
 	if err != nil {
 		return fmt.Errorf("failure to get pod's interfaces with error: %+v", err)
 	}
-	log.Printf("pod's interfaces:")
+	logrus.Printf("pod's interfaces:")
 	for _, intf := range interfaces {
 		addrs, err := namespaceHandle.AddrList(intf, 0)
 		if err != nil {
-			log.Printf("failed to addresses for interface: %s with error: %v", intf.Attrs().Name, err)
+			logrus.Printf("failed to addresses for interface: %s with error: %v", intf.Attrs().Name, err)
 		}
-		log.Printf("Name: %s Type: %s Addresses: %+v", intf.Attrs().Name, intf.Type(), addrs)
+		logrus.Printf("Name: %s Type: %s Addresses: %+v", intf.Attrs().Name, intf.Type(), addrs)
 
 	}
 	return nil
@@ -632,7 +631,7 @@ func getPidForContainer(id string) (int, error) {
 	if err != nil {
 		return pid, err
 	}
-	log.Printf("Debug: Found cgroup root at: %s", cgroupRoot)
+	logrus.Printf("Debug: Found cgroup root at: %s", cgroupRoot)
 	cgroupThis, err := getThisCgroup(cgroupType)
 	if err != nil {
 		return pid, err
@@ -658,20 +657,20 @@ func getPidForContainer(id string) (int, error) {
 		filepath.Join(cgroupRoot, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
 	}
 
-	log.Printf("Debug: looking for cotainer id: %s", id)
+	logrus.Printf("Debug: looking for cotainer id: %s", id)
 	var filename string
 	for _, attempt := range attempts {
-		log.Printf("Debug: checking at %s", attempt)
+		logrus.Printf("Debug: checking at %s", attempt)
 		filenames, err := filepath.Glob(attempt)
 		if err != nil {
-			log.Printf("Debug: filepath.Glob for location %s failed with error: %+v", attempt, err)
+			logrus.Printf("Debug: filepath.Glob for location %s failed with error: %+v", attempt, err)
 			return pid, err
 		}
 		if filenames == nil {
-			log.Printf("Debug: Nothing found at %s", attempt)
+			logrus.Printf("Debug: Nothing found at %s", attempt)
 			continue
 		}
-		log.Printf("Debug: list of files at %s: %+v ", attempt, filenames)
+		logrus.Printf("Debug: list of files at %s: %+v ", attempt, filenames)
 		if len(filenames) > 1 {
 			return pid, fmt.Errorf("Ambiguous id supplied: %v", filenames)
 		}
