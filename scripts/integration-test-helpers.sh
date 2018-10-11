@@ -92,6 +92,7 @@ function wait_for_pods() {
 # In case if a failure, collecting some evidence for further debugging
 #
 function error_collection() {
+    set -xe
     kubectl describe node || true
     kubectl get pods --all-namespaces || true
     nsm=$(kubectl get pods --all-namespaces | grep networkservice | awk '{print $2}')
@@ -129,6 +130,7 @@ function error_collection() {
     fi
     kubectl get nodes
     sudo docker images
+    set +xe
 }
 
 # vim: sw=4 ts=4 et si
