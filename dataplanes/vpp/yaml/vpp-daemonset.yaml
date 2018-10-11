@@ -1,3 +1,4 @@
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 spec:
@@ -16,28 +17,28 @@ spec:
           image: networkservicemesh/vpp-daemon:latest
           imagePullPolicy: Always
           volumeMounts:
-          - name: run
-            mountPath: /var/run
-          - name: lib
-            mountPath: /var/lib
-          - name: lib-modules
-            mountPath: /lib/modules
-            readOnly: true
+            - name: run
+              mountPath: /var/run
+            - name: lib
+              mountPath: /var/lib
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
         - name: vpp
           securityContext:
             privileged: true
           image: networkservicemesh/vpp:latest
           imagePullPolicy: Always
           volumeMounts:
-          - name: run
-            mountPath: /var/run
-          - name: lib
-            mountPath: /var/lib
-          - name: lib-modules
-            mountPath: /lib/modules
-            readOnly: true
-          - name: hugepages
-            mountPath: /run/vpp/hugepages 
+            - name: run
+              mountPath: /var/run
+            - name: lib
+              mountPath: /var/lib
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            - name: hugepages
+              mountPath: /run/vpp/hugepages
           resources:
             limits:
               hugepages-2Mi: "1024Mi"
@@ -58,8 +59,8 @@ spec:
             path: /lib/modules
           name: lib-modules
         - emptyDir:
-            medium: HugePages       
+            medium: HugePages
           name: hugepages
 metadata:
-   name: nsm-vpp-dataplane
-   namespace: default
+  name: nsm-vpp-dataplane
+  namespace: default
