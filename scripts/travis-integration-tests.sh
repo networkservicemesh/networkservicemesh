@@ -19,6 +19,8 @@ set -xe
 
 # Default kubernetes context - if it's "dind" or "minikube" will
 # try to bring up a local (dockerized) cluster
+# Other kubernetes contexts like "packet", "aws", etc will bring
+# up a cluster in the cloud
 test -n "${TRAVIS_K8S_CONTEXT}" && set -- "${TRAVIS_K8S_CONTEXT}"
 
 export TEST_CONTEXT=${1:?}
@@ -51,6 +53,7 @@ kubectl() {
 # run_tests returns an error on failure
 run_tests
 exit_code=$?
+delete_k8s_cluster "${TEST_CONTEXT}"
 if [ "${exit_code}" == "0" ] ; then
     echo "TESTS: PASS"
 else

@@ -16,4 +16,4 @@ jobs:
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make dep-check
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
-      - run: make all
+      - run: make all && ./scripts/travis-integration-tests.sh packet
