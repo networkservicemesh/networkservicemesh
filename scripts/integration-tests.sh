@@ -21,8 +21,8 @@ function run_tests() {
     kubectl get nodes
     kubectl version
     kubectl api-versions
-    #kubectl label --overwrite --all=true nodes app=networkservice-node
-    kubectl label --overwrite nodes kube-node-1 app=networkservice-node
+    kubectl label --overwrite --all=true nodes app=networkservice-node
+    #kubectl label --overwrite nodes kube-node-1 app=networkservice-node
     kubectl create -f conf/sample/networkservice-daemonset.yaml
     #
     # Now let's wait for all pods to get into running state
@@ -143,7 +143,6 @@ function run_tests() {
     kubectl get crd
     kubectl logs "$(kubectl get pods -o name | grep nse)"
     kubectl logs "$(kubectl get pods -o name | grep nsm-client)" -c nsm-init
-    kubectl logs "$(kubectl get pods -o name | grep test-dataplane | cut -d "/" -f 2)"
     DATAPLANES="$(kubectl get pods -o name | grep test-dataplane | cut -d "/" -f 2)"
     for TESTDP in ${DATAPLANES} ; do
         kubectl logs "${TESTDP}"
