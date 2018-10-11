@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z ${PACKET_AUTH_TOKEN} ] ; then
+if [ -z "${PACKET_AUTH_TOKEN}" ] ; then
     echo "FATAL: for Packet.net deployment, PACKET_AUTH_TOKEN must be provided"
     exit 255
 fi
 
-if [ -z ${PACKET_PROJECT_ID} ] ; then
+if [ -z "${PACKET_PROJECT_ID}" ] ; then
     echo "FATAL: for Packet.net deployment, PACKET_PROJECT_ID must be provided"
     exit 255
 fi
