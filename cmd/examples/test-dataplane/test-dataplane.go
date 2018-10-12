@@ -661,16 +661,17 @@ func getPidForContainer(id string) (int, error) {
 		filepath.Join(cgroupRoot, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
 	}
 
-	// Getting complete content of cgroupRoot
-	cmd := fmt.Sprintf("find %s -print", cgroupRoot)
+	// Let's find out specific container id + tasks file
+	cmd := fmt.Sprintf("find %s -name \"*%s*\" -print | grep tasks", cgroupRoot, id)
 	out, err := exec.Command("sh", "-c", cmd).Output()
 	if err != nil {
 		logrus.Printf("Debug: failure to run find with error: %+v", err)
 	} else {
 		logrus.Printf("The content of %s folder with %s pattern: %s", cgroupRoot, id, string(out))
 	}
+
 	// Let's find out specific container id
-	cmd = fmt.Sprintf("find %s -name \"*%s*\" -print", cgroupRoot, id)
+	cmd = fmt.Sprintf("find %s -name \"*%s*\" -print | grep tasks", cgroupRoot, id)
 	out, err = exec.Command("sh", "-c", cmd).Output()
 	if err != nil {
 		logrus.Printf("Debug: failure to run find with error: %+v", err)
