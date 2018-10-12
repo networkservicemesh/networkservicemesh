@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -626,16 +625,13 @@ func listInterfaces(targetNS netns.NsHandle) error {
 
 func getPidForContainer(id string) (int, error) {
 	pid := 0
-	logrus.Printf("Debug: looking for cotainer id: %s", id)
 	// memory is chosen randomly, any cgroup used by docker works
 	cgroupType := "memory"
 
 	cgroupRoot, err := findCgroupMountpoint(cgroupType)
 	if err != nil {
-		logrus.Printf("Debug: findCgroupMountpoint returned error: %+v", err)
 		return pid, err
 	}
-	logrus.Printf("Debug: Found cgroup root at: %s", cgroupRoot)
 	cgroupThis, err := getThisCgroup(cgroupType)
 	if err != nil {
 		return pid, err
@@ -659,48 +655,25 @@ func getPidForContainer(id string) (int, error) {
 		filepath.Join(cgroupRoot, cgroupThis, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
 		// When runs inside of a container with recent kubernetes 1.11+
 		filepath.Join(cgroupRoot, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
-		// For Docker in Docker
-		filepath.Join(cgroupRoot, "*"+id+"*", "tasks"),
+		// For Docker in Docker container goes right under cgroupRoot
+		filepath.Join(cgroupRoot, id, "tasks"),
 	}
 
-	// Let's find out specific container id + tasks file
-	cmd := fmt.Sprintf("find %s -name \"*%s*\" -print | grep tasks", cgroupRoot, id)
-	out, err := exec.Command("sh", "-c", cmd).Output()
-	if err != nil {
-		logrus.Printf("Debug: failure to run find with error: %+v", err)
-	} else {
-		logrus.Printf("The content of %s folder with %s pattern: %s", cgroupRoot, id, string(out))
-	}
-
-	// Let's find out specific container id
-	cmd = fmt.Sprintf("find %s -name \"*%s*\" -print | grep tasks", cgroupRoot, id)
-	out, err = exec.Command("sh", "-c", cmd).Output()
-	if err != nil {
-		logrus.Printf("Debug: failure to run find with error: %+v", err)
-	} else {
-		logrus.Printf("The content of %s folder with %s pattern: %s", cgroupRoot, id, string(out))
-	}
-
-	logrus.Printf("Debug: looking for cotainer id: %s", id)
 	var filename string
 	for _, attempt := range attempts {
 		logrus.Printf("Debug: checking at %s", attempt)
 		filenames, err := filepath.Glob(attempt)
 		if err != nil {
-			logrus.Printf("Debug: filepath.Glob for location %s failed with error: %+v", attempt, err)
 			return pid, err
 		}
 		if filenames == nil {
-			logrus.Printf("Debug: Nothing found at %s", attempt)
 			continue
 		}
-		logrus.Printf("Debug: list of files at %s: %+v ", attempt, filenames)
 		if len(filenames) > 1 {
 			return pid, fmt.Errorf("Ambiguous id supplied: %v", filenames)
 		}
 		if len(filenames) == 1 {
 			filename = filenames[0]
-			logrus.Printf("Debug: !!!!!!!!!Found!!!!!!!!!! %s   file: %s", attempt, string(filename[0]))
 			break
 		}
 	}
