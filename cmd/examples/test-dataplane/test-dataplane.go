@@ -659,6 +659,8 @@ func getPidForContainer(id string) (int, error) {
 		filepath.Join(cgroupRoot, cgroupThis, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
 		// When runs inside of a container with recent kubernetes 1.11+
 		filepath.Join(cgroupRoot, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
+		// For Docker in Docker
+		filepath.Join(cgroupRoot, "*"+id+"*", "tasks"),
 	}
 
 	// Let's find out specific container id + tasks file
@@ -698,6 +700,7 @@ func getPidForContainer(id string) (int, error) {
 		}
 		if len(filenames) == 1 {
 			filename = filenames[0]
+			logrus.Printf("Debug: !!!!!!!!!Found!!!!!!!!!! %s   file: %s", attempt, string(filename[0]))
 			break
 		}
 	}
