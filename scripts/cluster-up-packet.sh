@@ -39,12 +39,7 @@ cp "${K8S_DEPLOYMENT_DATA}"/kubeconfig "$HOME"/.kube/config
 kubectl config rename-context "${K8S_DEPLOYMENT_NAME}" packet
 
 # Adding cross-cloud's nameserver to resolve cluster IP
-# On ubuntu /etc/resolv.conf is actually a symlink
-
-sudo cp /etc/resolv.conf /etc/resolv.conf.new
-echo "echo \"nameserver 147.75.69.23\" >> /etc/resolv.conf.new" | sudo sh
-sudo rm /etc/resolv.conf
-sudo mv /etc/resolv.conf.new /etc/resolv.conf 
+echo "echo \"nameserver 147.75.69.23\" >> /etc/resolv.conf" | sudo sh
 
 # Below is temporary workaround of cross-cloud docker production image, which do
 # not create RBAC as a part of deployment process. Must be removed once issue #
