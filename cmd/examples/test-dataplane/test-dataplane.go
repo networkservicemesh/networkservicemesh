@@ -627,7 +627,7 @@ func getPidForContainer(id string) (int, error) {
 	pid := 0
 	logrus.Printf("Debug: looking for cotainer id: %s", id)
 	// memory is chosen randomly, any cgroup used by docker works
-	cgroupType := "ns"
+	cgroupType := "memory"
 
 	cgroupRoot, err := findCgroupMountpoint(cgroupType)
 	if err != nil {
