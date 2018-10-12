@@ -51,7 +51,7 @@ spec:
       serviceAccount: test-dataplane
       containers:
         - name: test-dataplane
-          image: networkservicemesh/test-dataplane:latest
+          image: networkservicemesh/test-dataplane-debug:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
