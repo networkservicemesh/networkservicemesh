@@ -37,6 +37,7 @@ docker run \
   -ti registry.cncf.ci/cncf/cross-cloud/provisioning:production
 
 docker cp deploy-on-packet:/cncf/data "${K8S_DEPLOYMENT_DATA}"
+mkdir "$HOME"/.kube
 cp "${K8S_DEPLOYMENT_DATA}"/kubeconfig "$HOME"/.kube/config
 kubectl config rename-context "${K8S_DEPLOYMENT_NAME}" packet
 
