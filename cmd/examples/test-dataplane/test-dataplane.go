@@ -482,7 +482,7 @@ func main() {
 			continue
 		}
 		defer conn.Close()
-		logrus.Infof("test-dataplane: connection to dataplane registrar socket % succeeded.", registrarSocket)
+		logrus.Infof("DEBUG test-dataplane: connection to dataplane registrar socket % succeeded.", registrarSocket)
 
 		registrarConnection := dataplaneregistrarapi.NewDataplaneRegistrationClient(conn)
 		dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
@@ -501,7 +501,7 @@ func main() {
 			time.Sleep(time.Second * registrationRetryInterval)
 			continue
 		}
-		logrus.Infof("test-dataplane: dataplane has successfully been registered, waiting for connection from NSM...")
+		logrus.Infof("DEBUG: test-dataplane: dataplane has successfully been registered, waiting for connection from NSM...")
 		// Block on Liveness stream until NSM is gone, if failure of NSM is detected
 		// go to a re-registration
 		livenessMonitor(registrarConnection)
