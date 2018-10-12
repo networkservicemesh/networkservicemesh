@@ -339,6 +339,9 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 		return fmt.Errorf("failure to add veth to pod with error: %+v", err)
 	}
 
+	// Adding a small timeout to let interface add to complete
+	time.Sleep(1 * time.Second)
+
 	link, err := netlink.LinkByName(p2)
 	if err != nil {
 		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
