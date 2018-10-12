@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -658,6 +659,23 @@ func getPidForContainer(id string) (int, error) {
 		filepath.Join(cgroupRoot, cgroupThis, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
 		// When runs inside of a container with recent kubernetes 1.11+
 		filepath.Join(cgroupRoot, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
+	}
+
+	// Getting complete content of cgroupRoot
+	cmd := fmt.Sprintf("find %s -print", cgroupRoot)
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		logrus.Printf("Debug: failure to run find with error: %+v", err)
+	} else {
+		logrus.Printf("The content of %s folder with %s pattern: %s", cgroupRoot, id, string(out))
+	}
+	// Let's find out specific container id
+	cmd = fmt.Sprintf("find %s -name \"*%s*\" -print", cgroupRoot, id)
+	out, err = exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		logrus.Printf("Debug: failure to run find with error: %+v", err)
+	} else {
+		logrus.Printf("The content of %s folder with %s pattern: %s", cgroupRoot, id, string(out))
 	}
 
 	logrus.Printf("Debug: looking for cotainer id: %s", id)
