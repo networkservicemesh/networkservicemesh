@@ -47,7 +47,7 @@ function save_images {
 
 	for image in $NSM_IMAGES ; do
 		echo "Saving docker image ${image}"
-		IMG="$(echo ${image} | cut -d "/" -f 2)"
+		IMG="$(echo "${image}" | cut -d "/" -f 2)"
 		docker save "${image}" > "${IMG}.tar"
 	done
 
@@ -64,7 +64,7 @@ function restore_images {
 
 	for node in $KUBERNETES_NODES ; do
 		for image in $NSM_IMAGES ; do
-			IMG="$(echo ${image} | cut -d "/" -f 2)"
+			IMG="$(echo "${image}" | cut -d "/" -f 2)"
 			echo "Copying ${image} to $node:/"
 			docker cp "${IMG}".tar "$node":/
 			echo "Loading /${image}.tar into $node"
