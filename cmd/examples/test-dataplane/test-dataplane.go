@@ -656,12 +656,11 @@ func getPidForContainer(id string) (int, error) {
 		// When runs inside of a container with recent kubernetes 1.11+
 		filepath.Join(cgroupRoot, "kubepods.slice", "kubepods-besteffort.slice", "*", "docker-"+id+".scope", "tasks"),
 		// For Docker in Docker container goes right under cgroupRoot
-		filepath.Join(cgroupRoot, id, "tasks"),
+		filepath.Join(cgroupRoot, id+"*", "tasks"),
 	}
 
 	var filename string
 	for _, attempt := range attempts {
-		logrus.Printf("Debug: checking at %s", attempt)
 		filenames, err := filepath.Glob(attempt)
 		if err != nil {
 			return pid, err
