@@ -25,6 +25,7 @@ if [ -z "${PACKET_PROJECT_ID}" ] ; then
 fi
 
 docker run \
+  --name deploy-on-packet \
   -v "${K8S_DEPLOYMENT_DATA}":/cncf/data \
   --dns 147.75.69.23 --dns 8.8.8.8 \
   -e NAME="${K8S_DEPLOYMENT_NAME}" \
@@ -35,6 +36,7 @@ docker run \
   -e TF_VAR_packet_project_id="${PACKET_PROJECT_ID}" \
   -ti registry.cncf.ci/cncf/cross-cloud/provisioning:production
 
+docker cp deploy-on-packet:/cncf/data "${K8S_DEPLOYMENT_DATA}"
 cp "${K8S_DEPLOYMENT_DATA}"/kubeconfig "$HOME"/.kube/config
 kubectl config rename-context "${K8S_DEPLOYMENT_NAME}" packet
 
