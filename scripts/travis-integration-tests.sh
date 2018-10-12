@@ -43,11 +43,11 @@ K8S_DEPLOYMENT_DATA=$(pwd)/.data
 export K8S_DEPLOYMENT_NAME
 export K8S_DEPLOYMENT_DATA
 
-KUBECTL_VERSION=v1.11.0
+KUBECTL_VERSION=v1.11.3
 
 # Install kubectl
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
- 	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+# curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
+#  	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
 
 . scripts/cluster_common.sh
 . scripts/integration-tests.sh
