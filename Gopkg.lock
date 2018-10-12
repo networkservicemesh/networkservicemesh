@@ -863,7 +863,7 @@
   ]
   pruneopts = ""
   revision = "3dcf91f64f638563e5106f21f50c31fa361c918d"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.1"
 
 [[projects]]
   branch = "master"
