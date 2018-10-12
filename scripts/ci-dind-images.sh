@@ -45,6 +45,11 @@ function save_images {
 	mkdir -p "${WORKDIRECTORY}"
 	cd "${WORKDIRECTORY}" || return
 
+	# Debug
+	set -xe
+	docker images | grep networkservicemesh | cut -d " " -f 1 | grep -v release
+	set +xe
+
 	for image in $NSM_IMAGES ; do
 		echo "Saving docker image ${image}"
 		IMG="$(echo "${image}" | cut -d "/" -f 2)"
