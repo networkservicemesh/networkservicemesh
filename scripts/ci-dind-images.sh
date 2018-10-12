@@ -30,8 +30,10 @@ WORKDIRECTORY="${WORKDIRECTORY:-./workdirectory}"
 
 # List of images to save and restore
 # NOTE: We do not want to copy over the networkservicemesh/release image, as it's the base
-# image and is huge.
-NSM_IMAGES="$(docker images | grep networkservicemesh | cut -d " " -f 1 | grep -v release)"
+# image and is huge. Also note we're only looking at the latest images. In the CI, by the
+# time this runs, we've tagged images already, so this ensures we only spend time copying
+# the latest images over.
+NSM_IMAGES="$(docker images | grep networkservicemesh | grep latest | cut -d " " -f 1 | grep -v release)"
 
 # Each node to copy to
 KUBERNETES_NODES="$(kubectl get nodes | grep kube- | cut -d " " -f 1)"
