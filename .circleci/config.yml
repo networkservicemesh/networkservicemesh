@@ -12,6 +12,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      - run: echo "PACKET_PROJECT_ID=$PACKET_PROJECT_ID"
       - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make dep-check
