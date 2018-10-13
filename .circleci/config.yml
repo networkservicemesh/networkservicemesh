@@ -30,7 +30,8 @@ jobs:
       - run: ./scripts/ci-packet-deploy.sh
       - persist_to_workspace:
           root: .data
-          paths: *
+          paths: 
+            - ./*
 
 workflows:
   version: 2
