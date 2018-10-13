@@ -24,7 +24,7 @@ jobs:
   packet-deploy:
     working_directory: /cncf
     docker:
-      - image: platoff/cross-cloud
+      - image: networkservicemesh/netmesh-ci
     steps:
       - run: ./ci-cluster-provision.sh packet-deploy
       - run:
@@ -41,16 +41,16 @@ jobs:
     steps:
       - checkout
       - run: echo "This will run integration tests..."
-      - run: exit 255
 
   packet-destroy:
     working_directory: /cncf
     docker:
-      - image: platoff/cross-cloud
+      - image: networkservicemesh/netmesh-ci
     steps:
       - attach_workspace:
           at: data
-      - run: ./ci-cluster-provision.sh packet-destroy
+      - run:
+        ./ci-cluster-provision.sh packet-destroy
 
 workflows:
   version: 2
@@ -68,6 +68,5 @@ workflows:
             - build
             - packet-deploy
       - packet-destroy:
-          when: always
           requires:
             - packet-integration-tests
