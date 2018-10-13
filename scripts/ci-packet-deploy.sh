@@ -43,5 +43,12 @@ echo "cat resolv.conf >> /etc/resolv.conf" | sudo sh
 # not create RBAC as a part of deployment process. Must be removed once issue #
 # resolved
 git clone --depth 1 https://github.com/crosscloudci/cross-cloud.git
+
+KUBECTL_VERSION=v1.11.3
+
+# Install kubectl
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
+ 	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+
 kubectl create -f ./cross-cloud/rbac/
 # End of workaround
