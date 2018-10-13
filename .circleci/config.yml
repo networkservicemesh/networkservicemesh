@@ -25,7 +25,7 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - sanity_check
+      - sanity-check
       - build:
           requires:
-            - sanity_check
+            - sanity-check
