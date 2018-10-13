@@ -335,8 +335,33 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	if err != nil {
 		return fmt.Errorf("failure to get pod's handle with error: %+v", err)
 	}
-	if err := namespaceHandle.LinkAdd(veth); err != nil {
-		return fmt.Errorf("failure to add veth to pod with error: %+v", err)
+	// Debugging situation when we try to add already existing link
+	links, err := namespaceHandle.LinkList()
+	if err != nil {
+		logrus.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
+		return fmt.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
+	}
+	logrus.Printf("Found already existing interfaces:")
+	found := false
+	for _, link := range links {
+		addrs, err := namespaceHandle.AddrList(link, 0)
+		if err != nil {
+			logrus.Printf("failed to addresses for interface: %s with error: %v", link.Attrs().Name, err)
+		}
+		logrus.Printf("Name: %s Type: %s Addresses: %+v", link.Attrs().Name, link.Type(), addrs)
+		// Check if there is already interface with the same name, if there is, then skip crreating it
+		if link.Attrs().Name == veth.LinkAttrs.Name {
+			logrus.Printf("Interface with %s already exist, skip creating it.", veth.LinkAttrs.Name)
+			found = true
+		}
+	}
+	if !found {
+		// Interface has not been found, safe to create it.
+		if err := namespaceHandle.LinkAdd(veth); err != nil {
+			return fmt.Errorf("failure to add veth to pod with error: %+v", err)
+		}
+		// Adding a small timeout to let interface add to complete
+		time.Sleep(30 * time.Second)
 	}
 
 	link, err := netlink.LinkByName(p2)
