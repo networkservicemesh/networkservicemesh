@@ -24,14 +24,10 @@ jobs:
   deploy-k8s-packet:
     working_directory: /cncf
     docker:
-      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
+      - image: platoff/cross-cloud
     steps:
-      - run: ./provision.sh packet-deploy nsm-ci-${CIRCLE_BUILD_NUM} file
-      - run:
-          name: Create RBAC
-          command: kubectl create -f ./rbac/
-          environment:
-            KUBECONFIG: /cncf/data/kubeconfig
+      - run: ./ci-cluster-provision.sh packet-deploy
+      - run: kubectl create -f ./rbac/
       - persist_to_workspace:
           root: data
           paths:
