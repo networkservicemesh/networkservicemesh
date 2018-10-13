@@ -70,7 +70,7 @@ DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 all: check verify docker-build
 
 check:
-	@shellcheck `find . -name "*.sh" -not -path "./vendor/*"`
+	@shellcheck `find . -name "*.sh" -not -path "*vendor/*"`
 
 verify:
 	@./scripts/update-codegen.sh && ./scripts/add-openapi-bits.sh && ./scripts/verify-codegen.sh
