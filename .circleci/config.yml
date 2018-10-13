@@ -18,21 +18,22 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: echo "export COMMIT=${CIRCLE_SHA1::8}" >> $BASH_ENV
-      - run: echo "COMMIT=$COMMIT"
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-      - run: make verify docker-build docker-push
+      - run: make verify docker-build
 
   deploy-k8s-packet:
-    working_directory: /go/src/github.com/ligato/networkservicemesh
+    working_directory: /cncf
     docker:
-      - image: circleci/golang:1.10
+      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
     steps:
-      - checkout
-      - setup_remote_docker
-      - run: ./scripts/ci-packet-deploy.sh
+      - run: ./provision.sh packet-deploy nsm-ci-${CIRCLE_BUILD_NUM} file
+      - run:
+          name: Create RBAC
+          command: kubectl create -f ./rbac/
+          environment:
+            KUBECONFIG: /cncf/data/kubeconfig
       - persist_to_workspace:
-          root: .data
+          root: data
           paths:
             - ./*
 
