@@ -49,8 +49,7 @@ jobs:
     steps:
       - attach_workspace:
           at: data
-      - run:
-        ./ci-cluster-provision.sh packet-destroy
+      - run: ./ci-cluster-provision.sh packet-destroy
 
 workflows:
   version: 2
