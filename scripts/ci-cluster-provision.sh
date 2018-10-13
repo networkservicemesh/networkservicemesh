@@ -23,4 +23,4 @@ cat resolv.conf >> /etc/resolv.conf
 
 export TF_VAR_packet_project_id="${PACKET_PROJECT_ID}"
 
-./provision.sh "$1" nsm-ci-"${CIRCLE_WORKFLOW_ID}" file
+./provision.sh "$1" nsm-ci-"${CIRCLE_WORKFLOW_ID:0:8}" file
