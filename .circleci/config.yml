@@ -11,15 +11,17 @@ jobs:
       - checkout
       - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
-      - run: make check
+      - run: make check dep-check
 
   build:
     <<: *defaults
     steps:
       - checkout
       - setup_remote_docker
+      - run: echo "export COMMIT=${CIRCLE_SHA1::8}" >> $BASH_ENV
+      - run: echo "COMMIT=$COMMIT"
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-      - run: make dep-check verify docker-build
+      - run: make verify docker-build docker-push
 
   deploy-k8s-packet:
     working_directory: /go/src/github.com/ligato/networkservicemesh
