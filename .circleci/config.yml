@@ -25,9 +25,12 @@ jobs:
     working_directory: /go/src/github.com/ligato/networkservicemesh
     docker:
       - image: circleci/golang:1.10
-      - dns: 147.75.69.23
     steps:
-      - run: echo "verifying DNS directive existence"      
+      - setup_remote_docker
+      - run: ./scripts/ci-packet-deploy.sh
+      - persist_to_workspace:
+          root: .data
+          paths: *
 
 workflows:
   version: 2
