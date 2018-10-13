@@ -27,7 +27,10 @@ jobs:
       - image: platoff/cross-cloud
     steps:
       - run: ./ci-cluster-provision.sh packet-deploy
-      - run: kubectl create -f ./rbac/
+      - run: 
+          command: kubectl create -f ./rbac/
+          environment:
+            KUBECONFIG: /cncf/data/kubeconfig
       - persist_to_workspace:
           root: data
           paths:
