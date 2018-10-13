@@ -21,11 +21,22 @@ jobs:
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make dep-check verify docker-build
 
+  deploy-k8s-packet:
+    working_directory: /go/src/github.com/ligato/networkservicemesh
+    docker:
+      - image: circleci/golang:1.10
+      - dns: 147.75.69.23
+    steps:
+      - run: echo "verifying DNS directive existence"      
+
 workflows:
   version: 2
   build-and-test:
     jobs:
       - sanity-check
       - build:
+          requires:
+            - sanity-check
+      - deploy-k8s-packet:
           requires:
             - sanity-check
