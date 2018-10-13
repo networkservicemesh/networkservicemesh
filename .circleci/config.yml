@@ -21,7 +21,7 @@ jobs:
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make verify docker-build
 
-  deploy-k8s-packet:
+  packet-deploy:
     working_directory: /cncf
     docker:
       - image: platoff/cross-cloud
@@ -36,6 +36,22 @@ jobs:
           paths:
             - ./*
 
+  packet-integration-tests:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: echo "This will run integration tests..."
+      - run: exit 255
+
+  packet-destroy:
+    working_directory: /cncf
+    docker:
+      - image: platoff/cross-cloud
+    steps:
+      - attach_workspace:
+          at: data
+      - run: ./ci-cluster-provision.sh packet-destroy
+
 workflows:
   version: 2
   build-and-test:
@@ -44,6 +60,14 @@ workflows:
       - build:
           requires:
             - sanity-check
-      - deploy-k8s-packet:
+      - packet-deploy:
           requires:
             - sanity-check
+      - packet-integration-tests:
+          requires:
+            - build
+            - packet-deploy
+      - packet-destroy:
+          when: always
+          requires:
+            - packet-integration-tests
