@@ -1,19 +1,31 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
+defaults: &defaults
+  working_directory: /go/src/github.com/ligato/networkservicemesh
+  docker:
+    - image: circleci/golang:1.10
+
 version: 2
 jobs:
+  sanity-check:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
+      - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
+      - run: make check
+
   build:
-    docker: # use the docker executor type; machine and macos executors are also supported
-      - image: circleci/golang:1.10
-
-    working_directory: /go/src/github.com/ligato/networkservicemesh
-
+    <<: *defaults
     steps:
       - checkout
       - setup_remote_docker
-      - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-      - run: make dep-check
-      - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
-      - run: make all && ./scripts/travis-integration-tests.sh packet
+      - run: make dep-check verify docker-build
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - sanity_check
+      - build:
+          requires:
+            - sanity_check
