@@ -26,6 +26,7 @@ jobs:
     docker:
       - image: circleci/golang:1.10
     steps:
+      - checkout
       - setup_remote_docker
       - run: ./scripts/ci-packet-deploy.sh
       - persist_to_workspace:
