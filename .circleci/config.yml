@@ -37,19 +37,22 @@ jobs:
             - ./*
 
   packet-integration-tests:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: echo "This will run integration tests..."
-
-  packet-destroy:
-    working_directory: /cncf
+    working_directory: /go/src/github.com/ligato/networkservicemesh
     docker:
       - image: networkservicemesh/netmesh-ci
     steps:
       - attach_workspace:
-          at: data
-      - run: ./ci-cluster-provision.sh packet-destroy
+          at: /cncf/data
+      - checkout
+      - run:
+          command: ./scripts/circle-integration-tests.sh
+          environment:
+            KUBECONFIG: /cncf/data/kubeconfig
+      - run:
+          when: always
+          command: |
+            cd /cncf
+            ./ci-cluster-provision.sh packet-destroy
 
 workflows:
   version: 2
@@ -66,6 +69,3 @@ workflows:
           requires:
             - build
             - packet-deploy
-      - packet-destroy:
-          requires:
-            - packet-integration-tests
