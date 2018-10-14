@@ -22,37 +22,38 @@ jobs:
       - run: make verify docker-build
 
   packet-deploy:
-    working_directory: /cncf
+    working_directory: /go/src/github.com/ligato/networkservicemesh
     docker:
-      - image: networkservicemesh/netmesh-ci
+      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
     steps:
-      - run: ./ci-cluster-provision.sh packet-deploy
+      - checkout
+      - run: ./scripts/ci-set-nameserver.sh
+      - run: ./scripts/ci-cluster-provision.sh packet-deploy
       - run:
           command: kubectl create -f ./rbac/
           environment:
             KUBECONFIG: /cncf/data/kubeconfig
       - persist_to_workspace:
-          root: data
+          root: /cncf/data
           paths:
             - ./*
 
   packet-integration-tests:
     working_directory: /go/src/github.com/ligato/networkservicemesh
     docker:
-      - image: networkservicemesh/netmesh-ci
+      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
     steps:
       - attach_workspace:
           at: /cncf/data
       - checkout
+      - run: ./scripts/ci-set-nameserver.sh
       - run:
           command: ./scripts/circle-integration-tests.sh
           environment:
             KUBECONFIG: /cncf/data/kubeconfig
       - run:
           when: always
-          command: |
-            cd /cncf
-            ./ci-cluster-provision.sh packet-destroy
+          command: ./scripts/ci-cluster-provision.sh packet-destroy
 
 workflows:
   version: 2

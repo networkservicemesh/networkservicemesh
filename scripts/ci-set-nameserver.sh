@@ -14,10 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a wrapper for cross-cloud's provision.sh
-# targeted to use in Circle CI environment
-
-export TF_VAR_packet_project_id="${PACKET_PROJECT_ID}"
-pushd /cncf
-./provision.sh "$1" nsm-ci-"${CIRCLE_WORKFLOW_ID:0:8}" file
-popd
+cp /etc/resolv.conf resolv.conf
+echo "nameserver 147.75.69.23" > /etc/resolv.conf
+cat resolv.conf >> /etc/resolv.conf
