@@ -41,10 +41,10 @@ jobs:
   packet-integration-tests:
     <<: *defaults
     steps:
-      - attach_workspace:
-          at: ./data
       - checkout
       - run: sudo ./scripts/ci-set-nameserver.sh
+      - attach_workspace:
+          at: ./data
       - run:
           command: ./scripts/circle-integration-tests.sh
           environment:
