@@ -30,7 +30,7 @@ jobs:
       - run: ./scripts/ci-set-nameserver.sh
       - run: ./scripts/ci-cluster-provision.sh packet-deploy
       - run:
-          command: kubectl create -f ./rbac/
+          command: kubectl create -f /cncf/rbac/
           environment:
             KUBECONFIG: /cncf/data/kubeconfig
       - persist_to_workspace:
