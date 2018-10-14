@@ -26,7 +26,7 @@ import (
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -64,13 +64,13 @@ func deleteLocalConnect(apiCh govppapi.Channel, connID string) error {
 }
 
 // ConnectRequest is called when NSM sends the request to interconnect two containers' namespaces.
-func (d DataplaneServer) ConnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+func (d DataplaneServer) ConnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("ConnectRequest was called for namespace %+v", req)
 
 	// First check, is VPP is operational? If not return grpc error dataplane is not available
 	if !d.vppDataplane.IsConnected() {
 		// VPP is not currently connected, failing this request.
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: false,
 		}, status.Error(codes.Unavailable, "VPP dataplane is currently unavailable.")
 	}
@@ -83,92 +83,92 @@ func (d DataplaneServer) ConnectRequest(ctx context.Context, req *dataplaneinter
 	// Remote - when NSM Client is local, but the requested Network Service Endpoint is runing on a
 	// different from the client host.
 	switch req.Destination.(type) {
-	case *dataplaneinterface.Connection_Local:
+	case *dataplaneapi.Connection_Local:
 		logrus.Infof("Destination is local: %+v", req)
-		destination := req.Destination.(*dataplaneinterface.Connection_Local)
+		destination := req.Destination.(*dataplaneapi.Connection_Local)
 		logrus.Infof("Destination struct: %+v", destination.Local)
 		connID, err := createLocalConnect(d.vppDataplane.GetAPIChannel(), req.LocalSource, destination.Local)
 		if err != nil {
 			errStr := fmt.Sprintf("fail to build the cross connect with error: %+v", err)
-			return &dataplaneinterface.Reply{
+			return &dataplaneapi.Reply{
 				Success: false,
 			}, status.Error(codes.Unavailable, errStr)
 		}
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success:      true,
 			ConnectionId: connID,
 		}, nil
 
-	case *dataplaneinterface.Connection_Remote:
+	case *dataplaneapi.Connection_Remote:
 		logrus.Infof("Destination is remote: %+v", req)
-		destination := req.Destination.(*dataplaneinterface.Connection_Remote)
+		destination := req.Destination.(*dataplaneapi.Connection_Remote)
 		logrus.Infof("Destination struct: %+v", destination.Remote)
 		// Remote destination support is not yet implemented, failing this request
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: false,
 		}, status.Error(codes.Unavailable, "Remote Destination currently is not supported")
 	default:
 		// Destination type does not match to any known/supported types, failing this request.
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: false,
 		}, status.Error(codes.Unknown, "Unknown destination type")
 	}
 }
 
 // DisconnectRequest is called when NSM sends the request to disconnect two containers' namespaces.
-func (d DataplaneServer) DisconnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+func (d DataplaneServer) DisconnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("DisconnectRequest was called for namespace %+v", req)
 	// First check, is VPP is operational? If not return grpc error dataplane is not available
 	if !d.vppDataplane.IsConnected() {
 		// VPP is not currently connected, failing this request.
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: false,
 		}, status.Error(codes.Unavailable, "VPP dataplane is currently unavailable.")
 	}
 
 	switch req.Destination.(type) {
-	case *dataplaneinterface.Connection_Local:
+	case *dataplaneapi.Connection_Local:
 		logrus.Infof("Destination is local: %+v", req)
-		destination := req.Destination.(*dataplaneinterface.Connection_Local)
+		destination := req.Destination.(*dataplaneapi.Connection_Local)
 		logrus.Infof("Destination struct: %+v", destination.Local)
 
 		if err := deleteLocalConnect(d.vppDataplane.GetAPIChannel(), req.ConnectionId); err != nil {
 			errStr := fmt.Sprintf("fail to delete the cross connect with error: %+v", err)
-			return &dataplaneinterface.Reply{
+			return &dataplaneapi.Reply{
 				Success: false,
 			}, status.Error(codes.Unavailable, errStr)
 		}
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: true,
 		}, nil
-	case *dataplaneinterface.Connection_Remote:
+	case *dataplaneapi.Connection_Remote:
 		logrus.Infof("Destination is remote: %+v", req)
-		destination := req.Destination.(*dataplaneinterface.Connection_Remote)
+		destination := req.Destination.(*dataplaneapi.Connection_Remote)
 		logrus.Infof("Destination struct: %+v", destination.Remote)
 		// Remote destination support is not yet implemented, failing this request
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: false,
 		}, status.Error(codes.Unavailable, "Remote Destination currently is not supported")
 	default:
 		// Destination type does not match to any known/supported types, failing this request.
-		return &dataplaneinterface.Reply{
+		return &dataplaneapi.Reply{
 			Success: false,
 		}, status.Error(codes.Unknown, "Unknown destination type")
 	}
 
-	return &dataplaneinterface.Reply{Success: true}, nil
+	return &dataplaneapi.Reply{Success: true}, nil
 }
 
 // UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
 // to operational prameters or constraints
-func (d DataplaneServer) UpdateDataplane(empty *common.Empty, updateSrv dataplaneinterface.DataplaneOperations_UpdateDataplaneServer) error {
+func (d DataplaneServer) UpdateDataplane(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_UpdateDataplaneServer) error {
 	logrus.Infof("Update dataplane was called")
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-d.updateCh:
-			if err := updateSrv.Send(&dataplaneinterface.DataplaneUpdate{
+			if err := updateSrv.Send(&dataplaneapi.DataplaneUpdate{
 				RemoteMechanism: update.remoteMechanism,
 			}); err != nil {
 				logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
@@ -197,7 +197,7 @@ func StartDataplaneServer(vpp nsmvpp.Interface) error {
 	}
 	dataplaneServer.server = grpc.NewServer()
 	// Binding dataplane Interface API to gRPC server
-	dataplaneinterface.RegisterDataplaneOperationsServer(dataplaneServer.server, dataplaneServer)
+	dataplaneapi.RegisterDataplaneOperationsServer(dataplaneServer.server, dataplaneServer)
 
 	// Starting gRPC server, if there is something wrong with starting it, it will be caught by following gRPC test
 	go dataplaneServer.server.Serve(dataplaneConn)

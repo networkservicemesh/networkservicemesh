@@ -125,8 +125,8 @@ func (m *Empty) XXX_DiscardUnknown() {
 var xxx_messageInfo_Empty proto.InternalMessageInfo
 
 type LocalMechanism struct {
-	Type                 LocalMechanismType `protobuf:"varint,1,opt,name=type,proto3,enum=common.LocalMechanismType" json:"type,omitempty"`
-	Parameters           map[string]string  `protobuf:"bytes,2,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Type                 LocalMechanismType `protobuf:"varint,1,opt,name=type,enum=common.LocalMechanismType" json:"type,omitempty"`
+	Parameters           map[string]string  `protobuf:"bytes,2,rep,name=parameters" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -171,8 +171,8 @@ func (m *LocalMechanism) GetParameters() map[string]string {
 }
 
 type RemoteMechanism struct {
-	Type                 RemoteMechanismType `protobuf:"varint,1,opt,name=type,proto3,enum=common.RemoteMechanismType" json:"type,omitempty"`
-	Parameters           map[string]string   `protobuf:"bytes,2,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Type                 RemoteMechanismType `protobuf:"varint,1,opt,name=type,enum=common.RemoteMechanismType" json:"type,omitempty"`
+	Parameters           map[string]string   `protobuf:"bytes,2,rep,name=parameters" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
