@@ -26,8 +26,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // EndpointConnectionRequest is sent by a NSM to NSE to build a connection.
 type EndpointConnectionRequest struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -37,7 +37,7 @@ func (m *EndpointConnectionRequest) Reset()         { *m = EndpointConnectionReq
 func (m *EndpointConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*EndpointConnectionRequest) ProtoMessage()    {}
 func (*EndpointConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_d3bee6930b5b72db, []int{0}
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{0}
 }
 func (m *EndpointConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointConnectionRequest.Unmarshal(m, b)
@@ -74,9 +74,9 @@ func (m *EndpointConnectionRequest) GetNetworkServiceName() string {
 // EndpointConnectionReply is sent back by NSE to NSM with information required for
 // dataplane programming.
 type EndpointConnectionReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
-	LinuxNamespace       string   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace" json:"linux_namespace,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	LinuxNamespace       string   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace,proto3" json:"linux_namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -86,7 +86,7 @@ func (m *EndpointConnectionReply) Reset()         { *m = EndpointConnectionReply
 func (m *EndpointConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointConnectionReply) ProtoMessage()    {}
 func (*EndpointConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_d3bee6930b5b72db, []int{1}
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{1}
 }
 func (m *EndpointConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointConnectionReply.Unmarshal(m, b)
@@ -127,9 +127,113 @@ func (m *EndpointConnectionReply) GetLinuxNamespace() string {
 	return ""
 }
 
+// EndpointConnectionInterface is sent by a NSM to NSE to inform NSE about
+// the interface name which was created by the dataplane controller.
+type EndpointConnectionInterface struct {
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	InterfaceName        string   `protobuf:"bytes,2,opt,name=interface_name,json=interfaceName,proto3" json:"interface_name,omitempty"`
+	NetworkServiceName   string   `protobuf:"bytes,3,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EndpointConnectionInterface) Reset()         { *m = EndpointConnectionInterface{} }
+func (m *EndpointConnectionInterface) String() string { return proto.CompactTextString(m) }
+func (*EndpointConnectionInterface) ProtoMessage()    {}
+func (*EndpointConnectionInterface) Descriptor() ([]byte, []int) {
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{2}
+}
+func (m *EndpointConnectionInterface) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EndpointConnectionInterface.Unmarshal(m, b)
+}
+func (m *EndpointConnectionInterface) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EndpointConnectionInterface.Marshal(b, m, deterministic)
+}
+func (dst *EndpointConnectionInterface) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointConnectionInterface.Merge(dst, src)
+}
+func (m *EndpointConnectionInterface) XXX_Size() int {
+	return xxx_messageInfo_EndpointConnectionInterface.Size(m)
+}
+func (m *EndpointConnectionInterface) XXX_DiscardUnknown() {
+	xxx_messageInfo_EndpointConnectionInterface.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EndpointConnectionInterface proto.InternalMessageInfo
+
+func (m *EndpointConnectionInterface) GetRequestId() string {
+	if m != nil {
+		return m.RequestId
+	}
+	return ""
+}
+
+func (m *EndpointConnectionInterface) GetInterfaceName() string {
+	if m != nil {
+		return m.InterfaceName
+	}
+	return ""
+}
+
+func (m *EndpointConnectionInterface) GetNetworkServiceName() string {
+	if m != nil {
+		return m.NetworkServiceName
+	}
+	return ""
+}
+
+// EndpointConnectionInterfaceReply is sent back by NSE to NSM to confirm the presence
+// of the programmed interface.
+type EndpointConnectionInterfaceReply struct {
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	InterfaceFound       bool     `protobuf:"varint,2,opt,name=interface_found,json=interfaceFound,proto3" json:"interface_found,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EndpointConnectionInterfaceReply) Reset()         { *m = EndpointConnectionInterfaceReply{} }
+func (m *EndpointConnectionInterfaceReply) String() string { return proto.CompactTextString(m) }
+func (*EndpointConnectionInterfaceReply) ProtoMessage()    {}
+func (*EndpointConnectionInterfaceReply) Descriptor() ([]byte, []int) {
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{3}
+}
+func (m *EndpointConnectionInterfaceReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EndpointConnectionInterfaceReply.Unmarshal(m, b)
+}
+func (m *EndpointConnectionInterfaceReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EndpointConnectionInterfaceReply.Marshal(b, m, deterministic)
+}
+func (dst *EndpointConnectionInterfaceReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointConnectionInterfaceReply.Merge(dst, src)
+}
+func (m *EndpointConnectionInterfaceReply) XXX_Size() int {
+	return xxx_messageInfo_EndpointConnectionInterfaceReply.Size(m)
+}
+func (m *EndpointConnectionInterfaceReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_EndpointConnectionInterfaceReply.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EndpointConnectionInterfaceReply proto.InternalMessageInfo
+
+func (m *EndpointConnectionInterfaceReply) GetRequestId() string {
+	if m != nil {
+		return m.RequestId
+	}
+	return ""
+}
+
+func (m *EndpointConnectionInterfaceReply) GetInterfaceFound() bool {
+	if m != nil {
+		return m.InterfaceFound
+	}
+	return false
+}
+
 type EndpointAdvertiseRequest struct {
-	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint" json:"network_endpoint,omitempty"`
+	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint,proto3" json:"network_endpoint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
 	XXX_unrecognized     []byte                          `json:"-"`
 	XXX_sizecache        int32                           `json:"-"`
@@ -139,7 +243,7 @@ func (m *EndpointAdvertiseRequest) Reset()         { *m = EndpointAdvertiseReque
 func (m *EndpointAdvertiseRequest) String() string { return proto.CompactTextString(m) }
 func (*EndpointAdvertiseRequest) ProtoMessage()    {}
 func (*EndpointAdvertiseRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_d3bee6930b5b72db, []int{2}
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{4}
 }
 func (m *EndpointAdvertiseRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointAdvertiseRequest.Unmarshal(m, b)
@@ -174,9 +278,9 @@ func (m *EndpointAdvertiseRequest) GetNetworkEndpoint() *netmesh.NetworkServiceE
 }
 
 type EndpointAdvertiseReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	Accepted             bool     `protobuf:"varint,2,opt,name=accepted" json:"accepted,omitempty"`
-	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Accepted             bool     `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -186,7 +290,7 @@ func (m *EndpointAdvertiseReply) Reset()         { *m = EndpointAdvertiseReply{}
 func (m *EndpointAdvertiseReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointAdvertiseReply) ProtoMessage()    {}
 func (*EndpointAdvertiseReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_d3bee6930b5b72db, []int{3}
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{5}
 }
 func (m *EndpointAdvertiseReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointAdvertiseReply.Unmarshal(m, b)
@@ -231,8 +335,8 @@ func (m *EndpointAdvertiseReply) GetAdmissionError() string {
 // endpoint. NSM will attempt to locate Customer Resource and delete it.
 //
 type EndpointRemoveRequest struct {
-	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint" json:"network_endpoint,omitempty"`
+	RequestId            string                          `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkEndpoint      *netmesh.NetworkServiceEndpoint `protobuf:"bytes,2,opt,name=network_endpoint,json=networkEndpoint,proto3" json:"network_endpoint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
 	XXX_unrecognized     []byte                          `json:"-"`
 	XXX_sizecache        int32                           `json:"-"`
@@ -242,7 +346,7 @@ func (m *EndpointRemoveRequest) Reset()         { *m = EndpointRemoveRequest{} }
 func (m *EndpointRemoveRequest) String() string { return proto.CompactTextString(m) }
 func (*EndpointRemoveRequest) ProtoMessage()    {}
 func (*EndpointRemoveRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_d3bee6930b5b72db, []int{4}
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{6}
 }
 func (m *EndpointRemoveRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointRemoveRequest.Unmarshal(m, b)
@@ -277,9 +381,9 @@ func (m *EndpointRemoveRequest) GetNetworkEndpoint() *netmesh.NetworkServiceEndp
 }
 
 type EndpointRemoveReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	Accepted             bool     `protobuf:"varint,2,opt,name=accepted" json:"accepted,omitempty"`
-	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
+	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Accepted             bool     `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	AdmissionError       string   `protobuf:"bytes,3,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -289,7 +393,7 @@ func (m *EndpointRemoveReply) Reset()         { *m = EndpointRemoveReply{} }
 func (m *EndpointRemoveReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointRemoveReply) ProtoMessage()    {}
 func (*EndpointRemoveReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_d3bee6930b5b72db, []int{5}
+	return fileDescriptor_nseconnect_f691f309118b0090, []int{7}
 }
 func (m *EndpointRemoveReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointRemoveReply.Unmarshal(m, b)
@@ -333,6 +437,8 @@ func (m *EndpointRemoveReply) GetAdmissionError() string {
 func init() {
 	proto.RegisterType((*EndpointConnectionRequest)(nil), "nseconnect.EndpointConnectionRequest")
 	proto.RegisterType((*EndpointConnectionReply)(nil), "nseconnect.EndpointConnectionReply")
+	proto.RegisterType((*EndpointConnectionInterface)(nil), "nseconnect.EndpointConnectionInterface")
+	proto.RegisterType((*EndpointConnectionInterfaceReply)(nil), "nseconnect.EndpointConnectionInterfaceReply")
 	proto.RegisterType((*EndpointAdvertiseRequest)(nil), "nseconnect.EndpointAdvertiseRequest")
 	proto.RegisterType((*EndpointAdvertiseReply)(nil), "nseconnect.EndpointAdvertiseReply")
 	proto.RegisterType((*EndpointRemoveRequest)(nil), "nseconnect.EndpointRemoveRequest")
@@ -352,6 +458,7 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type EndpointConnectionClient interface {
 	RequestEndpointConnection(ctx context.Context, in *EndpointConnectionRequest, opts ...grpc.CallOption) (*EndpointConnectionReply, error)
+	SendEndpointConnectionInterface(ctx context.Context, in *EndpointConnectionInterface, opts ...grpc.CallOption) (*EndpointConnectionInterfaceReply, error)
 }
 
 type endpointConnectionClient struct {
@@ -371,10 +478,19 @@ func (c *endpointConnectionClient) RequestEndpointConnection(ctx context.Context
 	return out, nil
 }
 
-// Server API for EndpointConnection service
+func (c *endpointConnectionClient) SendEndpointConnectionInterface(ctx context.Context, in *EndpointConnectionInterface, opts ...grpc.CallOption) (*EndpointConnectionInterfaceReply, error) {
+	out := new(EndpointConnectionInterfaceReply)
+	err := c.cc.Invoke(ctx, "/nseconnect.EndpointConnection/SendEndpointConnectionInterface", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
+// EndpointConnectionServer is the server API for EndpointConnection service.
 type EndpointConnectionServer interface {
 	RequestEndpointConnection(context.Context, *EndpointConnectionRequest) (*EndpointConnectionReply, error)
+	SendEndpointConnectionInterface(context.Context, *EndpointConnectionInterface) (*EndpointConnectionInterfaceReply, error)
 }
 
 func RegisterEndpointConnectionServer(s *grpc.Server, srv EndpointConnectionServer) {
@@ -399,6 +515,24 @@ func _EndpointConnection_RequestEndpointConnection_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EndpointConnection_SendEndpointConnectionInterface_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EndpointConnectionInterface)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EndpointConnectionServer).SendEndpointConnectionInterface(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/nseconnect.EndpointConnection/SendEndpointConnectionInterface",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EndpointConnectionServer).SendEndpointConnectionInterface(ctx, req.(*EndpointConnectionInterface))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _EndpointConnection_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "nseconnect.EndpointConnection",
 	HandlerType: (*EndpointConnectionServer)(nil),
@@ -406,6 +540,10 @@ var _EndpointConnection_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestEndpointConnection",
 			Handler:    _EndpointConnection_RequestEndpointConnection_Handler,
+		},
+		{
+			MethodName: "SendEndpointConnectionInterface",
+			Handler:    _EndpointConnection_SendEndpointConnectionInterface_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -446,8 +584,7 @@ func (c *endpointOperationsClient) RemoveEndpoint(ctx context.Context, in *Endpo
 	return out, nil
 }
 
-// Server API for EndpointOperations service
-
+// EndpointOperationsServer is the server API for EndpointOperations service.
 type EndpointOperationsServer interface {
 	AdvertiseEndpoint(context.Context, *EndpointAdvertiseRequest) (*EndpointAdvertiseReply, error)
 	RemoveEndpoint(context.Context, *EndpointRemoveRequest) (*EndpointRemoveReply, error)
@@ -510,34 +647,39 @@ var _EndpointOperations_serviceDesc = grpc.ServiceDesc{
 	Metadata: "nseconnect.proto",
 }
 
-func init() { proto.RegisterFile("nseconnect.proto", fileDescriptor_nseconnect_d3bee6930b5b72db) }
+func init() { proto.RegisterFile("nseconnect.proto", fileDescriptor_nseconnect_f691f309118b0090) }
 
-var fileDescriptor_nseconnect_d3bee6930b5b72db = []byte{
-	// 412 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xdd, 0x8a, 0xd3, 0x40,
-	0x18, 0x25, 0x0a, 0xb2, 0xfb, 0x09, 0xbb, 0xeb, 0xf8, 0x97, 0x0d, 0xc8, 0x6a, 0x54, 0xf4, 0x2a,
-	0x91, 0xfa, 0x04, 0x22, 0x45, 0xf4, 0xa2, 0x42, 0xf4, 0x56, 0xc2, 0x34, 0xf9, 0x48, 0x87, 0x26,
-	0x33, 0xe3, 0xcc, 0xb4, 0x1a, 0xd0, 0x1b, 0xc1, 0x27, 0xf0, 0xa9, 0x7c, 0x2b, 0xc9, 0x64, 0x26,
-	0xb5, 0x35, 0xda, 0x5e, 0x88, 0x5e, 0xb5, 0x39, 0xe7, 0xcc, 0x77, 0x4e, 0x0e, 0xdf, 0x04, 0xce,
-	0xb8, 0xc6, 0x42, 0x70, 0x8e, 0x85, 0x49, 0xa4, 0x12, 0x46, 0x10, 0xd8, 0x20, 0xd1, 0x8b, 0x8a,
-	0x99, 0xc5, 0x6a, 0x9e, 0x14, 0xa2, 0x49, 0x6b, 0x56, 0x51, 0x23, 0x52, 0x8e, 0xe6, 0x83, 0x50,
-	0x4b, 0x8d, 0x6a, 0xcd, 0x0a, 0x6c, 0x50, 0x2f, 0x52, 0xb9, 0xac, 0x52, 0xae, 0x9b, 0x94, 0x4a,
-	0xa6, 0x3b, 0xde, 0x82, 0xee, 0xb7, 0x1f, 0x1a, 0xd7, 0x70, 0x3e, 0xe5, 0xa5, 0x14, 0x8c, 0x9b,
-	0xe7, 0xfd, 0x6c, 0x26, 0x78, 0x86, 0xef, 0x57, 0xa8, 0x0d, 0xb9, 0x03, 0xa0, 0xfa, 0xbf, 0x39,
-	0x2b, 0xc3, 0xe0, 0x6e, 0xf0, 0xf8, 0x38, 0x3b, 0x76, 0xc8, 0xcb, 0x92, 0x3c, 0x81, 0x1b, 0xce,
-	0x34, 0x77, 0xae, 0x39, 0xa7, 0x0d, 0x86, 0x97, 0xac, 0x90, 0x38, 0xee, 0x4d, 0x4f, 0xcd, 0x68,
-	0x83, 0xf1, 0xb7, 0x00, 0x6e, 0x8f, 0xd9, 0xc9, 0xba, 0xfd, 0xeb, 0x66, 0xe4, 0x11, 0x9c, 0xd6,
-	0x8c, 0xaf, 0x3e, 0x5a, 0x9d, 0x96, 0xb4, 0xc0, 0xf0, 0xb2, 0x15, 0x9f, 0x58, 0x78, 0xe6, 0xd1,
-	0xf8, 0x6b, 0x00, 0xa1, 0x4f, 0xf5, 0xac, 0x5c, 0xa3, 0x32, 0x4c, 0xe3, 0x81, 0x1d, 0xbc, 0x82,
-	0x33, 0x1f, 0x0b, 0xdd, 0x08, 0x1b, 0xe9, 0xea, 0xe4, 0x22, 0xf1, 0x4d, 0xcf, 0xb6, 0xb2, 0x79,
-	0xa7, 0xec, 0xd4, 0x1d, 0xf4, 0x40, 0xfc, 0x09, 0x6e, 0x8d, 0xc4, 0x38, 0xa0, 0x9b, 0x08, 0x8e,
-	0x68, 0x51, 0xa0, 0x34, 0x58, 0x5a, 0xf3, 0xa3, 0x6c, 0x78, 0xee, 0x5a, 0xa0, 0x65, 0xc3, 0xb4,
-	0x66, 0x82, 0xe7, 0xa8, 0x94, 0x50, 0xbe, 0x85, 0x01, 0x9e, 0x76, 0x68, 0xfc, 0x25, 0x80, 0x9b,
-	0x43, 0x36, 0x6c, 0xc4, 0xfa, 0x7f, 0x54, 0xd0, 0xc2, 0xf5, 0xdd, 0x0c, 0xff, 0xe8, 0xfd, 0x27,
-	0x9f, 0x81, 0xfc, 0xba, 0x9a, 0xa4, 0x82, 0x73, 0x57, 0xc3, 0x08, 0xf9, 0x30, 0xf9, 0xe9, 0x92,
-	0xfe, 0xf6, 0x1a, 0x45, 0xf7, 0xf7, 0xc9, 0x64, 0xdd, 0x4e, 0xbe, 0x07, 0x1b, 0xff, 0xd7, 0x12,
-	0x15, 0xed, 0x28, 0x4d, 0xde, 0xc1, 0xb5, 0x61, 0x17, 0x3c, 0x4d, 0x1e, 0x8c, 0x0d, 0xdc, 0xdd,
-	0xdc, 0x28, 0xde, 0xa3, 0xea, 0x8a, 0x7d, 0x0b, 0x27, 0x7d, 0xcf, 0xc3, 0xec, 0x7b, 0x63, 0xa7,
-	0xb6, 0xf6, 0x21, 0xba, 0xf8, 0x93, 0x44, 0xd6, 0xed, 0xfc, 0x8a, 0xfd, 0xb6, 0x3c, 0xfd, 0x11,
-	0x00, 0x00, 0xff, 0xff, 0xd8, 0xb0, 0x54, 0x06, 0xc4, 0x04, 0x00, 0x00,
+var fileDescriptor_nseconnect_f691f309118b0090 = []byte{
+	// 491 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0x4d, 0x6f, 0x13, 0x31,
+	0x10, 0xd5, 0x52, 0x09, 0xb5, 0x83, 0x48, 0x8a, 0xf9, 0x4a, 0x17, 0xa1, 0x94, 0x85, 0x2a, 0x1c,
+	0x50, 0x16, 0x85, 0x5f, 0x80, 0x50, 0x41, 0xe5, 0x10, 0xa4, 0x94, 0x2b, 0x8a, 0xdc, 0xdd, 0x69,
+	0x6a, 0xba, 0x6b, 0x1b, 0xdb, 0x09, 0x8d, 0xc4, 0x09, 0x89, 0x5f, 0x80, 0xf8, 0x51, 0xfc, 0x22,
+	0xae, 0x68, 0xbd, 0xf6, 0x26, 0x6d, 0x36, 0x1f, 0x07, 0x44, 0x4f, 0x49, 0xde, 0x3c, 0xcf, 0x7b,
+	0x6f, 0x32, 0x36, 0xec, 0x72, 0x8d, 0x89, 0xe0, 0x1c, 0x13, 0xd3, 0x95, 0x4a, 0x18, 0x41, 0x60,
+	0x86, 0x84, 0xef, 0x46, 0xcc, 0x9c, 0x8d, 0x4f, 0xba, 0x89, 0xc8, 0xe3, 0x8c, 0x8d, 0xa8, 0x11,
+	0x31, 0x47, 0xf3, 0x55, 0xa8, 0x73, 0x8d, 0x6a, 0xc2, 0x12, 0xcc, 0x51, 0x9f, 0xc5, 0xf2, 0x7c,
+	0x14, 0x73, 0x9d, 0xc7, 0x54, 0x32, 0x5d, 0xd4, 0x2d, 0xe8, 0x3e, 0xcb, 0xa6, 0x51, 0x06, 0x7b,
+	0x87, 0x3c, 0x95, 0x82, 0x71, 0xf3, 0xa6, 0xec, 0xcd, 0x04, 0x1f, 0xe0, 0x97, 0x31, 0x6a, 0x43,
+	0x1e, 0x03, 0xa8, 0xf2, 0xeb, 0x90, 0xa5, 0xad, 0x60, 0x3f, 0x78, 0xbe, 0x33, 0xd8, 0x71, 0xc8,
+	0x51, 0x4a, 0x5e, 0xc2, 0x3d, 0x27, 0x3a, 0x74, 0xaa, 0x43, 0x4e, 0x73, 0x6c, 0xdd, 0xb0, 0x44,
+	0xe2, 0x6a, 0xc7, 0x65, 0xa9, 0x4f, 0x73, 0x8c, 0x7e, 0x06, 0xf0, 0xb0, 0x4e, 0x4e, 0x66, 0xd3,
+	0x7f, 0x2e, 0x46, 0x3a, 0xd0, 0xcc, 0x18, 0x1f, 0x5f, 0x58, 0x9e, 0x96, 0x34, 0xc1, 0xd6, 0x96,
+	0x25, 0x37, 0x2c, 0xdc, 0xf7, 0x68, 0xf4, 0x2b, 0x80, 0x47, 0x8b, 0xae, 0x8e, 0xb8, 0x41, 0x75,
+	0x4a, 0x13, 0x5c, 0xe7, 0xec, 0x00, 0x1a, 0xcc, 0x73, 0xe7, 0x3d, 0xdd, 0xae, 0x50, 0x6b, 0x67,
+	0x59, 0x80, 0xad, 0xa5, 0xd3, 0xfa, 0x0c, 0xfb, 0x2b, 0x6c, 0x6d, 0x34, 0xb5, 0x0e, 0x34, 0x67,
+	0xde, 0x4e, 0xc5, 0x98, 0xa7, 0xd6, 0xdc, 0xf6, 0x60, 0x66, 0xf9, 0x6d, 0x81, 0x46, 0x3f, 0x02,
+	0x68, 0x79, 0xb1, 0xd7, 0xe9, 0x04, 0x95, 0x61, 0x1a, 0x37, 0xdc, 0x83, 0xf7, 0xb0, 0xeb, 0x93,
+	0xa1, 0x6b, 0x61, 0x55, 0x6e, 0xf5, 0xda, 0x5d, 0xbf, 0x6d, 0xfd, 0x4b, 0xf1, 0xbc, 0xd2, 0xa0,
+	0xe9, 0x0e, 0x7a, 0x20, 0xfa, 0x06, 0x0f, 0x6a, 0x6c, 0x6c, 0x90, 0x34, 0x84, 0x6d, 0x9a, 0x24,
+	0x28, 0x0d, 0xfa, 0x88, 0xd5, 0xef, 0x62, 0x0a, 0x34, 0xcd, 0x99, 0xd6, 0x4c, 0xf0, 0x21, 0x2a,
+	0x25, 0x94, 0xdf, 0x84, 0x0a, 0x3e, 0x2c, 0xd0, 0xe8, 0x7b, 0x00, 0xf7, 0x2b, 0x6f, 0x98, 0x8b,
+	0xc9, 0x75, 0x8c, 0x60, 0x0a, 0x77, 0xaf, 0x7a, 0xf8, 0x4f, 0xf9, 0x7b, 0x7f, 0x02, 0x20, 0x8b,
+	0x2b, 0x47, 0x46, 0xb0, 0xe7, 0xe6, 0x50, 0x53, 0x3c, 0xe8, 0xce, 0xbd, 0x54, 0x4b, 0xdf, 0x92,
+	0xf0, 0xe9, 0x3a, 0x5a, 0x91, 0xf1, 0x02, 0xda, 0xc7, 0xc8, 0xd3, 0x55, 0x97, 0xb1, 0xb3, 0xba,
+	0x4f, 0x45, 0x0c, 0x5f, 0x6c, 0x48, 0xb4, 0xca, 0xbd, 0xdf, 0x73, 0xc9, 0x3f, 0x48, 0x54, 0xb4,
+	0xe0, 0x68, 0xf2, 0x09, 0xee, 0x54, 0x6b, 0xe8, 0xcb, 0xe4, 0x59, 0x5d, 0xe7, 0xab, 0x97, 0x26,
+	0x8c, 0xd6, 0xb0, 0x8a, 0xbc, 0x1f, 0xa1, 0x51, 0xfe, 0xc5, 0x55, 0xef, 0x27, 0x75, 0xa7, 0x2e,
+	0xad, 0x62, 0xd8, 0x5e, 0x45, 0x91, 0xd9, 0xf4, 0xe4, 0xa6, 0x7d, 0xda, 0x5f, 0xfd, 0x0d, 0x00,
+	0x00, 0xff, 0xff, 0x62, 0x4e, 0x3f, 0xdf, 0x43, 0x06, 0x00, 0x00,
 }
