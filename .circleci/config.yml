@@ -1,12 +1,9 @@
-defaults: &defaults
-  working_directory: /go/src/github.com/ligato/networkservicemesh
-  docker:
-    - image: circleci/golang:1.10
-
 version: 2
 jobs:
   sanity-check:
-    <<: *defaults
+    working_directory: /go/src/github.com/ligato/networkservicemesh
+    docker:
+      - image: circleci/golang:1.10
     steps:
       - checkout
       - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
@@ -14,7 +11,9 @@ jobs:
       - run: make check dep-check
 
   build:
-    <<: *defaults
+    working_directory: /go/src/github.com/ligato/networkservicemesh
+    docker:
+      - image: circleci/golang:1.10
     steps:
       - checkout
       - setup_remote_docker
