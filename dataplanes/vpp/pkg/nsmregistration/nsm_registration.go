@@ -92,22 +92,6 @@ func RegisterDataplane(vpp nsmvpp.Interface) {
 			dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
 				DataplaneName:   "nsm-vpp-dataplane",
 				DataplaneSocket: vpp.GetDataplaneSocket(),
-				RemoteMechanisms: []*common.RemoteMechanism{
-					{
-						Type: common.RemoteMechanismType_VXLAN,
-					},
-				},
-				LocalMechanisms: []*common.LocalMechanism{
-					{
-						Type: common.LocalMechanismType_KERNEL_INTERFACE,
-					},
-					{
-						Type: common.LocalMechanismType_MEM_INTERFACE,
-					},
-					{
-						Type: common.LocalMechanismType_VHOST_INTERFACE,
-					},
-				},
 			}
 			if _, err := registrarConnection.RequestDataplaneRegistration(context.Background(), &dataplane); err != nil {
 				logrus.Fatalf("nsm-vpp-dataplane: failure to communicate with the socket %s with error: %+v", registrarSocket, err)

@@ -63,14 +63,17 @@ var (
 
 // DataplaneController keeps k8s client and gRPC server
 type DataplaneController struct {
-	k8s             *kubernetes.Clientset
-	dataplaneServer *grpc.Server
-	updateCh        chan Update
+	k8s              *kubernetes.Clientset
+	dataplaneServer  *grpc.Server
+	remoteMechanisms []*common.RemoteMechanism
+	localMechanisms  []*common.LocalMechanism
+	updateCh         chan Update
 }
 
 // Update is a message used to communicate any changes in operational parameters and constraints
 type Update struct {
-	remoteMechanism []*common.RemoteMechanism
+	remoteMechanisms []*common.RemoteMechanism
+	localMechanisms  []*common.LocalMechanism
 }
 
 // livenessMonitor is a stream initiated by NSM to inform the dataplane that NSM is still alive and
@@ -95,13 +98,23 @@ func livenessMonitor(registrationConnection dataplaneregistrarapi.DataplaneRegis
 // to operational prameters or constraints
 func (d DataplaneController) MonitorMechanisms(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_MonitorMechanismsServer) error {
 	logrus.Infof("Update dataplane was called")
+	if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
+		RemoteMechanisms: d.remoteMechanisms,
+		LocalMechanisms:  d.localMechanisms,
+	}); err != nil {
+		logrus.Errorf("test-dataplane: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+		return nil
+	}
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-d.updateCh:
+			d.localMechanisms = update.localMechanisms
+			d.remoteMechanisms = update.remoteMechanisms
 			if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
-				RemoteMechanisms: update.remoteMechanism,
+				RemoteMechanisms: update.remoteMechanisms,
+				LocalMechanisms:  update.localMechanisms,
 			}); err != nil {
 				logrus.Errorf("test-dataplane: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
@@ -458,9 +471,13 @@ func main() {
 	// DataplaneInterface API (eventually it will become the only API needed), currently used to notify
 	// NSM for any changes in operational parameters and/or constraints and TestDataplane API which is used
 	// to actually used to connect pods together.
-
 	dataplaneController := DataplaneController{
-		k8s:      k8s,
+		k8s: k8s,
+		localMechanisms: []*common.LocalMechanism{
+			&common.LocalMechanism{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+		},
 		updateCh: make(chan Update),
 	}
 
@@ -511,14 +528,8 @@ func main() {
 
 		registrarConnection := dataplaneregistrarapi.NewDataplaneRegistrationClient(conn)
 		dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
-			DataplaneName:    "test-dataplane",
-			DataplaneSocket:  socket,
-			RemoteMechanisms: []*common.RemoteMechanism{},
-			LocalMechanisms: []*common.LocalMechanism{
-				{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				},
-			},
+			DataplaneName:   "test-dataplane",
+			DataplaneSocket: socket,
 		}
 		if _, err := registrarConnection.RequestDataplaneRegistration(context.Background(), &dataplane); err != nil {
 			dataplaneController.dataplaneServer.Stop()
