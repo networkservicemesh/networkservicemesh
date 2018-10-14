@@ -39,21 +39,26 @@ jobs:
             - ./*
 
   packet-integration-tests:
-    working_directory: /go/src/github.com/ligato/networkservicemesh
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ./data
+      - checkout
+      - run: sudo ./scripts/ci-set-nameserver.sh
+      - run:
+          command: ./scripts/circle-integration-tests.sh
+          environment:
+            KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
+
+  packet-destroy:
+    working_directory: /cncf
     docker:
       - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
     steps:
       - attach_workspace:
-          at: /cncf/data
-      - checkout
+          at: ./data
       - run: ./scripts/ci-set-nameserver.sh
-      - run:
-          command: ./scripts/circle-integration-tests.sh
-          environment:
-            KUBECONFIG: /cncf/data/kubeconfig
-      - run:
-          when: always
-          command: ./scripts/ci-cluster-provision.sh packet-destroy
+      - run: ./scripts/ci-cluster-provision.sh packet-destroy
 
 workflows:
   version: 2
@@ -70,3 +75,6 @@ workflows:
           requires:
             - build
             - packet-deploy
+      - packet-destroy:
+          requires:
+            - packet-integration-tests
