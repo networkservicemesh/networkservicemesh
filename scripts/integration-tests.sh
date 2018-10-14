@@ -156,7 +156,6 @@ function run_tests() {
     else
         K8SCONFIG="$HOME"/.kube/config
     fi
-    K8SCONFIG="$HOME"/.kube/config
     go test ./plugins/crd/... -v --kube-config="$K8SCONFIG"
 
     # We're all good now
