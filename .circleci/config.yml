@@ -27,6 +27,11 @@ jobs:
     steps:
       - run: ./circleci-provision.sh packet-deploy
       - run:
+          when: on_fail
+          command: |
+            ./circleci-provision.sh packet-destroy
+            exit 255
+      - run:
           command: kubectl create -f /cncf/rbac/
           environment:
             KUBECONFIG: /cncf/data/kubeconfig
