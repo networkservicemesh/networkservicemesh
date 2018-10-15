@@ -22,8 +22,6 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
             export TAG="$BUILD_TAG"
-            echo COMMIT="$COMMIT"
-            echo BUILD_TAG="$BUILD_TAG"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             make verify docker-build docker-push
 
@@ -64,9 +62,7 @@ jobs:
             KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
       - run:
           when: always
-          command: |
-            cd /cncf
-            ./circleci-provision.sh packet-destroy
+          command: ./scripts/circle-destroy.sh
 
 workflows:
   version: 2
