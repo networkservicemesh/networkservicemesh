@@ -23,13 +23,17 @@ jobs:
   packet-deploy:
     working_directory: /cncf
     docker:
-      - image: networkservicemesh/netmesh-ci
+      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
     steps:
-      - run: ./circleci-provision.sh packet-deploy
+      - checkout
+          path:
+            nsm
+      - run: nsm/scripts/circle-set-nameserver.sh
+      - run: nsm/scripts/circle-provision.sh packet-deploy
       - run:
           when: on_fail
           command: |
-            ./circleci-provision.sh packet-destroy
+            nsm/scripts/circle-provision.sh packet-destroy
             exit 255
       - run:
           command: kubectl create -f /cncf/rbac/
@@ -46,7 +50,7 @@ jobs:
       - image: circleci/golang:1.10
     steps:
       - checkout
-      - run: ./scripts/ci-set-nameserver.sh
+      - run: ./scripts/circle-set-nameserver.sh
       - attach_workspace:
           at: ./data
       - run:
