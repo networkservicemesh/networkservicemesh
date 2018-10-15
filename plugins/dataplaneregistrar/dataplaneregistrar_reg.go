@@ -21,7 +21,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
@@ -69,10 +69,10 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 		return
 	}
 	defer dataplane.Conn.Close()
-	dataplane.DataplaneClient = dataplaneinterface.NewDataplaneOperationsClient(dataplane.Conn)
+	dataplane.DataplaneClient = dataplaneapi.NewDataplaneOperationsClient(dataplane.Conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &common.Empty{})
+	stream, err := dataplane.DataplaneClient.MonitorMechanisms(context.Background(), &common.Empty{})
 	if err != nil {
 		logger.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 		objStore.ObjectDeleted(&dataplaneName)
@@ -85,8 +85,9 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 			objStore.ObjectDeleted(dataplane)
 			return
 		}
-		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.RemoteMechanism)
-		// TODO (sbezverk) Apply changes received from dataplane onto the corresponding dataplane object in the Object store
+		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.RemoteMechanisms)
+		dataplane.RemoteMechanisms = updates.RemoteMechanisms
+		dataplane.LocalMechanisms = updates.LocalMechanisms
 	}
 }
 
@@ -114,10 +115,8 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	}
 	// Instantiating dataplane object with parameters from the request and creating a new object in the Object store
 	dataplane := &objectstore.Dataplane{
-		RegisteredName:   req.DataplaneName,
-		SocketLocation:   req.DataplaneSocket,
-		RemoteMechanisms: req.RemoteMechanisms,
-		LocalMechanisms:  req.LocalMechanisms,
+		RegisteredName: req.DataplaneName,
+		SocketLocation: req.DataplaneSocket,
 	}
 	r.objectStore.ObjectCreated(dataplane)
 	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket

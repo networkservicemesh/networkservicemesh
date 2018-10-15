@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -63,14 +63,17 @@ var (
 
 // DataplaneController keeps k8s client and gRPC server
 type DataplaneController struct {
-	k8s             *kubernetes.Clientset
-	dataplaneServer *grpc.Server
-	updateCh        chan Update
+	k8s              *kubernetes.Clientset
+	dataplaneServer  *grpc.Server
+	remoteMechanisms []*common.RemoteMechanism
+	localMechanisms  []*common.LocalMechanism
+	updateCh         chan Update
 }
 
 // Update is a message used to communicate any changes in operational parameters and constraints
 type Update struct {
-	remoteMechanism []*common.RemoteMechanism
+	remoteMechanisms []*common.RemoteMechanism
+	localMechanisms  []*common.LocalMechanism
 }
 
 // livenessMonitor is a stream initiated by NSM to inform the dataplane that NSM is still alive and
@@ -93,15 +96,25 @@ func livenessMonitor(registrationConnection dataplaneregistrarapi.DataplaneRegis
 
 // UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
 // to operational prameters or constraints
-func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv dataplaneinterface.DataplaneOperations_UpdateDataplaneServer) error {
+func (d DataplaneController) MonitorMechanisms(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_MonitorMechanismsServer) error {
 	logrus.Infof("Update dataplane was called")
+	if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
+		RemoteMechanisms: d.remoteMechanisms,
+		LocalMechanisms:  d.localMechanisms,
+	}); err != nil {
+		logrus.Errorf("test-dataplane: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+		return nil
+	}
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-d.updateCh:
-			if err := updateSrv.Send(&dataplaneinterface.DataplaneUpdate{
-				RemoteMechanism: update.remoteMechanism,
+			d.localMechanisms = update.localMechanisms
+			d.remoteMechanisms = update.remoteMechanisms
+			if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
+				RemoteMechanisms: update.remoteMechanisms,
+				LocalMechanisms:  update.localMechanisms,
 			}); err != nil {
 				logrus.Errorf("test-dataplane: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
@@ -112,14 +125,14 @@ func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv data
 
 // ConnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
 // of NSM Client or NSE.
-func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("ConnectRequest was called")
 	return nil, fmt.Errorf("not implemented")
 }
 
 // DisconnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
 // of NSM Client or NSE.
-func (d DataplaneController) DisconnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+func (d DataplaneController) DisconnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("DisconnectRequest was called")
 	return nil, fmt.Errorf("not implemented")
 }
@@ -335,8 +348,33 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	if err != nil {
 		return fmt.Errorf("failure to get pod's handle with error: %+v", err)
 	}
-	if err := namespaceHandle.LinkAdd(veth); err != nil {
-		return fmt.Errorf("failure to add veth to pod with error: %+v", err)
+	// Debugging situation when we try to add already existing link
+	links, err := namespaceHandle.LinkList()
+	if err != nil {
+		logrus.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
+		return fmt.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
+	}
+	logrus.Printf("Found already existing interfaces:")
+	found := false
+	for _, link := range links {
+		addrs, err := namespaceHandle.AddrList(link, 0)
+		if err != nil {
+			logrus.Printf("failed to addresses for interface: %s with error: %v", link.Attrs().Name, err)
+		}
+		logrus.Printf("Name: %s Type: %s Addresses: %+v", link.Attrs().Name, link.Type(), addrs)
+		// Check if there is already interface with the same name, if there is, then skip crreating it
+		if link.Attrs().Name == veth.LinkAttrs.Name {
+			logrus.Printf("Interface with %s already exist, skip creating it.", veth.LinkAttrs.Name)
+			found = true
+		}
+	}
+	if !found {
+		// Interface has not been found, safe to create it.
+		if err := namespaceHandle.LinkAdd(veth); err != nil {
+			return fmt.Errorf("failure to add veth to pod with error: %+v", err)
+		}
+		// Adding a small timeout to let interface add to complete
+		time.Sleep(30 * time.Second)
 	}
 
 	link, err := netlink.LinkByName(p2)
@@ -433,9 +471,13 @@ func main() {
 	// DataplaneInterface API (eventually it will become the only API needed), currently used to notify
 	// NSM for any changes in operational parameters and/or constraints and TestDataplane API which is used
 	// to actually used to connect pods together.
-
 	dataplaneController := DataplaneController{
-		k8s:      k8s,
+		k8s: k8s,
+		localMechanisms: []*common.LocalMechanism{
+			&common.LocalMechanism{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+		},
 		updateCh: make(chan Update),
 	}
 
@@ -452,7 +494,7 @@ func main() {
 	testdataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 	testdataplane.RegisterDeleteConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 	// Binding dataplane Interface API to gRPC server
-	dataplaneinterface.RegisterDataplaneOperationsServer(dataplaneController.dataplaneServer, dataplaneController)
+	dataplaneapi.RegisterDataplaneOperationsServer(dataplaneController.dataplaneServer, dataplaneController)
 
 	go func() {
 		wg.Add(1)
@@ -486,14 +528,8 @@ func main() {
 
 		registrarConnection := dataplaneregistrarapi.NewDataplaneRegistrationClient(conn)
 		dataplane := dataplaneregistrarapi.DataplaneRegistrationRequest{
-			DataplaneName:    "test-dataplane",
-			DataplaneSocket:  socket,
-			RemoteMechanisms: []*common.RemoteMechanism{},
-			LocalMechanisms: []*common.LocalMechanism{
-				{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				},
-			},
+			DataplaneName:   "test-dataplane",
+			DataplaneSocket: socket,
 		}
 		if _, err := registrarConnection.RequestDataplaneRegistration(context.Background(), &dataplane); err != nil {
 			dataplaneController.dataplaneServer.Stop()

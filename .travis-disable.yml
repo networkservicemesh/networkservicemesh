@@ -24,11 +24,14 @@ script:
   - go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
   - make dep-check
   - yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
+  - cd dataplanes/vpp;make all; cd -
   - make all && ./scripts/travis-integration-tests.sh dind
 
 # We only want to push docker images on a push to master, not a pull request
 after_success:
   - if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi` && export BUILD_TAG=travis-"${TRAVIS_BUILD_NUMBER}" && make docker-push ; fi
+  - if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi` && cd dataplanes/vpp; make docker-push; cd -; fi
+
 
 notifications:
   irc:

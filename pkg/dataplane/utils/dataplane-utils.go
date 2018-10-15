@@ -28,7 +28,7 @@ const (
 	dataplaneSocket = "/var/lib/networkservicemesh/dataplane.sock"
 	// dataplaneConnectionTimeout defines a timeout to succeed connection to
 	// the dataplane provider (seconds)
-	dataplaneConnectionTimeout = 15 * time.Second
+	dataplaneConnectionTimeout = 60 * time.Second
 )
 
 // ConnectPods builds dataplane connection between nsm client and nse providing

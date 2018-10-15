@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 )
 
 // dataplaneStore map stores all registered dataplane providers
@@ -44,8 +44,8 @@ type Dataplane struct {
 	// Conn is grpc connection to Dataplane module, it is instantiated by dataplaneMonitor function
 	Conn *grpc.ClientConn
 	// DataplaneInterface is a pointer to all available Dataplane client related operations, defined
-	// in dataplaneinterface.proto API.
-	DataplaneClient dataplaneinterface.DataplaneOperationsClient
+	// in dataplane.proto API.
+	DataplaneClient dataplane.DataplaneOperationsClient
 }
 
 // newDataplaneStore instantiates a new instance of a dataplane store. The store will be populated

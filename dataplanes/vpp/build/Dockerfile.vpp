@@ -1,0 +1,16 @@
+FROM ubuntu:bionic
+ARG DEBIAN_FRONTEND=noninteractive
+ARG REPO=release
+RUN apt-get update
+RUN apt-get -y install curl
+RUN curl -s https://packagecloud.io/install/repositories/fdio/${REPO}/script.deb.sh |  bash
+RUN apt-get update
+RUN apt-get -y install vpp vpp-plugins gzip corekeeper
+RUN apt-get -y purge curl
+RUN apt-get -y clean
+RUN mkdir -p /tmp/dumps
+RUN sysctl -w debug.exception-trace=1 
+RUN sysctl -w kernel.core_pattern="/tmp/dumps/%e-%t"
+RUN ulimit -c unlimited
+RUN sysctl -w fs.suid_dumpable=2
+CMD ["/usr/bin/vpp","-c","/etc/vpp/startup.conf"]

@@ -2,6 +2,19 @@
 
 
 [[projects]]
+  digest = "1:7adceeb7fd041e4b777cb30c3f8f523068c782d340b755ee7d03e0f3e3e5f889"
+  name = "git.fd.io/govpp.git"
+  packages = [
+    "adapter",
+    "adapter/vppapiclient",
+    "api",
+    "codec",
+    "core",
+  ]
+  pruneopts = "UT"
+  revision = "0f731471ab258d9e01658f0ab70f8317fd0fb89c"
+
+[[projects]]
   branch = "2.x"
   digest = "1:5fb9305900d6f7c94d6f663880185504bb0ac9b149d02f73966a31ed04000ebb"
   name = "github.com/Masterminds/semver"
@@ -257,6 +270,13 @@
   pruneopts = "UT"
   revision = "22c14be88d97b2b8c38cce0a7141ea18bd042143"
   version = "v1.4.1"
+
+[[projects]]
+  digest = "1:40bf4b24f9127737b22d3b86ff0bef3c3e9d87604d6260d9f9b9125e7995ff49"
+  name = "github.com/lunixbochs/struc"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "02e4c2afbb2ac4bae6876f52c8273fc4cf5a4b0a"
 
 [[projects]]
   digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
@@ -863,7 +883,7 @@
   ]
   pruneopts = ""
   revision = "3dcf91f64f638563e5106f21f50c31fa361c918d"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.1"
 
 [[projects]]
   branch = "master"
@@ -910,6 +930,9 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "git.fd.io/govpp.git/adapter/vppapiclient",
+    "git.fd.io/govpp.git/api",
+    "git.fd.io/govpp.git/core",
     "github.com/Masterminds/semver",
     "github.com/ant31/crd-validation/pkg",
     "github.com/ghodss/yaml",
@@ -919,6 +942,7 @@
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/ligato/cn-infra/core",
     "github.com/ligato/cn-infra/health/statuscheck",
+    "github.com/lunixbochs/struc",
     "github.com/onrik/logrus/filename",
     "github.com/onsi/gomega",
     "github.com/sirupsen/logrus",

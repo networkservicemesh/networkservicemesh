@@ -21,11 +21,11 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // +k8s:openapi-gen=true
 type NetworkServiceEndpoint struct {
-	NetworkServiceName   string                   `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
-	NetworkServiceHost   string                   `protobuf:"bytes,2,opt,name=network_service_host,json=networkServiceHost,proto3" json:"network_service_host,omitempty"`
-	NseProviderName      string                   `protobuf:"bytes,3,opt,name=nse_provider_name,json=nseProviderName,proto3" json:"nse_provider_name,omitempty"`
-	SocketLocation       string                   `protobuf:"bytes,4,opt,name=socket_location,json=socketLocation,proto3" json:"socket_location,omitempty"`
-	LocalMechanisms      []*common.LocalMechanism `protobuf:"bytes,5,rep,name=local_mechanisms,json=localMechanisms,proto3" json:"local_mechanisms,omitempty"`
+	NetworkServiceName   string                   `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
+	NetworkServiceHost   string                   `protobuf:"bytes,2,opt,name=network_service_host,json=networkServiceHost" json:"network_service_host,omitempty"`
+	NseProviderName      string                   `protobuf:"bytes,3,opt,name=nse_provider_name,json=nseProviderName" json:"nse_provider_name,omitempty"`
+	SocketLocation       string                   `protobuf:"bytes,4,opt,name=socket_location,json=socketLocation" json:"socket_location,omitempty"`
+	LocalMechanisms      []*common.LocalMechanism `protobuf:"bytes,5,rep,name=local_mechanisms,json=localMechanisms" json:"local_mechanisms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -92,7 +92,7 @@ func (m *NetworkServiceEndpoint) GetLocalMechanisms() []*common.LocalMechanism {
 
 // +k8s:openapi-gen=true
 type NetworkService struct {
-	NetworkServiceName   string   `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	NetworkServiceName   string   `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName" json:"network_service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

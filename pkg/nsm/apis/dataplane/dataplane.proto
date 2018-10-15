@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package dataplane;
+
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+
+// Message sent by dataplane module informing NSM of any changes in its
+// operations parameters or constraints
+message MechanismUpdate {
+    repeated common.RemoteMechanism remote_mechanisms = 1;
+    repeated common.LocalMechanism local_mechanisms = 2;
+}
+
+// DataplaneOperations inlcudes other operations which NSM will request dataplane module
+// to execute to establish connectivity requested by NSM clients.
+service DataplaneOperations {
+    rpc MonitorMechanisms(common.Empty) returns (stream MechanismUpdate);
+    rpc ConnectRequest (Connection) returns (Reply);
+    rpc DisconnectRequest (Connection) returns (Reply);
+}
+
+message Connection {
+    common.LocalMechanism local_source = 1;
+    oneof destination {
+        common.LocalMechanism local = 2;
+        common.RemoteMechanism remote = 3;
+    }
+    // For ConnectRequest this will be nil, but for DisconnectRequest it will 
+    // carry a connection id returned by the dataplane controller 
+    string connection_id = 4;
+}
+
+message Reply {
+    bool success = 1;
+    string extended_error = 2;
+    // ConnectRequest will populate this field with connection id returned by the 
+    // dataplane controller
+    // DisconnectRequest ignores this field
+    string connection_id = 3;
+}
+
