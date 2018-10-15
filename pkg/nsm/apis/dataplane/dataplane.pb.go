@@ -27,8 +27,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
 type MechanismUpdate struct {
-	RemoteMechanisms     []*common.RemoteMechanism `protobuf:"bytes,1,rep,name=remote_mechanisms,json=remoteMechanisms" json:"remote_mechanisms,omitempty"`
-	LocalMechanisms      []*common.LocalMechanism  `protobuf:"bytes,2,rep,name=local_mechanisms,json=localMechanisms" json:"local_mechanisms,omitempty"`
+	RemoteMechanisms     []*common.RemoteMechanism `protobuf:"bytes,1,rep,name=remote_mechanisms,json=remoteMechanisms,proto3" json:"remote_mechanisms,omitempty"`
+	LocalMechanisms      []*common.LocalMechanism  `protobuf:"bytes,2,rep,name=local_mechanisms,json=localMechanisms,proto3" json:"local_mechanisms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -73,14 +73,14 @@ func (m *MechanismUpdate) GetLocalMechanisms() []*common.LocalMechanism {
 }
 
 type Connection struct {
-	LocalSource *common.LocalMechanism `protobuf:"bytes,1,opt,name=local_source,json=localSource" json:"local_source,omitempty"`
+	LocalSource *common.LocalMechanism `protobuf:"bytes,1,opt,name=local_source,json=localSource,proto3" json:"local_source,omitempty"`
 	// Types that are valid to be assigned to Destination:
 	//	*Connection_Local
 	//	*Connection_Remote
 	Destination isConnection_Destination `protobuf_oneof:"destination"`
 	// For ConnectRequest this will be nil, but for DisconnectRequest it will
 	// carry a connection id returned by the dataplane controller
-	ConnectionId         string   `protobuf:"bytes,4,opt,name=connection_id,json=connectionId" json:"connection_id,omitempty"`
+	ConnectionId         string   `protobuf:"bytes,4,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -110,30 +110,32 @@ func (m *Connection) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Connection proto.InternalMessageInfo
 
+func (m *Connection) GetLocalSource() *common.LocalMechanism {
+	if m != nil {
+		return m.LocalSource
+	}
+	return nil
+}
+
 type isConnection_Destination interface {
 	isConnection_Destination()
 }
 
 type Connection_Local struct {
-	Local *common.LocalMechanism `protobuf:"bytes,2,opt,name=local,oneof"`
-}
-type Connection_Remote struct {
-	Remote *common.RemoteMechanism `protobuf:"bytes,3,opt,name=remote,oneof"`
+	Local *common.LocalMechanism `protobuf:"bytes,2,opt,name=local,proto3,oneof"`
 }
 
-func (*Connection_Local) isConnection_Destination()  {}
+type Connection_Remote struct {
+	Remote *common.RemoteMechanism `protobuf:"bytes,3,opt,name=remote,proto3,oneof"`
+}
+
+func (*Connection_Local) isConnection_Destination() {}
+
 func (*Connection_Remote) isConnection_Destination() {}
 
 func (m *Connection) GetDestination() isConnection_Destination {
 	if m != nil {
 		return m.Destination
-	}
-	return nil
-}
-
-func (m *Connection) GetLocalSource() *common.LocalMechanism {
-	if m != nil {
-		return m.LocalSource
 	}
 	return nil
 }
@@ -234,12 +236,12 @@ func _Connection_OneofSizer(msg proto.Message) (n int) {
 }
 
 type Reply struct {
-	Success       bool   `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
-	ExtendedError string `protobuf:"bytes,2,opt,name=extended_error,json=extendedError" json:"extended_error,omitempty"`
+	Success       bool   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	ExtendedError string `protobuf:"bytes,2,opt,name=extended_error,json=extendedError,proto3" json:"extended_error,omitempty"`
 	// ConnectRequest will populate this field with connection id returned by the
 	// dataplane controller
 	// DisconnectRequest ignores this field
-	ConnectionId         string   `protobuf:"bytes,3,opt,name=connection_id,json=connectionId" json:"connection_id,omitempty"`
+	ConnectionId         string   `protobuf:"bytes,3,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -371,8 +373,7 @@ func (c *dataplaneOperationsClient) DisconnectRequest(ctx context.Context, in *C
 	return out, nil
 }
 
-// Server API for DataplaneOperations service
-
+// DataplaneOperationsServer is the server API for DataplaneOperations service.
 type DataplaneOperationsServer interface {
 	MonitorMechanisms(*common.Empty, DataplaneOperations_MonitorMechanismsServer) error
 	ConnectRequest(context.Context, *Connection) (*Reply, error)

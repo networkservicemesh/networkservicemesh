@@ -3,6 +3,7 @@ syntax = "proto3";
 package nseconnect;
 
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
 // EndpointConnectionRequest is sent by a NSM to NSE to build a connection.
     message EndpointConnectionRequest {
@@ -18,8 +19,24 @@ import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto"
         string linux_namespace = 3;
     }
 
+// EndpointConnectionInterface is sent by a NSM to NSE to inform NSE about
+// the interface name which was created by the dataplane controller.
+    message EndpointConnectionMechanism {
+        string request_id = 1;
+        common.LocalMechanism local_mechanism = 2;
+        string network_service_name = 3;
+    }
+    
+// EndpointConnectionInterfaceReply is sent back by NSE to NSM to confirm the presence 
+// of the programmed interface.
+    message EndpointConnectionMechanismReply {
+        string request_id = 1;
+        bool mechanism_found = 2;
+    }
+
     service EndpointConnection {
         rpc RequestEndpointConnection (EndpointConnectionRequest) returns (EndpointConnectionReply);
+        rpc SendEndpointConnectionMechanism (EndpointConnectionMechanism ) returns (EndpointConnectionMechanismReply);
     }
     
     message EndpointAdvertiseRequest {

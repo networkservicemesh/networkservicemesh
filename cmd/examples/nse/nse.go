@@ -63,6 +63,14 @@ func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseco
 	}, nil
 }
 
+func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req *nseconnect.EndpointConnectionMechanism) (*nseconnect.EndpointConnectionMechanismReply, error) {
+
+	return &nseconnect.EndpointConnectionMechanismReply{
+		RequestId:      req.RequestId,
+		MechanismFound: true,
+	}, nil
+}
+
 func buildClient() (*kubernetes.Clientset, error) {
 	var config *rest.Config
 	var err error

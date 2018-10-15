@@ -24,7 +24,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type DiscoverServiceRequest struct {
-	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -62,7 +62,7 @@ func (m *DiscoverServiceRequest) GetLabels() map[string]string {
 }
 
 type ServiceDiscoveryResponse struct {
-	ServiceIds           []string `protobuf:"bytes,1,rep,name=service_ids,json=serviceIds" json:"service_ids,omitempty"`
+	ServiceIds           []string `protobuf:"bytes,1,rep,name=service_ids,json=serviceIds,proto3" json:"service_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -100,7 +100,7 @@ func (m *ServiceDiscoveryResponse) GetServiceIds() []string {
 }
 
 type PublishServiceRequest struct {
-	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -138,7 +138,7 @@ func (m *PublishServiceRequest) GetLabels() map[string]string {
 }
 
 type PublishServiceResponse struct {
-	ServiceId            string   `protobuf:"bytes,1,opt,name=service_id,json=serviceId" json:"service_id,omitempty"`
+	ServiceId            string   `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -176,7 +176,7 @@ func (m *PublishServiceResponse) GetServiceId() string {
 }
 
 type DelistServiceRequest struct {
-	ServiceId            string   `protobuf:"bytes,1,opt,name=service_id,json=serviceId" json:"service_id,omitempty"`
+	ServiceId            string   `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -244,7 +244,7 @@ func (m *DelistServiceResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_DelistServiceResponse proto.InternalMessageInfo
 
 type ExposeChannelRequest struct {
-	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -282,7 +282,7 @@ func (m *ExposeChannelRequest) GetLabels() map[string]string {
 }
 
 type ExposeChannelResponse struct {
-	ChannelId            string   `protobuf:"bytes,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
+	ChannelId            string   `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -320,7 +320,7 @@ func (m *ExposeChannelResponse) GetChannelId() string {
 }
 
 type ConcealChannelRequest struct {
-	ChannelId            string   `protobuf:"bytes,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
+	ChannelId            string   `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -388,7 +388,7 @@ func (m *ConcealChannelResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_ConcealChannelResponse proto.InternalMessageInfo
 
 type CreateConnectionRequest struct {
-	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -426,7 +426,7 @@ func (m *CreateConnectionRequest) GetLabels() map[string]string {
 }
 
 type CreateConnectionResponse struct {
-	ConnectionId         string   `protobuf:"bytes,1,opt,name=connection_id,json=connectionId" json:"connection_id,omitempty"`
+	ConnectionId         string   `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -464,7 +464,7 @@ func (m *CreateConnectionResponse) GetConnectionId() string {
 }
 
 type DestroyConnectionRequest struct {
-	ConnectionId         string   `protobuf:"bytes,1,opt,name=connection_id,json=connectionId" json:"connection_id,omitempty"`
+	ConnectionId         string   `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -644,8 +644,7 @@ func (c *networkServicesClient) DestroyConnection(ctx context.Context, in *Destr
 	return out, nil
 }
 
-// Server API for NetworkServices service
-
+// NetworkServicesServer is the server API for NetworkServices service.
 type NetworkServicesServer interface {
 	DiscoverService(context.Context, *DiscoverServiceRequest) (*ServiceDiscoveryResponse, error)
 	PublishService(context.Context, *PublishServiceRequest) (*PublishServiceResponse, error)
