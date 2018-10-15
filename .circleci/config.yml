@@ -54,7 +54,10 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: ./scripts/circle-set-nameserver.sh sudo
+      - run:
+          command: |
+            ./scripts/circle-set-nameserver.sh sudo
+            sudo apt-get install gettext-base
       - attach_workspace:
           at: ./data
       - run:

@@ -20,7 +20,7 @@ K8S_DEPLOYMENT_NAME=nsm-ci-"${CIRCLE_WORKFLOW_ID:0:8}"
 # So we create a dummy container which will hold a volume with deplyment data
 docker create -v /cncf/data --name configs alpine:3.7 /bin/true
 # copy a deployment data into this volume
-docker cp data/* configs:/cncf/data
+docker cp data/. configs:/cncf/data
 # start cross-cloud container using this volume
 docker run \
   --volumes-from configs \
