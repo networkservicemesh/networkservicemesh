@@ -36,11 +36,11 @@ jobs:
       - checkout:
           path:
             nsm
-      - run: nsm/scripts/circle-set-nameserver.sh
-      - run: nsm/scripts/circle-provision.sh packet-deploy
+      - run: nsm/.circleci/set-nameserver.sh
+      - run: nsm/.circleci/provision.sh packet-deploy
       - run:
           when: on_fail
-          command: nsm/scripts/circle-provision.sh packet-destroy
+          command: nsm/.circleci/provision.sh packet-destroy
       - run:
           command: kubectl create -f /cncf/rbac/
           environment:
@@ -59,7 +59,7 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
-            ./scripts/circle-set-nameserver.sh sudo
+            ./.circleci/set-nameserver.sh sudo
             sudo apt-get install gettext-base
       - attach_workspace:
           at: ./data
@@ -69,7 +69,7 @@ jobs:
             KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
       - run:
           when: always
-          command: ./scripts/circle-destroy.sh
+          command: ./.circleci/destroy-cluster.sh
 
 workflows:
   version: 2
