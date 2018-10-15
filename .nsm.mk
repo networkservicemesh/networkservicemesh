@@ -100,35 +100,35 @@ docker-login:
 .PHONY: docker-push-netmesh
 docker-push-netmesh: docker-login
 	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:${TAG}
-	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:travis-${TRAVIS_BUILD_NUMBER}
+	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:${BUILD_TAG}
 	docker push ${DOCKER_NETMESH}
 
 .PHONY: docker-push-test-dataplane
 docker-push-test-dataplane: docker-login
 	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:${TAG}
-	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
+	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:${BUILD_TAG}
 	docker push ${DOCKER_TEST_DATAPLANE}
 
 .PHONY: docker-push-nsm-init
 docker-push-nsm-init: docker-login
 	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:${TAG}
-	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:travis-${TRAVIS_BUILD_NUMBER}
+	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:${BUILD_TAG}
 	docker push ${DOCKER_NSM_INIT}
 
 .PHONY: docker-push-nse
 docker-push-nse: docker-login
 	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${TAG}
-	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:travis-${TRAVIS_BUILD_NUMBER}
+	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${BUILD_TAG}
 	docker push ${DOCKER_NSE}
 
 .PHONY: docker-push-sidecar-injector
 docker-push-sidecar-injector: docker-login
 	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:${TAG}
-	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:travis-${TRAVIS_BUILD_NUMBER}
+	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:${BUILD_TAG}
 	docker push ${DOCKER_SIDECAR_INJECTOR}
 
 .PHONY: docker-push-sriov-controller
 docker-push-sriov-controller: docker-login
 	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:${TAG}
-	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:travis-${TRAVIS_BUILD_NUMBER}
+	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:${BUILD_TAG}
 	docker push ${DOCKER_SRIOV_CONTROLLER}

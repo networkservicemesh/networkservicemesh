@@ -18,7 +18,14 @@ jobs:
       - checkout
       - setup_remote_docker
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-      - run: make verify docker-build
+      - run:
+          command: |
+            echo 'COMMIT="${CIRCLE_SHA1:8:8}"'' >> $BASH_ENV
+            echo 'BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"' >> $BASH_ENV
+            echo 'TAG="$BUILD_TAG"' >> $BASH_ENV
+            echo 'COMMIT="$COMMIT"'
+            echo 'BUILD_TAG="$BUILD_TAG"'
+      - run: make verify docker-build docker-push
 
   packet-deploy:
     working_directory: /cncf
@@ -32,9 +39,7 @@ jobs:
       - run: nsm/scripts/circle-provision.sh packet-deploy
       - run:
           when: on_fail
-          command: |
-            nsm/scripts/circle-provision.sh packet-destroy
-            exit 255
+          command: nsm/scripts/circle-provision.sh packet-destroy
       - run:
           command: kubectl create -f /cncf/rbac/
           environment:
