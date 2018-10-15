@@ -6,14 +6,15 @@ import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
-message DataplaneUpdate {
-    repeated common.RemoteMechanism remote_mechanism = 1;
+message MechanismUpdate {
+    repeated common.RemoteMechanism remote_mechanisms = 1;
+    repeated common.LocalMechanism local_mechanisms = 2;
 }
 
 // DataplaneOperations inlcudes other operations which NSM will request dataplane module
 // to execute to establish connectivity requested by NSM clients.
 service DataplaneOperations {
-    rpc UpdateDataplane(common.Empty) returns (stream DataplaneUpdate);
+    rpc MonitorMechanisms(common.Empty) returns (stream MechanismUpdate);
     rpc ConnectRequest (Connection) returns (Reply);
     rpc DisconnectRequest (Connection) returns (Reply);
 }
