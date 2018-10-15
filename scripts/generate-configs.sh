@@ -25,3 +25,5 @@ envsubst < "${TMPL_DIR}"/networkservice-daemonset.tmpl.yaml > "${CONF_DIR}"/netw
 envsubst < "${TMPL_DIR}"/nse.tmpl.yaml > "${CONF_DIR}"/nse.yaml
 envsubst < "${TMPL_DIR}"/nsm-client.tmpl.yaml > "${CONF_DIR}"/nsm-client.yaml
 envsubst < "${TMPL_DIR}"/test-dataplane.tmpl.yaml > "${CONF_DIR}"/test-dataplane.yaml
+
+cat "${CONF_DIR}"/networkservice-daemonset.yaml
