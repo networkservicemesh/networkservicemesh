@@ -25,7 +25,7 @@ jobs:
     docker:
       - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
     steps:
-      - checkout
+      - checkout:
           path:
             nsm
       - run: nsm/scripts/circle-set-nameserver.sh
