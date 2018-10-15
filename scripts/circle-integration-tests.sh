@@ -17,6 +17,12 @@
 
 set -xe
 
+KUBECTL_VERSION=v1.11.3
+
+# Install kubectl
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
+ 	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+
 . scripts/integration-tests.sh
 
 # run_tests returns an error on failure

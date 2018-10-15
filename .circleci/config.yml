@@ -43,16 +43,16 @@ jobs:
   packet-integration-tests:
     working_directory: /go/src/github.com/ligato/networkservicemesh
     docker:
-      - image: networkservicemesh/netmesh-ci
+      - image: circleci/golang:1.10
     steps:
       - checkout
-      - run: /cncf/set-nameserver.sh
+      - run: ./scripts/ci-set-nameserver.sh
       - attach_workspace:
-          at: /cncf/data
+          at: ./data
       - run:
           command: ./scripts/circle-integration-tests.sh
           environment:
-            KUBECONFIG: /cncf/data/kubeconfig
+            KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
       - run:
           when: always
           command: |
