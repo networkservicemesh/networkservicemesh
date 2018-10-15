@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Copyright (c) 2016-2017 Bitnami
 # Copyright (c) 2018 Cisco and/or its affiliates.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,31 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -xe
+test -n "${COMMIT}" && set -- "${COMMIT}"
 
-KUBECTL_VERSION=v1.11.3
+export TAG="$1"
 
-# Install kubectl
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
- 	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+TMPL_DIR=./conf/sample
+CONF_DIR=./conf/sample
 
-COMMIT="${CIRCLE_SHA1:8:8}"
-
-./scripts/generate-configs.sh "$COMMIT"
-
-. scripts/integration-tests.sh
-
-# run_tests returns an error on failure
-run_tests
-exit_code=$?
-if [ "${exit_code}" == "0" ] ; then
-    echo "TESTS: PASS"
-else
-    error_collection
-    echo "TESTS: FAIL"
-fi
-
-set +x
-exit ${exit_code}
-
-# vim: sw=4 ts=4 et si
+envsubst < "${TMPL_DIR}"/networkservice-daemonset.tmpl.yaml > "${CONF_DIR}"/networkservice-daemonset.yaml
+envsubst < "${TMPL_DIR}"/nse.tmpl.yaml > "${CONF_DIR}"/nse.yaml
+envsubst < "${TMPL_DIR}"/nsm-client.tmpl.yaml > "${CONF_DIR}"/nsm-client.yaml
+envsubst < "${TMPL_DIR}"/test-dataplane.tmpl.yaml > "${CONF_DIR}"/test-dataplane.yaml

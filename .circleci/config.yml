@@ -53,6 +53,7 @@ jobs:
       - image: circleci/golang:1.10
     steps:
       - checkout
+      - setup_remote_docker
       - run: ./scripts/circle-set-nameserver.sh sudo
       - attach_workspace:
           at: ./data
