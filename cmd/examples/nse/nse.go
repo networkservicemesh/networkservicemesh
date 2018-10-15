@@ -63,11 +63,11 @@ func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseco
 	}, nil
 }
 
-func (n nseConnection) SendEndpointConnectionInterface(ctx context.Context, req *nseconnect.EndpointConnectionInterface) (*nseconnect.EndpointConnectionInterfaceReply, error) {
+func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req *nseconnect.EndpointConnectionMechanism) (*nseconnect.EndpointConnectionMechanismReply, error) {
 
-	return &nseconnect.EndpointConnectionInterfaceReply{
+	return &nseconnect.EndpointConnectionMechanismReply{
 		RequestId:      req.RequestId,
-		InterfaceFound: true,
+		MechanismFound: true,
 	}, nil
 }
 
