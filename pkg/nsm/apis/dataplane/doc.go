@@ -17,6 +17,6 @@
 // shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
 // must be implemented by each plugin.
 
-package dataplaneinterface
+package dataplane
 
-//go:generate protoc -I . dataplaneinterface.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src
+//go:generate protoc -I . dataplane.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src

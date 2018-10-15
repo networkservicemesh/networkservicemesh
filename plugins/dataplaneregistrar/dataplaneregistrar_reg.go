@@ -21,7 +21,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
@@ -69,7 +69,7 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 		return
 	}
 	defer dataplane.Conn.Close()
-	dataplane.DataplaneClient = dataplaneinterface.NewDataplaneOperationsClient(dataplane.Conn)
+	dataplane.DataplaneClient = dataplaneapi.NewDataplaneOperationsClient(dataplane.Conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &common.Empty{})
