@@ -17,15 +17,15 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run:
           command: |
-            echo 'COMMIT="${CIRCLE_SHA1:8:8}"' >> $BASH_ENV
-            echo 'BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"' >> $BASH_ENV
-            echo 'TAG="$BUILD_TAG"' >> $BASH_ENV
-            echo 'COMMIT="$COMMIT"'
-            echo 'BUILD_TAG="$BUILD_TAG"'
-      - run: make verify docker-build docker-push
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            echo COMMIT="$COMMIT"
+            echo BUILD_TAG="$BUILD_TAG"
+            go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
+            make verify docker-build docker-push
 
   packet-deploy:
     working_directory: /cncf
