@@ -152,9 +152,7 @@ function run_tests() {
     # Need to get kubeconfig full path
     # NOTE: Disable this for now until we fix the timing issue
     if [ ! -z "${KUBECONFIG}" ] ; then
-    #    K8SCONFIG=${KUBECONFIG}
-        cp "${KUBECONFIG}" "$HOME"/.kube/config
-        K8SCONFIG="$HOME"/.kube/config
+        K8SCONFIG=${KUBECONFIG}
     else
         K8SCONFIG="$HOME"/.kube/config
     fi
