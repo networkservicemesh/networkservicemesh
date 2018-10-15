@@ -50,7 +50,7 @@ jobs:
       - image: circleci/golang:1.10
     steps:
       - checkout
-      - run: ./scripts/circle-set-nameserver.sh
+      - run: ./scripts/circle-set-nameserver.sh sudo
       - attach_workspace:
           at: ./data
       - run:

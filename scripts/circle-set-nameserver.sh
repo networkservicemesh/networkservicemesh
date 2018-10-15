@@ -15,5 +15,11 @@
 # limitations under the License.
 
 cp /etc/resolv.conf resolv.conf
-echo "echo \"nameserver 147.75.69.23\" > /etc/resolv.conf" | sudo sh
-echo "cat resolv.conf >> /etc/resolv.conf" | sudo sh
+
+if [ "$1" == "sudo" ]; then
+    echo "echo \"nameserver 147.75.69.23\" > /etc/resolv.conf" | sudo sh
+    echo "cat resolv.conf >> /etc/resolv.conf" | sudo sh
+else
+    echo "nameserver 147.75.69.23" > /etc/resolv.conf
+    cat resolv.conf >> /etc/resolv.conf
+fi
