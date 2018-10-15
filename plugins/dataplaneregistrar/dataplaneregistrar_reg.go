@@ -72,7 +72,7 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 	dataplane.DataplaneClient = dataplaneapi.NewDataplaneOperationsClient(dataplane.Conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplane.DataplaneClient.UpdateDataplane(context.Background(), &common.Empty{})
+	stream, err := dataplane.DataplaneClient.MonitorMechanisms(context.Background(), &common.Empty{})
 	if err != nil {
 		logger.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 		objStore.ObjectDeleted(&dataplaneName)
@@ -85,8 +85,9 @@ func dataplaneMonitor(objStore objectstore.Interface, dataplaneName string, logg
 			objStore.ObjectDeleted(dataplane)
 			return
 		}
-		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.RemoteMechanism)
-		// TODO (sbezverk) Apply changes received from dataplane onto the corresponding dataplane object in the Object store
+		logger.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", updates.RemoteMechanisms)
+		dataplane.RemoteMechanisms = updates.RemoteMechanisms
+		dataplane.LocalMechanisms = updates.LocalMechanisms
 	}
 }
 

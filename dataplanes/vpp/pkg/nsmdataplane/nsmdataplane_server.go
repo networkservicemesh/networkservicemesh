@@ -161,15 +161,15 @@ func (d DataplaneServer) DisconnectRequest(ctx context.Context, req *dataplaneap
 
 // UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
 // to operational prameters or constraints
-func (d DataplaneServer) UpdateDataplane(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_UpdateDataplaneServer) error {
+func (d DataplaneServer) MonitorMechanisms(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_MonitorMechanismsServer) error {
 	logrus.Infof("Update dataplane was called")
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-d.updateCh:
-			if err := updateSrv.Send(&dataplaneapi.DataplaneUpdate{
-				RemoteMechanism: update.remoteMechanism,
+			if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
+				RemoteMechanisms: update.remoteMechanism,
 			}); err != nil {
 				logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
