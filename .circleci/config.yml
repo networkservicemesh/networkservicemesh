@@ -6,7 +6,10 @@ jobs:
       - image: circleci/golang:1.10
     steps:
       - checkout
-      - run: sudo apt-get install yamllint shellcheck python3-pkg-resources
+      - run:
+          command: |
+            sudo apt-get install yamllint python3-pkg-resources
+            ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
       - run: make check dep-check
 
