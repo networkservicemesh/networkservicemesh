@@ -27,13 +27,6 @@ create_k8s_cluster() {
         ${cluster_up}
     }
 }
-
-delete_k8s_cluster() {
-    local ctx=${1:?}
-    cluster_down=./scripts/cluster-down-"${ctx}".sh
-    test -f "${cluster_down}" && ${cluster_down}
-}
-
 fixup_rbac() {
     local ctx=${1:?}
     # As of ~Sept/2017 both RBAC'd dind and minikube seem to be missing rules to
