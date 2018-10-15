@@ -156,7 +156,7 @@ function run_tests() {
     else
         K8SCONFIG="$HOME"/.kube/config
     fi
-    export GODEBUG=netdns=cgo
+    export GODEBUG=netdns=2
     go test ./plugins/crd/... -v --kube-config="$K8SCONFIG"
 
     # We're all good now
