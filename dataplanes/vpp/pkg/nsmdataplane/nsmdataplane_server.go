@@ -35,9 +35,11 @@ import (
 
 // DataplaneServer keeps k8s client and gRPC server
 type DataplaneServer struct {
-	vppDataplane nsmvpp.Interface
-	server       *grpc.Server
-	updateCh     chan Update
+	vppDataplane     nsmvpp.Interface
+	server           *grpc.Server
+	remoteMechanisms []*common.RemoteMechanism
+	localMechanisms  []*common.LocalMechanism
+	updateCh         chan Update
 }
 
 // Update is a message used to communicate any changes in operational parameters and constraints
@@ -163,11 +165,20 @@ func (d DataplaneServer) DisconnectRequest(ctx context.Context, req *dataplaneap
 // to operational prameters or constraints
 func (d DataplaneServer) MonitorMechanisms(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_MonitorMechanismsServer) error {
 	logrus.Infof("Update dataplane was called")
+	if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
+		RemoteMechanisms: d.remoteMechanisms,
+		LocalMechanisms:  d.localMechanisms,
+	}); err != nil {
+		logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+		return nil
+	}
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-d.updateCh:
+			d.remoteMechanisms = update.remoteMechanisms
+			d.localMechanisms = update.localMechanisms
 			if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
 				RemoteMechanisms: update.remoteMechanism,
 			}); err != nil {
@@ -185,6 +196,19 @@ func StartDataplaneServer(vpp nsmvpp.Interface) error {
 	dataplaneServer := DataplaneServer{
 		updateCh:     make(chan Update),
 		vppDataplane: vpp,
+		localMechanisms: []*common.LocalMechanism{
+			&common.LocalMechanism{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+			&common.LocalMechanism{
+				Type: common.LocalMechanismType_MEM_INTERFACE,
+			},
+		},
+		remoteMechanisms: []*common.RemoteMechanism{
+			&common.RemoteMechanism{
+				Type: common.RemoteMechanismType_VXLAN,
+			},
+		},
 	}
 	dataplaneSocket := vpp.GetDataplaneSocket()
 
