@@ -153,7 +153,6 @@ function run_tests() {
     # NOTE: Disable this for now until we fix the timing issue
     if [ ! -z "${KUBECONFIG}" ] ; then
     #    K8SCONFIG=${KUBECONFIG}
-        mkdir "$HOME"/.kube
         cp "${KUBECONFIG}"/kubeconfig "$HOME"/.kube/config
         K8SCONFIG="$HOME"/.kube/config
     else
