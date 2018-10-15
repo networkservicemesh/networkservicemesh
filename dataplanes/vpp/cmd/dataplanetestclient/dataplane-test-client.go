@@ -27,7 +27,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
@@ -113,7 +113,7 @@ func init() {
 type dataplaneClientTest struct {
 	testName         string
 	localSource      *common.LocalMechanism
-	localDestination *dataplaneinterface.Connection_Local
+	localDestination *dataplaneapi.Connection_Local
 	shouldFail       bool
 }
 
@@ -137,7 +137,7 @@ func main() {
 	defer conn.Close()
 	logrus.Infof("nsm-vpp-dataplane: connection to dataplane registrar socket %s succeeded.", dataplane)
 
-	dataplaneClient := dataplaneinterface.NewDataplaneOperationsClient(conn)
+	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(conn)
 
 	srcContainerID, err := getContainerID(k8s, *srcPodName, *srcPodNamespace)
 	if err != nil {
@@ -174,7 +174,7 @@ func main() {
 					nsmutils.NSMkeyIPv4PrefixLength: "24",
 				},
 			},
-			localDestination: &dataplaneinterface.Connection_Local{
+			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
@@ -195,7 +195,7 @@ func main() {
 					nsmutils.NSMkeyIPv4PrefixLength: "24",
 				},
 			},
-			localDestination: &dataplaneinterface.Connection_Local{
+			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
@@ -216,7 +216,7 @@ func main() {
 					nsmutils.NSMkeyIPv4PrefixLength: "24",
 				},
 			},
-			localDestination: &dataplaneinterface.Connection_Local{
+			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
@@ -237,7 +237,7 @@ func main() {
 					nsmutils.NSMkeyIPv4PrefixLength: "34",
 				},
 			},
-			localDestination: &dataplaneinterface.Connection_Local{
+			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
@@ -251,7 +251,7 @@ func main() {
 	}
 	for _, test := range tests {
 		logrus.Infof("Running test: %s", test.testName)
-		reply, err := dataplaneClient.ConnectRequest(context.Background(), &dataplaneinterface.Connection{
+		reply, err := dataplaneClient.ConnectRequest(context.Background(), &dataplaneapi.Connection{
 			LocalSource: test.localSource,
 			Destination: test.localDestination,
 		})
@@ -265,7 +265,7 @@ func main() {
 				logrus.Fatalf("Test %s did not fail but should.", test.testName)
 			}
 			// Need cleanup interfaces for the next test run
-			reply, err = dataplaneClient.DisconnectRequest(context.Background(), &dataplaneinterface.Connection{
+			reply, err = dataplaneClient.DisconnectRequest(context.Background(), &dataplaneapi.Connection{
 				ConnectionId: reply.ConnectionId,
 				LocalSource:  test.localSource,
 				Destination:  test.localDestination,

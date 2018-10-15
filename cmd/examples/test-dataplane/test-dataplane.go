@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneinterface"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -93,14 +93,14 @@ func livenessMonitor(registrationConnection dataplaneregistrarapi.DataplaneRegis
 
 // UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
 // to operational prameters or constraints
-func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv dataplaneinterface.DataplaneOperations_UpdateDataplaneServer) error {
+func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_UpdateDataplaneServer) error {
 	logrus.Infof("Update dataplane was called")
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-d.updateCh:
-			if err := updateSrv.Send(&dataplaneinterface.DataplaneUpdate{
+			if err := updateSrv.Send(&dataplaneapi.DataplaneUpdate{
 				RemoteMechanism: update.remoteMechanism,
 			}); err != nil {
 				logrus.Errorf("test-dataplane: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
@@ -112,14 +112,14 @@ func (d DataplaneController) UpdateDataplane(empty *common.Empty, updateSrv data
 
 // ConnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
 // of NSM Client or NSE.
-func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("ConnectRequest was called")
 	return nil, fmt.Errorf("not implemented")
 }
 
 // DisconnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
 // of NSM Client or NSE.
-func (d DataplaneController) DisconnectRequest(ctx context.Context, req *dataplaneinterface.Connection) (*dataplaneinterface.Reply, error) {
+func (d DataplaneController) DisconnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("DisconnectRequest was called")
 	return nil, fmt.Errorf("not implemented")
 }
@@ -477,7 +477,7 @@ func main() {
 	testdataplane.RegisterBuildConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 	testdataplane.RegisterDeleteConnectServer(dataplaneController.dataplaneServer, dataplaneController)
 	// Binding dataplane Interface API to gRPC server
-	dataplaneinterface.RegisterDataplaneOperationsServer(dataplaneController.dataplaneServer, dataplaneController)
+	dataplaneapi.RegisterDataplaneOperationsServer(dataplaneController.dataplaneServer, dataplaneController)
 
 	go func() {
 		wg.Add(1)
