@@ -109,13 +109,13 @@ This means that in the abstract Network Service Mesh has:
 - A concrete Network Service Manager to Network Service Manager API
 - A logical Network Service Registry API - that information that must be stored in the Network Service Registry so Network Service Managers function.
 
-#### Network Service Manager to Network Service Manager (NSM2NSM) API
+#### Network Service Manager to Network Service Manager (InterNSM) API
 
-![NSM2NSM API](./images/NSM2NSM.png)
+![InternNSM API](./images/InterNSM.png)
 
 The Network Service Manager API is defined in protobuf for communication over grpc.
 
-In this message Client&#39;s local NSM (hereafter called NSM1) proxying Network Service request to NSE&#39;s local NSM (hereafter called NSM2). NSM1 and NSM2 have to negotiate:
+In this message Client&#39;s local NSM (hereafter called the source NSM or NSM1) proxying Network Service request to NSE&#39;s local NSM (hereafter called the destination NSM or NSM2). NSM1 and NSM2 have to negotiate:
 
 <dl>
     <dt>RemoteConnectionMechanism</dt>
@@ -128,53 +128,28 @@ The common pattern for negotiation of all of these matters between a NSM1 and NS
 1. NSM1 communicates preferences and constraints
 2. NSM2 makes selections which meet those selections and constraints, or rejects the connection.
 
+From common.proto:
+
 ```proto
-
-service NSM2NSM {
-    rpc RequestRemoteConnection(RemoteConnectionRequest) returns RemoteConnectionResponse;
-}
-
-/*
- *  RemoteConnectionRequest is sent from one NSM1 to NSM2 to seek to establish an L2/L3 connection to an NSE
- *  being 'managed' by NSM2 on behalf of an NSC being managed by NSM1.  
- *
- *  request_id - id for the request, should be unique between NSM1 and NSM2
- *  network_service_name - the name of the network service NSM1 is seeking to connect to
- *  network_service_endpoint_name - the name of the network service endpoint NSM1 is seeking to connect to
- *  nse_name - the name of the nse we are seeking a request to.  This should match the name in the 
- *             Network Service Registry for the NSE
- *  labels - labels to communicate arbitrary context around the request
- *  remote_mechanisms - a list of remote mechanisms that can be used for the L2/L3 connection.
- *                           The list should be interpreted with descending order of priority.  NSM2 should
- *                           Seek to provide the highest priority remote mechanism it can.
- */
-message RemoteConnectionRequest {
-   string request_id = 1;
-   string network_service_name = 2;
-   repeated RemoteMechanismRequest remote_mechanisms = 3;
-
-   /* fields below here are optional */
-   ConnectionContextRequest connection_context_request = 4;
-   string nse_name = 5;
-   map<string,string> labels = 6;
-}
-
-/* 
- * RemoteMechnismRequest defines a request for a particular remote mechanism
- *
- * RemoteMechanismType - type of remote mechanism being requested
- * constraints - constraints on the remote mechanism.
- */
-message RemoteMechanismRequest {
+// RemoteMechanism - Mechanism for connecting to a remote NSE
+// A RemoteMechanism may be partially specified, to communicate preferences
+// to a peer when negotiating a RemoteConnection, or may be fully specified
+// to indicate the outcome of that negotiation.
+message RemoteMechanism {
+    // RemoteMechanismType - type of RemoteMechanism
     RemoteMechanismType type = 1;
-    repeated RemoteMechanismConstraint constraints = 2
+    // parameters - parameters for the RemoteMechanism
+    // Known Keys:
+    //     parameters[src_ip] - ip used on by source NSM for the mechanism, specified by source NSM
+    //     parameters[dst_ip] - ip used on by destination NSM for the mechanism, specified by destination NSM
+    //     parameters[vnis] - comma seperated list of acceptable vnis for VXLAN, typically specified by source NSM
+    //                        Example: vnis=10-20,50-100
+    //     parameters[vni]  - actual vni used in fully specified VXLAN RemoteMechanism, typically specified by destination NSM
+    map<string,string> parameters = 2;
 }
 
-/* 
- *  Initial attempt to define remote mechanism types.  Very preliminary
- */
 enum RemoteMechanismType {
-    NONE = 0; // For use when connection is not accepted
+    NONE = 0;
     VXLAN = 1;
     VXLAN_GPE = 2;
     GRE = 3;
@@ -184,166 +159,143 @@ enum RemoteMechanismType {
     MPLSoUDP = 7;
 }
 
-message RemoteMechanismConstraint {
-    required oneof constraint {
-        None_Constraint none_constraint = 1;
-        Vxlan_Constaint vxlan_constraint = 2;
-        Vxlan_Gpe_Constraint vxlan_gpe_request = 3;
-        SRv6_Constraints srv6_constraints = 4;
-        Gre_Constraint gre_constraint = 5;
-        Mpls_O_Ethernet_Constraint mpls_o_ethernet_constraint = 6;
-        Mpls_O_Gre_Constraint mpls_o_gre_constraint = 7;
-        Mpls_O_Udp_Constraint mpls_o_udp_constraint = 8;
-    }
+
+//  ConnectionContext - end to end context for the connection between an NSC and NSE
+//  Motivation:
+//        Many things like addressing, routing, etc are generally best decided by
+//        the NSE.  
+//        The NSC however has the best picture of what it needs.
+//        Does it need ipv4 addressing on the connection endpoints?
+//        Does it need a set of IPv6 prefixes valid in the context of that connection
+//        it can use for downstream clients?
+//        Are there prefixes that cannot be used in the context of the connection
+//        because they are used elsewhere?
+message ConnectionContext {
+    //   context - a key value map of context information it can be used to communicate
+    //             the NSC's needs (partially specified) or the NSEs decisions (fully specified)
+    //   Known keys - all of these keys are optional
+    //   context[requires] - comma separated list of keys the NSC needs to get back in the context from the NSE
+    //                       Example: requires=src_ip,dst_ip, ip_routes
+    //   context[src_ip] - ip addresses of the source end of the connection
+    //                         Example src_ip=1.1.1.1/30
+    //                         Typically provided by NSE, but may be proposed by NSC
+    //   context[dst_ip] - ip addresses of destination end of the connection, typically provided by NSE, but may be proposed by NSC
+    //   context[src_mac] - mac address of source end of the connection, typically provided by NSE, but may be proposed by NSC
+    //   context[dst_mac] - mac address of source end of the connection
+    //   context[exclude_prefixes] - comma seperated list of ip prefixes, specified by NSC that cannot be used in response by NSE
+    //   context[ip_routes] - comma seperated list of ip prefixes to be routed to the connection, typically specified by NSE
+    //   Note: This list will expand and evolve
+    map<string,string> context = 1;
+}
+```
+
+From internsm.proto:
+
+```proto
+syntax = "proto3";
+
+package internsm;
+
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+
+// InterNsm specifies how Network Service Managers (NSMs) communicate with each other
+// to manage a RemoteConnection between a Network Service Clients (NSC) and Network Service Endpoints (NSE)
+service InterNsm {
+    // RequestRemoteConnection - Service called by one NSM to request a RemoteConnection to a Network Service Endpoint from another NSM
+    rpc RequestRemoteConnection (RemoteConnectionRequest) returns (RemoteConnectionReply);
+    // DeleteRemoteConnection - Service called by one NSM to to request a RemoteConnection be deleted
+    rpc DeleteRemoteConnection (RemoteConnection) returns (RemoteConnectionReply);
+    // UpdateRemoteConnection - Service called by one NSM to request update of a RemoteConnection by another NSM.
+    // Note: Only intended to Update ConnectionContext
+    rpc UpdateRemoteConnection (RemoteConnection) returns (RemoteConnectionReply);
+    // MonitorRemoteConnections - Service called by one NSM to request streaming updates on existing RemoteConnections
+    //     RemoteConnectionId - interpreted as a 'selector' with empty fields being wildcarded.
+    //                          Example: specifying source_nsm_id will cause streaming of updates for all connections matching source nsm_id
+    rpc MonitorRemoteConnections (RemoteConnectionId) returns (stream RemoteConnectionUpdate);
 }
 
-/*
- * VxlanConstraint - represents a set of constraints communicated by NSM1 to NSM2
- *                   describing acceptable vxlan parameters
- * requestor_ip - Acceptable source ip on NSM1 for the VXLAN tunnel
- * requestor_port - Acceptable port on NSM1 for the VXLAN tunnel
- * excluded_vnis - a list of the VNI ranges not usable on NSM1 for the ip:port
- */
-message VxlanConstraint {
-    bytes requestor_ip = 1;
-    bytes requestor_port = 2;
-    repeated VniRange exclude_vnis = 3;
+// RemoteConnectionId - uniquely identifies the connection
+// Note: A connection in Requested state may have a partially specified RemoteConnectionId.  A RemoteConnectionId must be fully specified in CONNECTED state
+message RemoteConnectionId {
+    // source_nsm_id - Id of the source NSM - provided authoritatively by source NSM in RemoteConnectionRequest
+    // Can be used for 'recovery' in the event of an NSM restart by 'Monitoring' all RemoteConnections
+    // from its peers matching its own source_nsm_id
+    string source_nsm_id = 1;
+    // destination_nsm_id - Id of the destination NSM - provided authoritatively by the destination NSM in RemoteConnectionReply
+    string destination_nsm_id = 2;
+    // source_connection_id - Id of the source NSM's end of the connection - provided authoritatively by the source NSM in RemoteConnectionRequest
+    string source_connection_id = 3;
+    // destination_connection_id - Id of the destination NSM's end of the connection - provided authoritatively by the destination NSM in the RemoteConnectionReply
+    string destination_connection_id = 4;
 }
 
-/*
- * VniRange - a range of VNIs
- * 
- * vni - start vni of the range
- * count - number of vnis in the range
- */
-message VniRange {
-    int32 vni = 1;
-    int32 count = 2;
+// RemoteConnectionState - state of the RemoteConnection
+enum RemoteConnectionState {
+    // REQUESTED - State of RemoteConnection in RemoteConnectionRequest
+    REQUESTED = 0;
+    // CONNECTED - State of RemoteConnection in RemoteConnectionReply in response to RequestRemoteConnection
+    CONNECTED = 1;
+    // CLOSE_REQUESTED - State of RemoteConnection passed to RemoteConnectionReply in response to DeleteRemoeConnection
+    CLOSE_REQUESTED = 2;
+    // CLOSED - State of the RemoteConnection in RemoteConnectionReply in response to DeleteRemoteConnection
+    CLOSED = 3;
 }
 
-/*
- * TODO - Define other types of constraints here 
- */
-
- /*
-  *  ConnectionContextRequest - Constraints to put on ConnectionContexts
-  *
-  * connection_addressed - true if the NSC needs an address
-  * excluded_prefixes - prefixes which cannot be used in the context of the connection, including prefixes to route to the connection
-  *                     and addressing on the connection
-  * additional_prefix_request - request for blocks of additional addresses
-  * 
-  */
-message ConnectionContextRequest {
-    bool connection_addressed = 1;
-
-    /* fields below are optional */
-    repeated Prefix excluded_prefixes = 2;
-    repeated PrefixRequest additional_prefix_requests = 3;
-}
-
-/*
- * PrefixRequest - request for additional prefixes
- *
- * address_family - address family of address being requested
- * len - len of requested prefix 
- *
- * TODO: We need to find a better name here than PrefixRequest since its used in Prefix 
- *
- */ 
-message PrefixRequest {
-    int32 address_family = 1; // See https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
-    int64 len = 2;
-}
-
-/*
- * Prefix - address prefix
- */
-message Prefix {
-    PrefixRequest prefix_request = 1;
-    bytes prefix = 2;
-}
-
-/* 
- * RemoteConnectionReply - response sent from NSM2 to NSM1 in response to a 
- *                         RemoteConnectionRequest
- * request_id - Request id sent by NSM1 to NSM2 in the RemoteConnectionRequest
- *              this is a reply to
- * accepted - true if the connection is accepted, false if the connection is rejected
- * admission_error - optional string representing the error if accepted == false
- * remote_mechanism_type - remote mechanism seleted by NSM2 from the options presented by
- *                         NSM1
- * remote_mechanism_parameters - parameters selected by NSM2 for the remote mechanism
- * labels - key value pairs to communicate arbitrary context about the reply
- */
-message RemoteConnectionReply {
-    string request_id = 1;
-    bool accepted = 2;
-    RemoteMechanismType remote_mechanism_type = 3;
-    RemoteMechanismParameters remote_mechanism_parameters= 4;
-    ConnectionContext connection_context = 5;
-
-    /* admission_error may be left at default value if the RemoteConnectionReply has accepted == true */
-
-    string admission_error = 6;
-
-    /* fields below are optional */
-
+// RemoteConnection - represents a RemoteConnection, may be partially or fully specified
+message RemoteConnection {
+    //  id of the remote connection - must be unique when fully specified
+    RemoteConnectionId id = 1;
+    //  state of the remote connection
+    RemoteConnectionState state = 2;
+    //  network_service_name - Name of the Network Service at the destination of the RemoteConnection
+    string network_service_name = 3;
+    //  network_service_endpoint_name - Name of the specific Network Service Endpoint at the destination of the RemoteConnection
+    string network_service_endpoint_name = 4;
+    //  remote_mechanism - RemoteMechanism for the remote connection.  Must be empty in RequestRemoteConnection.  Must by fully specified in RemoteConnectionReply
+    common.RemoteMechanism remote_mechanism = 5;
+    // connection_context - conntection_context of the remote connection.
+    common.ConnectionContext  connection_context = 6;
+    // labels - meta data about the RemoteConnection.  Typically provided in RequestRemoteConnection and not changed from there.
     map<string,string> labels = 7;
 }
 
-message RemoteMechanismParameters {
-    oneof mechanism {
-        None_Parameters = 1;
-        Vxlan_Parameters = 2; // Only vxlan parameters specified so far
-        Vxlan_Gpe_Parameters = 3;
-        Gre_Parameters = 4;
-        Mpls_O_Ethernet_Parameters = 5;
-        Mpls_O_Gre_Parameters = 6;
-        Mpls_O_Udp_Parameters = 7;
-    }
+// RemoteConnectionRequest - Request for a RemoteConnection
+message RemoteConnectionRequest {
+   // remote_connection - partially specified RemoteConnection being requested
+   RemoteConnection remote_connection = 1;
+   // supported_remote_mechanisms - preference ordered list of supported_remote_mechanisms for the source NSM
+   // The destination NSM should try to pick the highest prference remote_mechanism to fully specify and use to complete the connection.
+   repeated common.RemoteMechanism supported_remote_mechanisms = 4;
 }
 
-/*
- * Vxlan used as example, others will have to be filled out
- * 
- * requestor_ip - ip of the requestor's (NSM1) end of the tunnel
- * requestee_ip - ip of the requestee's (NSM2) end of the tunnel
- * requestor_port - port of the requestor's (NSM1) end of the tunnel
- * requetee_port - port of the requestee's (NSM2) end of the tunnel
- * vni - vxlan vni
- */
-message Vxlan_Parameters {
-    bytes requestor_ip = 1;
-    bytes requestee_ip = 2;
-    bytes requestor_port = 3;
-    bytes requestee_port = 4;
-    int32 vni = 5;
+// RemoteConnectionReply - Reply to a RemoteConnectionRequest
+message RemoteConnectionReply {
+    // success - true of operation was successful - false otherwise
+    // In RequestRemoteConnection this means the destination NSMs end of the RemoteConnection is fully operational
+    // In UpdateRemoteConnection this means the destination NSM has been able to negotiate successfully the
+    //    update to the ConnectionContext with the NSE
+    // In DeleteRemoteConnection this means the connection is now fully deleted in the Destination NSM
+    bool success = 1;
+    // extended_error - String explaining error condition of success == false.  Must be empty if success = true.
+    string extended_error = 2;
+    //  remote_connection - fully specified RemoteConnection
+    RemoteConnection remote_connection = 3;
 }
 
-message Vxlan_Gpe_Parameters {
-    Vxlan_Parameters vxlan_parameters = 1;
-    int32 next_proto = 2;
-}
-
-/*
- * TODO - other RemoteMechanismParameters
- */ 
-
-/*
- * ConnectionContext - Context of the connection
- * nsc_connection_addresses - address for the NSC on the connection
- * nse_connection_addresses - address of the NSE on the connection
- * routes - prefixes to be routed from the NSC to the connection
- * additional_addresses - additional addresses provided to the NSC
- *                        must be valid within the context of the connection
- *                        and the network service being provided on that connection
- */
-message ConnectionContext {
-    Prefix nsc_connection_addresses = 1;
-    Prefix nse_connection_addresses = 2;
-    repeated Prefix routes = 3;
-    repeated Prefix additional_addresses = 4;
+// RemoteConnectionUpdate - Update on a RemoteConnection
+// Should be returned from MonitorRemoteConnection when:
+//     1)  RemoteConnectionState of the RemoteConnection changes
+//     2)  Periodically to update metrics on RemoteConnection
+// Uses:
+//     - Updating 'recoverying' peer NSM on peer NSM restart on existing RemoteConnections
+//     - Updating peer NSM of unrequested CLOSING of a RemoteConnection
+//     - Updating peer NSM of metrics on RemoteConnections - can be used to detect failure modes requiring
+//       auto-healing
+message RemoteConnectionUpdate {
+    // remote_connection - fully specified RemoteConnection that is the subject of this update
+    RemoteConnection remote_connection = 1;
+    //  metrics - key value pairs of metrics for the fully RemoteConnection
+    map<string,string> metrics = 2;
 }
 ```
 

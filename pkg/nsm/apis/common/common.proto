@@ -41,9 +41,20 @@ enum LocalMechanismType {
     SRIOV_INTERFACE = 4;
     HW_INTERFACE = 5;
 }
-
+// RemoteMechanism - Mechanism for connecting to a remote NSE
+// A RemoteMechanism may be partially specified, to communicate preferences
+// to a peer when negotiating a RemoteConnection, or may be fully specified
+// to indicate the outcome of that negotiation.
 message RemoteMechanism {
+    // RemoteMechanismType - type of RemoteMechanism
     RemoteMechanismType type = 1;
+    // parameters - parameters for the RemoteMechanism
+    // Known Keys:
+    //     parameters[src_ip] - ip used on by source NSM for the mechanism, specified by source NSM
+    //     parameters[dst_ip] - ip used on by destination NSM for the mechanism, specified by destination NSM
+    //     parameters[vnis] - comma seperated list of acceptable vnis for VXLAN, typically specified by source NSM
+    //                        Example: vnis=10-20,50-100
+    //     parameters[vni]  - actual vni used in fully specified VXLAN RemoteMechanism, typically specified by destination NSM
     map<string,string> parameters = 2;
 }
 
@@ -69,20 +80,20 @@ enum RemoteMechanismType {
 //        it can use for downstream clients?
 //        Are there prefixes that cannot be used in the context of the connection
 //        because they are used elsewhere?
-//   context - a key value map of context information it can be used to communicate
-//             the NSC's needs (partially specified) or the NSEs decisions (fully specified)
-//   Known keys - all of these keys are optional
-//   context[requires] - comma separated list of keys the NSC needs to get back in the context from the NSE
-//                       Example: requires=src_ip,dst_ip, ip_routes
-//   context[src_ip] - ip addresses of the source end of the connection
-//                         Example src_ip=1.1.1.1/30
-//                         Typically provided by NSE, but may be proposed by NSC
-//   context[dst_ip] - ip addresses of destination end of the connection, typically provided by NSE, but may be proposed by NSC
-//   context[src_mac] - mac address of source end of the connection, typically provided by NSE, but may be proposed by NSC
-//   context[dst_mac] - mac address of source end of the connection
-//   context[exclude_prefixes] - comma seperated list of ip prefixes, specified by NSC that cannot be used in response by NSE
-//   context[ip_routes] - comma seperated list of ip prefixes to be routed to the connection, typically specified by NSE
-//   Note: This list will expand and evolve
 message ConnectionContext {
+    //   context - a key value map of context information it can be used to communicate
+    //             the NSC's needs (partially specified) or the NSEs decisions (fully specified)
+    //   Known keys - all of these keys are optional
+    //   context[requires] - comma separated list of keys the NSC needs to get back in the context from the NSE
+    //                       Example: requires=src_ip,dst_ip, ip_routes
+    //   context[src_ip] - ip addresses of the source end of the connection
+    //                         Example src_ip=1.1.1.1/30
+    //                         Typically provided by NSE, but may be proposed by NSC
+    //   context[dst_ip] - ip addresses of destination end of the connection, typically provided by NSE, but may be proposed by NSC
+    //   context[src_mac] - mac address of source end of the connection, typically provided by NSE, but may be proposed by NSC
+    //   context[dst_mac] - mac address of source end of the connection
+    //   context[exclude_prefixes] - comma seperated list of ip prefixes, specified by NSC that cannot be used in response by NSE
+    //   context[ip_routes] - comma seperated list of ip prefixes to be routed to the connection, typically specified by NSE
+    //   Note: This list will expand and evolve
     map<string,string> context = 1;
 }
