@@ -37,14 +37,16 @@ message RemoteConnectionId {
 
 // RemoteConnectionState - state of the RemoteConnection
 enum RemoteConnectionState {
+    // NOT_SPECIFIED - Mark default value as NOT_SPECIFIED
+    NOT_SPECIFIED = 0;
     // REQUESTED - State of RemoteConnection in RemoteConnectionRequest
-    REQUESTED = 0;
+    REQUESTED = 1;
     // CONNECTED - State of RemoteConnection in RemoteConnectionReply in response to RequestRemoteConnection
-    CONNECTED = 1;
+    CONNECTED = 2;
     // CLOSE_REQUESTED - State of RemoteConnection passed to RemoteConnectionReply in response to DeleteRemoeConnection
-    CLOSE_REQUESTED = 2;
+    CLOSE_REQUESTED = 3;
     // CLOSED - State of the RemoteConnection in RemoteConnectionReply in response to DeleteRemoteConnection
-    CLOSED = 3;
+    CLOSED = 4;
 }
 
 // RemoteConnection - represents a RemoteConnection, may be partially or fully specified

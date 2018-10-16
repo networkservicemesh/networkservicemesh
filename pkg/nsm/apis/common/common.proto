@@ -95,5 +95,5 @@ message ConnectionContext {
     //   context[exclude_prefixes] - comma seperated list of ip prefixes, specified by NSC that cannot be used in response by NSE
     //   context[ip_routes] - comma seperated list of ip prefixes to be routed to the connection, typically specified by NSE
     //   Note: This list will expand and evolve
-    map<string,string> context = 1;
+    map<string,string> connection_context = 1;
 }
