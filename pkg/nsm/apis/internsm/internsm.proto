@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package internsm;
+
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+
+// InterNsm specifies how Network Service Managers (NSMs) communicate with each other
+// to manage a RemoteConnection between a Network Service Clients (NSC) and Network Service Endpoints (NSE)
+service InterNsm {
+    // RequestRemoteConnection - Service called by one NSM to request a RemoteConnection to a Network Service Endpoint from another NSM
+    rpc RequestRemoteConnection (RemoteConnectionRequest) returns (RemoteConnectionReply);
+    // DeleteRemoteConnection - Service called by one NSM to to request a RemoteConnection be deleted
+    rpc DeleteRemoteConnection (RemoteConnection) returns (RemoteConnectionReply);
+    // UpdateRemoteConnection - Service called by one NSM to request update of a RemoteConnection by another NSM.
+    // Note: Only intended to Update ConnectionContext
+    rpc UpdateRemoteConnection (RemoteConnection) returns (RemoteConnectionReply);
+    // MonitorRemoteConnections - Service called by one NSM to request streaming updates on existing RemoteConnections
+    //     RemoteConnectionId - interpreted as a 'selector' with empty fields being wildcarded.
+    //                          Example: specifying source_nsm_id will cause streaming of updates for all connections matching source nsm_id
+    rpc MonitorRemoteConnections (RemoteConnectionId) returns (stream RemoteConnectionUpdate);
+}
+
+// RemoteConnectionId - uniquely identifies the connection
+// Note: A connection in Requested state may have a partially specified RemoteConnectionId.  A RemoteConnectionId must be fully specified in CONNECTED state
+message RemoteConnectionId {
+    // source_nsm_id - Id of the source NSM - provided authoritatively by source NSM in RemoteConnectionRequest
+    // Can be used for 'recovery' in the event of an NSM restart by 'Monitoring' all RemoteConnections
+    // from its peers matching its own source_nsm_id
+    string source_nsm_id = 1;
+    // destination_nsm_id - Id of the destination NSM - provided authoritatively by the destination NSM in RemoteConnectionReply
+    string destination_nsm_id = 2;
+    // source_connection_id - Id of the source NSM's end of the connection - provided authoritatively by the source NSM in RemoteConnectionRequest
+    string source_connection_id = 3;
+    // destination_connection_id - Id of the destination NSM's end of the connection - provided authoritatively by the destination NSM in the RemoteConnectionReply
+    string destination_connection_id = 4;
+}
+
+// RemoteConnectionState - state of the RemoteConnection
+enum RemoteConnectionState {
+    // REQUESTED - State of RemoteConnection in RemoteConnectionRequest
+    REQUESTED = 0;
+    // CONNECTED - State of RemoteConnection in RemoteConnectionReply in response to RequestRemoteConnection
+    CONNECTED = 1;
+    // CLOSE_REQUESTED - State of RemoteConnection passed to RemoteConnectionReply in response to DeleteRemoeConnection
+    CLOSE_REQUESTED = 2;
+    // CLOSED - State of the RemoteConnection in RemoteConnectionReply in response to DeleteRemoteConnection
+    CLOSED = 3;
+}
+
+// RemoteConnection - represents a RemoteConnection, may be partially or fully specified
+message RemoteConnection {
+    //  id of the remote connection - must be unique when fully specified
+    RemoteConnectionId id = 1;
+    //  state of the remote connection
+    RemoteConnectionState state = 2;
+    //  network_service_name - Name of the Network Service at the destination of the RemoteConnection
+    string network_service_name = 3;
+    //  network_service_endpoint_name - Name of the specific Network Service Endpoint at the destination of the RemoteConnection
+    string network_service_endpoint_name = 4;
+    //  remote_mechanism - RemoteMechanism for the remote connection.  Must be empty in RequestRemoteConnection.  Must by fully specified in RemoteConnectionReply
+    common.RemoteMechanism remote_mechanism = 5;
+    // connection_context - conntection_context of the remote connection.
+    common.ConnectionContext  connection_context = 6;
+    // labels - meta data about the RemoteConnection.  Typically provided in RequestRemoteConnection and not changed from there.
+    map<string,string> labels = 7;
+}
+
+// RemoteConnectionRequest - Request for a RemoteConnection
+message RemoteConnectionRequest {
+   // remote_connection - partially specified RemoteConnection being requested
+   RemoteConnection remote_connection = 1;
+   // supported_remote_mechanisms - preference ordered list of supported_remote_mechanisms for the source NSM
+   // The destination NSM should try to pick the highest prference remote_mechanism to fully specify and use to complete the connection.
+   repeated common.RemoteMechanism supported_remote_mechanisms = 4;
+}
+
+// RemoteConnectionReply - Reply to a RemoteConnectionRequest
+message RemoteConnectionReply {
+    // success - true of operation was successful - false otherwise
+    // In RequestRemoteConnection this means the destination NSMs end of the RemoteConnection is fully operational
+    // In UpdateRemoteConnection this means the destination NSM has been able to negotiate successfully the
+    //    update to the ConnectionContext with the NSE
+    // In DeleteRemoteConnection this means the connection is now fully deleted in the Destination NSM
+    bool success = 1;
+    // extended_error - String explaining error condition of success == false.  Must be empty if success = true.
+    string extended_error = 2;
+    //  remote_connection - fully specified RemoteConnection
+    RemoteConnection remote_connection = 3;
+}
+
+// RemoteConnectionUpdate - Update on a RemoteConnection
+// Should be returned from MonitorRemoteConnection when:
+//     1)  RemoteConnectionState of the RemoteConnection changes
+//     2)  Periodically to update metrics on RemoteConnection
+// Uses:
+//     - Updating 'recoverying' peer NSM on peer NSM restart on existing RemoteConnections
+//     - Updating peer NSM of unrequested CLOSING of a RemoteConnection
+//     - Updating peer NSM of metrics on RemoteConnections - can be used to detect failure modes requiring
+//       auto-healing
+message RemoteConnectionUpdate {
+    // remote_connection - fully specified RemoteConnection that is the subject of this update
+    RemoteConnection remote_connection = 1;
+    //  metrics - key value pairs of metrics for the fully RemoteConnection
+    map<string,string> metrics = 2;
+}

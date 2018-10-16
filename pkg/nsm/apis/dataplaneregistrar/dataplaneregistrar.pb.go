@@ -28,8 +28,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // to advertise itself and inform NSM about the location of the dataplane socket
 // and its initially supported parameters.
 type DataplaneRegistrationRequest struct {
-	DataplaneName        string   `protobuf:"bytes,1,opt,name=dataplane_name,json=dataplaneName,proto3" json:"dataplane_name,omitempty"`
-	DataplaneSocket      string   `protobuf:"bytes,2,opt,name=dataplane_socket,json=dataplaneSocket,proto3" json:"dataplane_socket,omitempty"`
+	DataplaneName        string   `protobuf:"bytes,1,opt,name=dataplane_name,json=dataplaneName" json:"dataplane_name,omitempty"`
+	DataplaneSocket      string   `protobuf:"bytes,2,opt,name=dataplane_socket,json=dataplaneSocket" json:"dataplane_socket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -74,7 +74,7 @@ func (m *DataplaneRegistrationRequest) GetDataplaneSocket() string {
 }
 
 type DataplaneRegistrationReply struct {
-	Registered           bool     `protobuf:"varint,1,opt,name=registered,proto3" json:"registered,omitempty"`
+	Registered           bool     `protobuf:"varint,1,opt,name=registered" json:"registered,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -114,7 +114,7 @@ func (m *DataplaneRegistrationReply) GetRegistered() bool {
 // DataplaneUnRegistrationRequest is sent by the dataplane to NSM
 // to remove itself from the list of available dataplanes.
 type DataplaneUnRegistrationRequest struct {
-	DataplaneName        string   `protobuf:"bytes,1,opt,name=dataplane_name,json=dataplaneName,proto3" json:"dataplane_name,omitempty"`
+	DataplaneName        string   `protobuf:"bytes,1,opt,name=dataplane_name,json=dataplaneName" json:"dataplane_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -152,7 +152,7 @@ func (m *DataplaneUnRegistrationRequest) GetDataplaneName() string {
 }
 
 type DataplaneUnRegistrationReply struct {
-	UnRegistered         bool     `protobuf:"varint,1,opt,name=un_registered,json=unRegistered,proto3" json:"un_registered,omitempty"`
+	UnRegistered         bool     `protobuf:"varint,1,opt,name=un_registered,json=unRegistered" json:"un_registered,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -263,7 +263,8 @@ func (x *dataplaneRegistrationRequestLivenessClient) Recv() (*common.Empty, erro
 	return m, nil
 }
 
-// DataplaneRegistrationServer is the server API for DataplaneRegistration service.
+// Server API for DataplaneRegistration service
+
 type DataplaneRegistrationServer interface {
 	RequestDataplaneRegistration(context.Context, *DataplaneRegistrationRequest) (*DataplaneRegistrationReply, error)
 	// RequestLiveness is a stream initiated by NSM to inform the dataplane that NSM is still alive and
@@ -364,7 +365,8 @@ func (c *dataplaneUnRegistrationClient) RequestDataplaneUnRegistration(ctx conte
 	return out, nil
 }
 
-// DataplaneUnRegistrationServer is the server API for DataplaneUnRegistration service.
+// Server API for DataplaneUnRegistration service
+
 type DataplaneUnRegistrationServer interface {
 	RequestDataplaneUnRegistration(context.Context, *DataplaneUnRegistrationRequest) (*DataplaneUnRegistrationReply, error)
 }
