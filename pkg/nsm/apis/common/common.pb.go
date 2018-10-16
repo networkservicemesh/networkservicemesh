@@ -50,7 +50,7 @@ func (x LocalMechanismType) String() string {
 	return proto.EnumName(LocalMechanismType_name, int32(x))
 }
 func (LocalMechanismType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_common_2165b04e36061d83, []int{0}
+	return fileDescriptor_common_fb584214d5874266, []int{0}
 }
 
 type RemoteMechanismType int32
@@ -91,7 +91,7 @@ func (x RemoteMechanismType) String() string {
 	return proto.EnumName(RemoteMechanismType_name, int32(x))
 }
 func (RemoteMechanismType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_common_2165b04e36061d83, []int{1}
+	return fileDescriptor_common_fb584214d5874266, []int{1}
 }
 
 type Empty struct {
@@ -104,7 +104,7 @@ func (m *Empty) Reset()         { *m = Empty{} }
 func (m *Empty) String() string { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()    {}
 func (*Empty) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_2165b04e36061d83, []int{0}
+	return fileDescriptor_common_fb584214d5874266, []int{0}
 }
 func (m *Empty) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Empty.Unmarshal(m, b)
@@ -136,7 +136,7 @@ func (m *LocalMechanism) Reset()         { *m = LocalMechanism{} }
 func (m *LocalMechanism) String() string { return proto.CompactTextString(m) }
 func (*LocalMechanism) ProtoMessage()    {}
 func (*LocalMechanism) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_2165b04e36061d83, []int{1}
+	return fileDescriptor_common_fb584214d5874266, []int{1}
 }
 func (m *LocalMechanism) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocalMechanism.Unmarshal(m, b)
@@ -170,19 +170,31 @@ func (m *LocalMechanism) GetParameters() map[string]string {
 	return nil
 }
 
+// RemoteMechanism - Mechanism for connecting to a remote NSE
+// A RemoteMechanism may be partially specified, to communicate preferences
+// to a peer when negotiating a RemoteConnection, or may be fully specified
+// to indicate the outcome of that negotiation.
 type RemoteMechanism struct {
-	Type                 RemoteMechanismType `protobuf:"varint,1,opt,name=type,enum=common.RemoteMechanismType" json:"type,omitempty"`
-	Parameters           map[string]string   `protobuf:"bytes,2,rep,name=parameters" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
+	// RemoteMechanismType - type of RemoteMechanism
+	Type RemoteMechanismType `protobuf:"varint,1,opt,name=type,enum=common.RemoteMechanismType" json:"type,omitempty"`
+	// parameters - parameters for the RemoteMechanism
+	// Known Keys:
+	//     parameters[src_ip] - ip used on by source NSM for the mechanism, specified by source NSM
+	//     parameters[dst_ip] - ip used on by destination NSM for the mechanism, specified by destination NSM
+	//     parameters[vnis] - comma seperated list of acceptable vnis for VXLAN, typically specified by source NSM
+	//                        Example: vnis=10-20,50-100
+	//     parameters[vni]  - actual vni used in fully specified VXLAN RemoteMechanism, typically specified by destination NSM
+	Parameters           map[string]string `protobuf:"bytes,2,rep,name=parameters" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
 func (m *RemoteMechanism) Reset()         { *m = RemoteMechanism{} }
 func (m *RemoteMechanism) String() string { return proto.CompactTextString(m) }
 func (*RemoteMechanism) ProtoMessage()    {}
 func (*RemoteMechanism) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_2165b04e36061d83, []int{2}
+	return fileDescriptor_common_fb584214d5874266, []int{2}
 }
 func (m *RemoteMechanism) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RemoteMechanism.Unmarshal(m, b)
@@ -226,21 +238,21 @@ func (m *RemoteMechanism) GetParameters() map[string]string {
 //        it can use for downstream clients?
 //        Are there prefixes that cannot be used in the context of the connection
 //        because they are used elsewhere?
-//   context - a key value map of context information it can be used to communicate
-//             the NSC's needs (partially specified) or the NSEs decisions (fully specified)
-//   Known keys - all of these keys are optional
-//   context[requires] - comma separated list of keys the NSC needs to get back in the context from the NSE
-//                       Example: requires=src_ip,dst_ip, ip_routes
-//   context[src_ip] - ip addresses of the source end of the connection
-//                         Example src_ip=1.1.1.1/30
-//                         Typically provided by NSE, but may be proposed by NSC
-//   context[dst_ip] - ip addresses of destination end of the connection, typically provided by NSE, but may be proposed by NSC
-//   context[src_mac] - mac address of source end of the connection, typically provided by NSE, but may be proposed by NSC
-//   context[dst_mac] - mac address of source end of the connection
-//   context[exclude_prefixes] - comma seperated list of ip prefixes, specified by NSC that cannot be used in response by NSE
-//   context[ip_routes] - comma seperated list of ip prefixes to be routed to the connection, typically specified by NSE
-//   Note: This list will expand and evolve
 type ConnectionContext struct {
+	//   context - a key value map of context information it can be used to communicate
+	//             the NSC's needs (partially specified) or the NSEs decisions (fully specified)
+	//   Known keys - all of these keys are optional
+	//   context[requires] - comma separated list of keys the NSC needs to get back in the context from the NSE
+	//                       Example: requires=src_ip,dst_ip, ip_routes
+	//   context[src_ip] - ip addresses of the source end of the connection
+	//                         Example src_ip=1.1.1.1/30
+	//                         Typically provided by NSE, but may be proposed by NSC
+	//   context[dst_ip] - ip addresses of destination end of the connection, typically provided by NSE, but may be proposed by NSC
+	//   context[src_mac] - mac address of source end of the connection, typically provided by NSE, but may be proposed by NSC
+	//   context[dst_mac] - mac address of source end of the connection
+	//   context[exclude_prefixes] - comma seperated list of ip prefixes, specified by NSC that cannot be used in response by NSE
+	//   context[ip_routes] - comma seperated list of ip prefixes to be routed to the connection, typically specified by NSE
+	//   Note: This list will expand and evolve
 	Context              map[string]string `protobuf:"bytes,1,rep,name=context" json:"context,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
@@ -251,7 +263,7 @@ func (m *ConnectionContext) Reset()         { *m = ConnectionContext{} }
 func (m *ConnectionContext) String() string { return proto.CompactTextString(m) }
 func (*ConnectionContext) ProtoMessage()    {}
 func (*ConnectionContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_2165b04e36061d83, []int{3}
+	return fileDescriptor_common_fb584214d5874266, []int{3}
 }
 func (m *ConnectionContext) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionContext.Unmarshal(m, b)
@@ -290,9 +302,9 @@ func init() {
 	proto.RegisterEnum("common.RemoteMechanismType", RemoteMechanismType_name, RemoteMechanismType_value)
 }
 
-func init() { proto.RegisterFile("common.proto", fileDescriptor_common_2165b04e36061d83) }
+func init() { proto.RegisterFile("common.proto", fileDescriptor_common_fb584214d5874266) }
 
-var fileDescriptor_common_2165b04e36061d83 = []byte{
+var fileDescriptor_common_fb584214d5874266 = []byte{
 	// 420 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x93, 0x5d, 0x6b, 0xd4, 0x40,
 	0x14, 0x86, 0x9d, 0x7c, 0x6c, 0x76, 0x8f, 0x69, 0x77, 0x76, 0x5a, 0x21, 0xac, 0x37, 0x65, 0x2f,
