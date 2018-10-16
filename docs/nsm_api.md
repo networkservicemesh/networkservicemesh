@@ -151,7 +151,7 @@ service NSM2NSM {
 message RemoteConnectionRequest {
    string request_id = 1;
    string network_service_name = 2;
-   repeated RemoteMechanismRequest remote_mechanisms = 3;
+   repeated RemoteMechanism remote_mechanisms = 3;
 
    /* fields below here are optional */
    ConnectionContextRequest connection_context_request = 4;
@@ -160,14 +160,30 @@ message RemoteConnectionRequest {
 }
 
 /* 
- * RemoteMechnismRequest defines a request for a particular remote mechanism
+ * RemoteMechanism defines a request for a particular remote mechanism
  *
- * RemoteMechanismType - type of remote mechanism being requested
- * constraints - constraints on the remote mechanism.
+ * type   - type of remote mechanism being requested
+ *
+ * labels - a set of key value pairs that can be used
+ *                       to describe parameters or constraints on parameters
+ *                       for the RemoteMechanism
+ *
+ * Example:
+ *          VXLAN - would have labels src_ip, src_port, dst_ip, dest_port, vni, vnis
+ *                  when NSM1 sends a RemoteConnectionRequest to NSM2, it would specify
+ *                  src_ip, src_port, and vnis.  vnis is a range constructed list of
+ *                  vnis that could be used by NSM2 with this src_ip and src_port.
+ *                  vnis = 1-100, 200-450
+ *                  when NSM2 sends a RemoteConnectionReply, it would specify
+ *                  use the src_ip, src_port from the RemoteConnectionRequest,
+ *                  specify its own dst_ip, dst_port, and pic from the presented vnis
+ *                  the vni to be used
+ *                  vni=12
+ *                  
  */
-message RemoteMechanismRequest {
+message RemoteMechanism {
     RemoteMechanismType type = 1;
-    repeated RemoteMechanismConstraint constraints = 2
+    map<string,string> labels = 2
 }
 
 /* 
@@ -183,47 +199,6 @@ enum RemoteMechanismType {
     MPLSoGRE = 6;
     MPLSoUDP = 7;
 }
-
-message RemoteMechanismConstraint {
-    required oneof constraint {
-        None_Constraint none_constraint = 1;
-        Vxlan_Constaint vxlan_constraint = 2;
-        Vxlan_Gpe_Constraint vxlan_gpe_request = 3;
-        SRv6_Constraints srv6_constraints = 4;
-        Gre_Constraint gre_constraint = 5;
-        Mpls_O_Ethernet_Constraint mpls_o_ethernet_constraint = 6;
-        Mpls_O_Gre_Constraint mpls_o_gre_constraint = 7;
-        Mpls_O_Udp_Constraint mpls_o_udp_constraint = 8;
-    }
-}
-
-/*
- * VxlanConstraint - represents a set of constraints communicated by NSM1 to NSM2
- *                   describing acceptable vxlan parameters
- * requestor_ip - Acceptable source ip on NSM1 for the VXLAN tunnel
- * requestor_port - Acceptable port on NSM1 for the VXLAN tunnel
- * excluded_vnis - a list of the VNI ranges not usable on NSM1 for the ip:port
- */
-message VxlanConstraint {
-    bytes requestor_ip = 1;
-    bytes requestor_port = 2;
-    repeated VniRange exclude_vnis = 3;
-}
-
-/*
- * VniRange - a range of VNIs
- * 
- * vni - start vni of the range
- * count - number of vnis in the range
- */
-message VniRange {
-    int32 vni = 1;
-    int32 count = 2;
-}
-
-/*
- * TODO - Define other types of constraints here 
- */
 
  /*
   *  ConnectionContextRequest - Constraints to put on ConnectionContexts
@@ -271,16 +246,13 @@ message Prefix {
  *              this is a reply to
  * accepted - true if the connection is accepted, false if the connection is rejected
  * admission_error - optional string representing the error if accepted == false
- * remote_mechanism_type - remote mechanism seleted by NSM2 from the options presented by
- *                         NSM1
- * remote_mechanism_parameters - parameters selected by NSM2 for the remote mechanism
+ * remote_mechanism - the fully specified remote mechanism selected by NSM2
  * labels - key value pairs to communicate arbitrary context about the reply
  */
 message RemoteConnectionReply {
     string request_id = 1;
     bool accepted = 2;
-    RemoteMechanismType remote_mechanism_type = 3;
-    RemoteMechanismParameters remote_mechanism_parameters= 4;
+    RemoteMechanism remote_mechanism = 3;
     ConnectionContext connection_context = 5;
 
     /* admission_error may be left at default value if the RemoteConnectionReply has accepted == true */
@@ -291,44 +263,6 @@ message RemoteConnectionReply {
 
     map<string,string> labels = 7;
 }
-
-message RemoteMechanismParameters {
-    oneof mechanism {
-        None_Parameters = 1;
-        Vxlan_Parameters = 2; // Only vxlan parameters specified so far
-        Vxlan_Gpe_Parameters = 3;
-        Gre_Parameters = 4;
-        Mpls_O_Ethernet_Parameters = 5;
-        Mpls_O_Gre_Parameters = 6;
-        Mpls_O_Udp_Parameters = 7;
-    }
-}
-
-/*
- * Vxlan used as example, others will have to be filled out
- * 
- * requestor_ip - ip of the requestor's (NSM1) end of the tunnel
- * requestee_ip - ip of the requestee's (NSM2) end of the tunnel
- * requestor_port - port of the requestor's (NSM1) end of the tunnel
- * requetee_port - port of the requestee's (NSM2) end of the tunnel
- * vni - vxlan vni
- */
-message Vxlan_Parameters {
-    bytes requestor_ip = 1;
-    bytes requestee_ip = 2;
-    bytes requestor_port = 3;
-    bytes requestee_port = 4;
-    int32 vni = 5;
-}
-
-message Vxlan_Gpe_Parameters {
-    Vxlan_Parameters vxlan_parameters = 1;
-    int32 next_proto = 2;
-}
-
-/*
- * TODO - other RemoteMechanismParameters
- */ 
 
 /*
  * ConnectionContext - Context of the connection
@@ -347,7 +281,166 @@ message ConnectionContext {
 }
 ```
 
+#### Logical Structure of Network Service Registry Entries
 
+It is expected that initially, and possibly always, the major implementation of the Network Service Registry will be done with Custom Resources (CRs) in Kubernetes.  It is desireable that it be logically possible to have other Network Service Registry implementations.  To facilitate this, it is necessary to describe the minimum shell of information needed in the the Network Service Registry.
+
+The Network Service Registry contains two kinds of entries:
+
+- Network Service (NS)
+- Network Service Endpoint (NSE)
+
+A Network Service must minimally have the following information:
+
+<dl>
+    <dt>Name<dt>
+    <dd>The name of the Network Service.  This must be non-empty and unique within the Network Service Registry at any given moment in time.
+    <dt>Payload<dt>
+    <dd>The type of L2/L3 payload the Network Service accepts.  Examples include but are not limited to Ethernet, IPv4, Ipv6, IP (implied to be both IPv4 and IPv6), MPLS.  This value must be non-empty.</dd>
+</dl>
+
+A Network Service Endpoint must miniminally have the following information:
+
+<dl>
+    <dt>Name</dt>
+    <dd>The name of the Network Service Endpoint.  This must be non-empty and unique within the Network Service Registry at any given moment in time.</dd>
+    <dt>Network Service Name<dt>
+    <dd>The name of the Network Service the Endpoint provides.  This must be non-empty.</dd>
+    <dt>Network Service Manager ip:port</dt>
+    <dd>The ip and port used to contact the Network Service Manager that manages the Network Service Endpoint. This information must be provided.</dd>
+    <dt>Labels<dt>
+    <dd>A map of key value pairs, with both keys and values being strings.  It is acceptable to have no keys/value pairs in the labels field.  A Network Service Endpoint does not have to have any labels, but a Network Service Registry must have the ability for Network Service Endpoints to have labels.</dd>
+</dl>
+
+It is important to remember that a given entity (example: Pod) may expose multiple Network Services.  In the event a particular entity (example: Pod) exposes multiple Network Services, this results in multiple Network Service Endpoint entries in the Network Service Registry.
+
+It is possible for a given entity (example: Pod) to expose the same Network Service multiple times.  This may be done, for example, to expose the Network Service with different labels.  This should result in multiple Network Service Endpoint entries in the Network Service Registry with different names.
+
+### Network Service Mesh APIs in Kubernetes
+
+Network Service Mesh in Kubernetes uses the standard NSM2NSM API as defined above, and provides an implementation of a Network Service Registry via Custom Resources (CRs).  In addition, it has APIs specific to Kubernetes for various components to interact:
+
+![NSM Diagram](./images/k8s_nsm_apis.png)
+
+<dl>
+    <dt>NSC2NSM</dt>
+    <dd>Defines how a Pod interacts with a Network Service Manager (NSM) as a Network Service Client (NSC)</dd>
+    <dt>NSE2NSM</dt>
+    <dd>Defines how a Pod interacts with a Network Service Manager (NSM) as a Network Service Endpoint (NSE)</dd>
+    <dt>NSM2Dataplane</dt>
+    <dd>Defines how a Network Service Manager (NSM) interacts with a Network Service Mesh Dataplane (NSMD).</dd>
+</dl>
+
+#### NSM2Dataplane API
+
+A Network Service Mesh interacts with one or more Dataplanes.  The purpose of the Dataplane is to provide the actual dataplane that does cross connect between the Network Service Client (NSC) and a Network Service Endpoint (NSE).  
+
+A cross connect typically consists of a pair of mechanisms (remote or local).
+
+Examples:
+- A Network Service Client (NSC) which is connected to the local mechanism 'kernel interface' is cross connected to a Network Service Endpoint (NSE) via the remote mechanism 'VXLAN'.  This cross connect can be thought of as the pair ('kernel interface','VXLAN')
+- A Network Service Client (NSC) which is connected to a local mechanism 'memif' is cross conneted to a Network Service Endpoint (NSE) via a local mechanism 'memif' if they are both on the same Node.  This cross connect can be thought of as a pair ('memif','memif').
+- A Network Service Client (NSC) which is connected to a local mechanism 'memif' is cross connected to a Network Service Endpoint (NS) via the local mechanism 'kernel interface'.  This cross connect can be thought of as the pair ('memif','kernel interface')
+
+```proto
+
+service NSM2NSMD {
+    rpc CreateCrossConnnect(CrossConnect) returns CrossConnectStatus;
+    rpc UpdateCrossConnect(CrossConnect) returns CrossConnectStatus;
+    rpc DeleteCrossConnect(CrossConnect) returns CrossConnectStatus;
+    rpc ListAndwatchCrossConnects(Empty) returns (stream CrossConnectStatus)
+    rpc ListAndWatchMechanisms(Empty) returns (stream Mechanism)
+}
+
+/*
+ * CreateCrossConnectRequest - Message to create a a CrossConnect
+ *
+ * Its helpful to think of a cross connect like a wire that carries
+ * a particular payload from one place to another bidirectionally.
+ * You can talk about that in terms of the pair of 'mechanisms' at either end.
+ * Examples:
+ *           (kernel interface, kernel interface)
+ *           (kernel interface, memif)
+ *           (memif, memif)
+ *           (memif, vxlan)
+ *           (memif, srv6)
+ *
+ * id         - id of the cross connect.  Must be unique in the context of this NSM and NSMD.
+ *              id is selected by the NSM.
+ * mechanism1 - A Cross Connect has two ends, each with a 'Mechanism'.  This is one of them.
+ * mechanism2 - A Cross Connect has two ends, each with a 'Mechanism'.  This is one of them.
+ */ 
+message CrossConnect {
+    string id = 1;
+    Mechanism mechanism1 = 2;
+    Mechanism mechanism2 = 3'
+}
+
+/* 
+ * Mechanism - A simple message that can be oneof LocalMechanism or RemoteMechanism
+ */
+message Mechanism {
+    oneof mechanism {
+        RemoteMechanism remoteMechanism = 1;
+        LocalMechanism localMechanism = 2;
+    }
+}
+
+/* 
+ * CrossConnectStatus - Status of a CrossConnect
+ *
+ * id     - id of the CrossConnect
+ * labels - key value pairs that can be used to convey operational data
+ *          about the cross connect.  Possible examples: stats, up/down state, health, etc
+ * TODO - flesh out the lexicon of status labels
+ */
+message CrossConnectStatus {
+    string id = 1;
+    map<string,string> labels = 2;
+}
+
+/*
+ * LocalMechanism - the mechanism used locally with a Pod to provide one end
+ *                  of an L2/L3 connection
+ * type           - The type of local mechanism.
+ *                  Examples: memif, kernel interface, vhost-user
+ * labels         - labels are key value pairs used to indicate parameters
+ *                  labels can be used to express preferences or constraints,
+ *                  or they can be used to communicate final values of a
+ *                  parameter.
+ *                  Examples:
+ *                      - For a LocalMechanism of type KERNEL_INTERFACE
+ *                        the label "name=eth2" indicates the desired or 
+ *                        actual name of the interface to be injected into
+ *                        the Pod
+ * TODO - fully document and specify all valid labels for each type
+ */
+message LocalMechanism {
+    LocalMechanismType type = 1;
+    map<string,string> labels = 1;
+}
+
+enum LocalMechanismType {
+    KERNEL_INTERFACE = 0;
+    MEMIF = 1;
+    VHOST_USER = 2;
+}
+
+service NSMD2NSM {
+    rpc Registration(RegisterRequest) return (Empty)
+}
+
+message RegisterRequest {
+    // Version of the API
+    string version = 1;
+    // Name of the unix socket the device plugin is listening on
+	// PATH = path.Join(NSMDPath, endpoint)
+    string endpoint = 2; 
+}
+
+```
+
+--------------------
 
 NSM consists of multiple components which interact between each other with a purpose of establishing connectivity requested by a user application for example: secure gateway, or L2 connectivity or some other form of connectivity. Here is the list of identified components:
 
