@@ -29,13 +29,13 @@ const (
 
 var memifKeys = nsmutils.Keys{
 	NSMSocketFile: nsmutils.KeyProperties{
-		false, func(s string) error { return nil },
+		Validator: nsmutils.Empty,
 	},
 	NSMMaster: nsmutils.KeyProperties{
-		false, func(s string) error { return nil },
+		Validator: nsmutils.Empty,
 	},
 	NSMSlave: nsmutils.KeyProperties{
-		false, func(s string) error { return nil },
+		Validator: nsmutils.Empty,
 	},
 }
 

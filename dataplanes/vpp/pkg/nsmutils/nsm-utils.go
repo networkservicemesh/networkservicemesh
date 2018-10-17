@@ -23,8 +23,8 @@ import (
 
 // keys is a map of all keys which are supported in the connection Parameters map
 type KeyProperties struct {
-	mandatory bool
-	validator func(value string) error
+	Mandatory bool
+	Validator func(value string) error
 }
 type Keys map[string]KeyProperties
 
@@ -39,18 +39,18 @@ func ValidateParameters(parameters map[string]string, keyList map[string]KeyProp
 		}
 	}
 
-	// Check mandatory parameters first
+	// Check Mandatory parameters first
 	for key, properties := range keyList {
-		if properties.mandatory {
+		if properties.Mandatory {
 			if _, ok := parameters[key]; !ok {
-				return fmt.Errorf("missing mandatory %s key", key)
+				return fmt.Errorf("missing Mandatory %s key", key)
 			}
 		}
 	}
 
 	// Check sanity for all passed parameters
 	for key, value := range parameters {
-		if err := keyList[key].validator(value); err != nil {
+		if err := keyList[key].Validator(value); err != nil {
 			return fmt.Errorf("key %s has invalid value %s, error: %+v", key, value, err)
 		}
 	}
@@ -58,7 +58,7 @@ func ValidateParameters(parameters map[string]string, keyList map[string]KeyProp
 	return nil
 }
 
-// keys validator functions, for each new keys there should be a validator function.
+// keys Validator functions, for each new keys there should be a Validator function.
 func Namespace(value string) error {
 	if !strings.HasPrefix(value, "pid:") {
 		return fmt.Errorf("malformed namespace %s, must start with \"pid:\" following by the process id of a container", value)
@@ -84,5 +84,9 @@ func Ipv4prefixlength(value string) error {
 	if !(prefixLength > 1 && prefixLength < 32) {
 		return fmt.Errorf("invalid value %d of ipv4 prefix parameter", prefixLength)
 	}
+	return nil
+}
+
+func Empty(value string) error {
 	return nil
 }

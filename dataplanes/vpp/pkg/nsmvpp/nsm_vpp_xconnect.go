@@ -49,11 +49,11 @@ type tapInterface struct {
 
 var kernelInterfaceParameters = nsmutils.Keys{
 	NSMkeyNamespace: nsmutils.KeyProperties{
-		true, nsmutils.Namespace},
+		Mandatory: true, Validator: nsmutils.Namespace},
 	NSMkeyIPv4: nsmutils.KeyProperties{
-		false, nsmutils.Ipv4},
+		Validator: nsmutils.Ipv4},
 	NSMkeyIPv4PrefixLength: nsmutils.KeyProperties{
-		true, nsmutils.Ipv4prefixlength,
+		Mandatory: true, Validator: nsmutils.Ipv4prefixlength,
 	},
 }
 
