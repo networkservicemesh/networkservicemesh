@@ -44,7 +44,8 @@ type DataplaneServer struct {
 
 // Update is a message used to communicate any changes in operational parameters and constraints
 type Update struct {
-	remoteMechanism []*common.RemoteMechanism
+	remoteMechanisms []*common.RemoteMechanism
+	localMechanisms  []*common.LocalMechanism
 }
 
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
@@ -180,7 +181,8 @@ func (d DataplaneServer) MonitorMechanisms(empty *common.Empty, updateSrv datapl
 			d.remoteMechanisms = update.remoteMechanisms
 			d.localMechanisms = update.localMechanisms
 			if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
-				RemoteMechanisms: update.remoteMechanism,
+				RemoteMechanisms: update.remoteMechanisms,
+				LocalMechanisms:  update.localMechanisms,
 			}); err != nil {
 				logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
