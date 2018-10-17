@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: nse
+  name: nse
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: nse
+  name: nse
+  namespace: default
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: nse
+  name: nse
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nse
+subjects:
+  - kind: ServiceAccount
+    name: nse
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io: "true"
+        networkservicemesh.io/app: "nse"
+    spec:
+      serviceAccount: nse
+      containers:
+        - name: nse-1
+          image: networkservicemesh/nse:${TAG}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: INIT_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: connect-socket
+              mountPath: /var/lib/networkservicemesh
+      volumes:
+        - hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+          name: connect-socket
+metadata:
+  name: nse-1
+  namespace: default

@@ -151,7 +151,12 @@ function run_tests() {
 
     # Need to get kubeconfig full path
     # NOTE: Disable this for now until we fix the timing issue
-    K8SCONFIG="$HOME"/.kube/config
+    if [ ! -z "${KUBECONFIG}" ] ; then
+        K8SCONFIG=${KUBECONFIG}
+    else
+        K8SCONFIG="$HOME"/.kube/config
+    fi
+    export GODEBUG=netdns=2
     go test ./plugins/crd/... -v --kube-config="$K8SCONFIG"
 
     # We're all good now
