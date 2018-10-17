@@ -27,6 +27,7 @@ jobs:
             export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
             export TAG="$BUILD_TAG"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
+            cd dataplanes/vpp ; make all ; cd -
             make verify docker-build docker-push
 
   packet-deploy:
