@@ -24,7 +24,7 @@ script:
   - go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
   - make dep-check
   - yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
-  - cd dataplanes/vpp;make all; cd -
+  - cd dataplanes/vpp ; make all ; cd -
   - make all && ./scripts/travis-integration-tests.sh dind
 
 # We only want to push docker images on a push to master, not a pull request
