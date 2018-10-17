@@ -23,7 +23,6 @@ import (
 	"net"
 
 	govppapi "git.fd.io/govpp.git/api"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
@@ -49,14 +48,18 @@ type Update struct {
 
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
-	if err := nsmutils.ValidateParameters(src.Parameters); err != nil {
-		return "", err
-	}
-	if err := nsmutils.ValidateParameters(dst.Parameters); err != nil {
-		return "", err
+	if src.Type == common.LocalMechanismType_KERNEL_INTERFACE &&
+		dst.Type == common.LocalMechanismType_KERNEL_INTERFACE {
+		return nsmvpp.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
 	}
 
-	return nsmvpp.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
+	if src.Type == common.LocalMechanismType_MEM_INTERFACE &&
+		dst.Type == common.LocalMechanismType_MEM_INTERFACE {
+		return nsmvpp.CreateMemifConnect(apiCh, src.Parameters, dst.Parameters)
+	}
+
+	return "", status.Error(codes.Unimplemented,
+		fmt.Sprintf("Connection type %+v - %+v is not implemented yet", src.Type, dst.Type))
 }
 
 // deleteLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
