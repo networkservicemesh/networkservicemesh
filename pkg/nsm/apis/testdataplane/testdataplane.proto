@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package testdataplane;
 
+import "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane/dataplane.proto";
+
 message Metadata {
     string name = 1;
     string namespace = 2;
@@ -25,6 +27,7 @@ message BuildConnectRequest {
 message BuildConnectReply {
     bool built = 1;
     string build_error = 2;
+    dataplane.Connection connection = 3;
 }
 
 message DeleteConnectRequest {

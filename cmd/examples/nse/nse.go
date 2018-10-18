@@ -17,9 +17,11 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -42,6 +44,10 @@ const (
 	EndpointSocketBaseDir = "/var/lib/networkservicemesh"
 	// EndpointSocket defines the name of NSM Endpoints operations socket
 	EndpointSocket = "nsm.endpoint.io.sock"
+
+	// NSMkeyNSELocalMechanism defines a key for nse local interface
+	// TODO (sbezverk) must be known globally
+	NSMkeyNSELocalMechanism = "nselocalmechansim"
 )
 
 var (
@@ -65,10 +71,39 @@ func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseco
 
 func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req *nseconnect.EndpointConnectionMechanism) (*nseconnect.EndpointConnectionMechanismReply, error) {
 
+	interfaceName, ok := req.LocalMechanism.Parameters[NSMkeyNSELocalMechanism]
+	if !ok {
+		logrus.Errorf("Missing nselocalmechansim key in parameters")
+		return &nseconnect.EndpointConnectionMechanismReply{
+			RequestId:      req.RequestId,
+			MechanismFound: false,
+		}, fmt.Errorf("Missing nselocalmechansim key in parameters")
+	}
+	logrus.Infof("Got notification to use interface: %s for network service %s for request id %s", interfaceName, req.NetworkServiceName, req.RequestId)
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		logrus.Errorf("Failed to lists interfaces with error: %+v", err)
+		return &nseconnect.EndpointConnectionMechanismReply{
+			RequestId:      req.RequestId,
+			MechanismFound: false,
+		}, fmt.Errorf("Failed to lists interfaces with error: %+v", err)
+	}
+
+	// Checking if the interface created by NSM/Dataplane is found in the list
+	for _, intfs := range interfaces {
+		if strings.ToLower(intfs.Name) == strings.ToLower(interfaceName) {
+			return &nseconnect.EndpointConnectionMechanismReply{
+				RequestId:      req.RequestId,
+				MechanismFound: true,
+			}, nil
+		}
+	}
+	// Interface has not been found in the pos'd net namespace, returning failure to NSM
 	return &nseconnect.EndpointConnectionMechanismReply{
 		RequestId:      req.RequestId,
-		MechanismFound: true,
-	}, nil
+		MechanismFound: false,
+	}, fmt.Errorf("Interface %s is not found", interfaceName)
 }
 
 func buildClient() (*kubernetes.Clientset, error) {

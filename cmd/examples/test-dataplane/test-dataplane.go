@@ -94,7 +94,7 @@ func livenessMonitor(registrationConnection dataplaneregistrarapi.DataplaneRegis
 	}
 }
 
-// UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
+// MonitorMechanisms implements method of dataplane interface, which is informing NSM of any changes
 // to operational prameters or constraints
 func (d DataplaneController) MonitorMechanisms(empty *common.Empty, updateSrv dataplaneapi.DataplaneOperations_MonitorMechanismsServer) error {
 	logrus.Infof("Update dataplane was called")
@@ -211,7 +211,8 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *testda
 		podNamespace2,
 		podName2)
 	// TODO (sbezverk) Add ip address check
-	if err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2); err != nil {
+	connection, err := connectPods(d.k8s, podName1, podName2, podNamespace1, podNamespace2)
+	if err != nil {
 		logrus.Errorf("test-dataplane: failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			podNamespace1,
 			podName1,
@@ -230,7 +231,8 @@ func (d DataplaneController) RequestBuildConnect(ctx context.Context, in *testda
 	}
 
 	return &testdataplane.BuildConnectReply{
-		Built: true,
+		Built:      true,
+		Connection: connection,
 	}, nil
 }
 
@@ -328,10 +330,10 @@ func deleteVethInterface(ns netns.NsHandle, interfacePrefix string) error {
 	return nil
 }
 
-func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
+func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) ([]string, error) {
 	ns, err := netns.Get()
 	if err != nil {
-		return fmt.Errorf("failed to get current process namespace")
+		return nil, fmt.Errorf("failed to get current process namespace")
 	}
 	defer netns.Set(ns)
 
@@ -342,17 +344,17 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 		PeerName:  p1,
 	}
 	if err := netns.Set(ns1); err != nil {
-		return fmt.Errorf("failed to switch to namespace %s with error: %+v", ns1, err)
+		return nil, fmt.Errorf("failed to switch to namespace %s with error: %+v", ns1, err)
 	}
 	namespaceHandle, err := netlink.NewHandleAt(ns1)
 	if err != nil {
-		return fmt.Errorf("failure to get pod's handle with error: %+v", err)
+		return nil, fmt.Errorf("failure to get pod's handle with error: %+v", err)
 	}
 	// Debugging situation when we try to add already existing link
 	links, err := namespaceHandle.LinkList()
 	if err != nil {
 		logrus.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
-		return fmt.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
+		return nil, fmt.Errorf("failure to get a list of links from the namespace %s with error: %+v", ns1.String(), err)
 	}
 	logrus.Printf("Found already existing interfaces:")
 	found := false
@@ -371,7 +373,7 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 	if !found {
 		// Interface has not been found, safe to create it.
 		if err := namespaceHandle.LinkAdd(veth); err != nil {
-			return fmt.Errorf("failure to add veth to pod with error: %+v", err)
+			return nil, fmt.Errorf("failure to add veth to pod with error: %+v", err)
 		}
 		// Adding a small timeout to let interface add to complete
 		time.Sleep(30 * time.Second)
@@ -379,37 +381,38 @@ func setVethPair(ns1, ns2 netns.NsHandle, p1, p2 string) error {
 
 	link, err := netlink.LinkByName(p2)
 	if err != nil {
-		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
+		return nil, fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
 	}
 	if _, ok := link.(*netlink.Veth); !ok {
-		return fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
+		return nil, fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
 	}
 	if err := netlink.LinkSetUp(link); err != nil {
-		return fmt.Errorf("failure setting link %s up with error: %+v", link.Attrs().Name, err)
+		return nil, fmt.Errorf("failure setting link %s up with error: %+v", link.Attrs().Name, err)
 	}
 	peer, err := netlink.LinkByName(p1)
 	if err != nil {
-		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
+		return nil, fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
 	}
 	if _, ok := peer.(*netlink.Veth); !ok {
-		return fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
+		return nil, fmt.Errorf("failure, got unexpected interface type: %+v", reflect.TypeOf(link))
 	}
 	// Moving peer's interface into peer's namespace
 	if err := netlink.LinkSetNsFd(peer, int(ns2)); err != nil {
-		return fmt.Errorf("failure to get place veth into peer's pod with error: %+v", err)
+		return nil, fmt.Errorf("failure to get place veth into peer's pod with error: %+v", err)
 	}
 	// Switching to peer's namespace
 	if err := netns.Set(ns2); err != nil {
-		return fmt.Errorf("failed to switch to namespace %s with error: %+v", ns2, err)
+		return nil, fmt.Errorf("failed to switch to namespace %s with error: %+v", ns2, err)
 	}
 	peer, err = netlink.LinkByName(p1)
 	if err != nil {
-		return fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
+		return nil, fmt.Errorf("failure to get pod's interface by name with error: %+v", err)
 	}
 	if err := netlink.LinkSetUp(peer); err != nil {
-		return fmt.Errorf("failure setting link %s up with error: %+v", peer.Attrs().Name, err)
+		return nil, fmt.Errorf("failure setting link %s up with error: %+v", peer.Attrs().Name, err)
 	}
-	return nil
+
+	return []string{p1, p2}, nil
 }
 
 func setVethAddr(ns1, ns2 netns.NsHandle, p1, p2 string) error {
@@ -544,37 +547,37 @@ func main() {
 	}
 }
 
-func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, namespace2 string) error {
+func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, namespace2 string) (*dataplaneapi.Connection, error) {
 	cid1, err := getContainerID(k8s, podName1, namespace1)
 	if err != nil {
-		return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace1, podName1, err)
+		return nil, fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace1, podName1, err)
 	}
 	logrus.Printf("Discovered Container ID %s for pod %s/%s", cid1, namespace1, podName1)
 
 	cid2, err := getContainerID(k8s, podName2, namespace2)
 	if err != nil {
-		return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace2, podName2, err)
+		return nil, fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
 	logrus.Printf("Discovered Container ID %s for pod %s/%s", cid2, namespace2, podName2)
 
 	logrus.Printf("Debug: Calling getPidForContainer for container id %s", cid1)
 	pid1, err := getPidForContainer(cid1)
 	if err != nil {
-		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
+		return nil, fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
 	}
 	logrus.Printf("Debug: Calling getPidForContainer for container id %s", cid2)
 	pid2, err := getPidForContainer(cid2)
 	if err != nil {
-		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
+		return nil, fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
 
 	ns1, err := netns.GetFromPid(pid1)
 	if err != nil {
-		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
+		return nil, fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
 	}
 	ns2, err := netns.GetFromPid(pid2)
 	if err != nil {
-		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
+		return nil, fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
 
 	if len(podName1) > interfaceNameMaxLength {
@@ -584,13 +587,14 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 		podName2 = podName2[:interfaceNameMaxLength]
 	}
 
-	if err := setVethPair(ns1, ns2, podName1, podName2); err != nil {
-		return fmt.Errorf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
+	interfaces, err := setVethPair(ns1, ns2, podName1, podName2)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
 			namespace1, podName1, namespace2, podName2, err)
 	}
 
 	if err := setVethAddr(ns1, ns2, podName1, podName2); err != nil {
-		return fmt.Errorf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
+		return nil, fmt.Errorf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
 			namespace1, podName1, namespace2, podName2, err)
 	}
 
@@ -600,7 +604,19 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 	if err := listInterfaces(ns2); err != nil {
 		logrus.Errorf("Failed to list interfaces of %s/%swith error: %+v", namespace2, podName2, err)
 	}
-	return nil
+	connection := dataplaneapi.Connection{
+		LocalSource: &common.LocalMechanism{
+			Type:       common.LocalMechanismType_KERNEL_INTERFACE,
+			Parameters: map[string]string{"clientlocalmechanism": interfaces[0]},
+		},
+		Destination: &dataplaneapi.Connection_Local{
+			Local: &common.LocalMechanism{
+				Type:       common.LocalMechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{"nselocalmechanism": interfaces[1]},
+			},
+		},
+	}
+	return &connection, nil
 }
 
 func deleteLink(k8s *kubernetes.Clientset, podName string, namespace string, podType testdataplane.NSMPodType) error {

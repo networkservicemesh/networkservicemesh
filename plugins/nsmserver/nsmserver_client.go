@@ -35,6 +35,7 @@ import (
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
@@ -235,7 +236,8 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 
 	// Local NSE case
 	if selectedEndpoint.Spec.NetworkServiceHost == n.nsmPodIPAddress {
-		if err := localNSE(n, cr.RequestId, cr.NetworkServiceName); err != nil {
+		connection, err := localNSE(n, cr.RequestId, cr.NetworkServiceName)
+		if err != nil {
 			n.logger.Errorf("nsm: failed to communicate with local NSE over the socket %s with error: %+v", selectedEndpoint.Spec.SocketLocation, err)
 			cleanConnectionRequest(cr.RequestId, n)
 			return &nsmconnect.ConnectionReply{
@@ -245,13 +247,15 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 		}
 		n.logger.Infof("successfully create client connection for request id: %s networkservice: %s",
 			cr.RequestId, cr.NetworkServiceName)
-
 		// nsm client requesting connection is one time operation and it does not seem require to keep state
 		// after it either succeeded or failed. It seems safe to delete completed Connection Request.
 		cleanConnectionRequest(cr.RequestId, n)
 		return &nsmconnect.ConnectionReply{
-			Accepted:             true,
-			ConnectionParameters: &nsmconnect.ConnectionParameters{},
+			Accepted: true,
+			ConnectionParameters: &nsmconnect.ConnectionParameters{
+				// Passing connection parameters which were populated by the dataplane
+				ConnectionParameters: connection.LocalSource.Parameters,
+			},
 		}, nil
 	}
 	// Remote NSE case (not implemented)
@@ -263,52 +267,68 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	}, status.Error(codes.Aborted, "connection with remote NSE is not implemented, come back later")
 }
 
-func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error {
+func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) (*dataplane.Connection, error) {
 	client := n.clientConnections[requestID][networkServiceName]
 	nseConn, err := tools.SocketOperationCheck(client.endpoint.Spec.SocketLocation)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer nseConn.Close()
 	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
 
 	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer nseCancel()
-	nseRepl, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
+	nseEndpointConnectionReply, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
 		RequestId: requestID,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	n.logger.Infof("successfuly received information from NSE: %s", nseRepl.RequestId)
+	n.logger.Infof("successfuly received information from NSE: %s", nseEndpointConnectionReply.RequestId)
 
 	// TODO (sbezverk) It must be refactor as soon as possible to call dataplane interface
 
 	// podName1/podNamespace1 represents nsm client requesting access to a network service
 	nsmClientPodName, err := getPodNameByUID(n.k8sClient, requestID, n.namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// podName2/podNamespace2 represents nse pod
 	nsePodName, err := getPodNameByUID(n.k8sClient, string(client.endpoint.Spec.NseProviderName), n.namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err := dataplaneutils.ConnectPods(nsmClientPodName, nsePodName, n.namespace, n.namespace); err != nil {
-		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
+	connection, err := dataplaneutils.ConnectPods(nsmClientPodName, nsePodName, n.namespace, n.namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
 			n.namespace, nsmClientPodName, n.namespace, nsePodName, err)
 	}
+
+	nseEndpointMechanismReply, err := nseClient.SendEndpointConnectionMechanism(nseCtx, &nseconnect.EndpointConnectionMechanism{
+		RequestId:          requestID,
+		LocalMechanism:     connection.LocalSource,
+		NetworkServiceName: networkServiceName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !nseEndpointMechanismReply.MechanismFound {
+		// NSE reported that dataplane provisioner local mechanism is not found, as a result the end to end
+		// connectivity is not possible, returning error
+		return nil, fmt.Errorf("NSE reported a failure finding the local mechanism provisioned by the dataplane")
+	}
+
 	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
 	// to clean up injected dataplane interfaces without any race.
 	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsmClientPodName, n.namespace, finalizer.NSMFinalizer); err != nil {
-		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsmClientPodName, err)
+		return nil, fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsmClientPodName, err)
 	}
 	// the finalizer for nse pod is a combination of a nsm client pod name + finalizer.NSEFinalizerSuffix,
 	// it will allow to check if nse pod is safe to delete or it is still used by nsm client(s)
 	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsePodName, n.namespace, nsmClientPodName+finalizer.NSEFinalizerSuffix); err != nil {
-		return fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsePodName, err)
+		return nil, fmt.Errorf("failed to add finalizer to pod %s/%s with error: %+v", n.namespace, nsePodName, err)
 	}
-	return nil
+	return connection, nil
 }
 
 func getPodNameByUID(k8s *kubernetes.Clientset, uid, namespace string) (string, error) {

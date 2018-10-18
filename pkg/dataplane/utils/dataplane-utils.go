@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/testdataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"golang.org/x/net/context"
@@ -33,11 +34,11 @@ const (
 
 // ConnectPods builds dataplane connection between nsm client and nse providing
 // required by the client network service
-func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) error {
+func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) (*dataplane.Connection, error) {
 
 	dataplaneConn, err := tools.SocketOperationCheck(dataplaneSocket)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer dataplaneConn.Close()
 
@@ -62,12 +63,12 @@ func ConnectPods(podName1, podName2, podNamespace1, podNamespace2 string) error 
 	buildConnectRepl, err := dataplaneClient.RequestBuildConnect(ctx, buildConnectRequest)
 	if err != nil {
 		if buildConnectRepl != nil {
-			return fmt.Errorf("%+v with additional information: %s", err, buildConnectRepl.BuildError)
+			return nil, fmt.Errorf("%+v with additional information: %s", err, buildConnectRepl.BuildError)
 		}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return buildConnectRepl.Connection, nil
 }
 
 // CleanupPodDataplane cleans up from the given pod previsouly injected  dataplane
