@@ -47,7 +47,6 @@ jobs:
           command: kubectl create -f /cncf/rbac/
           environment:
             KUBECONFIG: /cncf/data/kubeconfig
-      - run: find /cncf/data
       - save_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
@@ -74,7 +73,6 @@ jobs:
       - run:
           command: |
             mv /cncf/data ./data
-            find ./data
           name: Move Cache
       - run:
           command: ./scripts/circle-integration-tests.sh
@@ -98,7 +96,6 @@ jobs:
     steps:
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: find /cncf/data
       - checkout:
           path:
             nsm
