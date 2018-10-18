@@ -14,7 +14,7 @@ spec:
         - name: vpp-daemon
           securityContext:
             privileged: true
-          image: networkservicemesh/vpp-daemon:latest
+          image: networkservicemesh/vppdataplane:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: run
