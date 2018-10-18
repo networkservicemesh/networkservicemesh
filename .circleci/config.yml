@@ -47,10 +47,10 @@ jobs:
           command: kubectl create -f /cncf/rbac/
           environment:
             KUBECONFIG: /cncf/data/kubeconfig
-      - persist_to_workspace:
-          root: /cncf/data
+      - save_cache:
+          key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
-            - ./*
+            - data
 
   packet-integration-tests:
     working_directory: /go/src/github.com/ligato/networkservicemesh
@@ -63,15 +63,47 @@ jobs:
           command: |
             ./.circleci/set-nameserver.sh sudo
             sudo apt-get install gettext-base
-      - attach_workspace:
-          at: ./data
+      - run:
+          command: |
+            sudo mkdir -p /cncf/data
+            sudo chown -R circleci:circleci /cncf/
+          name: Cache Prep
+      - restore_cache:
+          key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run:
+          command: |
+            mv /cncf/data ./data
+          name: Move Cache
       - run:
           command: ./scripts/circle-integration-tests.sh
           environment:
             KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
       - run:
-          when: always
-          command: ./.circleci/destroy-cluster.sh
+          when: on_fail
+          name: Trigger packet-destroy
+          command: |
+            curl --user ${CIRCLE_API_PROJECT_TOKEN}: \
+                --data build_parameters[CIRCLE_JOB]=packet-destroy \
+                --data build_parameters[CIRCLE_WORKFLOW_ID]=${CIRCLE_WORKFLOW_ID} \
+                --data revision=$CIRCLE_SHA1 \
+                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
+
+
+  packet-destroy:
+    working_directory: /cncf
+    docker:
+      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
+    steps:
+      - restore_cache:
+          key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - checkout:
+          path:
+            nsm
+      - run: nsm/.circleci/set-nameserver.sh
+      - run: nsm/.circleci/provision.sh packet-destroy
+      - run:
+          when: on_fail
+          command: nsm/.circleci/provision.sh packet-destroy
 
 workflows:
   version: 2
@@ -88,3 +120,6 @@ workflows:
           requires:
             - build
             - packet-deploy
+      - packet-destroy:
+          requires:
+            - packet-integration-tests
