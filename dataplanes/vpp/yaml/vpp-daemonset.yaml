@@ -15,7 +15,7 @@ spec:
           securityContext:
             privileged: true
           image: networkservicemesh/vppdataplane:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: run
               mountPath: /var/run
@@ -28,7 +28,7 @@ spec:
           securityContext:
             privileged: true
           image: networkservicemesh/vpp:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: run
               mountPath: /var/run
