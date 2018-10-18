@@ -25,6 +25,7 @@ import (
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/l2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/tapv2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,8 +39,10 @@ type tapInterface struct {
 	tag          []byte
 }
 
+type KernelInterface struct{}
+
 // CreateLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
-func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
+func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
 	var err error
 
 	if err := nsmutils.ValidateParameters(srcParameters); err != nil {
@@ -118,7 +121,7 @@ func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map
 		return "", fmt.Errorf("Error in reply: %+v", err)
 	}
 
-	return fmt.Sprintf("%x-%x", tap1.id, tap2.id), nil
+	return fmt.Sprintf("%d-%x-%x", common.LocalMechanismType_KERNEL_INTERFACE, tap1.id, tap2.id), nil
 }
 
 // createTapInterface creates new tap interface in a specified namespace
@@ -205,9 +208,9 @@ func IPv4ToByteSlice(ipv4Address string) ([]byte, error) {
 }
 
 // DeleteLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
-func DeleteLocalConnect(apiCh govppapi.Channel, connID string) error {
-	t1, _ := strconv.Atoi(strings.Split(connID, "-")[0])
-	t2, _ := strconv.Atoi(strings.Split(connID, "-")[1])
+func (m KernelInterface) DeleteLocalConnect(apiCh govppapi.Channel, connID string) error {
+	t1, _ := strconv.Atoi(strings.Split(connID, "-")[1])
+	t2, _ := strconv.Atoi(strings.Split(connID, "-")[2])
 	tap1IntfID := uint32(t1)
 	tap2IntfID := uint32(t2)
 

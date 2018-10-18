@@ -15,12 +15,11 @@
 package nsmdataplane
 
 import (
-	"google.golang.org/grpc/codes"
-	// "context"
-
 	"context"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
@@ -30,6 +29,7 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes" // "context"
 	"google.golang.org/grpc/status"
 )
 
@@ -48,6 +48,15 @@ type Update struct {
 	localMechanisms  []*common.LocalMechanism
 }
 
+var mechanisms = []nsmvpp.Mechanism{
+	nsmvpp.KernelInterface{}, // default
+	nsmvpp.KernelInterface{},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_VHOST_INTERFACE},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_MEM_INTERFACE},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_SRIOV_INTERFACE},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_HW_INTERFACE},
+}
+
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
 	if err := nsmutils.ValidateParameters(src.Parameters); err != nil {
@@ -57,13 +66,14 @@ func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism)
 		return "", err
 	}
 
-	return nsmvpp.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
+	return mechanisms[src.Type].CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
 }
 
 // deleteLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func deleteLocalConnect(apiCh govppapi.Channel, connID string) error {
+	mechanism, _ := strconv.Atoi(strings.Split(connID, "-")[0])
 
-	return nsmvpp.DeleteLocalConnect(apiCh, connID)
+	return mechanisms[mechanism].DeleteLocalConnect(apiCh, connID)
 }
 
 // ConnectRequest is called when NSM sends the request to interconnect two containers' namespaces.
