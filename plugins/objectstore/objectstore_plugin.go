@@ -17,6 +17,8 @@ package objectstore
 import (
 	"reflect"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
+
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
@@ -35,12 +37,14 @@ type meta struct {
 type objectStore struct {
 	*networkServicesStore
 	*dataplaneStore
+	*connectionStore
 }
 
 func newObjectStore() *objectStore {
 	objectStore := &objectStore{}
 	objectStore.networkServicesStore = newNetworkServicesStore()
 	objectStore.dataplaneStore = newDataplaneStore()
+	objectStore.connectionStore = newConnectionStore()
 	return objectStore
 }
 
@@ -93,6 +97,9 @@ func (p *Plugin) ObjectCreated(obj interface{}) {
 		dp := obj.(*Dataplane)
 		p.objects.dataplaneStore.Add(dp)
 		p.Log.Infof("number of dataplanes in Object Store %d", len(p.objects.dataplaneStore.List()))
+	case *dataplane.Connection:
+		con := obj.(*dataplane.Connection)
+		p.objects.connectionStore.Add(con)
 	default:
 		p.Log.Infof("found object of unknown type: %s", reflect.TypeOf(obj))
 	}
@@ -129,6 +136,18 @@ func (p *Plugin) ListNetworkServices() []*v1.NetworkService {
 	return p.objects.networkServicesStore.List()
 }
 
+// GetConnection - GetConnection by connectionID
+func (p *Plugin) GetConnection(connectionID string) *dataplane.Connection {
+	p.Log.Info("ObjectStore.GetConnection.")
+	return p.objects.connectionStore.Get(connectionID)
+}
+
+// ListConnections - List all connections
+func (p *Plugin) ListConnections() []*dataplane.Connection {
+	p.Log.Info("Objectstore.ListConnections.")
+	return p.objects.connectionStore.List()
+}
+
 // ObjectDeleted is called when an object is deleted
 func (p *Plugin) ObjectDeleted(obj interface{}) {
 	p.Log.Infof("ObjectStore.ObjectDeleted: %s", reflect.TypeOf(obj))
@@ -139,5 +158,8 @@ func (p *Plugin) ObjectDeleted(obj interface{}) {
 	case *Dataplane:
 		dp := obj.(*Dataplane)
 		p.objects.dataplaneStore.Delete(dp.RegisteredName)
+	case *dataplane.Connection:
+		con := obj.(*dataplane.Connection)
+		p.objects.connectionStore.Delete(con.ConnectionId)
 	}
 }

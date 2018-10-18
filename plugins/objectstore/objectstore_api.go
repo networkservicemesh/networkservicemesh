@@ -17,6 +17,8 @@ package objectstore
 import (
 	"time"
 
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
+
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
 )
@@ -37,6 +39,8 @@ type Interface interface {
 	GetDataplane(registeredName string) *Dataplane
 	RemoveDataplane(registeredName string)
 	ListDataplanes() []*Dataplane
+	GetConnection(connectionID string) *dataplane.Connection
+	ListConnections() []*dataplane.Connection
 }
 
 // PluginAPI - API for the Plugin
