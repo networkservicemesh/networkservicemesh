@@ -1,0 +1,75 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: nsc-memif
+  name: nsc-memif
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: nsc-memif
+  name: nsc-memif
+  namespace: default
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - networkservicemesh.io
+    resources:
+      - networkserviceendpoints
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: nsc-memif
+  name: nsc-memif
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nsc-memif
+subjects:
+  - kind: ServiceAccount
+    name: nsc-memif
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io: "true"
+        networkservicemesh.io/app: nsc-memif
+    spec:
+      serviceAccount: nsc-memif
+      containers:
+        - image: networkservicemesh/nsc-memif
+          name: nsc-memif
+          imagePullPolicy: IfNotPresent
+          args:
+            - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+          env:
+            - name: INIT_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+metadata:
+  name: nsc-memif
+  namespace: default
