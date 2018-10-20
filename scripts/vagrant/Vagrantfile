@@ -1,0 +1,29 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # Specify your hostname if you like
+  config.vm.hostname = "kube-master"
+
+  config.vm.provider "virtualbox" do |v|
+        v.memory = 4096
+        v.cpus = 2
+  end
+  config.vm.provider "vmware_desktop" do |v|
+    v.vmx["memsize"] = "4096"
+    v.vmx["numvcpus"] = "2"
+  end
+  config.vm.provider "vmware_fusion" do |v|
+    v.vmx["memsize"] = "4096"
+    v.vmx["numvcpus"] = "2"
+  end
+  config.vm.box = "bento/ubuntu-18.04"
+  config.vm.network "private_network", type: "dhcp"
+   
+  # If you need hugepages, this is how you get them 
+  # config.vm.provision "shell", path: "scripts/setup_hugepages.sh"  
+  config.vm.provision "docker"
+  config.vm.provision "shell", path: "scripts/install_kubernetes.sh"
+  config.vm.provision "shell", path: "scripts/load_images.sh"
+  config.vm.provision "shell", inline: "mkdir -p /var/lib/networkservicemesh"
+end
