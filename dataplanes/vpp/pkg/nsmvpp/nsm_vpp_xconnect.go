@@ -68,6 +68,7 @@ func validateKernelInterfaceParameters(parameters map[string]string) error {
 	return nsmutils.ValidateParameters(parameters, kernelInterfaceParameters)
 }
 
+//todo rename
 // CreateLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
 func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
 	var err error
