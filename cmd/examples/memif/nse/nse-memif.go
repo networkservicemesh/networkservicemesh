@@ -187,7 +187,7 @@ func main() {
 		SocketLocation:     connectionServerSocket,
 		LocalMechanisms: []*common.LocalMechanism{
 			{
-				Type: common.LocalMechanismType_MEM_INTERFACE,
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 			},
 		},
 	}

@@ -110,7 +110,7 @@ func main() {
 	}
 
 	mechanism := &common.LocalMechanism{
-		Type: common.LocalMechanismType_MEM_INTERFACE,
+		Type: common.LocalMechanismType_KERNEL_INTERFACE,
 	}
 
 	cReq := nsmconnect.ConnectionRequest{
