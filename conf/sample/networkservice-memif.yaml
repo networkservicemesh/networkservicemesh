@@ -1,0 +1,7 @@
+---
+apiVersion: networkservicemesh.io/v1
+kind: NetworkService
+metadata:
+  name: memif-test
+spec:
+  networkServiceName: memif-test
