@@ -5,7 +5,7 @@ COPY [".","/go/src/${PACKAGEPATH}"]
 WORKDIR /go/src/${PACKAGEPATH}/
 RUN ./scripts/build.sh --race-test-disabled
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nse ./cmd/examples/nse/nse.go
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nse ./cmd/examples/memif/nse/nse-memif.go
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nse ./cmd/examples/memif/nsc/nsc-memif.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nse-memif ./cmd/examples/memif/nse/nse-memif.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nsc-memif ./cmd/examples/memif/nsc/nsc-memif.go
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/test-dataplane ./cmd/examples/test-dataplane/test-dataplane.go
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nsm-init ./cmd/nsm-init/nsm-init.go
