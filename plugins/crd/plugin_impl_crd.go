@@ -23,13 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ligato/networkservicemesh/utils/helper/deptools"
-	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
-	"github.com/ligato/networkservicemesh/utils/registry"
-
-	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/ligato/cn-infra/health/statuscheck"
 	"github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	client "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
@@ -38,7 +31,12 @@ import (
 	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
+	"github.com/ligato/networkservicemesh/utils/helper/deptools"
+	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/ligato/networkservicemesh/utils/registry"
+	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -50,7 +48,7 @@ type Plugin struct {
 
 	pluginStopCh  chan struct{}
 	wg            sync.WaitGroup
-	apiclientset  *apiextcs.Clientset
+	apiclientset  apiextcs.Interface
 	crdClient     client.Interface
 	StatusMonitor statuscheck.StatusReader
 
@@ -152,10 +150,7 @@ func (plugin *Plugin) afterInit() error {
 	var err error
 
 	// Create clientset and create our CRD, this only needs to run once
-	plugin.apiclientset, err = apiextcs.NewForConfig(plugin.K8sclient.GetClientConfig())
-	if err != nil {
-		panic(err.Error())
-	}
+	plugin.apiclientset = plugin.K8sclient.GetAPIExtClientset()
 
 	// Create an instance of our own API client
 	plugin.crdClient = plugin.K8sclient.GetNSMClientset()

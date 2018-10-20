@@ -66,7 +66,7 @@ type nsmClientEndpoints struct {
 	clientConnections map[string]map[string]*clientNetworkService
 	sync.RWMutex
 	k8sClient       kubernetes.Interface
-	nsmClient       *nsmclient.Clientset
+	nsmClient       nsmclient.Interface
 	namespace       string
 	nsmPodIPAddress string
 }
@@ -91,7 +91,7 @@ type clientNetworkService struct {
 // getNetworkServiceEndpoint gets all advertised Endpoints for a specific Network Service
 func getNetworkServiceEndpoint(
 	k8sClient kubernetes.Interface,
-	nsmClient *nsmclient.Clientset,
+	nsmClient nsmclient.Interface,
 	networkService string,
 	namespace string) ([]nsmapi.NetworkServiceEndpoint, error) {
 	selector := labels.SelectorFromSet(labels.Set(map[string]string{EndpointServiceLabel: networkService}))

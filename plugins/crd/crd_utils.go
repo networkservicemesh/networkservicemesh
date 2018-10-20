@@ -73,7 +73,7 @@ func newCustomResourceDefinition(plugin *Plugin, FullName, Group, Version, Plura
 	return nil
 }
 
-func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *apiextcs.Clientset) error {
+func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient apiextcs.Interface) error {
 	// First check if the CRD already exists
 	oldCRD, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCRD.ObjectMeta.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -123,7 +123,7 @@ func createCRDObject(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *
 // updateCRD attempts to update existing CRD with new definitions. number of attempts is defined in
 // nsmObjectUpdateRetries. In case of a conflict error code is returned, the update is re-attempted
 // as per optimistic concurrency approach.
-func updateCRD(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient *apiextcs.Clientset) error {
+func updateCRD(newCRD *apiextv1beta1.CustomResourceDefinition, crdClient apiextcs.Interface) error {
 	for i := 0; i < nsmObjectUpdateRetries; i++ {
 		oldCRD, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCRD.ObjectMeta.Name, metav1.GetOptions{})
 		if err != nil {

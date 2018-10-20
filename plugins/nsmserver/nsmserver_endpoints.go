@@ -49,7 +49,7 @@ type nsmEndpointServer struct {
 	logger             logger.FieldLoggerPlugin
 	objectStore        objectstore.Interface
 	k8sClient          kubernetes.Interface
-	nsmClient          *nsmclient.Clientset
+	nsmClient          nsmclient.Interface
 	grpcServer         *grpc.Server
 	endPointSocketPath string
 	stopChannel        chan bool

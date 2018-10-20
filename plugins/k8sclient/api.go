@@ -17,15 +17,16 @@ package k8sclient
 import (
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/plugins/idempotent"
+	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // Interface is the interface to a k8sclient plugin
 type API interface {
-	GetClientConfig() *rest.Config
+	//GetClientConfig() *rest.Config
 	GetClientset() kubernetes.Interface
-	GetNSMClientset() *nsmclient.Clientset
+	GetNSMClientset() nsmclient.Interface
+	GetAPIExtClientset() apiextcs.Interface
 }
 
 // PluginAPI for k8sclient

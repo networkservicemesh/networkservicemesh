@@ -23,6 +23,7 @@ import (
 	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"github.com/ligato/networkservicemesh/utils/registry"
+	apiextcs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -34,8 +35,9 @@ type Plugin struct {
 	Deps
 
 	k8sClientConfig *rest.Config
-	k8sClientset    *kubernetes.Clientset
-	nsmClient       *nsmclient.Clientset
+	k8sClientset    kubernetes.Interface
+	nsmClient       nsmclient.Interface
+	apiclientset    apiextcs.Interface
 }
 
 // Init Plugin
@@ -58,9 +60,15 @@ func (p *Plugin) init() error {
 	if err != nil {
 		return fmt.Errorf("failed to build kubernetes client: %s", err)
 	}
+
 	p.nsmClient, err = nsmclient.NewForConfig(p.k8sClientConfig)
 	if err != nil {
 		return fmt.Errorf("failed to build networkservicemesh client: %s", err)
+	}
+
+	p.apiclientset, err = apiextcs.NewForConfig(p.k8sClientConfig)
+	if err != nil {
+		return fmt.Errorf("failed to build apiext client: %s", err)
 	}
 
 	return nil
@@ -87,6 +95,10 @@ func (p *Plugin) GetClientset() kubernetes.Interface {
 }
 
 // GetNSMClientset returns a pointer to our nsmClient.Clientset object
-func (p *Plugin) GetNSMClientset() *nsmclient.Clientset {
+func (p *Plugin) GetNSMClientset() nsmclient.Interface {
 	return p.nsmClient
+}
+
+func (p *Plugin) GetAPIExtClientset() apiextcs.Interface {
+	return p.apiclientset
 }

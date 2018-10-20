@@ -67,7 +67,7 @@ type Plugin struct {
 	stopCh        chan struct{}
 	informer      cache.SharedIndexInformer
 	k8sClient     kubernetes.Interface
-	nsmClient     *nsmclient.Clientset
+	nsmClient     nsmclient.Interface
 	namespace     string
 }
 
