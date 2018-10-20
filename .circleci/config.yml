@@ -29,6 +29,24 @@ jobs:
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             cd dataplanes/vpp ; make all ; cd -
             make verify docker-build docker-push
+      - run:
+          when: on_fail
+          name: Trigger packet-destroy
+          command: |
+            echo "Wait for 10 minutes to allow deploy to happen"
+            typeset -i numsec=600
+            typeset -i cnt=0
+            while [ $cnt -lt ${numsec} ]; do
+              echo -ne "Waited $cnt seconds out of $numsec\033[0K\r"
+              ((cnt=cnt+1))
+              sleep 1
+            done
+            curl --user ${CIRCLE_API_PROJECT_TOKEN}: \
+                --data build_parameters[CIRCLE_JOB]=packet-destroy \
+                --data build_parameters[CIRCLE_WORKFLOW_ID]=${CIRCLE_WORKFLOW_ID} \
+                --data revision=$CIRCLE_SHA1 \
+                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
+
 
   packet-deploy:
     working_directory: /cncf
