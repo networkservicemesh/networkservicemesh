@@ -73,6 +73,6 @@ function run_tests() {
     fi
 }
 
-run_tests()
+run_tests
 
 # vim: sw=4 ts=4 et si
