@@ -48,7 +48,7 @@ const (
 type nsmEndpointServer struct {
 	logger             logger.FieldLoggerPlugin
 	objectStore        objectstore.Interface
-	k8sClient          *kubernetes.Clientset
+	k8sClient          kubernetes.Interface
 	nsmClient          *nsmclient.Clientset
 	grpcServer         *grpc.Server
 	endPointSocketPath string

@@ -17,16 +17,15 @@ package k8sclient
 import (
 	"fmt"
 
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/utils/command"
 	"github.com/ligato/networkservicemesh/utils/helper/deptools"
 	"github.com/ligato/networkservicemesh/utils/helper/plugintools"
 	"github.com/ligato/networkservicemesh/utils/idempotent"
 	"github.com/ligato/networkservicemesh/utils/registry"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Plugin for k8sclient
@@ -83,7 +82,7 @@ func (p *Plugin) GetClientConfig() *rest.Config {
 }
 
 // GetClientset returns a pointer to our kubernetes.Clientset object
-func (p *Plugin) GetClientset() *kubernetes.Clientset {
+func (p *Plugin) GetClientset() kubernetes.Interface {
 	return p.k8sClientset
 }
 

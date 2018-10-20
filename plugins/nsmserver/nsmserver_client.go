@@ -29,8 +29,6 @@ import (
 	"sync"
 	"time"
 
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-
 	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
@@ -48,10 +46,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 )
 
 const (
@@ -67,7 +65,7 @@ type nsmClientEndpoints struct {
 	// Second key is NetworkService name
 	clientConnections map[string]map[string]*clientNetworkService
 	sync.RWMutex
-	k8sClient       *kubernetes.Clientset
+	k8sClient       kubernetes.Interface
 	nsmClient       *nsmclient.Clientset
 	namespace       string
 	nsmPodIPAddress string
@@ -92,7 +90,7 @@ type clientNetworkService struct {
 
 // getNetworkServiceEndpoint gets all advertised Endpoints for a specific Network Service
 func getNetworkServiceEndpoint(
-	k8sClient *kubernetes.Clientset,
+	k8sClient kubernetes.Interface,
 	nsmClient *nsmclient.Clientset,
 	networkService string,
 	namespace string) ([]nsmapi.NetworkServiceEndpoint, error) {
@@ -311,7 +309,7 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 	return nil
 }
 
-func getPodNameByUID(k8s *kubernetes.Clientset, uid, namespace string) (string, error) {
+func getPodNameByUID(k8s kubernetes.Interface, uid, namespace string) (string, error) {
 	podList, err := k8s.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err

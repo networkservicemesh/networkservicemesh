@@ -132,7 +132,7 @@ func cleanUpNSMClient(plugin *Plugin, pod *v1.Pod) {
 	}
 }
 
-func checkForInUse(k8s *kubernetes.Clientset, pod *v1.Pod, podNamespace string) (bool, error) {
+func checkForInUse(k8s kubernetes.Interface, pod *v1.Pod, podNamespace string) (bool, error) {
 	var inUse bool
 	finalizers := pod.GetFinalizers()
 	nsmClients := []string{}

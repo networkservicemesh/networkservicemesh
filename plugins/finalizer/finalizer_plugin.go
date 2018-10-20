@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/ligato/cn-infra/health/statuscheck"
+	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	"github.com/ligato/networkservicemesh/plugins/k8sclient"
 	"github.com/ligato/networkservicemesh/plugins/logger"
 	"github.com/ligato/networkservicemesh/plugins/objectstore"
@@ -30,13 +31,11 @@ import (
 	"github.com/ligato/networkservicemesh/utils/registry"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
-
-	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -67,7 +66,7 @@ type Plugin struct {
 	StatusMonitor statuscheck.StatusReader
 	stopCh        chan struct{}
 	informer      cache.SharedIndexInformer
-	k8sClient     *kubernetes.Clientset
+	k8sClient     kubernetes.Interface
 	nsmClient     *nsmclient.Clientset
 	namespace     string
 }
