@@ -16,28 +16,13 @@
 # and docker build infrastructure. It also contains the targets to build
 # and push Docker images
 
-DOCKER_VPPDATAPLANE=networkservicemesh/vppdataplane
-DOCKER_VPP=networkservicemesh/vpp
+ORG=networkservicemesh
 
-#
-# Targets to build docker images
-#
-# NOTE: ${COMMIT} is set in .travis.yml from the first 8 bytes of
-# ${TRAVIS_COMMIT}. Thus, for travis-ci builds, we tag the Docker images
-# with both the name and this first 8 bytes of the commit hash.
-#
-.PHONY: docker-build-vppdataplane
-docker-build-vppdataplane:
-	@${DOCKERBUILD} -t ${DOCKER_VPPDATAPLANE} -f build/Dockerfile.build ../..
+.PHONY: docker-build-%
+docker-build-%:
+	@${DOCKERBUILD} -t ${ORG}/$* -f build/Dockerfile.$* ../../
 	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_VPPDATAPLANE} ${DOCKER_VPPDATAPLANE}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-vpp
-docker-build-vpp:
-	@${DOCKERBUILD} -t ${DOCKER_VPP} -f build/Dockerfile.vpp ../..
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_VPP} ${DOCKER_VPP}:${COMMIT} ;\
+		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
 
 #
@@ -49,14 +34,8 @@ docker-build-vpp:
 docker-login:
 	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
-.PHONY: docker-push-vpp-dataplane
-docker-push-vppdataplane: docker-login
-	docker tag ${DOCKER_VPPDATAPLANE}:${COMMIT} ${DOCKER_VPPDATAPLANE}:${TAG}
-	docker tag ${DOCKER_VPPDATAPLANE}:${COMMIT} ${DOCKER_VPPDATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
-	docker push ${DOCKER_VPPDATAPLANE}
-
-.PHONY: docker-push-vpp
-docker-push-vpp: docker-login
-	docker tag ${DOCKER_VPP}:${COMMIT} ${DOCKER_VPP}:${TAG}
-	docker tag ${DOCKER_VPP}:${COMMIT} ${DOCKER_VPP}:travis-${TRAVIS_BUILD_NUMBER}
-	docker push ${DOCKER_VPP}
+.PHONY: docker-push-%
+docker-push-%: docker-login
+	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
+	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
+	docker push ${ORG}/$*
