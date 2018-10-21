@@ -48,7 +48,7 @@ function run_tests() {
     #
     # Since daemonset is up and running, create CRD resources
     #
-    kubectl create -f conf/sample/networkservice-memif.yaml
+    kubectl create -f conf/sample/networkservice.yaml
     wait_for_networkservice default
 
     #
@@ -71,6 +71,96 @@ function run_tests() {
     if [ "${exit_ret}" != "0" ] ; then
         return "${exit_ret}"
     fi
+
+    #
+    # tests are failing on minikube for adding sidecar containers,  will enable
+    # tests once we move the testing to actual Kubernetes cluster.
+    ## Refer https://github.com/kubernetes/website/issues/3956#issuecomment-407895766
+
+    # # Side car tests
+    # kubectl create -f conf/sidecar-injector/sample-deployment.yaml
+    # wait_for_pods default
+    # exit_ret=$?
+    # if [ "${exit_ret}" != "0" ] ; then
+    #     return "${exit_ret}"
+    # fi
+
+    # ## Sample test scripts for adding sidecar components in a Kubernetes cluster
+    # SIDECAR_CONFIG=conf/sidecar-injector
+
+    # ## Create SSL certificates
+    # $SIDECAR_CONFIG/webhook-create-signed-cert.sh --service sidecar-injector-webhook-svc --secret sidecar-injector-webhook-certs --namespace default
+
+    # ## Copy the cert to the webhook configuration YAML file
+    # < $SIDECAR_CONFIG/mutatingWebhookConfiguration.yaml $SIDECAR_CONFIG/webhook-patch-ca-bundle.sh >  $SIDECAR_CONFIG/mutatingwebhook-ca-bundle.yaml
+
+    # kubectl label namespace default sidecar-injector=enabled
+    # ## Create all the required components
+    # kubectl create -f $SIDECAR_CONFIG/configMap.yaml -f $SIDECAR_CONFIG/ServiceAccount.yaml -f $SIDECAR_CONFIG/server-deployment.yaml -f $SIDECAR_CONFIG/mutatingwebhook-ca-bundle.yaml -f $SIDECAR_CONFIG/sidecarInjectorService.yaml
+    # wait_for_pods default
+    # exit_ret=$?
+    # if [ "${exit_ret}" != "0" ] ; then
+    #     return "${exit_ret}"
+    # fi
+
+    # kubectl delete "$(kubectl get pods -o name | grep sleep)"
+    # wait_for_pods default
+    # exit_ret=$?
+    # if [ "${exit_ret}" != "0" ] ; then
+    #     error_collection
+    #     return "${exit_ret}"
+    # fi
+
+    # pod_count=$(kubectl get pods | grep sleep | grep Running | awk '{print $2}')
+    # if [ "${pod_count}" != "2/2" ]; then
+    #     error_collection
+    #     return 1
+    # fi
+
+    # kubectl describe pod "$(kubectl get pods | grep sleep | grep Running | awk '{print $1}')" | grep status=injected
+    # exit_ret=$?
+    # if [ "${exit_ret}" != "0" ] ; then
+    #     error_collection
+    #     return "${exit_ret}"
+    # fi
+    #
+    # Let's check number of injected interfaces and if found,
+    # check connectivity between nsm-client and nse
+    #
+    client_pod_name="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')"
+    client_pod_namespace="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $1}')"
+    intf_number="$(kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ifconfig -a | grep -c nse)"
+    if [ "$intf_number" -eq 0 ] ; then
+        error_collection
+        return 1
+    fi
+    kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ping 1.1.1.2 -c 5
+    #
+    # Final log collection
+    #
+    kubectl get nodes
+    kubectl get pods
+    kubectl get crd
+    kubectl logs "$(kubectl get pods -o name | grep nse)"
+    kubectl logs "$(kubectl get pods -o name | grep nsm-client)" -c nsm-init
+    DATAPLANES="$(kubectl get pods -o name | grep test-dataplane | cut -d "/" -f 2)"
+    for TESTDP in ${DATAPLANES} ; do
+        kubectl logs "${TESTDP}"
+    done
+    kubectl get NetworkService,NetworkServiceEndpoint --all-namespaces
+
+    # Need to get kubeconfig full path
+    # NOTE: Disable this for now until we fix the timing issue
+    if [ ! -z "${KUBECONFIG}" ] ; then
+        K8SCONFIG=${KUBECONFIG}
+    else
+        K8SCONFIG="$HOME"/.kube/config
+    fi
+    export GODEBUG=netdns=2
+    go test ./plugins/crd/... -v --kube-config="$K8SCONFIG"
+
+    # We're all good now
+    return 0
 }
 
 run_tests
