@@ -34,7 +34,7 @@ jobs:
           name: Trigger packet-destroy
           command: |
             echo "Wait for 10 minutes to allow deploy to happen"
-            typeset -i numsec=600
+            typeset -i numsec=900
             typeset -i cnt=0
             while [ $cnt -lt ${numsec} ]; do
               echo -ne "Waited $cnt seconds out of $numsec\033[0K\r"
