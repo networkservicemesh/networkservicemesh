@@ -2,6 +2,6 @@
 apiVersion: networkservicemesh.io/v1
 kind: NetworkService
 metadata:
-  name: memif-test
+  name: icmp-responder
 spec:
-  networkServiceName: memif-test
+  networkServiceName: icmp-responder
