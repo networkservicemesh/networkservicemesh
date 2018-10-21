@@ -48,7 +48,7 @@ function run_tests() {
     #
     # Since daemonset is up and running, create CRD resources
     #
-    kubectl create -f conf/sample/networkservice.yaml
+    kubectl create -f conf/sample/networkservice-memif.yaml
     wait_for_networkservice default
 
     #
