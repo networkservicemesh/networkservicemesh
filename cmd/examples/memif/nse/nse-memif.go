@@ -36,7 +36,7 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	networkServiceName = "memif-test"
+	networkServiceName = "gold-network"
 	// EndpointSocketBaseDir defines the location of NSM Endpoints listen socket
 	EndpointSocketBaseDir = "/var/lib/networkservicemesh"
 	// EndpointSocket defines the name of NSM Endpoints operations socket
@@ -54,7 +54,7 @@ type nseConnection struct {
 }
 
 func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseconnect.EndpointConnectionRequest) (*nseconnect.EndpointConnectionReply, error) {
-	logrus.Info("Request endpoint connection.")
+
 	return &nseconnect.EndpointConnectionReply{
 		RequestId:          n.podUID,
 		NetworkServiceName: n.networkServiceName,
@@ -63,7 +63,7 @@ func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseco
 }
 
 func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req *nseconnect.EndpointConnectionMechanism) (*nseconnect.EndpointConnectionMechanismReply, error) {
-	logrus.Info("Send endpoint connection mechanism.")
+
 	return &nseconnect.EndpointConnectionMechanismReply{
 		RequestId:      req.RequestId,
 		MechanismFound: true,

@@ -22,6 +22,7 @@ DOCKER_TEST_DATAPLANE=networkservicemesh/test-dataplane
 DOCKER_NSM_INIT=networkservicemesh/nsm-init
 DOCKER_NSE=networkservicemesh/nse
 DOCKER_NSC_MEMIF=networkservicemesh/nsc-memif
+DOCKER_NSE_MEMIF=networkservicemesh/nse-memif
 DOCKER_RELEASE=networkservicemesh/release
 DOCKER_SIDECAR_INJECTOR=networkservicemesh/sidecar-injector
 DOCKER_SRIOV_CONTROLLER=networkservicemesh/sriov-controller
@@ -82,6 +83,13 @@ docker-build-nsc-memif: docker-build-release
 		docker tag ${DOCKER_NSC_MEMIF} ${DOCKER_NSC_MEMIF}:${COMMIT} ;\
 	fi
 
+.PHONY: docker-build-nse-memif
+docker-build-nse-memif: docker-build-release
+	@${DOCKERBUILD} -t ${DOCKER_NSE_MEMIF} -f build/Dockerfile.nse-memif .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${DOCKER_NSE_MEMIF} ${DOCKER_NSE_MEMIF}:${COMMIT} ;\
+	fi
+
 .PHONY: docker-build-sidecar-injector
 docker-build-sidecar-injector: docker-build-release
 	@${DOCKERBUILD} -t ${DOCKER_SIDECAR_INJECTOR}  -f build/Dockerfile.sidecar-injector .
@@ -134,6 +142,12 @@ docker-push-nsc-memif: docker-login
 	docker tag ${DOCKER_NSC_MEMIF}:${COMMIT} ${DOCKER_NSC_MEMIF}:${TAG}
 	docker tag ${DOCKER_NSC_MEMIF}:${COMMIT} ${DOCKER_NSC_MEMIF}:${BUILD_TAG}
 	docker push ${DOCKER_NSC_MEMIF}
+
+.PHONY: docker-push-nse-memif
+docker-push-nse-memif: docker-login
+	docker tag ${DOCKER_NSE_MEMIF}:${COMMIT} ${DOCKER_NSE_MEMIF}:${TAG}
+	docker tag ${DOCKER_NSE_MEMIF}:${COMMIT} ${DOCKER_NSE_MEMIF}:${BUILD_TAG}
+	docker push ${DOCKER_NSE_MEMIF}
 
 .PHONY: docker-push-sidecar-injector
 docker-push-sidecar-injector: docker-login

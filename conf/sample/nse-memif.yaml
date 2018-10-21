@@ -3,16 +3,16 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app: nse-memif
-  name: nse-memif
+    app: nse
+  name: nse
   namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
-    app: nse-memif
-  name: nse-memif
+    app: nse
+  name: nse
   namespace: default
 rules:
   - apiGroups:
@@ -27,16 +27,16 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    app: nse-memif
-  name: nse-memif
+    app: nse
+  name: nse
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: nse-memif
+  name: nse
 subjects:
   - kind: ServiceAccount
-    name: nse-memif
+    name: nse
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -48,9 +48,9 @@ spec:
         networkservicemesh.io: "true"
         networkservicemesh.io/app: "nse"
     spec:
-      serviceAccount: nse-memif
+      serviceAccount: nse
       containers:
-        - name: nse-memif
+        - name: nse-1
           image: networkservicemesh/nse-memif
           imagePullPolicy: IfNotPresent
           env:
@@ -67,5 +67,5 @@ spec:
             type: DirectoryOrCreate
           name: connect-socket
 metadata:
-  name: nse-memif
+  name: nse-1
   namespace: default
