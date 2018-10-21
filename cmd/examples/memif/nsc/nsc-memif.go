@@ -47,7 +47,7 @@ const (
 	clientConnectionTimeout = time.Second * 60
 	// clientConnectionTimeout defines retry interval for establishing connection with the server
 	clientConnectionRetry = time.Second * 2
-	networkServiceName    = "gold-network"
+	networkServiceName    = "icmp-responder"
 )
 
 var (

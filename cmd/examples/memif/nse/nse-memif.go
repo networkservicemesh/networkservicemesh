@@ -36,7 +36,7 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	networkServiceName = "gold-network"
+	networkServiceName = "icmp-responder"
 	// EndpointSocketBaseDir defines the location of NSM Endpoints listen socket
 	EndpointSocketBaseDir = "/var/lib/networkservicemesh"
 	// EndpointSocket defines the name of NSM Endpoints operations socket
