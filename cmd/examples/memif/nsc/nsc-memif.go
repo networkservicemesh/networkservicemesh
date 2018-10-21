@@ -47,6 +47,7 @@ const (
 	clientConnectionTimeout = time.Second * 60
 	// clientConnectionTimeout defines retry interval for establishing connection with the server
 	clientConnectionRetry = time.Second * 2
+	networkServiceName    = "gold-network"
 )
 
 var (
@@ -157,23 +158,22 @@ func main() {
 		os.Exit(0)
 	}
 
-	for _, ns := range networkServices {
-		// Getting list of available Network Service Endpoint for each requested Network Service
-		availableEndpoints, err := getNetworkServiceEndpoint(k8sClient, nsmClient, ns.Name, namespace)
-		if err != nil {
-			logrus.Fatalf("nsm client: failed to get a list of NetworkServices from NSM with error: %+v, exiting...", err)
-			continue
-		}
-		if len(availableEndpoints) == 0 {
-			// Since local NSM has no any NetworkServices, then there is nothing to configure for the client
-			logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
-			continue
-		}
-		logrus.Infof("nsm client: list of endpoints discovered for Network service: %s", ns.Name)
-		for _, ep := range availableEndpoints {
-			logrus.Infof("        endpoint: %s", ep.ObjectMeta.Name)
-		}
+	// Getting list of available Network Service Endpoint for each requested Network Service
+	availableEndpoints, err := getNetworkServiceEndpoint(k8sClient, nsmClient, networkServiceName, namespace)
+	if err != nil {
+		logrus.Fatalf("nsm client: failed to get a list of NetworkServices from NSM with error: %+v, exiting...", err)
+		os.Exit(1)
 	}
+	if len(availableEndpoints) == 0 {
+		// Since local NSM has no any NetworkServices, then there is nothing to configure for the client
+		logrus.Info("nsm client: Local NSM does not have any NetworkServices, exiting...")
+		os.Exit(1)
+	}
+	logrus.Infof("nsm client: list of endpoints discovered for Network service: %s", networkServiceName)
+	for _, ep := range availableEndpoints {
+		logrus.Infof("        endpoint: %s", ep.ObjectMeta.Name)
+	}
+
 	// Checking if nsm client socket exists and of not crash init container
 	clientSocket := clientSocketPath
 	if clientSocketUserPath != nil {
@@ -205,22 +205,24 @@ func main() {
 	// Loop through all network services in the config map and request connection to each one. In case of a single
 	// connection request failure, the initialization process is consider as failed.
 	// TODO (sbezverk) Discuss if a non-mandatory atrribute should be added to NetworkService config.
-	for _, ns := range networkServices {
-		cReq := nsmconnect.ConnectionRequest{
-			RequestId:          podUID,
-			NetworkServiceName: ns.Name,
-			LinuxNamespace:     linuxNS,
-			LocalMechanisms:    ns.ServiceInterface,
-		}
-
-		logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.LocalMechanisms))
-		connParams, err := requestConnection(nsmConnectionClient, &cReq)
-		if err != nil {
-			logrus.Fatalf("nsm client: failed to request connection for Network Service %s with error: %+v, exiting...", ns.Name, err)
-			os.Exit(1)
-		}
-		logrus.Infof("nsm client: connection to Network Service %s suceeded, connection parameters: %+v, exiting...", ns.Name, connParams)
+	cReq := nsmconnect.ConnectionRequest{
+		RequestId:          podUID,
+		NetworkServiceName: networkServiceName,
+		LinuxNamespace:     linuxNS,
+		LocalMechanisms: []*common.LocalMechanism{
+			{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+		},
 	}
+
+	logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.LocalMechanisms))
+	connParams, err := requestConnection(nsmConnectionClient, &cReq)
+	if err != nil {
+		logrus.Fatalf("nsm client: failed to request connection for Network Service %s with error: %+v, exiting...", networkServiceName, err)
+		os.Exit(1)
+	}
+	logrus.Infof("nsm client: connection to Network Service %s suceeded, connection parameters: %+v, exiting...", networkServiceName, connParams)
 	// Init related activities ends here
 	logrus.Info("nsm client: initialization is completed successfully, wait forever...")
 
