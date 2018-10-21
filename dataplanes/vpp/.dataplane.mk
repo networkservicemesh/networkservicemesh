@@ -50,7 +50,7 @@ docker-login:
 	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
 .PHONY: docker-push-vpp-dataplane
-docker-push-vpp-dataplane: docker-login
+docker-push-vppdataplane: docker-login
 	docker tag ${DOCKER_VPPDATAPLANE}:${COMMIT} ${DOCKER_VPPDATAPLANE}:${TAG}
 	docker tag ${DOCKER_VPPDATAPLANE}:${COMMIT} ${DOCKER_VPPDATAPLANE}:travis-${TRAVIS_BUILD_NUMBER}
 	docker push ${DOCKER_VPPDATAPLANE}
