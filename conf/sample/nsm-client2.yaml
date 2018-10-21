@@ -81,7 +81,7 @@ spec:
       serviceAccount: nsm-client-init
       containers:
         - name: nsm-init
-          image: networkservicemesh/nsm-init
+          image: networkservicemesh/nsc-memif
           imagePullPolicy: IfNotPresent
           args:
             - --nsm-socket=/var/lib/networkservicemesh/nsm.ligato.io.sock
