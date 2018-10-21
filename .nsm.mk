@@ -76,7 +76,7 @@ docker-build-nse: docker-build-release
 	fi
 
 .PHONY: docker-build-nsc-memif
-docker-build-nsm-init: docker-build-release
+docker-build-nsc-memif: docker-build-release
 	@${DOCKERBUILD} -t ${DOCKER_NSC_MEMIF} -f build/Dockerfile.nsc-memif .
 	@if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${DOCKER_NSC_MEMIF} ${DOCKER_NSC_MEMIF}:${COMMIT} ;\
@@ -130,7 +130,7 @@ docker-push-nse: docker-login
 	docker push ${DOCKER_NSE}
 
 .PHONY: docker-push-nsc-memif
-docker-push-nsm-init: docker-login
+docker-push-nsc-memif: docker-login
 	docker tag ${DOCKER_NSC_MEMIF}:${COMMIT} ${DOCKER_NSC_MEMIF}:${TAG}
 	docker tag ${DOCKER_NSC_MEMIF}:${COMMIT} ${DOCKER_NSC_MEMIF}:${BUILD_TAG}
 	docker push ${DOCKER_NSC_MEMIF}
