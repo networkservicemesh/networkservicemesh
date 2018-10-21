@@ -55,7 +55,7 @@ function run_tests() {
     # Starting nse pod which will advertise an endpoint for gold-network
     # network service
     kubectl create -f conf/sample/nse-memif.yaml
-    kubectl create -f conf/sample/test-dataplane.yaml
+    kubectl create -f dataplanes/vpp/yaml/vpp-daemonset.yaml
     wait_for_pods default
  
     #
