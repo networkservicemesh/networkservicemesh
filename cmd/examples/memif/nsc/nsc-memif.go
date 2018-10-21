@@ -109,15 +109,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	mechanism := &common.LocalMechanism{
-		Type: common.LocalMechanismType_KERNEL_INTERFACE,
-	}
-
 	cReq := nsmconnect.ConnectionRequest{
 		RequestId:          podUID,
 		NetworkServiceName: networkServiceName,
 		LinuxNamespace:     linuxNS,
-		LocalMechanisms:    []*common.LocalMechanism{mechanism},
+		LocalMechanisms: []*common.LocalMechanism{
+			{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+		},
 	}
 
 	logrus.Infof("Connection request: %+v number of interfaces: %d", cReq, len(cReq.LocalMechanisms))
