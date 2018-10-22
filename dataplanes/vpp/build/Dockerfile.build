@@ -1,11 +1,16 @@
-FROM ubuntu:bionic as govppbuilder
+FROM ubuntu:bionic as vpplib
 ARG DEBIAN_FRONTEND=noninteractive
 ARG REPO=release
 RUN apt-get update
-RUN apt-get -y install curl golang git
+RUN apt-get -y install curl
 RUN curl -s https://packagecloud.io/install/repositories/fdio/${REPO}/script.deb.sh |  bash
-RUN apt-get -y install vpp-lib vpp-dev 
+RUN apt-get -y install vpp-lib 
+RUN apt-get -y purge curl
+RUN apt-get -y clean
+
+FROM vpplib as govppbuilder
 ENV GOPATH="/root/go"
+RUN apt-get -y install golang curl git vpp-dev
 RUN mkdir -p $GOPATH/bin
 RUN mkdir -p $GOPATH/pkg
 RUN mkdir -p $GOPATH/src
@@ -18,7 +23,8 @@ WORKDIR $GOPATH/src/github.com/ligato/networkservicemesh/dataplanes/vpp
 #RUN $GOPATH/bin/dep ensure
 RUN GOOS=linux go build  -a -o nsm-vpp-dataplane ./cmd/nsm-vpp-dataplane.go
 
-FROM  govppbuilder
+FROM  vpplib
+ENV GOPATH="/root/go"
 COPY --from=govppbuilder $GOPATH/src/github.com/ligato/networkservicemesh/dataplanes/vpp/nsm-vpp-dataplane /nsm-vpp-dataplane
 RUN chmod +x /nsm-vpp-dataplane
 ENTRYPOINT [ "/nsm-vpp-dataplane" ]
