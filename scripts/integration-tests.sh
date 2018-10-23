@@ -67,6 +67,15 @@ function run_tests() {
     # Now let's wait for nsm-cient pod to get into running state
     #
     wait_for_pods default
+
+    #
+    # Starting vpp-daemonset pod
+    kubectl create -f dataplanes/vpp/yaml/vpp-daemonset.yaml
+
+    #
+    # Now let's wait for vpp-daemonset pod to get into running state
+    #
+    wait_for_pods default
     exit_ret=$?
     if [ "${exit_ret}" != "0" ] ; then
         return "${exit_ret}"
