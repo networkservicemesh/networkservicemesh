@@ -29,12 +29,12 @@ import (
 	"sync"
 	"time"
 
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	nsmapi "github.com/ligato/networkservicemesh/pkg/apis/networkservicemesh.io/v1"
 	nsmclient "github.com/ligato/networkservicemesh/pkg/client/clientset/versioned"
 	dataplaneutils "github.com/ligato/networkservicemesh/pkg/dataplane/utils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
@@ -48,10 +48,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 )
 
 const (
@@ -263,6 +263,10 @@ func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconne
 	}, status.Error(codes.Aborted, "connection with remote NSE is not implemented, come back later")
 }
 
+const (
+	legacyDataplane = false
+)
+
 func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error {
 	client := n.clientConnections[requestID][networkServiceName]
 	nseConn, err := tools.SocketOperationCheck(client.endpoint.Spec.SocketLocation)
@@ -294,10 +298,76 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 	if err != nil {
 		return err
 	}
-	if err := dataplaneutils.ConnectPods(nsmClientPodName, nsePodName, n.namespace, n.namespace); err != nil {
-		return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
-			n.namespace, nsmClientPodName, n.namespace, nsePodName, err)
+
+	if legacyDataplane {
+		if err := dataplaneutils.ConnectPods(nsmClientPodName, nsePodName, n.namespace, n.namespace); err != nil {
+			return fmt.Errorf("failed to interconnect pods %s/%s and %s/%s with error: %+v",
+				n.namespace, nsmClientPodName, n.namespace, nsePodName, err)
+		}
+	} else {
+		cid1, err := getContainerID(n.k8sClient, nsmClientPodName, n.namespace)
+		if err != nil {
+			return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", n.namespace, nsmClientPodName, err)
+		}
+		n.logger.Infof("Discovered Container ID %s for pod %s/%s", cid1, n.namespace, nsmClientPodName)
+
+		cid2, err := getContainerID(n.k8sClient, nsePodName, n.namespace)
+		if err != nil {
+			return fmt.Errorf("Failed to get container ID for pod %s/%s with error: %+v", n.namespace, nsePodName, err)
+		}
+		n.logger.Infof("Discovered Container ID %s for pod %s/%s", cid2, n.namespace, nsePodName)
+
+		n.logger.Infof("Debug: Calling getPidForContainer for container id %s", cid1)
+		pid1, err := getPidForContainer(cid1)
+		if err != nil {
+			return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", n.namespace, nsmClientPodName, err)
+		}
+		n.logger.Infof("Debug: Calling getPidForContainer for container id %s", cid2)
+		pid2, err := getPidForContainer(cid2)
+		if err != nil {
+			return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", n.namespace, nsePodName, err)
+		}
+
+		srcNamespace := fmt.Sprintf("pid:%d", pid1)
+		dstNamespace := fmt.Sprintf("pid:%d", pid2)
+
+		n.logger.Infof("interconnecting pid1: %d <-> pid2: %d", pid1, pid2)
+
+		dataplanes := n.objectStore.ListDataplanes()
+		if len(dataplanes) == 0 {
+			return fmt.Errorf("no dataplanes registered with NSM")
+		}
+
+		dataplaneClient := dataplanes[0].DataplaneClient
+
+		localSource := &common.LocalMechanism{
+			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			Parameters: map[string]string{
+				nsmutils.NSMkeyNamespace:        srcNamespace,
+				nsmutils.NSMkeyIPv4:             "1.1.1.1",
+				nsmutils.NSMkeyIPv4PrefixLength: "24",
+			},
+		}
+
+		localDestination := &dataplaneapi.Connection_Local{
+			Local: &common.LocalMechanism{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{
+					nsmutils.NSMkeyNamespace:        dstNamespace,
+					nsmutils.NSMkeyIPv4:             "1.1.1.2",
+					nsmutils.NSMkeyIPv4PrefixLength: "24"},
+			},
+		}
+
+		_, err = dataplaneClient.ConnectRequest(context.Background(), &dataplaneapi.Connection{
+			LocalSource: localSource,
+			Destination: localDestination,
+		})
+		if err != nil {
+			return fmt.Errorf("can't interconnect pods, error %+v", err)
+		}
 	}
+
 	// Add finalizer to both pods, in the event of pod deletion, the controller will be able
 	// to clean up injected dataplane interfaces without any race.
 	if err := finalizerutils.AddPodFinalizer(n.k8sClient, nsmClientPodName, n.namespace, finalizer.NSMFinalizer); err != nil {

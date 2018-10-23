@@ -9,6 +9,7 @@ spec:
       labels:
         app: networkservice-ds
     spec:
+      hostPID: true
       serviceAccountName: networkservicemesh
       containers:
         - name: netmesh
@@ -28,6 +29,10 @@ spec:
               mountPath: /var/lib/kubelet/device-plugins
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
+            - name: run
+              mountPath: /var/run
+            - name: sys
+              mountPath: /sys
       volumes:
         - hostPath:
             path: /var/lib/kubelet/device-plugins
@@ -37,7 +42,14 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: nsm-socket
-
+        - hostPath:
+            path: /var/run
+            type: DirectoryOrCreate
+          name: run
+        - hostPath:
+            path: /sys
+            type: DirectoryOrCreate
+          name: sys
 ---
 apiVersion: v1
 kind: ServiceAccount
