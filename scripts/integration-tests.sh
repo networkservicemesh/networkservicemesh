@@ -56,6 +56,8 @@ function run_tests() {
     # network service
     kubectl create -f conf/sample/nse.yaml
     kubectl create -f conf/sample/test-dataplane.yaml
+    # test-dataplane is drop-in replacement from vpp-dataplane, please feel free to use any
+    # kubectl create -f dataplanes/vpp/yaml/vpp-daemonset.yaml
     wait_for_pods default
  
     #
@@ -138,7 +140,8 @@ function run_tests() {
     #
     client_pod_name="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $2}')"
     client_pod_namespace="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $1}')"
-    intf_number="$(kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ifconfig -a | grep -c nse)"
+    ip_address="1.1.1.1"
+    intf_number="$(kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ifconfig -a | grep -c $ip_address)"
     if [ "$intf_number" -eq 0 ] ; then
         error_collection
         return 1

@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
@@ -127,7 +128,38 @@ func (d DataplaneController) MonitorMechanisms(empty *common.Empty, updateSrv da
 // of NSM Client or NSE.
 func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplaneapi.Connection) (*dataplaneapi.Reply, error) {
 	logrus.Infof("ConnectRequest was called")
-	return nil, fmt.Errorf("not implemented")
+
+	source := req.LocalSource.GetParameters()
+	srcNS := source[nsmutils.NSMkeyNamespace]
+	pid1, err := strconv.Atoi(strings.Split(srcNS, ":")[1])
+	if err != nil {
+		return nil, fmt.Errorf("bad namespace %v", srcNS)
+	}
+
+	destinationLocal := req.Destination.(*dataplaneapi.Connection_Local)
+	destination := destinationLocal.Local.GetParameters()
+	dstNS := destination[nsmutils.NSMkeyNamespace]
+	pid2, err := strconv.Atoi(strings.Split(dstNS, ":")[1])
+	if err != nil {
+		return nil, fmt.Errorf("bad namespace %v", dstNS)
+	}
+
+	logrus.Infof("connecting processes: %d %d", pid1, pid2)
+
+	err = connectProcesses(pid1, pid2)
+	if err != nil {
+		return &dataplaneapi.Reply{
+			Success:      false,
+			ConnectionId: err.Error(),
+		}, err
+	}
+
+	connID := fmt.Sprintf("%d-%d", pid1, pid2)
+
+	return &dataplaneapi.Reply{
+		Success:      true,
+		ConnectionId: connID,
+	}, nil
 }
 
 // DisconnectRequest implements method of dataplane interface, NSM sends ConnectRequest to the dataplane of behalf
@@ -567,38 +599,43 @@ func connectPods(k8s *kubernetes.Clientset, podName1, podName2, namespace1, name
 	if err != nil {
 		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
 	}
+	return connectProcesses(pid1, pid2)
+}
 
+func connectProcesses(pid1, pid2 int) error {
 	ns1, err := netns.GetFromPid(pid1)
 	if err != nil {
-		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace1, podName1, err)
+		return fmt.Errorf("Failed to get Linux namespace for pid %d with error: %+v", pid1, err)
 	}
 	ns2, err := netns.GetFromPid(pid2)
 	if err != nil {
-		return fmt.Errorf("Failed to get Linux namespace for pod %s/%s with error: %+v", namespace2, podName2, err)
+		return fmt.Errorf("Failed to get Linux namespace for pid %d with error: %+v", pid2, err)
 	}
 
-	if len(podName1) > interfaceNameMaxLength {
-		podName1 = podName1[:interfaceNameMaxLength]
+	intf1 := fmt.Sprintf("pid-%d", pid1)
+	if len(intf1) > interfaceNameMaxLength {
+		intf1 = intf1[:interfaceNameMaxLength]
 	}
-	if len(podName2) > interfaceNameMaxLength {
-		podName2 = podName2[:interfaceNameMaxLength]
-	}
-
-	if err := setVethPair(ns1, ns2, podName1, podName2); err != nil {
-		return fmt.Errorf("Failed to get add veth pair to pods %s/%s and %s/%s with error: %+v",
-			namespace1, podName1, namespace2, podName2, err)
+	intf2 := fmt.Sprintf("pid-%d", pid2)
+	if len(intf2) > interfaceNameMaxLength {
+		intf2 = intf2[:interfaceNameMaxLength]
 	}
 
-	if err := setVethAddr(ns1, ns2, podName1, podName2); err != nil {
-		return fmt.Errorf("Failed to assign ip addresses to veth pair for pods %s/%s and %s/%s with error: %+v",
-			namespace1, podName1, namespace2, podName2, err)
+	if err := setVethPair(ns1, ns2, intf1, intf2); err != nil {
+		return fmt.Errorf("Failed to get add veth pair to pids %d and %d with error: %+v",
+			pid1, pid2, err)
+	}
+
+	if err := setVethAddr(ns1, ns2, intf1, intf2); err != nil {
+		return fmt.Errorf("Failed to assign ip addresses to veth pair for pids %d and %d with error: %+v",
+			pid1, pid2, err)
 	}
 
 	if err := listInterfaces(ns1); err != nil {
-		logrus.Errorf("Failed to list interfaces of to %s/%swith error: %+v", namespace1, podName1, err)
+		logrus.Errorf("Failed to list interfaces of to %d with error: %+v", pid1, err)
 	}
 	if err := listInterfaces(ns2); err != nil {
-		logrus.Errorf("Failed to list interfaces of %s/%swith error: %+v", namespace2, podName2, err)
+		logrus.Errorf("Failed to list interfaces of %d with error: %+v", pid2, err)
 	}
 	return nil
 }
