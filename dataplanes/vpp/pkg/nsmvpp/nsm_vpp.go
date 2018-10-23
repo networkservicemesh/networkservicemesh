@@ -31,6 +31,11 @@ var (
 	vppReconnectInterval = time.Second * 30
 )
 
+type Mechanism interface {
+	CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error)
+	DeleteLocalConnect(apiCh govppapi.Channel, connID string) error
+}
+
 // Interface lists methods available to manipulate VPPDataplane controller information
 type Interface interface {
 	GetDataplaneSocket() string

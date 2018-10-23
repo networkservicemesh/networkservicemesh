@@ -15,20 +15,21 @@
 package nsmdataplane
 
 import (
-	"google.golang.org/grpc/codes"
-	// "context"
-
 	"context"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes" // "context"
 	"google.golang.org/grpc/status"
 )
 
@@ -47,27 +48,32 @@ type Update struct {
 	localMechanisms  []*common.LocalMechanism
 }
 
+var mechanisms = []nsmvpp.Mechanism{
+	nsmvpp.KernelInterface{}, // default
+	nsmvpp.KernelInterface{},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_VHOST_INTERFACE},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_MEM_INTERFACE},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_SRIOV_INTERFACE},
+	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_HW_INTERFACE},
+}
+
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
-	logrus.Info("createLocalConnect started")
-	if src.Type == common.LocalMechanismType_KERNEL_INTERFACE &&
-		dst.Type == common.LocalMechanismType_KERNEL_INTERFACE {
-		return nsmvpp.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
+	if err := nsmutils.ValidateParameters(src.Parameters); err != nil {
+		return "", err
+	}
+	if err := nsmutils.ValidateParameters(dst.Parameters); err != nil {
+		return "", err
 	}
 
-	if src.Type == common.LocalMechanismType_MEM_INTERFACE &&
-		dst.Type == common.LocalMechanismType_MEM_INTERFACE {
-		return nsmvpp.CreateMemifConnect(apiCh, src.Parameters, dst.Parameters)
-	}
-
-	return "", status.Error(codes.Unimplemented,
-		fmt.Sprintf("Connection type %+v - %+v is not implemented yet", src.Type, dst.Type))
+	return mechanisms[src.Type].CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
 }
 
 // deleteLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func deleteLocalConnect(apiCh govppapi.Channel, connID string) error {
+	mechanism, _ := strconv.Atoi(strings.Split(connID, "-")[0])
 
-	return nsmvpp.DeleteLocalConnect(apiCh, connID)
+	return mechanisms[mechanism].DeleteLocalConnect(apiCh, connID)
 }
 
 // ConnectRequest is called when NSM sends the request to interconnect two containers' namespaces.
@@ -186,6 +192,7 @@ func (d DataplaneServer) MonitorMechanisms(empty *common.Empty, updateSrv datapl
 			d.localMechanisms = update.localMechanisms
 			if err := updateSrv.Send(&dataplaneapi.MechanismUpdate{
 				RemoteMechanisms: update.remoteMechanisms,
+				LocalMechanisms:  update.localMechanisms,
 			}); err != nil {
 				logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil

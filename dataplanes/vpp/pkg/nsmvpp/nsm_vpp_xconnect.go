@@ -25,16 +25,8 @@ import (
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/l2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/tapv2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	// NSMkeyNamespace defines the name of the key namespace in parameters map (mandatory)
-	NSMkeyNamespace = "namespace"
-	// NSMkeyIPv4 defines the name of the key ipv4 address in parameters map (optional)
-	NSMkeyIPv4 = "ipv4"
-	// NSMkeyIPv4PrefixLength defines the name of the key ipv4 prefix length in parameters map (optional)
-	NSMkeyIPv4PrefixLength = "ipv4prefixlength"
 )
 
 type tapInterface struct {
@@ -47,41 +39,21 @@ type tapInterface struct {
 	tag          []byte
 }
 
-var kernelInterfaceParameters = nsmutils.Keys{
-	NSMkeyNamespace: nsmutils.KeyProperties{
-		Mandatory: true, Validator: nsmutils.Namespace},
-	NSMkeyIPv4: nsmutils.KeyProperties{
-		Validator: nsmutils.Ipv4},
-	NSMkeyIPv4PrefixLength: nsmutils.KeyProperties{
-		Mandatory: true, Validator: nsmutils.Ipv4prefixlength,
-	},
-}
+type KernelInterface struct{}
 
-func validateKernelInterfaceParameters(parameters map[string]string) error {
-	// Check presence of both ipv4 address and prefix length
-	_, v1 := parameters[NSMkeyIPv4]
-	_, v2 := parameters[NSMkeyIPv4PrefixLength]
-	if v1 != v2 {
-		return fmt.Errorf("both parameter \"ipv4\" and \"ipv4prefixlength\" must either present or missing")
-	}
-
-	return nsmutils.ValidateParameters(parameters, kernelInterfaceParameters)
-}
-
-//todo rename
 // CreateLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
-func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
+func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
 	var err error
 
-	if err := validateKernelInterfaceParameters(srcParameters); err != nil {
+	if err := nsmutils.ValidateParameters(srcParameters); err != nil {
 		return "", err
 	}
-	if err := validateKernelInterfaceParameters(dstParameters); err != nil {
+	if err := nsmutils.ValidateParameters(dstParameters); err != nil {
 		return "", err
 	}
 	// Extract namespaces for source and destination containers
-	srcNamespace := srcParameters[NSMkeyNamespace]
-	dstNamespace := dstParameters[NSMkeyNamespace]
+	srcNamespace := srcParameters[nsmutils.NSMkeyNamespace]
+	dstNamespace := dstParameters[nsmutils.NSMkeyNamespace]
 
 	tap1 := &tapInterface{
 		pid:       strings.Split(srcNamespace, ":")[1],
@@ -105,8 +77,8 @@ func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map
 
 	// This block check for ipv4 addresses in Parameters map, if specified, it verifies that both either present or
 	// both missing and populate tap struct wit hcorresponding fields.
-	srcIPv4, b1 := srcParameters[NSMkeyIPv4]
-	dstIPv4, b2 := dstParameters[NSMkeyIPv4]
+	srcIPv4, b1 := srcParameters[nsmutils.NSMkeyIPv4]
+	dstIPv4, b2 := dstParameters[nsmutils.NSMkeyIPv4]
 	if b1 != b2 {
 		return "", fmt.Errorf("both containers must either specify or both must not specify ipv4 addresses")
 	}
@@ -117,12 +89,12 @@ func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map
 			return "", err
 		}
 		// Safe to ignore converstion error as ValidateParameters has validated already success of conversion.
-		l, _ := strconv.Atoi(srcParameters[NSMkeyIPv4PrefixLength])
+		l, _ := strconv.Atoi(srcParameters[nsmutils.NSMkeyIPv4PrefixLength])
 		tap1.prefixLength = uint8(l)
 		if tap2.ip, err = IPv4ToByteSlice(dstIPv4); err != nil {
 			return "", err
 		}
-		l, _ = strconv.Atoi(srcParameters[NSMkeyIPv4PrefixLength])
+		l, _ = strconv.Atoi(srcParameters[nsmutils.NSMkeyIPv4PrefixLength])
 		tap2.prefixLength = uint8(l)
 	}
 
@@ -149,7 +121,7 @@ func CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map
 		return "", fmt.Errorf("Error in reply: %+v", err)
 	}
 
-	return fmt.Sprintf("%x-%x", tap1.id, tap2.id), nil
+	return fmt.Sprintf("%d-%x-%x", common.LocalMechanismType_KERNEL_INTERFACE, tap1.id, tap2.id), nil
 }
 
 // createTapInterface creates new tap interface in a specified namespace
@@ -236,9 +208,9 @@ func IPv4ToByteSlice(ipv4Address string) ([]byte, error) {
 }
 
 // DeleteLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
-func DeleteLocalConnect(apiCh govppapi.Channel, connID string) error {
-	t1, _ := strconv.Atoi(strings.Split(connID, "-")[0])
-	t2, _ := strconv.Atoi(strings.Split(connID, "-")[1])
+func (m KernelInterface) DeleteLocalConnect(apiCh govppapi.Channel, connID string) error {
+	t1, _ := strconv.Atoi(strings.Split(connID, "-")[1])
+	t2, _ := strconv.Atoi(strings.Split(connID, "-")[2])
 	tap1IntfID := uint32(t1)
 	tap2IntfID := uint32(t2)
 
