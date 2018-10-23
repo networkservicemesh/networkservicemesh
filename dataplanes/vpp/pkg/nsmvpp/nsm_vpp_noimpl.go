@@ -19,3 +19,7 @@ func (m UnimplementedMechanism) CreateLocalConnect(apiCh govppapi.Channel, srcPa
 func (m UnimplementedMechanism) DeleteLocalConnect(apiCh govppapi.Channel, connID string) error {
 	return fmt.Errorf("%s mechanism not implemented", common.LocalMechanismType_name[int32(m.Type)])
 }
+
+func (m UnimplementedMechanism) ValidateParameters(parameters map[string]string) error {
+	return nil
+}

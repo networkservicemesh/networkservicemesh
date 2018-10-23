@@ -30,7 +30,7 @@ type Keys map[string]KeyProperties
 
 // ValidateParameters checks all required amd optional parameters
 // and attempts to check them
-func ValidateParameters(parameters map[string]string, keyList map[string]KeyProperties) error {
+func ValidateParameters(parameters map[string]string, keyList Keys) error {
 	// Check for any Unknown keys if found return error
 	for key := range parameters {
 		if _, ok := keyList[key]; !ok {
@@ -88,5 +88,12 @@ func Ipv4prefixlength(value string) error {
 }
 
 func Empty(value string) error {
+	return nil
+}
+
+func Bool(value string) error {
+	if _, err := strconv.ParseBool(value); err != nil {
+		return err
+	}
 	return nil
 }

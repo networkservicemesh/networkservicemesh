@@ -17,12 +17,7 @@ package nsmdataplane
 import (
 	"context"
 	"fmt"
-	"net"
-	"strconv"
-	"strings"
-
 	govppapi "git.fd.io/govpp.git/api"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
@@ -31,6 +26,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes" // "context"
 	"google.golang.org/grpc/status"
+	"net"
 )
 
 // DataplaneServer keeps k8s client and gRPC server
@@ -40,6 +36,7 @@ type DataplaneServer struct {
 	remoteMechanisms []*common.RemoteMechanism
 	localMechanisms  []*common.LocalMechanism
 	updateCh         chan Update
+	connections      map[string]*dataplaneapi.Connection
 }
 
 // Update is a message used to communicate any changes in operational parameters and constraints
@@ -48,32 +45,32 @@ type Update struct {
 	localMechanisms  []*common.LocalMechanism
 }
 
-var mechanisms = []nsmvpp.Mechanism{
-	nsmvpp.KernelInterface{}, // default
-	nsmvpp.KernelInterface{},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_VHOST_INTERFACE},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_MEM_INTERFACE},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_SRIOV_INTERFACE},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_HW_INTERFACE},
+var mechanisms = map[common.LocalMechanismType]nsmvpp.Mechanism{
+	common.LocalMechanismType_KERNEL_INTERFACE: nsmvpp.KernelInterface{},
+	common.LocalMechanismType_MEM_INTERFACE:    nsmvpp.MemifInterface{},
+	common.LocalMechanismType_VHOST_INTERFACE:  nsmvpp.UnimplementedMechanism{},
+	common.LocalMechanismType_SRIOV_INTERFACE:  nsmvpp.UnimplementedMechanism{},
+	common.LocalMechanismType_HW_INTERFACE:     nsmvpp.UnimplementedMechanism{},
 }
 
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
-	if err := nsmutils.ValidateParameters(src.Parameters); err != nil {
+	mechanism := mechanisms[src.Type]
+
+	if err := mechanism.ValidateParameters(src.Parameters); err != nil {
 		return "", err
 	}
-	if err := nsmutils.ValidateParameters(dst.Parameters); err != nil {
+	if err := mechanism.ValidateParameters(dst.Parameters); err != nil {
 		return "", err
 	}
 
-	return mechanisms[src.Type].CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
+	return mechanism.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
 }
 
 // deleteLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
-func deleteLocalConnect(apiCh govppapi.Channel, connID string) error {
-	mechanism, _ := strconv.Atoi(strings.Split(connID, "-")[0])
-
-	return mechanisms[mechanism].DeleteLocalConnect(apiCh, connID)
+func (d DataplaneServer) deleteLocalConnect(apiCh govppapi.Channel, connID string) error {
+	connType := d.connections[connID].LocalSource.Type
+	return mechanisms[connType].DeleteLocalConnect(apiCh, connID)
 }
 
 // ConnectRequest is called when NSM sends the request to interconnect two containers' namespaces.
@@ -101,12 +98,14 @@ func (d DataplaneServer) ConnectRequest(ctx context.Context, req *dataplaneapi.C
 		destination := req.Destination.(*dataplaneapi.Connection_Local)
 		logrus.Infof("Destination struct: %+v", destination.Local)
 		connID, err := createLocalConnect(d.vppDataplane.GetAPIChannel(), req.LocalSource, destination.Local)
+
 		if err != nil {
 			errStr := fmt.Sprintf("fail to build the cross connect with error: %+v", err)
 			return &dataplaneapi.Reply{
 				Success: false,
 			}, status.Error(codes.Unavailable, errStr)
 		}
+		d.connections[connID] = req
 		return &dataplaneapi.Reply{
 			Success:      true,
 			ConnectionId: connID,
@@ -145,12 +144,13 @@ func (d DataplaneServer) DisconnectRequest(ctx context.Context, req *dataplaneap
 		destination := req.Destination.(*dataplaneapi.Connection_Local)
 		logrus.Infof("Destination struct: %+v", destination.Local)
 
-		if err := deleteLocalConnect(d.vppDataplane.GetAPIChannel(), req.ConnectionId); err != nil {
+		if err := d.deleteLocalConnect(d.vppDataplane.GetAPIChannel(), req.ConnectionId); err != nil {
 			errStr := fmt.Sprintf("fail to delete the cross connect with error: %+v", err)
 			return &dataplaneapi.Reply{
 				Success: false,
 			}, status.Error(codes.Unavailable, errStr)
 		}
+		delete(d.connections, req.ConnectionId)
 		return &dataplaneapi.Reply{
 			Success: true,
 		}, nil
@@ -221,6 +221,7 @@ func StartDataplaneServer(vpp nsmvpp.Interface) error {
 				Type: common.RemoteMechanismType_VXLAN,
 			},
 		},
+		connections: make(map[string]*dataplaneapi.Connection),
 	}
 	dataplaneSocket := vpp.GetDataplaneSocket()
 
