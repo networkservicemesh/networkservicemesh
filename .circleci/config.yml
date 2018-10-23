@@ -29,6 +29,7 @@ jobs:
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             cd dataplanes/vpp ; make all ; cd -
             make verify docker-build docker-push
+            cd dataplane/vpp;make verify docker-build docker-push;cd -
       - run:
           when: on_fail
           name: Trigger packet-destroy
