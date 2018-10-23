@@ -68,8 +68,12 @@ all: docker-build
 # Individual targets are found in .nsm.mk
 docker-build: docker-build-vpp-daemon docker-build-vpp
 
-# Individual targets are found in .nsm.mk
-docker-push: docker-login docker-push-vppdataplane docker-push-vpp
+
+# Individual targets are found in .dataplane.mk
+docker-push: docker-login docker-push-vpp-daemon docker-push-vpp
+
+# Individual targets are found in .dataplane.mk
+docker-save: docker-save-vpp-daemon docker-save-vpp
 
 
 .PHONY: format deps generate install test test-race vet

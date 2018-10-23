@@ -39,3 +39,10 @@ docker-push-%: docker-login
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
 	docker push ${ORG}/$*
+
+#
+# Targets to save docker images
+#
+.PHONY: docker-save-%
+docker-save-%:
+	docker save -o ../../scripts/vagrant/images/$*.tar ${ORG}/$*
