@@ -67,19 +67,19 @@ func CreateMemifConnect(apiCh govppapi.Channel, src, dst parameters) (string, er
 		return "", err
 	}
 
-	var socketId uint32 = 1
+	var socketId uint32 = 17
 	if err := createMemifSocket(apiCh, src, dst, socketId); err != nil {
 		return "", err
 	}
 	logrus.Info("Memif socket successfully created")
 
-	srcIfIndex, err := createMemifInterface(apiCh, src, socketId)
+	srcIfIndex, err := createMemifInterface(apiCh, src, 111, socketId)
 	if err != nil {
 		return "", err
 	}
 	logrus.Info("Source interface successfully created")
 
-	dstIfIndex, err := createMemifInterface(apiCh, src, socketId)
+	dstIfIndex, err := createMemifInterface(apiCh, dst, 222, socketId)
 	if err != nil {
 		return "", err
 	}
@@ -89,8 +89,19 @@ func CreateMemifConnect(apiCh govppapi.Channel, src, dst parameters) (string, er
 }
 
 func createMemifSocket(apiCh govppapi.Channel, src, dst parameters, socketId uint32) error {
-	srcSocket := path.Join(BaseDir, src[NSMPerPodDirectory], src[NSMSocketFile])
-	dstSocket := path.Join(BaseDir, dst[NSMPerPodDirectory], dst[NSMSocketFile])
+	srcSocketDir := path.Join(BaseDir, src[NSMPerPodDirectory], "memif")
+	dstSocketDir := path.Join(BaseDir, dst[NSMPerPodDirectory], "memif")
+
+	if err := os.MkdirAll(srcSocketDir, 0777); err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(dstSocketDir, 0777); err != nil {
+		return err
+	}
+
+	srcSocket := path.Join(srcSocketDir, src[NSMSocketFile])
+	dstSocket := path.Join(dstSocketDir, dst[NSMSocketFile])
 
 	socketCreateRequest := &memif.MemifSocketFilenameAddDel{
 		IsAdd:          1,
@@ -102,11 +113,14 @@ func createMemifSocket(apiCh govppapi.Channel, src, dst parameters, socketId uin
 		return err
 	}
 
-	os.Link(srcSocket, dstSocket)
+	if err := os.Link(srcSocket, dstSocket); err != nil {
+		logrus.Errorf("Fail during creation hardlink to socket, because of: %v", err)
+	}
+
 	return nil
 }
 
-func createMemifInterface(apiCh govppapi.Channel, p parameters, socketId uint32) (uint32, error) {
+func createMemifInterface(apiCh govppapi.Channel, p parameters, id uint32, socketId uint32) (uint32, error) {
 	var role uint8 = 0
 	if isMaster, _ := strconv.ParseBool(p[NSMMaster]); isMaster {
 		role = 1
@@ -114,12 +128,13 @@ func createMemifInterface(apiCh govppapi.Channel, p parameters, socketId uint32)
 
 	memifCreate := &memif.MemifCreate{
 		Role:     role,
+		ID:       id,
 		SocketID: socketId,
 	}
 
 	memifCreateReply := &memif.MemifCreateReply{}
 	if err := apiCh.SendRequest(memifCreate).ReceiveReply(memifCreateReply); err != nil {
-		return -1, err
+		return 0, err
 	}
 	return memifCreateReply.SwIfIndex, nil
 }

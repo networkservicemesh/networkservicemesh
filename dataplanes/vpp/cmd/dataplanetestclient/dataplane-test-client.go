@@ -48,6 +48,8 @@ var (
 	dstPodName      = flag.String("dst-pod-name", "", "Name of the destination pod")
 	dstPodNamespace = flag.String("dst-pod-namespace", "default", "Namespace of the destination pod")
 	kubeconfig      = flag.String("kubeconfig", "", "Absolute path to the kubeconfig file. Either this or master needs to be set if the provisioner is being run out of cluster.")
+	srcPodDirectory = flag.String("src-pod-dir", "", "Per pod directory for src")
+	dstPodDirectory = flag.String("dst-pod-dir", "", "Per pod directory for dst")
 )
 
 func buildClient() (*kubernetes.Clientset, error) {
@@ -120,13 +122,13 @@ type dataplaneClientTest struct {
 func main() {
 	flag.Parse()
 
-	if *srcPodName == "" || *dstPodName == "" {
-		logrus.Fatal("Both source and destination PODs' name must be specified, exitting...")
-	}
-	k8s, err := buildClient()
-	if err != nil {
-		logrus.Fatal("Failed to build kubernetes client, exitting...")
-	}
+	//if *srcPodName == "" || *dstPodName == "" {
+	//	logrus.Fatal("Both source and destination PODs' name must be specified, exitting...")
+	//}
+	//k8s, err := buildClient()
+	//if err != nil {
+	//	logrus.Fatal("Failed to build kubernetes client, exitting...")
+	//}
 	if _, err := os.Stat(dataplane); err != nil {
 		logrus.Fatalf("nsm-vpp-dataplane: failure to access nsm socket at %s with error: %+v, exiting...", dataplane, err)
 	}
@@ -139,114 +141,139 @@ func main() {
 
 	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(conn)
 
-	srcContainerID, err := getContainerID(k8s, *srcPodName, *srcPodNamespace)
-	if err != nil {
-		logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *srcPodNamespace, *srcPodName, err)
-	}
-	dstContainerID, err := getContainerID(k8s, *dstPodName, *dstPodNamespace)
-	if err != nil {
-		logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *dstPodNamespace, *dstPodName, err)
-	}
-	logrus.Infof("Source container id: %s destination container id: %s", srcContainerID, dstContainerID)
+	//srcContainerID, err := getContainerID(k8s, *srcPodName, *srcPodNamespace)
+	//if err != nil {
+	//	logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *srcPodNamespace, *srcPodName, err)
+	//}
+	//dstContainerID, err := getContainerID(k8s, *dstPodName, *dstPodNamespace)
+	//if err != nil {
+	//	logrus.Fatalf("Failed to get container ID for pod %s/%s with error: %+v", *dstPodNamespace, *dstPodName, err)
+	//}
+	//logrus.Infof("Source container id: %s destination container id: %s", srcContainerID, dstContainerID)
 
-	srcPID, err := getPidForContainer(srcContainerID)
-	if err != nil {
-		logrus.Fatalf("fail getting container %s pid with error: %+v", srcContainerID, err)
-	}
+	//srcPID, err := getPidForContainer(srcContainerID)
+	//if err != nil {
+	//	logrus.Fatalf("fail getting container %s pid with error: %+v", srcContainerID, err)
+	//}
+	//
+	//dstPID, err := getPidForContainer(dstContainerID)
+	//if err != nil {
+	//	logrus.Fatalf("ail getting container %s pid with error: %+v", dstContainerID, err)
+	//}
+	//
+	//srcNamespace := fmt.Sprintf("pid:%d", srcPID)
+	//dstNamespace := fmt.Sprintf("pid:%d", dstPID)
+	//logrus.Infof("Source container namespace: %s destination container namespace: %s", srcNamespace, dstNamespace)
 
-	dstPID, err := getPidForContainer(dstContainerID)
-	if err != nil {
-		logrus.Fatalf("ail getting container %s pid with error: %+v", dstContainerID, err)
-	}
-
-	srcNamespace := fmt.Sprintf("pid:%d", srcPID)
-	dstNamespace := fmt.Sprintf("pid:%d", dstPID)
-	logrus.Infof("Source container namespace: %s destination container namespace: %s", srcNamespace, dstNamespace)
+	//tests := []dataplaneClientTest{
+	//	{
+	//		testName: "all good",
+	//		localSource: &common.LocalMechanism{
+	//			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//			Parameters: map[string]string{
+	//				nsmvpp.NSMkeyNamespace:        srcNamespace,
+	//				nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+	//				nsmvpp.NSMkeyIPv4PrefixLength: "24",
+	//			},
+	//		},
+	//		localDestination: &dataplaneapi.Connection_Local{
+	//			Local: &common.LocalMechanism{
+	//				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//				Parameters: map[string]string{
+	//					nsmvpp.NSMkeyNamespace:        dstNamespace,
+	//					nsmvpp.NSMkeyIPv4:             "2.2.2.3",
+	//					nsmvpp.NSMkeyIPv4PrefixLength: "24"},
+	//			},
+	//		},
+	//		shouldFail: false,
+	//	},
+	//	{
+	//		testName: "missing source namespace",
+	//		localSource: &common.LocalMechanism{
+	//			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//			Parameters: map[string]string{
+	//				// nsmutils.NSMkeyNamespace:        srcNamespace,
+	//				nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+	//				nsmvpp.NSMkeyIPv4PrefixLength: "24",
+	//			},
+	//		},
+	//		localDestination: &dataplaneapi.Connection_Local{
+	//			Local: &common.LocalMechanism{
+	//				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//				Parameters: map[string]string{
+	//					nsmvpp.NSMkeyNamespace:        dstNamespace,
+	//					nsmvpp.NSMkeyIPv4:             "2.2.2.3",
+	//					nsmvpp.NSMkeyIPv4PrefixLength: "24"},
+	//			},
+	//		},
+	//		shouldFail: true,
+	//	},
+	//	{
+	//		testName: "source has ip, but destination doesn't",
+	//		localSource: &common.LocalMechanism{
+	//			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//			Parameters: map[string]string{
+	//				nsmvpp.NSMkeyNamespace:        srcNamespace,
+	//				nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+	//				nsmvpp.NSMkeyIPv4PrefixLength: "24",
+	//			},
+	//		},
+	//		localDestination: &dataplaneapi.Connection_Local{
+	//			Local: &common.LocalMechanism{
+	//				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//				Parameters: map[string]string{
+	//					nsmvpp.NSMkeyNamespace: dstNamespace,
+	//					// nsmutils.NSMkeyIPv4:             "2.2.2.3",
+	//					nsmvpp.NSMkeyIPv4PrefixLength: "24"},
+	//			},
+	//		},
+	//		shouldFail: true,
+	//	},
+	//	{
+	//		testName: "wrong prefix length",
+	//		localSource: &common.LocalMechanism{
+	//			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//			Parameters: map[string]string{
+	//				nsmvpp.NSMkeyNamespace:        srcNamespace,
+	//				nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+	//				nsmvpp.NSMkeyIPv4PrefixLength: "34",
+	//			},
+	//		},
+	//		localDestination: &dataplaneapi.Connection_Local{
+	//			Local: &common.LocalMechanism{
+	//				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	//				Parameters: map[string]string{
+	//					nsmvpp.NSMkeyNamespace:        dstNamespace,
+	//					nsmvpp.NSMkeyIPv4:             "2.2.2.3",
+	//					nsmvpp.NSMkeyIPv4PrefixLength: "24"},
+	//			},
+	//		},
+	//		shouldFail: true,
+	//	},
+	//}
 
 	tests := []dataplaneClientTest{
 		{
-			testName: "all good",
+			testName: "memif test",
 			localSource: &common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+				Type: common.LocalMechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
-					nsmvpp.NSMkeyNamespace:        srcNamespace,
-					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
-					nsmvpp.NSMkeyIPv4PrefixLength: "24",
+					nsmvpp.NSMSocketFile:      "memif_test.sock",
+					nsmvpp.NSMMaster:          "true",
+					nsmvpp.NSMPerPodDirectory: *srcPodDirectory,
 				},
 			},
 			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
+					Type: common.LocalMechanismType_MEM_INTERFACE,
 					Parameters: map[string]string{
-						nsmvpp.NSMkeyNamespace:        dstNamespace,
-						nsmvpp.NSMkeyIPv4:             "2.2.2.3",
-						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
+						nsmvpp.NSMSocketFile:      "memif_test.sock",
+						nsmvpp.NSMSlave:           "true",
+						nsmvpp.NSMPerPodDirectory: *dstPodDirectory,
+					},
 				},
 			},
 			shouldFail: false,
-		},
-		{
-			testName: "missing source namespace",
-			localSource: &common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					// nsmutils.NSMkeyNamespace:        srcNamespace,
-					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
-					nsmvpp.NSMkeyIPv4PrefixLength: "24",
-				},
-			},
-			localDestination: &dataplaneapi.Connection_Local{
-				Local: &common.LocalMechanism{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
-					Parameters: map[string]string{
-						nsmvpp.NSMkeyNamespace:        dstNamespace,
-						nsmvpp.NSMkeyIPv4:             "2.2.2.3",
-						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
-				},
-			},
-			shouldFail: true,
-		},
-		{
-			testName: "source has ip, but destination doesn't",
-			localSource: &common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					nsmvpp.NSMkeyNamespace:        srcNamespace,
-					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
-					nsmvpp.NSMkeyIPv4PrefixLength: "24",
-				},
-			},
-			localDestination: &dataplaneapi.Connection_Local{
-				Local: &common.LocalMechanism{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
-					Parameters: map[string]string{
-						nsmvpp.NSMkeyNamespace: dstNamespace,
-						// nsmutils.NSMkeyIPv4:             "2.2.2.3",
-						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
-				},
-			},
-			shouldFail: true,
-		},
-		{
-			testName: "wrong prefix length",
-			localSource: &common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					nsmvpp.NSMkeyNamespace:        srcNamespace,
-					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
-					nsmvpp.NSMkeyIPv4PrefixLength: "34",
-				},
-			},
-			localDestination: &dataplaneapi.Connection_Local{
-				Local: &common.LocalMechanism{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
-					Parameters: map[string]string{
-						nsmvpp.NSMkeyNamespace:        dstNamespace,
-						nsmvpp.NSMkeyIPv4:             "2.2.2.3",
-						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
-				},
-			},
-			shouldFail: true,
 		},
 	}
 	for _, test := range tests {

@@ -49,6 +49,7 @@ type Update struct {
 
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
+	logrus.Info("createLocalConnect started")
 	if src.Type == common.LocalMechanismType_KERNEL_INTERFACE &&
 		dst.Type == common.LocalMechanismType_KERNEL_INTERFACE {
 		return nsmvpp.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
