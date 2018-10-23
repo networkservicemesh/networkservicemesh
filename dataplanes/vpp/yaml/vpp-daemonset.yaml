@@ -15,7 +15,7 @@ spec:
           securityContext:
             privileged: true
           image: networkservicemesh/vpp-daemon:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: run
               mountPath: /var/run
@@ -28,7 +28,7 @@ spec:
           securityContext:
             privileged: true
           image: networkservicemesh/vpp:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: run
               mountPath: /var/run
@@ -47,7 +47,7 @@ spec:
             type: DirectoryOrCreate
           name: lib
         - hostPath:
-            path: /lib/modules
+            path: /lib/modulesz
           name: lib-modules
 metadata:
   name: nsm-vpp-dataplane
