@@ -16,14 +16,14 @@
 # and docker build infrastructure. It also contains the targets to build
 # and push Docker images
 
-DOCKER_NETMESH_TEST=networkservicemesh/netmesh-test
-DOCKER_NETMESH=networkservicemesh/netmesh
-DOCKER_TEST_DATAPLANE=networkservicemesh/test-dataplane
-DOCKER_NSM_INIT=networkservicemesh/nsm-init
-DOCKER_NSE=networkservicemesh/nse
-DOCKER_RELEASE=networkservicemesh/release
-DOCKER_SIDECAR_INJECTOR=networkservicemesh/sidecar-injector
-DOCKER_SRIOV_CONTROLLER=networkservicemesh/sriov-controller
+ORG=networkservicemesh
+
+.PHONY: docker-build-%
+docker-build-%: docker-build-release
+	@${DOCKERBUILD} -t ${ORG}/$* -f build/Dockerfile.$* .
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+	fi
 
 #
 # Targets to build docker images
@@ -32,60 +32,12 @@ DOCKER_SRIOV_CONTROLLER=networkservicemesh/sriov-controller
 # ${TRAVIS_COMMIT}. Thus, for travis-ci builds, we tag the Docker images
 # with both the name and this first 8 bytes of the commit hash.
 #
-.PHONY: docker-build-netmesh-test
-docker-build-netmesh-test:
-	@${DOCKERBUILD} -t ${DOCKER_NETMESH_TEST} -f build/Dockerfile.nsm-test .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_NETMESH_TEST} ${DOCKER_NETMESH_TEST}:${COMMIT} ;\
-	fi
 
 .PHONY: docker-build-release
 docker-build-release:
-	@${DOCKERBUILD} -t ${DOCKER_RELEASE} -f build/Dockerfile .
+	@${DOCKERBUILD} -t ${ORG}/release -f build/Dockerfile .
 	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_RELEASE} ${DOCKER_RELEASE}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-netmesh
-docker-build-netmesh: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_NETMESH} -f build/Dockerfile.nsm .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_NETMESH} ${DOCKER_NETMESH}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-test-dataplane
-docker-build-test-dataplane: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_TEST_DATAPLANE} -f build/Dockerfile.test-dataplane .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_TEST_DATAPLANE} ${DOCKER_TEST_DATAPLANE}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-nsm-init
-docker-build-nsm-init: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_NSM_INIT} -f build/Dockerfile.nsm-init .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_NSM_INIT} ${DOCKER_NSM_INIT}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-nse
-docker-build-nse: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_NSE} -f build/Dockerfile.nse .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_NSE} ${DOCKER_NSE}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-sidecar-injector
-docker-build-sidecar-injector: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_SIDECAR_INJECTOR}  -f build/Dockerfile.sidecar-injector .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_SIDECAR_INJECTOR} ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ;\
-	fi
-
-.PHONY: docker-build-sriov-controller
-docker-build-sriov-controller: docker-build-release
-	@${DOCKERBUILD} -t ${DOCKER_SRIOV_CONTROLLER}  -f build/Dockerfile.sriov-controller .
-	@if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${DOCKER_SRIOV_CONTROLLER} ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ;\
+		docker tag ${ORG}/release ${ORG}/release:${COMMIT} ;\
 	fi
 
 #
@@ -97,38 +49,16 @@ docker-build-sriov-controller: docker-build-release
 docker-login:
 	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
-.PHONY: docker-push-netmesh
-docker-push-netmesh: docker-login
-	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:${TAG}
-	docker tag ${DOCKER_NETMESH}:${COMMIT} ${DOCKER_NETMESH}:${BUILD_TAG}
-	docker push ${DOCKER_NETMESH}
+.PHONY: docker-push-%
+docker-push-%: docker-login
+	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
+	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
+	docker push ${ORG}/$*
 
-.PHONY: docker-push-test-dataplane
-docker-push-test-dataplane: docker-login
-	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:${TAG}
-	docker tag ${DOCKER_TEST_DATAPLANE}:${COMMIT} ${DOCKER_TEST_DATAPLANE}:${BUILD_TAG}
-	docker push ${DOCKER_TEST_DATAPLANE}
+#
+# Targets to save docker images
+#
+.PHONY: docker-save-%
+docker-save-%:
+	docker save -o scripts/vagrant/images/$*.tar ${ORG}/$*
 
-.PHONY: docker-push-nsm-init
-docker-push-nsm-init: docker-login
-	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:${TAG}
-	docker tag ${DOCKER_NSM_INIT}:${COMMIT} ${DOCKER_NSM_INIT}:${BUILD_TAG}
-	docker push ${DOCKER_NSM_INIT}
-
-.PHONY: docker-push-nse
-docker-push-nse: docker-login
-	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${TAG}
-	docker tag ${DOCKER_NSE}:${COMMIT} ${DOCKER_NSE}:${BUILD_TAG}
-	docker push ${DOCKER_NSE}
-
-.PHONY: docker-push-sidecar-injector
-docker-push-sidecar-injector: docker-login
-	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:${TAG}
-	docker tag ${DOCKER_SIDECAR_INJECTOR}:${COMMIT} ${DOCKER_SIDECAR_INJECTOR}:${BUILD_TAG}
-	docker push ${DOCKER_SIDECAR_INJECTOR}
-
-.PHONY: docker-push-sriov-controller
-docker-push-sriov-controller: docker-login
-	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:${TAG}
-	docker tag ${DOCKER_SRIOV_CONTROLLER}:${COMMIT} ${DOCKER_SRIOV_CONTROLLER}:${BUILD_TAG}
-	docker push ${DOCKER_SRIOV_CONTROLLER}

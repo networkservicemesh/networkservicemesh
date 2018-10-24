@@ -14,13 +14,14 @@ spec:
         - name: vpp-daemon
           securityContext:
             privileged: true
-          image: networkservicemesh/vppdataplane:latest
+          image: networkservicemesh/vpp-daemon:latest
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: run
               mountPath: /var/run
             - name: lib
               mountPath: /var/lib
+              mountPropagation: Bidirectional
             - name: lib-modules
               mountPath: /lib/modules
               readOnly: true
@@ -37,15 +38,6 @@ spec:
             - name: lib-modules
               mountPath: /lib/modules
               readOnly: true
-            - name: hugepages
-              mountPath: /run/vpp/hugepages
-          resources:
-            limits:
-              hugepages-2Mi: "1024Mi"
-              memory: "2048Mi"
-            requests:
-              hugepages-2Mi: "1024Mi"
-              memory: "2048Mi"
       volumes:
         - hostPath:
             path: /var/run
@@ -58,9 +50,6 @@ spec:
         - hostPath:
             path: /lib/modules
           name: lib-modules
-        - emptyDir:
-            medium: HugePages
-          name: hugepages
 metadata:
   name: nsm-vpp-dataplane
   namespace: default

@@ -128,6 +128,12 @@ function error_collection() {
         kubectl logs "$sidecar" -n "$namespace"  || true
         kubectl logs "$sidecar" -n "$namespace"  -p || true
     fi
+    vppdataplane=$(kubectl get pods --all-namespaces | grep vpp-dataplane | awk '{print $2}')
+    if [[ "x$vppdataplane" != "x" ]]; then
+        kubectl describe pod "$vppdataplane" -n "$namespace" || true
+        kubectl logs "$vppdataplane" -n "$namespace"  || true
+        kubectl logs "$vppdataplane" -n "$namespace"  -p || true
+    fi
     kubectl get nodes
     sudo docker images
     set +xe
