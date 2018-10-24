@@ -21,6 +21,7 @@ spec:
               mountPath: /var/run
             - name: lib
               mountPath: /var/lib
+              mountPropagation: Bidirectional
             - name: lib-modules
               mountPath: /lib/modules
               readOnly: true
