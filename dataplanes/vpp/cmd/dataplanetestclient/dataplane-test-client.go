@@ -18,6 +18,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -169,18 +169,18 @@ func main() {
 			localSource: &common.LocalMechanism{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
-					nsmutils.NSMkeyNamespace:        srcNamespace,
-					nsmutils.NSMkeyIPv4:             "2.2.2.2",
-					nsmutils.NSMkeyIPv4PrefixLength: "24",
+					nsmvpp.NSMkeyNamespace:        srcNamespace,
+					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+					nsmvpp.NSMkeyIPv4PrefixLength: "24",
 				},
 			},
 			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
-						nsmutils.NSMkeyNamespace:        dstNamespace,
-						nsmutils.NSMkeyIPv4:             "2.2.2.3",
-						nsmutils.NSMkeyIPv4PrefixLength: "24"},
+						nsmvpp.NSMkeyNamespace:        dstNamespace,
+						nsmvpp.NSMkeyIPv4:             "2.2.2.3",
+						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
 				},
 			},
 			shouldFail: false,
@@ -191,17 +191,17 @@ func main() {
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
 					// nsmutils.NSMkeyNamespace:        srcNamespace,
-					nsmutils.NSMkeyIPv4:             "2.2.2.2",
-					nsmutils.NSMkeyIPv4PrefixLength: "24",
+					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+					nsmvpp.NSMkeyIPv4PrefixLength: "24",
 				},
 			},
 			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
-						nsmutils.NSMkeyNamespace:        dstNamespace,
-						nsmutils.NSMkeyIPv4:             "2.2.2.3",
-						nsmutils.NSMkeyIPv4PrefixLength: "24"},
+						nsmvpp.NSMkeyNamespace:        dstNamespace,
+						nsmvpp.NSMkeyIPv4:             "2.2.2.3",
+						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
 				},
 			},
 			shouldFail: true,
@@ -211,18 +211,18 @@ func main() {
 			localSource: &common.LocalMechanism{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
-					nsmutils.NSMkeyNamespace:        srcNamespace,
-					nsmutils.NSMkeyIPv4:             "2.2.2.2",
-					nsmutils.NSMkeyIPv4PrefixLength: "24",
+					nsmvpp.NSMkeyNamespace:        srcNamespace,
+					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+					nsmvpp.NSMkeyIPv4PrefixLength: "24",
 				},
 			},
 			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
-						nsmutils.NSMkeyNamespace: dstNamespace,
+						nsmvpp.NSMkeyNamespace: dstNamespace,
 						// nsmutils.NSMkeyIPv4:             "2.2.2.3",
-						nsmutils.NSMkeyIPv4PrefixLength: "24"},
+						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
 				},
 			},
 			shouldFail: true,
@@ -232,18 +232,18 @@ func main() {
 			localSource: &common.LocalMechanism{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
-					nsmutils.NSMkeyNamespace:        srcNamespace,
-					nsmutils.NSMkeyIPv4:             "2.2.2.2",
-					nsmutils.NSMkeyIPv4PrefixLength: "34",
+					nsmvpp.NSMkeyNamespace:        srcNamespace,
+					nsmvpp.NSMkeyIPv4:             "2.2.2.2",
+					nsmvpp.NSMkeyIPv4PrefixLength: "34",
 				},
 			},
 			localDestination: &dataplaneapi.Connection_Local{
 				Local: &common.LocalMechanism{
 					Type: common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{
-						nsmutils.NSMkeyNamespace:        dstNamespace,
-						nsmutils.NSMkeyIPv4:             "2.2.2.3",
-						nsmutils.NSMkeyIPv4PrefixLength: "24"},
+						nsmvpp.NSMkeyNamespace:        dstNamespace,
+						nsmvpp.NSMkeyIPv4:             "2.2.2.3",
+						nsmvpp.NSMkeyIPv4PrefixLength: "24"},
 				},
 			},
 			shouldFail: true,
