@@ -17,8 +17,10 @@ package nsmvpp
 import (
 	"fmt"
 	govppapi "git.fd.io/govpp.git/api"
+	"github.com/docker/docker/pkg/mount"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/sirupsen/logrus"
+	"net"
 	"os"
 	"path"
 )
@@ -49,7 +51,6 @@ func (m MemifInterface) ValidateParameters(parameters map[string]string) error {
 		NSMSlave:           nsmutils.KeyProperties{Validator: nsmutils.Bool},
 		NSMPerPodDirectory: nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Empty},
 	}
-	//TODO validate roles
 
 	return nsmutils.ValidateParameters(parameters, keysList)
 }
@@ -67,37 +68,52 @@ func (m MemifInterface) DeleteLocalConnect(apiCh govppapi.Channel, connID string
 }
 
 func createMemifSocket(src, dst parameters) error {
+	connectionId := buildConnectionId(src, dst)
+
 	if src[NSMSocketFile] == "" && dst[NSMSocketFile] == "" {
-		generatedName := generateSocketName(src, dst)
+		generatedName := connectionId + ".sock"
 		src[NSMSocketFile] = generatedName
 		dst[NSMSocketFile] = generatedName
 	}
 
-	srcSocketDir := buildSocketDir(src)
-	dstSocketDir := buildSocketDir(dst)
-
-	if err := os.MkdirAll(srcSocketDir, 0777); err != nil {
+	srcSocketDir, err := createSocketFolder(src, connectionId)
+	if err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(dstSocketDir, 0777); err != nil {
+	dstSocketDir, err := createSocketFolder(dst, connectionId)
+	if err != nil {
 		return err
 	}
 
-	srcSocket := path.Join(srcSocketDir, src[NSMSocketFile])
-	dstSocket := path.Join(dstSocketDir, dst[NSMSocketFile])
-
-	if err := os.Symlink(srcSocket, dstSocket); err != nil {
-		logrus.Errorf("Fail during creation symlink to socket, because of: %v", err)
+	if err := mount.Mount(srcSocketDir, dstSocketDir, "hard", "bind"); err != nil {
+		return err
 	}
+	logrus.Infof("Successfully mount folder %s to %s", connectionId, dstSocketDir)
+
+	socket := path.Join(srcSocketDir, src[NSMSocketFile])
+	//dstSocket := path.Join(dstSocketDir, dst[NSMSocketFile])
+
+	if _, err := net.Listen("unix", socket); err != nil {
+		return err
+	}
+
+	logrus.Info("Start listening socket: %s", socket)
 
 	return nil
 }
 
-func generateSocketName(src, dst parameters) string {
-	return fmt.Sprint("%s-%s.sock", src[NSMPerPodDirectory], dst[NSMPerPodDirectory])
+func buildConnectionId(src, dst parameters) string {
+	return fmt.Sprintf("%s-%s", src[NSMPerPodDirectory], dst[NSMPerPodDirectory])
 }
 
-func buildSocketDir(p parameters) string {
-	return path.Join(BaseDir, p[NSMPerPodDirectory], MemifDirectory)
+func createSocketFolder(p parameters, connectionId string) (string, error) {
+	socketDir := path.Join(BaseDir, p[NSMPerPodDirectory], MemifDirectory, connectionId)
+
+	if err := os.MkdirAll(socketDir, 0777); err != nil {
+		return "", err
+	}
+	logrus.Infof("Create folder for socket: %s", socketDir)
+
+	return socketDir, nil
 }
