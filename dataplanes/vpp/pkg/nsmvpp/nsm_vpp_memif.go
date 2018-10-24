@@ -20,9 +20,9 @@ import (
 	"github.com/docker/docker/pkg/mount"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/sirupsen/logrus"
-	"net"
 	"os"
 	"path"
+	"strconv"
 )
 
 type parameters map[string]string
@@ -86,19 +86,22 @@ func createMemifSocket(src, dst parameters) error {
 		return err
 	}
 
-	if err := mount.Mount(srcSocketDir, dstSocketDir, "hard", "bind"); err != nil {
+	if err := mount.ForceMount(srcSocketDir, dstSocketDir, "hard", "bind"); err != nil {
 		return err
 	}
 	logrus.Infof("Successfully mount folder %s to %s", connectionId, dstSocketDir)
 
-	socket := path.Join(srcSocketDir, src[NSMSocketFile])
-	//dstSocket := path.Join(dstSocketDir, dst[NSMSocketFile])
+	if src[NSMSocketFile] != dst[NSMSocketFile] {
+		master, slave := masterSlave(src, dst)
 
-	if _, err := net.Listen("unix", socket); err != nil {
-		return err
+		masterSocketPath := path.Join(srcSocketDir, master[NSMSocketFile])
+		slaveSocketPath := path.Join(srcSocketDir, slave[NSMSocketFile])
+
+		if err := os.Symlink(masterSocketPath, slaveSocketPath); err != nil {
+			return fmt.Errorf("failed to create symlink: %s", err)
+		}
+		logrus.Info("Symlink successfully created")
 	}
-
-	logrus.Info("Start listening socket: %s", socket)
 
 	return nil
 }
@@ -116,4 +119,11 @@ func createSocketFolder(p parameters, connectionId string) (string, error) {
 	logrus.Infof("Create folder for socket: %s", socketDir)
 
 	return socketDir, nil
+}
+
+func masterSlave(src, dst parameters) (parameters, parameters) {
+	if isMaster, _ := strconv.ParseBool(src[NSMMaster]); isMaster {
+		return src, dst
+	}
+	return dst, src
 }
