@@ -32,6 +32,8 @@ curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KU
 . scripts/cluster_common.sh
 . scripts/integration-tests.sh
 
+sysctl -w net.ipv4.conf.all.rp_filter=0
+
 # Create the 'minikube' or 'dind' cluster
 create_k8s_cluster "${TEST_CONTEXT}"
 exit_code=$?
