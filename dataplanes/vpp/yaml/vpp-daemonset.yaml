@@ -47,7 +47,7 @@ spec:
             type: DirectoryOrCreate
           name: lib
         - hostPath:
-            path: /lib/modulesz
+            path: /lib/modules
           name: lib-modules
 metadata:
   name: nsm-vpp-dataplane
