@@ -3,9 +3,11 @@
 
 package testdataplane
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -36,6 +38,7 @@ var NSMPodType_name = map[int32]string{
 	1: "NSMCLIENT",
 	2: "NSE",
 }
+
 var NSMPodType_value = map[string]int32{
 	"DEFAULT_POD": 0,
 	"NSMCLIENT":   1,
@@ -45,8 +48,9 @@ var NSMPodType_value = map[string]int32{
 func (x NSMPodType) String() string {
 	return proto.EnumName(NSMPodType_name, int32(x))
 }
+
 func (NSMPodType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{0}
+	return fileDescriptor_27662a699c320669, []int{0}
 }
 
 type Metadata struct {
@@ -61,16 +65,17 @@ func (m *Metadata) Reset()         { *m = Metadata{} }
 func (m *Metadata) String() string { return proto.CompactTextString(m) }
 func (*Metadata) ProtoMessage()    {}
 func (*Metadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{0}
+	return fileDescriptor_27662a699c320669, []int{0}
 }
+
 func (m *Metadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Metadata.Unmarshal(m, b)
 }
 func (m *Metadata) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Metadata.Marshal(b, m, deterministic)
 }
-func (dst *Metadata) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Metadata.Merge(dst, src)
+func (m *Metadata) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Metadata.Merge(m, src)
 }
 func (m *Metadata) XXX_Size() int {
 	return xxx_messageInfo_Metadata.Size(m)
@@ -107,16 +112,17 @@ func (m *Pod) Reset()         { *m = Pod{} }
 func (m *Pod) String() string { return proto.CompactTextString(m) }
 func (*Pod) ProtoMessage()    {}
 func (*Pod) Descriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{1}
+	return fileDescriptor_27662a699c320669, []int{1}
 }
+
 func (m *Pod) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Pod.Unmarshal(m, b)
 }
 func (m *Pod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Pod.Marshal(b, m, deterministic)
 }
-func (dst *Pod) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Pod.Merge(dst, src)
+func (m *Pod) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pod.Merge(m, src)
 }
 func (m *Pod) XXX_Size() int {
 	return xxx_messageInfo_Pod.Size(m)
@@ -153,16 +159,17 @@ func (m *BuildConnectRequest) Reset()         { *m = BuildConnectRequest{} }
 func (m *BuildConnectRequest) String() string { return proto.CompactTextString(m) }
 func (*BuildConnectRequest) ProtoMessage()    {}
 func (*BuildConnectRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{2}
+	return fileDescriptor_27662a699c320669, []int{2}
 }
+
 func (m *BuildConnectRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BuildConnectRequest.Unmarshal(m, b)
 }
 func (m *BuildConnectRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BuildConnectRequest.Marshal(b, m, deterministic)
 }
-func (dst *BuildConnectRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BuildConnectRequest.Merge(dst, src)
+func (m *BuildConnectRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BuildConnectRequest.Merge(m, src)
 }
 func (m *BuildConnectRequest) XXX_Size() int {
 	return xxx_messageInfo_BuildConnectRequest.Size(m)
@@ -199,16 +206,17 @@ func (m *BuildConnectReply) Reset()         { *m = BuildConnectReply{} }
 func (m *BuildConnectReply) String() string { return proto.CompactTextString(m) }
 func (*BuildConnectReply) ProtoMessage()    {}
 func (*BuildConnectReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{3}
+	return fileDescriptor_27662a699c320669, []int{3}
 }
+
 func (m *BuildConnectReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BuildConnectReply.Unmarshal(m, b)
 }
 func (m *BuildConnectReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BuildConnectReply.Marshal(b, m, deterministic)
 }
-func (dst *BuildConnectReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BuildConnectReply.Merge(dst, src)
+func (m *BuildConnectReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BuildConnectReply.Merge(m, src)
 }
 func (m *BuildConnectReply) XXX_Size() int {
 	return xxx_messageInfo_BuildConnectReply.Size(m)
@@ -245,16 +253,17 @@ func (m *DeleteConnectRequest) Reset()         { *m = DeleteConnectRequest{} }
 func (m *DeleteConnectRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteConnectRequest) ProtoMessage()    {}
 func (*DeleteConnectRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{4}
+	return fileDescriptor_27662a699c320669, []int{4}
 }
+
 func (m *DeleteConnectRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteConnectRequest.Unmarshal(m, b)
 }
 func (m *DeleteConnectRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeleteConnectRequest.Marshal(b, m, deterministic)
 }
-func (dst *DeleteConnectRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteConnectRequest.Merge(dst, src)
+func (m *DeleteConnectRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteConnectRequest.Merge(m, src)
 }
 func (m *DeleteConnectRequest) XXX_Size() int {
 	return xxx_messageInfo_DeleteConnectRequest.Size(m)
@@ -291,16 +300,17 @@ func (m *DeleteConnectReply) Reset()         { *m = DeleteConnectReply{} }
 func (m *DeleteConnectReply) String() string { return proto.CompactTextString(m) }
 func (*DeleteConnectReply) ProtoMessage()    {}
 func (*DeleteConnectReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_testdataplane_c25ea7476a78660e, []int{5}
+	return fileDescriptor_27662a699c320669, []int{5}
 }
+
 func (m *DeleteConnectReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteConnectReply.Unmarshal(m, b)
 }
 func (m *DeleteConnectReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeleteConnectReply.Marshal(b, m, deterministic)
 }
-func (dst *DeleteConnectReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteConnectReply.Merge(dst, src)
+func (m *DeleteConnectReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteConnectReply.Merge(m, src)
 }
 func (m *DeleteConnectReply) XXX_Size() int {
 	return xxx_messageInfo_DeleteConnectReply.Size(m)
@@ -326,13 +336,13 @@ func (m *DeleteConnectReply) GetDeleteError() string {
 }
 
 func init() {
+	proto.RegisterEnum("testdataplane.NSMPodType", NSMPodType_name, NSMPodType_value)
 	proto.RegisterType((*Metadata)(nil), "testdataplane.Metadata")
 	proto.RegisterType((*Pod)(nil), "testdataplane.Pod")
 	proto.RegisterType((*BuildConnectRequest)(nil), "testdataplane.BuildConnectRequest")
 	proto.RegisterType((*BuildConnectReply)(nil), "testdataplane.BuildConnectReply")
 	proto.RegisterType((*DeleteConnectRequest)(nil), "testdataplane.DeleteConnectRequest")
 	proto.RegisterType((*DeleteConnectReply)(nil), "testdataplane.DeleteConnectReply")
-	proto.RegisterEnum("testdataplane.NSMPodType", NSMPodType_name, NSMPodType_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -471,9 +481,9 @@ var _DeleteConnect_serviceDesc = grpc.ServiceDesc{
 	Metadata: "testdataplane.proto",
 }
 
-func init() { proto.RegisterFile("testdataplane.proto", fileDescriptor_testdataplane_c25ea7476a78660e) }
+func init() { proto.RegisterFile("testdataplane.proto", fileDescriptor_27662a699c320669) }
 
-var fileDescriptor_testdataplane_c25ea7476a78660e = []byte{
+var fileDescriptor_27662a699c320669 = []byte{
 	// 428 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x93, 0x41, 0x6f, 0xd3, 0x40,
 	0x10, 0x85, 0x71, 0x02, 0xc4, 0x1e, 0x37, 0x6d, 0x98, 0x44, 0x22, 0x54, 0x20, 0x5a, 0xc3, 0x01,

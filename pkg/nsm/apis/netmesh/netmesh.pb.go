@@ -3,10 +3,12 @@
 
 package netmesh
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -35,16 +37,17 @@ func (m *NetworkServiceEndpoint) Reset()         { *m = NetworkServiceEndpoint{}
 func (m *NetworkServiceEndpoint) String() string { return proto.CompactTextString(m) }
 func (*NetworkServiceEndpoint) ProtoMessage()    {}
 func (*NetworkServiceEndpoint) Descriptor() ([]byte, []int) {
-	return fileDescriptor_netmesh_215a6331178c758f, []int{0}
+	return fileDescriptor_528d709677dfd289, []int{0}
 }
+
 func (m *NetworkServiceEndpoint) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NetworkServiceEndpoint.Unmarshal(m, b)
 }
 func (m *NetworkServiceEndpoint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_NetworkServiceEndpoint.Marshal(b, m, deterministic)
 }
-func (dst *NetworkServiceEndpoint) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NetworkServiceEndpoint.Merge(dst, src)
+func (m *NetworkServiceEndpoint) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NetworkServiceEndpoint.Merge(m, src)
 }
 func (m *NetworkServiceEndpoint) XXX_Size() int {
 	return xxx_messageInfo_NetworkServiceEndpoint.Size(m)
@@ -102,16 +105,17 @@ func (m *NetworkService) Reset()         { *m = NetworkService{} }
 func (m *NetworkService) String() string { return proto.CompactTextString(m) }
 func (*NetworkService) ProtoMessage()    {}
 func (*NetworkService) Descriptor() ([]byte, []int) {
-	return fileDescriptor_netmesh_215a6331178c758f, []int{1}
+	return fileDescriptor_528d709677dfd289, []int{1}
 }
+
 func (m *NetworkService) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NetworkService.Unmarshal(m, b)
 }
 func (m *NetworkService) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_NetworkService.Marshal(b, m, deterministic)
 }
-func (dst *NetworkService) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NetworkService.Merge(dst, src)
+func (m *NetworkService) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NetworkService.Merge(m, src)
 }
 func (m *NetworkService) XXX_Size() int {
 	return xxx_messageInfo_NetworkService.Size(m)
@@ -134,9 +138,9 @@ func init() {
 	proto.RegisterType((*NetworkService)(nil), "netmesh.NetworkService")
 }
 
-func init() { proto.RegisterFile("netmesh.proto", fileDescriptor_netmesh_215a6331178c758f) }
+func init() { proto.RegisterFile("netmesh.proto", fileDescriptor_528d709677dfd289) }
 
-var fileDescriptor_netmesh_215a6331178c758f = []byte{
+var fileDescriptor_528d709677dfd289 = []byte{
 	// 266 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x90, 0xcf, 0x4a, 0xc3, 0x40,
 	0x10, 0xc6, 0x69, 0xeb, 0x1f, 0x5c, 0xb1, 0xd1, 0x20, 0x25, 0x78, 0x2a, 0xbd, 0x58, 0x3c, 0x64,

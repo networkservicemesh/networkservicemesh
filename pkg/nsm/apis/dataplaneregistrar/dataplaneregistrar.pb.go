@@ -3,10 +3,12 @@
 
 package dataplaneregistrar
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -39,16 +41,17 @@ func (m *DataplaneRegistrationRequest) Reset()         { *m = DataplaneRegistrat
 func (m *DataplaneRegistrationRequest) String() string { return proto.CompactTextString(m) }
 func (*DataplaneRegistrationRequest) ProtoMessage()    {}
 func (*DataplaneRegistrationRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dataplaneregistrar_fd0c15e6a14f2c8d, []int{0}
+	return fileDescriptor_7f4c86488a7f7eab, []int{0}
 }
+
 func (m *DataplaneRegistrationRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DataplaneRegistrationRequest.Unmarshal(m, b)
 }
 func (m *DataplaneRegistrationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DataplaneRegistrationRequest.Marshal(b, m, deterministic)
 }
-func (dst *DataplaneRegistrationRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneRegistrationRequest.Merge(dst, src)
+func (m *DataplaneRegistrationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DataplaneRegistrationRequest.Merge(m, src)
 }
 func (m *DataplaneRegistrationRequest) XXX_Size() int {
 	return xxx_messageInfo_DataplaneRegistrationRequest.Size(m)
@@ -84,16 +87,17 @@ func (m *DataplaneRegistrationReply) Reset()         { *m = DataplaneRegistratio
 func (m *DataplaneRegistrationReply) String() string { return proto.CompactTextString(m) }
 func (*DataplaneRegistrationReply) ProtoMessage()    {}
 func (*DataplaneRegistrationReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dataplaneregistrar_fd0c15e6a14f2c8d, []int{1}
+	return fileDescriptor_7f4c86488a7f7eab, []int{1}
 }
+
 func (m *DataplaneRegistrationReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DataplaneRegistrationReply.Unmarshal(m, b)
 }
 func (m *DataplaneRegistrationReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DataplaneRegistrationReply.Marshal(b, m, deterministic)
 }
-func (dst *DataplaneRegistrationReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneRegistrationReply.Merge(dst, src)
+func (m *DataplaneRegistrationReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DataplaneRegistrationReply.Merge(m, src)
 }
 func (m *DataplaneRegistrationReply) XXX_Size() int {
 	return xxx_messageInfo_DataplaneRegistrationReply.Size(m)
@@ -124,16 +128,17 @@ func (m *DataplaneUnRegistrationRequest) Reset()         { *m = DataplaneUnRegis
 func (m *DataplaneUnRegistrationRequest) String() string { return proto.CompactTextString(m) }
 func (*DataplaneUnRegistrationRequest) ProtoMessage()    {}
 func (*DataplaneUnRegistrationRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dataplaneregistrar_fd0c15e6a14f2c8d, []int{2}
+	return fileDescriptor_7f4c86488a7f7eab, []int{2}
 }
+
 func (m *DataplaneUnRegistrationRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DataplaneUnRegistrationRequest.Unmarshal(m, b)
 }
 func (m *DataplaneUnRegistrationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DataplaneUnRegistrationRequest.Marshal(b, m, deterministic)
 }
-func (dst *DataplaneUnRegistrationRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneUnRegistrationRequest.Merge(dst, src)
+func (m *DataplaneUnRegistrationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DataplaneUnRegistrationRequest.Merge(m, src)
 }
 func (m *DataplaneUnRegistrationRequest) XXX_Size() int {
 	return xxx_messageInfo_DataplaneUnRegistrationRequest.Size(m)
@@ -162,16 +167,17 @@ func (m *DataplaneUnRegistrationReply) Reset()         { *m = DataplaneUnRegistr
 func (m *DataplaneUnRegistrationReply) String() string { return proto.CompactTextString(m) }
 func (*DataplaneUnRegistrationReply) ProtoMessage()    {}
 func (*DataplaneUnRegistrationReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dataplaneregistrar_fd0c15e6a14f2c8d, []int{3}
+	return fileDescriptor_7f4c86488a7f7eab, []int{3}
 }
+
 func (m *DataplaneUnRegistrationReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DataplaneUnRegistrationReply.Unmarshal(m, b)
 }
 func (m *DataplaneUnRegistrationReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DataplaneUnRegistrationReply.Marshal(b, m, deterministic)
 }
-func (dst *DataplaneUnRegistrationReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneUnRegistrationReply.Merge(dst, src)
+func (m *DataplaneUnRegistrationReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DataplaneUnRegistrationReply.Merge(m, src)
 }
 func (m *DataplaneUnRegistrationReply) XXX_Size() int {
 	return xxx_messageInfo_DataplaneUnRegistrationReply.Size(m)
@@ -404,11 +410,9 @@ var _DataplaneUnRegistration_serviceDesc = grpc.ServiceDesc{
 	Metadata: "dataplaneregistrar.proto",
 }
 
-func init() {
-	proto.RegisterFile("dataplaneregistrar.proto", fileDescriptor_dataplaneregistrar_fd0c15e6a14f2c8d)
-}
+func init() { proto.RegisterFile("dataplaneregistrar.proto", fileDescriptor_7f4c86488a7f7eab) }
 
-var fileDescriptor_dataplaneregistrar_fd0c15e6a14f2c8d = []byte{
+var fileDescriptor_7f4c86488a7f7eab = []byte{
 	// 330 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x52, 0x4d, 0x4b, 0xc3, 0x40,
 	0x14, 0x64, 0x3d, 0x88, 0x3e, 0xac, 0x95, 0x05, 0xb1, 0x84, 0x52, 0x24, 0x22, 0xd4, 0x4b, 0x52,

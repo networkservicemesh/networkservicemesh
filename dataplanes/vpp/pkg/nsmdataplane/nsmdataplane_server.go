@@ -104,10 +104,12 @@ func (d DataplaneServer) ConnectRequest(ctx context.Context, req *dataplaneapi.C
 				Success: false,
 			}, status.Error(codes.Unavailable, errStr)
 		}
+
 		d.connections[connID] = req
+		req.ConnectionId = connID
 		return &dataplaneapi.Reply{
-			Success:      true,
-			ConnectionId: connID,
+			Success:    true,
+			Connection: req,
 		}, nil
 
 	case *dataplaneapi.Connection_Remote:
