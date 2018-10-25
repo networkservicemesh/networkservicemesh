@@ -37,7 +37,6 @@ function wait_for_networkservice() {
         now=$(date +%s)
         if [ "$now" -gt "$end" ] ; then
             echo "NetworkService has not been created within 60 seconds, failing..."
-            error_collection
             set -xe
             return 1
         fi
@@ -78,7 +77,6 @@ function wait_for_pods() {
         now=$(date +%s)
         if [ "$now" -gt "$end" ] ; then
             echo "Containers failed to start."
-            error_collection
             set -xe
             return 1
         fi
@@ -89,9 +87,9 @@ function wait_for_pods() {
 }
 
 #
-# In case if a failure, collecting some evidence for further debugging
+# Dump logs for evidence for futher debugging
 #
-function error_collection() {
+function dump_logs() {
     set -xe
     kubectl describe node || true
     kubectl get pods --all-namespaces || true
@@ -135,7 +133,13 @@ function error_collection() {
         kubectl logs "$vppdataplane" -n "$namespace"  -p || true
     fi
     kubectl get nodes
-    sudo docker images
+
+    # The docker images can be super useful locally, but never works in CI
+    # So this dance causes us to not break CI simply because its setup
+    # Differently than local
+    if sudo docker images; then
+        exit 0
+    fi
     set +xe
 }
 

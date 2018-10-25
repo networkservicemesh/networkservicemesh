@@ -98,6 +98,12 @@ jobs:
           environment:
             KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
       - run:
+          when: always
+          name: Dump Logs
+          command: ./scripts/dump_logs.sh
+          environment:
+            KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
+      - run:
           when: on_fail
           name: Trigger packet-destroy
           command: |
