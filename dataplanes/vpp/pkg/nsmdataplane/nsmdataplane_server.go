@@ -17,12 +17,6 @@ package nsmdataplane
 import (
 	"context"
 	"fmt"
-	"net"
-	"strconv"
-	"strings"
-
-	govppapi "git.fd.io/govpp.git/api"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
@@ -31,6 +25,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes" // "context"
 	"google.golang.org/grpc/status"
+	"net"
 )
 
 // DataplaneServer keeps k8s client and gRPC server
@@ -40,40 +35,13 @@ type DataplaneServer struct {
 	remoteMechanisms []*common.RemoteMechanism
 	localMechanisms  []*common.LocalMechanism
 	updateCh         chan Update
+	connections      map[string]ConnectionDescriptor
 }
 
 // Update is a message used to communicate any changes in operational parameters and constraints
 type Update struct {
 	remoteMechanisms []*common.RemoteMechanism
 	localMechanisms  []*common.LocalMechanism
-}
-
-var mechanisms = []nsmvpp.Mechanism{
-	nsmvpp.KernelInterface{}, // default
-	nsmvpp.KernelInterface{},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_VHOST_INTERFACE},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_MEM_INTERFACE},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_SRIOV_INTERFACE},
-	nsmvpp.UnimplementedMechanism{Type: common.LocalMechanismType_HW_INTERFACE},
-}
-
-// createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
-func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
-	if err := nsmutils.ValidateParameters(src.Parameters); err != nil {
-		return "", err
-	}
-	if err := nsmutils.ValidateParameters(dst.Parameters); err != nil {
-		return "", err
-	}
-
-	return mechanisms[src.Type].CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
-}
-
-// deleteLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
-func deleteLocalConnect(apiCh govppapi.Channel, connID string) error {
-	mechanism, _ := strconv.Atoi(strings.Split(connID, "-")[0])
-
-	return mechanisms[mechanism].DeleteLocalConnect(apiCh, connID)
 }
 
 // ConnectRequest is called when NSM sends the request to interconnect two containers' namespaces.
@@ -88,45 +56,25 @@ func (d DataplaneServer) ConnectRequest(ctx context.Context, req *dataplaneapi.C
 		}, status.Error(codes.Unavailable, "VPP dataplane is currently unavailable.")
 	}
 
-	// TODO (sbezverk) need to add a check for requested local and remote mechanisms. The dataplane controller
-	// configuration should be global as it is needed by multiple packages.
-
-	// There are two known types of destinations:
-	// Local - when both PODs are running on the same host,
-	// Remote - when NSM Client is local, but the requested Network Service Endpoint is runing on a
-	// different from the client host.
-	switch req.Destination.(type) {
-	case *dataplaneapi.Connection_Local:
-		logrus.Infof("Destination is local: %+v", req)
-		destination := req.Destination.(*dataplaneapi.Connection_Local)
-		logrus.Infof("Destination struct: %+v", destination.Local)
-		connID, err := createLocalConnect(d.vppDataplane.GetAPIChannel(), req.LocalSource, destination.Local)
-		if err != nil {
-			errStr := fmt.Sprintf("fail to build the cross connect with error: %+v", err)
-			return &dataplaneapi.Reply{
-				Success: false,
-			}, status.Error(codes.Unavailable, errStr)
-		}
-		req.ConnectionId = connID
-		return &dataplaneapi.Reply{
-			Success:    true,
-			Connection: req,
-		}, nil
-
-	case *dataplaneapi.Connection_Remote:
-		logrus.Infof("Destination is remote: %+v", req)
-		destination := req.Destination.(*dataplaneapi.Connection_Remote)
-		logrus.Infof("Destination struct: %+v", destination.Remote)
-		// Remote destination support is not yet implemented, failing this request
-		return &dataplaneapi.Reply{
-			Success: false,
-		}, status.Error(codes.Unavailable, "Remote Destination currently is not supported")
-	default:
-		// Destination type does not match to any known/supported types, failing this request.
-		return &dataplaneapi.Reply{
-			Success: false,
-		}, status.Error(codes.Unknown, "Unknown destination type")
+	connectionDescriptor, err := BuildConnectionDescriptor(req)
+	if err != nil {
+		return &dataplaneapi.Reply{Success: false}, err
 	}
+
+	connId, err := connectionDescriptor.Connect(d.vppDataplane.GetAPIChannel())
+	if err != nil {
+		errStr := fmt.Sprintf("fail to build the cross connect with error: %+v", err)
+		return &dataplaneapi.Reply{
+			Success: false,
+		}, status.Error(codes.Unavailable, errStr)
+	}
+
+	d.connections[connId] = connectionDescriptor
+	req.ConnectionId = connId
+	return &dataplaneapi.Reply{
+		Success:    true,
+		Connection: req,
+	}, nil
 }
 
 // DisconnectRequest is called when NSM sends the request to disconnect two containers' namespaces.
@@ -140,37 +88,24 @@ func (d DataplaneServer) DisconnectRequest(ctx context.Context, req *dataplaneap
 		}, status.Error(codes.Unavailable, "VPP dataplane is currently unavailable.")
 	}
 
-	switch req.Destination.(type) {
-	case *dataplaneapi.Connection_Local:
-		logrus.Infof("Destination is local: %+v", req)
-		destination := req.Destination.(*dataplaneapi.Connection_Local)
-		logrus.Infof("Destination struct: %+v", destination.Local)
-
-		if err := deleteLocalConnect(d.vppDataplane.GetAPIChannel(), req.ConnectionId); err != nil {
-			errStr := fmt.Sprintf("fail to delete the cross connect with error: %+v", err)
-			return &dataplaneapi.Reply{
-				Success: false,
-			}, status.Error(codes.Unavailable, errStr)
-		}
-		return &dataplaneapi.Reply{
-			Success: true,
-		}, nil
-	case *dataplaneapi.Connection_Remote:
-		logrus.Infof("Destination is remote: %+v", req)
-		destination := req.Destination.(*dataplaneapi.Connection_Remote)
-		logrus.Infof("Destination struct: %+v", destination.Remote)
-		// Remote destination support is not yet implemented, failing this request
+	connectionDescriptor, exist := d.connections[req.ConnectionId]
+	if !exist {
 		return &dataplaneapi.Reply{
 			Success: false,
-		}, status.Error(codes.Unavailable, "Remote Destination currently is not supported")
-	default:
-		// Destination type does not match to any known/supported types, failing this request.
-		return &dataplaneapi.Reply{
-			Success: false,
-		}, status.Error(codes.Unknown, "Unknown destination type")
+		}, status.Error(codes.NotFound, "connection with specified id not found")
 	}
 
-	return &dataplaneapi.Reply{Success: true}, nil
+	if err := connectionDescriptor.Disconnect(d.vppDataplane.GetAPIChannel()); err != nil {
+		errStr := fmt.Sprintf("fail to delete the cross connect with error: %+v", err)
+		return &dataplaneapi.Reply{
+			Success: false,
+		}, status.Error(codes.Unavailable, errStr)
+	}
+
+	delete(d.connections, req.ConnectionId)
+	return &dataplaneapi.Reply{
+		Success: true,
+	}, nil
 }
 
 // UpdateDataplane implements method of dataplane interface, which is informing NSM of any changes
@@ -222,6 +157,7 @@ func StartDataplaneServer(vpp nsmvpp.Interface) error {
 				Type: common.RemoteMechanismType_VXLAN,
 			},
 		},
+		connections: make(map[string]ConnectionDescriptor),
 	}
 	dataplaneSocket := vpp.GetDataplaneSocket()
 
