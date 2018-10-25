@@ -55,20 +55,9 @@ function run_tests() {
     # Starting nse pod which will advertise an endpoint for gold-network
     # network service
     kubectl create -f conf/sample/nse.yaml
-    kubectl create -f conf/sample/test-dataplane.yaml
-    # test-dataplane is drop-in replacement from vpp-dataplane, please feel free to use any
-    # kubectl create -f dataplanes/vpp/yaml/vpp-daemonset.yaml
-    wait_for_pods default
- 
-    #
-    # Starting nsm client pod, nsm-client pod should discover gold-network
-    # network service along with its endpoint and interface
-    kubectl create -f conf/sample/nsm-client.yaml
+    #kubectl create -f conf/sample/test-dataplane.yaml
 
-    #
-    # Now let's wait for nsm-cient pod to get into running state
-    #
-    wait_for_pods default
+    # test-dataplane is drop-in replacement from vpp-dataplane, please feel free to use any
 
     #
     # Starting vpp-daemonset pod
@@ -82,6 +71,17 @@ function run_tests() {
     if [ "${exit_ret}" != "0" ] ; then
         return "${exit_ret}"
     fi
+ 
+    #
+    # Starting nsm client pod, nsm-client pod should discover gold-network
+    # network service along with its endpoint and interface
+    kubectl create -f conf/sample/nsm-client.yaml
+
+    #
+    # Now let's wait for nsm-cient pod to get into running state
+    #
+    wait_for_pods default
+
 
     #
     # tests are failing on minikube for adding sidecar containers,  will enable
