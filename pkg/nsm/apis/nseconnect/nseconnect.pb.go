@@ -3,11 +3,13 @@
 
 package nseconnect
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-import netmesh "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	netmesh "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -38,16 +40,17 @@ func (m *EndpointConnectionRequest) Reset()         { *m = EndpointConnectionReq
 func (m *EndpointConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*EndpointConnectionRequest) ProtoMessage()    {}
 func (*EndpointConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{0}
+	return fileDescriptor_7e33aba36f437ad2, []int{0}
 }
+
 func (m *EndpointConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointConnectionRequest.Unmarshal(m, b)
 }
 func (m *EndpointConnectionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointConnectionRequest.Marshal(b, m, deterministic)
 }
-func (dst *EndpointConnectionRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointConnectionRequest.Merge(dst, src)
+func (m *EndpointConnectionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointConnectionRequest.Merge(m, src)
 }
 func (m *EndpointConnectionRequest) XXX_Size() int {
 	return xxx_messageInfo_EndpointConnectionRequest.Size(m)
@@ -87,16 +90,17 @@ func (m *EndpointConnectionReply) Reset()         { *m = EndpointConnectionReply
 func (m *EndpointConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointConnectionReply) ProtoMessage()    {}
 func (*EndpointConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{1}
+	return fileDescriptor_7e33aba36f437ad2, []int{1}
 }
+
 func (m *EndpointConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointConnectionReply.Unmarshal(m, b)
 }
 func (m *EndpointConnectionReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointConnectionReply.Marshal(b, m, deterministic)
 }
-func (dst *EndpointConnectionReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointConnectionReply.Merge(dst, src)
+func (m *EndpointConnectionReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointConnectionReply.Merge(m, src)
 }
 func (m *EndpointConnectionReply) XXX_Size() int {
 	return xxx_messageInfo_EndpointConnectionReply.Size(m)
@@ -143,16 +147,17 @@ func (m *EndpointConnectionMechanism) Reset()         { *m = EndpointConnectionM
 func (m *EndpointConnectionMechanism) String() string { return proto.CompactTextString(m) }
 func (*EndpointConnectionMechanism) ProtoMessage()    {}
 func (*EndpointConnectionMechanism) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{2}
+	return fileDescriptor_7e33aba36f437ad2, []int{2}
 }
+
 func (m *EndpointConnectionMechanism) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointConnectionMechanism.Unmarshal(m, b)
 }
 func (m *EndpointConnectionMechanism) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointConnectionMechanism.Marshal(b, m, deterministic)
 }
-func (dst *EndpointConnectionMechanism) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointConnectionMechanism.Merge(dst, src)
+func (m *EndpointConnectionMechanism) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointConnectionMechanism.Merge(m, src)
 }
 func (m *EndpointConnectionMechanism) XXX_Size() int {
 	return xxx_messageInfo_EndpointConnectionMechanism.Size(m)
@@ -198,16 +203,17 @@ func (m *EndpointConnectionMechanismReply) Reset()         { *m = EndpointConnec
 func (m *EndpointConnectionMechanismReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointConnectionMechanismReply) ProtoMessage()    {}
 func (*EndpointConnectionMechanismReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{3}
+	return fileDescriptor_7e33aba36f437ad2, []int{3}
 }
+
 func (m *EndpointConnectionMechanismReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointConnectionMechanismReply.Unmarshal(m, b)
 }
 func (m *EndpointConnectionMechanismReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointConnectionMechanismReply.Marshal(b, m, deterministic)
 }
-func (dst *EndpointConnectionMechanismReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointConnectionMechanismReply.Merge(dst, src)
+func (m *EndpointConnectionMechanismReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointConnectionMechanismReply.Merge(m, src)
 }
 func (m *EndpointConnectionMechanismReply) XXX_Size() int {
 	return xxx_messageInfo_EndpointConnectionMechanismReply.Size(m)
@@ -244,16 +250,17 @@ func (m *EndpointAdvertiseRequest) Reset()         { *m = EndpointAdvertiseReque
 func (m *EndpointAdvertiseRequest) String() string { return proto.CompactTextString(m) }
 func (*EndpointAdvertiseRequest) ProtoMessage()    {}
 func (*EndpointAdvertiseRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{4}
+	return fileDescriptor_7e33aba36f437ad2, []int{4}
 }
+
 func (m *EndpointAdvertiseRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointAdvertiseRequest.Unmarshal(m, b)
 }
 func (m *EndpointAdvertiseRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointAdvertiseRequest.Marshal(b, m, deterministic)
 }
-func (dst *EndpointAdvertiseRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointAdvertiseRequest.Merge(dst, src)
+func (m *EndpointAdvertiseRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointAdvertiseRequest.Merge(m, src)
 }
 func (m *EndpointAdvertiseRequest) XXX_Size() int {
 	return xxx_messageInfo_EndpointAdvertiseRequest.Size(m)
@@ -291,16 +298,17 @@ func (m *EndpointAdvertiseReply) Reset()         { *m = EndpointAdvertiseReply{}
 func (m *EndpointAdvertiseReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointAdvertiseReply) ProtoMessage()    {}
 func (*EndpointAdvertiseReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{5}
+	return fileDescriptor_7e33aba36f437ad2, []int{5}
 }
+
 func (m *EndpointAdvertiseReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointAdvertiseReply.Unmarshal(m, b)
 }
 func (m *EndpointAdvertiseReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointAdvertiseReply.Marshal(b, m, deterministic)
 }
-func (dst *EndpointAdvertiseReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointAdvertiseReply.Merge(dst, src)
+func (m *EndpointAdvertiseReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointAdvertiseReply.Merge(m, src)
 }
 func (m *EndpointAdvertiseReply) XXX_Size() int {
 	return xxx_messageInfo_EndpointAdvertiseReply.Size(m)
@@ -347,16 +355,17 @@ func (m *EndpointRemoveRequest) Reset()         { *m = EndpointRemoveRequest{} }
 func (m *EndpointRemoveRequest) String() string { return proto.CompactTextString(m) }
 func (*EndpointRemoveRequest) ProtoMessage()    {}
 func (*EndpointRemoveRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{6}
+	return fileDescriptor_7e33aba36f437ad2, []int{6}
 }
+
 func (m *EndpointRemoveRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointRemoveRequest.Unmarshal(m, b)
 }
 func (m *EndpointRemoveRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointRemoveRequest.Marshal(b, m, deterministic)
 }
-func (dst *EndpointRemoveRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointRemoveRequest.Merge(dst, src)
+func (m *EndpointRemoveRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointRemoveRequest.Merge(m, src)
 }
 func (m *EndpointRemoveRequest) XXX_Size() int {
 	return xxx_messageInfo_EndpointRemoveRequest.Size(m)
@@ -394,16 +403,17 @@ func (m *EndpointRemoveReply) Reset()         { *m = EndpointRemoveReply{} }
 func (m *EndpointRemoveReply) String() string { return proto.CompactTextString(m) }
 func (*EndpointRemoveReply) ProtoMessage()    {}
 func (*EndpointRemoveReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nseconnect_54fa9345bcf3911d, []int{7}
+	return fileDescriptor_7e33aba36f437ad2, []int{7}
 }
+
 func (m *EndpointRemoveReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndpointRemoveReply.Unmarshal(m, b)
 }
 func (m *EndpointRemoveReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EndpointRemoveReply.Marshal(b, m, deterministic)
 }
-func (dst *EndpointRemoveReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointRemoveReply.Merge(dst, src)
+func (m *EndpointRemoveReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EndpointRemoveReply.Merge(m, src)
 }
 func (m *EndpointRemoveReply) XXX_Size() int {
 	return xxx_messageInfo_EndpointRemoveReply.Size(m)
@@ -648,9 +658,9 @@ var _EndpointOperations_serviceDesc = grpc.ServiceDesc{
 	Metadata: "nseconnect.proto",
 }
 
-func init() { proto.RegisterFile("nseconnect.proto", fileDescriptor_nseconnect_54fa9345bcf3911d) }
+func init() { proto.RegisterFile("nseconnect.proto", fileDescriptor_7e33aba36f437ad2) }
 
-var fileDescriptor_nseconnect_54fa9345bcf3911d = []byte{
+var fileDescriptor_7e33aba36f437ad2 = []byte{
 	// 519 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xdd, 0x8a, 0xd3, 0x40,
 	0x14, 0x26, 0x2e, 0xc8, 0xee, 0x11, 0xda, 0x35, 0xea, 0xda, 0x8d, 0x48, 0xd7, 0xa8, 0xd4, 0x0b,

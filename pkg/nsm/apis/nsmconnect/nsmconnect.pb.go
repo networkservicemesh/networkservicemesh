@@ -3,10 +3,12 @@
 
 package nsmconnect
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -42,16 +44,17 @@ func (m *ConnectionRequest) Reset()         { *m = ConnectionRequest{} }
 func (m *ConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*ConnectionRequest) ProtoMessage()    {}
 func (*ConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_1036a755e1aa2d72, []int{0}
+	return fileDescriptor_33a14f008112dfcb, []int{0}
 }
+
 func (m *ConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionRequest.Unmarshal(m, b)
 }
 func (m *ConnectionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ConnectionRequest.Marshal(b, m, deterministic)
 }
-func (dst *ConnectionRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ConnectionRequest.Merge(dst, src)
+func (m *ConnectionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectionRequest.Merge(m, src)
 }
 func (m *ConnectionRequest) XXX_Size() int {
 	return xxx_messageInfo_ConnectionRequest.Size(m)
@@ -101,16 +104,17 @@ func (m *ConnectionParameters) Reset()         { *m = ConnectionParameters{} }
 func (m *ConnectionParameters) String() string { return proto.CompactTextString(m) }
 func (*ConnectionParameters) ProtoMessage()    {}
 func (*ConnectionParameters) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_1036a755e1aa2d72, []int{1}
+	return fileDescriptor_33a14f008112dfcb, []int{1}
 }
+
 func (m *ConnectionParameters) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionParameters.Unmarshal(m, b)
 }
 func (m *ConnectionParameters) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ConnectionParameters.Marshal(b, m, deterministic)
 }
-func (dst *ConnectionParameters) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ConnectionParameters.Merge(dst, src)
+func (m *ConnectionParameters) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectionParameters.Merge(m, src)
 }
 func (m *ConnectionParameters) XXX_Size() int {
 	return xxx_messageInfo_ConnectionParameters.Size(m)
@@ -146,16 +150,17 @@ func (m *ConnectionReply) Reset()         { *m = ConnectionReply{} }
 func (m *ConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*ConnectionReply) ProtoMessage()    {}
 func (*ConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmconnect_1036a755e1aa2d72, []int{2}
+	return fileDescriptor_33a14f008112dfcb, []int{2}
 }
+
 func (m *ConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionReply.Unmarshal(m, b)
 }
 func (m *ConnectionReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ConnectionReply.Marshal(b, m, deterministic)
 }
-func (dst *ConnectionReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ConnectionReply.Merge(dst, src)
+func (m *ConnectionReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectionReply.Merge(m, src)
 }
 func (m *ConnectionReply) XXX_Size() int {
 	return xxx_messageInfo_ConnectionReply.Size(m)
@@ -273,9 +278,9 @@ var _ClientConnection_serviceDesc = grpc.ServiceDesc{
 	Metadata: "nsmconnect.proto",
 }
 
-func init() { proto.RegisterFile("nsmconnect.proto", fileDescriptor_nsmconnect_1036a755e1aa2d72) }
+func init() { proto.RegisterFile("nsmconnect.proto", fileDescriptor_33a14f008112dfcb) }
 
-var fileDescriptor_nsmconnect_1036a755e1aa2d72 = []byte{
+var fileDescriptor_33a14f008112dfcb = []byte{
 	// 418 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0x5d, 0x8b, 0xd3, 0x40,
 	0x14, 0x25, 0xdb, 0x55, 0x76, 0xef, 0x42, 0xdb, 0x1d, 0xaa, 0xc4, 0xc8, 0x42, 0xd9, 0x17, 0xf7,

@@ -33,9 +33,7 @@ message Connection {
 message Reply {
     bool success = 1;
     string extended_error = 2;
-    // ConnectRequest will populate this field with connection id returned by the 
-    // dataplane controller
-    // DisconnectRequest ignores this field
-    string connection_id = 3;
+    //Connection in case of success contains information about mechanisms that have been chosen
+    Connection connection = 3;
 }
 
