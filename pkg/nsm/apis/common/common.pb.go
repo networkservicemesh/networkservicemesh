@@ -3,9 +3,11 @@
 
 package common
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -37,6 +39,7 @@ var LocalMechanismType_name = map[int32]string{
 	4: "SRIOV_INTERFACE",
 	5: "HW_INTERFACE",
 }
+
 var LocalMechanismType_value = map[string]int32{
 	"DEFAULT_INTERFACE": 0,
 	"KERNEL_INTERFACE":  1,
@@ -49,8 +52,9 @@ var LocalMechanismType_value = map[string]int32{
 func (x LocalMechanismType) String() string {
 	return proto.EnumName(LocalMechanismType_name, int32(x))
 }
+
 func (LocalMechanismType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_common_dfe900851b86ae4d, []int{0}
+	return fileDescriptor_555bd8c177793206, []int{0}
 }
 
 type RemoteMechanismType int32
@@ -76,6 +80,7 @@ var RemoteMechanismType_name = map[int32]string{
 	6: "MPLSoGRE",
 	7: "MPLSoUDP",
 }
+
 var RemoteMechanismType_value = map[string]int32{
 	"NONE":          0,
 	"VXLAN":         1,
@@ -90,8 +95,9 @@ var RemoteMechanismType_value = map[string]int32{
 func (x RemoteMechanismType) String() string {
 	return proto.EnumName(RemoteMechanismType_name, int32(x))
 }
+
 func (RemoteMechanismType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_common_dfe900851b86ae4d, []int{1}
+	return fileDescriptor_555bd8c177793206, []int{1}
 }
 
 type Empty struct {
@@ -104,16 +110,17 @@ func (m *Empty) Reset()         { *m = Empty{} }
 func (m *Empty) String() string { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()    {}
 func (*Empty) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_dfe900851b86ae4d, []int{0}
+	return fileDescriptor_555bd8c177793206, []int{0}
 }
+
 func (m *Empty) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Empty.Unmarshal(m, b)
 }
 func (m *Empty) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Empty.Marshal(b, m, deterministic)
 }
-func (dst *Empty) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Empty.Merge(dst, src)
+func (m *Empty) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Empty.Merge(m, src)
 }
 func (m *Empty) XXX_Size() int {
 	return xxx_messageInfo_Empty.Size(m)
@@ -136,16 +143,17 @@ func (m *LocalMechanism) Reset()         { *m = LocalMechanism{} }
 func (m *LocalMechanism) String() string { return proto.CompactTextString(m) }
 func (*LocalMechanism) ProtoMessage()    {}
 func (*LocalMechanism) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_dfe900851b86ae4d, []int{1}
+	return fileDescriptor_555bd8c177793206, []int{1}
 }
+
 func (m *LocalMechanism) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocalMechanism.Unmarshal(m, b)
 }
 func (m *LocalMechanism) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_LocalMechanism.Marshal(b, m, deterministic)
 }
-func (dst *LocalMechanism) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LocalMechanism.Merge(dst, src)
+func (m *LocalMechanism) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LocalMechanism.Merge(m, src)
 }
 func (m *LocalMechanism) XXX_Size() int {
 	return xxx_messageInfo_LocalMechanism.Size(m)
@@ -182,16 +190,17 @@ func (m *RemoteMechanism) Reset()         { *m = RemoteMechanism{} }
 func (m *RemoteMechanism) String() string { return proto.CompactTextString(m) }
 func (*RemoteMechanism) ProtoMessage()    {}
 func (*RemoteMechanism) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_dfe900851b86ae4d, []int{2}
+	return fileDescriptor_555bd8c177793206, []int{2}
 }
+
 func (m *RemoteMechanism) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RemoteMechanism.Unmarshal(m, b)
 }
 func (m *RemoteMechanism) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_RemoteMechanism.Marshal(b, m, deterministic)
 }
-func (dst *RemoteMechanism) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RemoteMechanism.Merge(dst, src)
+func (m *RemoteMechanism) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoteMechanism.Merge(m, src)
 }
 func (m *RemoteMechanism) XXX_Size() int {
 	return xxx_messageInfo_RemoteMechanism.Size(m)
@@ -217,18 +226,18 @@ func (m *RemoteMechanism) GetParameters() map[string]string {
 }
 
 func init() {
+	proto.RegisterEnum("common.LocalMechanismType", LocalMechanismType_name, LocalMechanismType_value)
+	proto.RegisterEnum("common.RemoteMechanismType", RemoteMechanismType_name, RemoteMechanismType_value)
 	proto.RegisterType((*Empty)(nil), "common.Empty")
 	proto.RegisterType((*LocalMechanism)(nil), "common.LocalMechanism")
 	proto.RegisterMapType((map[string]string)(nil), "common.LocalMechanism.ParametersEntry")
 	proto.RegisterType((*RemoteMechanism)(nil), "common.RemoteMechanism")
 	proto.RegisterMapType((map[string]string)(nil), "common.RemoteMechanism.ParametersEntry")
-	proto.RegisterEnum("common.LocalMechanismType", LocalMechanismType_name, LocalMechanismType_value)
-	proto.RegisterEnum("common.RemoteMechanismType", RemoteMechanismType_name, RemoteMechanismType_value)
 }
 
-func init() { proto.RegisterFile("common.proto", fileDescriptor_common_dfe900851b86ae4d) }
+func init() { proto.RegisterFile("common.proto", fileDescriptor_555bd8c177793206) }
 
-var fileDescriptor_common_dfe900851b86ae4d = []byte{
+var fileDescriptor_555bd8c177793206 = []byte{
 	// 373 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x92, 0x5b, 0x6b, 0xe2, 0x40,
 	0x14, 0xc7, 0x77, 0x72, 0xf1, 0x72, 0xd6, 0xcb, 0x38, 0xba, 0x20, 0xee, 0x8b, 0xf8, 0xb0, 0x2b,
