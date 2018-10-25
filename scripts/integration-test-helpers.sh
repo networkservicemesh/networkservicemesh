@@ -131,8 +131,10 @@ function error_collection() {
     vppdataplane=$(kubectl get pods --all-namespaces | grep vpp-dataplane | awk '{print $2}')
     if [[ "x$vppdataplane" != "x" ]]; then
         kubectl describe pod "$vppdataplane" -n "$namespace" || true
-        kubectl logs "$vppdataplane" -n "$namespace"  || true
-        kubectl logs "$vppdataplane" -n "$namespace"  -p || true
+        kubectl logs "$vppdataplane" -n "$namespace" vpp-daemon || true
+        kubectl logs "$vppdataplane" -n "$namespace" vpp || true
+        kubectl logs "$vppdataplane" -n "$namespace" vpp-daemon -p || true
+        kubectl logs "$vppdataplane" -n "$namespace" vpp -p || true
     fi
     kubectl get nodes
     sudo docker images
