@@ -28,30 +28,26 @@ const (
 	NSMkeyIPv4 = "ipv4"
 	// NSMkeyIPv4PrefixLength defines the name of the key ipv4 prefix length in parameters map (optional)
 	NSMkeyIPv4PrefixLength = "ipv4prefixlength"
+	//NSMSocketFile defines socket name which will be used for memif connection
+	NSMSocketFile = "socketfile"
+	//NSMMaster if true, than role is master
+	NSMMaster = "master"
+	//NSMSlave if true, than role is slave
+	NSMSlave = "slave"
+	//NSMPerPodDirectory defines directory that is mounted to pod (relative to /var/lib/networkservicemesh)
+	NSMPerPodDirectory = "directory"
 )
 
 // keys is a map of all keys which are supported in the connection Parameters map
-type keyProperties struct {
-	mandatory bool
-	validator func(value string) error
+type KeyProperties struct {
+	Mandatory bool
+	Validator func(value string) error
 }
-type keys map[string]keyProperties
+type Keys map[string]KeyProperties
 
 // ValidateParameters checks all required amd optional parameters
 // and attempts to check them
-func ValidateParameters(parameters map[string]string) error {
-
-	keyList := keys{
-		NSMkeyNamespace: keyProperties{
-			mandatory: true,
-			validator: namespace},
-		NSMkeyIPv4: keyProperties{
-			mandatory: false,
-			validator: ipv4},
-		NSMkeyIPv4PrefixLength: keyProperties{
-			mandatory: false,
-			validator: ipv4prefixlength},
-	}
+func ValidateParameters(parameters map[string]string, keyList Keys) error {
 
 	// Check for any Unknown keys if found return error
 	for key := range parameters {
@@ -63,7 +59,7 @@ func ValidateParameters(parameters map[string]string) error {
 
 	// Check mandatory parameters first
 	for key, properties := range keyList {
-		if properties.mandatory {
+		if properties.Mandatory {
 			if _, ok := parameters[key]; !ok {
 				return fmt.Errorf("missing mandatory %s key", key)
 			}
@@ -72,7 +68,7 @@ func ValidateParameters(parameters map[string]string) error {
 
 	// Check sanity for all passed parameters
 	for key, value := range parameters {
-		if err := keyList[key].validator(value); err != nil {
+		if err := keyList[key].Validator(value); err != nil {
 			return fmt.Errorf("key %s has invalid value %s, error: %+v", key, value, err)
 		}
 	}
@@ -86,14 +82,14 @@ func ValidateParameters(parameters map[string]string) error {
 }
 
 // keys validator functions, for each new keys there should be a validator function.
-func namespace(value string) error {
+func Namespace(value string) error {
 	if !strings.HasPrefix(value, "pid:") {
 		return fmt.Errorf("malformed namespace %s, must start with \"pid:\" following by the process id of a container", value)
 	}
 	return nil
 }
 
-func ipv4(value string) error {
+func Ipv4(value string) error {
 	ip := net.ParseIP(value)
 	if ip == nil {
 		return fmt.Errorf("invalid value %s of ipv4 parameter", value)
@@ -103,13 +99,24 @@ func ipv4(value string) error {
 	return nil
 }
 
-func ipv4prefixlength(value string) error {
+func Ipv4prefixlength(value string) error {
 	prefixLength, err := strconv.Atoi(value)
 	if err != nil {
 		return err
 	}
 	if !(prefixLength > 1 && prefixLength < 32) {
 		return fmt.Errorf("invalid value %d of ipv4 prefix parameter", prefixLength)
+	}
+	return nil
+}
+
+func Empty(value string) error {
+	return nil
+}
+
+func Bool(value string) error {
+	if _, err := strconv.ParseBool(value); err != nil {
+		return err
 	}
 	return nil
 }

@@ -29,15 +29,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// NSMkeyNamespace defines the name of the key namespace in parameters map (mandatory)
-	NSMkeyNamespace = "namespace"
-	// NSMkeyIPv4 defines the name of the key ipv4 address in parameters map (optional)
-	NSMkeyIPv4 = "ipv4"
-	// NSMkeyIPv4PrefixLength defines the name of the key ipv4 prefix length in parameters map (optional)
-	NSMkeyIPv4PrefixLength = "ipv4prefixlength"
-)
-
 type tapInterface struct {
 	id           uint32
 	name         string
@@ -52,14 +43,14 @@ type KernelInterface struct{}
 
 func (m KernelInterface) ValidateParameters(parameters map[string]string) error {
 	keyList := nsmutils.Keys{
-		NSMkeyNamespace:        nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Namespace},
-		NSMkeyIPv4:             nsmutils.KeyProperties{Mandatory: false, Validator: nsmutils.Ipv4},
-		NSMkeyIPv4PrefixLength: nsmutils.KeyProperties{Mandatory: false, Validator: nsmutils.Ipv4prefixlength},
+		nsmutils.NSMkeyNamespace:        nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Namespace},
+		nsmutils.NSMkeyIPv4:             nsmutils.KeyProperties{Mandatory: false, Validator: nsmutils.Ipv4},
+		nsmutils.NSMkeyIPv4PrefixLength: nsmutils.KeyProperties{Mandatory: false, Validator: nsmutils.Ipv4prefixlength},
 	}
 
 	// Check presence of both ipv4 address and prefix length
-	_, v1 := parameters[NSMkeyIPv4]
-	_, v2 := parameters[NSMkeyIPv4PrefixLength]
+	_, v1 := parameters[nsmutils.NSMkeyIPv4]
+	_, v2 := parameters[nsmutils.NSMkeyIPv4PrefixLength]
 	if v1 != v2 {
 		return fmt.Errorf("both parameter \"ipv4\" and \"ipv4prefixlength\" must either present or missing")
 	}
@@ -71,8 +62,8 @@ func (m KernelInterface) ValidateParameters(parameters map[string]string) error 
 func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
 	var err error
 	// Extract namespaces for source and destination containers
-	srcNamespace := srcParameters[NSMkeyNamespace]
-	dstNamespace := dstParameters[NSMkeyNamespace]
+	srcNamespace := srcParameters[nsmutils.NSMkeyNamespace]
+	dstNamespace := dstParameters[nsmutils.NSMkeyNamespace]
 
 	tap1 := &tapInterface{
 		pid:       strings.Split(srcNamespace, ":")[1],
@@ -96,8 +87,8 @@ func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameter
 
 	// This block check for ipv4 addresses in Parameters map, if specified, it verifies that both either present or
 	// both missing and populate tap struct wit hcorresponding fields.
-	srcIPv4, b1 := srcParameters[NSMkeyIPv4]
-	dstIPv4, b2 := dstParameters[NSMkeyIPv4]
+	srcIPv4, b1 := srcParameters[nsmutils.NSMkeyIPv4]
+	dstIPv4, b2 := dstParameters[nsmutils.NSMkeyIPv4]
 	if b1 != b2 {
 		return "", fmt.Errorf("both containers must either specify or both must not specify ipv4 addresses")
 	}
@@ -108,12 +99,12 @@ func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameter
 			return "", err
 		}
 		// Safe to ignore converstion error as ValidateParameters has validated already success of conversion.
-		l, _ := strconv.Atoi(srcParameters[NSMkeyIPv4PrefixLength])
+		l, _ := strconv.Atoi(srcParameters[nsmutils.NSMkeyIPv4PrefixLength])
 		tap1.prefixLength = uint8(l)
 		if tap2.ip, err = IPv4ToByteSlice(dstIPv4); err != nil {
 			return "", err
 		}
-		l, _ = strconv.Atoi(srcParameters[NSMkeyIPv4PrefixLength])
+		l, _ = strconv.Atoi(srcParameters[nsmutils.NSMkeyIPv4PrefixLength])
 		tap2.prefixLength = uint8(l)
 	}
 

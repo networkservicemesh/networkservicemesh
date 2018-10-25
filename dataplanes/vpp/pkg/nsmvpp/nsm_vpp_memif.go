@@ -20,25 +20,14 @@ import (
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 )
 
-const (
-	//NSMSocketFile defines socket name which will be used for memif connection
-	NSMSocketFile = "socketfile"
-	//NSMMaster if true, than role is master
-	NSMMaster = "master"
-	//NSMSlave if true, than role is slave
-	NSMSlave = "slave"
-	//NSMPerPodDirectory defines directory that is mounted to pod (relative to /var/lib/networkservicemesh)
-	NSMPerPodDirectory = "directory"
-)
-
 type MemifInterface struct{}
 
 func (m MemifInterface) ValidateParameters(parameters map[string]string) error {
 	keysList := nsmutils.Keys{
-		NSMSocketFile:      nsmutils.KeyProperties{Validator: nsmutils.Empty},
-		NSMMaster:          nsmutils.KeyProperties{Validator: nsmutils.Bool},
-		NSMSlave:           nsmutils.KeyProperties{Validator: nsmutils.Bool},
-		NSMPerPodDirectory: nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Empty},
+		nsmutils.NSMSocketFile:      nsmutils.KeyProperties{Validator: nsmutils.Empty},
+		nsmutils.NSMMaster:          nsmutils.KeyProperties{Validator: nsmutils.Bool},
+		nsmutils.NSMSlave:           nsmutils.KeyProperties{Validator: nsmutils.Bool},
+		nsmutils.NSMPerPodDirectory: nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Empty},
 	}
 
 	return nsmutils.ValidateParameters(parameters, keysList)
