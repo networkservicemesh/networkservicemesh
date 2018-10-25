@@ -57,8 +57,8 @@ exit_code=$?
 if [ "${exit_code}" == "0" ] ; then
     echo "TESTS: PASS"
 else
-    error_collection
     echo "TESTS: FAIL"
+    echo "Run scripts/dump_logs.sh to dump logs for debugging"
 fi
 
 set +x

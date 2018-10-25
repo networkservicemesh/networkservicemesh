@@ -27,6 +27,9 @@ script:
   - cd dataplanes/vpp ; make all ; cd -
   - make all && ./scripts/travis-integration-tests.sh dind
 
+after_script:
+  - ./scripts/dump_logs.sh
+
 # We only want to push docker images on a push to master, not a pull request
 after_success:
   - if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then export TAG=`if [ "${TRAVIS_BRANCH}" == "master" ]; then echo "latest"; else echo ${TRAVIS_BRANCH}; fi` && export BUILD_TAG=travis-"${TRAVIS_BUILD_NUMBER}" && make docker-push ; fi

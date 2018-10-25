@@ -140,7 +140,6 @@ function run_tests() {
     client_pod_namespace="$(kubectl get pods --all-namespaces | grep nsm-client | awk '{print $1}')"
     intf_number="$(kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ifconfig -a | grep -c nse)"
     if [ "$intf_number" -eq 0 ] ; then
-        error_collection
         return 1
     fi
     kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ping 1.1.1.2 -c 5
