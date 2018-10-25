@@ -35,7 +35,6 @@ exit_code=$?
 if [ "${exit_code}" == "0" ] ; then
     echo "TESTS: PASS"
 else
-    error_collection
     echo "TESTS: FAIL"
 fi
 
