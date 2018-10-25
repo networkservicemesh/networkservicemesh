@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"syscall"
 	"unicode"
 )
@@ -31,31 +30,28 @@ func GetInode(file string) (uint64, error) {
 	return stat.Ino, nil
 }
 
-// FindProcInode Traverse /proc/<pid>/<suffix> files,
-// compare their inodes with inode parameter and returns <pid> if inode matches
+// FindFileInProc Traverse /proc/<pid>/<suffix> files,
+// compare their inodes with inode parameter and returns file if inode matches
 // use FindProcInode(xxx, "/ns/net") for example
-func FindProcInode(inode uint64, suffix string) (uint64, error) {
+func FindFileInProc(inode uint64, suffix string) (string, error) {
 	files, err := ioutil.ReadDir("/proc")
 	if err != nil {
-		return 0, fmt.Errorf("can't read /proc directory: %+v", err)
+		return "", fmt.Errorf("can't read /proc directory: %+v", err)
 	}
 
 	for _, f := range files {
 		name := f.Name()
 		if isDigits(name) {
-			tryInode, err := GetInode("/proc/" + name + suffix)
+			filename := "/proc/" + name + suffix
+			tryInode, err := GetInode(filename)
 			if err != nil {
-				return 0, err
+				return "", err
 			}
 			if tryInode == inode {
-				uInt, err := strconv.ParseUint(name, 10, 64)
-				if err != nil {
-					return 0, fmt.Errorf("expecting integer: %+v", err)
-				}
-				return uInt, nil
+				return filename, nil
 			}
 		}
 	}
 
-	return 0, nil
+	return "", fmt.Errorf("not found")
 }
