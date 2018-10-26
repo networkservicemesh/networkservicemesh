@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get -y install curl
 RUN curl -s https://packagecloud.io/install/repositories/fdio/${REPO}/script.deb.sh |  bash
 RUN apt-get update
-RUN apt-get -y install vpp vpp-plugins gzip corekeeper
+RUN apt-get -y install vpp=18.07.1-release vpp-plugins=18.07.1-release vpp-lib=18.07.1-release gzip corekeeper
 COPY dataplanes/vpp/conf/vpp/startup.conf /etc/vpp/startup.conf
 RUN apt-get -y purge curl
 RUN apt-get -y clean
