@@ -45,4 +45,5 @@ docker-push-%: docker-login
 #
 .PHONY: docker-save-%
 docker-save-%:
+	mkdir -p ../../scripts/vagrant/images/; \
 	docker save -o ../../scripts/vagrant/images/$*.tar ${ORG}/$*

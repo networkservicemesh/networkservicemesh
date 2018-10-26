@@ -62,7 +62,7 @@ is run for the first time, or after running ```vagrant destroy```
 
 # Running integration tests
 
-You can run integration tests:
+You can run integration tests on your laptop (ie, outside of the Vagrant VM) by typing:
 
 ```bash
 bash # Start new shell, as we will be importing
@@ -79,12 +79,4 @@ vagrant destroy -f;vagrant up
 ```
 
 and then run them again.
-
-# Running the vpp dataplane
-
-You can run the vpp dataplane:
-
-```bash
-kubectl apply -f dataplane/vpp/yaml/vpp-daemonset.yaml
-```
 
