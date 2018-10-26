@@ -1,2 +1,3 @@
 #!/bin/bash
-export KUBECONFIG=${GOPATH}/src/github.com/ligato/networkservicemesh/scripts/vagrant/.kube/config
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+export KUBECONFIG=${DIR}/.kube/config
