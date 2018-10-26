@@ -34,6 +34,7 @@ var (
 type Mechanism interface {
 	CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error)
 	DeleteLocalConnect(apiCh govppapi.Channel, connID string) error
+	Validate(parameters map[string]string) error
 }
 
 // Interface lists methods available to manipulate VPPDataplane controller information
