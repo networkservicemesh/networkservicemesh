@@ -149,16 +149,20 @@ func (d DataplaneController) ConnectRequest(ctx context.Context, req *dataplanea
 	err = connectProcesses(pid1, pid2)
 	if err != nil {
 		return &dataplaneapi.Reply{
-			Success:      false,
-			ConnectionId: err.Error(),
+			Success: false,
+			Connection: &dataplaneapi.Connection{
+				ConnectionId: err.Error(),
+			},
 		}, err
 	}
 
 	connID := fmt.Sprintf("%d-%d", pid1, pid2)
 
 	return &dataplaneapi.Reply{
-		Success:      true,
-		ConnectionId: connID,
+		Success: true,
+		Connection: &dataplaneapi.Connection{
+			ConnectionId: connID,
+		},
 	}, nil
 }
 
