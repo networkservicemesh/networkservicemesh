@@ -41,14 +41,26 @@ type tapInterface struct {
 
 type KernelInterface struct{}
 
+var keyList = nsmutils.Keys{
+	nsmutils.NSMkeyNamespace: nsmutils.KeyProperties{
+		Mandatory: true,
+		Validator: nsmutils.Namespace},
+	nsmutils.NSMkeyIPv4: nsmutils.KeyProperties{
+		Mandatory: false,
+		Validator: nsmutils.Ipv4},
+	nsmutils.NSMkeyIPv4PrefixLength: nsmutils.KeyProperties{
+		Mandatory: false,
+		Validator: nsmutils.Ipv4prefixlength},
+}
+
 // CreateLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
 func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error) {
 	var err error
 
-	if err := nsmutils.ValidateParameters(srcParameters); err != nil {
+	if err := m.Validate(srcParameters); err != nil {
 		return "", err
 	}
-	if err := nsmutils.ValidateParameters(dstParameters); err != nil {
+	if err := m.Validate(dstParameters); err != nil {
 		return "", err
 	}
 	// Extract namespaces for source and destination containers
@@ -122,6 +134,17 @@ func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameter
 	}
 
 	return fmt.Sprintf("%d-%x-%x", common.LocalMechanismType_KERNEL_INTERFACE, tap1.id, tap2.id), nil
+}
+
+func (m KernelInterface) Validate(parameters map[string]string) error {
+	// Check presence of both ipv4 address and prefix length
+	_, v1 := parameters[nsmutils.NSMkeyIPv4]
+	_, v2 := parameters[nsmutils.NSMkeyIPv4PrefixLength]
+	if v1 != v2 {
+		return fmt.Errorf("both parameter \"ipv4\" and \"ipv4prefixlength\" must either present or missing")
+	}
+
+	return nsmutils.ValidateParameters(parameters, keyList)
 }
 
 // createTapInterface creates new tap interface in a specified namespace

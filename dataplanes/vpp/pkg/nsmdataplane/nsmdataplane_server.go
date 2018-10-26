@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmvpp"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
@@ -59,14 +58,16 @@ var mechanisms = []nsmvpp.Mechanism{
 
 // createLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func createLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
-	if err := nsmutils.ValidateParameters(src.Parameters); err != nil {
+	mechanism := mechanisms[src.Type]
+
+	if err := mechanism.Validate(src.Parameters); err != nil {
 		return "", err
 	}
-	if err := nsmutils.ValidateParameters(dst.Parameters); err != nil {
+	if err := mechanism.Validate(dst.Parameters); err != nil {
 		return "", err
 	}
 
-	return mechanisms[src.Type].CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
+	return mechanism.CreateLocalConnect(apiCh, src.Parameters, dst.Parameters)
 }
 
 // deleteLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
