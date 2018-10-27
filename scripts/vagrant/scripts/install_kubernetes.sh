@@ -20,7 +20,7 @@ sed -i '0,/ExecStart=/s//Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=cgroupf
 #sed -i '9,/KUBELET_EXTRA_ARGS=--cgroup-driver=cgroupfs/KUBELET_EXTRA_ARGS=--cgroup-driver=cgroupfs --feature-gates HugePages=false/'
 
 # Get the IP address that VirtualBox has given this VM
-IPADDR=$(ifconfig eth0 | grep Mask | awk '{print $2}'| cut -f2 -d:)
+IPADDR=$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
 echo This VM has IP address "$IPADDR"
 
 # Setup Hugepages
@@ -29,7 +29,7 @@ echo This VM has IP address "$IPADDR"
 
 # Set up Kubernetes
 NODENAME=$(hostname -s)
-kubeadm init --apiserver-cert-extra-sans="$IPADDR"  --node-name "$NODENAME"
+kubeadm init --apiserver-cert-extra-sans="$IPADDR"  --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME"
 
 # Set up admin creds for the vagrant user
 echo Copying credentials to /home/vagrant...
