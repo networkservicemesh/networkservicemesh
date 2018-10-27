@@ -60,17 +60,17 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		logrus.Errorf("Dataplane object store does not have registered plugin %s", dataplaneName)
 		return
 	}
-	dataplane.Conn, err = tools.SocketOperationCheck(dataplane.SocketLocation)
+	conn, err := tools.SocketOperationCheck(dataplane.SocketLocation)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplane.SocketLocation, err)
 		model.DeleteDataplane(dataplaneName)
 		return
 	}
-	defer dataplane.Conn.Close()
-	dataplane.DataplaneClient = dataplaneapi.NewDataplaneOperationsClient(dataplane.Conn)
+	defer conn.Close()
+	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplane.DataplaneClient.MonitorMechanisms(context.Background(), &common.Empty{})
+	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &common.Empty{})
 	if err != nil {
 		logrus.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 		model.DeleteDataplane(dataplaneName)
@@ -84,6 +84,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 			return
 		}
 		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", dataplaneName, updates.RemoteMechanisms)
+		// TODO: this is not good -- direct model changes
 		dataplane.RemoteMechanisms = updates.RemoteMechanisms
 		dataplane.LocalMechanisms = updates.LocalMechanisms
 	}
@@ -183,11 +184,12 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 
 // StartDataplaneRegistrarServer registers and starts gRPC server which is listening for
 // Network Service Dataplane Registrar requests.
-func StartDataplaneRegistrarServer() error {
+func StartDataplaneRegistrarServer(model model.Model) error {
 	dataplaneRegistrarServer := &dataplaneRegistrarServer{
 		grpcServer:                   grpc.NewServer(),
 		dataplaneRegistrarSocketPath: path.Join(DataplaneRegistrarSocketBaseDir, DataplaneRegistrarSocket),
 		stopChannel:                  make(chan bool),
+		model:                        model,
 	}
 
 	var err error

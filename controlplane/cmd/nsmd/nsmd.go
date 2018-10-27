@@ -14,7 +14,7 @@ import (
 func main() {
 	model := model.NewModel()
 
-	if err := nsmd.StartDataplaneRegistrarServer(); err != nil {
+	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
 		os.Exit(1)
 	}
@@ -22,7 +22,7 @@ func main() {
 		logrus.Fatalf("Error starting endpoint service: %+v", err)
 		os.Exit(1)
 	}
-	if err := nsmd.StartNSMServer(); err != nil {
+	if err := nsmd.StartNSMServer(model); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
 		os.Exit(1)
 	}

@@ -19,7 +19,6 @@ import (
 	"path"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
@@ -56,8 +55,8 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 	endpointName := ar.RequestId + "-" + ar.NetworkEndpoint.NetworkServiceName
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	_, ok := e.model.GetEndpoint(endpointName)
-	if ok {
+	ep := e.model.GetEndpoint(endpointName)
+	if ep != nil {
 		logrus.Warnf("Network Service Endpoint object %s already exists", endpointName)
 		return &nseconnect.EndpointAdvertiseReply{
 			RequestId: ar.RequestId,
@@ -65,10 +64,7 @@ func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
 		}, nil
 	}
 
-	endpoint := &netmesh.NetworkServiceEndpoint{
-		NseProviderName:    endpointName,
-		NetworkServiceHost: e.nsmPodIPAddress,
-	}
+	endpoint := ar.NetworkEndpoint
 
 	e.model.AddEndpoint(endpoint)
 
