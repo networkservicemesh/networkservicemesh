@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -26,6 +29,13 @@ type nsmClientServer struct {
 	model           model.Model
 	socketPath      string
 	nsmPodIPAddress string
+}
+
+func connectionReplyAborted(s string) (*nsmconnect.ConnectionReply, error) {
+	return &nsmconnect.ConnectionReply{
+		Accepted:       false,
+		AdmissionError: s,
+	}, status.Error(codes.Aborted, s)
 }
 
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
@@ -56,10 +66,7 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 
 	nseConn, err := tools.SocketOperationCheck(selectedEndpoint.SocketLocation)
 	if err != nil {
-		return &nsmconnect.ConnectionReply{
-			Accepted:       false,
-			AdmissionError: fmt.Sprintf("Failer to connect endpoint on socket: %s", selectedEndpoint.SocketLocation),
-		}, status.Error(codes.Aborted, "Failed to connect endpoint")
+		return connectionReplyAborted(err.Error())
 	}
 	defer nseConn.Close()
 	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
@@ -70,19 +77,50 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 		RequestId: cr.RequestId,
 	})
 	if err != nil {
-		return nil, err
+		return connectionReplyAborted(err.Error())
 	}
 	logrus.Infof("successfuly received information from NSE: %v", nseRepl)
 
-	dataplane, err := n.model.SelectDataplane()
+	dp, err := n.model.SelectDataplane()
 	if err != nil {
-		return &nsmconnect.ConnectionReply{
-			Accepted:       false,
-			AdmissionError: fmt.Sprintf("No dataplane available: %v", err),
-		}, status.Error(codes.Aborted, "No dataplane")
+		return connectionReplyAborted(fmt.Sprintf("No dataplane available: %v", err))
 	}
 
-	logrus.Infof("Programming dataplane: %v...", dataplane)
+	logrus.Infof("Programming dataplane: %v...", dp)
+
+	dataplaneConn, err := tools.SocketOperationCheck(dp.SocketLocation)
+	if err != nil {
+		return connectionReplyAborted(err.Error())
+	}
+	defer dataplaneConn.Close()
+	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(dataplaneConn)
+
+	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer dpCancel()
+	dpRepl, err := dataplaneClient.ConnectRequest(dpCtx, &dataplaneapi.Connection{
+		LocalSource: &common.LocalMechanism{
+			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			Parameters: map[string]string{
+				nsmutils.NSMkeyNamespace:        cr.LinuxNamespace,
+				nsmutils.NSMkeyIPv4:             "2.2.2.2",
+				nsmutils.NSMkeyIPv4PrefixLength: "24",
+			},
+		},
+		Destination: &dataplaneapi.Connection_Local{
+			Local: &common.LocalMechanism{
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{
+					nsmutils.NSMkeyNamespace:        nseRepl.LinuxNamespace,
+					nsmutils.NSMkeyIPv4:             "2.2.2.3",
+					nsmutils.NSMkeyIPv4PrefixLength: "24"},
+			},
+		},
+	})
+	if err != nil {
+		logrus.Errorf("Error requesting dataplane for connection: %v", err)
+		return connectionReplyAborted(err.Error())
+	}
+	logrus.Infof("successfuly programmed dataplane: %v", dpRepl)
 
 	return &nsmconnect.ConnectionReply{
 		Accepted:             true,
