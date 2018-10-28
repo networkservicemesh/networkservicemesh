@@ -41,4 +41,4 @@ echo "Ping nse from nsc interfaces..."
 docker exec "$(sed '5q;d' containers.txt)" ping -c 5 2.2.2.3
 
 echo "Kill containers..."
-cat containers.txt | xargs docker kill
+xargs docker kill < containers.txt
