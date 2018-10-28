@@ -15,6 +15,8 @@
 package nsmvpp
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -26,6 +28,7 @@ import (
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/tapv2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,7 +36,6 @@ type tapInterface struct {
 	id           uint32
 	name         string
 	namespace    []byte
-	pid          string
 	ip           []byte
 	prefixLength uint8
 	tag          []byte
@@ -44,13 +46,18 @@ type KernelInterface struct{}
 var keyList = nsmutils.Keys{
 	nsmutils.NSMkeyNamespace: nsmutils.KeyProperties{
 		Mandatory: true,
-		Validator: nsmutils.Namespace},
+		Validator: nsmutils.Any},
 	nsmutils.NSMkeyIPv4: nsmutils.KeyProperties{
 		Mandatory: false,
 		Validator: nsmutils.Ipv4},
 	nsmutils.NSMkeyIPv4PrefixLength: nsmutils.KeyProperties{
 		Mandatory: false,
 		Validator: nsmutils.Ipv4prefixlength},
+}
+
+func encode(s []byte) string {
+	md5 := md5.Sum(s)
+	return hex.EncodeToString(md5[:4])
 }
 
 // CreateLocalConnect creates two tap interfaces in corresponding namespaces and then cross connect them
@@ -67,18 +74,46 @@ func (m KernelInterface) CreateLocalConnect(apiCh govppapi.Channel, srcParameter
 	srcNamespace := srcParameters[nsmutils.NSMkeyNamespace]
 	dstNamespace := dstParameters[nsmutils.NSMkeyNamespace]
 
+	if !strings.HasPrefix(srcNamespace, "pid:") {
+		// assuming that inode of linux namespace has been passed
+		inode, err := strconv.ParseUint(srcNamespace, 10, 64)
+		if err != nil {
+			logrus.Errorf("can't parse integer: %s", srcNamespace)
+		} else {
+			srcNamespace, err = fs.FindFileInProc(inode, "/ns/net")
+			if err != nil {
+				logrus.Errorf("cant' find namespace for inode %d", inode)
+				return "", err
+			}
+		}
+	}
+
+	if !strings.HasPrefix(dstNamespace, "pid:") {
+		// assuming that inode of linux namespace has been passed
+		inode, err := strconv.ParseUint(dstNamespace, 10, 64)
+		if err != nil {
+			logrus.Errorf("can't parse integer: %s", dstNamespace)
+		} else {
+			dstNamespace, err = fs.FindFileInProc(inode, "/ns/net")
+			if err != nil {
+				logrus.Errorf("cant' find namespace for inode %d", inode)
+				return "", err
+			}
+		}
+	}
+
+	logrus.Infof("connecting namespaces %s and %s...", srcNamespace, dstNamespace)
+
 	tap1 := &tapInterface{
-		pid:       strings.Split(srcNamespace, ":")[1],
 		namespace: []byte(srcNamespace),
 		tag:       []byte("NSM_CLIENT"),
 	}
 	tap2 := &tapInterface{
-		pid:       strings.Split(dstNamespace, ":")[1],
 		namespace: []byte(dstNamespace),
 		tag:       []byte("NSM_CLIENT"),
 	}
-	tap1.name = "tap-" + tap1.pid + "-" + tap2.pid
-	tap2.name = "tap-" + tap2.pid + "-" + tap1.pid
+	tap1.name = "tap-" + encode(tap2.namespace)
+	tap2.name = "tap-" + encode(tap1.namespace)
 
 	// Making sure that total interface name length is not exceeding 15 bytes.
 	if len(tap1.name) > 15 {
