@@ -20,29 +20,29 @@ echo "Running nsm client..."
 docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nsc
 
 echo "Showing nsmd logs..."
-docker logs $(sed '1q;d' containers.txt)
+docker logs "$(sed '1q;d' containers.txt)"
 
 echo "Showing nse logs..."
-docker logs $(sed '2q;d' containers.txt)
+docker logs "$(sed '2q;d' containers.txt)"
 
 echo "Showing vpp-daemon logs..."
-docker logs $(sed '4q;d' containers.txt)
+docker logs "$(sed '4q;d' containers.txt)"
 
 echo "Starting nsc..."
 docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nsc >>containers.txt
 
 echo "Showing nsc logs..."
-docker logs $(sed '5q;d' containers.txt)
+docker logs "$(sed '5q;d' containers.txt)"
 
 echo "Showing nse interfaces..."
-docker exec $(sed '2q;d' containers.txt) ifconfig -a
+docker exec "$(sed '2q;d' containers.txt)" ifconfig -a
 
 echo "Showing nsc interfaces..."
-docker exec $(sed '5q;d' containers.txt) ifconfig -a
+docker exec "$(sed '5q;d' containers.txt)" ifconfig -a
 
 echo "Ping nse from nsc interfaces..."
-docker exec $(sed '5q;d' containers.txt) ping 2.2.2.3
+docker exec "$(sed '5q;d' containers.txt)" ping 2.2.2.3
 
 echo "Kill and remove containers..."
-docker kill $(<containers.txt)
-docker rm $(<containers.txt)
+docker kill "$(<containers.txt)"
+docker rm "$(<containers.txt)"
