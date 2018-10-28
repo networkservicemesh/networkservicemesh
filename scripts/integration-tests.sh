@@ -71,6 +71,9 @@ function run_tests() {
     if [ "${exit_ret}" != "0" ] ; then
         return "${exit_ret}"
     fi
+
+    echo "Wait 60 seconds until dataplane connects to nsm..."
+    sleep 60
  
     #
     # Starting nsm client pod, nsm-client pod should discover gold-network
