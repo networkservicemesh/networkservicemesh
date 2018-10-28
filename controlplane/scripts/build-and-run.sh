@@ -17,7 +17,7 @@ echo "vpp-daemon takes time (unnecessarily) to register with nsmd, so let it con
 sleep 60
 
 echo "Running nsm client..."
-docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nsc
+docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nsc >>containers.txt
 
 echo "Showing nsmd logs..."
 docker logs "$(sed '1q;d' containers.txt)"
@@ -27,9 +27,6 @@ docker logs "$(sed '2q;d' containers.txt)"
 
 echo "Showing vpp-daemon logs..."
 docker logs "$(sed '4q;d' containers.txt)"
-
-echo "Starting nsc..."
-docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nsc >>containers.txt
 
 echo "Showing nsc logs..."
 docker logs "$(sed '5q;d' containers.txt)"
@@ -41,8 +38,7 @@ echo "Showing nsc interfaces..."
 docker exec "$(sed '5q;d' containers.txt)" ifconfig -a
 
 echo "Ping nse from nsc interfaces..."
-docker exec "$(sed '5q;d' containers.txt)" ping 2.2.2.3
+docker exec "$(sed '5q;d' containers.txt)" ping -c 5 2.2.2.3
 
-echo "Kill and remove containers..."
-docker kill "$(<containers.txt)"
-docker rm "$(<containers.txt)"
+echo "Kill containers..."
+cat containers.txt | xargs docker kill
