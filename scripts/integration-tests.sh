@@ -71,6 +71,17 @@ function run_tests() {
     if [ "${exit_ret}" != "0" ] ; then
         return "${exit_ret}"
     fi
+ 
+    #
+    # Starting nsm client pod, nsm-client pod should discover gold-network
+    # network service along with its endpoint and interface
+    kubectl create -f conf/sample/nsm-client.yaml
+
+    #
+    # Now let's wait for nsm-cient pod to get into running state
+    #
+    wait_for_pods default
+
 
     echo "Wait 60 seconds until dataplane connects to nsm..."
     sleep 60
@@ -146,7 +157,6 @@ function run_tests() {
     ip_address="1.1.1.1"
     intf_number="$(kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ifconfig -a | grep -c $ip_address)"
     if [ "$intf_number" -eq 0 ] ; then
-        error_collection
         return 1
     fi
     kubectl exec "$client_pod_name" -n "$client_pod_namespace" -- ping 1.1.1.2 -c 5

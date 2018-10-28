@@ -266,7 +266,7 @@ func main() {
 			}
 			// Need cleanup interfaces for the next test run
 			reply, err = dataplaneClient.DisconnectRequest(context.Background(), &dataplaneapi.Connection{
-				ConnectionId: reply.ConnectionId,
+				ConnectionId: reply.Connection.ConnectionId,
 				LocalSource:  test.localSource,
 				Destination:  test.localDestination,
 			})

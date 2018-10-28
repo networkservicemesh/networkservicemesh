@@ -3,56 +3,76 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:7adceeb7fd041e4b777cb30c3f8f523068c782d340b755ee7d03e0f3e3e5f889"
   name = "git.fd.io/govpp.git"
   packages = [
     "adapter",
     "adapter/vppapiclient",
     "api",
     "codec",
-    "core"
+    "core",
   ]
+  pruneopts = "UT"
   revision = "56e997fc27c775790fcce5eda92bb2baee82d881"
 
 [[projects]]
+  digest = "1:38c783cf85b9454cc02a1a8319239800ed0af6c1c864adf19cea0539e134adad"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
+  pruneopts = "UT"
   revision = "4da3e2cfbabc9f751898f250b49f2439785783a1"
 
 [[projects]]
+  digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
+  pruneopts = "UT"
   revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:fd0b11e9149f5aa2a2f17c7f577c905a93c04633ae6e0b2b51f486bfe68fadad"
   name = "github.com/lunixbochs/struc"
   packages = ["."]
+  pruneopts = "UT"
   revision = "ef56447db6a068ad9e52bc54a1aff5fb9e1ed2dd"
 
 [[projects]]
+  digest = "1:3f53e9e4dfbb664cd62940c9c4b65a2171c66acd0b7621a1a6b8e78513525a52"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
+  pruneopts = "UT"
   revision = "ad15b42461921f1fb3529b058c6786c6a45d5162"
   version = "v1.1.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:3f3a05ae0b95893d90b9b3b5afdb79a9b3d96e4e36e099d841ae602e4aca0da8"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
+  pruneopts = "UT"
   revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
 
 [[projects]]
   branch = "master"
+  digest = "1:f5aa274a0377f85735edc7fedfb0811d3cbc20af91633797cb359e29c3272271"
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
   ]
+  pruneopts = "UT"
   revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "deba5ec2c54b011eff4417503a67ccc70a7517d8135db2b6de3384ba2dac7554"
+  input-imports = [
+    "git.fd.io/govpp.git/adapter/vppapiclient",
+    "git.fd.io/govpp.git/api",
+    "git.fd.io/govpp.git/core",
+    "github.com/lunixbochs/struc",
+    "github.com/sirupsen/logrus",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
