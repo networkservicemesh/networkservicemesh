@@ -17,6 +17,9 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmdapi"
@@ -96,5 +99,15 @@ func main() {
 	}
 
 	// Init related activities ends here
-	logrus.Info("nsm client: initialization is completed successfully, exiting...")
+	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		wg.Done()
+	}()
+	wg.Wait()
 }
