@@ -67,11 +67,7 @@ func ValidateParameters(parameters map[string]string, keyList Keys) error {
 }
 
 // Keys validator functions, for each new Keys there should be a validator function.
-func Namespace(value string) error {
-	// This is not true anymore
-	// if !strings.HasPrefix(value, "pid:") {
-	// 	return fmt.Errorf("malformed namespace %s, must start with \"pid:\" following by the process id of a container", value)
-	// }
+func Any(value string) error {
 	return nil
 }
 

@@ -46,7 +46,7 @@ type KernelInterface struct{}
 var keyList = nsmutils.Keys{
 	nsmutils.NSMkeyNamespace: nsmutils.KeyProperties{
 		Mandatory: true,
-		Validator: nsmutils.Namespace},
+		Validator: nsmutils.Any},
 	nsmutils.NSMkeyIPv4: nsmutils.KeyProperties{
 		Mandatory: false,
 		Validator: nsmutils.Ipv4},
