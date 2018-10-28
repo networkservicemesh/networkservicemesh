@@ -28,3 +28,5 @@ cmd/nsm-init/nsm-init
 # For those that use vi
 *.swp
 *.swo
+
+containers.txt
