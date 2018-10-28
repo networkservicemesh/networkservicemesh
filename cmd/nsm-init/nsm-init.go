@@ -209,7 +209,7 @@ func main() {
 		// Add the inode number to each Parameters for LocalMechanisms
 		for _, lm := range ns.ServiceInterface {
 			logrus.Infof("podName: %+v, LocalMechanism: %+v", podName, lm)
-			lm.Parameters["ns_inode_num"] = linuxNS
+			lm.Parameters[common.LocalMechanismParametersInodeKey] = linuxNS
 		}
 
 		cReq := nsmconnect.ConnectionRequest{
