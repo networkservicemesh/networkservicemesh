@@ -205,6 +205,13 @@ func main() {
 	// connection request failure, the initialization process is consider as failed.
 	// TODO (sbezverk) Discuss if a non-mandatory atrribute should be added to NetworkService config.
 	for _, ns := range networkServices {
+
+		// Add the inode number to each Parameters for LocalMechanisms
+		for _, lm := range ns.ServiceInterface {
+			logrus.Infof("podName: %+v, LocalMechanism: %+v", podName, lm)
+			lm.Parameters["ns_inode_num"] = linuxNS
+		}
+
 		cReq := nsmconnect.ConnectionRequest{
 			RequestId:          podUID,
 			NetworkServiceName: ns.Name,

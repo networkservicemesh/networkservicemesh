@@ -120,8 +120,8 @@ func getLocalEndpoint(endpointList []nsmapi.NetworkServiceEndpoint, nsmPodIPAddr
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
 // return to NSM client result.
 func (n *nsmClientEndpoints) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionReply, error) {
-	n.logger.Infof("received connection request id: %s, requesting network service: %s for linux namespace: %s",
-		cr.RequestId, cr.NetworkServiceName, cr.LinuxNamespace)
+	n.logger.Infof("received connection request id: %s, requesting network service: %s for linux namespace: %s, with LocalMechanisms %+v",
+		cr.RequestId, cr.NetworkServiceName, cr.LinuxNamespace, cr.LocalMechanisms)
 
 	// first check to see if requested NetworkService exists in objectStore
 	ns := n.objectStore.GetNetworkService(cr.NetworkServiceName)

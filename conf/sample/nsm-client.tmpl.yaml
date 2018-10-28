@@ -52,16 +52,13 @@ data:
     - name: gold-network
       serviceInterface:
       - type: 2
-        preference: 3
-        metadata:
+        parameters:
           name: interface-3
       - type: 3
-        preference: 2
-        metadata:
+        parameters:
           name: interface-2
       - type: 1
-        preference: 1
-        metadata:
+        parameters:
           name: interface-1
 kind: ConfigMap
 metadata:
