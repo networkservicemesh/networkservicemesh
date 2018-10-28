@@ -1,3 +1,5 @@
+#!/bin/bash
+
 docker build -t nsmd/nsmd -f build/Dockerfile.nsmd ..
 docker run -it -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nsmd
 docker build -t nsmd/nse -f build/Dockerfile.nse ..
