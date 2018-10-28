@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package nsmdapi;
+
+// ConnectionRequest is sent by a NSM client to build a connection with NSM.
+message ClientConnectionRequest {
+}
+
+// ClientConnectionReply is sent back by NSM as a reply to ClientConnectionRequest
+// accepted true will indicate that the connection is accepted, otherwise false
+// indicates that connection was refused and admission_error will provide details
+// why connection was refused.
+message ClientConnectionReply {
+    bool accepted = 1;
+    string admission_error = 2;
+    string socket_location = 3;
+}
+
+// DeleteConnectionRequest is sent by a nsm-k8s to delete connection with a client.
+message DeleteConnectionRequest {
+    string socket_location = 1;
+}
+
+message DeleteConnectionReply {
+    bool success = 1;
+}
+
+service NSMD {
+    rpc RequestClientConnection (ClientConnectionRequest) returns (ClientConnectionReply);
+    rpc DeleteClientConnection (DeleteConnectionRequest) returns (DeleteConnectionReply);
+}
