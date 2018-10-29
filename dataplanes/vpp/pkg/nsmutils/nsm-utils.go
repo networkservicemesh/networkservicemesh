@@ -100,9 +100,6 @@ func Ipv4prefixlength(value string) error {
 	return nil
 }
 
-func Empty(value string) error {
-	return nil
-}
 func Bool(value string) error {
 	if _, err := strconv.ParseBool(value); err != nil {
 		return err

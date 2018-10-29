@@ -169,10 +169,10 @@ func memifDirectConnect(src, dst map[string]string) ([]operation, error) {
 
 func validateMemif(parameters map[string]string) error {
 	keysList := nsmutils.Keys{
-		nsmutils.NSMSocketFile:      nsmutils.KeyProperties{Validator: nsmutils.Empty},
+		nsmutils.NSMSocketFile:      nsmutils.KeyProperties{Validator: nsmutils.Any},
 		nsmutils.NSMMaster:          nsmutils.KeyProperties{Validator: nsmutils.Bool},
 		nsmutils.NSMSlave:           nsmutils.KeyProperties{Validator: nsmutils.Bool},
-		nsmutils.NSMPerPodDirectory: nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Empty},
+		nsmutils.NSMPerPodDirectory: nsmutils.KeyProperties{Mandatory: true, Validator: nsmutils.Any},
 	}
 
 	if err := nsmutils.ValidateParameters(parameters, keysList); err != nil {
