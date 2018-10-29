@@ -1,4 +1,4 @@
-package memif_test_client
+package main
 
 import (
 	"context"
