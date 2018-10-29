@@ -27,9 +27,7 @@ jobs:
             export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
             export TAG="$BUILD_TAG"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-            cd dataplanes/vpp ; make all ; cd -
             make verify docker-build docker-push
-            cd dataplanes/vpp;make verify docker-build docker-push;cd -
       - run:
           when: on_fail
           name: Trigger packet-destroy
@@ -163,6 +161,34 @@ jobs:
           command: |
             cd controlplane
             make docker-nsc-build
+  build-vpp:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            cd dataplanes/vpp
+            make docker-build-vpp docker-push-vpp
+  build-vpp-daemon:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            cd dataplanes/vpp
+            make docker-build-vpp-daemon docker-push-vpp-daemon
 
 workflows:
   version: 2
@@ -176,6 +202,12 @@ workflows:
           requires:
             - sanity-check
       - build-nsc:
+          requires:
+            - sanity-check
+      - build-vpp:
+          requires:
+            - sanity-check
+      - build-vpp-daemon:
           requires:
             - sanity-check
       - build:
