@@ -13,13 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmserver
+package main
 
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"path"
-	"strconv"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
@@ -46,7 +49,7 @@ type nsmClientEndpoints struct {
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	logrus.Info("Client request for nsmdp resource...")
 	responses := pluginapi.AllocateResponse{}
-	for _, req := range reqs.ContainerRequests {
+	for range reqs.ContainerRequests {
 		workspace, err := nsmd.RequestWorkspace()
 		if err != nil {
 			logrus.Errorf("error talking to nsmd: %v", err)
@@ -91,6 +94,33 @@ func Register(kubeletEndpoint string) error {
 	return nil
 }
 
+// Define functions needed to meet the Kubernetes DevicePlugin API
+func (n *nsmClientEndpoints) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
+	return &pluginapi.DevicePluginOptions{}, nil
+}
+
+func (n *nsmClientEndpoints) PreStartContainer(context.Context, *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
+	return &pluginapi.PreStartContainerResponse{}, nil
+}
+
+func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
+	logrus.Infof("ListAndWatch was called with s: %+v", s)
+	for {
+		resp := new(pluginapi.ListAndWatchResponse)
+		for dev := 1; dev < 10; dev++ {
+			resp.Devices = append(resp.Devices, &pluginapi.Device{
+				ID:     fmt.Sprintf("%d", dev),
+				Health: pluginapi.Healthy,
+			})
+		}
+		if err := s.Send(resp); err != nil {
+			logrus.Errorf("Failed to send response to kubelet: %v\n", err)
+		}
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
 func startDeviceServer(nsm *nsmClientEndpoints) error {
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
 	if err := tools.SocketCleanup(listenEndpoint); err != nil {
@@ -122,9 +152,6 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
 func NewNSMDeviceServer() error {
 	nsm := &nsmClientEndpoints{}
-	for i := 0; i < initDeviceCount; i++ {
-		nsm.nsmSockets[strconv.Itoa(i)] = nsmSocket{device: &pluginapi.Device{ID: strconv.Itoa(i), Health: pluginapi.Healthy}}
-	}
 	if err := startDeviceServer(nsm); err != nil {
 		return err
 	}
@@ -132,4 +159,23 @@ func NewNSMDeviceServer() error {
 	err := Register(pluginapi.KubeletSocket)
 
 	return err
+}
+
+func main() {
+	err := NewNSMDeviceServer()
+
+	if err != nil {
+		logrus.Errorf("failed to start server: %v", err)
+		os.Exit(1)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		wg.Done()
+	}()
+	wg.Wait()
 }
