@@ -25,6 +25,30 @@ docker-build-%:
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
 
+.PHONY: docker-if-dockerfile-changed-build-%
+docker-if-dockerfile-changed-build-%:
+	@docker images | grep ${ORG}/$* | grep shasum-$$(shasum build/Dockerfile.$* | awk '{print $$1}') > /dev/null 2>&1 || \
+	docker pull ${ORG}/$*:shasum-$$(shasum build/Dockerfile.$* | awk '{print $$1}') > /dev/null 2>&1 || \
+	${DOCKERBUILD} -t ${ORG}/$* -f build/Dockerfile.$* ../../;
+	@docker tag ${ORG}/$* ${ORG}/$*:shasum-$$(shasum build/Dockerfile.$* | awk '{print $$1}') || true;
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag ${ORG}/$*:shasum-$$(shasum build/Dockerfile.$* | awk '{print $$1}') ${ORG}/$*:${COMMIT} ;\
+	fi
+	@echo ${ORG}/$* ready
+
+.PHONY: docker-build-vpplib
+docker-build-vpplib: docker-if-dockerfile-changed-build-vpplib
+
+.PHONY: docker-build-govppbuilder
+docker-build-govppbuilder: docker-build-vpplib docker-if-dockerfile-changed-build-govppbuilder
+
+.PHONY: docker-build-vpp
+docker-build-vpp: docker-if-dockerfile-changed-build-vpp
+
+.PHONY: docker-build-vpp-daemon
+docker-build-vpp-daemon: docker-build-vpplib docker-build-govppbuilder docker-if-dockerfile-changed-build-vpp-daemon
+
+
 #
 # Targets to push docker images
 #

@@ -1,0 +1,12 @@
+FROM ubuntu:bionic as vpplib
+ARG DEBIAN_FRONTEND=noninteractive
+ARG REPO=release
+RUN apt-get update && \
+    apt-get -y install axel && \
+    axel -k https://packagecloud.io/install/repositories/fdio/${REPO}/script.deb.sh && \
+    bash ./script.deb.sh && \
+    rm ./script.deb.sh && \
+    apt-get -y install vpp-lib=18.07.1-release && \
+    apt-get -y purge axel && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists

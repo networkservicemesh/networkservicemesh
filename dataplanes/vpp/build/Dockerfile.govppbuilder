@@ -1,0 +1,12 @@
+FROM networkservicemesh/vpplib as govppbuilder
+ARG DEBIAN_FRONTEND=noninteractive
+ENV GOPATH="/root/go"
+RUN apt-get update && \
+    apt-get -y install golang axel git vpp-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists && \
+    mkdir -p $GOPATH/bin && \
+    mkdir -p $GOPATH/pkg && \
+    mkdir -p $GOPATH/src && \
+    axel -k https://raw.githubusercontent.com/golang/dep/master/install.sh && \
+    sh ./install.sh

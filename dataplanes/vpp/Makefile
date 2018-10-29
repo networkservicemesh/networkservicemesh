@@ -58,6 +58,8 @@ endif
 
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
+BUILD_CONTAINERS=vpp vpplib govppbuilder vpp-daemon memif-test
+
 .PHONY: all check verify docker-build docker-push
 #
 # The all target is what is used by the travis-ci system to build the Docker images
@@ -66,14 +68,13 @@ DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 all: docker-build
 
 # Individual targets are found in .nsm.mk
-docker-build: docker-build-vpp-daemon docker-build-vpp docker-build-memif-test
-
-
-# Individual targets are found in .dataplane.mk
-docker-push: docker-login docker-push-vpp-daemon docker-push-vpp docker-build-memif-test
+docker-build:  $(addprefix docker-build-,$(BUILD_CONTAINERS))
 
 # Individual targets are found in .dataplane.mk
-docker-save: docker-save-vpp-daemon docker-save-vpp docker-build-memif-test
+docker-push: docker-login $(addprefix docker-build-,$(BUILD_CONTAINERS))
+
+# Individual targets are found in .dataplane.mk
+docker-save: $(addprefix docker-save-,$(BUILD_CONTAINERS))
 
 
 .PHONY: format deps generate install test test-race vet
