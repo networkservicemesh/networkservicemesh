@@ -130,11 +130,54 @@ jobs:
           when: on_fail
           command: nsm/.circleci/provision.sh packet-destroy
 
+  build-nsmd:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            cd controlplane
+            make docker-nsmd-build
+  build-nse:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            cd controlplane
+            make docker-nse-build
+  build-nsc:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            cd controlplane
+            make docker-nsc-build
+
 workflows:
   version: 2
   build-and-test:
     jobs:
       - sanity-check
+      - build-nsmd:
+          requires:
+            - sanity-check
+      - build-nse:
+          requires:
+            - sanity-check
+      - build-nsc:
+          requires:
+            - sanity-check
       - build:
           requires:
             - sanity-check
