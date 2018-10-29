@@ -11,13 +11,13 @@ vagrant up
 
 # Pointing your local kubectl at the Vagrant K8s
 
-Once vagrant us has competed:
+Once vagrant has completed:
 
 ```bash
 . scripts/vagrant/env.sh
 ```
 
-This sources a file that sets up KUBECONFIG to point to 
+This sources a file that sets up KUBECONFIG to point to
 scripts/vagrant/.kube/config
 
 You can test it with:
@@ -31,7 +31,7 @@ kubectl version
 ```bash
 make docker-build
 make docker-save
-cd dataplane/vpp
+cd dataplanes/vpp
 make docker-build
 make docker-save
 ```
@@ -48,7 +48,7 @@ local docker by running
 ```
 cd scripts/vagrant/
 vagrant ssh
-bash /vagrant/load_images.sh
+bash /vagrant/scripts/load_images.sh
 ```
 
 If you have yet to create a Vagrant image, the images will be loaded into the Vagrants docker automatically
