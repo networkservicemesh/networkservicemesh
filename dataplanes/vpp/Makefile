@@ -66,14 +66,14 @@ DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 all: docker-build
 
 # Individual targets are found in .nsm.mk
-docker-build: docker-build-vpp-daemon docker-build-vpp
+docker-build: docker-build-vpp-daemon docker-build-vpp docker-build-memif-test
 
 
 # Individual targets are found in .dataplane.mk
-docker-push: docker-login docker-push-vpp-daemon docker-push-vpp
+docker-push: docker-login docker-push-vpp-daemon docker-push-vpp docker-build-memif-test
 
 # Individual targets are found in .dataplane.mk
-docker-save: docker-save-vpp-daemon docker-save-vpp
+docker-save: docker-save-vpp-daemon docker-save-vpp docker-build-memif-test
 
 
 .PHONY: format deps generate install test test-race vet
