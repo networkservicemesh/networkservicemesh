@@ -24,6 +24,7 @@ import (
 	govpp "git.fd.io/govpp.git/core"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/tapv2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/vpe"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,10 +32,19 @@ var (
 	vppReconnectInterval = time.Second * 30
 )
 
-type Mechanism interface {
-	CreateLocalConnect(apiCh govppapi.Channel, srcParameters, dstParameters map[string]string) (string, error)
-	DeleteLocalConnect(apiCh govppapi.Channel, connID string) error
-	Validate(parameters map[string]string) error
+type mechanism interface {
+	createInterface(apiCh govppapi.Channel, parameters map[string]string) (uint32, error)
+	deleteInterface(apiCh govppapi.Channel, intf uint32) error
+	validate(parameters map[string]string) error
+}
+
+var mechanisms = []mechanism{
+	kernelMechanism{}, // default
+	kernelMechanism{},
+	unimplementedMechanism{Type: common.LocalMechanismType_VHOST_INTERFACE},
+	unimplementedMechanism{Type: common.LocalMechanismType_MEM_INTERFACE},
+	unimplementedMechanism{Type: common.LocalMechanismType_SRIOV_INTERFACE},
+	unimplementedMechanism{Type: common.LocalMechanismType_HW_INTERFACE},
 }
 
 // Interface lists methods available to manipulate VPPDataplane controller information
