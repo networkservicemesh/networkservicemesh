@@ -27,6 +27,14 @@ const (
 	NSMkeyIPv4 = "ipv4"
 	// NSMkeyIPv4PrefixLength defines the name of the key ipv4 prefix length in parameters map (optional)
 	NSMkeyIPv4PrefixLength = "ipv4prefixlength"
+	//NSMSocketFile defines socket name which will be used for memif connection
+	NSMSocketFile = "socketfile"
+	//NSMMaster if true, than role is master
+	NSMMaster = "master"
+	//NSMSlave if true, than role is slave
+	NSMSlave = "slave"
+	//NSMPerPodDirectory defines directory that is mounted to pod (relative to /var/lib/networkservicemesh)
+	NSMPerPodDirectory = "directory"
 )
 
 // Keys is a map of all Keys which are supported in the connection Parameters map
@@ -88,6 +96,13 @@ func Ipv4prefixlength(value string) error {
 	}
 	if !(prefixLength > 1 && prefixLength < 32) {
 		return fmt.Errorf("invalid value %d of ipv4 prefix parameter", prefixLength)
+	}
+	return nil
+}
+
+func Bool(value string) error {
+	if _, err := strconv.ParseBool(value); err != nil {
+		return err
 	}
 	return nil
 }

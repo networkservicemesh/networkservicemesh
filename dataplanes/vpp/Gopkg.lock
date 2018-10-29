@@ -16,6 +16,14 @@
   revision = "56e997fc27c775790fcce5eda92bb2baee82d881"
 
 [[projects]]
+  digest = "1:f90b8392b93331d9b45212b3c8056af949b8bf4002a67b4a11b530ef566455d2"
+  name = "github.com/docker/docker"
+  packages = ["pkg/mount"]
+  pruneopts = "UT"
+  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
+  version = "v1.13.1"
+
+[[projects]]
   digest = "1:38c783cf85b9454cc02a1a8319239800ed0af6c1c864adf19cea0539e134adad"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -31,11 +39,40 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:6626c7945bfb9a7ad15e6d68bfc39849433ec2ba4e048aac7f7a1fc6a0f3b2b7"
+  name = "github.com/ligato/networkservicemesh"
+  packages = ["utils/fs"]
+  pruneopts = "UT"
+  revision = "96b15530fa48466dfad199eac3c2494c28890394"
+
+[[projects]]
   digest = "1:fd0b11e9149f5aa2a2f17c7f577c905a93c04633ae6e0b2b51f486bfe68fadad"
   name = "github.com/lunixbochs/struc"
   packages = ["."]
   pruneopts = "UT"
   revision = "ef56447db6a068ad9e52bc54a1aff5fb9e1ed2dd"
+
+[[projects]]
+  digest = "1:ab54eea8d482272009e9e4af07d4d9b5236c27b4d8c54a3f2c99d163be883eca"
+  name = "github.com/onsi/gomega"
+  packages = [
+    ".",
+    "format",
+    "internal/assertion",
+    "internal/asyncassertion",
+    "internal/oraclematcher",
+    "internal/testingtsupport",
+    "matchers",
+    "matchers/support/goraph/bipartitegraph",
+    "matchers/support/goraph/edge",
+    "matchers/support/goraph/node",
+    "matchers/support/goraph/util",
+    "types",
+  ]
+  pruneopts = "UT"
+  revision = "7615b9433f86a8bdf29709bf288bc4fd0636a369"
+  version = "v1.4.2"
 
 [[projects]]
   digest = "1:3f53e9e4dfbb664cd62940c9c4b65a2171c66acd0b7621a1a6b8e78513525a52"
@@ -55,6 +92,18 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:5193d913046443e59093d66a97a40c51f4a5ea4ceba60f3b3ecf89694de5d16f"
+  name = "golang.org/x/net"
+  packages = [
+    "html",
+    "html/atom",
+    "html/charset",
+  ]
+  pruneopts = "UT"
+  revision = "c44066c5c816ec500d459a2a324a753f78531ae0"
+
+[[projects]]
+  branch = "master"
   digest = "1:f5aa274a0377f85735edc7fedfb0811d3cbc20af91633797cb359e29c3272271"
   name = "golang.org/x/sys"
   packages = [
@@ -64,6 +113,40 @@
   pruneopts = "UT"
   revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
 
+[[projects]]
+  digest = "1:aa4d6967a3237f8367b6bf91503964a77183ecf696f1273e8ad3551bb4412b5f"
+  name = "golang.org/x/text"
+  packages = [
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "internal/gen",
+    "internal/tag",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "transform",
+    "unicode/cldr",
+  ]
+  pruneopts = "UT"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
+  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -71,7 +154,10 @@
     "git.fd.io/govpp.git/adapter/vppapiclient",
     "git.fd.io/govpp.git/api",
     "git.fd.io/govpp.git/core",
+    "github.com/docker/docker/pkg/mount",
+    "github.com/ligato/networkservicemesh/utils/fs",
     "github.com/lunixbochs/struc",
+    "github.com/onsi/gomega",
     "github.com/sirupsen/logrus",
   ]
   solver-name = "gps-cdcl"
