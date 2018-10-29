@@ -18,7 +18,7 @@ var (
 	lastId      int                 = 0
 )
 
-// DreateLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
+// CreateLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func CreateLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
 	srcIntf := &vppInterface{}
 	dstIntf := &vppInterface{}
@@ -50,6 +50,13 @@ func CreateLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism)
 			intf:   dstIntf,
 			upDown: 1,
 		},
+	}
+
+	if (src.Type == common.LocalMechanismType_MEM_INTERFACE) && (dst.Type == common.LocalMechanismType_MEM_INTERFACE) {
+		var err error
+		if tx, err = memifDirectConnect(src.Parameters, dst.Parameters); err != nil {
+			return "", err
+		}
 	}
 
 	pos, err := perform(tx, apiCh)
