@@ -55,6 +55,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:f90b8392b93331d9b45212b3c8056af949b8bf4002a67b4a11b530ef566455d2"
+  name = "github.com/docker/docker"
+  packages = ["pkg/mount"]
+  pruneopts = "UT"
+  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
+  version = "v1.13.1"
+
+[[projects]]
   digest = "1:899234af23e5793c34e06fd397f86ba33af5307b959b6a7afd19b63db065a9d7"
   name = "github.com/emicklei/go-restful"
   packages = [
@@ -935,6 +943,7 @@
     "git.fd.io/govpp.git/core",
     "github.com/Masterminds/semver",
     "github.com/ant31/crd-validation/pkg",
+    "github.com/docker/docker/pkg/mount",
     "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
     "github.com/go-openapi/spec",
