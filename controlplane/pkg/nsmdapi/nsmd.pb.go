@@ -3,12 +3,13 @@
 
 package nsmdapi
 
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
+
 import (
-	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -33,17 +34,16 @@ func (m *ClientConnectionRequest) Reset()         { *m = ClientConnectionRequest
 func (m *ClientConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*ClientConnectionRequest) ProtoMessage()    {}
 func (*ClientConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_084cb5dcc765b124, []int{0}
+	return fileDescriptor_nsmd_4de7e6c5a0479797, []int{0}
 }
-
 func (m *ClientConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClientConnectionRequest.Unmarshal(m, b)
 }
 func (m *ClientConnectionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ClientConnectionRequest.Marshal(b, m, deterministic)
 }
-func (m *ClientConnectionRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ClientConnectionRequest.Merge(m, src)
+func (dst *ClientConnectionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientConnectionRequest.Merge(dst, src)
 }
 func (m *ClientConnectionRequest) XXX_Size() int {
 	return xxx_messageInfo_ClientConnectionRequest.Size(m)
@@ -59,9 +59,9 @@ var xxx_messageInfo_ClientConnectionRequest proto.InternalMessageInfo
 // indicates that connection was refused and admission_error will provide details
 // why connection was refused.
 type ClientConnectionReply struct {
-	Accepted             bool     `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	AdmissionError       string   `protobuf:"bytes,2,opt,name=admission_error,json=admissionError,proto3" json:"admission_error,omitempty"`
-	SocketLocation       string   `protobuf:"bytes,3,opt,name=socket_location,json=socketLocation,proto3" json:"socket_location,omitempty"`
+	Accepted             bool     `protobuf:"varint,1,opt,name=accepted" json:"accepted,omitempty"`
+	AdmissionError       string   `protobuf:"bytes,2,opt,name=admission_error,json=admissionError" json:"admission_error,omitempty"`
+	SocketLocation       string   `protobuf:"bytes,3,opt,name=socket_location,json=socketLocation" json:"socket_location,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -71,17 +71,16 @@ func (m *ClientConnectionReply) Reset()         { *m = ClientConnectionReply{} }
 func (m *ClientConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*ClientConnectionReply) ProtoMessage()    {}
 func (*ClientConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_084cb5dcc765b124, []int{1}
+	return fileDescriptor_nsmd_4de7e6c5a0479797, []int{1}
 }
-
 func (m *ClientConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClientConnectionReply.Unmarshal(m, b)
 }
 func (m *ClientConnectionReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ClientConnectionReply.Marshal(b, m, deterministic)
 }
-func (m *ClientConnectionReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ClientConnectionReply.Merge(m, src)
+func (dst *ClientConnectionReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientConnectionReply.Merge(dst, src)
 }
 func (m *ClientConnectionReply) XXX_Size() int {
 	return xxx_messageInfo_ClientConnectionReply.Size(m)
@@ -115,7 +114,7 @@ func (m *ClientConnectionReply) GetSocketLocation() string {
 
 // DeleteConnectionRequest is sent by a nsm-k8s to delete connection with a client.
 type DeleteConnectionRequest struct {
-	SocketLocation       string   `protobuf:"bytes,1,opt,name=socket_location,json=socketLocation,proto3" json:"socket_location,omitempty"`
+	SocketLocation       string   `protobuf:"bytes,1,opt,name=socket_location,json=socketLocation" json:"socket_location,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -125,17 +124,16 @@ func (m *DeleteConnectionRequest) Reset()         { *m = DeleteConnectionRequest
 func (m *DeleteConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteConnectionRequest) ProtoMessage()    {}
 func (*DeleteConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_084cb5dcc765b124, []int{2}
+	return fileDescriptor_nsmd_4de7e6c5a0479797, []int{2}
 }
-
 func (m *DeleteConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteConnectionRequest.Unmarshal(m, b)
 }
 func (m *DeleteConnectionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeleteConnectionRequest.Marshal(b, m, deterministic)
 }
-func (m *DeleteConnectionRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteConnectionRequest.Merge(m, src)
+func (dst *DeleteConnectionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteConnectionRequest.Merge(dst, src)
 }
 func (m *DeleteConnectionRequest) XXX_Size() int {
 	return xxx_messageInfo_DeleteConnectionRequest.Size(m)
@@ -154,7 +152,7 @@ func (m *DeleteConnectionRequest) GetSocketLocation() string {
 }
 
 type DeleteConnectionReply struct {
-	Success              bool     `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Success              bool     `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -164,17 +162,16 @@ func (m *DeleteConnectionReply) Reset()         { *m = DeleteConnectionReply{} }
 func (m *DeleteConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*DeleteConnectionReply) ProtoMessage()    {}
 func (*DeleteConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_084cb5dcc765b124, []int{3}
+	return fileDescriptor_nsmd_4de7e6c5a0479797, []int{3}
 }
-
 func (m *DeleteConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteConnectionReply.Unmarshal(m, b)
 }
 func (m *DeleteConnectionReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeleteConnectionReply.Marshal(b, m, deterministic)
 }
-func (m *DeleteConnectionReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteConnectionReply.Merge(m, src)
+func (dst *DeleteConnectionReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteConnectionReply.Merge(dst, src)
 }
 func (m *DeleteConnectionReply) XXX_Size() int {
 	return xxx_messageInfo_DeleteConnectionReply.Size(m)
@@ -197,28 +194,6 @@ func init() {
 	proto.RegisterType((*ClientConnectionReply)(nil), "nsmdapi.ClientConnectionReply")
 	proto.RegisterType((*DeleteConnectionRequest)(nil), "nsmdapi.DeleteConnectionRequest")
 	proto.RegisterType((*DeleteConnectionReply)(nil), "nsmdapi.DeleteConnectionReply")
-}
-
-func init() { proto.RegisterFile("nsmd.proto", fileDescriptor_084cb5dcc765b124) }
-
-var fileDescriptor_084cb5dcc765b124 = []byte{
-	// 249 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0x2b, 0xce, 0x4d,
-	0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x07, 0xb1, 0x13, 0x0b, 0x32, 0x95, 0x24, 0xb9,
-	0xc4, 0x9d, 0x73, 0x32, 0x53, 0xf3, 0x4a, 0x9c, 0xf3, 0xf3, 0xf2, 0x52, 0x93, 0x4b, 0x32, 0xf3,
-	0xf3, 0x82, 0x52, 0x0b, 0x4b, 0x53, 0x8b, 0x4b, 0x94, 0x5a, 0x19, 0xb9, 0x44, 0x31, 0xe5, 0x0a,
-	0x72, 0x2a, 0x85, 0xa4, 0xb8, 0x38, 0x12, 0x93, 0x93, 0x53, 0x0b, 0x4a, 0x52, 0x53, 0x24, 0x18,
-	0x15, 0x18, 0x35, 0x38, 0x82, 0xe0, 0x7c, 0x21, 0x75, 0x2e, 0xfe, 0xc4, 0x94, 0xdc, 0xcc, 0xe2,
-	0xe2, 0xcc, 0xfc, 0xbc, 0xf8, 0xd4, 0xa2, 0xa2, 0xfc, 0x22, 0x09, 0x26, 0x05, 0x46, 0x0d, 0xce,
-	0x20, 0x3e, 0xb8, 0xb0, 0x2b, 0x48, 0x14, 0xa4, 0xb0, 0x38, 0x3f, 0x39, 0x3b, 0xb5, 0x24, 0x3e,
-	0x27, 0x3f, 0x39, 0x11, 0x64, 0xb8, 0x04, 0x33, 0x44, 0x21, 0x44, 0xd8, 0x07, 0x2a, 0xaa, 0xe4,
-	0xc4, 0x25, 0xee, 0x92, 0x9a, 0x93, 0x5a, 0x92, 0x8a, 0xe1, 0x44, 0x6c, 0x66, 0x30, 0x62, 0x35,
-	0xc3, 0x90, 0x4b, 0x14, 0xd3, 0x0c, 0x90, 0x57, 0x24, 0xb8, 0xd8, 0x8b, 0x4b, 0x93, 0x93, 0x53,
-	0x8b, 0x8b, 0xa1, 0x3e, 0x81, 0x71, 0x8d, 0xf6, 0x33, 0x72, 0xb1, 0xf8, 0x05, 0xfb, 0xba, 0x08,
-	0x45, 0x73, 0x89, 0x43, 0xed, 0x43, 0x0f, 0x0d, 0x21, 0x05, 0x3d, 0x68, 0x38, 0xea, 0xe1, 0x08,
-	0x44, 0x29, 0x39, 0x3c, 0x2a, 0x40, 0xf6, 0x47, 0x71, 0x89, 0x41, 0x1d, 0x86, 0xdb, 0x6c, 0x1c,
-	0xbe, 0x47, 0x32, 0x1b, 0xab, 0xdf, 0x92, 0xd8, 0xc0, 0x71, 0x6d, 0x0c, 0x08, 0x00, 0x00, 0xff,
-	0xff, 0xc4, 0x52, 0xaa, 0xae, 0xf9, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -263,7 +238,8 @@ func (c *nSMDClient) DeleteClientConnection(ctx context.Context, in *DeleteConne
 	return out, nil
 }
 
-// NSMDServer is the server API for NSMD service.
+// Server API for NSMD service
+
 type NSMDServer interface {
 	RequestClientConnection(context.Context, *ClientConnectionRequest) (*ClientConnectionReply, error)
 	DeleteClientConnection(context.Context, *DeleteConnectionRequest) (*DeleteConnectionReply, error)
@@ -324,4 +300,26 @@ var _NSMD_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "nsmd.proto",
+}
+
+func init() { proto.RegisterFile("nsmd.proto", fileDescriptor_nsmd_4de7e6c5a0479797) }
+
+var fileDescriptor_nsmd_4de7e6c5a0479797 = []byte{
+	// 249 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0x2b, 0xce, 0x4d,
+	0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x07, 0xb1, 0x13, 0x0b, 0x32, 0x95, 0x24, 0xb9,
+	0xc4, 0x9d, 0x73, 0x32, 0x53, 0xf3, 0x4a, 0x9c, 0xf3, 0xf3, 0xf2, 0x52, 0x93, 0x4b, 0x32, 0xf3,
+	0xf3, 0x82, 0x52, 0x0b, 0x4b, 0x53, 0x8b, 0x4b, 0x94, 0x5a, 0x19, 0xb9, 0x44, 0x31, 0xe5, 0x0a,
+	0x72, 0x2a, 0x85, 0xa4, 0xb8, 0x38, 0x12, 0x93, 0x93, 0x53, 0x0b, 0x4a, 0x52, 0x53, 0x24, 0x18,
+	0x15, 0x18, 0x35, 0x38, 0x82, 0xe0, 0x7c, 0x21, 0x75, 0x2e, 0xfe, 0xc4, 0x94, 0xdc, 0xcc, 0xe2,
+	0xe2, 0xcc, 0xfc, 0xbc, 0xf8, 0xd4, 0xa2, 0xa2, 0xfc, 0x22, 0x09, 0x26, 0x05, 0x46, 0x0d, 0xce,
+	0x20, 0x3e, 0xb8, 0xb0, 0x2b, 0x48, 0x14, 0xa4, 0xb0, 0x38, 0x3f, 0x39, 0x3b, 0xb5, 0x24, 0x3e,
+	0x27, 0x3f, 0x39, 0x11, 0x64, 0xb8, 0x04, 0x33, 0x44, 0x21, 0x44, 0xd8, 0x07, 0x2a, 0xaa, 0xe4,
+	0xc4, 0x25, 0xee, 0x92, 0x9a, 0x93, 0x5a, 0x92, 0x8a, 0xe1, 0x44, 0x6c, 0x66, 0x30, 0x62, 0x35,
+	0xc3, 0x90, 0x4b, 0x14, 0xd3, 0x0c, 0x90, 0x57, 0x24, 0xb8, 0xd8, 0x8b, 0x4b, 0x93, 0x93, 0x53,
+	0x8b, 0x8b, 0xa1, 0x3e, 0x81, 0x71, 0x8d, 0xf6, 0x33, 0x72, 0xb1, 0xf8, 0x05, 0xfb, 0xba, 0x08,
+	0x45, 0x73, 0x89, 0x43, 0xed, 0x43, 0x0f, 0x0d, 0x21, 0x05, 0x3d, 0x68, 0x38, 0xea, 0xe1, 0x08,
+	0x44, 0x29, 0x39, 0x3c, 0x2a, 0x40, 0xf6, 0x47, 0x71, 0x89, 0x41, 0x1d, 0x86, 0xdb, 0x6c, 0x1c,
+	0xbe, 0x47, 0x32, 0x1b, 0xab, 0xdf, 0x92, 0xd8, 0xc0, 0x71, 0x6d, 0x0c, 0x08, 0x00, 0x00, 0xff,
+	0xff, 0xc4, 0x52, 0xaa, 0xae, 0xf9, 0x01, 0x00, 0x00,
 }
