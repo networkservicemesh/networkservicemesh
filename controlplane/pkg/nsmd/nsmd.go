@@ -3,6 +3,7 @@ package nsmd
 import (
 	"fmt"
 	"net"
+	"os"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
@@ -14,8 +15,11 @@ import (
 )
 
 const (
-	ServerSock   = "/var/lib/networkservicemesh/nsm.io.sock"
-	clientSocket = "/var/lib/networkservicemesh/nsm-%d.io.sock"
+	ServerSock         = "/var/lib/networkservicemesh/nsm.io.sock"
+	DefaultWorkspace   = "/var/lib/networkservicemesh"
+	ClientSocket       = "nsm.client.io.sock"
+	NsmDevicePluginEnv = "NSM_DEVICE_PLUGIN"
+	folderMask         = 0777
 )
 
 type nsmServer struct {
@@ -25,6 +29,28 @@ type nsmServer struct {
 	model   model.Model
 }
 
+func RequestWorkspace() (string, error) {
+	serverSocket := ServerSock
+	logrus.Infof("Connecting to nsmd on socket: %s...", serverSocket)
+	if _, err := os.Stat(serverSocket); err != nil {
+		return "", err
+	}
+	conn, err := tools.SocketOperationCheck(serverSocket)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	logrus.Info("Requesting nsmd for client connection...")
+	client := nsmdapi.NewNSMDClient(conn)
+	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{})
+	if err != nil {
+		return "", err
+	}
+	logrus.Infof("nsmd allocated workspace %s for client operations...", reply.Workspace)
+	return reply.Workspace, nil
+}
+
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
 	logrus.Infof("Requested client connection to nsmd")
 	nsm.mux.Lock()
@@ -32,21 +58,29 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 	id := nsm.id
 	nsm.mux.Unlock()
 
-	socket := fmt.Sprintf(clientSocket, id)
+	workspace := fmt.Sprintf("/var/lib/networkservicemesh/nsm-%d", id)
+	if err := os.MkdirAll(workspace, folderMask); err != nil {
+		logrus.Errorf("can't create folder: %s, error: %v", workspace, err)
+		return &nsmdapi.ClientConnectionReply{
+			Accepted:  false,
+			Workspace: "",
+		}, nil
+	}
+
 	channel := make(chan bool)
-	nsm.clients[socket] = channel
-	startClientServer(nsm.model, socket, channel)
+	nsm.clients[workspace] = channel
+	startClientServer(nsm.model, workspace, channel)
 
 	reply := &nsmdapi.ClientConnectionReply{
-		Accepted:       true,
-		SocketLocation: socket,
+		Accepted:  true,
+		Workspace: workspace,
 	}
 	return reply, nil
 }
 
 func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *nsmdapi.DeleteConnectionRequest) (*nsmdapi.DeleteConnectionReply, error) {
-	socket := request.SocketLocation
-	logrus.Infof("Delete connection for socket %s", socket)
+	socket := request.Workspace
+	logrus.Infof("Delete connection for workspace %s", socket)
 	channel := nsm.clients[socket]
 	channel <- true
 	delete(nsm.clients, socket)

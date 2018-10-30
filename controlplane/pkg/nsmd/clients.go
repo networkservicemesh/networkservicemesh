@@ -3,6 +3,7 @@ package nsmd
 import (
 	"fmt"
 	"math/rand"
+	"path"
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
@@ -129,7 +130,9 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 }
 
 // Client server starts for each client during Kubelet's Allocate call
-func startClientServer(model model.Model, socket string, stopChannel chan bool) {
+func startClientServer(model model.Model, workspace string, stopChannel chan bool) {
+	socket := path.Join(workspace, ClientSocket)
+
 	client := &nsmClientServer{
 		socketPath: socket,
 		model:      model,

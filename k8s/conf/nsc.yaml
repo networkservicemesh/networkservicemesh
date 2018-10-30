@@ -1,0 +1,21 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io: "true"
+        networkservicemesh.io/app: "nsc"
+    spec:
+      containers:
+        - name: nsc
+          image: nsmd/nsc:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+metadata:
+  name: nsc
+  namespace: default

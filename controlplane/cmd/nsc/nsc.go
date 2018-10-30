@@ -18,38 +18,16 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"path"
 	"sync"
 	"syscall"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmdapi"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 )
-
-func setupClientConnection() (string, error) {
-	serverSocket := nsmd.ServerSock
-	logrus.Infof("Connecting to nsmd on socket: %s...", serverSocket)
-	if _, err := os.Stat(serverSocket); err != nil {
-		return "", err
-	}
-	conn, err := tools.SocketOperationCheck(serverSocket)
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	logrus.Info("Requesting nsmd for client connection...")
-	client := nsmdapi.NewNSMDClient(conn)
-	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{})
-	if err != nil {
-		return "", err
-	}
-	logrus.Infof("nsmd provided socket %s for client operations...", reply.SocketLocation)
-	return reply.SocketLocation, nil
-}
 
 func main() {
 	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
@@ -60,11 +38,19 @@ func main() {
 	}
 	logrus.Infof("Starting NSC, linux namespace: %s...", linuxNS)
 
-	clientSocket, err := setupClientConnection()
-	if err != nil {
-		logrus.Fatalf("nsc: failed set up client connection, error: %+v, exiting...", err)
-		os.Exit(1)
+	var workspace string
+
+	if os.Getenv(nsmd.NsmDevicePluginEnv) != "" {
+		workspace = nsmd.DefaultWorkspace
+	} else {
+		workspace, err = nsmd.RequestWorkspace()
+		if err != nil {
+			logrus.Fatalf("nsc: failed set up client connection, error: %+v, exiting...", err)
+			os.Exit(1)
+		}
 	}
+
+	clientSocket := path.Join(workspace, nsmd.ClientSocket)
 
 	logrus.Infof("Connecting to nsm server on socket: %s...", clientSocket)
 	if _, err := os.Stat(clientSocket); err != nil {
