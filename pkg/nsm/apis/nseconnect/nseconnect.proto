@@ -5,66 +5,68 @@ package nseconnect;
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh/netmesh.proto";
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
 
-// EndpointConnectionRequest is sent by a NSM to NSE to build a connection.
-    message EndpointConnectionRequest {
-        string request_id = 1;
-        string network_service_name = 2;
-    }
-    
+// ConnectRequest is sent
+message ConnectRequest {
+    string request_id = 1;
+    string network_service_name = 2;
+    map<string, string> context = 3;
+    repeated common.LocalMechanism mechanisms = 4;
+}
+
 // EndpointConnectionReply is sent back by NSE to NSM with information required for
 // dataplane programming.
-    message EndpointConnectionReply {
-        string request_id = 1;
-        string network_service_name = 2;
-        string linux_namespace = 3;
-    }
+message ConnectReply {
+    string request_id = 1;
+    common.LocalMechanism mechanism = 2;
+}
 
 // EndpointConnectionInterface is sent by a NSM to NSE to inform NSE about
 // the interface name which was created by the dataplane controller.
-    message EndpointConnectionMechanism {
-        string request_id = 1;
-        common.LocalMechanism local_mechanism = 2;
-        string network_service_name = 3;
-    }
-    
-// EndpointConnectionInterfaceReply is sent back by NSE to NSM to confirm the presence 
+message EndpointConnectionMechanism {
+    string request_id = 1;
+    common.LocalMechanism local_mechanism = 2;
+    string network_service_name = 3;
+}
+
+// EndpointConnectionInterfaceReply is sent back by NSE to NSM to confirm the presence
 // of the programmed interface.
-    message EndpointConnectionMechanismReply {
-        string request_id = 1;
-        bool mechanism_found = 2;
-    }
+message EndpointConnectionMechanismReply {
+    string request_id = 1;
+    bool mechanism_found = 2;
+}
 
-    service EndpointConnection {
-        rpc RequestEndpointConnection (EndpointConnectionRequest) returns (EndpointConnectionReply);
-        rpc SendEndpointConnectionMechanism (EndpointConnectionMechanism ) returns (EndpointConnectionMechanismReply);
-    }
-    
-    message EndpointAdvertiseRequest {
-        string request_id = 1;
-        netmesh.NetworkServiceEndpoint network_endpoint = 2;
-     }
 
-     message EndpointAdvertiseReply {
-        string request_id = 1;
-        bool accepted = 2;
-        string admission_error = 3;
-     }
- 
-     service EndpointOperations {
-        rpc AdvertiseEndpoint (EndpointAdvertiseRequest) returns (EndpointAdvertiseReply);
-        rpc RemoveEndpoint (EndpointRemoveRequest) returns (EndpointRemoveReply);
-    }
+message EndpointAdvertiseRequest {
+    string request_id = 1;
+    netmesh.NetworkServiceEndpoint network_endpoint = 2;
+}
+
+message EndpointAdvertiseReply {
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+}
 
 // Message sent by NSE to NSM informing of a removal previously advertised
 // endpoint. NSM will attempt to locate Customer Resource and delete it.
 //
-    message EndpointRemoveRequest {
-        string request_id = 1;
-        netmesh.NetworkServiceEndpoint network_endpoint = 2;
-     }
+message EndpointRemoveRequest {
+    string request_id = 1;
+    netmesh.NetworkServiceEndpoint network_endpoint = 2;
+}
 
-     message EndpointRemoveReply {
-        string request_id = 1;
-        bool accepted = 2;
-        string admission_error = 3;
-     }
+message EndpointRemoveReply {
+    string request_id = 1;
+    bool accepted = 2;
+    string admission_error = 3;
+}
+
+service NetworkServiceEndpoint {
+    rpc Connect (ConnectRequest) returns (ConnectReply);
+}
+
+service EndpointOperations {
+    rpc AdvertiseEndpoint (EndpointAdvertiseRequest) returns (EndpointAdvertiseReply);
+    rpc RemoveEndpoint (EndpointRemoveRequest) returns (EndpointRemoveReply);
+}
+

@@ -270,11 +270,11 @@ func localNSE(n *nsmClientEndpoints, requestID, networkServiceName string) error
 		return err
 	}
 	defer nseConn.Close()
-	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
+	nseClient := nseconnect.NewNetworkServiceEndpointClient(nseConn)
 
 	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer nseCancel()
-	nseRepl, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
+	nseRepl, err := nseClient.Connect(nseCtx, &nseconnect.ConnectRequest{
 		RequestId: requestID,
 	})
 	if err != nil {

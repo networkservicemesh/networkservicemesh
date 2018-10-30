@@ -8,12 +8,9 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	netmesh "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
-	math "math"
-)
-
-import (
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -27,109 +24,117 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// EndpointConnectionRequest is sent by a NSM to NSE to build a connection.
-type EndpointConnectionRequest struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+// ConnectRequest is sent
+type ConnectRequest struct {
+	RequestId            string                   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	NetworkServiceName   string                   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	Context              map[string]string        `protobuf:"bytes,3,rep,name=context,proto3" json:"context,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Mechanisms           []*common.LocalMechanism `protobuf:"bytes,4,rep,name=mechanisms,proto3" json:"mechanisms,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
 }
 
-func (m *EndpointConnectionRequest) Reset()         { *m = EndpointConnectionRequest{} }
-func (m *EndpointConnectionRequest) String() string { return proto.CompactTextString(m) }
-func (*EndpointConnectionRequest) ProtoMessage()    {}
-func (*EndpointConnectionRequest) Descriptor() ([]byte, []int) {
+func (m *ConnectRequest) Reset()         { *m = ConnectRequest{} }
+func (m *ConnectRequest) String() string { return proto.CompactTextString(m) }
+func (*ConnectRequest) ProtoMessage()    {}
+func (*ConnectRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e33aba36f437ad2, []int{0}
 }
 
-func (m *EndpointConnectionRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EndpointConnectionRequest.Unmarshal(m, b)
+func (m *ConnectRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConnectRequest.Unmarshal(m, b)
 }
-func (m *EndpointConnectionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EndpointConnectionRequest.Marshal(b, m, deterministic)
+func (m *ConnectRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConnectRequest.Marshal(b, m, deterministic)
 }
-func (m *EndpointConnectionRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointConnectionRequest.Merge(m, src)
+func (m *ConnectRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectRequest.Merge(m, src)
 }
-func (m *EndpointConnectionRequest) XXX_Size() int {
-	return xxx_messageInfo_EndpointConnectionRequest.Size(m)
+func (m *ConnectRequest) XXX_Size() int {
+	return xxx_messageInfo_ConnectRequest.Size(m)
 }
-func (m *EndpointConnectionRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_EndpointConnectionRequest.DiscardUnknown(m)
+func (m *ConnectRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConnectRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EndpointConnectionRequest proto.InternalMessageInfo
+var xxx_messageInfo_ConnectRequest proto.InternalMessageInfo
 
-func (m *EndpointConnectionRequest) GetRequestId() string {
+func (m *ConnectRequest) GetRequestId() string {
 	if m != nil {
 		return m.RequestId
 	}
 	return ""
 }
 
-func (m *EndpointConnectionRequest) GetNetworkServiceName() string {
+func (m *ConnectRequest) GetNetworkServiceName() string {
 	if m != nil {
 		return m.NetworkServiceName
 	}
 	return ""
+}
+
+func (m *ConnectRequest) GetContext() map[string]string {
+	if m != nil {
+		return m.Context
+	}
+	return nil
+}
+
+func (m *ConnectRequest) GetMechanisms() []*common.LocalMechanism {
+	if m != nil {
+		return m.Mechanisms
+	}
+	return nil
 }
 
 // EndpointConnectionReply is sent back by NSE to NSM with information required for
 // dataplane programming.
-type EndpointConnectionReply struct {
-	RequestId            string   `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	NetworkServiceName   string   `protobuf:"bytes,2,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
-	LinuxNamespace       string   `protobuf:"bytes,3,opt,name=linux_namespace,json=linuxNamespace,proto3" json:"linux_namespace,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type ConnectReply struct {
+	RequestId            string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Mechanism            *common.LocalMechanism `protobuf:"bytes,2,opt,name=mechanism,proto3" json:"mechanism,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
-func (m *EndpointConnectionReply) Reset()         { *m = EndpointConnectionReply{} }
-func (m *EndpointConnectionReply) String() string { return proto.CompactTextString(m) }
-func (*EndpointConnectionReply) ProtoMessage()    {}
-func (*EndpointConnectionReply) Descriptor() ([]byte, []int) {
+func (m *ConnectReply) Reset()         { *m = ConnectReply{} }
+func (m *ConnectReply) String() string { return proto.CompactTextString(m) }
+func (*ConnectReply) ProtoMessage()    {}
+func (*ConnectReply) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e33aba36f437ad2, []int{1}
 }
 
-func (m *EndpointConnectionReply) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EndpointConnectionReply.Unmarshal(m, b)
+func (m *ConnectReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConnectReply.Unmarshal(m, b)
 }
-func (m *EndpointConnectionReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EndpointConnectionReply.Marshal(b, m, deterministic)
+func (m *ConnectReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConnectReply.Marshal(b, m, deterministic)
 }
-func (m *EndpointConnectionReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EndpointConnectionReply.Merge(m, src)
+func (m *ConnectReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectReply.Merge(m, src)
 }
-func (m *EndpointConnectionReply) XXX_Size() int {
-	return xxx_messageInfo_EndpointConnectionReply.Size(m)
+func (m *ConnectReply) XXX_Size() int {
+	return xxx_messageInfo_ConnectReply.Size(m)
 }
-func (m *EndpointConnectionReply) XXX_DiscardUnknown() {
-	xxx_messageInfo_EndpointConnectionReply.DiscardUnknown(m)
+func (m *ConnectReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConnectReply.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EndpointConnectionReply proto.InternalMessageInfo
+var xxx_messageInfo_ConnectReply proto.InternalMessageInfo
 
-func (m *EndpointConnectionReply) GetRequestId() string {
+func (m *ConnectReply) GetRequestId() string {
 	if m != nil {
 		return m.RequestId
 	}
 	return ""
 }
 
-func (m *EndpointConnectionReply) GetNetworkServiceName() string {
+func (m *ConnectReply) GetMechanism() *common.LocalMechanism {
 	if m != nil {
-		return m.NetworkServiceName
+		return m.Mechanism
 	}
-	return ""
-}
-
-func (m *EndpointConnectionReply) GetLinuxNamespace() string {
-	if m != nil {
-		return m.LinuxNamespace
-	}
-	return ""
+	return nil
 }
 
 // EndpointConnectionInterface is sent by a NSM to NSE to inform NSE about
@@ -446,14 +451,56 @@ func (m *EndpointRemoveReply) GetAdmissionError() string {
 }
 
 func init() {
-	proto.RegisterType((*EndpointConnectionRequest)(nil), "nseconnect.EndpointConnectionRequest")
-	proto.RegisterType((*EndpointConnectionReply)(nil), "nseconnect.EndpointConnectionReply")
+	proto.RegisterType((*ConnectRequest)(nil), "nseconnect.ConnectRequest")
+	proto.RegisterMapType((map[string]string)(nil), "nseconnect.ConnectRequest.ContextEntry")
+	proto.RegisterType((*ConnectReply)(nil), "nseconnect.ConnectReply")
 	proto.RegisterType((*EndpointConnectionMechanism)(nil), "nseconnect.EndpointConnectionMechanism")
 	proto.RegisterType((*EndpointConnectionMechanismReply)(nil), "nseconnect.EndpointConnectionMechanismReply")
 	proto.RegisterType((*EndpointAdvertiseRequest)(nil), "nseconnect.EndpointAdvertiseRequest")
 	proto.RegisterType((*EndpointAdvertiseReply)(nil), "nseconnect.EndpointAdvertiseReply")
 	proto.RegisterType((*EndpointRemoveRequest)(nil), "nseconnect.EndpointRemoveRequest")
 	proto.RegisterType((*EndpointRemoveReply)(nil), "nseconnect.EndpointRemoveReply")
+}
+
+func init() { proto.RegisterFile("nseconnect.proto", fileDescriptor_7e33aba36f437ad2) }
+
+var fileDescriptor_7e33aba36f437ad2 = []byte{
+	// 553 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xd1, 0x8a, 0xd3, 0x40,
+	0x14, 0x25, 0xad, 0xba, 0xdb, 0xab, 0xb4, 0x75, 0x5c, 0x4b, 0x88, 0xc8, 0xd6, 0x20, 0xec, 0x3e,
+	0xb5, 0x52, 0x45, 0x64, 0x5f, 0x96, 0x45, 0xaa, 0x28, 0xba, 0x42, 0xf4, 0xc5, 0x07, 0x09, 0xd9,
+	0xc9, 0xb5, 0x1d, 0x9b, 0x99, 0x89, 0x99, 0x69, 0x35, 0xe0, 0x93, 0xe0, 0x3f, 0xf8, 0x17, 0x7e,
+	0x87, 0x7f, 0x25, 0x49, 0x26, 0xd9, 0x56, 0x9a, 0x6d, 0x7d, 0x71, 0x9f, 0x92, 0x39, 0xf7, 0xce,
+	0x39, 0xe7, 0x9e, 0x99, 0x04, 0xba, 0x42, 0x21, 0x95, 0x42, 0x20, 0xd5, 0x83, 0x38, 0x91, 0x5a,
+	0x12, 0x38, 0x47, 0x9c, 0xe7, 0x13, 0xa6, 0xa7, 0xf3, 0xb3, 0x01, 0x95, 0x7c, 0x18, 0xb1, 0x49,
+	0xa0, 0xe5, 0x50, 0xa0, 0xfe, 0x22, 0x93, 0x99, 0xc2, 0x64, 0xc1, 0x28, 0x72, 0x54, 0xd3, 0x61,
+	0x3c, 0x9b, 0x0c, 0x85, 0xe2, 0xc3, 0x20, 0x66, 0x2a, 0xab, 0xe7, 0xa0, 0x79, 0x16, 0xa4, 0xce,
+	0xf8, 0xdf, 0x89, 0xa8, 0xe4, 0x5c, 0x0a, 0xf3, 0x28, 0x68, 0xdc, 0x9f, 0x0d, 0x68, 0x3f, 0x2d,
+	0xbc, 0x79, 0xf8, 0x79, 0x8e, 0x4a, 0x93, 0xbb, 0x00, 0x49, 0xf1, 0xea, 0xb3, 0xd0, 0xb6, 0xfa,
+	0xd6, 0x61, 0xcb, 0x6b, 0x19, 0xe4, 0x45, 0x48, 0x1e, 0xc0, 0x9e, 0x11, 0xf2, 0x8d, 0x92, 0x2f,
+	0x02, 0x8e, 0x76, 0x23, 0x6f, 0x24, 0xa6, 0xf6, 0xb6, 0x28, 0x9d, 0x06, 0x1c, 0xc9, 0x09, 0xec,
+	0x50, 0x29, 0x34, 0x7e, 0xd5, 0x76, 0xb3, 0xdf, 0x3c, 0xbc, 0x3e, 0x3a, 0x18, 0x2c, 0x65, 0xb4,
+	0xaa, 0x9e, 0x2d, 0xb3, 0xce, 0xb1, 0xd0, 0x49, 0xea, 0x95, 0xfb, 0xc8, 0x63, 0x00, 0x8e, 0x74,
+	0x1a, 0x08, 0xa6, 0xb8, 0xb2, 0xaf, 0xe4, 0x2c, 0xbd, 0x81, 0x99, 0xe4, 0x95, 0xa4, 0x41, 0xf4,
+	0xba, 0x2c, 0x7b, 0x4b, 0x9d, 0xce, 0x11, 0xdc, 0x58, 0x26, 0x24, 0x5d, 0x68, 0xce, 0x30, 0x35,
+	0x43, 0x65, 0xaf, 0x64, 0x0f, 0xae, 0x2e, 0x82, 0x68, 0x5e, 0xfa, 0x2f, 0x16, 0x47, 0x8d, 0x27,
+	0x96, 0x4b, 0xf3, 0xbd, 0x85, 0xb7, 0x38, 0x4a, 0x37, 0xe5, 0xf2, 0x08, 0x5a, 0x95, 0x70, 0x4e,
+	0x56, 0xef, 0xf0, 0xbc, 0xd1, 0xfd, 0x65, 0xc1, 0x9d, 0xb1, 0x08, 0x63, 0xc9, 0x84, 0x36, 0x6a,
+	0x4c, 0x8a, 0xaa, 0x75, 0x93, 0xe8, 0x31, 0x74, 0xa2, 0x8c, 0xdb, 0xdf, 0x56, 0xba, 0x1d, 0xad,
+	0xac, 0x6b, 0x4f, 0xb3, 0x59, 0x77, 0x9a, 0xee, 0x27, 0xe8, 0x5f, 0x60, 0x78, 0xab, 0xa8, 0x0e,
+	0xa0, 0x53, 0xf9, 0xf5, 0x3f, 0xca, 0xb9, 0x08, 0x73, 0xd7, 0xbb, 0x5e, 0xbb, 0x82, 0x9f, 0x65,
+	0xa8, 0xfb, 0xc3, 0x02, 0xbb, 0x14, 0x3b, 0x09, 0x17, 0x98, 0x68, 0xa6, 0x70, 0xcb, 0x7b, 0xfa,
+	0x12, 0xba, 0xe5, 0x64, 0x68, 0x28, 0x4c, 0x36, 0xfb, 0x83, 0xf2, 0x53, 0x3a, 0x5d, 0x19, 0xaf,
+	0x54, 0xf2, 0x3a, 0x66, 0x63, 0x09, 0xb8, 0xdf, 0xa0, 0xb7, 0xc6, 0xc6, 0x16, 0x93, 0x3a, 0xb0,
+	0x1b, 0x50, 0x8a, 0xb1, 0xc6, 0x72, 0xc4, 0x6a, 0x9d, 0xa5, 0x10, 0x84, 0x9c, 0x29, 0xc5, 0xa4,
+	0xf0, 0x31, 0x49, 0x64, 0x62, 0x52, 0x6f, 0x57, 0xf0, 0x38, 0x43, 0xdd, 0xef, 0x16, 0xdc, 0xae,
+	0xbc, 0x21, 0x97, 0x8b, 0xcb, 0x88, 0x20, 0x85, 0x5b, 0x7f, 0x7b, 0xf8, 0x4f, 0xf3, 0x8f, 0xde,
+	0x43, 0x6f, 0xbd, 0x4b, 0x72, 0x0c, 0x3b, 0xe6, 0x0e, 0x12, 0xa7, 0xfe, 0x9f, 0xe2, 0xd8, 0x6b,
+	0x6b, 0x71, 0x94, 0x8e, 0x7e, 0x5b, 0x40, 0x4a, 0xb6, 0x37, 0x31, 0x26, 0x41, 0x76, 0x99, 0x15,
+	0xf9, 0x00, 0x37, 0xab, 0x73, 0xae, 0xc4, 0xee, 0x2f, 0xb3, 0xd4, 0xdd, 0x4a, 0xc7, 0xdd, 0xd0,
+	0x95, 0x85, 0xf6, 0x0e, 0xda, 0x45, 0x86, 0x15, 0xf7, 0xbd, 0x75, 0xbb, 0x56, 0xce, 0xda, 0xd9,
+	0xbf, 0xa8, 0x25, 0x8e, 0xd2, 0xb3, 0x6b, 0xf9, 0x1f, 0xfd, 0xe1, 0x9f, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0xc0, 0x7b, 0x8c, 0x5a, 0x81, 0x06, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -464,97 +511,64 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// EndpointConnectionClient is the client API for EndpointConnection service.
+// NetworkServiceEndpointClient is the client API for NetworkServiceEndpoint service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type EndpointConnectionClient interface {
-	RequestEndpointConnection(ctx context.Context, in *EndpointConnectionRequest, opts ...grpc.CallOption) (*EndpointConnectionReply, error)
-	SendEndpointConnectionMechanism(ctx context.Context, in *EndpointConnectionMechanism, opts ...grpc.CallOption) (*EndpointConnectionMechanismReply, error)
+type NetworkServiceEndpointClient interface {
+	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectReply, error)
 }
 
-type endpointConnectionClient struct {
+type networkServiceEndpointClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewEndpointConnectionClient(cc *grpc.ClientConn) EndpointConnectionClient {
-	return &endpointConnectionClient{cc}
+func NewNetworkServiceEndpointClient(cc *grpc.ClientConn) NetworkServiceEndpointClient {
+	return &networkServiceEndpointClient{cc}
 }
 
-func (c *endpointConnectionClient) RequestEndpointConnection(ctx context.Context, in *EndpointConnectionRequest, opts ...grpc.CallOption) (*EndpointConnectionReply, error) {
-	out := new(EndpointConnectionReply)
-	err := c.cc.Invoke(ctx, "/nseconnect.EndpointConnection/RequestEndpointConnection", in, out, opts...)
+func (c *networkServiceEndpointClient) Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectReply, error) {
+	out := new(ConnectReply)
+	err := c.cc.Invoke(ctx, "/nseconnect.NetworkServiceEndpoint/Connect", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *endpointConnectionClient) SendEndpointConnectionMechanism(ctx context.Context, in *EndpointConnectionMechanism, opts ...grpc.CallOption) (*EndpointConnectionMechanismReply, error) {
-	out := new(EndpointConnectionMechanismReply)
-	err := c.cc.Invoke(ctx, "/nseconnect.EndpointConnection/SendEndpointConnectionMechanism", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+// NetworkServiceEndpointServer is the server API for NetworkServiceEndpoint service.
+type NetworkServiceEndpointServer interface {
+	Connect(context.Context, *ConnectRequest) (*ConnectReply, error)
 }
 
-// EndpointConnectionServer is the server API for EndpointConnection service.
-type EndpointConnectionServer interface {
-	RequestEndpointConnection(context.Context, *EndpointConnectionRequest) (*EndpointConnectionReply, error)
-	SendEndpointConnectionMechanism(context.Context, *EndpointConnectionMechanism) (*EndpointConnectionMechanismReply, error)
+func RegisterNetworkServiceEndpointServer(s *grpc.Server, srv NetworkServiceEndpointServer) {
+	s.RegisterService(&_NetworkServiceEndpoint_serviceDesc, srv)
 }
 
-func RegisterEndpointConnectionServer(s *grpc.Server, srv EndpointConnectionServer) {
-	s.RegisterService(&_EndpointConnection_serviceDesc, srv)
-}
-
-func _EndpointConnection_RequestEndpointConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EndpointConnectionRequest)
+func _NetworkServiceEndpoint_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(EndpointConnectionServer).RequestEndpointConnection(ctx, in)
+		return srv.(NetworkServiceEndpointServer).Connect(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/nseconnect.EndpointConnection/RequestEndpointConnection",
+		FullMethod: "/nseconnect.NetworkServiceEndpoint/Connect",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EndpointConnectionServer).RequestEndpointConnection(ctx, req.(*EndpointConnectionRequest))
+		return srv.(NetworkServiceEndpointServer).Connect(ctx, req.(*ConnectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EndpointConnection_SendEndpointConnectionMechanism_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EndpointConnectionMechanism)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EndpointConnectionServer).SendEndpointConnectionMechanism(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/nseconnect.EndpointConnection/SendEndpointConnectionMechanism",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EndpointConnectionServer).SendEndpointConnectionMechanism(ctx, req.(*EndpointConnectionMechanism))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _EndpointConnection_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "nseconnect.EndpointConnection",
-	HandlerType: (*EndpointConnectionServer)(nil),
+var _NetworkServiceEndpoint_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "nseconnect.NetworkServiceEndpoint",
+	HandlerType: (*NetworkServiceEndpointServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RequestEndpointConnection",
-			Handler:    _EndpointConnection_RequestEndpointConnection_Handler,
-		},
-		{
-			MethodName: "SendEndpointConnectionMechanism",
-			Handler:    _EndpointConnection_SendEndpointConnectionMechanism_Handler,
+			MethodName: "Connect",
+			Handler:    _NetworkServiceEndpoint_Connect_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -656,43 +670,4 @@ var _EndpointOperations_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "nseconnect.proto",
-}
-
-func init() { proto.RegisterFile("nseconnect.proto", fileDescriptor_7e33aba36f437ad2) }
-
-var fileDescriptor_7e33aba36f437ad2 = []byte{
-	// 519 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xdd, 0x8a, 0xd3, 0x40,
-	0x14, 0x26, 0x2e, 0xc8, 0xee, 0x11, 0xda, 0x35, 0xea, 0xda, 0x8d, 0x48, 0xd7, 0xa8, 0xd4, 0x0b,
-	0x69, 0xa4, 0x3e, 0x80, 0x88, 0x54, 0x51, 0xb4, 0x42, 0xd6, 0x5b, 0x09, 0xb3, 0x93, 0x63, 0x3b,
-	0x6e, 0x66, 0x26, 0x66, 0xd2, 0xba, 0x05, 0xaf, 0x04, 0x9f, 0xc0, 0x07, 0xf1, 0x39, 0x7c, 0x22,
-	0x6f, 0x25, 0x93, 0x99, 0x71, 0xbb, 0x9b, 0xfe, 0x08, 0xe2, 0x5e, 0xa5, 0xf9, 0xce, 0x37, 0xdf,
-	0xf9, 0xbe, 0xd3, 0x93, 0x81, 0x5d, 0xa1, 0x90, 0x4a, 0x21, 0x90, 0x96, 0xfd, 0xbc, 0x90, 0xa5,
-	0xf4, 0xe1, 0x0f, 0x12, 0xbc, 0x18, 0xb3, 0x72, 0x32, 0x3d, 0xea, 0x53, 0xc9, 0xa3, 0x8c, 0x8d,
-	0x49, 0x29, 0x23, 0x81, 0xe5, 0x67, 0x59, 0x1c, 0x2b, 0x2c, 0x66, 0x8c, 0x22, 0x47, 0x35, 0x89,
-	0xf2, 0xe3, 0x71, 0x24, 0x14, 0x8f, 0x48, 0xce, 0x54, 0x55, 0xd7, 0xa0, 0x79, 0xd6, 0xa2, 0xc1,
-	0xf0, 0xef, 0x85, 0xa8, 0xe4, 0x5c, 0x0a, 0xf3, 0xa8, 0x65, 0xc2, 0x0c, 0xf6, 0x87, 0x22, 0xcd,
-	0x25, 0x13, 0xe5, 0xb3, 0xda, 0x22, 0x93, 0x22, 0xc6, 0x4f, 0x53, 0x54, 0xa5, 0x7f, 0x1b, 0xa0,
-	0xa8, 0x7f, 0x26, 0x2c, 0xed, 0x78, 0x07, 0xde, 0x83, 0x9d, 0x78, 0xc7, 0x20, 0x2f, 0x53, 0xff,
-	0x11, 0x5c, 0x37, 0x2d, 0x13, 0xd3, 0x33, 0x11, 0x84, 0x63, 0xe7, 0x92, 0x26, 0xfa, 0xa6, 0x76,
-	0x58, 0x97, 0x46, 0x84, 0x63, 0xf8, 0xdd, 0x83, 0x9b, 0x4d, 0xed, 0xf2, 0x6c, 0xfe, 0xcf, 0x9b,
-	0xf9, 0x3d, 0x68, 0x67, 0x4c, 0x4c, 0x4f, 0x34, 0x4f, 0xe5, 0x84, 0x62, 0x67, 0x4b, 0x93, 0x5b,
-	0x1a, 0x1e, 0x59, 0x34, 0xfc, 0xe1, 0xc1, 0xad, 0xf3, 0xae, 0xde, 0x20, 0x9d, 0x10, 0xc1, 0x14,
-	0x5f, 0xe7, 0xec, 0x09, 0xb4, 0x33, 0x49, 0x49, 0x96, 0x70, 0x7b, 0x42, 0x9b, 0xba, 0x32, 0xd8,
-	0xeb, 0x9b, 0x51, 0xbf, 0xae, 0xca, 0x4e, 0x2f, 0x6e, 0x65, 0x0b, 0xef, 0x4b, 0xa3, 0x6d, 0x2d,
-	0x9d, 0xe3, 0x47, 0x38, 0x58, 0x61, 0x78, 0xa3, 0x79, 0xf6, 0xa0, 0xed, 0xfc, 0x26, 0x1f, 0xe4,
-	0x54, 0xa4, 0xda, 0xf5, 0x76, 0xdc, 0x72, 0xf0, 0xf3, 0x0a, 0x0d, 0xbf, 0x79, 0xd0, 0xb1, 0xcd,
-	0x9e, 0xa6, 0x33, 0x2c, 0x4a, 0xa6, 0x70, 0xc3, 0x0d, 0x79, 0x05, 0xbb, 0x36, 0x19, 0x1a, 0x09,
-	0x33, 0x9b, 0x6e, 0xdf, 0xae, 0xf3, 0x68, 0x21, 0x9e, 0xed, 0x14, 0xb7, 0xcd, 0x41, 0x0b, 0x84,
-	0x5f, 0x60, 0xaf, 0xc1, 0xc6, 0x06, 0x49, 0x03, 0xd8, 0x26, 0x94, 0x62, 0x5e, 0xa2, 0x8d, 0xe8,
-	0xde, 0xab, 0x29, 0x90, 0x94, 0x33, 0xa5, 0x98, 0x14, 0x09, 0x16, 0x85, 0x2c, 0xec, 0x8e, 0x38,
-	0x78, 0x58, 0xa1, 0xe1, 0x57, 0x0f, 0x6e, 0x38, 0x6f, 0xc8, 0xe5, 0xec, 0x22, 0x46, 0x30, 0x87,
-	0x6b, 0x67, 0x3d, 0xfc, 0xa7, 0xfc, 0x83, 0x5f, 0x1e, 0xf8, 0xe7, 0x57, 0xce, 0x1f, 0xc3, 0xbe,
-	0x99, 0x43, 0x43, 0xf1, 0x7e, 0xff, 0xd4, 0x55, 0xb8, 0xf4, 0x96, 0x09, 0xee, 0xae, 0xa3, 0x55,
-	0x19, 0x4f, 0xa0, 0x7b, 0x88, 0x22, 0x5d, 0xf5, 0x99, 0xf6, 0x56, 0xeb, 0x38, 0x62, 0xf0, 0x70,
-	0x43, 0xa2, 0xee, 0x3c, 0xf8, 0x79, 0x2a, 0xf9, 0xdb, 0x1c, 0x0b, 0x52, 0x71, 0x94, 0xff, 0x1e,
-	0xae, 0xba, 0x35, 0xb4, 0x65, 0xff, 0x5e, 0x93, 0xf2, 0xd9, 0x8f, 0x26, 0x08, 0xd7, 0xb0, 0xaa,
-	0xbc, 0xef, 0xa0, 0x55, 0xff, 0xc5, 0x4e, 0xfb, 0x4e, 0xd3, 0xa9, 0x85, 0x55, 0x0c, 0xba, 0xab,
-	0x28, 0x79, 0x36, 0x3f, 0xba, 0xac, 0x2f, 0xfd, 0xc7, 0xbf, 0x03, 0x00, 0x00, 0xff, 0xff, 0xce,
-	0x65, 0x5c, 0xee, 0xa4, 0x06, 0x00, 0x00,
 }

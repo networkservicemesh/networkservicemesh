@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/satori/go.uuid"
 	"net"
 	"os"
 	"path"
@@ -54,12 +55,13 @@ type nseConnection struct {
 	linuxNamespace     string
 }
 
-func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseconnect.EndpointConnectionRequest) (*nseconnect.EndpointConnectionReply, error) {
+func (n nseConnection) Connect(ctx context.Context, req *nseconnect.ConnectRequest) (*nseconnect.ConnectReply, error) {
+	v4uuid := uuid.NewV4()
+	uuidString := v4uuid.String()
 
-	return &nseconnect.EndpointConnectionReply{
-		RequestId:          n.podUID,
-		NetworkServiceName: n.networkServiceName,
-		LinuxNamespace:     n.linuxNamespace,
+	return &nseconnect.ConnectReply{
+		RequestId: uuidString,
+		Mechanism: req.Mechanisms[0],
 	}, nil
 }
 
@@ -151,7 +153,7 @@ func main() {
 		linuxNamespace:     linuxNS,
 	}
 
-	nseconnect.RegisterEndpointConnectionServer(grpcServer, nseConn)
+	nseconnect.RegisterNetworkServiceEndpointServer(grpcServer, nseConn)
 	go func() {
 		wg.Add(1)
 		if err := grpcServer.Serve(connectionServer); err != nil {

@@ -69,11 +69,11 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 		return connectionReplyAborted(err.Error())
 	}
 	defer nseConn.Close()
-	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
+	nseClient := nseconnect.NewNetworkServiceEndpointClient(nseConn)
 
 	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer nseCancel()
-	nseRepl, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
+	nseRepl, err := nseClient.Connect(nseCtx, &nseconnect.ConnectRequest{
 		RequestId: cr.RequestId,
 	})
 	if err != nil {
@@ -110,7 +110,8 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 			Local: &common.LocalMechanism{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
-					nsmutils.NSMkeyNamespace:        nseRepl.LinuxNamespace,
+					// TODO work out linux namespace source
+					//nsmutils.NSMkeyNamespace:        nseRepl.LinuxNamespace,
 					nsmutils.NSMkeyIPv4:             "2.2.2.3",
 					nsmutils.NSMkeyIPv4PrefixLength: "24"},
 			},
