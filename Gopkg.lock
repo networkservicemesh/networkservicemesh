@@ -954,6 +954,7 @@
     "github.com/lunixbochs/struc",
     "github.com/onrik/logrus/filename",
     "github.com/onsi/gomega",
+    "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",
