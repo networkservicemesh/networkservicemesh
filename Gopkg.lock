@@ -658,7 +658,7 @@
   version = "v2.2.1"
 
 [[projects]]
-  digest = "1:5a6800974eb644ef203fef871e6ac74448e93f3c81a2ec1e10f4c3b17f37b99c"
+  digest = "1:26a67eb988225c6a0600c1af0b35e795ac4d23a9c40a7aa178fa2adc0670f1f7"
   name = "k8s.io/api"
   packages = [
     "admission/v1beta1",
@@ -695,8 +695,8 @@
     "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "357ec6384fa7e10d6ea160d2299a98ddfdc3ab3c"
-  version = "kubernetes-1.12.1"
+  revision = "d1dc89ebaebe945edbeff52a79f50c791a59ff87"
+  version = "kubernetes-1.12.2"
 
 [[projects]]
   digest = "1:d9e9a6062217111c1b7c548a47bd67b2b518c8da05d124dbca74e246565c76a6"
