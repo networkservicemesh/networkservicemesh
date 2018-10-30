@@ -13,12 +13,12 @@ message ClientConnectionRequest {
 message ClientConnectionReply {
     bool accepted = 1;
     string admission_error = 2;
-    string socket_location = 3;
+    string workspace = 3;
 }
 
 // DeleteConnectionRequest is sent by a nsm-k8s to delete connection with a client.
 message DeleteConnectionRequest {
-    string socket_location = 1;
+    string workspace = 1;
 }
 
 message DeleteConnectionReply {
