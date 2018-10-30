@@ -13,7 +13,7 @@ type operation interface {
 func rollback(tx []operation, pos int, apiCh govppapi.Channel) error {
 	logrus.Infof("Rolling back operations...")
 	var err error
-	for i := pos - 1; pos >= 0; pos-- {
+	for i := pos - 1; i >= 0; i-- {
 		err = tx[i].rollback().apply(apiCh)
 		if err != nil {
 			logrus.Errorf("error while rolling back, (I will continue rollback operations): %v", err)
