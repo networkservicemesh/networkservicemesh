@@ -60,6 +60,38 @@ vagrant up
 
 is run for the first time, or after running ```vagrant destroy```
 
+# Deploying Skydive
+
+If you want to deploy skydive to monitor the networking in kubernetes, use the following commands:
+
+```bash
+docker pull skydive/skydive
+docker save -o scripts/vagrant/images/skydive.tar skydive/skydive
+vagrant ssh -c 'sh /vagrant/scripts/load_images.sh'
+kubectl create -f scripts/vagrant/skydive.yaml
+```
+
+The skydive analyzer is accessable thanks to a kubernetes service of type 'NodePort'
+
+You need to identify the skydive API port to use:
+
+```bash
+$ kubectl get svc skydive-analyzer
+NAME               TYPE       CLUSTER-IP       EXTERNAL-IP   PORT(S)                                                         AGE
+skydive-analyzer   NodePort   10.110.210.212   <none>        8082:30039/TCP,8082:30039/UDP,12379:31614/TCP,12380:31014/TCP   3m25s
+```
+
+The skydive API is listening to TCP/8082, which, in this example, is bound to TCP/30039
+
+Now identify the IP to use:
+
+```bash
+$ kubectl cluster-info
+Kubernetes master is running at https://172.28.128.23:6443
+```
+
+In this example, the skydive WebUI will be accessable at http://172.28.128.23:30039
+
 # Running integration tests
 
 You can run integration tests on your laptop (ie, outside of the Vagrant VM) by typing:
