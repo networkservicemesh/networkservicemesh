@@ -16,11 +16,26 @@ echo "Calling ${CODEGEN_PKG}/generate-groups.sh"
   --output-base "${GOPATH}/src/" \
   --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt"
 
+echo "Calling ${CODEGEN_PKG}/generate-groups.sh"
+"${CODEGEN_PKG}"/generate-groups.sh all \
+  github.com/ligato/networkservicemesh/k8s/pkg/networkservice github.com/ligato/networkservicemesh/k8s/pkg/apis \
+  networkservice:v1 \
+  --output-base "${GOPATH}/src/" \
+  --go-header-file "${SCRIPT_ROOT}/conf/boilerplate2.txt"
+
 echo "Generating other deepcopy funcs"
 "${GOPATH}"/bin/deepcopy-gen \
   --input-dirs ./pkg/nsm/apis/netmesh --input-dirs ./pkg/nsm/apis/common \
   --go-header-file "${SCRIPT_ROOT}/conf/boilerplate.txt" \
   --bounding-dirs ./pkg/nsm/apis/netmesh --bounding-dirs ./pkg/nsm/apis/common \
+  -O zz_generated.deepcopy \
+  -o "${GOPATH}/src"
+
+echo "Generating NetworkService CRD deepcopy funcs"
+"${GOPATH}"/bin/deepcopy-gen \
+  --input-dirs ./k8s/pkg/apis/networkservice/v1 --input-dirs ./k8s/pkg/apis/networkservice/v1 \
+  --go-header-file "${SCRIPT_ROOT}/conf/boilerplate2.txt" \
+  --bounding-dirs ./k8s/pkg/apis/networkservice/v1 --bounding-dirs ./k8s/pkg/apis/networkservice/v1 \
   -O zz_generated.deepcopy \
   -o "${GOPATH}/src"
 
