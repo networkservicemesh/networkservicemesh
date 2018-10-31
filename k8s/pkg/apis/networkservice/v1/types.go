@@ -32,20 +32,41 @@ type NetworkServiceEndpoint struct {
 	meta_v1.TypeMeta   `json:",inline"`
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NetworkServiceEndpointSpec `json:"spec"`
+	Spec   NetworkServiceEndpointSpec   `json:"spec"`
 	Status NetworkServiceEndpointStatus `json:"status"`
 }
 
 type NetworkServiceEndpointSpec struct {
 	NetworkServiceName string `json:"networkservicename"`
-	NsmURL string `json:"nsmurl"`
+	NsmName            string `json:"nsmname"`
 }
 
-type NetworkServiceEndpointStatus struct{}
+type NetworkServiceEndpointStatus struct {
+	State string `json:"state"`
+}
 
 type NetworkServiceEndpointList struct {
 	meta_v1.TypeMeta   `json:",inline"`
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
 
 	Items []NetworkServiceEndpoint `json:"items"`
+}
+
+type NetworkServiceManager struct {
+	meta_v1.TypeMeta   `json:",inline"`
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   NetworkServiceManagerSpec   `json:"spec"`
+	Status NetworkServiceManagerStatus `json:"status"`
+}
+
+type NetworkServiceManagerList struct {
+	Items []NetworkServiceManager `json:"items"`
+}
+
+type NetworkServiceManagerSpec struct {
+}
+type NetworkServiceManagerStatus struct {
+	LastSeen uint64 `json:"lastseen"`
+	URL      string `json:"url"`
 }
