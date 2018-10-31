@@ -11,11 +11,14 @@ type NetworkService struct {
 	meta_v1.TypeMeta   `json:",inline"`
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec NetworkServiceSpec `json:"spec"`
+	Spec   NetworkServiceSpec   `json:"spec"`
+	Status NetworkServiceStatus `json:"status"`
 }
 
 type NetworkServiceSpec struct {
-	Name string   `json:"name"`
+	Payload string `json:"payload"`
+}
+type NetworkServiceStatus struct {
 	URIs []string `json:"uris"`
 }
 
