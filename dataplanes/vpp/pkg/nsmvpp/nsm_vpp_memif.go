@@ -4,6 +4,7 @@ import (
 	"fmt"
 	govppapi "git.fd.io/govpp.git/api"
 	"github.com/docker/docker/pkg/mount"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/memif"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
@@ -134,6 +135,113 @@ func (op *deleteSymlink) rollback() operation {
 	}
 }
 
+type createMemifSocket struct {
+	socketFilename string
+	socketId       uint32
+}
+
+func (op *createMemifSocket) apply(apiCh govppapi.Channel) error {
+	socketCreate := &memif.MemifSocketFilenameAddDel{
+		IsAdd:          1,
+		SocketID:       op.socketId,
+		SocketFilename: []byte(op.socketFilename),
+	}
+	socketCreateReply := &memif.MemifSocketFilenameAddDelReply{}
+	if err := apiCh.SendRequest(socketCreate).ReceiveReply(socketCreateReply); err != nil {
+		return err
+	}
+	logrus.Infof("Memif socket %s successfully created", op.socketFilename)
+	return nil
+}
+
+func (op *createMemifSocket) rollback() operation {
+	return &deleteMemifSocket{
+		socketFilename: op.socketFilename,
+		socketId:       op.socketId,
+	}
+}
+
+type deleteMemifSocket struct {
+	socketFilename string
+	socketId       uint32
+}
+
+func (op *deleteMemifSocket) apply(apiCh govppapi.Channel) error {
+	socketDelete := &memif.MemifSocketFilenameAddDel{
+		IsAdd:          0,
+		SocketID:       op.socketId,
+		SocketFilename: []byte(op.socketFilename),
+	}
+	socketDeleteReply := &memif.MemifSocketFilenameAddDelReply{}
+	if err := apiCh.SendRequest(socketDelete).ReceiveReply(socketDeleteReply); err != nil {
+		return err
+	}
+	logrus.Infof("Memif socket %s successfully deleted", op.socketFilename)
+	return nil
+}
+
+func (op *deleteMemifSocket) rollback() operation {
+	return &createMemifSocket{
+		socketFilename: op.socketFilename,
+		socketId:       op.socketId,
+	}
+}
+
+type createMemifInterface struct {
+	role     uint8
+	socketId uint32
+	intf     *vppInterface
+}
+
+func (op *createMemifInterface) apply(apiCh govppapi.Channel) error {
+	interfaceCreate := &memif.MemifCreate{
+		Role:     op.role,
+		SocketID: op.socketId,
+		ID:       29,
+	}
+	interfaceCreateReply := &memif.MemifCreateReply{}
+	if err := apiCh.SendRequest(interfaceCreate).ReceiveReply(interfaceCreateReply); err != nil {
+		return err
+	}
+	op.intf.id = interfaceCreateReply.SwIfIndex
+	logrus.Infof("Interface successfully created: swIfIndex=%v", interfaceCreateReply.SwIfIndex)
+	return nil
+}
+
+func (op *createMemifInterface) rollback() operation {
+	return &deleteMemifInterface{
+		role:     op.role,
+		socketId: op.socketId,
+		intf:     op.intf,
+	}
+}
+
+type deleteMemifInterface struct {
+	role     uint8
+	socketId uint32
+	intf     *vppInterface
+}
+
+func (op *deleteMemifInterface) apply(apiCh govppapi.Channel) error {
+	interfaceDelete := &memif.MemifDelete{
+		SwIfIndex: op.intf.id,
+	}
+	interfaceDeleteReply := &memif.MemifDeleteReply{}
+	if err := apiCh.SendRequest(interfaceDelete).ReceiveReply(interfaceDeleteReply); err != nil {
+		return err
+	}
+	logrus.Infof("Interface successfully deleted: swIfIndex=%v", op.intf.id)
+	return nil
+}
+
+func (op *deleteMemifInterface) rollback() operation {
+	return &createMemifInterface{
+		role:     op.role,
+		socketId: op.socketId,
+		intf:     op.intf,
+	}
+}
+
 func memifDirectConnect(src, dst map[string]string) ([]operation, error) {
 	logrus.Info("Create memif-memif local connection requested")
 
@@ -165,6 +273,74 @@ func memifDirectConnect(src, dst map[string]string) ([]operation, error) {
 	}
 
 	return operations, nil
+}
+
+func memifInterfaceCreate(c *createLocalInterface, apiCh govppapi.Channel) error {
+	logrus.Infof("Creating memif interface with parameters: %v...", c.localMechanism.Parameters)
+
+	if err := validateMemif(c.localMechanism.Parameters); err != nil {
+		return err
+	}
+
+	var role uint8 = 0
+	if getRole(c.localMechanism.Parameters) == nsmutils.NSMSlave {
+		role = 1
+	}
+	socketFilename := path.Join(buildMemifDirPath(c.localMechanism.Parameters),
+		c.localMechanism.Parameters[nsmutils.NSMSocketFile])
+
+	operations := []operation{
+		&createMemifSocket{
+			socketFilename: socketFilename,
+			socketId:       c.intf.socketId,
+		},
+		&createMemifInterface{
+			role:     role,
+			socketId: c.intf.socketId,
+			intf:     c.intf,
+		},
+	}
+	c.intf.mechanism = c.localMechanism
+
+	pos, err := perform(operations, apiCh)
+
+	if err != nil {
+		rollback(operations, pos, apiCh)
+		return err
+	}
+
+	return nil
+}
+
+func memifInterfaceDelete(op *deleteLocalInterface, apiCh govppapi.Channel) error {
+	parameters := op.intf.mechanism.Parameters
+	var socketId uint32 = 13
+	var role uint8 = 0
+	if getRole(parameters) == nsmutils.NSMMaster {
+		role = 1
+	}
+	socketFilename := path.Join(buildMemifDirPath(parameters), parameters[nsmutils.NSMSocketFile])
+
+	operations := []operation{
+		&deleteMemifInterface{
+			role:     role,
+			socketId: socketId,
+			intf:     op.intf,
+		},
+		&deleteMemifSocket{
+			socketFilename: socketFilename,
+			socketId:       socketId,
+		},
+	}
+
+	pos, err := perform(operations, apiCh)
+
+	if err != nil {
+		rollback(operations, pos, apiCh)
+		return err
+	}
+
+	return nil
 }
 
 func validateMemif(parameters map[string]string) error {
@@ -270,7 +446,11 @@ func getRole(parameters map[string]string) string {
 }
 
 func buildSocketDirPath(p map[string]string, name string) string {
-	return path.Join(BaseDir, p[nsmutils.NSMPerPodDirectory], MemifDirectory, name)
+	return path.Join(buildMemifDirPath(p), name)
+}
+
+func buildMemifDirPath(p map[string]string) string {
+	return path.Join(BaseDir, p[nsmutils.NSMPerPodDirectory], MemifDirectory)
 }
 
 func masterSlave(src, dst map[string]string) (map[string]string, map[string]string) {
