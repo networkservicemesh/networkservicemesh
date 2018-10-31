@@ -18,9 +18,7 @@ type NetworkService struct {
 type NetworkServiceSpec struct {
 	Payload string `json:"payload"`
 }
-type NetworkServiceStatus struct {
-	URIs []string `json:"uris"`
-}
+type NetworkServiceStatus struct{}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NetworkServiceList struct {
@@ -28,4 +26,26 @@ type NetworkServiceList struct {
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
 
 	Items []NetworkService `json:"items"`
+}
+
+type NetworkServiceEndpoint struct {
+	meta_v1.TypeMeta   `json:",inline"`
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   NetworkServiceEndpointSpec `json:"spec"`
+	Status NetworkServiceEndpointStatus `json:"status"`
+}
+
+type NetworkServiceEndpointSpec struct {
+	NetworkServiceName string `json:"networkservicename"`
+	NsmURI string `json:"networkserviceuri"`
+}
+
+type NetworkServiceEndpointStatus struct{}
+
+type NetworkServiceEndpointList struct {
+	meta_v1.TypeMeta   `json:",inline"`
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+
+	Items []NetworkServiceEndpoint `json:"items"`
 }
