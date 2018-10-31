@@ -38,7 +38,7 @@ type NetworkServiceEndpoint struct {
 
 type NetworkServiceEndpointSpec struct {
 	NetworkServiceName string `json:"networkservicename"`
-	NsmURI string `json:"networkserviceuri"`
+	NsmURL string `json:"networkserviceurl"`
 }
 
 type NetworkServiceEndpointStatus struct{}
