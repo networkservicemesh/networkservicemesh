@@ -10,18 +10,21 @@ import (
 
 type vppInterface struct {
 	mechanism *common.LocalMechanism // we want to save parameters here in order to recreate interface
+	socketId  uint32
 	id        uint32
 }
 
 var (
-	connections map[int][]operation = make(map[int][]operation)
-	lastId      int                 = 0
+	connections map[uint32][]operation = make(map[uint32][]operation)
+	lastId      uint32                 = 1
 )
 
 // CreateLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func CreateLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism) (string, error) {
-	srcIntf := &vppInterface{}
-	dstIntf := &vppInterface{}
+	connectionId := lastId
+	srcIntf := &vppInterface{socketId: connectionId}
+	dstIntf := &vppInterface{socketId: connectionId + 1}
+	lastId += 2 // each connection use two ids for sockets
 
 	tx := []operation{
 		&createLocalInterface{
@@ -65,14 +68,14 @@ func CreateLocalConnect(apiCh govppapi.Channel, src, dst *common.LocalMechanism)
 		return "", err
 	}
 
-	lastId++
-	connections[lastId] = tx // save transaction log to perform rollback on delete connection
-	return fmt.Sprintf("%d", lastId), nil
+	connections[connectionId] = tx // save transaction log to perform rollback on delete connection
+	return fmt.Sprintf("%d", connectionId), nil
 }
 
 // DeleteLocalConnect
 func DeleteLocalConnect(apiCh govppapi.Channel, connID string) error {
-	id, _ := strconv.Atoi(connID)
+	id64, _ := strconv.ParseUint(connID, 10, 32)
+	id := uint32(id64)
 	tx := connections[id]
 	return rollback(tx, len(tx), apiCh)
 }

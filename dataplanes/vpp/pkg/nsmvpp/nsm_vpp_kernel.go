@@ -39,6 +39,8 @@ func (c *createLocalInterface) apply(apiCh govppapi.Channel) error {
 	case common.LocalMechanismType_DEFAULT_INTERFACE,
 		common.LocalMechanismType_KERNEL_INTERFACE:
 		return createTapInterface(c, apiCh)
+	case common.LocalMechanismType_MEM_INTERFACE:
+		return memifInterfaceCreate(c, apiCh)
 	default:
 		return fmt.Errorf("create local interface for mechanism %d not implemented.", c.localMechanism.Type)
 	}
@@ -140,6 +142,8 @@ func (op *deleteLocalInterface) apply(apiCh govppapi.Channel) error {
 	case common.LocalMechanismType_DEFAULT_INTERFACE,
 		common.LocalMechanismType_KERNEL_INTERFACE:
 		return deleteTapInterface(op, apiCh)
+	case common.LocalMechanismType_MEM_INTERFACE:
+		return memifInterfaceDelete(op, apiCh)
 	default:
 		return fmt.Errorf("delete local interface for mechanism %d not implemented.", op.intf.mechanism.Type)
 	}
