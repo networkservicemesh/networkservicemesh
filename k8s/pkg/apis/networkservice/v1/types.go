@@ -18,6 +18,7 @@ type NetworkService struct {
 type NetworkServiceSpec struct {
 	Payload string `json:"payload"`
 }
+
 type NetworkServiceStatus struct{}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -66,6 +67,7 @@ type NetworkServiceManagerList struct {
 
 type NetworkServiceManagerSpec struct {
 }
+
 type NetworkServiceManagerStatus struct {
 	LastSeen uint64 `json:"lastseen"`
 	URL      string `json:"url"`
