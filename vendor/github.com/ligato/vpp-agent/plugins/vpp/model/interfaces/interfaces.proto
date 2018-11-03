@@ -51,6 +51,7 @@ message Interfaces {
         message RxPlacementSettings {
             uint32 queue = 1;
             uint32 worker = 2;
+            bool is_main = 3;
         }
         RxPlacementSettings rx_placement_settings = 13;
 

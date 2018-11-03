@@ -130,7 +130,7 @@
   version = "0.16.0"
 
 [[projects]]
-  digest = "1:9886f20fc7188af1fb9059c6b6b29da154f87a05986a84ab297a5b6a779f230f"
+  digest = "1:db238461f652ddb7c7057bc6fc503f6003a29987b1485ecbb96d92287db65bc9"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -139,8 +139,8 @@
     "sortkeys",
   ]
   pruneopts = "UT"
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
+  version = "v1.1.1"
 
 [[projects]]
   branch = "master"
@@ -264,7 +264,7 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:0311454ea22893302627edc0352634398feb7e9fd18e42743680db02743b5bb4"
+  digest = "1:0157cec69443d79a1d7680606e1c00d30fabf0389784791c272bf5c139ce7d31"
   name = "github.com/ligato/cn-infra"
   packages = [
     "core",
@@ -275,12 +275,12 @@
     "logging/logrus",
     "utils/safeclose",
   ]
-  pruneopts = "UT"
+  pruneopts = "T"
   revision = "22c14be88d97b2b8c38cce0a7141ea18bd042143"
   version = "v1.4.1"
 
 [[projects]]
-  digest = "1:4429fea74b50a1069fc4ab99e795c63d6b17c4d9a0369e18a8831b7c98c72bcf"
+  digest = "1:d17baf386c1d74eb08a4561d9d28020640dd1102ed0dcc9f09b441a10ff8aead"
   name = "github.com/ligato/vpp-agent"
   packages = [
     "plugins/linux/model/interfaces",
@@ -296,8 +296,7 @@
     "plugins/vpp/model/stn",
   ]
   pruneopts = "UT"
-  revision = "1d8fb8efaed02c622054e2a13648b736e7225950"
-  version = "v1.6"
+  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
 
 [[projects]]
   digest = "1:40bf4b24f9127737b22d3b86ff0bef3c3e9d87604d6260d9f9b9125e7995ff49"

@@ -44,14 +44,25 @@ required = [
   # override set due to CaseSensitive option not being available in latest
   # stable version (1.1.3)
 
-[[constraint]]
+[[override]]
   name = "github.com/ligato/cn-infra"
   version = "1.4.1"
 
+[[constraint]]
+  name = "github.com/ligato/vpp-agent"
+  #version = "v1.7" Version is set to match vpp-agent in use
+  # revision is set to match vpp-agent 1.7
+  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
+
 [[override]]
-  name = "github.com/prometheus/procfs"
-  # revision is set because it is an in-development library with an evolving API
-  revision = "7d6f385de8bea29190f15ba9931442a0eaef9af7"
+  name = "github.com/gogo/protobuf"
+  # Constraint to match the protobuf needed by vpp-agent
+  version = "1.1.1"
+
+#[[override]]
+#  name = "github.com/prometheus/procfs"
+# revision is set because it is an in-development library with an evolving API
+#  revision = "7d6f385de8bea29190f15ba9931442a0eaef9af7"
 
 [[override]]
   name = "github.com/vishvananda/netns"
@@ -125,6 +136,10 @@ required = [
   [[prune.project]]
     name = "github.com/go-errors/errors"
     non-go = true
+
+  [[prune.project]]
+    name = "github.com/ligato/cn-infra"
+    unused-packages = false
 
 [[constraint]]
   name = "github.com/go-errors/errors"
