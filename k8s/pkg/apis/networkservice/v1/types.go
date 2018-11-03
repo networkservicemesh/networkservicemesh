@@ -4,6 +4,15 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type State string
+
+const (
+	OFFLINE = "OFFLINE"
+	RUNNING = "RUNNING"
+	PAUSED  = "PAUSED"
+	ERROR   = "ERROR"
+)
+
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -46,7 +55,7 @@ type NetworkServiceEndpointSpec struct {
 
 type NetworkServiceEndpointStatus struct {
 	LastSeen meta_v1.Time `json:"lastseen"`
-	State    string       `json:"state"`
+	State    State        `json:"state"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -81,4 +90,5 @@ type NetworkServiceManagerSpec struct {
 type NetworkServiceManagerStatus struct {
 	LastSeen meta_v1.Time `json:"lastseen"`
 	URL      string       `json:"url"`
+	State    State        `json:"state"`
 }
