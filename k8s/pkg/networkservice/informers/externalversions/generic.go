@@ -56,6 +56,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1().NetworkServices().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("networkserviceendpoints"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1().NetworkServiceEndpoints().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("networkservicemanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1().NetworkServiceManagers().Informer()}, nil
 
 	}
 

@@ -28,6 +28,7 @@ type NetworkservicemeshV1Interface interface {
 	RESTClient() rest.Interface
 	NetworkServicesGetter
 	NetworkServiceEndpointsGetter
+	NetworkServiceManagersGetter
 }
 
 // NetworkservicemeshV1Client is used to interact with features provided by the networkservicemesh.io group.
@@ -41,6 +42,10 @@ func (c *NetworkservicemeshV1Client) NetworkServices(namespace string) NetworkSe
 
 func (c *NetworkservicemeshV1Client) NetworkServiceEndpoints(namespace string) NetworkServiceEndpointInterface {
 	return newNetworkServiceEndpoints(c, namespace)
+}
+
+func (c *NetworkservicemeshV1Client) NetworkServiceManagers(namespace string) NetworkServiceManagerInterface {
+	return newNetworkServiceManagers(c, namespace)
 }
 
 // NewForConfig creates a new NetworkservicemeshV1Client for the given config.

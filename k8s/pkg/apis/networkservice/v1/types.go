@@ -45,7 +45,8 @@ type NetworkServiceEndpointSpec struct {
 }
 
 type NetworkServiceEndpointStatus struct {
-	State string `json:"state"`
+	LastSeen meta_v1.Time `json:"lastseen"`
+	State    string       `json:"state"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -56,6 +57,8 @@ type NetworkServiceEndpointList struct {
 	Items []NetworkServiceEndpoint `json:"items"`
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NetworkServiceManager struct {
 	meta_v1.TypeMeta   `json:",inline"`
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
@@ -64,7 +67,11 @@ type NetworkServiceManager struct {
 	Status NetworkServiceManagerStatus `json:"status"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NetworkServiceManagerList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata,omitempty"`
+
 	Items []NetworkServiceManager `json:"items"`
 }
 
@@ -72,6 +79,6 @@ type NetworkServiceManagerSpec struct {
 }
 
 type NetworkServiceManagerStatus struct {
-	LastSeen uint64 `json:"lastseen"`
-	URL      string `json:"url"`
+	LastSeen meta_v1.Time `json:"lastseen"`
+	URL      string       `json:"url"`
 }

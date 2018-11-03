@@ -20,3 +20,5 @@ package v1
 type NetworkServiceExpansion interface{}
 
 type NetworkServiceEndpointExpansion interface{}
+
+type NetworkServiceManagerExpansion interface{}

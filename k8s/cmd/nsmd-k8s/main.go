@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"reflect"
+	"time"
 )
 
 func main() {
@@ -65,6 +66,17 @@ func main() {
 		logrus.Fatalln(err)
 	}
 
+	names = v1beta1.CustomResourceDefinitionNames{
+		Plural:     "networkservicemanagers",
+		Singular:   "networkservicemanager",
+		ShortNames: []string{"nsm", "nsms"},
+		Kind:       reflect.TypeOf(v1.NetworkServiceManager{}).Name(),
+	}
+	err = CreateCRD("networkservicemanagers.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+
 	nsmClientSet, err := versioned.NewForConfig(config)
 	_, err = nsmClientSet.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
 		ObjectMeta: v12.ObjectMeta{
@@ -80,15 +92,31 @@ func main() {
 		logrus.Println(err)
 	}
 
+	_, err = nsmClientSet.Networkservicemesh().NetworkServiceManagers("default").Create(&v1.NetworkServiceManager{
+		ObjectMeta: v12.ObjectMeta{
+			Name: "network-service-manager-59b460",
+		},
+		Spec: v1.NetworkServiceManagerSpec{},
+		Status: v1.NetworkServiceManagerStatus{
+			LastSeen: v12.Time{
+				Time: time.Now(),
+			},
+			URL: "https://10.11.1.2:8080",
+		},
+	})
+
 	_, err = nsmClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
 		ObjectMeta: v12.ObjectMeta{
 			Name: "secure-intranet-connectivity-f0c2a6",
 		},
 		Spec: v1.NetworkServiceEndpointSpec{
 			NetworkServiceName: "secure-intranet-connectivity",
-			NsmName:            "https://10.238.107.65:8080",
+			NsmName:            "network-service-manager-59b460",
 		},
 		Status: v1.NetworkServiceEndpointStatus{
+			LastSeen: v12.Time{
+				Time: time.Now(),
+			},
 			State: "RUNNING",
 		},
 	})

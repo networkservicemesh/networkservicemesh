@@ -35,6 +35,10 @@ func (c *FakeNetworkservicemeshV1) NetworkServiceEndpoints(namespace string) v1.
 	return &FakeNetworkServiceEndpoints{c, namespace}
 }
 
+func (c *FakeNetworkservicemeshV1) NetworkServiceManagers(namespace string) v1.NetworkServiceManagerInterface {
+	return &FakeNetworkServiceManagers{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeNetworkservicemeshV1) RESTClient() rest.Interface {

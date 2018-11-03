@@ -27,6 +27,8 @@ type Interface interface {
 	NetworkServices() NetworkServiceInformer
 	// NetworkServiceEndpoints returns a NetworkServiceEndpointInformer.
 	NetworkServiceEndpoints() NetworkServiceEndpointInformer
+	// NetworkServiceManagers returns a NetworkServiceManagerInformer.
+	NetworkServiceManagers() NetworkServiceManagerInformer
 }
 
 type version struct {
@@ -48,4 +50,9 @@ func (v *version) NetworkServices() NetworkServiceInformer {
 // NetworkServiceEndpoints returns a NetworkServiceEndpointInformer.
 func (v *version) NetworkServiceEndpoints() NetworkServiceEndpointInformer {
 	return &networkServiceEndpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// NetworkServiceManagers returns a NetworkServiceManagerInformer.
+func (v *version) NetworkServiceManagers() NetworkServiceManagerInformer {
+	return &networkServiceManagerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
