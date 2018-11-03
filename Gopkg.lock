@@ -280,6 +280,26 @@
   version = "v1.4.1"
 
 [[projects]]
+  digest = "1:4429fea74b50a1069fc4ab99e795c63d6b17c4d9a0369e18a8831b7c98c72bcf"
+  name = "github.com/ligato/vpp-agent"
+  packages = [
+    "plugins/linux/model/interfaces",
+    "plugins/linux/model/l3",
+    "plugins/vpp/model/acl",
+    "plugins/vpp/model/bfd",
+    "plugins/vpp/model/interfaces",
+    "plugins/vpp/model/l2",
+    "plugins/vpp/model/l3",
+    "plugins/vpp/model/l4",
+    "plugins/vpp/model/nat",
+    "plugins/vpp/model/rpc",
+    "plugins/vpp/model/stn",
+  ]
+  pruneopts = "UT"
+  revision = "1d8fb8efaed02c622054e2a13648b736e7225950"
+  version = "v1.6"
+
+[[projects]]
   digest = "1:40bf4b24f9127737b22d3b86ff0bef3c3e9d87604d6260d9f9b9125e7995ff49"
   name = "github.com/lunixbochs/struc"
   packages = ["."]
@@ -951,7 +971,7 @@
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/ligato/cn-infra/core",
     "github.com/ligato/cn-infra/health/statuscheck",
-    "github.com/lunixbochs/struc",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/rpc",
     "github.com/onrik/logrus/filename",
     "github.com/onsi/gomega",
     "github.com/sirupsen/logrus",
