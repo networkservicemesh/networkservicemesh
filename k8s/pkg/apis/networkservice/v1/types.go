@@ -29,6 +29,8 @@ type NetworkServiceList struct {
 	Items []NetworkService `json:"items"`
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NetworkServiceEndpoint struct {
 	meta_v1.TypeMeta   `json:",inline"`
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
@@ -46,9 +48,10 @@ type NetworkServiceEndpointStatus struct {
 	State string `json:"state"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NetworkServiceEndpointList struct {
-	meta_v1.TypeMeta   `json:",inline"`
-	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata,omitempty"`
 
 	Items []NetworkServiceEndpoint `json:"items"`
 }

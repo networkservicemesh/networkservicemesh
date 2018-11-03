@@ -25,6 +25,8 @@ import (
 type Interface interface {
 	// NetworkServices returns a NetworkServiceInformer.
 	NetworkServices() NetworkServiceInformer
+	// NetworkServiceEndpoints returns a NetworkServiceEndpointInformer.
+	NetworkServiceEndpoints() NetworkServiceEndpointInformer
 }
 
 type version struct {
@@ -41,4 +43,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // NetworkServices returns a NetworkServiceInformer.
 func (v *version) NetworkServices() NetworkServiceInformer {
 	return &networkServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// NetworkServiceEndpoints returns a NetworkServiceEndpointInformer.
+func (v *version) NetworkServiceEndpoints() NetworkServiceEndpointInformer {
+	return &networkServiceEndpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

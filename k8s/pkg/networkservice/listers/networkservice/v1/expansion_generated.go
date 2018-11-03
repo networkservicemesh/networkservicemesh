@@ -24,3 +24,11 @@ type NetworkServiceListerExpansion interface{}
 // NetworkServiceNamespaceListerExpansion allows custom methods to be added to
 // NetworkServiceNamespaceLister.
 type NetworkServiceNamespaceListerExpansion interface{}
+
+// NetworkServiceEndpointListerExpansion allows custom methods to be added to
+// NetworkServiceEndpointLister.
+type NetworkServiceEndpointListerExpansion interface{}
+
+// NetworkServiceEndpointNamespaceListerExpansion allows custom methods to be added to
+// NetworkServiceEndpointNamespaceLister.
+type NetworkServiceEndpointNamespaceListerExpansion interface{}
