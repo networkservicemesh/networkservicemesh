@@ -49,10 +49,18 @@ func main() {
 		ShortNames: []string{"netsvc", "netsvcs"},
 		Kind:       reflect.TypeOf(v1.NetworkService{}).Name(),
 	}
+	err = CreateCRD("networkservices.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
 
-	svc := v1.NetworkService{}
-
-	err = CreateCRD("networkservices.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, svc, clientset)
+	names = v1beta1.CustomResourceDefinitionNames{
+		Plural:     "networkserviceendpoints",
+		Singular:   "networkserviceendpoint",
+		ShortNames: []string{"nse", "nses"},
+		Kind:       reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name(),
+	}
+	err = CreateCRD("networkserviceendpoints.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
@@ -69,7 +77,24 @@ func main() {
 	})
 
 	if err != nil {
-		logrus.Fatalln(err)
+		logrus.Println(err)
+	}
+
+	_, err = nsmClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
+		ObjectMeta: v12.ObjectMeta{
+			Name: "secure-intranet-connectivity-f0c2a6",
+		},
+		Spec: v1.NetworkServiceEndpointSpec{
+			NetworkServiceName: "secure-intranet-connectivity",
+			NsmName:            "https://10.238.107.65:8080",
+		},
+		Status: v1.NetworkServiceEndpointStatus{
+			State: "RUNNING",
+		},
+	})
+
+	if err != nil {
+		logrus.Println(err)
 	}
 
 	// Start NSC Client
@@ -79,7 +104,7 @@ func main() {
 }
 
 // Create the CRD resource, ignore error if it already exists
-func CreateCRD(name, group, version string, scope v1beta1.ResourceScope, names v1beta1.CustomResourceDefinitionNames, netsvc v1.NetworkService, clientset *clientset.Clientset) error {
+func CreateCRD(name, group, version string, scope v1beta1.ResourceScope, names v1beta1.CustomResourceDefinitionNames, clientset *clientset.Clientset) error {
 	crd := &v1beta1.CustomResourceDefinition{
 		ObjectMeta: v12.ObjectMeta{Name: name},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
