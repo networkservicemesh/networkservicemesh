@@ -132,7 +132,7 @@ func (in *NetworkServiceEndpointStatus) DeepCopy() *NetworkServiceEndpointStatus
 func (in *NetworkServiceList) DeepCopyInto(out *NetworkServiceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]NetworkService, len(*in))
