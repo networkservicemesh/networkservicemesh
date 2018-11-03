@@ -22,8 +22,6 @@ import (
 	"git.fd.io/govpp.git/adapter/vppapiclient"
 	govppapi "git.fd.io/govpp.git/api"
 	govpp "git.fd.io/govpp.git/core"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/tapv2"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/vpe"
 	"github.com/sirupsen/logrus"
 )
 
@@ -221,41 +219,42 @@ func NEWVPPDataplane(dataplaneSocket string) (Interface, error) {
 // Test is used only in Debug mode, it runs some common api
 // to confirm VPP is fully functional
 func (v *VPPDataplane) Test() error {
+	// TODO
 	// Playground
-	req1 := &vpe.ControlPing{}
-	reply1 := &vpe.ControlPingReply{}
+	// req1 := &vpe.ControlPing{}
+	// reply1 := &vpe.ControlPingReply{}
 
-	if err := v.apiCh.SendRequest(req1).ReceiveReply(reply1); err != nil {
-		return fmt.Errorf("Error in reply: %+v", err)
-	}
-	logrus.Infof("Control ping succeeded. Received reply: %+v", reply1)
+	// if err := v.apiCh.SendRequest(req1).ReceiveReply(reply1); err != nil {
+	// 	return fmt.Errorf("Error in reply: %+v", err)
+	// }
+	// logrus.Infof("Control ping succeeded. Received reply: %+v", reply1)
 
-	req2 := &tapv2.TapCreateV2{
-		ID:           uint32(102),
-		UseRandomMac: uint8(1),
-		Tag:          []byte("NSM_CLIENT"),
-	}
-	reply2 := &tapv2.TapCreateV2Reply{}
-	if err := v.apiCh.SendRequest(req2).ReceiveReply(reply2); err != nil {
-		return fmt.Errorf("Error in reply: %+v", err)
-	}
-	logrus.Infof("TAP creation was succesful, reply is: %+v", reply2)
+	// req2 := &tapv2.TapCreateV2{
+	// 	ID:           uint32(102),
+	// 	UseRandomMac: uint8(1),
+	// 	Tag:          []byte("NSM_CLIENT"),
+	// }
+	// reply2 := &tapv2.TapCreateV2Reply{}
+	// if err := v.apiCh.SendRequest(req2).ReceiveReply(reply2); err != nil {
+	// 	return fmt.Errorf("Error in reply: %+v", err)
+	// }
+	// logrus.Infof("TAP creation was succesful, reply is: %+v", reply2)
 
-	req4 := &tapv2.SwInterfaceTapV2Dump{}
-	reply4 := &tapv2.SwInterfaceTapV2Details{}
-	if err := v.apiCh.SendRequest(req4).ReceiveReply(reply4); err != nil {
-		return fmt.Errorf("Error in reply: %+v", err)
-	}
-	logrus.Infof("TAP deletion was succesful, reply is: %+v", reply4)
+	// req4 := &tapv2.SwInterfaceTapV2Dump{}
+	// reply4 := &tapv2.SwInterfaceTapV2Details{}
+	// if err := v.apiCh.SendRequest(req4).ReceiveReply(reply4); err != nil {
+	// 	return fmt.Errorf("Error in reply: %+v", err)
+	// }
+	// logrus.Infof("TAP deletion was succesful, reply is: %+v", reply4)
 
-	req3 := &tapv2.TapDeleteV2{
-		SwIfIndex: reply2.SwIfIndex,
-	}
-	reply3 := &tapv2.TapDeleteV2Reply{}
-	if err := v.apiCh.SendRequest(req3).ReceiveReply(reply3); err != nil {
-		return fmt.Errorf("Error in reply: %+v", err)
-	}
-	logrus.Infof("TAP deletion was succesful, reply is: %+v", reply3)
+	// req3 := &tapv2.TapDeleteV2{
+	// 	SwIfIndex: reply2.SwIfIndex,
+	// }
+	// reply3 := &tapv2.TapDeleteV2Reply{}
+	// if err := v.apiCh.SendRequest(req3).ReceiveReply(reply3); err != nil {
+	// 	return fmt.Errorf("Error in reply: %+v", err)
+	// }
+	// logrus.Infof("TAP deletion was succesful, reply is: %+v", reply3)
 	// End of playground
 	return nil
 }
