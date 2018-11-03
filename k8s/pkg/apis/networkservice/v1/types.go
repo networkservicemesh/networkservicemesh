@@ -22,7 +22,7 @@ type NetworkServiceStatus struct{}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NetworkServiceList struct {
-	meta_v1.TypeMeta   `json:",inline"`
+	meta_v1.TypeMeta `json:",inline"`
 	meta_v1.ListMeta `json:"metadata,omitempty"`
 
 	Items []NetworkService `json:"items"`
