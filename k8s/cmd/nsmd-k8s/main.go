@@ -44,38 +44,7 @@ func main() {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", e)
 	}
 
-	names := v1beta1.CustomResourceDefinitionNames{
-		Plural:     "networkservices",
-		Singular:   "networkservice",
-		ShortNames: []string{"netsvc", "netsvcs"},
-		Kind:       reflect.TypeOf(v1.NetworkService{}).Name(),
-	}
-	err = CreateCRD("networkservices.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
-	names = v1beta1.CustomResourceDefinitionNames{
-		Plural:     "networkserviceendpoints",
-		Singular:   "networkserviceendpoint",
-		ShortNames: []string{"nse", "nses"},
-		Kind:       reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name(),
-	}
-	err = CreateCRD("networkserviceendpoints.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
-	names = v1beta1.CustomResourceDefinitionNames{
-		Plural:     "networkservicemanagers",
-		Singular:   "networkservicemanager",
-		ShortNames: []string{"nsm", "nsms"},
-		Kind:       reflect.TypeOf(v1.NetworkServiceManager{}).Name(),
-	}
-	err = CreateCRD("networkservicemanagers.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
+	err = InstallCRDs(clientset)
 
 	nsmClientSet, err := versioned.NewForConfig(config)
 	_, err = nsmClientSet.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
@@ -129,6 +98,40 @@ func main() {
 
 	// Start InterNSM
 
+}
+
+func InstallCRDs(clientset *clientset.Clientset) error {
+	names := v1beta1.CustomResourceDefinitionNames{
+		Plural:     "networkservices",
+		Singular:   "networkservice",
+		ShortNames: []string{"netsvc", "netsvcs"},
+		Kind:       reflect.TypeOf(v1.NetworkService{}).Name(),
+	}
+	err := CreateCRD("networkservices.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	names = v1beta1.CustomResourceDefinitionNames{
+		Plural:     "networkserviceendpoints",
+		Singular:   "networkserviceendpoint",
+		ShortNames: []string{"nse", "nses"},
+		Kind:       reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name(),
+	}
+	err = CreateCRD("networkserviceendpoints.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	names = v1beta1.CustomResourceDefinitionNames{
+		Plural:     "networkservicemanagers",
+		Singular:   "networkservicemanager",
+		ShortNames: []string{"nsm", "nsms"},
+		Kind:       reflect.TypeOf(v1.NetworkServiceManager{}).Name(),
+	}
+	err = CreateCRD("networkservicemanagers.networkservicemesh.io", "networkservicemesh.io", "v1", v1beta1.ClusterScoped, names, clientset)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	return err
 }
 
 // Create the CRD resource, ignore error if it already exists
