@@ -2,19 +2,14 @@ package registryserver
 
 import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
-	"github.com/sirupsen/logrus"
+	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"google.golang.org/grpc"
-	"net"
 )
 
-func New(address string) error {
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		logrus.Panicln(err)
-	}
-
-	defer listener.Close()
+func New(clientset *nsmClientset.Clientset)  *grpc.Server {
 	server := grpc.NewServer()
-	registry.RegisterNetworkServiceRegistryServer(server, &registryService{})
-	return server.Serve(listener)
+	registry.RegisterNetworkServiceRegistryServer(server, &registryService{
+		clientset: clientset,
+	})
+	return server
 }

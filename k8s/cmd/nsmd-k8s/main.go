@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/ligato/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -12,9 +13,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"net"
 	"path/filepath"
 	"reflect"
-	"time"
 )
 
 func main() {
@@ -39,6 +40,7 @@ func main() {
 		}
 	}
 
+	// Initialize clientset
 	clientset, e := clientset.NewForConfig(config)
 	if e != nil {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", e)
@@ -47,56 +49,14 @@ func main() {
 	err = InstallCRDs(clientset)
 
 	nsmClientSet, err := versioned.NewForConfig(config)
-	_, err = nsmClientSet.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
-		ObjectMeta: v12.ObjectMeta{
-			Name: "secure-intranet-connectivity",
-		},
-		Spec: v1.NetworkServiceSpec{
-			Payload: "IP",
-		},
-		Status: v1.NetworkServiceStatus{},
-	})
+	server := registryserver.New(nsmClientSet)
 
+	listener, err := net.Listen("tcp", "0.0.0.0:5000")
 	if err != nil {
-		logrus.Println(err)
+		logrus.Fatalln(err)
 	}
 
-	_, err = nsmClientSet.Networkservicemesh().NetworkServiceManagers("default").Create(&v1.NetworkServiceManager{
-		ObjectMeta: v12.ObjectMeta{
-			Name: "network-service-manager-59b460",
-		},
-		Spec: v1.NetworkServiceManagerSpec{},
-		Status: v1.NetworkServiceManagerStatus{
-			LastSeen: v12.Time{
-				Time: time.Now(),
-			},
-			URL: "https://10.11.1.2:8080",
-		},
-	})
-
-	_, err = nsmClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
-		ObjectMeta: v12.ObjectMeta{
-			Name: "secure-intranet-connectivity-f0c2a6",
-		},
-		Spec: v1.NetworkServiceEndpointSpec{
-			NetworkServiceName: "secure-intranet-connectivity",
-			NsmName:            "network-service-manager-59b460",
-		},
-		Status: v1.NetworkServiceEndpointStatus{
-			LastSeen: v12.Time{
-				Time: time.Now(),
-			},
-			State: "RUNNING",
-		},
-	})
-
-	if err != nil {
-		logrus.Println(err)
-	}
-
-	// Start NSC Client
-
-	// Start InterNSM
+	server.Serve(listener)
 
 }
 
