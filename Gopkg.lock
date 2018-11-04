@@ -2,11 +2,10 @@
 
 
 [[projects]]
-  digest = "1:7adceeb7fd041e4b777cb30c3f8f523068c782d340b755ee7d03e0f3e3e5f889"
+  digest = "1:2b9dce25610ff92f45ee0e731547a1e72d49b2b1e5f906861816c0852be48990"
   name = "git.fd.io/govpp.git"
   packages = [
     "adapter",
-    "adapter/vppapiclient",
     "api",
     "codec",
     "core",
@@ -278,25 +277,6 @@
   pruneopts = "T"
   revision = "22c14be88d97b2b8c38cce0a7141ea18bd042143"
   version = "v1.4.1"
-
-[[projects]]
-  digest = "1:d17baf386c1d74eb08a4561d9d28020640dd1102ed0dcc9f09b441a10ff8aead"
-  name = "github.com/ligato/vpp-agent"
-  packages = [
-    "plugins/linux/model/interfaces",
-    "plugins/linux/model/l3",
-    "plugins/vpp/model/acl",
-    "plugins/vpp/model/bfd",
-    "plugins/vpp/model/interfaces",
-    "plugins/vpp/model/l2",
-    "plugins/vpp/model/l3",
-    "plugins/vpp/model/l4",
-    "plugins/vpp/model/nat",
-    "plugins/vpp/model/rpc",
-    "plugins/vpp/model/stn",
-  ]
-  pruneopts = "UT"
-  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
 
 [[projects]]
   digest = "1:40bf4b24f9127737b22d3b86ff0bef3c3e9d87604d6260d9f9b9125e7995ff49"
@@ -957,7 +937,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "git.fd.io/govpp.git/adapter/vppapiclient",
     "git.fd.io/govpp.git/api",
     "git.fd.io/govpp.git/core",
     "github.com/Masterminds/semver",
@@ -970,7 +949,6 @@
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/ligato/cn-infra/core",
     "github.com/ligato/cn-infra/health/statuscheck",
-    "github.com/ligato/vpp-agent/plugins/vpp/model/rpc",
     "github.com/onrik/logrus/filename",
     "github.com/onsi/gomega",
     "github.com/sirupsen/logrus",
