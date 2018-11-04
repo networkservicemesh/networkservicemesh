@@ -48,11 +48,12 @@ required = [
   name = "github.com/ligato/cn-infra"
   version = "1.4.1"
 
-[[constraint]]
-  name = "github.com/ligato/vpp-agent"
-  #version = "v1.7" Version is set to match vpp-agent in use
-  # revision is set to match vpp-agent 1.7
-  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
+# Uncommnent these lines to use vppagent
+#[[constraint]]
+#  name = "github.com/ligato/vpp-agent"
+#  #version = "v1.7" Version is set to match vpp-agent in use
+#  # revision is set to match vpp-agent 1.7
+#  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
 
 [[override]]
   name = "github.com/gogo/protobuf"
