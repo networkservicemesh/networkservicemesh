@@ -12,9 +12,9 @@ docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/
 echo "Starting nse..."
 docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" nsmd/nse >> "${CONTAINERTXT}"
 echo "Starting vpp-agent..."
-docker run --network=host --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --ipc=host --pid=host -d networkservicemesh/vpp-agent >> "${CONTAINERTXT}"
+docker run --privileged=true --pid=host -p 9111:9111 -d networkservicemesh/vpp-agent >> "${CONTAINERTXT}"
 echo "Starting vpp-dataplane..."
-docker run --network=host --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --volume=/var/lib/networkservicemesh:/var/lib/networkservicemesh/ --ipc=host --pid=host -d networkservicemesh/vpp-dataplane >> "${CONTAINERTXT}"
+docker run --privileged=true -p 9111:9111 --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --volume=/var/lib/networkservicemesh:/var/lib/networkservicemesh/ --pid=host -d networkservicemesh/vpp-dataplane >> "${CONTAINERTXT}"
 
 echo "vpp-daemon takes time (unnecessarily) to register with nsmd, so let it connect. waiting 60 seconds..."
 sleep 60
@@ -27,6 +27,9 @@ docker logs "$(sed '1q;d' ${CONTAINERTXT})"
 
 echo "Showing nse logs..."
 docker logs "$(sed '2q;d' ${CONTAINERTXT})"
+
+echo "Showing vpp logs..."
+docker logs "$(sed '3q;d' ${CONTAINERTXT})"
 
 echo "Showing vpp-daemon logs..."
 docker logs "$(sed '4q;d' ${CONTAINERTXT})"

@@ -1,0 +1,44 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+spec:
+  template:
+    metadata:
+      labels:
+        app: nsm-vpp-dataplane
+    spec:
+      hostPID: true
+      containers:
+        - name: vpp-daemon
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vpp-dataplane:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: run
+              mountPath: /var/run
+            - name: lib
+              mountPath: /var/lib
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+        - name: vpp
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vpp-agent:latest
+          imagePullPolicy: IfNotPresent
+      volumes:
+        - hostPath:
+            path: /var/run
+            type: DirectoryOrCreate
+          name: run
+        - hostPath:
+            path: /var/lib
+            type: DirectoryOrCreate
+          name: lib
+        - hostPath:
+            path: /lib/modules
+          name: lib-modules
+metadata:
+  name: nsm-vpp-dataplane
+  namespace: default
