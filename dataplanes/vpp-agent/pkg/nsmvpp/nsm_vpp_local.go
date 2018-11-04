@@ -36,7 +36,7 @@ func createTapInterface(name, namespace, ipAddress string) *interfaces.Interface
 		IpAddresses: []string{ipAddress},
 		Tap: &interfaces.Interfaces_Interface_Tap{
 			Version:    2,
-			HostIfName: name,
+			HostIfName: "linux-" + name,
 			Namespace:  namespace,
 		},
 		Mtu: 1500,
@@ -52,9 +52,11 @@ func CreateLocalConnect(client *VPPAgentClient, src, dst *common.LocalMechanism)
 
 	srcNamespace := src.Parameters[nsmutils.NSMkeyNamespace]
 	srcIpAddress := fmt.Sprintf("%s/%s", src.Parameters[nsmutils.NSMkeyIPv4], src.Parameters[nsmutils.NSMkeyIPv4PrefixLength])
+	logrus.Infof("src namespace %s, ip addess %s", srcNamespace, srcIpAddress)
 
 	dstNamespace := dst.Parameters[nsmutils.NSMkeyNamespace]
 	dstIpAddress := fmt.Sprintf("%s/%s", dst.Parameters[nsmutils.NSMkeyIPv4], dst.Parameters[nsmutils.NSMkeyIPv4PrefixLength])
+	logrus.Infof("dst namespace %s, ip addess %s", dstNamespace, dstIpAddress)
 
 	err = remoteclient.DataResyncRequestGRPC(rpc.NewDataResyncServiceClient(conn)).
 		Interface(createTapInterface("tap1", srcNamespace, srcIpAddress)).
