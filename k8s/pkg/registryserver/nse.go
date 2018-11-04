@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	networkservicev1 "github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"time"
 
@@ -72,8 +73,8 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 
 }
 
-func (registryService) RemoveNSE(context.Context, *registry.RemoveNSERequest) (*registry.RemoveNSEResponse, error) {
-	panic("implement me")
+func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*registry.RemoveNSEResponse, error) {
+	rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{})
 }
 
 func (registryService) FindNetworkService(context.Context, *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {

@@ -49,15 +49,15 @@ func main() {
 	err = InstallCRDs(clientset)
 
 	nsmClientSet, err := versioned.NewForConfig(config)
-	server := registryserver.New(nsmClientSet)
 
 	listener, err := net.Listen("tcp", "0.0.0.0:5000")
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 
-	server.Serve(listener)
-
+	server := registryserver.New(nsmClientSet)
+	err = server.Serve(listener)
+	logrus.Fatalln(err)
 }
 
 func InstallCRDs(clientset *clientset.Clientset) error {

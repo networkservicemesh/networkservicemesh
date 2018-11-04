@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func New(clientset *nsmClientset.Clientset)  *grpc.Server {
+func New(clientset *nsmClientset.Clientset) *grpc.Server {
 	server := grpc.NewServer()
 	registry.RegisterNetworkServiceRegistryServer(server, &registryService{
 		clientset: clientset,

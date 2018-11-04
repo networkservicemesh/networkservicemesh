@@ -10,7 +10,9 @@ message RegisterNSERequest {
 }
 message RegisterNSEResponse {}
 
-message RemoveNSERequest {}
+message RemoveNSERequest {
+    string endpoint_name = 1;
+}
 message RemoveNSEResponse {}
 
 message FindNetworkServiceRequest {}
