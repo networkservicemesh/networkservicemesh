@@ -268,6 +268,7 @@
   packages = [
     "core",
     "datasync",
+    "db/keyval",
     "health/statuscheck",
     "health/statuscheck/model/status",
     "logging",
@@ -277,6 +278,30 @@
   pruneopts = "T"
   revision = "22c14be88d97b2b8c38cce0a7141ea18bd042143"
   version = "v1.4.1"
+
+[[projects]]
+  digest = "1:626c0fbc7d39728e8ae0eaeec3a51a6c757068695ab7f410eaaab7fd593b7f8d"
+  name = "github.com/ligato/vpp-agent"
+  packages = [
+    "clientv1/vpp",
+    "clientv1/vpp/dbadapter",
+    "clientv1/vpp/grpcadapter",
+    "clientv1/vpp/remoteclient",
+    "plugins/linux/model/interfaces",
+    "plugins/linux/model/l3",
+    "plugins/vpp/model/acl",
+    "plugins/vpp/model/bfd",
+    "plugins/vpp/model/interfaces",
+    "plugins/vpp/model/ipsec",
+    "plugins/vpp/model/l2",
+    "plugins/vpp/model/l3",
+    "plugins/vpp/model/l4",
+    "plugins/vpp/model/nat",
+    "plugins/vpp/model/rpc",
+    "plugins/vpp/model/stn",
+  ]
+  pruneopts = "UT"
+  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
 
 [[projects]]
   digest = "1:40bf4b24f9127737b22d3b86ff0bef3c3e9d87604d6260d9f9b9125e7995ff49"
@@ -949,6 +974,9 @@
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/ligato/cn-infra/core",
     "github.com/ligato/cn-infra/health/statuscheck",
+    "github.com/ligato/vpp-agent/clientv1/vpp/remoteclient",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/interfaces",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/rpc",
     "github.com/onrik/logrus/filename",
     "github.com/onsi/gomega",
     "github.com/sirupsen/logrus",

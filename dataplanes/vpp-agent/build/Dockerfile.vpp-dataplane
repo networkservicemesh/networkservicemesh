@@ -1,0 +1,8 @@
+FROM golang:1.11 as build
+ENV PACKAGEPATH=github.com/ligato/networkservicemesh/
+COPY [".","/go/src/${PACKAGEPATH}"]
+WORKDIR /go/src/${PACKAGEPATH}/
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nsmd ./dataplanes/vpp-agent/cmd/daemon/nsm-vpp-agent-dataplane.go
+FROM alpine as runtime
+COPY --from=build /go/bin/nsmd /bin/nsmd
+ENTRYPOINT ["/bin/nsmd"]
