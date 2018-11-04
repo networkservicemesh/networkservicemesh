@@ -139,6 +139,17 @@ jobs:
           command: |
             cd controlplane
             make docker-nsmd-build
+  build-nsmd-k8s:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            cd controlplane
+            make docker-nsmd-k8s-build
   build-nse:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -210,6 +221,9 @@ workflows:
     jobs:
       - sanity-check
       - build-nsmd:
+          requires:
+            - sanity-check
+      - build-nsmd-k8s:
           requires:
             - sanity-check
       - build-nse:
