@@ -49,7 +49,7 @@ func (c *Connection) watchRequests(ch *Channel) {
 // processRequest processes a single request received on the request channel.
 func (c *Connection) processRequest(ch *Channel, req *vppRequest) error {
 	// check whether we are connected to VPP
-	if atomic.LoadUint32(&c.connected) == 0 {
+	if atomic.LoadUint32(&c.vppConnected) == 0 {
 		err := ErrNotConnected
 		log.Errorf("processing request failed: %v", err)
 		return err
@@ -95,7 +95,7 @@ func (c *Connection) processRequest(ch *Channel, req *vppRequest) error {
 	}
 
 	// send the request to VPP
-	err = c.vpp.SendMsg(context, data)
+	err = c.vppClient.SendMsg(context, data)
 	if err != nil {
 		err = fmt.Errorf("unable to send the message: %v", err)
 		log.WithFields(logger.Fields{
@@ -118,7 +118,7 @@ func (c *Connection) processRequest(ch *Channel, req *vppRequest) error {
 			"seq_num":  req.seqNum,
 		}).Debug(" -> Sending a control ping to VPP.")
 
-		if err := c.vpp.SendMsg(context, pingData); err != nil {
+		if err := c.vppClient.SendMsg(context, pingData); err != nil {
 			log.WithFields(logger.Fields{
 				"context": context,
 				"msg_id":  msgID,
