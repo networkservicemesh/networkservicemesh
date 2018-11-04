@@ -14,12 +14,17 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"net"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 )
 
 func main() {
-	address := "127.0.0.1:5000"
+	address := os.Getenv("NSMD_K8S_ADDRESS")
+	if strings.TrimSpace(address) == "" {
+		address = "127.0.0.1:5000"
+	}
 	logrus.Println("Starting NSMD Kubernetes on " + address)
 
 	var kubeconfig *string
@@ -50,7 +55,7 @@ func main() {
 
 	nsmClientSet, err := versioned.NewForConfig(config)
 
-	listener, err := net.Listen("tcp", "0.0.0.0:5000")
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
