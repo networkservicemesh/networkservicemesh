@@ -148,7 +148,6 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
-            cd controlplane
             make docker-nsmd-k8s-build
   build-nse:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
