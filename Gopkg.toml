@@ -124,24 +124,19 @@ required = [
 [prune]
   go-tests = true
   unused-packages = true
+  non-go = true
 
   [[prune.project]]
     name = "k8s.io/code-generator"
     unused-packages = false
     go-tests = false
+    non-go = false
 
   [[prune.project]]
     name = "k8s.io/kube-openapi"
     unused-packages = false
+    non-go = false
 
-  [[prune.project]]
-    name = "github.com/go-errors/errors"
-    non-go = true
-
-  [[prune.project]]
-    name = "github.com/ligato/cn-infra"
-    unused-packages = false
-    non-go = true
 
 [[constraint]]
   name = "github.com/go-errors/errors"
