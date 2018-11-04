@@ -1,8 +1,0 @@
-FROM golang:alpine as build
-ENV PACKAGEPATH=github.com/ligato/networkservicemesh/
-COPY [".","/go/src/${PACKAGEPATH}"]
-WORKDIR /go/src/${PACKAGEPATH}/
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nsmd-k8s ./k8s/cmd/nsmd-k8s
-FROM alpine as runtime
-COPY --from=build /go/bin/nsmd-k8s /bin/nsmd-k8s
-ENTRYPOINT ["/bin/nsmd-k8s"]
