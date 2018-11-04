@@ -272,7 +272,7 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:0157cec69443d79a1d7680606e1c00d30fabf0389784791c272bf5c139ce7d31"
+  digest = "1:da0b33676fa66b916cb52037976b06533e8f74ac5a3e41adaf5b137bc62c5299"
   name = "github.com/ligato/cn-infra"
   packages = [
     "core",
@@ -283,7 +283,7 @@
     "logging/logrus",
     "utils/safeclose",
   ]
-  pruneopts = "T"
+  pruneopts = "NT"
   revision = "22c14be88d97b2b8c38cce0a7141ea18bd042143"
   version = "v1.4.1"
 
