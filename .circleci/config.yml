@@ -161,7 +161,7 @@ jobs:
           command: |
             cd controlplane
             make docker-nsc-build
-  build-vpp:
+  build-vpp-agent:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
@@ -174,7 +174,7 @@ jobs:
             export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
             export TAG="$BUILD_TAG"
             cd dataplanes/vpp
-            make docker-build-vpp docker-push-vpp
+            make docker-build-vpp-agent docker-push-vpp-agent
   build-vpp-daemon:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -218,7 +218,7 @@ workflows:
       - build-nsc:
           requires:
             - sanity-check
-      - build-vpp:
+      - build-vpp-agent:
           requires:
             - sanity-check
       - build-vpp-daemon:

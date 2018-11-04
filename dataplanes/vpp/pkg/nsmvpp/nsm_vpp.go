@@ -19,7 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"git.fd.io/govpp.git/adapter/vppapiclient"
 	govppapi "git.fd.io/govpp.git/api"
 	govpp "git.fd.io/govpp.git/core"
 	"github.com/sirupsen/logrus"
@@ -146,74 +145,75 @@ func (v *VPPDataplane) eventMonitor() {
 // attempts to re connect to VPP, once it is succeeded, it will mark VPPDataplane controller as Connected
 // and start the dataplane registration with NSM function TODO (sbezverk).
 func (v *VPPDataplane) reConnector() {
-	ticker := time.NewTicker(vppReconnectInterval)
-	startTime := time.Now()
-	for {
-		logrus.Info("Attempting to reconnect to VPP.")
-		select {
-		case <-ticker.C:
-			vppConn, vppConnCh, err := govpp.AsyncConnect(vppapiclient.NewVppAdapter(""))
-			if err != nil {
-				logrus.Errorf("Failed to reconnect VPP with error: %+v retrying in %s", err, vppReconnectInterval.String())
-				continue
-			}
-			status := <-vppConnCh
-			if status.State != govpp.Connected {
-				logrus.Errorf("Timed out to reconnect to VPP, retrying in %s", vppReconnectInterval.String())
-				continue
-			}
-			vppConnectTime := time.Since(startTime)
-			// Locking VPPDataplane for updating some fields
-			apiCh, err := vppConn.NewAPIChannel()
-			if err != nil {
-				logrus.Errorf("Failed to get API channel, retrying in %s", vppReconnectInterval.String())
-				continue
-			}
-			v.Lock()
-			v.conn = vppConn
-			v.apiCh = apiCh
-			v.connCh = vppConnCh
-			v.status = &status
-			v.Unlock()
-			logrus.Infof("Successfully reconnected to VPP, reconnection time: %s", vppConnectTime.String())
-			go v.eventMonitor()
-			return
-		}
-	}
+	// ticker := time.NewTicker(vppReconnectInterval)
+	// startTime := time.Now()
+	// for {
+	// 	logrus.Info("Attempting to reconnect to VPP.")
+	// 	select {
+	// 	case <-ticker.C:
+	// 		vppConn, vppConnCh, err := govpp.AsyncConnect(vppapiclient.NewVppAdapter(""))
+	// 		if err != nil {
+	// 			logrus.Errorf("Failed to reconnect VPP with error: %+v retrying in %s", err, vppReconnectInterval.String())
+	// 			continue
+	// 		}
+	// 		status := <-vppConnCh
+	// 		if status.State != govpp.Connected {
+	// 			logrus.Errorf("Timed out to reconnect to VPP, retrying in %s", vppReconnectInterval.String())
+	// 			continue
+	// 		}
+	// 		vppConnectTime := time.Since(startTime)
+	// 		// Locking VPPDataplane for updating some fields
+	// 		apiCh, err := vppConn.NewAPIChannel()
+	// 		if err != nil {
+	// 			logrus.Errorf("Failed to get API channel, retrying in %s", vppReconnectInterval.String())
+	// 			continue
+	// 		}
+	// 		v.Lock()
+	// 		v.conn = vppConn
+	// 		v.apiCh = apiCh
+	// 		v.connCh = vppConnCh
+	// 		v.status = &status
+	// 		v.Unlock()
+	// 		logrus.Infof("Successfully reconnected to VPP, reconnection time: %s", vppConnectTime.String())
+	// 		go v.eventMonitor()
+	// 		return
+	// 	}
+	// }
 }
 
 // NEWVPPDataplane starts VPP binary, waits until it is ready and populate
 // VPPDataplane controller structure.
 func NEWVPPDataplane(dataplaneSocket string) (Interface, error) {
-	startTime := time.Now()
-	vppConn, vppConnCh, err := govpp.AsyncConnect(vppapiclient.NewVppAdapter(""))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to start NSM VPP Dataplaneagent with error:%+v", err)
-	}
+	// startTime := time.Now()
+	// vppConn, vppConnCh, err := govpp.AsyncConnect(vppapiclient.NewVppAdapter(""))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Failed to start NSM VPP Dataplaneagent with error:%+v", err)
+	// }
 
-	status := <-vppConnCh
-	if status.State != govpp.Connected {
-		return nil, fmt.Errorf("Failed to start NSM VPP Dataplaneagent with error:%+v", err)
-	}
-	vppConnectTime := time.Since(startTime)
-	logrus.Info("Connecting to VPP took ", vppConnectTime)
+	// status := <-vppConnCh
+	// if status.State != govpp.Connected {
+	// 	return nil, fmt.Errorf("Failed to start NSM VPP Dataplaneagent with error:%+v", err)
+	// }
+	// vppConnectTime := time.Since(startTime)
+	// logrus.Info("Connecting to VPP took ", vppConnectTime)
 
-	apiCh, err := vppConn.NewAPIChannel()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get VPP API channel with error:%+v", err)
-	}
-	VPPDataplaneController := &VPPDataplane{
-		conn:            vppConn,
-		connCh:          vppConnCh,
-		status:          &status,
-		apiCh:           apiCh,
-		nsmRegistered:   false,
-		dataplaneSocket: dataplaneSocket,
-	}
-	// Starting VPP event monitor routine
-	go VPPDataplaneController.eventMonitor()
+	// apiCh, err := vppConn.NewAPIChannel()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Failed to get VPP API channel with error:%+v", err)
+	// }
+	// VPPDataplaneController := &VPPDataplane{
+	// 	conn:            vppConn,
+	// 	connCh:          vppConnCh,
+	// 	status:          &status,
+	// 	apiCh:           apiCh,
+	// 	nsmRegistered:   false,
+	// 	dataplaneSocket: dataplaneSocket,
+	// }
+	// // Starting VPP event monitor routine
+	// go VPPDataplaneController.eventMonitor()
 
-	return VPPDataplaneController, nil
+	// return VPPDataplaneController, nil
+	return nil, nil
 }
 
 // Test is used only in Debug mode, it runs some common api
