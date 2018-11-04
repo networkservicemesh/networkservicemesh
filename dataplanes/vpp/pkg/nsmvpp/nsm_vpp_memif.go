@@ -2,15 +2,15 @@ package nsmvpp
 
 import (
 	"fmt"
-	"os"
-	"path"
-	"strconv"
-
 	govppapi "git.fd.io/govpp.git/api"
 	"github.com/docker/docker/pkg/mount"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/memif"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
+	"os"
+	"path"
+	"strconv"
 )
 
 const (
@@ -141,17 +141,16 @@ type createMemifSocket struct {
 }
 
 func (op *createMemifSocket) apply(apiCh govppapi.Channel) error {
-	// TODO
-	// socketCreate := &memif.MemifSocketFilenameAddDel{
-	// 	IsAdd:          1,
-	// 	SocketID:       op.socketId,
-	// 	SocketFilename: []byte(op.socketFilename),
-	// }
-	// socketCreateReply := &memif.MemifSocketFilenameAddDelReply{}
-	// if err := apiCh.SendRequest(socketCreate).ReceiveReply(socketCreateReply); err != nil {
-	// 	return err
-	// }
-	// logrus.Infof("Memif socket %s successfully created", op.socketFilename)
+	socketCreate := &memif.MemifSocketFilenameAddDel{
+		IsAdd:          1,
+		SocketID:       op.socketId,
+		SocketFilename: []byte(op.socketFilename),
+	}
+	socketCreateReply := &memif.MemifSocketFilenameAddDelReply{}
+	if err := apiCh.SendRequest(socketCreate).ReceiveReply(socketCreateReply); err != nil {
+		return err
+	}
+	logrus.Infof("Memif socket %s successfully created", op.socketFilename)
 	return nil
 }
 
@@ -168,27 +167,24 @@ type deleteMemifSocket struct {
 }
 
 func (op *deleteMemifSocket) apply(apiCh govppapi.Channel) error {
-	// TODO
-	// socketDelete := &memif.MemifSocketFilenameAddDel{
-	// 	IsAdd:          0,
-	// 	SocketID:       op.socketId,
-	// 	SocketFilename: []byte(op.socketFilename),
-	// }
-	// socketDeleteReply := &memif.MemifSocketFilenameAddDelReply{}
-	// if err := apiCh.SendRequest(socketDelete).ReceiveReply(socketDeleteReply); err != nil {
-	// 	return err
-	// }
-	// logrus.Infof("Memif socket %s successfully deleted", op.socketFilename)
+	socketDelete := &memif.MemifSocketFilenameAddDel{
+		IsAdd:          0,
+		SocketID:       op.socketId,
+		SocketFilename: []byte(op.socketFilename),
+	}
+	socketDeleteReply := &memif.MemifSocketFilenameAddDelReply{}
+	if err := apiCh.SendRequest(socketDelete).ReceiveReply(socketDeleteReply); err != nil {
+		return err
+	}
+	logrus.Infof("Memif socket %s successfully deleted", op.socketFilename)
 	return nil
 }
 
 func (op *deleteMemifSocket) rollback() operation {
-	// TODO
-	// return &createMemifSocket{
-	// 	socketFilename: op.socketFilename,
-	// 	socketId:       op.socketId,
-	// }
-	return nil
+	return &createMemifSocket{
+		socketFilename: op.socketFilename,
+		socketId:       op.socketId,
+	}
 }
 
 type createMemifInterface struct {
@@ -198,29 +194,26 @@ type createMemifInterface struct {
 }
 
 func (op *createMemifInterface) apply(apiCh govppapi.Channel) error {
-	// TODO
-	// interfaceCreate := &memif.MemifCreate{
-	// 	Role:     op.role,
-	// 	SocketID: op.socketId,
-	// 	ID:       29,
-	// }
-	// interfaceCreateReply := &memif.MemifCreateReply{}
-	// if err := apiCh.SendRequest(interfaceCreate).ReceiveReply(interfaceCreateReply); err != nil {
-	// 	return err
-	// }
-	// op.intf.id = interfaceCreateReply.SwIfIndex
-	// logrus.Infof("Interface successfully created: swIfIndex=%v", interfaceCreateReply.SwIfIndex)
+	interfaceCreate := &memif.MemifCreate{
+		Role:     op.role,
+		SocketID: op.socketId,
+		ID:       29,
+	}
+	interfaceCreateReply := &memif.MemifCreateReply{}
+	if err := apiCh.SendRequest(interfaceCreate).ReceiveReply(interfaceCreateReply); err != nil {
+		return err
+	}
+	op.intf.id = interfaceCreateReply.SwIfIndex
+	logrus.Infof("Interface successfully created: swIfIndex=%v", interfaceCreateReply.SwIfIndex)
 	return nil
 }
 
 func (op *createMemifInterface) rollback() operation {
-	// TODO
-	// return &deleteMemifInterface{
-	// 	role:     op.role,
-	// 	socketId: op.socketId,
-	// 	intf:     op.intf,
-	// }
-	return nil
+	return &deleteMemifInterface{
+		role:     op.role,
+		socketId: op.socketId,
+		intf:     op.intf,
+	}
 }
 
 type deleteMemifInterface struct {
@@ -230,15 +223,14 @@ type deleteMemifInterface struct {
 }
 
 func (op *deleteMemifInterface) apply(apiCh govppapi.Channel) error {
-	//  TODO
-	// interfaceDelete := &memif.MemifDelete{
-	// 	SwIfIndex: op.intf.id,
-	// }
-	// interfaceDeleteReply := &memif.MemifDeleteReply{}
-	// if err := apiCh.SendRequest(interfaceDelete).ReceiveReply(interfaceDeleteReply); err != nil {
-	// 	return err
-	// }
-	// logrus.Infof("Interface successfully deleted: swIfIndex=%v", op.intf.id)
+	interfaceDelete := &memif.MemifDelete{
+		SwIfIndex: op.intf.id,
+	}
+	interfaceDeleteReply := &memif.MemifDeleteReply{}
+	if err := apiCh.SendRequest(interfaceDelete).ReceiveReply(interfaceDeleteReply); err != nil {
+		return err
+	}
+	logrus.Infof("Interface successfully deleted: swIfIndex=%v", op.intf.id)
 	return nil
 }
 

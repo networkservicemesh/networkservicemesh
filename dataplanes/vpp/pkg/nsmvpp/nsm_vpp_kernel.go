@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/tapv2"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/utils/fs"
@@ -93,34 +94,33 @@ func createTapInterface(c *createLocalInterface, apiCh govppapi.Channel) error {
 	}
 
 	name := fmt.Sprintf("tap-%s", randString(6))
-	// ipv4, _ := c.localMechanism.Parameters[nsmutils.NSMkeyIPv4]
+	ipv4, _ := c.localMechanism.Parameters[nsmutils.NSMkeyIPv4]
 
-	// ip, err := IPv4ToByteSlice(ipv4)
-	// if err != nil {
-	// 	return err
-	// }
-	// l, _ := strconv.Atoi(c.localMechanism.Parameters[nsmutils.NSMkeyIPv4PrefixLength])
+	ip, err := IPv4ToByteSlice(ipv4)
+	if err != nil {
+		return err
+	}
+	l, _ := strconv.Atoi(c.localMechanism.Parameters[nsmutils.NSMkeyIPv4PrefixLength])
 
-	// TODO
-	// var tapReq tapv2.TapCreateV2
-	// var tapRpl tapv2.TapCreateV2Reply
-	// tapReq.ID = ^uint32(0)
-	// tapReq.HostNamespaceSet = 1
-	// tapReq.HostNamespace = []byte(namespace)
-	// tapReq.UseRandomMac = 1
-	// tapReq.Tag = []byte("NSM_CLIENT")
-	// tapReq.HostIfName = []byte(name)
-	// tapReq.HostIfNameSet = 1
-	// if len(ip) != 0 {
-	// 	tapReq.HostIP4Addr = ip
-	// 	tapReq.HostIP4PrefixLen = uint8(l)
-	// 	tapReq.HostIP4AddrSet = 1
-	// }
-	// if err := apiCh.SendRequest(&tapReq).ReceiveReply(&tapRpl); err != nil {
-	// 	return err
-	// }
-	// c.intf.id = tapRpl.SwIfIndex
-	// c.intf.mechanism = c.localMechanism
+	var tapReq tapv2.TapCreateV2
+	var tapRpl tapv2.TapCreateV2Reply
+	tapReq.ID = ^uint32(0)
+	tapReq.HostNamespaceSet = 1
+	tapReq.HostNamespace = []byte(namespace)
+	tapReq.UseRandomMac = 1
+	tapReq.Tag = []byte("NSM_CLIENT")
+	tapReq.HostIfName = []byte(name)
+	tapReq.HostIfNameSet = 1
+	if len(ip) != 0 {
+		tapReq.HostIP4Addr = ip
+		tapReq.HostIP4PrefixLen = uint8(l)
+		tapReq.HostIP4AddrSet = 1
+	}
+	if err := apiCh.SendRequest(&tapReq).ReceiveReply(&tapRpl); err != nil {
+		return err
+	}
+	c.intf.id = tapRpl.SwIfIndex
+	c.intf.mechanism = c.localMechanism
 
 	logrus.Infof("created tap interface, name: %s", name)
 	return nil
@@ -129,12 +129,11 @@ func createTapInterface(c *createLocalInterface, apiCh govppapi.Channel) error {
 // deleteTapInterface creates new tap interface in a specified namespace
 func deleteTapInterface(op *deleteLocalInterface, apiCh govppapi.Channel) error {
 	logrus.Infof("Removing tap interface id %d...", op.intf.id)
-	// TODO
-	// var tapReq tapv2.TapDeleteV2
-	// tapReq.SwIfIndex = op.intf.id
-	// if err := apiCh.SendRequest(&tapReq).ReceiveReply(&tapv2.TapDeleteV2Reply{}); err != nil {
-	// 	return err
-	// }
+	var tapReq tapv2.TapDeleteV2
+	tapReq.SwIfIndex = op.intf.id
+	if err := apiCh.SendRequest(&tapReq).ReceiveReply(&tapv2.TapDeleteV2Reply{}); err != nil {
+		return err
+	}
 	return nil
 }
 

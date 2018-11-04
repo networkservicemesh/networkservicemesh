@@ -16,6 +16,8 @@ package nsmvpp
 
 import (
 	govppapi "git.fd.io/govpp.git/api"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/interfaces"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/bin_api/l2"
 )
 
 type interfaceUpDown struct {
@@ -24,7 +26,12 @@ type interfaceUpDown struct {
 }
 
 func (op *interfaceUpDown) apply(apiCh govppapi.Channel) error {
-	// TODO
+	if err := apiCh.SendRequest(&interfaces.SwInterfaceSetFlags{
+		SwIfIndex:   op.intf.id,
+		AdminUpDown: op.upDown,
+	}).ReceiveReply(&interfaces.SwInterfaceSetFlagsReply{}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -48,31 +55,28 @@ type interfaceXconnect struct {
 }
 
 func (op *interfaceXconnect) apply(apiCh govppapi.Channel) error {
-	// TODO
-	// xconnectReq := l2.SwInterfaceSetL2Xconnect{
-	// 	RxSwIfIndex: op.rx.id,
-	// 	TxSwIfIndex: op.tx.id,
-	// 	Enable:      op.enable,
-	// }
-	// xconnectRpl := l2.SwInterfaceSetL2XconnectReply{}
-	// if err := apiCh.SendRequest(&xconnectReq).ReceiveReply(&xconnectRpl); err != nil {
-	// 	return err
-	// }
+	xconnectReq := l2.SwInterfaceSetL2Xconnect{
+		RxSwIfIndex: op.rx.id,
+		TxSwIfIndex: op.tx.id,
+		Enable:      op.enable,
+	}
+	xconnectRpl := l2.SwInterfaceSetL2XconnectReply{}
+	if err := apiCh.SendRequest(&xconnectReq).ReceiveReply(&xconnectRpl); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (op *interfaceXconnect) rollback() operation {
-	// var enable uint8
-	// if op.enable == 1 {
-	// 	enable = 0
-	// } else {
-	// 	enable = 1
-	// }
-	// TODO
-	// return &interfaceXconnect{
-	// 	rx:     op.rx,
-	// 	tx:     op.tx,
-	// 	enable: enable,
-	// }
-	return nil
+	var enable uint8
+	if op.enable == 1 {
+		enable = 0
+	} else {
+		enable = 1
+	}
+	return &interfaceXconnect{
+		rx:     op.rx,
+		tx:     op.tx,
+		enable: enable,
+	}
 }
