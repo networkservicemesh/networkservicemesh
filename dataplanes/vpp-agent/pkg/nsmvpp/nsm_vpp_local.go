@@ -68,8 +68,11 @@ func fixNamespace(namespace string) (string, error) {
 func CreateLocalConnect(client *VPPAgentClient, src, dst *common.LocalMechanism) (string, error) {
 	logrus.Infof("L O C A L  C O N N E C T")
 
-	conn, err := grpc.Dial("unix", grpc.WithInsecure(),
-		grpc.WithDialer(dialer("tcp", address, 2*time.Second)))
+	conn, err := grpc.Dial(":9111", grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("can't dial grpc server: %v", err)
+	}
+	defer conn.Close()
 
 	srcNamespace, err := fixNamespace(src.Parameters[nsmutils.NSMkeyNamespace])
 	if err != nil {
