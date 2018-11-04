@@ -91,8 +91,8 @@ func CreateLocalConnect(client *VPPAgentClient, src, dst *common.LocalMechanism)
 	logrus.Infof("dst namespace %s, ip addess %s", dstNamespace, dstIpAddress)
 
 	err = remoteclient.DataResyncRequestGRPC(rpc.NewDataResyncServiceClient(conn)).
-		Interface(createTapInterface("tap1", srcNamespace, srcIpAddress)).
-		Interface(createTapInterface("tap2", dstNamespace, dstIpAddress)).
+		// Interface(createTapInterface("tap1", srcNamespace, srcIpAddress)).
+		// Interface(createTapInterface("tap2", dstNamespace, dstIpAddress)).
 		Send().ReceiveReply()
 	if err != nil {
 		logrus.Errorf("Failed to apply initial VPP configuration: %v", err)
