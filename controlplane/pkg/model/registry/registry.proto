@@ -15,8 +15,18 @@ message RemoveNSERequest {
 }
 message RemoveNSEResponse {}
 
-message FindNetworkServiceRequest {}
-message FindNetworkServiceResponse {}
+message FindNetworkServiceRequest {
+    string network_service_name = 1;
+}
+message FindNetworkServiceResponse {
+    string payload = 1;
+    repeated NetworkServiceEndpoint network_service_endpoints = 2;
+}
+
+message NetworkServiceEndpoint {
+    string nsm_url = 1;
+    string name = 2;
+}
 
 service NetworkServiceRegistry {
     rpc RegisterNSE(RegisterNSERequest) returns (RegisterNSEResponse);

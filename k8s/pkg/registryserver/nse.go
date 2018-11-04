@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	networkservicev1 "github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/sirupsen/logrus"
+	"log"
 	"time"
 
 	"golang.org/x/net/context"
@@ -55,11 +56,12 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 
 	_, err = rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: request.EndpointName,
+			Name:   request.EndpointName,
+			Labels: map[string]string{"networkservicename": request.NetworkServiceName},
 		},
 		Spec: v1.NetworkServiceEndpointSpec{
-			NetworkServiceName: nsmName,
-			NsmName:            request.NetworkServiceName,
+			NetworkServiceName: request.NetworkServiceName,
+			NsmName:            nsmName,
 		},
 		Status: v1.NetworkServiceEndpointStatus{
 			LastSeen: metav1.Time{time.Now()},
@@ -74,9 +76,42 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 }
 
 func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*registry.RemoveNSEResponse, error) {
-	rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{})
+	if err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{}); err != nil {
+		return nil, err
+	}
+	return &registry.RemoveNSEResponse{}, nil
 }
 
-func (registryService) FindNetworkService(context.Context, *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
-	panic("implement me")
+func (rs registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
+	service, e := rs.clientset.Networkservicemesh().NetworkServices("default").Get(request.NetworkServiceName, metav1.GetOptions{})
+	if e != nil {
+		return nil, e
+	}
+	payload := service.Spec.Payload
+
+	lo := metav1.ListOptions{}
+	lo.LabelSelector = "networkservicename=" + request.NetworkServiceName
+	endpointList, e := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").List(lo)
+	if e != nil {
+		return nil, e
+	}
+
+	logrus.Println(len(endpointList.Items))
+	NSEs := make([]*registry.NetworkServiceEndpoint, len(endpointList.Items))
+	for i, endpoint := range endpointList.Items {
+		log.Println(endpoint.Name)
+		NSEs[i] = &registry.NetworkServiceEndpoint{}
+		NSEs[i].Name = endpoint.Name
+		manager, e := rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Get(endpoint.Spec.NsmName, metav1.GetOptions{})
+		if e != nil {
+			return nil, e
+		}
+		NSEs[i].NsmUrl = manager.Status.URL
+	}
+
+	response := &registry.FindNetworkServiceResponse{
+		Payload:                 payload,
+		NetworkServiceEndpoints: NSEs,
+	}
+	return response, nil
 }
