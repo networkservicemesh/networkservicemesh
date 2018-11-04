@@ -3,10 +3,13 @@ package nsmvpp
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ligato/networkservicemesh/dataplanes/vpp-agent/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/utils/fs"
 	"github.com/ligato/vpp-agent/clientv1/vpp/remoteclient"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
@@ -43,6 +46,24 @@ func createTapInterface(name, namespace, ipAddress string) *interfaces.Interface
 	}
 }
 
+func fixNamespace(namespace string) (string, error) {
+	// Extract namespace
+	if !strings.HasPrefix(namespace, "pid:") {
+		// assuming that inode of linux namespace has been passed
+		inode, err := strconv.ParseUint(namespace, 10, 64)
+		if err != nil {
+			logrus.Errorf("can't parse integer: %s", namespace)
+		} else {
+			namespace, err = fs.FindFileInProc(inode, "/ns/net")
+			if err != nil {
+				logrus.Errorf("cant' find namespace for inode %d", inode)
+				return "", err
+			}
+		}
+	}
+	return namespace, nil
+}
+
 // CreateLocalConnect sanity checks parameters passed in the LocalMechanisms and call nsmvpp.CreateLocalConnect
 func CreateLocalConnect(client *VPPAgentClient, src, dst *common.LocalMechanism) (string, error) {
 	logrus.Infof("L O C A L  C O N N E C T")
@@ -50,11 +71,19 @@ func CreateLocalConnect(client *VPPAgentClient, src, dst *common.LocalMechanism)
 	conn, err := grpc.Dial("unix", grpc.WithInsecure(),
 		grpc.WithDialer(dialer("tcp", address, 2*time.Second)))
 
-	srcNamespace := src.Parameters[nsmutils.NSMkeyNamespace]
+	srcNamespace, err := fixNamespace(src.Parameters[nsmutils.NSMkeyNamespace])
+	if err != nil {
+		logrus.Errorf("namespace error: %v", err)
+	}
+
 	srcIpAddress := fmt.Sprintf("%s/%s", src.Parameters[nsmutils.NSMkeyIPv4], src.Parameters[nsmutils.NSMkeyIPv4PrefixLength])
 	logrus.Infof("src namespace %s, ip addess %s", srcNamespace, srcIpAddress)
 
-	dstNamespace := dst.Parameters[nsmutils.NSMkeyNamespace]
+	dstNamespace, err := fixNamespace(dst.Parameters[nsmutils.NSMkeyNamespace])
+	if err != nil {
+		logrus.Errorf("namespace error: %v", err)
+	}
+
 	dstIpAddress := fmt.Sprintf("%s/%s", dst.Parameters[nsmutils.NSMkeyIPv4], dst.Parameters[nsmutils.NSMkeyIPv4PrefixLength])
 	logrus.Infof("dst namespace %s, ip addess %s", dstNamespace, dstIpAddress)
 
