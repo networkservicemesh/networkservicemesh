@@ -64,8 +64,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 			NsmName:            nsmName,
 		},
 		Status: v1.NetworkServiceEndpointStatus{
-			LastSeen: metav1.Time{time.Now()},
-			State:    v1.RUNNING,
+			State: v1.RUNNING,
 		},
 	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {

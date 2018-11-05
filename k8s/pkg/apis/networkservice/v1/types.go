@@ -54,8 +54,7 @@ type NetworkServiceEndpointSpec struct {
 }
 
 type NetworkServiceEndpointStatus struct {
-	LastSeen meta_v1.Time `json:"lastseen"`
-	State    State        `json:"state"`
+	State State `json:"state"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
