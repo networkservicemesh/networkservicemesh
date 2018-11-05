@@ -133,7 +133,12 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 			PackagePath: arguments.OutputPackagePath,
 			HeaderText:  header,
 			GeneratorFunc: func(c *generator.Context) (generators []generator.Generator) {
-				return []generator.Generator{NewOpenAPIGen(arguments.OutputFileBaseName, arguments.OutputPackagePath, context, newAPILinter(), reportFilename)}
+				return []generator.Generator{NewOpenAPIGen(
+					arguments.OutputFileBaseName,
+					arguments.OutputPackagePath,
+					newAPILinter(),
+					reportFilename,
+				)}
 			},
 			FilterFunc: func(c *generator.Context, t *types.Type) bool {
 				// There is a conflict between this codegen and codecgen, we should avoid types generated for codecgen
@@ -165,19 +170,17 @@ type openAPIGen struct {
 	targetPackage  string
 	imports        namer.ImportTracker
 	types          []*types.Type
-	context        *generator.Context
 	linter         *apiLinter
 	reportFilename string
 }
 
-func NewOpenAPIGen(sanitizedName string, targetPackage string, context *generator.Context, linter *apiLinter, reportFilename string) generator.Generator {
+func NewOpenAPIGen(sanitizedName string, targetPackage string, linter *apiLinter, reportFilename string) generator.Generator {
 	return &openAPIGen{
 		DefaultGen: generator.DefaultGen{
 			OptionalName: sanitizedName,
 		},
 		imports:        generator.NewImportTracker(),
 		targetPackage:  targetPackage,
-		context:        context,
 		linter:         linter,
 		reportFilename: reportFilename,
 	}
