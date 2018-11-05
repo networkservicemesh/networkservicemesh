@@ -3,14 +3,15 @@ package registryserver
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"log"
 	"time"
-
-	"golang.org/x/net/context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +21,7 @@ type registryService struct {
 	clientset *nsmClientset.Clientset
 }
 
-func (rs registryService) RegisterNSE(ctx context.Context, request *registry.RegisterNSERequest) (*registry.RegisterNSEResponse, error) {
+func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
 	// get network service
 	_, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
 		ObjectMeta: metav1.ObjectMeta{
@@ -35,7 +36,13 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 		return nil, err
 	}
 
-	sum := md5.Sum([]byte(request.NsmUrl))
+	nsmurl := ""
+	nsmurl, ok := request.Labels["nsmurl"]
+	if !ok {
+		return nil, errors.New("nsmurl must be defined")
+	}
+
+	sum := md5.Sum([]byte(nsmurl))
 	sumSlice := sum[:]
 	nsmName := hex.EncodeToString(sumSlice)
 
@@ -46,7 +53,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 		Spec: v1.NetworkServiceManagerSpec{},
 		Status: v1.NetworkServiceManagerStatus{
 			LastSeen: metav1.Time{time.Now()},
-			URL:      request.NsmUrl,
+			URL:      nsmurl,
 			State:    v1.RUNNING,
 		},
 	})
@@ -70,15 +77,15 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Reg
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, err
 	}
-	return &registry.RegisterNSEResponse{}, nil
+	return request, nil
 
 }
 
-func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*registry.RemoveNSEResponse, error) {
+func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*common.Empty, error) {
 	if err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{}); err != nil {
 		return nil, err
 	}
-	return &registry.RemoveNSEResponse{}, nil
+	return &common.Empty{}, nil
 }
 
 func (rs registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
@@ -100,12 +107,12 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 	for i, endpoint := range endpointList.Items {
 		log.Println(endpoint.Name)
 		NSEs[i] = &registry.NetworkServiceEndpoint{}
-		NSEs[i].Name = endpoint.Name
+		NSEs[i].EndpointName = endpoint.Name
 		manager, e := rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Get(endpoint.Spec.NsmName, metav1.GetOptions{})
 		if e != nil {
 			return nil, e
 		}
-		NSEs[i].NsmUrl = manager.Status.URL
+		NSEs[i].Labels["nsmurl"] = manager.Status.URL
 	}
 
 	response := &registry.FindNetworkServiceResponse{
