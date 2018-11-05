@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package registry;
+
+message RegisterNSERequest {
+    string network_service_name = 1;
+    string nsm_url  = 2;
+    string endpoint_name = 3;
+    string payload = 4;
+}
+message RegisterNSEResponse {}
+
+message RemoveNSERequest {
+    string endpoint_name = 1;
+}
+message RemoveNSEResponse {}
+
+message FindNetworkServiceRequest {
+    string network_service_name = 1;
+}
+message FindNetworkServiceResponse {
+    string payload = 1;
+    repeated NetworkServiceEndpoint network_service_endpoints = 2;
+}
+
+message NetworkServiceEndpoint {
+    string nsm_url = 1;
+    string name = 2;
+}
+
+service NetworkServiceRegistry {
+    rpc RegisterNSE(RegisterNSERequest) returns (RegisterNSEResponse);
+    rpc RemoveNSE(RemoveNSERequest) returns (RemoveNSEResponse);
+    rpc FindNetworkService(FindNetworkServiceRequest) returns (FindNetworkServiceResponse);
+}

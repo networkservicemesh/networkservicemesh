@@ -20,12 +20,16 @@ func Resource(resource string) schema.GroupResource {
 }
 
 // addKnownTypes adds our types to the API scheme by registering
-// MyResource and MyResourceList
+// NetworkService and NetworkServiceList
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(
 		SchemeGroupVersion,
 		&NetworkService{},
 		&NetworkServiceList{},
+		&NetworkServiceEndpoint{},
+		&NetworkServiceEndpointList{},
+		&NetworkServiceManager{},
+		&NetworkServiceManagerList{},
 	)
 
 	// register the type in the scheme
