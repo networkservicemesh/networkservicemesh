@@ -32,7 +32,7 @@ GOVETTARGETS=cmd \
 	pkg
 
 ORG=networkservicemesh
-BUILD_CONTAINERS=nsmd nse nsc
+BUILD_CONTAINERS=nsmd icmp-responder-nse nsc
 RUN_CONTAINERS=dataplane $(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS) vpp vpp-daemon
 LOG_CONTAINERS=$(KILL_CONTAINERS)
@@ -73,7 +73,7 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
 docker-%-build:
-	@${DOCKERBUILD} -t $*/$* -f build/Dockerfile.$* ..
+	@${DOCKERBUILD} -t networkservicemesh/$* -f build/Dockerfile.$* ..
 
 
 docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))

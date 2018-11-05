@@ -16,14 +16,15 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"math/rand"
 	"net"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -31,34 +32,12 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	networkServiceName = "gold-network"
-	// EndpointSocketBaseDir defines the location of NSM Endpoints listen socket
-	EndpointSocketBaseDir = "/var/lib/networkservicemesh"
-	// EndpointSocket defines the name of NSM Endpoints operations socket
-	EndpointSocket = "nsm.endpoint.io.sock"
+	networkServiceName = "icmp-responder"
+	// SocketBaseDir defines the location of NSM Endpoints listen socket
+	SocketBaseDir = "/var/lib/networkservicemesh"
+	// RegistrySocketFile defines the name of NSM Endpoints operations socket
+	RegistrySocketFile = "nsm.endpoint.io.sock"
 )
-
-type nseConnection struct {
-	networkServiceName string
-	linuxNamespace     string
-}
-
-func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseconnect.EndpointConnectionRequest) (*nseconnect.EndpointConnectionReply, error) {
-
-	return &nseconnect.EndpointConnectionReply{
-		RequestId:          n.linuxNamespace,
-		NetworkServiceName: n.networkServiceName,
-		LinuxNamespace:     n.linuxNamespace,
-	}, nil
-}
-
-func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req *nseconnect.EndpointConnectionMechanism) (*nseconnect.EndpointConnectionMechanismReply, error) {
-
-	return &nseconnect.EndpointConnectionMechanismReply{
-		RequestId:      req.RequestId,
-		MechanismFound: true,
-	}, nil
-}
 
 func main() {
 	var wg sync.WaitGroup
@@ -72,7 +51,7 @@ func main() {
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
-	connectionServerSocket := path.Join(EndpointSocketBaseDir, linuxNS+".nse.io.sock")
+	connectionServerSocket := path.Join(SocketBaseDir, linuxNS+".nse.io.sock")
 	if err := tools.SocketCleanup(connectionServerSocket); err != nil {
 		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", connectionServerSocket, err)
 	}
@@ -86,12 +65,15 @@ func main() {
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
-	nseConn := nseConnection{
-		networkServiceName: networkServiceName,
-		linuxNamespace:     linuxNS,
-	}
+	//nseConn := nseConnection{
+	//	networkServiceName: networkServiceName,
+	//	linuxNamespace:     linuxNS,
+	//}
+	//nseConn := New()
+	nseConn := New()
 
-	nseconnect.RegisterEndpointConnectionServer(grpcServer, nseConn)
+	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
+
 	go func() {
 		wg.Add(1)
 		if err := grpcServer.Serve(connectionServer); err != nil {
@@ -106,44 +88,34 @@ func main() {
 	testSocket.Close()
 
 	// NSE connection server is ready and now endpoints can be advertised to NSM
-	advertiseSocket := path.Join(EndpointSocketBaseDir, EndpointSocket)
+	registrySocket := path.Join(SocketBaseDir, RegistrySocketFile)
 
-	if _, err := os.Stat(advertiseSocket); err != nil {
-		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", advertiseSocket, err)
+	if _, err := os.Stat(registrySocket); err != nil {
+		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", registrySocket, err)
 		os.Exit(1)
 	}
 
-	conn, err := tools.SocketOperationCheck(advertiseSocket)
+	conn, err := tools.SocketOperationCheck(registrySocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", advertiseSocket, err)
+		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", registrySocket, err)
 	}
 	defer conn.Close()
-	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", advertiseSocket)
+	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", registrySocket)
 
-	advertieConnection := nseconnect.NewEndpointOperationsClient(conn)
+	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 
-	endpoint := netmesh.NetworkServiceEndpoint{
-		NseProviderName:    linuxNS,
+	nseid := rand.Uint64()
+
+	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: networkServiceName,
-		SocketLocation:     connectionServerSocket,
-		LocalMechanisms: []*common.LocalMechanism{
-			{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-			},
-		},
+		EndpointName:       networkServiceName + "-" + strconv.FormatUint(nseid, 36),
+		Payload:            "IP",
+		Labels:             make(map[string]string),
 	}
-	resp, err := advertieConnection.AdvertiseEndpoint(context.Background(), &nseconnect.EndpointAdvertiseRequest{
-		RequestId:       linuxNS,
-		NetworkEndpoint: &endpoint,
-	})
-	if err != nil {
-		grpcServer.Stop()
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", advertiseSocket, err)
 
-	}
-	if !resp.Accepted {
-		grpcServer.Stop()
-		logrus.Fatalf("nse: NSM response is inidcating failure of accepting endpoint Advertisiment.")
+	_, err = registryConnection.RegisterNSE(context.Background(), nse)
+	if err != nil {
+		logrus.Fatalln("unable to register endpoint", err)
 	}
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")

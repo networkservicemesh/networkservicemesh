@@ -159,7 +159,7 @@ jobs:
       - run:
           command: |
             make docker-build-nsmdp
-  build-nse:
+  build-icmp-responder-nse:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
@@ -169,7 +169,7 @@ jobs:
       - run:
           command: |
             cd controlplane
-            make docker-nse-build
+            make docker-icmp-responder-nse-build
   build-nsc:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -238,7 +238,7 @@ workflows:
       - build-nsmdp:
           requires:
             - sanity-check
-      - build-nse:
+      - build-icmp-responder-nse:
           requires:
             - sanity-check
       - build-nsc:
