@@ -36,14 +36,16 @@ const (
 )
 
 const (
-	rootDir               = "/var/lib/networkservicemesh/"
-	WorkspaceClientSocket = "nsm.client.io.sock"
-	dirMask               = 0777
+	hostBaseDir     = "/var/lib/networkservicemesh/"
+	nsmBaseDir      = "/var/lib/networkservicemesh/"
+	clientBaseDir   = "/var/lib/networkservicemesh/"
+	NsmServerSocket = "nsm.server.io.sock"
+	NsmClientSocket = "nsm.client.io.sock"
+	dirMask         = 0777
 )
 
 type Workspace struct {
 	name                 string
-	directory            string
 	listener             net.Listener
 	registryServer       registry.NetworkServiceRegistryServer
 	networkServiceServer networkservice.NetworkServiceServer
@@ -58,13 +60,12 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	w.state = NEW
 	w.name = name
-	w.directory = rootDir + w.name
-	logrus.Infof("Creating new directory: %s", w.directory)
-	if err := os.MkdirAll(w.directory, folderMask); err != nil {
-		logrus.Errorf("can't create folder: %s, error: %v", w.directory, err)
+	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
+	if err := os.MkdirAll(w.NsmDirectory(), folderMask); err != nil {
+		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
 	}
-	socket := w.directory + "/" + WorkspaceClientSocket
+	socket := w.NsmServerSocket()
 	logrus.Infof("Creating new listener on: %s", socket)
 	listener, err := NewCustomListener(socket)
 	if err != nil {
@@ -73,9 +74,9 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	}
 	w.listener = listener
 	logrus.Infof("Creating new NetworkServiceRegistryServer")
-	w.registryServer = NewRegistryServer(model)
+	w.registryServer = NewRegistryServer(model, w)
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model)
+	w.networkServiceServer = NewNetworkServiceServer(model, w)
 
 	logrus.Infof("Creating new GRPC Server")
 	w.grpcServer = grpc.NewServer()
@@ -107,8 +108,24 @@ func (w *Workspace) Name() string {
 	return w.name
 }
 
-func (w *Workspace) Directory() string {
-	return w.directory
+func (w *Workspace) NsmDirectory() string {
+	return nsmBaseDir + w.name
+}
+
+func (w *Workspace) HostDirectory() string {
+	return nsmBaseDir + w.name
+}
+
+func (w *Workspace) ClientDirectory() string {
+	return clientBaseDir
+}
+
+func (w *Workspace) NsmServerSocket() string {
+	return w.NsmDirectory() + "/" + NsmServerSocket
+}
+
+func (w *Workspace) NsmClientSocket() string {
+	return w.NsmDirectory() + "/" + NsmClientSocket
 }
 
 func (w *Workspace) Close() {
@@ -121,8 +138,8 @@ func (w *Workspace) Close() {
 
 func (w *Workspace) cleanup() {
 	if w.state != RUNNING {
-		if w.directory != "" {
-			os.RemoveAll(w.directory)
+		if w.NsmDirectory() != "" {
+			os.RemoveAll(w.NsmDirectory())
 		}
 		if w.grpcServer != nil {
 			// TODO switch to Graceful stop once we think through possible long running connections

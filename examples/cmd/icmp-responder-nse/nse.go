@@ -16,12 +16,11 @@ package main
 
 import (
 	"context"
-	"math/rand"
 	"net"
 	"os"
-	"path"
-	"strconv"
 	"sync"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
@@ -35,32 +34,37 @@ const (
 	// networkServiceName defines Network Service Name the NSE is serving for
 	networkServiceName = "icmp-responder"
 	// SocketBaseDir defines the location of NSM Endpoints listen socket
-	SocketBaseDir = "/var/lib/networkservicemesh"
-	// RegistrySocketFile defines the name of NSM Endpoints operations socket
-	RegistrySocketFile = "nsm.client.io.sock"
 )
 
 func main() {
 	var wg sync.WaitGroup
 
+	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
+	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
+	// TODO handle missing env
+
+	nsmClientSocket, _ := os.LookupEnv(nsmd.NsmClientSocketEnv)
+	logrus.Infof("nsmClientSocket: %s", nsmClientSocket)
+	// TODO handle missing env
+
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
 	if err != nil {
-		logrus.Fatalf("nse: failed to get a linux namespace with error: %+v, exiting...", err)
+		logrus.Fatalf("nse: failed to get a linux namespace with error: %v, exiting...", err)
 		os.Exit(1)
 	}
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
-	connectionServerSocket := path.Join(SocketBaseDir, linuxNS+".nse.io.sock")
-	if err := tools.SocketCleanup(connectionServerSocket); err != nil {
-		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", connectionServerSocket, err)
+	connectionServerSocket := nsmClientSocket
+	if err := tools.SocketCleanup(nsmClientSocket); err != nil {
+		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %v", nsmClientSocket, err)
 	}
 
-	logrus.Infof("nse: listening socket %s", connectionServerSocket)
-	connectionServer, err := net.Listen("unix", connectionServerSocket)
+	logrus.Infof("nse: listening socket %s", nsmClientSocket)
+	connectionServer, err := net.Listen("unix", nsmClientSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to listen on a socket %s with error: %+v", connectionServerSocket, err)
+		logrus.Fatalf("nse: failure to listen on a socket %s with error: %v", nsmClientSocket, err)
 	}
 	grpcServer := grpc.NewServer()
 
@@ -73,38 +77,34 @@ func main() {
 	go func() {
 		wg.Add(1)
 		if err := grpcServer.Serve(connectionServer); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %+v ", connectionServerSocket, err)
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
 		}
 	}()
 	// Check if the socket of Endpoint Connection Server is operation
-	testSocket, err := tools.SocketOperationCheck(connectionServerSocket)
+	testSocket, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the connectionServerSocket %s with error: %+v", connectionServerSocket, err)
+		logrus.Fatalf("nse: failure to communicate with the nsm on socket %s with error: %v", nsmServerSocket, err)
 	}
 	testSocket.Close()
 
 	// NSE connection server is ready and now endpoints can be advertised to NSM
-	registrySocket := path.Join(SocketBaseDir, RegistrySocketFile)
 
-	if _, err := os.Stat(registrySocket); err != nil {
-		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", registrySocket, err)
+	if _, err := os.Stat(nsmServerSocket); err != nil {
+		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
 		os.Exit(1)
 	}
 
-	conn, err := tools.SocketOperationCheck(registrySocket)
+	conn, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the registrySocket %s with error: %+v", registrySocket, err)
+		logrus.Fatalf("nse: failure to communicate with the registrySocket %s with error: %+v", nsmServerSocket, err)
 	}
 	defer conn.Close()
-	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", registrySocket)
+	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", nsmServerSocket)
 
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 
-	nseid := rand.Uint64()
-
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: networkServiceName,
-		EndpointName:       networkServiceName + "-" + strconv.FormatUint(nseid, 36),
 		Payload:            "IP",
 		Labels:             make(map[string]string),
 		SocketLocation:     connectionServerSocket,

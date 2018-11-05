@@ -29,15 +29,15 @@ type nsmServer struct {
 	model      model.Model
 }
 
-func RequestWorkspace() (string, error) {
+func RequestWorkspace() (*nsmdapi.ClientConnectionReply, error) {
 	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
 	if _, err := os.Stat(ServerSock); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	conn, err := tools.SocketOperationCheck(ServerSock)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer conn.Close()
 
@@ -45,10 +45,10 @@ func RequestWorkspace() (string, error) {
 	client := nsmdapi.NewNSMDClient(conn)
 	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	logrus.Infof("nsmd allocated workspace %s for client operations...", reply.Workspace)
-	return reply.Workspace, nil
+	logrus.Infof("nsmd allocated workspace %+v for client operations...", reply)
+	return reply, nil
 }
 
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
@@ -62,19 +62,19 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 	workspace, err := NewWorkSpace(nsm.model, fmt.Sprintf("nsm-%d", id))
 	if err != nil {
 		logrus.Error(err)
-		return &nsmdapi.ClientConnectionReply{
-			Accepted:  false,
-			Workspace: "",
-		}, err
+		return nil, err
 	}
 	logrus.Infof("New workspace created: %+v", workspace)
 
 	nsm.Lock()
-	nsm.workspaces[workspace.Directory()] = workspace
+	nsm.workspaces[workspace.Name()] = workspace
 	nsm.Unlock()
 	reply := &nsmdapi.ClientConnectionReply{
-		Accepted:  true,
-		Workspace: workspace.Directory(),
+		Workspace:       workspace.Name(),
+		HostBasedir:     hostBaseDir,
+		ClientBaseDir:   clientBaseDir,
+		NsmServerSocket: NsmServerSocket,
+		NsmClientSocket: NsmClientSocket,
 	}
 	logrus.Infof("returning ClientConnectionReply: %+v", reply)
 	return reply, nil
@@ -87,19 +87,14 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 	workspace, ok := nsm.workspaces[socket]
 	if !ok {
 		err := fmt.Errorf("No connection exists for workspace %s", socket)
-		return &nsmdapi.DeleteConnectionReply{
-			Success: false,
-		}, err
+		return &nsmdapi.DeleteConnectionReply{}, err
 	}
 	workspace.Close()
 	nsm.Lock()
 	delete(nsm.workspaces, socket)
 	nsm.Unlock()
 
-	reply := &nsmdapi.DeleteConnectionReply{
-		Success: true,
-	}
-	return reply, nil
+	return &nsmdapi.DeleteConnectionReply{}, nil
 }
 
 func StartNSMServer(model model.Model) error {

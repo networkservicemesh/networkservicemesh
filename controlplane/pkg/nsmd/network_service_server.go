@@ -3,7 +3,6 @@ package nsmd
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/utils/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -25,16 +23,32 @@ const (
 )
 
 type networkServiceServer struct {
-	model model.Model
+	model     model.Model
+	workspace *Workspace
 }
 
-func NewNetworkServiceServer(model model.Model) networkservice.NetworkServiceServer {
+func NewNetworkServiceServer(model model.Model, workspace *Workspace) networkservice.NetworkServiceServer {
 	return &networkServiceServer{
-		model: model,
+		model:     model,
+		workspace: workspace,
 	}
 }
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+	logrus.Infof("Received request from client to connect to NetworkService: %#v", request)
+	err := ValidateNetworkServiceRequest(request)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+	connectionID := srv.model.ConnectionId()
+	nscConnection := request.GetConnection()
+	// TODO: Mechanism selection
+	nscConnection.LocalMechanism = request.LocalMechanismPreference[0]
+	_, ok := nscConnection.LocalMechanism.Parameters[LocalMechanismParameterInterfaceNameKey]
+	if !ok {
+		nscConnection.LocalMechanism.Parameters[LocalMechanismParameterInterfaceNameKey] = nscConnection.GetNetworkService() + connectionID
+	}
 	netsvc := request.Connection.NetworkService
 	if strings.TrimSpace(netsvc) == "" {
 		return nil, errors.New("No network service defined")
@@ -52,19 +66,13 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		return nil, errors.New("should not see this error, scaffolding called")
 	}
 
-	connectionID := request.Connection.ConnectionId
-	if strings.TrimSpace(connectionID) == "" {
-		connectionID = netsvc
-	}
-	connectionID = request.Connection.ConnectionId + "-" + strconv.FormatUint(rand.Uint64(), 36)
-
 	// get dataplane
 	dp, err := srv.model.SelectDataplane()
 	if err != nil {
 		return nil, err
 	}
 
-	logrus.Infof("Programming dataplane: %v...", dp)
+	logrus.Infof("Preparing to program dataplane: %v...", dp)
 
 	dataplaneConn, err := tools.SocketOperationCheck(dp.SocketLocation)
 	if err != nil {
@@ -80,17 +88,24 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 	// If NSE is local, build parameters
 	if srv.model.GetNsmUrl() == endpoint.Labels[KEY_NSM_URL] {
-		nseConn, err := tools.SocketOperationCheck(endpoint.SocketLocation)
+		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
+		if workspace == nil {
+			err := fmt.Errorf("Cannot find workspace for endpoint %#v", endpoint)
+			logrus.Error(err)
+			return nil, err
+		}
+		nseConn, err := tools.SocketOperationCheck(workspace.NsmClientSocket())
 		if err != nil {
+			logrus.Errorf("Unable to connect to nse %#v", endpoint)
 			return nil, err
 		}
 		defer nseConn.Close()
 
 		client := networkservice.NewNetworkServiceClient(nseConn)
-		nseConnection, e := client.Request(ctx, &networkservice.NetworkServiceRequest{
+		message := &networkservice.NetworkServiceRequest{
 			Connection: &networkservice.Connection{
 				ConnectionId:   connectionID,
-				NetworkService: "",
+				NetworkService: endpoint.GetNetworkServiceName(),
 				LocalMechanism: &common.LocalMechanism{
 					Type:       common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{},
@@ -98,47 +113,63 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 				ConnectionContext: nil,
 				Labels:            nil,
 			},
-		})
+		}
+		nseConnection, e := client.Request(ctx, message)
+		err = ValidateConnection(nseConnection, true)
+		if err != nil {
+			err = fmt.Errorf("Failure Validating NSE Connection: %s", err)
+			return nil, err
+		}
 
-		srcip := strings.Split(nseConnection.LocalMechanism.Parameters["src_ip"], "/")
-		if len(srcip) != 2 {
-			return nil, errors.New("src_ip is not specified as cidr")
-		}
-		dstip := strings.Split(nseConnection.LocalMechanism.Parameters["dst_ip"], "/")
-		if len(dstip) != 2 {
-			return nil, errors.New("dst_ip is not specified as cidr")
-		}
+		// srcip := strings.Split(nseConnection.LocalMechanism.Parameters["src_ip"], "/")
+		// if len(srcip) != 2 {
+		// 	err := errors.New("src_ip is not specified as cidr")
+		// 	logrus.Error(err)
+		// 	return nil, err
+		// }
+		// dstip := strings.Split(nseConnection.LocalMechanism.Parameters["dst_ip"], "/")
+		// if len(dstip) != 2 {
+		// 	err := errors.New("dst_ip is not specified as cidr")
+		// 	logrus.Error(err)
+		// 	return nil, err
+		// }
 		if e != nil {
+			logrus.Errorf("error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
 			return nil, e
 		}
 
-		clientMechanism := &common.LocalMechanism{
-			Type: common.LocalMechanismType_KERNEL_INTERFACE,
-			Parameters: map[string]string{
-				nsmutils.NSMkeyNamespace:        nseConnection.LocalMechanism.Parameters["netns"],
-				nsmutils.NSMkeyIPv4:             srcip[0],
-				nsmutils.NSMkeyIPv4PrefixLength: srcip[1],
-			},
-		}
-		remoteMechanism := &common.LocalMechanism{
-			Type: common.LocalMechanismType_KERNEL_INTERFACE,
-			Parameters: map[string]string{
-				nsmutils.NSMkeyNamespace:        nseConnection.LocalMechanism.Parameters["netns"],
-				nsmutils.NSMkeyIPv4:             dstip[0],
-				nsmutils.NSMkeyIPv4PrefixLength: dstip[1],
-			},
-		}
+		// srcMechanism := &common.LocalMechanism{
+		// 	Type: common.LocalMechanismType_KERNEL_INTERFACE,
+		// 	Parameters: map[string]string{
+		// 		nsmutils.NSMkeyNamespace: nscConnection.LocalMechanism.Parameters["netns"],
+		// 		// nsmutils.NSMkeyIPv4:             srcip[0],
+		// 		// nsmutils.NSMkeyIPv4PrefixLength: srcip[1],
+		// 	},
+		// }
+		// dstMechanism := &common.LocalMechanism{
+		// 	Type: common.LocalMechanismType_KERNEL_INTERFACE,
+		// 	Parameters: map[string]string{
+		// 		nsmutils.NSMkeyNamespace: nseConnection.LocalMechanism.Parameters["netns"],
+		// 		// nsmutils.NSMkeyIPv4:             dstip[0],
+		// 		// nsmutils.NSMkeyIPv4PrefixLength: dstip[1],
+		// 	},
+		// }
 		dpApiConnection = &dataplaneapi.Connection{
 			ConnectionId: connectionID,
-			LocalSource:  clientMechanism,
+			LocalSource:  nscConnection.GetLocalMechanism(),
 			Destination: &dataplaneapi.Connection_Local{
-				Local: remoteMechanism,
+				Local: nseConnection.GetLocalMechanism(),
 			},
 		}
 	} else {
 		// TODO connection is remote, send to nsm
 	}
+	logrus.Infof("Sending request to dataplane: %#v", dpApiConnection)
 	_, err = dataplaneClient.ConnectRequest(dpCtx, dpApiConnection)
+	if err != nil {
+		logrus.Errorf("Dataplane request failed: %s", err)
+		return nil, err
+	}
 
 	return &networkservice.Connection{
 		ConnectionId:      connectionID,

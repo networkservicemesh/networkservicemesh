@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
@@ -30,13 +31,15 @@ type Model interface {
 	SelectDataplane() (*Dataplane, error)
 
 	GetNsmUrl() string
+	ConnectionId() string
 }
 
 type impl struct {
 	sync.RWMutex
-	endpoints  []*registry.NetworkServiceEndpoint
-	dataplanes []*Dataplane
-	nsmUrl     string
+	endpoints         []*registry.NetworkServiceEndpoint
+	dataplanes        []*Dataplane
+	lastConnnectionId uint64
+	nsmUrl            string
 }
 
 func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint {
@@ -117,4 +120,11 @@ func NewModel(nsmUrl string) Model {
 	return &impl{
 		nsmUrl: nsmUrl,
 	}
+}
+
+func (i *impl) ConnectionId() string {
+	i.Lock()
+	defer i.Unlock()
+	i.lastConnnectionId++
+	return strconv.FormatUint(i.lastConnnectionId, 16)
 }

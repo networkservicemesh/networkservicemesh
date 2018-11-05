@@ -16,14 +16,12 @@ package main
 
 import (
 	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 	"os"
 	"os/signal"
-	"path"
-	"strconv"
 	"sync"
 	"syscall"
-	"time"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -39,36 +37,25 @@ func main() {
 	}
 	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
 
-	var workspace string
+	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
+	// TODO handle case where env variable is not set
 
-	if os.Getenv(nsmd.NsmDevicePluginEnv) != "" {
-		workspace = nsmd.DefaultWorkspace
-	} else {
-		workspace, err = nsmd.RequestWorkspace()
-		if err != nil {
-			logrus.Fatalf("nsc: failed set up client connection, error: %+v, exiting...", err)
-		}
+	logrus.Infof("Connecting to nsm server on socket: %s...", nsmServerSocket)
+	if _, err := os.Stat(nsmServerSocket); err != nil {
+		logrus.Fatalln("nsc: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
 	}
 
-	clientSocket := path.Join(workspace, nsmd.ClientSocket)
-
-	logrus.Infof("Connecting to nsm server on socket: %s...", clientSocket)
-	if _, err := os.Stat(clientSocket); err != nil {
-		logrus.Fatalln("nsc: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
-	}
-
-	conn, err := tools.SocketOperationCheck(clientSocket)
+	conn, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
-		logrus.Fatalf("nsm client: failure to communicate with the socket %s with error: %+v", clientSocket, err)
+		logrus.Fatalf("nsm client: failure to communicate with the socket %s with error: %+v", nsmServerSocket, err)
 	}
 	defer conn.Close()
 
 	// Init related activities start here
 	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 
-	_, err = nsmConnectionClient.Request(context.Background(), &networkservice.NetworkServiceRequest{
+	request := &networkservice.NetworkServiceRequest{
 		Connection: &networkservice.Connection{
-			ConnectionId:   netns + "-" + strconv.FormatInt(time.Now().Unix(), 36),
 			NetworkService: "icmp-responder",
 			ConnectionContext: &networkservice.ConnectionContext{
 				ConnectionContext: map[string]string{
@@ -80,14 +67,18 @@ func main() {
 		LocalMechanismPreference: []*common.LocalMechanism{
 			{
 				Type:       common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{"netns": netns},
+				Parameters: map[string]string{nsmd.LocalMechanismParameterNetNsInodeKey: netns},
 			},
 		},
-	})
+	}
+
+	logrus.Infof("Sending request %v", request)
+	reply, err := nsmConnectionClient.Request(context.Background(), request)
 
 	if err != nil {
-		logrus.Fatalf("failure to request connection with error: %+v", err)
+		logrus.Errorf("failure to request connection with error: %+v", err)
 	}
+	logrus.Infof("Received reply: %v", reply)
 
 	// Init related activities ends here
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
