@@ -1,0 +1,12 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: aggregate-network-services-view
+  labels:
+    # Add these permissions to the "view" default role.
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups: ["networkservicemesh.io"]
+    resources: ["networkservices"]
+    verbs: ["get", "list", "watch"]
