@@ -4,9 +4,10 @@
 package registry
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	context "golang.org/x/net/context"
+	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	grpc "google.golang.org/grpc"
 	math "math"
 )
@@ -22,99 +23,68 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type RegisterNSERequest struct {
-	NetworkServiceName   string   `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
-	NsmUrl               string   `protobuf:"bytes,2,opt,name=nsm_url,json=nsmUrl,proto3" json:"nsm_url,omitempty"`
-	EndpointName         string   `protobuf:"bytes,3,opt,name=endpoint_name,json=endpointName,proto3" json:"endpoint_name,omitempty"`
-	Payload              string   `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type NetworkServiceEndpoint struct {
+	NetworkServiceName   string            `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
+	EndpointName         string            `protobuf:"bytes,2,opt,name=endpoint_name,json=endpointName,proto3" json:"endpoint_name,omitempty"`
+	Payload              string            `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
-func (m *RegisterNSERequest) Reset()         { *m = RegisterNSERequest{} }
-func (m *RegisterNSERequest) String() string { return proto.CompactTextString(m) }
-func (*RegisterNSERequest) ProtoMessage()    {}
-func (*RegisterNSERequest) Descriptor() ([]byte, []int) {
+func (m *NetworkServiceEndpoint) Reset()         { *m = NetworkServiceEndpoint{} }
+func (m *NetworkServiceEndpoint) String() string { return proto.CompactTextString(m) }
+func (*NetworkServiceEndpoint) ProtoMessage()    {}
+func (*NetworkServiceEndpoint) Descriptor() ([]byte, []int) {
 	return fileDescriptor_41af05d40a615591, []int{0}
 }
 
-func (m *RegisterNSERequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RegisterNSERequest.Unmarshal(m, b)
+func (m *NetworkServiceEndpoint) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NetworkServiceEndpoint.Unmarshal(m, b)
 }
-func (m *RegisterNSERequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RegisterNSERequest.Marshal(b, m, deterministic)
+func (m *NetworkServiceEndpoint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NetworkServiceEndpoint.Marshal(b, m, deterministic)
 }
-func (m *RegisterNSERequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RegisterNSERequest.Merge(m, src)
+func (m *NetworkServiceEndpoint) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NetworkServiceEndpoint.Merge(m, src)
 }
-func (m *RegisterNSERequest) XXX_Size() int {
-	return xxx_messageInfo_RegisterNSERequest.Size(m)
+func (m *NetworkServiceEndpoint) XXX_Size() int {
+	return xxx_messageInfo_NetworkServiceEndpoint.Size(m)
 }
-func (m *RegisterNSERequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_RegisterNSERequest.DiscardUnknown(m)
+func (m *NetworkServiceEndpoint) XXX_DiscardUnknown() {
+	xxx_messageInfo_NetworkServiceEndpoint.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RegisterNSERequest proto.InternalMessageInfo
+var xxx_messageInfo_NetworkServiceEndpoint proto.InternalMessageInfo
 
-func (m *RegisterNSERequest) GetNetworkServiceName() string {
+func (m *NetworkServiceEndpoint) GetNetworkServiceName() string {
 	if m != nil {
 		return m.NetworkServiceName
 	}
 	return ""
 }
 
-func (m *RegisterNSERequest) GetNsmUrl() string {
-	if m != nil {
-		return m.NsmUrl
-	}
-	return ""
-}
-
-func (m *RegisterNSERequest) GetEndpointName() string {
+func (m *NetworkServiceEndpoint) GetEndpointName() string {
 	if m != nil {
 		return m.EndpointName
 	}
 	return ""
 }
 
-func (m *RegisterNSERequest) GetPayload() string {
+func (m *NetworkServiceEndpoint) GetPayload() string {
 	if m != nil {
 		return m.Payload
 	}
 	return ""
 }
 
-type RegisterNSEResponse struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+func (m *NetworkServiceEndpoint) GetLabels() map[string]string {
+	if m != nil {
+		return m.Labels
+	}
+	return nil
 }
-
-func (m *RegisterNSEResponse) Reset()         { *m = RegisterNSEResponse{} }
-func (m *RegisterNSEResponse) String() string { return proto.CompactTextString(m) }
-func (*RegisterNSEResponse) ProtoMessage()    {}
-func (*RegisterNSEResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_41af05d40a615591, []int{1}
-}
-
-func (m *RegisterNSEResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RegisterNSEResponse.Unmarshal(m, b)
-}
-func (m *RegisterNSEResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RegisterNSEResponse.Marshal(b, m, deterministic)
-}
-func (m *RegisterNSEResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RegisterNSEResponse.Merge(m, src)
-}
-func (m *RegisterNSEResponse) XXX_Size() int {
-	return xxx_messageInfo_RegisterNSEResponse.Size(m)
-}
-func (m *RegisterNSEResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_RegisterNSEResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_RegisterNSEResponse proto.InternalMessageInfo
 
 type RemoveNSERequest struct {
 	EndpointName         string   `protobuf:"bytes,1,opt,name=endpoint_name,json=endpointName,proto3" json:"endpoint_name,omitempty"`
@@ -127,7 +97,7 @@ func (m *RemoveNSERequest) Reset()         { *m = RemoveNSERequest{} }
 func (m *RemoveNSERequest) String() string { return proto.CompactTextString(m) }
 func (*RemoveNSERequest) ProtoMessage()    {}
 func (*RemoveNSERequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_41af05d40a615591, []int{2}
+	return fileDescriptor_41af05d40a615591, []int{1}
 }
 
 func (m *RemoveNSERequest) XXX_Unmarshal(b []byte) error {
@@ -155,37 +125,6 @@ func (m *RemoveNSERequest) GetEndpointName() string {
 	return ""
 }
 
-type RemoveNSEResponse struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *RemoveNSEResponse) Reset()         { *m = RemoveNSEResponse{} }
-func (m *RemoveNSEResponse) String() string { return proto.CompactTextString(m) }
-func (*RemoveNSEResponse) ProtoMessage()    {}
-func (*RemoveNSEResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_41af05d40a615591, []int{3}
-}
-
-func (m *RemoveNSEResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RemoveNSEResponse.Unmarshal(m, b)
-}
-func (m *RemoveNSEResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RemoveNSEResponse.Marshal(b, m, deterministic)
-}
-func (m *RemoveNSEResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RemoveNSEResponse.Merge(m, src)
-}
-func (m *RemoveNSEResponse) XXX_Size() int {
-	return xxx_messageInfo_RemoveNSEResponse.Size(m)
-}
-func (m *RemoveNSEResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_RemoveNSEResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_RemoveNSEResponse proto.InternalMessageInfo
-
 type FindNetworkServiceRequest struct {
 	NetworkServiceName   string   `protobuf:"bytes,1,opt,name=network_service_name,json=networkServiceName,proto3" json:"network_service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -197,7 +136,7 @@ func (m *FindNetworkServiceRequest) Reset()         { *m = FindNetworkServiceReq
 func (m *FindNetworkServiceRequest) String() string { return proto.CompactTextString(m) }
 func (*FindNetworkServiceRequest) ProtoMessage()    {}
 func (*FindNetworkServiceRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_41af05d40a615591, []int{4}
+	return fileDescriptor_41af05d40a615591, []int{2}
 }
 
 func (m *FindNetworkServiceRequest) XXX_Unmarshal(b []byte) error {
@@ -237,7 +176,7 @@ func (m *FindNetworkServiceResponse) Reset()         { *m = FindNetworkServiceRe
 func (m *FindNetworkServiceResponse) String() string { return proto.CompactTextString(m) }
 func (*FindNetworkServiceResponse) ProtoMessage()    {}
 func (*FindNetworkServiceResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_41af05d40a615591, []int{5}
+	return fileDescriptor_41af05d40a615591, []int{3}
 }
 
 func (m *FindNetworkServiceResponse) XXX_Unmarshal(b []byte) error {
@@ -272,89 +211,43 @@ func (m *FindNetworkServiceResponse) GetNetworkServiceEndpoints() []*NetworkServ
 	return nil
 }
 
-type NetworkServiceEndpoint struct {
-	NsmUrl               string   `protobuf:"bytes,1,opt,name=nsm_url,json=nsmUrl,proto3" json:"nsm_url,omitempty"`
-	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *NetworkServiceEndpoint) Reset()         { *m = NetworkServiceEndpoint{} }
-func (m *NetworkServiceEndpoint) String() string { return proto.CompactTextString(m) }
-func (*NetworkServiceEndpoint) ProtoMessage()    {}
-func (*NetworkServiceEndpoint) Descriptor() ([]byte, []int) {
-	return fileDescriptor_41af05d40a615591, []int{6}
-}
-
-func (m *NetworkServiceEndpoint) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_NetworkServiceEndpoint.Unmarshal(m, b)
-}
-func (m *NetworkServiceEndpoint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_NetworkServiceEndpoint.Marshal(b, m, deterministic)
-}
-func (m *NetworkServiceEndpoint) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NetworkServiceEndpoint.Merge(m, src)
-}
-func (m *NetworkServiceEndpoint) XXX_Size() int {
-	return xxx_messageInfo_NetworkServiceEndpoint.Size(m)
-}
-func (m *NetworkServiceEndpoint) XXX_DiscardUnknown() {
-	xxx_messageInfo_NetworkServiceEndpoint.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_NetworkServiceEndpoint proto.InternalMessageInfo
-
-func (m *NetworkServiceEndpoint) GetNsmUrl() string {
-	if m != nil {
-		return m.NsmUrl
-	}
-	return ""
-}
-
-func (m *NetworkServiceEndpoint) GetName() string {
-	if m != nil {
-		return m.Name
-	}
-	return ""
-}
-
 func init() {
-	proto.RegisterType((*RegisterNSERequest)(nil), "registry.RegisterNSERequest")
-	proto.RegisterType((*RegisterNSEResponse)(nil), "registry.RegisterNSEResponse")
+	proto.RegisterType((*NetworkServiceEndpoint)(nil), "registry.NetworkServiceEndpoint")
+	proto.RegisterMapType((map[string]string)(nil), "registry.NetworkServiceEndpoint.LabelsEntry")
 	proto.RegisterType((*RemoveNSERequest)(nil), "registry.RemoveNSERequest")
-	proto.RegisterType((*RemoveNSEResponse)(nil), "registry.RemoveNSEResponse")
 	proto.RegisterType((*FindNetworkServiceRequest)(nil), "registry.FindNetworkServiceRequest")
 	proto.RegisterType((*FindNetworkServiceResponse)(nil), "registry.FindNetworkServiceResponse")
-	proto.RegisterType((*NetworkServiceEndpoint)(nil), "registry.NetworkServiceEndpoint")
 }
 
 func init() { proto.RegisterFile("registry.proto", fileDescriptor_41af05d40a615591) }
 
 var fileDescriptor_41af05d40a615591 = []byte{
-	// 345 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0xc1, 0x4e, 0xc2, 0x40,
-	0x10, 0xcd, 0x02, 0x01, 0x19, 0xd4, 0xe8, 0xa0, 0x52, 0xaa, 0x26, 0xa4, 0x78, 0xe0, 0x44, 0x0c,
-	0x1e, 0xfc, 0x01, 0xf1, 0x60, 0x22, 0x87, 0x12, 0x6f, 0x26, 0x4d, 0x95, 0x89, 0x69, 0xa4, 0xbb,
-	0x75, 0xb7, 0x60, 0xf8, 0x06, 0xaf, 0x9e, 0xfd, 0x56, 0x93, 0x6d, 0x0b, 0x5d, 0x5a, 0x3c, 0x78,
-	0xeb, 0xec, 0x9b, 0x79, 0xef, 0xcd, 0xbe, 0x2e, 0x1c, 0x4a, 0x7a, 0x0b, 0x54, 0x2c, 0x57, 0xc3,
-	0x48, 0x8a, 0x58, 0xe0, 0x5e, 0x56, 0x3b, 0x3f, 0x0c, 0xd0, 0xd5, 0x05, 0xc9, 0xc9, 0x74, 0xec,
-	0xd2, 0xc7, 0x82, 0x54, 0x8c, 0xd7, 0x70, 0xc2, 0x29, 0xfe, 0x14, 0xf2, 0xdd, 0x53, 0x24, 0x97,
-	0xc1, 0x2b, 0x79, 0xdc, 0x0f, 0xc9, 0x62, 0x3d, 0x36, 0x68, 0xba, 0x98, 0x62, 0xd3, 0x04, 0x9a,
-	0xf8, 0x21, 0x61, 0x07, 0x1a, 0x5c, 0x85, 0xde, 0x42, 0xce, 0xad, 0x8a, 0x6e, 0xaa, 0x73, 0x15,
-	0x3e, 0xc9, 0x39, 0xf6, 0xe1, 0x80, 0xf8, 0x2c, 0x12, 0x01, 0x8f, 0x13, 0x8e, 0xaa, 0x86, 0xf7,
-	0xb3, 0x43, 0x3d, 0x6d, 0x41, 0x23, 0xf2, 0x57, 0x73, 0xe1, 0xcf, 0xac, 0x9a, 0x86, 0xb3, 0xd2,
-	0x39, 0x85, 0xb6, 0xe1, 0x4f, 0x45, 0x82, 0x2b, 0x72, 0x6e, 0xe1, 0xc8, 0xa5, 0x50, 0x2c, 0x29,
-	0x67, 0xba, 0xa0, 0xc4, 0x8a, 0x4a, 0x4e, 0x1b, 0x8e, 0x73, 0x83, 0x29, 0xdb, 0x23, 0x74, 0xef,
-	0x03, 0x3e, 0x9b, 0x18, 0x6b, 0xfd, 0xfb, 0x2e, 0x9c, 0x6f, 0x06, 0x76, 0x19, 0x5f, 0xa2, 0x96,
-	0x5f, 0x96, 0x19, 0xcb, 0xe2, 0x33, 0x74, 0xb7, 0xa5, 0x32, 0xf3, 0xca, 0xaa, 0xf4, 0xaa, 0x83,
-	0xd6, 0xa8, 0x37, 0x5c, 0x67, 0x69, 0xd2, 0x8f, 0xd3, 0x46, 0xb7, 0xc3, 0x4b, 0xcf, 0x95, 0x33,
-	0x86, 0xb3, 0xf2, 0x91, 0x7c, 0x78, 0xcc, 0x08, 0x0f, 0xa1, 0xa6, 0x77, 0x4d, 0x22, 0xd5, 0xdf,
-	0xa3, 0xaf, 0xca, 0x36, 0x8f, 0x9b, 0x3a, 0xc2, 0x07, 0x68, 0xe5, 0xc2, 0xc2, 0x8b, 0x8d, 0xd7,
-	0xe2, 0x3f, 0x66, 0x5f, 0xee, 0x40, 0xd3, 0x5b, 0xba, 0x83, 0xe6, 0x3a, 0x28, 0xb4, 0xf3, 0xbd,
-	0x66, 0xec, 0xf6, 0x79, 0x29, 0x96, 0xb2, 0x78, 0x80, 0xc5, 0x24, 0xb0, 0xbf, 0x19, 0xd9, 0x99,
-	0xbb, 0x7d, 0xf5, 0x77, 0x53, 0x22, 0xf0, 0x52, 0xd7, 0x2f, 0xea, 0xe6, 0x37, 0x00, 0x00, 0xff,
-	0xff, 0x4c, 0x83, 0xcd, 0xcd, 0x63, 0x03, 0x00, 0x00,
+	// 391 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x4d, 0x4f, 0xea, 0x40,
+	0x14, 0x4d, 0xcb, 0x7b, 0xbc, 0xc7, 0x45, 0x0c, 0x99, 0x10, 0x2d, 0x5d, 0x91, 0xe2, 0x82, 0x85,
+	0x69, 0x0d, 0x26, 0x7e, 0xad, 0xad, 0x2b, 0x6d, 0x62, 0xd9, 0x9a, 0x90, 0x01, 0x26, 0xa5, 0xa1,
+	0x33, 0x53, 0x3b, 0x03, 0xa6, 0x7b, 0x57, 0xae, 0xfd, 0xc1, 0xc6, 0x76, 0x0a, 0x96, 0xa2, 0xc4,
+	0x15, 0x73, 0x2f, 0xe7, 0x9c, 0x39, 0xf7, 0xdc, 0x29, 0x1c, 0x26, 0x24, 0x08, 0x85, 0x4c, 0x52,
+	0x3b, 0x4e, 0xb8, 0xe4, 0xe8, 0x7f, 0x51, 0x9b, 0x6e, 0x10, 0xca, 0xf9, 0x72, 0x62, 0x4f, 0x39,
+	0x75, 0xa2, 0x30, 0xc0, 0x92, 0x3b, 0x8c, 0xc8, 0x17, 0x9e, 0x2c, 0x04, 0x49, 0x56, 0xe1, 0x94,
+	0x50, 0x22, 0xe6, 0x4e, 0xbc, 0x08, 0x1c, 0x26, 0xa8, 0x83, 0xe3, 0x50, 0x38, 0x53, 0x4e, 0x29,
+	0x67, 0xea, 0x27, 0x17, 0xb4, 0xde, 0x74, 0x38, 0xf2, 0x72, 0xde, 0x28, 0xe7, 0xb9, 0x6c, 0x16,
+	0xf3, 0x90, 0x49, 0x74, 0x06, 0x1d, 0xa5, 0x38, 0x56, 0x92, 0x63, 0x86, 0x29, 0x31, 0xb4, 0x9e,
+	0x36, 0x68, 0xf8, 0x88, 0x95, 0x58, 0x1e, 0xa6, 0x04, 0xf5, 0xa1, 0x45, 0x14, 0x3b, 0x87, 0xea,
+	0x19, 0xf4, 0xa0, 0x68, 0x66, 0x20, 0x03, 0xfe, 0xc5, 0x38, 0x8d, 0x38, 0x9e, 0x19, 0xb5, 0xec,
+	0xef, 0xa2, 0x44, 0xb7, 0x50, 0x8f, 0xf0, 0x84, 0x44, 0xc2, 0xf8, 0xd3, 0xab, 0x0d, 0x9a, 0xc3,
+	0x53, 0x7b, 0x3d, 0xfd, 0x6e, 0x8b, 0xf6, 0x7d, 0x06, 0x77, 0x99, 0x4c, 0x52, 0x5f, 0x71, 0xcd,
+	0x6b, 0x68, 0x7e, 0x69, 0xa3, 0x36, 0xd4, 0x16, 0x24, 0x55, 0xa6, 0x3f, 0x8f, 0xa8, 0x03, 0x7f,
+	0x57, 0x38, 0x5a, 0x16, 0xee, 0xf2, 0xe2, 0x46, 0xbf, 0xd2, 0xac, 0x4b, 0x68, 0xfb, 0x84, 0xf2,
+	0x15, 0xf1, 0x46, 0xae, 0x4f, 0x9e, 0x97, 0x44, 0xc8, 0xea, 0x4c, 0x5a, 0x75, 0x26, 0xeb, 0x01,
+	0xba, 0x77, 0x21, 0x9b, 0x95, 0x5d, 0x16, 0x0a, 0xbf, 0xce, 0xd1, 0x7a, 0xd7, 0xc0, 0xdc, 0xa5,
+	0x27, 0x62, 0xce, 0x44, 0x29, 0x41, 0xad, 0x9c, 0xe0, 0x13, 0x74, 0xb7, 0xaf, 0x2a, 0x7c, 0x0a,
+	0x43, 0xcf, 0x42, 0xed, 0xed, 0x0b, 0xd5, 0x3f, 0x66, 0x3b, 0xfb, 0x62, 0xf8, 0x5a, 0x79, 0x2b,
+	0xbe, 0x92, 0x42, 0x8f, 0xd0, 0xcc, 0xcf, 0x24, 0xf1, 0x46, 0x2e, 0xda, 0x7b, 0x89, 0xb9, 0x17,
+	0x81, 0x2e, 0xa0, 0xb1, 0x5e, 0x06, 0x32, 0x37, 0xf0, 0xed, 0x0d, 0x99, 0x2d, 0x5b, 0xbd, 0x68,
+	0x97, 0xc6, 0x32, 0x45, 0x63, 0x40, 0xd5, 0xec, 0x50, 0x7f, 0x23, 0xf0, 0xed, 0xa6, 0xcc, 0x93,
+	0x9f, 0x41, 0x79, 0xfc, 0x93, 0x7a, 0xf6, 0xe5, 0x9c, 0x7f, 0x04, 0x00, 0x00, 0xff, 0xff, 0x07,
+	0xb3, 0x9e, 0x04, 0x9c, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -369,8 +262,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type NetworkServiceRegistryClient interface {
-	RegisterNSE(ctx context.Context, in *RegisterNSERequest, opts ...grpc.CallOption) (*RegisterNSEResponse, error)
-	RemoveNSE(ctx context.Context, in *RemoveNSERequest, opts ...grpc.CallOption) (*RemoveNSEResponse, error)
+	RegisterNSE(ctx context.Context, in *NetworkServiceEndpoint, opts ...grpc.CallOption) (*NetworkServiceEndpoint, error)
+	RemoveNSE(ctx context.Context, in *RemoveNSERequest, opts ...grpc.CallOption) (*common.Empty, error)
 	FindNetworkService(ctx context.Context, in *FindNetworkServiceRequest, opts ...grpc.CallOption) (*FindNetworkServiceResponse, error)
 }
 
@@ -382,8 +275,8 @@ func NewNetworkServiceRegistryClient(cc *grpc.ClientConn) NetworkServiceRegistry
 	return &networkServiceRegistryClient{cc}
 }
 
-func (c *networkServiceRegistryClient) RegisterNSE(ctx context.Context, in *RegisterNSERequest, opts ...grpc.CallOption) (*RegisterNSEResponse, error) {
-	out := new(RegisterNSEResponse)
+func (c *networkServiceRegistryClient) RegisterNSE(ctx context.Context, in *NetworkServiceEndpoint, opts ...grpc.CallOption) (*NetworkServiceEndpoint, error) {
+	out := new(NetworkServiceEndpoint)
 	err := c.cc.Invoke(ctx, "/registry.NetworkServiceRegistry/RegisterNSE", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -391,8 +284,8 @@ func (c *networkServiceRegistryClient) RegisterNSE(ctx context.Context, in *Regi
 	return out, nil
 }
 
-func (c *networkServiceRegistryClient) RemoveNSE(ctx context.Context, in *RemoveNSERequest, opts ...grpc.CallOption) (*RemoveNSEResponse, error) {
-	out := new(RemoveNSEResponse)
+func (c *networkServiceRegistryClient) RemoveNSE(ctx context.Context, in *RemoveNSERequest, opts ...grpc.CallOption) (*common.Empty, error) {
+	out := new(common.Empty)
 	err := c.cc.Invoke(ctx, "/registry.NetworkServiceRegistry/RemoveNSE", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -411,8 +304,8 @@ func (c *networkServiceRegistryClient) FindNetworkService(ctx context.Context, i
 
 // NetworkServiceRegistryServer is the server API for NetworkServiceRegistry service.
 type NetworkServiceRegistryServer interface {
-	RegisterNSE(context.Context, *RegisterNSERequest) (*RegisterNSEResponse, error)
-	RemoveNSE(context.Context, *RemoveNSERequest) (*RemoveNSEResponse, error)
+	RegisterNSE(context.Context, *NetworkServiceEndpoint) (*NetworkServiceEndpoint, error)
+	RemoveNSE(context.Context, *RemoveNSERequest) (*common.Empty, error)
 	FindNetworkService(context.Context, *FindNetworkServiceRequest) (*FindNetworkServiceResponse, error)
 }
 
@@ -421,7 +314,7 @@ func RegisterNetworkServiceRegistryServer(s *grpc.Server, srv NetworkServiceRegi
 }
 
 func _NetworkServiceRegistry_RegisterNSE_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterNSERequest)
+	in := new(NetworkServiceEndpoint)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -433,7 +326,7 @@ func _NetworkServiceRegistry_RegisterNSE_Handler(srv interface{}, ctx context.Co
 		FullMethod: "/registry.NetworkServiceRegistry/RegisterNSE",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NetworkServiceRegistryServer).RegisterNSE(ctx, req.(*RegisterNSERequest))
+		return srv.(NetworkServiceRegistryServer).RegisterNSE(ctx, req.(*NetworkServiceEndpoint))
 	}
 	return interceptor(ctx, in, info, handler)
 }

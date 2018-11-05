@@ -4,11 +4,11 @@
 package nseconnect
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	netmesh "github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	math "math"
 )

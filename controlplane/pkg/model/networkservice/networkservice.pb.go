@@ -4,10 +4,10 @@
 package networkservice
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	common "github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	math "math"
 )
