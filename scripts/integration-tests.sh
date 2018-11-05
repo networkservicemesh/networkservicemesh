@@ -72,10 +72,6 @@ function run_tests() {
     # Starting vpp-daemonset pod
     kubectl create -f dataplanes/vpp/yaml/vpp-daemonset.yaml
 
-    kubectl apply -f k8s/conf/cluster-role-admin.yaml
-    kubectl apply -f k8s/conf/cluster-role-binding.yaml
-    kubectl apply -f k8s/conf/nsmd.yaml
-
     #
     # Now let's wait for vpp-daemonset pod to get into running state
     #
