@@ -26,5 +26,8 @@ message FindNetworkServiceResponse {
 service NetworkServiceRegistry {
     rpc RegisterNSE (NetworkServiceEndpoint) returns (NetworkServiceEndpoint);
     rpc RemoveNSE (RemoveNSERequest) returns (common.Empty);
+}
+
+service NetworkServiceDiscovery {
     rpc FindNetworkService (FindNetworkServiceRequest) returns (FindNetworkServiceResponse);
 }
