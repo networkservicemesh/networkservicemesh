@@ -2,13 +2,12 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"math/rand"
 	"path"
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
@@ -48,7 +47,7 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 	// Need to check if for requested network service, there are advertised Endpoints
 	endpoints := n.model.GetNetworkServiceEndpoints(cr.NetworkServiceName)
 	endpoints = model.FilterEndpointsByHost(endpoints, n.nsmPodIPAddress)
-	endpoints = model.FindEndpointsForMechanism(endpoints, cr.LocalMechanisms)
+	endpoints, mechanismType := model.FindEndpointsForMechanism(endpoints, cr.LocalMechanisms)
 
 	if len(endpoints) == 0 {
 		return &nsmconnect.ConnectionReply{
@@ -61,7 +60,21 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 	// interface type. Until more sofisticated algorithm is proposed, selecting a random entry from the slice.
 	src := rand.NewSource(time.Now().Unix())
 	rnd := rand.New(src)
+
 	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
+	var selectedEndpointMechanism *common.LocalMechanism
+	for _, mechanism := range selectedEndpoint.LocalMechanisms {
+		if mechanism.Type == mechanismType {
+			selectedEndpointMechanism = mechanism
+		}
+	}
+	var selectedClientMechanism *common.LocalMechanism
+	for _, mechanism := range cr.LocalMechanisms {
+		if mechanism.Type == mechanismType {
+			selectedClientMechanism = mechanism
+		}
+	}
+
 	logrus.Infof("Endpoint %s selected for network service %s", selectedEndpoint.NseProviderName,
 		cr.NetworkServiceName)
 
@@ -98,23 +111,11 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 
 	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer dpCancel()
+
 	dpRepl, err := dataplaneClient.ConnectRequest(dpCtx, &dataplaneapi.Connection{
-		LocalSource: &common.LocalMechanism{
-			Type: common.LocalMechanismType_KERNEL_INTERFACE,
-			Parameters: map[string]string{
-				nsmutils.NSMkeyNamespace:        cr.LinuxNamespace,
-				nsmutils.NSMkeyIPv4:             "2.2.2.2",
-				nsmutils.NSMkeyIPv4PrefixLength: "24",
-			},
-		},
+		LocalSource: selectedClientMechanism,
 		Destination: &dataplaneapi.Connection_Local{
-			Local: &common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					nsmutils.NSMkeyNamespace:        nseRepl.LinuxNamespace,
-					nsmutils.NSMkeyIPv4:             "2.2.2.3",
-					nsmutils.NSMkeyIPv4PrefixLength: "24"},
-			},
+			Local: selectedEndpointMechanism,
 		},
 	})
 	if err != nil {

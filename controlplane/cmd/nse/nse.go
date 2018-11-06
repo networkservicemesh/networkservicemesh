@@ -16,6 +16,8 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"net"
 	"os"
 	"path"
@@ -71,8 +73,23 @@ func main() {
 	}
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
+	var workspace string
+	var perPodDirectory string
+
+	if os.Getenv(nsmd.NsmDevicePluginEnv) != "" {
+		workspace = nsmd.DefaultWorkspace
+		perPodDirectory = os.Getenv(nsmd.NsmPerPodDirectoryEnv)
+	} else {
+		workspace, err = nsmd.RequestWorkspace()
+		if err != nil {
+			logrus.Fatalf("nsc: failed set up client connection, error: %+v, exiting...", err)
+			os.Exit(1)
+		}
+		_, perPodDirectory = path.Split(workspace)
+	}
+
 	// NSM socket path will be used to drop NSE socket for NSM's Connection request
-	connectionServerSocket := path.Join(EndpointSocketBaseDir, linuxNS+".nse.io.sock")
+	connectionServerSocket := path.Join(workspace, linuxNS+".nse.io.sock")
 	if err := tools.SocketCleanup(connectionServerSocket); err != nil {
 		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %+v", connectionServerSocket, err)
 	}
@@ -129,6 +146,12 @@ func main() {
 		LocalMechanisms: []*common.LocalMechanism{
 			{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+			{
+				Type: common.LocalMechanismType_MEM_INTERFACE,
+				Parameters: map[string]string{
+					nsmutils.NSMPerPodDirectory: perPodDirectory,
+				},
 			},
 		},
 	}

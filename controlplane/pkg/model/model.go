@@ -123,9 +123,12 @@ func FilterEndpointsByHost(endpointList []*netmesh.NetworkServiceEndpoint, host 
 
 // getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
 // only Endpoints offerring correct Interface type.
-func FindEndpointsForMechanism(endpointList []*netmesh.NetworkServiceEndpoint, reqMechanismsSorted []*common.LocalMechanism) []*netmesh.NetworkServiceEndpoint {
+func FindEndpointsForMechanism(endpointList []*netmesh.NetworkServiceEndpoint,
+	reqMechanismsSorted []*common.LocalMechanism) ([]*netmesh.NetworkServiceEndpoint, common.LocalMechanismType) {
+
 	endpoints := []*netmesh.NetworkServiceEndpoint{}
 	found := false
+	var selectedMechanismType common.LocalMechanismType
 	// Loop over a list of required interfaces, since it is sorted, the loop starts with first choice.
 	// if no first choice matches found, loop goes to the second choice, etc., otherwise function
 	// returns collected slice of endpoints with matching interface type.
@@ -134,6 +137,7 @@ func FindEndpointsForMechanism(endpointList []*netmesh.NetworkServiceEndpoint, r
 			for _, intf := range ep.LocalMechanisms {
 				if iReq.Type == intf.Type {
 					found = true
+					selectedMechanismType = iReq.Type
 					endpoints = append(endpoints, ep)
 				}
 			}
@@ -142,5 +146,5 @@ func FindEndpointsForMechanism(endpointList []*netmesh.NetworkServiceEndpoint, r
 			break
 		}
 	}
-	return endpoints
+	return endpoints, selectedMechanismType
 }

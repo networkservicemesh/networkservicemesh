@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"os"
 	"os/signal"
 	"path"
@@ -39,15 +40,18 @@ func main() {
 	logrus.Infof("Starting NSC, linux namespace: %s...", linuxNS)
 
 	var workspace string
+	var perPodDirectory string
 
 	if os.Getenv(nsmd.NsmDevicePluginEnv) != "" {
 		workspace = nsmd.DefaultWorkspace
+		perPodDirectory = os.Getenv(nsmd.NsmPerPodDirectoryEnv)
 	} else {
 		workspace, err = nsmd.RequestWorkspace()
 		if err != nil {
 			logrus.Fatalf("nsc: failed set up client connection, error: %+v, exiting...", err)
 			os.Exit(1)
 		}
+		_, perPodDirectory = path.Split(workspace)
 	}
 
 	clientSocket := path.Join(workspace, nsmd.ClientSocket)
@@ -73,8 +77,16 @@ func main() {
 		LinuxNamespace:     linuxNS,
 		NetworkServiceName: "gold-network",
 		LocalMechanisms: []*common.LocalMechanism{
-			&common.LocalMechanism{
+			{
 				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			},
+			{
+				Type: common.LocalMechanismType_MEM_INTERFACE,
+				Parameters: map[string]string{
+					nsmutils.NSMSocketFile:      "nsc-memif.sock",
+					nsmutils.NSMMaster:          "true",
+					nsmutils.NSMPerPodDirectory: perPodDirectory,
+				},
 			},
 		},
 	})
