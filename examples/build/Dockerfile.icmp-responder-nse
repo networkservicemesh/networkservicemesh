@@ -2,7 +2,7 @@ FROM golang:alpine as build
 ENV PACKAGEPATH=github.com/ligato/networkservicemesh/
 COPY [".","/go/src/${PACKAGEPATH}"]
 WORKDIR /go/src/${PACKAGEPATH}/
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/icmp-responder-nse ./controlplane/cmd/icmp-responder-nse
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/icmp-responder-nse ./examples/cmd/icmp-responder-nse
 FROM alpine as runtime
 COPY --from=build /go/bin/icmp-responder-nse /bin/icmp-responder-nse
 ENTRYPOINT ["/bin/icmp-responder-nse"]
