@@ -32,9 +32,9 @@ GOVETTARGETS=cmd \
 	pkg
 
 ORG=networkservicemesh
-BUILD_CONTAINERS=nsmd nsc
+BUILD_CONTAINERS=icmp-responder
 RUN_CONTAINERS=dataplane $(BUILD_CONTAINERS)
-KILL_CONTAINERS=$(BUILD_CONTAINERS) vpp vpp-daemon
+KILL_CONTAINERS=$(BUILD_CONTAINERS) icmp-responder
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 
 # Export some of the above variables so they persist for the shell scripts
