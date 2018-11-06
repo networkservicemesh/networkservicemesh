@@ -1,0 +1,9 @@
+FROM networkservicemesh/debug
+
+# Build component
+RUN CGO_ENABLED=0 GOOS=linux go build -i -gcflags "all=-N -l" -ldflags '-extldflags "-static"' -o /go/bin/test-dataplane ./cmd/examples/test-dataplane/test-dataplane.go
+
+RUN mkdir -p /var/lib/kubelet/device-plugins
+ENV GOTRACEBACK=system
+# Debug entry point
+CMD ["/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "exec", "/go/bin/test-dataplane"]

@@ -1,0 +1,23 @@
+FROM golang:1-alpine as build
+
+RUN apk add --update protobuf git bash gcc musl-dev
+
+# Compile Delve
+RUN echo "Building DLV"
+RUN go get github.com/derekparker/delve/cmd/dlv
+
+# Allow delve to run on Alpine based containers.
+RUN apk add --no-cache libc6-compat
+
+RUN go get -u github.com/golang/protobuf/protoc-gen-go
+
+ENV PACKAGEPATH=github.com/ligato/networkservicemesh/
+
+#/go/src is in volume, so we are good for incremental usage.
+COPY [".","/go/src/${PACKAGEPATH}"]
+WORKDIR /go/src/${PACKAGEPATH}/
+
+RUN echo "Building without optimizations"
+RUN go generate ./...
+RUN mkdir -p /var/lib/kubelet/device-plugins
+ENV GOTRACEBACK=system
