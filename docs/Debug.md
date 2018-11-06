@@ -44,7 +44,7 @@ Forwarding from 127.0.0.1:40000 -> 40000
 Forwarding from [::1]:40000 -> 40000
 </pre>
 
-##IDEs
+## IDEs
 
 Few IDEs are support Delve
 
@@ -55,7 +55,7 @@ TODO:
 
 1. Go to menu: `Run -> Debug -> Edit configurations...` and add `Go Remote`.
 2. In dialog specify port `40000` as debug target and host `localhost` since we will forward a port.
-    [Config img](./images/nsmesh_debug_config.png)
+    ![Config img](./images/nsmesh_debug_config.png)
 3. Click debug and we ready.
 
 ![Debug img](./images/nsmesh_under_debug.png)
