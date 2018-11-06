@@ -65,11 +65,6 @@ func main() {
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
-	//nseConn := nseConnection{
-	//	networkServiceName: networkServiceName,
-	//	linuxNamespace:     linuxNS,
-	//}
-	//nseConn := New()
 	nseConn := New()
 
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
