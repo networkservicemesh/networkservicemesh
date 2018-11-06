@@ -63,3 +63,10 @@ docker-save-%:
 	mkdir -p scripts/vagrant/images/; \
 	docker save -o scripts/vagrant/images/$*.tar ${ORG}/$*
 
+.PHONY: docker-debug-%
+docker-debug-%: docker-build-debug
+	@${DOCKERBUILD} -t ${ORG}/$* -f build/debug/Dockerfile.$*-debug .
+
+.PHONY: docker-build-debug
+docker-build-debug: build/debug/Dockerfile.debug
+	@${DOCKERBUILD} -t ${ORG}/debug -f build/debug/Dockerfile.debug .
