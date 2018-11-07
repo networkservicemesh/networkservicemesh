@@ -1,0 +1,6 @@
+FROM networkservicemesh/debug
+
+# Build component
+RUN CGO_ENABLED=0 GOOS=linux go build -i -gcflags "all=-N -l" -ldflags '-extldflags "-static"' -o /go/bin/nsmd ./controlplane/cmd/nsmd/nsmd.go
+# Debug entry point
+CMD ["/go/bin/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "exec", "/go/bin/nsmd"]
