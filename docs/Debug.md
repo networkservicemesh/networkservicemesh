@@ -23,7 +23,8 @@ Since component names uses same images as regular build, same Kubernets config f
 
 `kubectl create -f conf/sample/networkservice-daemonset.yaml`
 
-will deploy network service mesh component. 
+will deploy network service mesh component.
+ 
 ## Starting debug
 After component is deployed, DLV will start it in listening mode on port 40000, 
 so it will be required to forward a port using: 
