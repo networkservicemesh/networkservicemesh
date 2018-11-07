@@ -106,6 +106,7 @@ func main() {
 		EndpointName:       networkServiceName + "-" + strconv.FormatUint(nseid, 36),
 		Payload:            "IP",
 		Labels:             make(map[string]string),
+		SocketLocation:     connectionServerSocket,
 	}
 
 	_, err = registryConnection.RegisterNSE(context.Background(), nse)

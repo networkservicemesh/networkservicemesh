@@ -32,7 +32,7 @@ GOVETTARGETS=cmd \
 	pkg
 
 ORG=networkservicemesh
-BUILD_CONTAINERS=icmp-responder
+BUILD_CONTAINERS=icmp-responder-nse
 RUN_CONTAINERS=dataplane $(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS) icmp-responder
 LOG_CONTAINERS=$(KILL_CONTAINERS)

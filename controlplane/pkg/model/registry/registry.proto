@@ -9,6 +9,7 @@ message NetworkServiceEndpoint {
     string endpoint_name = 2;
     string payload = 3;
     map<string, string> labels = 4;
+    string socket_location = 5;
 }
 
 message RemoveNSERequest {

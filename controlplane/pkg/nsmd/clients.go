@@ -47,8 +47,6 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 
 	// Need to check if for requested network service, there are advertised Endpoints
 	endpoints := n.model.GetNetworkServiceEndpoints(cr.NetworkServiceName)
-	endpoints = model.FilterEndpointsByHost(endpoints, n.nsmPodIPAddress)
-	endpoints = model.FindEndpointsForMechanism(endpoints, cr.LocalMechanisms)
 
 	if len(endpoints) == 0 {
 		return &nsmconnect.ConnectionReply{
@@ -62,7 +60,7 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 	src := rand.NewSource(time.Now().Unix())
 	rnd := rand.New(src)
 	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
-	logrus.Infof("Endpoint %s selected for network service %s", selectedEndpoint.NseProviderName,
+	logrus.Infof("Endpoint %s selected for network service %s", selectedEndpoint.EndpointName,
 		cr.NetworkServiceName)
 
 	nseConn, err := tools.SocketOperationCheck(selectedEndpoint.SocketLocation)
