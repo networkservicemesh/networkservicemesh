@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:7adceeb7fd041e4b777cb30c3f8f523068c782d340b755ee7d03e0f3e3e5f889"
+  digest = "1:9931eb60dd818509cd0cbd27582ba7660c95d7b56f6b2d1ab6d08852499ebec2"
   name = "git.fd.io/govpp.git"
   packages = [
     "adapter",
@@ -10,6 +10,7 @@
     "api",
     "codec",
     "core",
+    "extras/libmemif",
   ]
   pruneopts = "UT"
   revision = "0f731471ab258d9e01658f0ab70f8317fd0fb89c"
@@ -185,6 +186,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
+
+[[projects]]
+  digest = "1:3bd56b931b4a342b593fb00c4ef29ce7bbc96918de96daf1bfe2f0fc4f0211e6"
+  name = "github.com/google/gopacket"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a6b099ece4680a8bdea84fa78166d0712108a95c"
+  version = "v1.1.15"
 
 [[projects]]
   digest = "1:65c4414eeb350c47b8de71110150d0ea8a281835b1f386eacaa3ad7325929c21"
@@ -941,6 +950,7 @@
     "git.fd.io/govpp.git/adapter/vppapiclient",
     "git.fd.io/govpp.git/api",
     "git.fd.io/govpp.git/core",
+    "git.fd.io/govpp.git/extras/libmemif",
     "github.com/Masterminds/semver",
     "github.com/ant31/crd-validation/pkg",
     "github.com/docker/docker/pkg/mount",

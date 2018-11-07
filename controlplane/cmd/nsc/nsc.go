@@ -16,6 +16,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"git.fd.io/govpp.git/extras/libmemif"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"os"
 	"os/signal"
@@ -96,6 +98,44 @@ func main() {
 		os.Exit(1)
 	}
 
+	appName := "nsc"
+	err = libmemif.Init(appName)
+	if err != nil {
+		fmt.Printf("libmemif.Init() error: %v\n", err)
+		return
+	}
+	defer libmemif.Cleanup()
+
+	memifCallbacks := &libmemif.MemifCallbacks{
+		OnConnect:    memifOnConnect,
+		OnDisconnect: memifOnDisconnect,
+	}
+
+	memifConfig := &libmemif.MemifConfig{
+		MemifMeta: libmemif.MemifMeta{
+			IfName:         "memif1",
+			SocketFilename: path.Join(workspace, "/memif", "3:nsm-2:3:nsm-1", "nsc-memif.sock"),
+			IsMaster:       true,
+			Mode:           libmemif.IfModeEthernet,
+		},
+		MemifShmSpecs: libmemif.MemifShmSpecs{
+			NumRxQueues:  3,
+			NumTxQueues:  3,
+			BufferSize:   2048,
+			Log2RingSize: 10,
+		},
+	}
+
+	logrus.Infof("Callbacks: %+v\n", memifCallbacks)
+	logrus.Infof("Config: %+v\n", memifConfig)
+
+	memif, err := libmemif.CreateInterface(memifConfig, memifCallbacks)
+	if err != nil {
+		fmt.Printf("libmemif.CreateInterface() error: %v\n", err)
+		return
+	}
+	defer memif.Close()
+
 	// Init related activities ends here
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
 
@@ -108,4 +148,14 @@ func main() {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func memifOnConnect(memif *libmemif.Memif) error {
+	logrus.Info("Connected")
+	return nil
+}
+
+func memifOnDisconnect(memif *libmemif.Memif) error {
+	logrus.Info("Disconnected")
+	return nil
 }

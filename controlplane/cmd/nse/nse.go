@@ -16,6 +16,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"git.fd.io/govpp.git/extras/libmemif"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"net"
@@ -46,12 +48,56 @@ type nseConnection struct {
 }
 
 func (n nseConnection) RequestEndpointConnection(ctx context.Context, req *nseconnect.EndpointConnectionRequest) (*nseconnect.EndpointConnectionReply, error) {
+	appName := "nse"
+	err := libmemif.Init(appName)
+	if err != nil {
+		fmt.Printf("libmemif.Init() error: %v\n", err)
+		return nil, err
+	}
+
+	memifCallbacks := &libmemif.MemifCallbacks{
+		OnConnect:    memifOnConnect,
+		OnDisconnect: memifOnDisconnect,
+	}
+
+	memifConfig := &libmemif.MemifConfig{
+		MemifMeta: libmemif.MemifMeta{
+			IfName:         "memif1",
+			SocketFilename: path.Join(workspace, "/memif", "3:nsm-2:3:nsm-1", "nsc-memif.sock"),
+			Mode:           libmemif.IfModeEthernet,
+		},
+		MemifShmSpecs: libmemif.MemifShmSpecs{
+			NumRxQueues:  3,
+			NumTxQueues:  3,
+			BufferSize:   2048,
+			Log2RingSize: 10,
+		},
+	}
+
+	logrus.Infof("Callbacks: %+v\n", memifCallbacks)
+	logrus.Infof("Config: %+v\n", memifConfig)
+
+	_, err = libmemif.CreateInterface(memifConfig, memifCallbacks)
+	if err != nil {
+		fmt.Printf("libmemif.CreateInterface() error: %v\n", err)
+		return nil, err
+	}
 
 	return &nseconnect.EndpointConnectionReply{
 		RequestId:          n.linuxNamespace,
 		NetworkServiceName: n.networkServiceName,
 		LinuxNamespace:     n.linuxNamespace,
 	}, nil
+}
+
+func memifOnConnect(memif *libmemif.Memif) error {
+	logrus.Info("Connected")
+	return nil
+}
+
+func memifOnDisconnect(memif *libmemif.Memif) error {
+	logrus.Info("Disconnected")
+	return nil
 }
 
 func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req *nseconnect.EndpointConnectionMechanism) (*nseconnect.EndpointConnectionMechanismReply, error) {
@@ -61,6 +107,8 @@ func (n nseConnection) SendEndpointConnectionMechanism(ctx context.Context, req 
 		MechanismFound: true,
 	}, nil
 }
+
+var workspace string
 
 func main() {
 	var wg sync.WaitGroup
@@ -73,7 +121,7 @@ func main() {
 	}
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
-	var workspace string
+	//var workspace string
 	var perPodDirectory string
 
 	if os.Getenv(nsmd.NsmDevicePluginEnv) != "" {
@@ -144,9 +192,9 @@ func main() {
 		NetworkServiceName: networkServiceName,
 		SocketLocation:     connectionServerSocket,
 		LocalMechanisms: []*common.LocalMechanism{
-			{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-			},
+			//{
+			//	Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			//},
 			{
 				Type: common.LocalMechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
