@@ -18,7 +18,10 @@ import (
 	"context"
 	"encoding/binary"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net"
 	"sync"
@@ -39,6 +42,9 @@ type message struct {
 }
 
 func (ns *networkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+	logrus.Info("Request for from nsm for connection: %v", request)
+	linuxNS, _ := tools.GetCurrentNS()
+
 	connectionContext := &networkservice.ConnectionContext{
 		ConnectionContext: make(map[string]string),
 	}
@@ -55,9 +61,16 @@ func (ns *networkService) Request(ctx context.Context, request *networkservice.N
 	connectionContext.ConnectionContext["dst_ip"] = dstIP.String() + "/30"
 
 	connection := &networkservice.Connection{
-		ConnectionId:      request.Connection.ConnectionId,
-		NetworkService:    request.Connection.NetworkService,
-		LocalMechanism:    request.LocalMechanismPreference[0],
+		ConnectionId:   request.Connection.ConnectionId,
+		NetworkService: request.Connection.NetworkService,
+		LocalMechanism: &common.LocalMechanism{
+			Type: request.LocalMechanismPreference[0].Type,
+			Parameters: map[string]string{
+				nsmutils.NSMkeyNamespace:        linuxNS,
+				nsmutils.NSMkeyIPv4:             "2.2.2.3",
+				nsmutils.NSMkeyIPv4PrefixLength: "24",
+			},
+		},
 		ConnectionContext: connectionContext,
 	}
 
