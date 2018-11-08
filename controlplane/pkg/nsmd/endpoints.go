@@ -15,7 +15,6 @@
 package nsmd
 
 import (
-	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"net"
@@ -56,7 +55,7 @@ func (es nsmEndpointServer) RegisterNSE(ctx context.Context,
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
 	ep := es.model.GetEndpoint(request.EndpointName)
 	if ep != nil {
-		return nil, fmt.Errorf("Network Service Endpoint object %s already exists", request.EndpointName)
+		return ep, nil
 	}
 
 	es.model.AddEndpoint(request)
