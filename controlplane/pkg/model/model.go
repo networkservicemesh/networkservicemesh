@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
@@ -17,11 +18,11 @@ type Dataplane struct {
 }
 
 type Model interface {
-	// GetNetworkService(name string) *netmesh.NetworkService
-	GetNetworkServiceEndpoints(name string) []*netmesh.NetworkServiceEndpoint
+	GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint
 
-	GetEndpoint(name string) *netmesh.NetworkServiceEndpoint
-	AddEndpoint(endpoint *netmesh.NetworkServiceEndpoint)
+	GetEndpoint(name string) *registry.NetworkServiceEndpoint
+	AddEndpoint(endpoint *registry.NetworkServiceEndpoint)
+	DeleteEndpoint(name string) error
 
 	GetDataplane(name string) *Dataplane
 	AddDataplane(dataplane *Dataplane)
@@ -31,26 +32,15 @@ type Model interface {
 
 type impl struct {
 	sync.RWMutex
-	endpoints  []*netmesh.NetworkServiceEndpoint
+	endpoints  []*registry.NetworkServiceEndpoint
 	services   []*netmesh.NetworkService
 	dataplanes []*Dataplane
 }
 
-// func (i *impl) GetNetworkService(name string) *netmesh.NetworkService {
-// 	i.RLock()
-// 	defer i.RUnlock()
-// 	for _, s := range i.services {
-// 		if s.NetworkServiceName == name {
-// 			return s
-// 		}
-// 	}
-// 	return nil
-// }
-
-func (i *impl) GetNetworkServiceEndpoints(name string) []*netmesh.NetworkServiceEndpoint {
+func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint {
 	i.RLock()
 	defer i.RUnlock()
-	var endpoints []*netmesh.NetworkServiceEndpoint
+	var endpoints []*registry.NetworkServiceEndpoint
 	for _, e := range i.endpoints {
 		if e.NetworkServiceName == name {
 			endpoints = append(endpoints, e)
@@ -59,22 +49,34 @@ func (i *impl) GetNetworkServiceEndpoints(name string) []*netmesh.NetworkService
 	return endpoints
 }
 
-func (i *impl) GetEndpoint(name string) *netmesh.NetworkServiceEndpoint {
+func (i *impl) GetEndpoint(name string) *registry.NetworkServiceEndpoint {
 	i.RLock()
 	defer i.RUnlock()
 	for _, e := range i.endpoints {
-		if e.NseProviderName == name {
+		if e.EndpointName == name {
 			return e
 		}
 	}
 	return nil
 }
 
-func (i *impl) AddEndpoint(endpoint *netmesh.NetworkServiceEndpoint) {
+func (i *impl) AddEndpoint(endpoint *registry.NetworkServiceEndpoint) {
 	i.Lock()
 	i.endpoints = append(i.endpoints, endpoint)
 	i.Unlock()
 	logrus.Infof("Endpoint added: %v", endpoint)
+}
+
+func (i *impl) DeleteEndpoint(name string) error {
+	i.Lock()
+	defer i.Unlock()
+	for idx, e := range i.endpoints {
+		if e.EndpointName == name {
+			i.endpoints = append(i.endpoints[:idx], i.endpoints[idx+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("no endpoint with name: %s", name)
 }
 
 func (i *impl) GetDataplane(name string) *Dataplane {
@@ -107,40 +109,4 @@ func (i *impl) DeleteDataplane(name string) {}
 
 func NewModel() Model {
 	return &impl{}
-}
-
-// getLocalEndpoint return a slice of nsmapi.NetworkServiceEndpoint with only
-// entries matching NSM Pod ip address.
-func FilterEndpointsByHost(endpointList []*netmesh.NetworkServiceEndpoint, host string) []*netmesh.NetworkServiceEndpoint {
-	endpoints := []*netmesh.NetworkServiceEndpoint{}
-	for _, ep := range endpointList {
-		if ep.NetworkServiceHost == host {
-			endpoints = append(endpoints, ep)
-		}
-	}
-	return endpoints
-}
-
-// getEndpointWithInterface returns a slice of slice of nsmapi.NetworkServiceEndpoint with
-// only Endpoints offerring correct Interface type.
-func FindEndpointsForMechanism(endpointList []*netmesh.NetworkServiceEndpoint, reqMechanismsSorted []*common.LocalMechanism) []*netmesh.NetworkServiceEndpoint {
-	endpoints := []*netmesh.NetworkServiceEndpoint{}
-	found := false
-	// Loop over a list of required interfaces, since it is sorted, the loop starts with first choice.
-	// if no first choice matches found, loop goes to the second choice, etc., otherwise function
-	// returns collected slice of endpoints with matching interface type.
-	for _, iReq := range reqMechanismsSorted {
-		for _, ep := range endpointList {
-			for _, intf := range ep.LocalMechanisms {
-				if iReq.Type == intf.Type {
-					found = true
-					endpoints = append(endpoints, ep)
-				}
-			}
-		}
-		if found {
-			break
-		}
-	}
-	return endpoints
 }

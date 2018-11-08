@@ -15,11 +15,13 @@
 package nsmd
 
 import (
+	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"net"
 	"path"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -46,41 +48,27 @@ type nsmEndpointServer struct {
 	nsmPodIPAddress    string
 }
 
-func (e nsmEndpointServer) AdvertiseEndpoint(ctx context.Context,
-	ar *nseconnect.EndpointAdvertiseRequest) (*nseconnect.EndpointAdvertiseReply, error) {
-	logrus.Infof("Received Endpoint Advertise request: %s", ar.RequestId)
+func (es nsmEndpointServer) RegisterNSE(ctx context.Context,
+	request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
+	logrus.Infof("Received RegisterNSE request: %v", request)
 
-	// Compose a new Network Service Endpoint object name from Request_id which is NSE's pod
-	// UUID and Network Service Name.
-	endpointName := ar.RequestId + "-" + ar.NetworkEndpoint.NetworkServiceName
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	ep := e.model.GetEndpoint(endpointName)
+	ep := es.model.GetEndpoint(request.EndpointName)
 	if ep != nil {
-		logrus.Warnf("Network Service Endpoint object %s already exists", endpointName)
-		return &nseconnect.EndpointAdvertiseReply{
-			RequestId: ar.RequestId,
-			Accepted:  true,
-		}, nil
+		return nil, fmt.Errorf("Network Service Endpoint object %s already exists", request.EndpointName)
 	}
 
-	endpoint := ar.NetworkEndpoint
-
-	e.model.AddEndpoint(endpoint)
-
-	return &nseconnect.EndpointAdvertiseReply{
-		RequestId: ar.RequestId,
-		Accepted:  true,
-	}, nil
+	es.model.AddEndpoint(request)
+	return request, nil
 }
 
-func (e nsmEndpointServer) RemoveEndpoint(ctx context.Context,
-	rr *nseconnect.EndpointRemoveRequest) (*nseconnect.EndpointRemoveReply, error) {
-	logrus.Infof("Received Endpoint Remove request: %+v", rr)
-	return &nseconnect.EndpointRemoveReply{
-		RequestId: rr.RequestId,
-		Accepted:  true,
-	}, nil
+func (es nsmEndpointServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*common.Empty, error) {
+	logrus.Infof("Received Endpoint Remove request: %+v", request)
+	if err := es.model.DeleteEndpoint(request.EndpointName); err != nil {
+		return &common.Empty{}, err
+	}
+	return &common.Empty{}, nil
 }
 
 // startEndpointServer starts for a server listening for local NSEs advertise/remove
@@ -99,7 +87,7 @@ func startEndpointServer(endpointServer *nsmEndpointServer) error {
 	}
 
 	// Plugging Endpoint operations methods
-	nseconnect.RegisterEndpointOperationsServer(endpointServer.grpcServer, endpointServer)
+	registry.RegisterNetworkServiceRegistryServer(endpointServer.grpcServer, endpointServer)
 	logrus.Infof("Starting Endpoint gRPC server listening on socket: %s", listenEndpoint)
 	go func() {
 		if err := endpointServer.grpcServer.Serve(sock); err != nil {
