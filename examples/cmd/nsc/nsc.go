@@ -68,10 +68,14 @@ func main() {
 
 	_, err = nsmConnectionClient.Request(context.Background(), &networkservice.NetworkServiceRequest{
 		Connection: &networkservice.Connection{
-			ConnectionId:      netns + "-" + strconv.FormatInt(time.Now().Unix(), 36),
-			NetworkService:    "icmp-responder",
-			ConnectionContext: nil,
-			Labels:            nil,
+			ConnectionId:   netns + "-" + strconv.FormatInt(time.Now().Unix(), 36),
+			NetworkService: "icmp-responder",
+			ConnectionContext: &networkservice.ConnectionContext{
+				ConnectionContext: map[string]string{
+					"requires": "src_ip,dst_ip",
+				},
+			},
+			Labels: make(map[string]string),
 		},
 		LocalMechanismPreference: []*common.LocalMechanism{
 			{
