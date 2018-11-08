@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/netmesh"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,7 +32,6 @@ type Model interface {
 type impl struct {
 	sync.RWMutex
 	endpoints  []*registry.NetworkServiceEndpoint
-	services   []*netmesh.NetworkService
 	dataplanes []*Dataplane
 }
 
