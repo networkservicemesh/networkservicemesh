@@ -45,25 +45,33 @@ type nsmEndpointServer struct {
 	stopChannel        chan bool
 	nsmNamespace       string
 	nsmPodIPAddress    string
+	registryClient     registry.NetworkServiceRegistryClient
 }
 
-func (es nsmEndpointServer) RegisterNSE(ctx context.Context,
-	request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
+func (es nsmEndpointServer) RegisterNSE(ctx context.Context, request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
 	logrus.Infof("Received RegisterNSE request: %v", request)
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	ep := es.model.GetEndpoint(request.EndpointName)
-	if ep != nil {
-		return ep, nil
+	endpoint, err := es.registryClient.RegisterNSE(context.Background(), request)
+	if err != nil {
+		return nil, err
 	}
 
-	es.model.AddEndpoint(request)
-	return request, nil
+	ep := es.model.GetEndpoint(endpoint.EndpointName)
+	if ep == nil {
+		es.model.AddEndpoint(endpoint)
+	}
+
+	return endpoint, nil
 }
 
 func (es nsmEndpointServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*common.Empty, error) {
 	logrus.Infof("Received Endpoint Remove request: %+v", request)
+	_, err := es.registryClient.RemoveNSE(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
 	if err := es.model.DeleteEndpoint(request.EndpointName); err != nil {
 		return &common.Empty{}, err
 	}
@@ -114,12 +122,13 @@ func startEndpointServer(endpointServer *nsmEndpointServer) error {
 
 // StartEndpointServer registers and starts gRPC server which is listening for
 // Network Service Endpoint advertise/remove calls and act accordingly
-func StartEndpointServer(model model.Model) error {
+func StartEndpointServer(model model.Model, registryClient registry.NetworkServiceRegistryClient) error {
 	endpointServer := &nsmEndpointServer{
 		model:              model,
 		grpcServer:         grpc.NewServer(),
 		endPointSocketPath: path.Join(EndpointSocketBaseDir, EndpointSocket),
 		stopChannel:        make(chan bool),
+		registryClient:     registryClient,
 	}
 
 	var err error
