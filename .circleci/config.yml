@@ -179,7 +179,7 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
-            cd controlplane
+            cd examples
             make docker-nsc-build
   build-vpp:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
