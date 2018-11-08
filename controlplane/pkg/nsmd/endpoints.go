@@ -58,7 +58,11 @@ func (es nsmEndpointServer) RegisterNSE(ctx context.Context, request *registry.N
 		return nil, err
 	}
 
-	es.model.AddEndpoint(endpoint)
+	ep := es.model.GetEndpoint(endpoint.EndpointName)
+	if ep == nil {
+		es.model.AddEndpoint(endpoint)
+	}
+
 	return endpoint, nil
 }
 

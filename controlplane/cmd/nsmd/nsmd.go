@@ -17,16 +17,18 @@ import (
 func main() {
 	model := model.NewModel()
 
-	registryAddress := os.Getenv("K8S_REGISTRY_ADDRESS")
+	registryAddress := os.Getenv("NSM_REGISTRY_ADDRESS")
 	registryAddress = strings.TrimSpace(registryAddress)
 	if registryAddress == "" {
 		registryAddress = "localhost:5000"
 	}
 
-	registryConn, err := grpc.Dial("localhost:5000")
+	registryConn, err := grpc.Dial(registryAddress)
 	if err != nil {
 		logrus.Fatalln("Unable to connect to registry", err)
 	}
+	defer registryConn.Close()
+
 	registryClient := registry.NewNetworkServiceRegistryClient(registryConn)
 
 	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
