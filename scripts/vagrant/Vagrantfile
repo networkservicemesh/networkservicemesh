@@ -19,10 +19,10 @@ Vagrant.configure("2") do |config|
   end
   config.vm.box = "bento/ubuntu-18.04"
   config.vm.network "private_network", type: "dhcp"
-   
-  # If you need hugepages, this is how you get them 
-  # config.vm.provision "shell", path: "scripts/setup_hugepages.sh"  
-  config.vm.provision "docker"
+
+  # If you need hugepages, this is how you get them
+  # config.vm.provision "shell", path: "scripts/setup_hugepages.sh"
+  config.vm.provision "shell", path: "scripts/install_docker.sh"
   config.vm.provision "shell", path: "scripts/install_kubernetes.sh"
   config.vm.provision "shell", path: "scripts/load_images.sh"
   config.vm.provision "shell", inline: "mkdir -p /var/lib/networkservicemesh"
