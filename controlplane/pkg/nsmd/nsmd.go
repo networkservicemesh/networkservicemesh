@@ -30,12 +30,12 @@ type nsmServer struct {
 }
 
 func RequestWorkspace() (string, error) {
-	serverSocket := ServerSock
-	logrus.Infof("Connecting to nsmd on socket: %s...", serverSocket)
-	if _, err := os.Stat(serverSocket); err != nil {
+	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
+	if _, err := os.Stat(ServerSock); err != nil {
 		return "", err
 	}
-	conn, err := tools.SocketOperationCheck(serverSocket)
+
+	conn, err := tools.SocketOperationCheck(ServerSock)
 	if err != nil {
 		return "", err
 	}
