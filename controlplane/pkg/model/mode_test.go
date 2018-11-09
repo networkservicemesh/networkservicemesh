@@ -10,7 +10,7 @@ func TestModelAddRemove(t *testing.T) {
 
 	model := NewModel()
 
-	model.AddDataplane( &Dataplane{
+	model.AddDataplane(&Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
@@ -27,7 +27,7 @@ func TestModelSelectDataplane(t *testing.T) {
 
 	model := NewModel()
 
-	model.AddDataplane( &Dataplane{
+	model.AddDataplane(&Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
@@ -44,4 +44,3 @@ func TestModelSelectDataplaneNone(t *testing.T) {
 	Expect(dp).To(BeNil())
 	Expect(err.Error()).To(Equal("no dataplanes registered"))
 }
-
