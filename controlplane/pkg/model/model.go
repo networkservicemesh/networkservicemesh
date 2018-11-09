@@ -110,7 +110,17 @@ func (i *impl) AddDataplane(dataplane *Dataplane) {
 	logrus.Infof("Dataplane added: %v", dataplane)
 }
 
-func (i *impl) DeleteDataplane(name string) {}
+func (i *impl) DeleteDataplane(name string) {
+	i.Lock()
+	defer i.Unlock()
+
+	for idx, dp := range i.dataplanes {
+		if dp.RegisteredName == name {
+			i.dataplanes = append(i.dataplanes[:idx], i.dataplanes[idx+1:]...)
+			return
+		}
+	}
+}
 
 func (i *impl) GetNsmUrl() string {
 	return i.nsmUrl
