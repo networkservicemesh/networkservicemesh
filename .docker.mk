@@ -68,7 +68,7 @@ docker-debug-%: docker-build-debug docker-%-kill
 	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker logs < /tmp/container.$*
 
 .PHONY: docker-push-%
-docker-%-push: docker-login
+docker-%-push: docker-login docker-%-build
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
 	docker push ${ORG}/$*
