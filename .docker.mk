@@ -34,8 +34,8 @@ docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))
 .PHONY: docker-%-save
 docker-%-save: docker-%-build
 	@echo "Saving $*"
-	@mkdir -p ../scripts/vagrant/images/
-	@docker save -o ../scripts/vagrant/images/$*.tar ${ORG}/$*
+	@mkdir -p scripts/vagrant/images/
+	@docker save -o scripts/vagrant/images/$*.tar ${ORG}/$*
 
 .PHONY: docker-run
 docker-run: $(addsuffix -run,$(addprefix docker-,$(RUN_CONTAINERS)))
