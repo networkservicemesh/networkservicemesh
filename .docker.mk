@@ -16,14 +16,14 @@ BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s icmp-responder-nse
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
-
+ORG=networkservicemesh
 
 .PHONY: docker-build
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
 docker-%-build:
-	@${DOCKERBUILD} -t networkservicemesh/$* -f docker/Dockerfile.$* .
+	@${DOCKERBUILD} -t ${ORG}/$* -f docker/Dockerfile.$* .
 
 .PHONY: docker-save
 docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))
@@ -32,7 +32,7 @@ docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))
 docker-%-save: docker-%-build
 	@echo "Saving $*"
 	@mkdir -p ../scripts/vagrant/images/
-	@docker save -o ../scripts/vagrant/images/$*.tar $*/$*
+	@docker save -o ../scripts/vagrant/images/$*.tar ${ORG}/$*
 
 .PHONY: docker-run
 docker-run: $(addsuffix -run,$(addprefix docker-,$(RUN_CONTAINERS)))
