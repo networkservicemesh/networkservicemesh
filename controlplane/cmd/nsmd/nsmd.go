@@ -23,7 +23,7 @@ func main() {
 		registryAddress = "localhost:5000"
 	}
 
-	registryConn, err := grpc.Dial(registryAddress)
+	registryConn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Unable to connect to registry", err)
 	}
