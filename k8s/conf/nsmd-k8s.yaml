@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: nsmdp
-          image: nsmd/nsmdp
+          image: networkservicemesh/nsmdp
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: kubelet-socket
@@ -19,7 +19,7 @@ spec:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
         - name: nsmd
-          image: nsmd/nsmd
+          image: networkservicemesh/nsmd
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: nsm-socket
