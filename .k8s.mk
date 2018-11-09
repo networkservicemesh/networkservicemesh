@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd nsmd-k8s
+DEPLOYS = nsmd nsmd-k8s vppagent-dataplane
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
 # All of the rules that use vagrant are intentionally written in such a way
@@ -71,9 +71,28 @@ k8s-start: $(CLUSTER_RULES_PREFIX)-start
 .PHONY: k8s-start
 k8s-restart: $(CLUSTER_RULES_PREFIX)
 
-.PHONY: k8s-rebuild-deploy
-k8s-rebuild-deploy: $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
+.PHONY: k8s-build
+k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-%-rebuild-deploy
-k8s-%-rebuild-deploy:  k8s-start k8s-config k8s-%-delete ${CONTAINER_BUILD_PREFIX}-%-save  k8s-%-load-images
+.PHONY: k8s-%-build
+k8s-%-build: ${CONTAINER_BUILD_PREFIX}-%-build
+
+.PHONY: k8s-%-save
+k8s-%-save: ${CONTAINER_BUILD_PREFIX}-%-save
+
+.PHONY: k8s-build-deploy
+k8s-build-deploy: $(addsuffix -build-deploy,$(addprefix k8s-,$(DEPLOYS)))
+
+.PHONY: k8s-%-build-deploy
+k8s-%-build-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-save  k8s-%-load-images
 	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
+
+NSMD_CONTAINERS = nsmd nsmdp nsmd-k8s
+.PHONY: k8s-nsmd-build
+k8s-nsmd-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_CONTAINERS)))
+
+.PHONY: k8s-nsmd-save
+k8s-nsmd-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_CONTAINERS)))
+
+.PHONY: k8s-nsmd-load-images
+k8s-nsmd-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMD_CONTAINERS)))
