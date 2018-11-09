@@ -34,7 +34,7 @@ GOVETTARGETS=cmd \
 ORG=networkservicemesh
 BUILD_CONTAINERS=nsmd
 RUN_CONTAINERS=dataplane $(BUILD_CONTAINERS)
-KILL_CONTAINERS=$(BUILD_CONTAINERS) vpp vpp-daemon
+KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 
 # Export some of the above variables so they persist for the shell scripts
@@ -79,7 +79,7 @@ docker-%-build:
 docker-debug-%: docker-build-debug docker-%-kill
 	@${DOCKERBUILD} -t networkservicemesh/$*-debug -f build/Dockerfile.$*-debug ..
 	@docker run -d --privileged -p 127.0.0.1:40000:40000 -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/$*-debug > /tmp/container.$*
-	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker logs < /tmp/container.$*
+	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker logs -f < /tmp/container.$*
 
 docker-build-debug: ../build/debug/Dockerfile.debug
 	@${DOCKERBUILD} -t networkservicemesh/debug -f ../build/debug/Dockerfile.debug ..

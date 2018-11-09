@@ -47,3 +47,7 @@ docker-push-%: docker-login
 docker-save-%:
 	mkdir -p ../../scripts/vagrant/images/; \
 	docker save -o ../../scripts/vagrant/images/$*.tar ${ORG}/$*
+
+.PHONY: docker-debug-%
+docker-debug-%:
+	@${DOCKERBUILD} -t ${ORG}/$*-debug -f build/Dockerfile.$*-debug ../../

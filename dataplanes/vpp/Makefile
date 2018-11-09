@@ -68,6 +68,21 @@ all: docker-build
 # Individual targets are found in .nsm.mk
 docker-build: docker-build-vpp-daemon docker-build-vpp docker-build-memif-test
 
+docker-debug: docker-debug-vpp-daemon docker-build-vpp
+
+docker-debug-run: docker-vpp-kill docker-vpp-daemon-kill
+	@echo "Starting vpp..."
+	@docker run --network=host --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --ipc=host --pid=host -d networkservicemesh/vpp > /tmp/container.vpp
+	@echo "Starting vpp-daemon..."
+	@docker run --security-opt=seccomp:unconfined -p 40001:40000 --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --volume=/var/lib/networkservicemesh:/var/lib/networkservicemesh/ --ipc=host --pid=host -d networkservicemesh/vpp-daemon-debug > /tmp/container.vpp-daemon
+	@docker container ls | grep $$(cat /tmp/container.vpp-daemon| cut -c1-12) > /dev/null && xargs docker logs -f < /tmp/container.vpp-daemon
+
+.PHONY: docker-%-kill
+docker-%-kill:
+	@echo "Killing $*..."
+	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker kill < /tmp/container.$* || echo "$* already killed"
+
+
 
 # Individual targets are found in .dataplane.mk
 docker-push: docker-login docker-push-vpp-daemon docker-push-vpp docker-build-memif-test

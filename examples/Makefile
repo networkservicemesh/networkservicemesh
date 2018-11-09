@@ -75,6 +75,14 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 docker-%-build:
 	@${DOCKERBUILD} -t networkservicemesh/$* -f build/Dockerfile.$* ..
 
+.PHONY: docker-debug-%
+docker-debug-%: docker-build-debug docker-%-kill
+	@${DOCKERBUILD} -t networkservicemesh/$*-debug -f build/Dockerfile.$*-debug ..
+	@docker run -d --privileged -p 127.0.0.1:40000:40000 -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/$*-debug > /tmp/container.$*
+	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker logs < /tmp/container.$*
+
+docker-build-debug: ../build/debug/Dockerfile.debug
+	@${DOCKERBUILD} -t networkservicemesh/debug -f ../build/debug/Dockerfile.debug ..
 
 docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
@@ -93,7 +101,7 @@ docker-run: $(addsuffix -run,$(addprefix docker-,$(RUN_CONTAINERS)))
 .PHONY: docker-%-run
 docker-%-run: docker-%-build docker-%-kill
 	@echo "Starting $*..."
-	@docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" $*/$* > /tmp/container.$*
+	@docker run -d --privileged=true -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" $*/$* > /tmp/container.$*
 
 .PHONY: docker-dataplane-run
 docker-dataplane-run:

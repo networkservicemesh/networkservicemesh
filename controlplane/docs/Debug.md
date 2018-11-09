@@ -16,7 +16,7 @@ Examples:
 * `make docker-debug-nsc` - debug of *controlplane/cmd/ncs*
 * `make docker-debug-nse` - debuf of *controlplane/cmd/nsmd*
 
-After docker image will be build and run, DLV will start it in listening mode on port 40000, so it will be required to forward a port using: 
+After docker image will be build and run, DLV will start it in listening mode on port 40000: 
 
 <pre>
 Successfully built xxxxxxx
