@@ -67,6 +67,12 @@ docker-debug-%: docker-build-debug docker-%-kill
 	@docker run -d --privileged -p 127.0.0.1:40000:40000 -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/$*-debug > /tmp/container.$*
 	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker logs < /tmp/container.$*
 
+.PHONY: docker-push-%
+docker-%-push: docker-login
+	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
+	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
+	docker push ${ORG}/$*
+
 
 
 

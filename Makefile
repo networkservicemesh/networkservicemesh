@@ -81,7 +81,7 @@ verify:
 docker-build: docker-build-netmesh-test docker-build-netmesh docker-build-nsm-init docker-build-nse docker-build-test-dataplane docker-build-sidecar-injector
 
 # Individual targets are found in .nsm.mk
-docker-push: docker-login docker-push-netmesh docker-push-test-dataplane docker-push-nsm-init docker-push-nse docker-push-sidecar-injector docker-push-nsmd-k8s
+docker-push: docker-login docker-push-netmesh docker-push-test-dataplane docker-push-nsm-init docker-push-nse docker-push-sidecar-injector docker-nsmd-k8s-push
 
 # Individual targets are found in .nsm.mk
 docker-save: docker-save-netmesh docker-save-test-dataplane docker-save-nsm-init docker-save-nse docker-save-sidecar-injector docker-push-nsmd-k8s
