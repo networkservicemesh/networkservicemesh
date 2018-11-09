@@ -21,6 +21,8 @@ default: all
 
 # Pull in Docker image names
 include .nsm.mk
+# Pull in k8s targets
+include .k8s.mk
 
 GOPATH?=$(shell go env GOPATH)
 GOCMD=go
