@@ -16,27 +16,28 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
-	linuxNS, err := tools.GetCurrentNS()
+	netns, err := tools.GetCurrentNS()
 	if err != nil {
 		logrus.Fatalf("nsc: failed to get a linux namespace with error: %+v, exiting...", err)
-		os.Exit(1)
 	}
-	logrus.Infof("Starting NSC, linux namespace: %s...", linuxNS)
+	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
 
 	var workspace string
 
@@ -46,7 +47,6 @@ func main() {
 		workspace, err = nsmd.RequestWorkspace()
 		if err != nil {
 			logrus.Fatalf("nsc: failed set up client connection, error: %+v, exiting...", err)
-			os.Exit(1)
 		}
 	}
 
@@ -54,34 +54,39 @@ func main() {
 
 	logrus.Infof("Connecting to nsm server on socket: %s...", clientSocket)
 	if _, err := os.Stat(clientSocket); err != nil {
-		logrus.Errorf("nsc: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
-		os.Exit(1)
+		logrus.Fatalln("nsc: failure to access nsm socket at %s with error: %+v, exiting...", clientSocket, err)
 	}
 
 	conn, err := tools.SocketOperationCheck(clientSocket)
 	if err != nil {
 		logrus.Fatalf("nsm client: failure to communicate with the socket %s with error: %+v", clientSocket, err)
-		os.Exit(1)
 	}
 	defer conn.Close()
 
 	// Init related activities start here
-	nsmConnectionClient := nsmconnect.NewClientConnectionClient(conn)
+	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 
-	_, err = nsmConnectionClient.RequestConnection(context.Background(), &nsmconnect.ConnectionRequest{
-		RequestId:          linuxNS,
-		LinuxNamespace:     linuxNS,
-		NetworkServiceName: "gold-network",
-		LocalMechanisms: []*common.LocalMechanism{
-			&common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	_, err = nsmConnectionClient.Request(context.Background(), &networkservice.NetworkServiceRequest{
+		Connection: &networkservice.Connection{
+			ConnectionId:   netns + "-" + strconv.FormatInt(time.Now().Unix(), 36),
+			NetworkService: "icmp-responder",
+			ConnectionContext: &networkservice.ConnectionContext{
+				ConnectionContext: map[string]string{
+					"requires": "src_ip,dst_ip",
+				},
+			},
+			Labels: make(map[string]string),
+		},
+		LocalMechanismPreference: []*common.LocalMechanism{
+			{
+				Type:       common.LocalMechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{"netns": netns},
 			},
 		},
 	})
 
 	if err != nil {
 		logrus.Fatalf("failure to request connection with error: %+v", err)
-		os.Exit(1)
 	}
 
 	// Init related activities ends here
