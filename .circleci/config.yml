@@ -157,7 +157,7 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
-            make docker-build-nsmdp
+            make docker-nsmdp-build
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
