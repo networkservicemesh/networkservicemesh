@@ -2,8 +2,13 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/go-errors/errors"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"log"
 	"math/rand"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
@@ -32,11 +37,52 @@ type nsmClientServer struct {
 	nsmPodIPAddress string
 }
 
-func connectionReplyAborted(s string) (*nsmconnect.ConnectionReply, error) {
-	return &nsmconnect.ConnectionReply{
-		Accepted:       false,
-		AdmissionError: s,
-	}, status.Error(codes.Aborted, s)
+func (srv *nsmClientServer) Request(context context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+	netsvc := request.Connection.NetworkService
+	if strings.TrimSpace(netsvc) == "" {
+		return nil, errors.New("No network service defined")
+	}
+
+	endpoints := srv.model.GetNetworkServiceEndpoints(netsvc)
+
+	if len(endpoints) == 0 {
+		return nil, errors.New(fmt.Sprintf("netwwork service '%s' not found", request.Connection.NetworkService))
+	}
+
+	idx := rand.Intn(len(endpoints))
+	endpoint := endpoints[idx]
+	if endpoint == nil {
+		return nil, errors.New("should not see this error, scaffolding called")
+	}
+
+	// todo wire up endpoint
+
+
+	connectionID := request.Connection.ConnectionId
+	if strings.TrimSpace(connectionID) == "" {
+		connectionID = netsvc
+	}
+	connectionID = request.Connection.ConnectionId + "-" + strconv.FormatUint(rand.Uint64(), 36)
+
+	return &networkservice.Connection{
+		ConnectionId:         connectionID,
+		NetworkService:       netsvc,
+		LocalMechanism:       request.LocalMechanismPreference[0],
+		ConnectionContext:    request.Connection.ConnectionContext,
+		Labels:               nil,
+	}, nil
+}
+
+func (srv *nsmClientServer) Close(context.Context, *networkservice.Connection) (*networkservice.Connection, error) {
+	panic("implement me")
+}
+
+func (srv *nsmClientServer) Monitor(*networkservice.Connection, networkservice.NetworkService_MonitorServer) error {
+	panic("implement me")
+}
+
+func (srv *nsmClientServer) MonitorConnections(*common.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
+	panic("implement me")
 }
 
 // RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
@@ -131,7 +177,9 @@ func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.
 func startClientServer(model model.Model, workspace string, stopChannel chan bool) {
 	socket := path.Join(workspace, ClientSocket)
 
-	client := &nsmClientServer{
+	var client networkservice.NetworkServiceServer
+
+	client = &nsmClientServer{
 		socketPath: socket,
 		model:      model,
 	}
