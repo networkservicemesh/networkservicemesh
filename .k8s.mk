@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd nsmd-k8s vppagent-dataplane
+DEPLOYS = nsmd nsmd-k8s icmp-responder-nse
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
 # All of the rules that use vagrant are intentionally written in such a way
