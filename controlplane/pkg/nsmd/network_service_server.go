@@ -26,13 +26,13 @@ const (
 	nseConnectionTimeout = 15 * time.Second
 )
 
-type nsmClientServer struct {
+type networkServiceServer struct {
 	model           model.Model
 	socketPath      string
 	nsmPodIPAddress string
 }
 
-func (srv *nsmClientServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	netsvc := request.Connection.NetworkService
 	if strings.TrimSpace(netsvc) == "" {
 		return nil, errors.New("No network service defined")
@@ -147,38 +147,38 @@ func (srv *nsmClientServer) Request(ctx context.Context, request *networkservice
 	}, nil
 }
 
-func (srv *nsmClientServer) Close(context.Context, *networkservice.Connection) (*networkservice.Connection, error) {
+func (srv *networkServiceServer) Close(context.Context, *networkservice.Connection) (*networkservice.Connection, error) {
 	panic("implement me")
 }
 
-func (srv *nsmClientServer) Monitor(*networkservice.Connection, networkservice.NetworkService_MonitorServer) error {
+func (srv *networkServiceServer) Monitor(*networkservice.Connection, networkservice.NetworkService_MonitorServer) error {
 	panic("implement me")
 }
 
-func (srv *nsmClientServer) MonitorConnections(*common.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
+func (srv *networkServiceServer) MonitorConnections(*common.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
 	panic("implement me")
 }
 
 // Client server starts for each client during Kubelet's Allocate call
-func startClientServer(model model.Model, workspace string, stopChannel chan bool) {
+func startNetworkServiceServer(model model.Model, workspace string, stopChannel chan bool) error {
 	socket := path.Join(workspace, ClientSocket)
 
 	var client networkservice.NetworkServiceServer
 
-	client = &nsmClientServer{
+	client = &networkServiceServer{
 		socketPath: socket,
 		model:      model,
 	}
 
 	if err := tools.SocketCleanup(socket); err != nil {
-		return
+		return err
 	}
 
 	unix.Umask(socketMask)
 	sock, err := newCustomListener(socket)
 	if err != nil {
 		logrus.Errorf("failure to listen on socket %s with error: %+v", socket, err)
-		return
+		return err
 	}
 
 	grpcServer := grpc.NewServer()
@@ -194,7 +194,7 @@ func startClientServer(model model.Model, workspace string, stopChannel chan boo
 	conn, err := tools.SocketOperationCheck(socket)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
-		return
+		return err
 	}
 	conn.Close()
 	logrus.Infof("Client Server socket: %s is operational", socket)
