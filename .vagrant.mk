@@ -16,7 +16,7 @@
 vagrant-start:
 	@cd scripts/vagrant; vagrant up
 
-.PHONY: vagrant-start
+.PHONY: vagrant-restart
 vagrant-restart:
 	@cd scripts/vagrant; vagrant destroy -f;sleep 2;vagrant up
 

@@ -23,10 +23,11 @@ const (
 )
 
 type nsmServer struct {
-	mux     sync.Mutex
-	id      int
-	clients map[string]chan bool
-	model   model.Model
+	sync.Mutex
+	id         int
+	clients    map[string]chan bool
+	workspaces map[string]*Workspace
+	model      model.Model
 }
 
 func RequestWorkspace() (string, error) {
@@ -52,38 +53,50 @@ func RequestWorkspace() (string, error) {
 }
 
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
-	logrus.Infof("Requested client connection to nsmd")
-	nsm.mux.Lock()
+	logrus.Infof("Requested client connection to nsmd : %+v", request)
+	nsm.Lock()
 	nsm.id++
 	id := nsm.id
-	nsm.mux.Unlock()
+	nsm.Unlock()
 
-	workspace := fmt.Sprintf("/var/lib/networkservicemesh/nsm-%d", id)
-	if err := os.MkdirAll(workspace, folderMask); err != nil {
-		logrus.Errorf("can't create folder: %s, error: %v", workspace, err)
+	logrus.Infof("Creating new workspace for: %+v", request)
+	workspace, err := NewWorkSpace(nsm.model, fmt.Sprintf("nsm-%d", id))
+	if err != nil {
+		logrus.Error(err)
 		return &nsmdapi.ClientConnectionReply{
 			Accepted:  false,
 			Workspace: "",
-		}, nil
+		}, err
 	}
+	logrus.Infof("New workspace created: %+v", workspace)
 
-	channel := make(chan bool)
-	nsm.clients[workspace] = channel
+	nsm.Lock()
+	nsm.workspaces[workspace.Directory()] = workspace
+	nsm.Unlock()
 	startNetworkServiceServer(nsm.model, workspace, channel)
-
 	reply := &nsmdapi.ClientConnectionReply{
 		Accepted:  true,
-		Workspace: workspace,
+		Workspace: workspace.Directory(),
 	}
+	logrus.Infof("returning ClientConnectionReply: %+v", reply)
 	return reply, nil
 }
 
 func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *nsmdapi.DeleteConnectionRequest) (*nsmdapi.DeleteConnectionReply, error) {
 	socket := request.Workspace
 	logrus.Infof("Delete connection for workspace %s", socket)
-	channel := nsm.clients[socket]
-	channel <- true
-	delete(nsm.clients, socket)
+
+	workspace, ok := nsm.workspaces[socket]
+	if !ok {
+		err := fmt.Errorf("No connection exists for workspace %s", socket)
+		return &nsmdapi.DeleteConnectionReply{
+			Success: false,
+		}, err
+	}
+	workspace.Close()
+	nsm.Lock()
+	delete(nsm.workspaces, socket)
+	nsm.Unlock()
 
 	reply := &nsmdapi.DeleteConnectionReply{
 		Success: true,
@@ -101,8 +114,9 @@ func StartNSMServer(model model.Model) error {
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	nsm := nsmServer{
-		clients: make(map[string]chan bool),
-		model:   model,
+		clients:    make(map[string]chan bool),
+		workspaces: make(map[string]*Workspace),
+		model:      model,
 	}
 	nsmdapi.RegisterNSMDServer(grpcServer, &nsm)
 

@@ -16,14 +16,15 @@ package main
 
 import (
 	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"math/rand"
 	"net"
 	"os"
 	"path"
 	"strconv"
 	"sync"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ const (
 	// SocketBaseDir defines the location of NSM Endpoints listen socket
 	SocketBaseDir = "/var/lib/networkservicemesh"
 	// RegistrySocketFile defines the name of NSM Endpoints operations socket
-	RegistrySocketFile = "nsm.endpoint.io.sock"
+	RegistrySocketFile = "nsm.client.io.sock"
 )
 
 func main() {
