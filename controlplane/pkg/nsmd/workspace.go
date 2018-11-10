@@ -20,7 +20,9 @@ import (
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -40,11 +42,12 @@ const (
 )
 
 type Workspace struct {
-	name           string
-	directory      string
-	listener       net.Listener
-	registryServer registry.NetworkServiceRegistryServer
-	grpcServer     *grpc.Server
+	name                 string
+	directory            string
+	listener             net.Listener
+	registryServer       registry.NetworkServiceRegistryServer
+	networkServiceServer networkservice.NetworkServiceServer
+	grpcServer           *grpc.Server
 	sync.Mutex
 	state WorkspaceState
 }
@@ -69,13 +72,17 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 		return nil, err
 	}
 	w.listener = listener
-	logrus.Infof("Creating new RegistryServer")
+	logrus.Infof("Creating new NetworkServiceRegistryServer")
 	w.registryServer = NewRegistryServer(model)
+	logrus.Infof("Creating new NetworkServiceServer")
+	w.networkServiceServer = NewNetworkServiceServer(model)
 
 	logrus.Infof("Creating new GRPC Server")
 	w.grpcServer = grpc.NewServer()
-	logrus.Infof("Registering registryServer with grpcServer")
+	logrus.Infof("Registering NetworkServiceRegistryServer with grpcServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
+	logrus.Infof("Registering NetworkServiceServer with grpcServer")
+	networkservice.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
 	w.state = RUNNING
 	go func() {
 		defer w.Close()
@@ -85,6 +92,13 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 			return
 		}
 	}()
+	conn, err := tools.SocketOperationCheck(socket)
+	if err != nil {
+		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
+		return nil, err
+	}
+	conn.Close()
+	logrus.Infof("grpcserver for workspace %+v is operational", w)
 	logrus.Infof("Created new workspace: %+v", w)
 	return w, nil
 }

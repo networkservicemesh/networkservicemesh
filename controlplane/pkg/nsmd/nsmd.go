@@ -72,7 +72,6 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 	nsm.Lock()
 	nsm.workspaces[workspace.Directory()] = workspace
 	nsm.Unlock()
-	startNetworkServiceServer(nsm.model, workspace, channel)
 	reply := &nsmdapi.ClientConnectionReply{
 		Accepted:  true,
 		Workspace: workspace.Directory(),

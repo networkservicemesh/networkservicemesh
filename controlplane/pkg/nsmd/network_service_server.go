@@ -2,13 +2,13 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/go-errors/errors"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 	"math/rand"
-	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-errors/errors"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
@@ -17,8 +17,6 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -28,8 +26,13 @@ const (
 
 type networkServiceServer struct {
 	model           model.Model
-	socketPath      string
 	nsmPodIPAddress string
+}
+
+func NewNetworkServiceServer(model model.Model) networkservice.NetworkServiceServer {
+	return &networkServiceServer{
+		model: model,
+	}
 }
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
@@ -157,56 +160,4 @@ func (srv *networkServiceServer) Monitor(*networkservice.Connection, networkserv
 
 func (srv *networkServiceServer) MonitorConnections(*common.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
 	panic("implement me")
-}
-
-// Client server starts for each client during Kubelet's Allocate call
-func startNetworkServiceServer(model model.Model, workspace string, stopChannel chan bool) error {
-	socket := path.Join(workspace, ClientSocket)
-
-	var client networkservice.NetworkServiceServer
-
-	client = &networkServiceServer{
-		socketPath: socket,
-		model:      model,
-	}
-
-	if err := tools.SocketCleanup(socket); err != nil {
-		return err
-	}
-
-	unix.Umask(socketMask)
-	sock, err := newCustomListener(socket)
-	if err != nil {
-		logrus.Errorf("failure to listen on socket %s with error: %+v", socket, err)
-		return err
-	}
-
-	grpcServer := grpc.NewServer()
-	// Plugging NSM client Connection methods
-	networkservice.RegisterNetworkServiceServer(grpcServer, client)
-	logrus.Infof("Starting Client gRPC server listening on socket: %s", socket)
-	go func() {
-		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Fatalf("unable to start client grpc server %s, err: %+v", socket, err)
-		}
-	}()
-
-	conn, err := tools.SocketOperationCheck(socket)
-	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
-		return err
-	}
-	conn.Close()
-	logrus.Infof("Client Server socket: %s is operational", socket)
-
-	// TODO: proper shutdown
-	go func() {
-		select {
-		case <-stopChannel:
-			logrus.Infof("Server for socket %s received shutdown request", socket)
-			grpcServer.GracefulStop()
-		}
-		stopChannel <- true
-	}()
-	return nil
 }
