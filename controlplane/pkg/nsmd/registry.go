@@ -41,10 +41,16 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
 	client, err := RegistryClient()
 	if err != nil {
-		err = fmt.Errorf("Attempt to pass through from nsm to upstream registry failed with:", err)
+		err = fmt.Errorf("Attempt to connect to upstream registry failed with:", err)
 		logrus.Error(err)
 		return nil, err
 	}
+	// TODO fix url setting here
+	if request.Labels == nil {
+		request.Labels = make(map[string]string)
+	}
+	request.Labels["nsmurl"] = "https://example.com/"
+
 	endpoint, err := client.RegisterNSE(context.Background(), request)
 	if err != nil {
 		err = fmt.Errorf("Attempt to pass through from nsm to upstream registry failed with:", err)

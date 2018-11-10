@@ -42,11 +42,13 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 		for stopRedial {
 			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
 			if err != nil {
-				logrus.Errorf("Failed to dial Network Service Registry: %s", err)
+				logrus.Errorf("Failed to dial Network Service Registry at %s: %s", registryAddress, err)
 				continue
 			}
 			registryClientConnection = conn
+			logrus.Infof("Successfully connected to %s", registryAddress)
 			registryClient = registry.NewNetworkServiceRegistryClient(conn)
+			logrus.Infof("NetworkServiceRegistryClient successfully registered")
 			return
 		}
 		err = fmt.Errorf("Stopped before success trying to dial Network Registry Server")
@@ -56,6 +58,8 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 }
 
 func StopRegistryClient() {
+	// I know the stopRedial isn't threadsafe... we don't care, its set once at creation to true
+	// so if you set it to false, eventually the redial loop will notice and stop.
 	stopRedial = false
 	if registryClientConnection != nil {
 		registryClientConnection.Close()

@@ -79,7 +79,7 @@ func main() {
 	// Check if the socket of Endpoint Connection Server is operation
 	testSocket, err := tools.SocketOperationCheck(connectionServerSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", connectionServerSocket, err)
+		logrus.Fatalf("nse: failure to communicate with the connectionServerSocket %s with error: %+v", connectionServerSocket, err)
 	}
 	testSocket.Close()
 
@@ -93,7 +93,7 @@ func main() {
 
 	conn, err := tools.SocketOperationCheck(registrySocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", registrySocket, err)
+		logrus.Fatalf("nse: failure to communicate with the registrySocket %s with error: %+v", registrySocket, err)
 	}
 	defer conn.Close()
 	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", registrySocket)
