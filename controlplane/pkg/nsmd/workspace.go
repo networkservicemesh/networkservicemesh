@@ -44,6 +44,7 @@ type Workspace struct {
 	directory      string
 	listener       net.Listener
 	registryServer registry.NetworkServiceRegistryServer
+	grpcServer     *grpc.Server
 	sync.Mutex
 	state WorkspaceState
 }
@@ -51,13 +52,13 @@ type Workspace struct {
 func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{}
+	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	w.state = NEW
 	w.name = name
 	w.directory = rootDir + w.name
 	logrus.Infof("Creating new directory: %s", w.directory)
 	if err := os.MkdirAll(w.directory, folderMask); err != nil {
 		logrus.Errorf("can't create folder: %s, error: %v", w.directory, err)
-		w.Close()
 		return nil, err
 	}
 	socket := w.directory + "/" + WorkspaceClientSocket
@@ -65,7 +66,6 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	listener, err := NewCustomListener(socket)
 	if err != nil {
 		logrus.Error(err)
-		w.Close()
 		return nil, err
 	}
 	w.listener = listener
@@ -73,18 +73,17 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	w.registryServer = NewRegistryServer(model)
 
 	logrus.Infof("Creating new GRPC Server")
-	grpcServer := grpc.NewServer()
+	w.grpcServer = grpc.NewServer()
 	logrus.Infof("Registering registryServer with grpcServer")
-	registry.RegisterNetworkServiceRegistryServer(grpcServer, w.registryServer)
-
+	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
+	w.state = RUNNING
 	go func() {
-		err = grpcServer.Serve(w.listener)
+		defer w.Close()
+		err = w.grpcServer.Serve(w.listener)
 		if err != nil {
-			logrus.Error(err)
-			w.Close()
+			logrus.Errorf("Failed to server workspace %+v: %s", w, err)
 			return
 		}
-		w.state = RUNNING
 	}()
 	logrus.Infof("Created new workspace: %+v", w)
 	return w, nil
@@ -98,18 +97,25 @@ func (w *Workspace) Directory() string {
 	return w.directory
 }
 
-func (w *Workspace) Close() error {
+func (w *Workspace) Close() {
 	// TODO handle cleanup here on failure in NewWorkspace creation
 	w.Lock()
 	defer w.Unlock()
-	// w.registryServer.Close()
-	if w.state != CLOSED {
-		err := w.listener.Close()
-		if err != nil {
-			return err
+	w.state = CLOSED
+	w.cleanup()
+}
+
+func (w *Workspace) cleanup() {
+	if w.state != RUNNING {
+		if w.directory != "" {
+			os.RemoveAll(w.directory)
 		}
-		err = os.RemoveAll(w.directory)
-		return err
+		if w.grpcServer != nil {
+			// TODO switch to Graceful stop once we think through possible long running connections
+			w.grpcServer.Stop()
+		}
+		if w.listener != nil {
+			w.listener.Close()
+		}
 	}
-	return nil
 }

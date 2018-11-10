@@ -25,7 +25,6 @@ const (
 type nsmServer struct {
 	sync.Mutex
 	id         int
-	clients    map[string]chan bool
 	workspaces map[string]*Workspace
 	model      model.Model
 }
@@ -114,7 +113,6 @@ func StartNSMServer(model model.Model) error {
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	nsm := nsmServer{
-		clients:    make(map[string]chan bool),
 		workspaces: make(map[string]*Workspace),
 		model:      model,
 	}
