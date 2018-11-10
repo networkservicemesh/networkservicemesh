@@ -208,4 +208,5 @@ func startNetworkServiceServer(model model.Model, workspace string, stopChannel 
 		}
 		stopChannel <- true
 	}()
+	return nil
 }
