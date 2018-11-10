@@ -69,7 +69,7 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 
 	channel := make(chan bool)
 	nsm.clients[workspace] = channel
-	startClientServer(nsm.model, workspace, channel)
+	startNetworkServiceServer(nsm.model, workspace, channel)
 
 	reply := &nsmdapi.ClientConnectionReply{
 		Accepted:  true,
