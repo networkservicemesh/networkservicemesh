@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
-	"log"
 	"math/rand"
 	"path"
 	"strconv"
@@ -15,15 +14,11 @@ import (
 	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nseconnect"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/nsmconnect"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -37,7 +32,7 @@ type nsmClientServer struct {
 	nsmPodIPAddress string
 }
 
-func (srv *nsmClientServer) Request(context context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+func (srv *nsmClientServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	netsvc := request.Connection.NetworkService
 	if strings.TrimSpace(netsvc) == "" {
 		return nil, errors.New("No network service defined")
@@ -55,21 +50,100 @@ func (srv *nsmClientServer) Request(context context.Context, request *networkser
 		return nil, errors.New("should not see this error, scaffolding called")
 	}
 
-	// todo wire up endpoint
-
-
 	connectionID := request.Connection.ConnectionId
 	if strings.TrimSpace(connectionID) == "" {
 		connectionID = netsvc
 	}
 	connectionID = request.Connection.ConnectionId + "-" + strconv.FormatUint(rand.Uint64(), 36)
 
+	// get dataplane
+	dp, err := srv.model.SelectDataplane()
+	if err != nil {
+		return nil, err
+	}
+
+	logrus.Infof("Programming dataplane: %v...", dp)
+
+	dataplaneConn, err := tools.SocketOperationCheck(dp.SocketLocation)
+	if err != nil {
+		return nil, err
+	}
+	defer dataplaneConn.Close()
+	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(dataplaneConn)
+
+	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
+	defer dpCancel()
+
+	var dpApiConnection *dataplaneapi.Connection
+
+	// If NSE is local, build parameters
+	if srv.nsmPodIPAddress == endpoint.Labels["nsmurl"] {
+		nseConn, err := tools.SocketOperationCheck(endpoint.SocketLocation)
+		if err != nil {
+			return nil, err
+		}
+		defer nseConn.Close()
+
+		client := networkservice.NewNetworkServiceClient(nseConn)
+		nseConnection, e := client.Request(ctx, &networkservice.NetworkServiceRequest{
+			Connection: &networkservice.Connection{
+				ConnectionId:   connectionID,
+				NetworkService: "",
+				LocalMechanism: &common.LocalMechanism{
+					Type:       common.LocalMechanismType_KERNEL_INTERFACE,
+					Parameters: map[string]string{},
+				},
+				ConnectionContext: nil,
+				Labels:            nil,
+			},
+		})
+
+		srcip := strings.Split(nseConnection.LocalMechanism.Parameters["src_ip"], "/")
+		if len(srcip) != 2 {
+			return nil, errors.New("src_ip is not specified as cidr")
+		}
+		dstip := strings.Split(nseConnection.LocalMechanism.Parameters["dst_ip"], "/")
+		if len(dstip) != 2 {
+			return nil, errors.New("dst_ip is not specified as cidr")
+		}
+		if e != nil {
+			return nil, e
+		}
+
+		clientMechanism := &common.LocalMechanism{
+			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			Parameters: map[string]string{
+				nsmutils.NSMkeyNamespace:        nseConnection.LocalMechanism.Parameters["netns"],
+				nsmutils.NSMkeyIPv4:             srcip[0],
+				nsmutils.NSMkeyIPv4PrefixLength: srcip[1],
+			},
+		}
+		remoteMechanism := &common.LocalMechanism{
+			Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			Parameters: map[string]string{
+				nsmutils.NSMkeyNamespace:        nseConnection.LocalMechanism.Parameters["netns"],
+				nsmutils.NSMkeyIPv4:             dstip[0],
+				nsmutils.NSMkeyIPv4PrefixLength: dstip[1],
+			},
+		}
+		dpApiConnection = &dataplaneapi.Connection{
+			ConnectionId: connectionID,
+			LocalSource:  clientMechanism,
+			Destination: &dataplaneapi.Connection_Local{
+				Local: remoteMechanism,
+			},
+		}
+	} else {
+		// TODO connection is remote, send to nsm
+	}
+	_, err = dataplaneClient.ConnectRequest(dpCtx, dpApiConnection)
+
 	return &networkservice.Connection{
-		ConnectionId:         connectionID,
-		NetworkService:       netsvc,
-		LocalMechanism:       request.LocalMechanismPreference[0],
-		ConnectionContext:    request.Connection.ConnectionContext,
-		Labels:               nil,
+		ConnectionId:      connectionID,
+		NetworkService:    netsvc,
+		LocalMechanism:    request.LocalMechanismPreference[0],
+		ConnectionContext: request.Connection.ConnectionContext,
+		Labels:            nil,
 	}, nil
 }
 
@@ -83,94 +157,6 @@ func (srv *nsmClientServer) Monitor(*networkservice.Connection, networkservice.N
 
 func (srv *nsmClientServer) MonitorConnections(*common.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
 	panic("implement me")
-}
-
-// RequestConnection accepts connection from NSM client and attempts to analyze requested info, call for Dataplane programming and
-// return to NSM client result.
-func (n *nsmClientServer) RequestConnection(ctx context.Context, cr *nsmconnect.ConnectionRequest) (*nsmconnect.ConnectionReply, error) {
-	logrus.Infof("received connection request id: %s, requesting network service: %s for linux namespace: %s",
-		cr.RequestId, cr.NetworkServiceName, cr.LinuxNamespace)
-
-	// Need to check if for requested network service, there are advertised Endpoints
-	endpoints := n.model.GetNetworkServiceEndpoints(cr.NetworkServiceName)
-
-	if len(endpoints) == 0 {
-		return &nsmconnect.ConnectionReply{
-			Accepted:       false,
-			AdmissionError: fmt.Sprintf("No endpoints registered for Network Service %s", cr.NetworkServiceName),
-		}, status.Error(codes.Aborted, "No endpoints registered for Network Service")
-	}
-
-	// At this point endpoints contains slice of endpoints matching requested network service and matching client's requested
-	// interface type. Until more sofisticated algorithm is proposed, selecting a random entry from the slice.
-	src := rand.NewSource(time.Now().Unix())
-	rnd := rand.New(src)
-	selectedEndpoint := endpoints[rnd.Intn(len(endpoints))]
-	logrus.Infof("Endpoint %s selected for network service %s", selectedEndpoint.EndpointName,
-		cr.NetworkServiceName)
-
-	nseConn, err := tools.SocketOperationCheck(selectedEndpoint.SocketLocation)
-	if err != nil {
-		return connectionReplyAborted(err.Error())
-	}
-	defer nseConn.Close()
-	nseClient := nseconnect.NewEndpointConnectionClient(nseConn)
-
-	nseCtx, nseCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer nseCancel()
-	nseRepl, err := nseClient.RequestEndpointConnection(nseCtx, &nseconnect.EndpointConnectionRequest{
-		RequestId: cr.RequestId,
-	})
-	if err != nil {
-		return connectionReplyAborted(err.Error())
-	}
-	logrus.Infof("successfuly received information from NSE: %v", nseRepl)
-
-	dp, err := n.model.SelectDataplane()
-	if err != nil {
-		return connectionReplyAborted(fmt.Sprintf("No dataplane available: %v", err))
-	}
-
-	logrus.Infof("Programming dataplane: %v...", dp)
-
-	dataplaneConn, err := tools.SocketOperationCheck(dp.SocketLocation)
-	if err != nil {
-		return connectionReplyAborted(err.Error())
-	}
-	defer dataplaneConn.Close()
-	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(dataplaneConn)
-
-	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer dpCancel()
-	dpRepl, err := dataplaneClient.ConnectRequest(dpCtx, &dataplaneapi.Connection{
-		LocalSource: &common.LocalMechanism{
-			Type: common.LocalMechanismType_KERNEL_INTERFACE,
-			Parameters: map[string]string{
-				nsmutils.NSMkeyNamespace:        cr.LinuxNamespace,
-				nsmutils.NSMkeyIPv4:             "2.2.2.2",
-				nsmutils.NSMkeyIPv4PrefixLength: "24",
-			},
-		},
-		Destination: &dataplaneapi.Connection_Local{
-			Local: &common.LocalMechanism{
-				Type: common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					nsmutils.NSMkeyNamespace:        nseRepl.LinuxNamespace,
-					nsmutils.NSMkeyIPv4:             "2.2.2.3",
-					nsmutils.NSMkeyIPv4PrefixLength: "24"},
-			},
-		},
-	})
-	if err != nil {
-		logrus.Errorf("Error requesting dataplane for connection: %v", err)
-		return connectionReplyAborted(err.Error())
-	}
-	logrus.Infof("successfuly programmed dataplane: %v", dpRepl)
-
-	return &nsmconnect.ConnectionReply{
-		Accepted:             true,
-		ConnectionParameters: &nsmconnect.ConnectionParameters{},
-	}, nil
 }
 
 // Client server starts for each client during Kubelet's Allocate call
@@ -191,13 +177,13 @@ func startClientServer(model model.Model, workspace string, stopChannel chan boo
 	unix.Umask(socketMask)
 	sock, err := newCustomListener(socket)
 	if err != nil {
-		logrus.Errorf("failure to listen on socket %s with error: %+v", client.socketPath, err)
+		logrus.Errorf("failure to listen on socket %s with error: %+v", socket, err)
 		return
 	}
 
 	grpcServer := grpc.NewServer()
 	// Plugging NSM client Connection methods
-	nsmconnect.RegisterClientConnectionServer(grpcServer, client)
+	networkservice.RegisterNetworkServiceServer(grpcServer, client)
 	logrus.Infof("Starting Client gRPC server listening on socket: %s", socket)
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
@@ -207,7 +193,7 @@ func startClientServer(model model.Model, workspace string, stopChannel chan boo
 
 	conn, err := tools.SocketOperationCheck(socket)
 	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", client.socketPath, err)
+		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
 		return
 	}
 	conn.Close()
@@ -217,7 +203,7 @@ func startClientServer(model model.Model, workspace string, stopChannel chan boo
 	go func() {
 		select {
 		case <-stopChannel:
-			logrus.Infof("Server for socket %s received shutdown request", client.socketPath)
+			logrus.Infof("Server for socket %s received shutdown request", socket)
 			grpcServer.GracefulStop()
 		}
 		stopChannel <- true
