@@ -25,8 +25,7 @@ const (
 )
 
 type networkServiceServer struct {
-	model           model.Model
-	nsmPodIPAddress string
+	model model.Model
 }
 
 func NewNetworkServiceServer(model model.Model) networkservice.NetworkServiceServer {
@@ -80,7 +79,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	var dpApiConnection *dataplaneapi.Connection
 
 	// If NSE is local, build parameters
-	if srv.nsmPodIPAddress == endpoint.Labels["nsmurl"] {
+	if srv.model.GetNsmUrl() == endpoint.Labels[KEY_NSM_URL] {
 		nseConn, err := tools.SocketOperationCheck(endpoint.SocketLocation)
 		if err != nil {
 			return nil, err
