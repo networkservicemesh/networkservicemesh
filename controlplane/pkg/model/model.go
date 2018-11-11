@@ -28,12 +28,15 @@ type Model interface {
 	AddDataplane(dataplane *Dataplane)
 	DeleteDataplane(name string)
 	SelectDataplane() (*Dataplane, error)
+
+	GetNsmUrl() string
 }
 
 type impl struct {
 	sync.RWMutex
 	endpoints  []*registry.NetworkServiceEndpoint
 	dataplanes []*Dataplane
+	nsmUrl     string
 }
 
 func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint {
@@ -106,6 +109,12 @@ func (i *impl) AddDataplane(dataplane *Dataplane) {
 
 func (i *impl) DeleteDataplane(name string) {}
 
-func NewModel() Model {
-	return &impl{}
+func (i *impl) GetNsmUrl() string {
+	return i.nsmUrl
+}
+
+func NewModel(nsmUrl string) Model {
+	return &impl{
+		nsmUrl: nsmUrl,
+	}
 }

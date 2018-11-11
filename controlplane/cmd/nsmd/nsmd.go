@@ -12,7 +12,9 @@ import (
 )
 
 func main() {
-	model := model.NewModel()
+	// TODO add a real url
+	nsmUrl := "127.0.0.1:5000"
+	model := model.NewModel(nsmUrl)
 	defer nsmd.StopRegistryClient()
 
 	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
