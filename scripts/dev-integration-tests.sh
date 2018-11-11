@@ -26,6 +26,12 @@ then
     echo "Please build the image before running integration tests"
     exit 1
 fi
+if [ "x$(docker images|grep networkservicemesh/nsmdp)" == "x" ]
+then
+    echo "Docker image networkservicemesh/nsmdp not found"
+    echo "Please build the image before running integration tests"
+    exit 1
+fi
 if [ "x$(docker images|grep networkservicemesh/nsmd-k8s)" == "x" ]
 then
     echo "Docker image networkservicemesh/nsmd-k8s not found"

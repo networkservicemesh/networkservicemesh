@@ -84,7 +84,7 @@ docker-build: ;
 docker-push: docker-login
 
 # Individual targets are found in .nsm.mk
-docker-save: docker-push-nsmd-k8s
+docker-save: ;
 
 
 
