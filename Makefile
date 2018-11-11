@@ -81,10 +81,10 @@ verify:
 docker-build: ;
 
 # Individual targets are found in .nsm.mk
-docker-push: docker-login docker-push-netmesh docker-push-test-dataplane docker-push-nsm-init docker-push-nse docker-push-sidecar-injector
+docker-push: docker-login
 
 # Individual targets are found in .nsm.mk
-docker-save: docker-save-netmesh docker-save-test-dataplane docker-save-nsm-init docker-save-nse docker-save-sidecar-injector docker-push-nsmd-k8s
+docker-save: docker-push-nsmd-k8s
 
 
 
