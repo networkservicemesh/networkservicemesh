@@ -32,11 +32,11 @@ GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
 GOVET=${GOCMD} tool vet
-GOVETTARGETS=cmd \
-	controllers \
-	pkg/apis/networkservicemesh.io/v1 \
-	pkg/nsm \
-	plugins \
+GOVETTARGETS=controllers \
+	controlplane \
+	examples \
+	k8s \
+	pkg \
 	utils
 
 # Export some of the above variables so they persist for the shell scripts
