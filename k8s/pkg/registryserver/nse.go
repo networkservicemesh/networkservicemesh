@@ -64,8 +64,8 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 
 	nseResponse, err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:   request.EndpointName,
-			Labels: map[string]string{"networkservicename": request.NetworkServiceName},
+			GenerateName: request.EndpointName,
+			Labels:       map[string]string{"networkservicename": request.NetworkServiceName},
 		},
 		Spec: v1.NetworkServiceEndpointSpec{
 			NetworkServiceName: request.NetworkServiceName,
