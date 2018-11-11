@@ -3,6 +3,9 @@ package registryserver
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"log"
+	"time"
+
 	"github.com/go-errors/errors"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
@@ -10,8 +13,6 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"log"
-	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

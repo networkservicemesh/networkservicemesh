@@ -16,14 +16,15 @@ package main
 
 import (
 	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"math/rand"
 	"net"
 	"os"
 	"path"
 	"strconv"
 	"sync"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ const (
 	// SocketBaseDir defines the location of NSM Endpoints listen socket
 	SocketBaseDir = "/var/lib/networkservicemesh"
 	// RegistrySocketFile defines the name of NSM Endpoints operations socket
-	RegistrySocketFile = "nsm.endpoint.io.sock"
+	RegistrySocketFile = "nsm.client.io.sock"
 )
 
 func main() {
@@ -78,7 +79,7 @@ func main() {
 	// Check if the socket of Endpoint Connection Server is operation
 	testSocket, err := tools.SocketOperationCheck(connectionServerSocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", connectionServerSocket, err)
+		logrus.Fatalf("nse: failure to communicate with the connectionServerSocket %s with error: %+v", connectionServerSocket, err)
 	}
 	testSocket.Close()
 
@@ -92,7 +93,7 @@ func main() {
 
 	conn, err := tools.SocketOperationCheck(registrySocket)
 	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the socket %s with error: %+v", registrySocket, err)
+		logrus.Fatalf("nse: failure to communicate with the registrySocket %s with error: %+v", registrySocket, err)
 	}
 	defer conn.Close()
 	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", registrySocket)

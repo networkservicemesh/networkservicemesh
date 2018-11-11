@@ -2,8 +2,9 @@ package model
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 	"sync"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
