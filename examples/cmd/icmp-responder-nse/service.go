@@ -42,7 +42,7 @@ type message struct {
 }
 
 func (ns *networkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
-	logrus.Info("Request for from nsm for connection: %v", request)
+	logrus.Info("Request from nsm for connection: %v", request)
 	linuxNS, _ := tools.GetCurrentNS()
 
 	connectionContext := &networkservice.ConnectionContext{

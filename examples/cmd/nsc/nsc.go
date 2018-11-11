@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
 	"os"
 	"os/signal"
 	"path"
@@ -79,8 +80,12 @@ func main() {
 		},
 		LocalMechanismPreference: []*common.LocalMechanism{
 			{
-				Type:       common.LocalMechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{"netns": netns},
+				Type: common.LocalMechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{
+					nsmutils.NSMkeyNamespace:        netns,
+					nsmutils.NSMkeyIPv4:             "2.2.2.2",
+					nsmutils.NSMkeyIPv4PrefixLength: "24",
+				},
 			},
 		},
 	})
