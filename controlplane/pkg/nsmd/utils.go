@@ -1,6 +1,11 @@
 package nsmd
 
-import "net"
+import (
+	"net"
+
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	"golang.org/x/sys/unix"
+)
 
 type customListener struct {
 	net.Listener
@@ -12,23 +17,27 @@ type customConn struct {
 	localAddr *net.UnixAddr
 }
 
-func (c customConn) RemoteAddr() net.Addr {
+func (c *customConn) RemoteAddr() net.Addr {
 	return c.localAddr
 }
 
-func newCustomListener(socket string) (customListener, error) {
+func NewCustomListener(socket string) (*customListener, error) {
+	if err := tools.SocketCleanup(socket); err != nil {
+		return nil, err
+	}
+	unix.Umask(socketMask)
 	listener, err := net.Listen("unix", socket)
 	if err == nil {
-		custList := customListener{
+		custList := &customListener{
 			Listener:     listener,
 			serverSocket: socket,
 		}
 		return custList, nil
 	}
-	return customListener{}, err
+	return nil, err
 }
 
-func (l customListener) Accept() (net.Conn, error) {
+func (l *customListener) Accept() (net.Conn, error) {
 	conn, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err

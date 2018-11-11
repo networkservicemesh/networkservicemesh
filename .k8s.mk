@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd nsmd-k8s icmp-responder-nse
+DEPLOYS = nsmd icmp-responder-nse
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
 # All of the rules that use vagrant are intentionally written in such a way
@@ -69,7 +69,7 @@ k8s-config: $(addsuffix -config,$(addprefix k8s-,$(CLUSTER_CONFIGS)))
 k8s-start: $(CLUSTER_RULES_PREFIX)-start
 
 .PHONY: k8s-start
-k8s-restart: $(CLUSTER_RULES_PREFIX)
+k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 
 .PHONY: k8s-build
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
