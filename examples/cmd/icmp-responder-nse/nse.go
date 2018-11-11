@@ -110,10 +110,11 @@ func main() {
 		SocketLocation:     connectionServerSocket,
 	}
 
-	_, err = registryConnection.RegisterNSE(context.Background(), nse)
+	registeredNSE, err := registryConnection.RegisterNSE(context.Background(), nse)
 	if err != nil {
 		logrus.Fatalln("unable to register endpoint", err)
 	}
+	logrus.Infoln("NSE registered: " + registeredNSE.EndpointName)
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
 	// Now block on WaitGroup

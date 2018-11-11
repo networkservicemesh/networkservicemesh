@@ -62,10 +62,10 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 		return nil, err
 	}
 
-	_, err = rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
+	nseResponse, err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   request.EndpointName,
-			Labels: map[string]string{"networkservicename": request.NetworkServiceName},
+			GenerateName: request.EndpointName,
+			Labels:       map[string]string{"networkservicename": request.NetworkServiceName},
 		},
 		Spec: v1.NetworkServiceEndpointSpec{
 			NetworkServiceName: request.NetworkServiceName,
@@ -75,9 +75,12 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 			State: v1.RUNNING,
 		},
 	})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err != nil {
 		return nil, err
 	}
+
+	request.EndpointName = nseResponse.Name
+
 	return request, nil
 
 }
