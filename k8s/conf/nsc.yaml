@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: nsc
-          image: nsmd/nsc:latest
+          image: networkservicemesh/nsc:latest
           imagePullPolicy: IfNotPresent
           resources:
             limits:
