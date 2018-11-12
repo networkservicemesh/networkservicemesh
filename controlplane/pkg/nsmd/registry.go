@@ -43,7 +43,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
 	client, err := RegistryClient()
 	if err != nil {
-		err = fmt.Errorf("Attempt to connect to upstream registry failed with: %v", err)
+		err = fmt.Errorf("attempt to connect to upstream registry failed with: %v", err)
 		logrus.Error(err)
 		return nil, err
 	}
@@ -51,11 +51,11 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 	if request.Labels == nil {
 		request.Labels = make(map[string]string)
 	}
-	request.Labels[KEY_NSM_URL] = es.model.GetNsmUrl()
+	request.Labels[KeyNsmUrl] = es.model.GetNsmUrl()
 
 	endpoint, err := client.RegisterNSE(context.Background(), request)
 	if err != nil {
-		err = fmt.Errorf("Attempt to pass through from nsm to upstream registry failed with: %v", err)
+		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)
 		return nil, err
 	}
@@ -76,13 +76,13 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	logrus.Infof("Received Endpoint Remove request: %+v", request)
 	client, err := RegistryClient()
 	if err != nil {
-		err = fmt.Errorf("Attempt to pass through from nsm to upstream registry failed with: %v", err)
+		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)
 		return nil, err
 	}
 	_, err = client.RemoveNSE(context.Background(), request)
 	if err != nil {
-		err = fmt.Errorf("Attempt to pass through from nsm to upstream registry failed with: %v", err)
+		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)
 		return nil, err
 	}

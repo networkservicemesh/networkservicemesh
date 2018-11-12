@@ -128,7 +128,7 @@ func ValidateLocalMechanism(localMechanism *common.LocalMechanism, complete bool
 		}
 		return nil
 	}
-	err := fmt.Errorf("Unknown LocalMechanism.Type: %s", localMechanism.GetType())
+	err := fmt.Errorf("unknown LocalMechanism.Type: %s", localMechanism.GetType())
 	logrus.Error(err)
 	return err
 }

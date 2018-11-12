@@ -2,7 +2,7 @@ package v1
 
 import (
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -33,6 +33,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	)
 
 	// register the type in the scheme
-	meta_v1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metaV1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }

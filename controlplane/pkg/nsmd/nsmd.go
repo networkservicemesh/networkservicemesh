@@ -84,7 +84,7 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 
 	workspace, ok := nsm.workspaces[socket]
 	if !ok {
-		err := fmt.Errorf("No connection exists for workspace %s", socket)
+		err := fmt.Errorf("no connection exists for workspace %s", socket)
 		return &nsmdapi.DeleteConnectionReply{}, err
 	}
 	workspace.Close()

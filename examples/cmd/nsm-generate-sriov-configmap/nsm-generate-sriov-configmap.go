@@ -91,7 +91,7 @@ func newVFs() *VFs {
 // Returns a list of SRIOV capable PF names as string
 func getSriovPfList() ([]string, error) {
 
-	sriovNetDevices := []string{}
+	sriovNetDevices := make([]string, 0)
 
 	netDevices, err := ioutil.ReadDir(netDirectory)
 	if err != nil {

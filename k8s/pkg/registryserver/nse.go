@@ -53,7 +53,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 		},
 		Spec: v1.NetworkServiceManagerSpec{},
 		Status: v1.NetworkServiceManagerStatus{
-			LastSeen: metav1.Time{time.Now()},
+			LastSeen: metav1.Time{Time: time.Now()},
 			URL:      nsmurl,
 			State:    v1.RUNNING,
 		},
