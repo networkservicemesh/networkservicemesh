@@ -3,7 +3,7 @@
 # This script builds the networkservicemesh
 #
 
-set -e
+set -ex
 
 export RACE_ENABLED="-race"
 while test $# -gt 0; do
