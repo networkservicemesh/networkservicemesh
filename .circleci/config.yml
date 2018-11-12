@@ -13,6 +13,7 @@ jobs:
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make check dep-check
+      - run: go get -u github.com/golang/protobuf/protoc-gen-go
       - run: go generate ./...; git diff --exit-code || echo "Run go generate ./... and recommit"
 
   build:
