@@ -262,9 +262,9 @@ workflows:
           requires:
             - build-nsmd
             - build-nsmd-k8s
-            - build-nsmd-nsmdp
-            - build-nsmd-icmp-responder-nse
-            - build-nsmd-nsc
+            - build-nsmdp
+            - build-icmp-responder-nse
+            - build-nsc
             - build-vpp
             - build-vpp-daemon
             - build-memif-test
