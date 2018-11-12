@@ -18,7 +18,7 @@
 . scripts/integration-test-helpers.sh
 
 function run_tests() {
-    COMMIT=${COMMIT:-master}
+    COMMIT=${COMMIT:-latest}
     kubectl get nodes
     kubectl version
     kubectl api-versions
