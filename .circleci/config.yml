@@ -283,9 +283,6 @@ workflows:
             - build-nsmdp
             - build-icmp-responder-nse
             - build-nsc
-            - build-vpp
-            - build-vpp-daemon
-            - build-memif-test
             - packet-deploy
       - packet-destroy:
           requires:
