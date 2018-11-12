@@ -41,7 +41,7 @@ function run_tests() {
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd-k8s:"${COMMIT}"
 
     cp k8s/conf/nsmd.yaml /tmp/icmp-responder-nse.yaml
-    yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"$(COMMIT)"
+    yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
 
     kubectl apply -f /tmp/nsmd.yaml
     kubectl apply -f /tmp/icmp-responder-nse.yaml
