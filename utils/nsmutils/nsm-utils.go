@@ -20,23 +20,6 @@ import (
 	"strconv"
 )
 
-const (
-	// NSMkeyNamespace defines the name of the key namespace in parameters map (mandatory)
-	NSMkeyNamespace = "namespace"
-	// NSMkeyIPv4 defines the name of the key ipv4 address in parameters map (optional)
-	NSMkeyIPv4 = "ipv4"
-	// NSMkeyIPv4PrefixLength defines the name of the key ipv4 prefix length in parameters map (optional)
-	NSMkeyIPv4PrefixLength = "ipv4prefixlength"
-	//NSMSocketFile defines socket name which will be used for memif connection
-	NSMSocketFile = "socketfile"
-	//NSMMaster if true, than role is master
-	NSMMaster = "master"
-	//NSMSlave if true, than role is slave
-	NSMSlave = "slave"
-	//NSMPerPodDirectory defines directory that is mounted to pod (relative to /var/lib/networkservicemesh)
-	NSMPerPodDirectory = "directory"
-)
-
 // Keys is a map of all Keys which are supported in the connection Parameters map
 type KeyProperties struct {
 	Mandatory bool

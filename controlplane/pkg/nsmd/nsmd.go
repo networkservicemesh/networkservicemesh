@@ -16,8 +16,6 @@ import (
 
 const (
 	ServerSock         = "/var/lib/networkservicemesh/nsm.io.sock"
-	DefaultWorkspace   = "/var/lib/networkservicemesh"
-	ClientSocket       = "nsm.client.io.sock"
 	NsmDevicePluginEnv = "NSM_DEVICE_PLUGIN"
 	folderMask         = 0777
 )
