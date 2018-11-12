@@ -255,15 +255,19 @@ workflows:
       - build-memif-test:
           requires:
             - sanity-check
-      - build:
-          requires:
-            - sanity-check
       - packet-deploy:
           requires:
             - sanity-check
       - packet-integration-tests:
           requires:
-            - build
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmd-nsmdp
+            - build-nsmd-icmp-responder-nse
+            - build-nsmd-nsc
+            - build-nsmd-vpp
+            - build-nsmd-vpp-daemon
+            - build-nsmd-memif-test
             - packet-deploy
       - packet-destroy:
           requires:
