@@ -181,7 +181,7 @@ func (s *serviceInstanceController) startServer() error {
 	go s.server.Serve(sock)
 
 	// Wait for server to start by launching a blocking connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	conn, err := dial(ctx, s.socket)
 	if err != nil {
@@ -202,7 +202,7 @@ func (s *serviceInstanceController) cleanup() error {
 
 // register registers service instance controller for the given network service with Kubelet.
 func (s *serviceInstanceController) register() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	conn, err := dial(ctx, pluginapi.KubeletSocket)
