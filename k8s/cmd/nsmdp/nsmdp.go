@@ -122,7 +122,6 @@ func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 		}
 		time.Sleep(30 * time.Second)
 	}
-	return nil
 }
 
 func startDeviceServer(nsm *nsmClientEndpoints) error {
