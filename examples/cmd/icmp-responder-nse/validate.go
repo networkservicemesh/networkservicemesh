@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
 )
 
 func ValidateNetworkServiceRequest(request *networkservice.NetworkServiceRequest) error {

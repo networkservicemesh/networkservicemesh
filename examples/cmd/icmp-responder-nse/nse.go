@@ -22,8 +22,8 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"

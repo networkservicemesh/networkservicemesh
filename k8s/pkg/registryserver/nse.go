@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
