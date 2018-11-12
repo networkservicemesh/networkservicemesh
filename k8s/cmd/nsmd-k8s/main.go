@@ -46,12 +46,12 @@ func main() {
 	}
 
 	// Initialize clientset
-	clientset, e := clientset.NewForConfig(config)
+	clientSet, e := clientset.NewForConfig(config)
 	if e != nil {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", e)
 	}
 
-	err = InstallCRDs(clientset)
+	err = InstallCRDs(clientSet)
 
 	nsmClientSet, err := versioned.NewForConfig(config)
 

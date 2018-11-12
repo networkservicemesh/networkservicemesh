@@ -180,8 +180,10 @@ func (s *serviceInstanceController) startServer() error {
 
 	go s.server.Serve(sock)
 
-	// Wait for server to start by launching a blocking connexion
-	conn, err := dial(s.socket, 5*time.Second)
+	// Wait for server to start by launching a blocking connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+	conn, err := dial(ctx, s.socket)
 	if err != nil {
 		return err
 	}
@@ -200,7 +202,10 @@ func (s *serviceInstanceController) cleanup() error {
 
 // register registers service instance controller for the given network service with Kubelet.
 func (s *serviceInstanceController) register() error {
-	conn, err := dial(pluginapi.KubeletSocket, 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	conn, err := dial(ctx, pluginapi.KubeletSocket)
 	if err != nil {
 		return err
 	}
@@ -370,9 +375,8 @@ func (s *serviceInstanceController) checkVF(id string) bool {
 }
 
 // dial establishes the gRPC communication with the registered device plugin.
-func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error) {
-	c, err := grpc.Dial(unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithTimeout(timeout),
+func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
+	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}),

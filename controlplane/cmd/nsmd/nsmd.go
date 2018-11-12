@@ -14,15 +14,15 @@ import (
 func main() {
 	// TODO add a real url
 	nsmUrl := "127.0.0.1:5000"
-	model := model.NewModel(nsmUrl)
+	nsmModel := model.NewModel(nsmUrl)
 	defer nsmd.StopRegistryClient()
 
-	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
+	if err := nsmd.StartDataplaneRegistrarServer(nsmModel); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
 		os.Exit(1)
 	}
 
-	if err := nsmd.StartNSMServer(model); err != nil {
+	if err := nsmd.StartNSMServer(nsmModel); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
 		os.Exit(1)
 	}

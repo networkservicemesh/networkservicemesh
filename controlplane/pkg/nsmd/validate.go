@@ -58,8 +58,8 @@ func ValidateConnection(connection *networkservice.Connection, complete bool) er
 		return err
 	}
 	// TODO check for network services that do not exist
-	networkservice := connection.GetNetworkService()
-	if networkservice == "" {
+	networkService := connection.GetNetworkService()
+	if networkService == "" {
 		err := fmt.Errorf("NetworkServiceRequest.Connection.NetworkService must not be empty when passed to NetworkService.Request")
 		logrus.Error(err)
 		return err
