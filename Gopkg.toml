@@ -86,7 +86,7 @@ required = [
 
 [[override]]
   name = "k8s.io/code-generator"
-  version = "kubernetes-1.12.1"
+  version = "kubernetes-1.12.2"
 
 [[override]]
   name = "k8s.io/kubernetes"
