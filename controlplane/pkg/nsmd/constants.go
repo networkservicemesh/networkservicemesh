@@ -1,9 +1,10 @@
 package nsmd
 
 const (
-	KeyNsmUrl                               = "nsmurl"
-	NsmServerSocketEnv                      = "NSM_SERVER_SOCKET"
-	NsmClientSocketEnv                      = "NSM_CLIENT_SOCKET"
-	LocalMechanismParameterNetNsInodeKey    = "netnsInode"
-	LocalMechanismParameterInterfaceNameKey = "name"
+	KEY_NSM_URL                                    = "nsmurl"
+	NsmServerSocketEnv                             = "NSM_SERVER_SOCKET"
+	NsmClientSocketEnv                             = "NSM_CLIENT_SOCKET"
+	LocalMechanismParameterNetNsInodeKey           = "netnsInode"
+	LocalMechanismParameterInterfaceNameKey        = "name"
+	LocalMechanismParameterInterfaceDescriptionKey = "description"
 )

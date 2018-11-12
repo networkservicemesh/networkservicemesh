@@ -1,1 +1,1 @@
-../dataplanes/vppagent/build/Dockerfile.vppagent
+../dataplane/vppagent/build/Dockerfile.vppagent

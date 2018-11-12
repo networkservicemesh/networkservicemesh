@@ -17,7 +17,7 @@ package vppagent
 import (
 	"fmt"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
+	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 )
@@ -88,7 +88,7 @@ func (c *DefaultConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Da
 		return nil, err
 	}
 	if len(rv.Interfaces) < 2 {
-		return nil, fmt.Errorf("Did not create enough interfaces to cross connect, expected at least 2, got %i", len(rv.Interfaces))
+		return nil, fmt.Errorf("Did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.Interfaces))
 	}
 	ifaces := rv.Interfaces[len(rv.Interfaces)-2:]
 	rv.XCons = append(rv.XCons, &l2.XConnectPairs_XConnectPair{

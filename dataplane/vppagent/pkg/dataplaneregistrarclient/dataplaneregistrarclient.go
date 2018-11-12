@@ -19,8 +19,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"

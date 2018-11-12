@@ -21,8 +21,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/dataplanes/vppagent/pkg/dataplaneregistrarclient"
-	"github.com/ligato/networkservicemesh/dataplanes/vppagent/pkg/vppagent"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/dataplaneregistrarclient"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 )

@@ -17,8 +17,8 @@ package vppagent
 import (
 	"context"
 
+	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -113,6 +113,7 @@ func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, connection *dataplane
 	if err != nil {
 		logrus.Error(err)
 		// TODO handle connection tracking
+		// TODO handle teardown of any partial config that happened
 		return &dataplane.Reply{
 			Connection:    connection,
 			Success:       false,

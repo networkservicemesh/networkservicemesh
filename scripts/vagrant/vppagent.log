@@ -1,0 +1,307 @@
+2018-11-12 16:38:10,348 CRIT Supervisor running as root (no user in config file)
+2018-11-12 16:38:10,350 INFO supervisord started with pid 23556
+2018-11-12 16:38:11,352 INFO spawned: 'vpp_or_agent_not_running' with pid 23589
+2018-11-12 16:38:11,353 INFO spawned: 'vpp' with pid 23590
+2018-11-12 16:38:11,354 INFO spawned: 'agent' with pid 23591
+2018-11-12 16:38:11,361 DEBG 'agent' stdout output:
+Starting vpp-agent..
+
+2018-11-12 16:38:11,361 INFO success: agent entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2018-11-12 16:38:11,364 DEBG 'vpp' stdout output:
+vlib_plugin_early_init:361: plugin path /usr/lib/vpp_plugins
+
+2018-11-12 16:38:11,364 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: abf_plugin.so (ACL based Forwarding)
+
+2018-11-12 16:38:11,365 DEBG 'vpp_or_agent_not_running' stdout output:
+READY
+
+2018-11-12 16:38:11,365 DEBG vpp_or_agent_not_running: ACKNOWLEDGED -> READY
+2018-11-12 16:38:11,365 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: acl_plugin.so (Access Control Lists)
+
+2018-11-12 16:38:11,366 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: avf_plugin.so (Intel Adaptive Virtual Function (AVF) Device Plugin)
+
+2018-11-12 16:38:11,366 DEBG 'vpp' stdout output:
+load_one_plugin:191: Loaded plugin: cdp_plugin.so
+
+2018-11-12 16:38:11,369 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.36964" level=info msg="Starting agent version: v1.7-10-g6ecea29" BuildDate="2018-10-23T01:44-07:00" CommitHash=6ecea296f8cde8dd52a25e67315f2d945390a152 loc="agent/agent.go(128)" logger=agent
+
+2018-11-12 16:38:11,370 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.36994" level=info msg="Starting agent with 23 plugins" loc="agent/agent.go(197)" logger=agent
+
+2018-11-12 16:38:11,370 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.37015" level=debug msg="Microservice label is set to vpp1" loc="servicelabel/plugin_impl_servicelabel.go(44)" logger=defaultLogger
+
+2018-11-12 16:38:11,370 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.37042" level=info msg="ETCD config not found, skip loading this plugin" loc="etcd/plugin_impl_etcd.go(268)" logger=etcd
+
+2018-11-12 16:38:11,370 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.37061" level=info msg="Consul config not found, skip loading this plugin" loc="consul/plugin.go(137)" logger=consul
+
+2018-11-12 16:38:11,370 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.37080" level=info msg="Redis config not found, skip loading this plugin" loc="redis/plugin_impl_redis.go(120)" logger=redis
+
+2018-11-12 16:38:11,371 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.37101" level=info msg="kafka config not found  - skip loading this plugin" loc="kafka/plugin_impl_kafka.go(72)" logger=kafka
+
+2018-11-12 16:38:11,372 DEBG 'vpp' stdout output:
+load_one_plugin:106: Plugin disabled: dpdk_plugin.so
+
+2018-11-12 16:38:11,372 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: flowprobe_plugin.so (Flow per Packet)
+
+2018-11-12 16:38:11,373 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: gbp_plugin.so (Group Based Policy)
+
+2018-11-12 16:38:11,373 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: gtpu_plugin.so (GTPv1-U)
+
+2018-11-12 16:38:11,373 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: igmp_plugin.so (IGMP messaging)
+
+2018-11-12 16:38:11,374 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: ila_plugin.so (Identifier-locator addressing for IPv6)
+
+2018-11-12 16:38:11,374 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: ioam_plugin.so (Inbound OAM)
+
+2018-11-12 16:38:11,374 DEBG 'vpp' stdout output:
+load_one_plugin:117: Plugin disabled (default): ixge_plugin.so
+
+2018-11-12 16:38:11,374 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: l2e_plugin.so (L2 Emulation)
+
+2018-11-12 16:38:11,375 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: lacp_plugin.so (Link Aggregation Control Protocol)
+
+2018-11-12 16:38:11,375 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: lb_plugin.so (Load Balancer)
+
+2018-11-12 16:38:11,375 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: mactime_plugin.so (Time-based MAC source-address filter)
+
+2018-11-12 16:38:11,375 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: map_plugin.so (Mapping of address and port (MAP))
+
+2018-11-12 16:38:11,376 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: memif_plugin.so (Packet Memory Interface (experimental))
+
+2018-11-12 16:38:11,377 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: nat_plugin.so (Network Address Translation)
+load_one_plugin:189: Loaded plugin: nsh_plugin.so (Network Service Header)
+load_one_plugin:189: Loaded plugin: nsim_plugin.so (network delay simulator plugin)
+load_one_plugin:189: Loaded plugin: pppoe_plugin.so (PPPoE)
+
+2018-11-12 16:38:11,377 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: srv6ad_plugin.so (Dynamic SRv6 proxy)
+
+2018-11-12 16:38:11,377 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: srv6am_plugin.so (Masquerading SRv6 proxy)
+
+2018-11-12 16:38:11,377 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: srv6as_plugin.so (Static SRv6 proxy)
+load_one_plugin:189: Loaded plugin: stn_plugin.so (VPP Steals the NIC for Container integration)
+
+2018-11-12 16:38:11,378 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: svs_plugin.so (Source VRF Select)
+
+2018-11-12 16:38:11,378 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: tlsmbedtls_plugin.so (mbedtls based TLS Engine)
+
+2018-11-12 16:38:11,378 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: tlsopenssl_plugin.so (openssl based TLS Engine)
+
+2018-11-12 16:38:11,378 DEBG 'vpp' stdout output:
+load_one_plugin:117: Plugin disabled (default): unittest_plugin.so
+
+2018-11-12 16:38:11,379 DEBG 'vpp' stdout output:
+load_one_plugin:189: Loaded plugin: vmxnet3_plugin.so (VMWare Vmxnet3 Device Plugin)
+
+2018-11-12 16:38:11,380 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: clib_elf_parse_file: open `linux-vdso.so.1': No such file or directory
+
+2018-11-12 16:38:11,405 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: clib_sysfs_prealloc_hugepages:239: pre-allocating 16 additional 2048K hugepages on numa node 0
+/usr/bin/vpp[23590]: unix_physmem_region_alloc:194: physmem page for region 'buffers' allocated on the wrong numa node (requested 0 actual 4294967294)
+
+2018-11-12 16:38:11,430 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: lb_test_plugin.so
+
+2018-11-12 16:38:11,430 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: lacp_test_plugin.so
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: flowprobe_test_plugin.so
+
+2018-11-12 16:38:11,431 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: stn_test_plugin.so
+
+2018-11-12 16:38:11,431 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: memif_test_plugin.so
+
+2018-11-12 16:38:11,431 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: acl_test_plugin.so
+
+2018-11-12 16:38:11,431 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: mactime_test_plugin.so
+
+2018-11-12 16:38:11,431 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: cdp_test_plugin.so
+
+2018-11-12 16:38:11,432 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: avf_test_plugin.so
+
+2018-11-12 16:38:11,432 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: nat_test_plugin.so
+
+2018-11-12 16:38:11,432 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: map_test_plugin.so
+
+2018-11-12 16:38:11,432 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: pppoe_test_plugin.so
+
+2018-11-12 16:38:11,433 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: dpdk_test_plugin.so
+
+2018-11-12 16:38:11,438 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: ioam_test_plugin.so
+
+2018-11-12 16:38:11,438 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: nsh_test_plugin.so
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: nsim_test_plugin.so
+
+2018-11-12 16:38:11,439 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: vmxnet3_test_plugin.so
+/usr/bin/vpp[23590]: load_one_vat_plugin:67: Loaded plugin: gtpu_test_plugin.so
+
+2018-11-12 16:38:11,499 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.49965" level=info msg="Connecting to VPP took 128.301119ms" loc="govppmux/plugin_impl_govppmux.go(141)" logger=govpp
+
+2018-11-12 16:38:11,502 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.50276" level=info msg="VPP version: \"19.01-rc0~29-g02a95ce8\" (Tue Oct 23 12:13:48 UTC 2018)" loc="govppmux/plugin_impl_govppmux.go(266)" logger=govpp
+
+2018-11-12 16:38:11,513 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.51337" level=info msg="VPP ACL plugin version: \"1.3\"" loc="govppmux/plugin_impl_govppmux.go(274)" logger=govpp
+time="2018-11-12 16:38:11.51349" level=info msg="Plugin govpp: status check probe registered" loc="statuscheck/plugin_impl_statuscheck.go(137)" logger=status-check
+time="2018-11-12 16:38:11.51353" level=info msg="Agent plugin state update." lastErr="<nil>" loc="statuscheck/plugin_impl_statuscheck.go(182)" logger=status-check plugin=govpp state=ok
+time="2018-11-12 16:38:11.51367" level=info msg="Init Linux namespace handler" loc="linux/linuxplugin_init.go(198)" logger=linux
+
+2018-11-12 16:38:11,709 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.70941" level=info msg="Namespace handler plugin initialized" loc="nsplugin/ns_handler.go(108)" logger=linux.ns-handler
+time="2018-11-12 16:38:11.70946" level=info msg="Init Linux interface plugin" loc="linux/linuxplugin_init.go(208)" logger=linux
+time="2018-11-12 16:38:11.70952" level=info msg="Linux interface configurator initialized" loc="ifplugin/interface_config.go(110)" logger=linux.if-conf
+
+2018-11-12 16:38:11,710 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.70960" level=info msg="Init Linux L3 plugin" loc="linux/linuxplugin_init.go(233)" logger=linux
+
+2018-11-12 16:38:11,710 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71023" level=info msg="Resync strategy  is not known, setting up the full resync" loc="vpp/plugin_impl_vpp.go(387)" logger=vpp
+time="2018-11-12 16:38:11.71028" level=info msg="VPP resync strategy is set to full" loc="vpp/plugin_impl_vpp.go(632)" logger=vpp
+
+2018-11-12 16:38:11,710 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71034" level=info msg="Init interface plugin" loc="vpp/plugin_impl_vpp.go(412)" logger=vpp
+time="2018-11-12 16:38:11.71051" level=info msg="Initializing AF-Packet configurator" loc="ifplugin/afpacket_config.go(75)" logger=vpp.if-conf
+
+2018-11-12 16:38:11,710 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71056" level=info msg="Interface configurator initialized" loc="ifplugin/interface_config.go(110)" logger=vpp.if-conf
+time="2018-11-12 16:38:11.71064" level=info msg="Interface state updater initialized" loc="ifplugin/interface_state.go(116)" logger=vpp.if-state
+time="2018-11-12 16:38:11.71067" level=info msg=" BFD configurator initialized" loc="ifplugin/bfd_config.go(74)" logger=vpp.bfd-conf
+
+2018-11-12 16:38:11,710 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71075" level=info msg="STN configurator initialized" loc="ifplugin/stn_config.go(82)" logger=vpp.stn-conf
+time="2018-11-12 16:38:11.71089" level=info msg="NAT configurator initialized" loc="ifplugin/nat_config.go(113)" logger=vpp.nat-conf
+
+2018-11-12 16:38:11,711 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71092" level=info msg="Init IPSec plugin" loc="vpp/plugin_impl_vpp.go(467)" logger=vpp
+time="2018-11-12 16:38:11.71105" level=info msg="Init ACL plugin" loc="vpp/plugin_impl_vpp.go(480)" logger=vpp
+
+2018-11-12 16:38:11,711 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71114" level=info msg="ACL configurator initialized" loc="aclplugin/acl_config.go(93)" logger=vpp.acl-plugin
+time="2018-11-12 16:38:11.71123" level=info msg="Init L2 plugin" loc="vpp/plugin_impl_vpp.go(494)" logger=vpp
+
+2018-11-12 16:38:11,711 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71130" level=info msg="Initializing bridge domain state updater" loc="l2plugin/bd_state.go(93)" logger=vpp.l2-bd-state
+time="2018-11-12 16:38:11.71138" level=info msg="L2 FIB configurator initialized" loc="l2plugin/fib_config.go(82)" logger=vpp.l2-fib-conf
+
+2018-11-12 16:38:11,711 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71151" level=info msg="L2 XConnect configurator initialized" loc="l2plugin/xconnect_config.go(65)" logger=vpp.xc-conf
+time="2018-11-12 16:38:11.71159" level=info msg="Init L3 plugin" loc="vpp/plugin_impl_vpp.go(540)" logger=vpp
+time="2018-11-12 16:38:11.71162" level=info msg="VPP ARP configurator initialized" loc="l3plugin/arp_config.go(79)" logger=vpp.l3-arp-conf
+time="2018-11-12 16:38:11.71174" level=info msg="Proxy ARP configurator initialized" loc="l3plugin/arp_proxy_config.go(76)" logger=vpp.l3-proxy-arp-conf
+
+2018-11-12 16:38:11,711 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71178" level=info msg="Init L4 plugin" loc="vpp/plugin_impl_vpp.go(574)" logger=vpp
+time="2018-11-12 16:38:11.71181" level=info msg="Init SR plugin" loc="vpp/plugin_impl_vpp.go(587)" logger=vpp
+
+2018-11-12 16:38:11,712 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71188" level=info msg="Segment routing configurator initialized" loc="srplugin/srv6_config.go(98)" logger=vpp.sr-plugin
+
+2018-11-12 16:38:11,712 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71222" level=info msg="Listening on http://0.0.0.0:9191" loc="rest/plugin_impl_rest.go(108)" logger=http
+
+2018-11-12 16:38:11,712 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.71235" level=info msg="Resync order[]" loc="resync/plugin_impl_resync.go(105)" logger=resync
+time="2018-11-12 16:38:11.71240" level=info msg="Resync took 102ns" durationInNs=102 loc="resync/plugin_impl_resync.go(122)" logger=resync
+time="2018-11-12 16:38:11.71246" level=info msg="HTTP not set, skip exposing GRPC services" loc="grpc/plugin_impl_grpc.go(82)" logger=grpc
+time="2018-11-12 16:38:11.71251" level=info msg="Listening GRPC on: 0.0.0.0:9111" loc="grpc/plugin_impl_grpc.go(90)" logger=grpc
+
+2018-11-12 16:38:11,729 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.72865" level=info msg="Plugin vpp: status check probe registered" loc="statuscheck/plugin_impl_statuscheck.go(137)" logger=status-check
+
+2018-11-12 16:38:11,729 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.72953" level=info msg="Starting health http-probe on port 9191" loc="probe/plugin_impl_probe.go(62)" logger=probe
+time="2018-11-12 16:38:11.72959" level=info msg="Unable to register prometheus-probe handler, Prometheus is nil" loc="probe/plugin_impl_probe.go(74)" logger=probe
+
+2018-11-12 16:38:11,729 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.72964" level=info msg="Serving /metrics on port 9191" loc="prometheus/plugin_impl_prometheus.go(87)" logger=prometheus
+time="2018-11-12 16:38:11.72967" level=info msg="Serving /vpp on port 9191" loc="prometheus/plugin_impl_prometheus.go(87)" logger=prometheus
+time="2018-11-12 16:38:11.72975" level=info msg="Resync order[]" loc="resync/plugin_impl_resync.go(105)" logger=resync
+time="2018-11-12 16:38:11.72978" level=info msg="Resync took 88ns" durationInNs=88 loc="resync/plugin_impl_resync.go(122)" logger=resync
+
+2018-11-12 16:38:11,729 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:11.72981" level=info msg="Agent started with 23 plugins (took 360ms)" loc="agent/agent.go(166)" logger=agent
+
+2018-11-12 16:38:12,731 INFO success: vpp_or_agent_not_running entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2018-11-12 16:38:12,731 INFO success: vpp entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2018-11-12 16:38:25,234 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.23424" level=info msg="Linux interface DST-1 with hostIfName icmp-responder1 configured" loc="ifplugin/interface_config.go(173)" logger=linux.if-conf
+
+2018-11-12 16:38:25,237 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.23703" level=error msg="failed to read TAP interface SRC-icmp-responder1 from linux: numerical result out of range\n/go/src/github.com/ligato/vpp-agent/plugins/linux/ifplugin/interface_config.go:379 (0xc375dc)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/ifplugin/interface_config.go:166 (0xc35e5a)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/data_change.go:82 (0xd725ea)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/data_change.go:41 (0xd7230b)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:78 (0xd76e7f)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:46 (0xd772fc)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:34 (0xd77204)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:45 (0xd76c83)\n/usr/local/go/src/runtime/asm_amd64.s:1333 (0x45b771)\n" loc="ifplugin/interface_config.go(1128)" logger=linux.if-conf
+
+2018-11-12 16:38:25,255 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.25557" level=info msg="Agent plugin state update." lastErr="<nil>" loc="statuscheck/plugin_impl_statuscheck.go(182)" logger=status-check plugin=vpp state=ok
+
+2018-11-12 16:38:25,255 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.25568" level=warning msg="Unregistered interface local0 with ID 0 found on vpp" loc="ifplugin/interface_config.go(836)" logger=vpp.if-conf
+
+2018-11-12 16:38:25,256 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.25601" level=info msg="Interface SRC-1 configured" loc="ifplugin/interface_config.go(316)" logger=vpp.if-conf
+
+2018-11-12 16:38:25,282 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.28272" level=warning msg="Unregistered interface local0 with ID 0 found on vpp" loc="ifplugin/interface_config.go(836)" logger=vpp.if-conf
+
+2018-11-12 16:38:25,283 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.28348" level=info msg="Interface DST-1 configured" loc="ifplugin/interface_config.go(316)" logger=vpp.if-conf
+
+2018-11-12 16:38:25,298 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.29874" level=info msg="Linux interface DST-1 with hostIfName icmp-responder1 configured" loc="ifplugin/interface_config.go(173)" logger=linux.if-conf
+
+2018-11-12 16:38:25,299 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.29934" level=info msg="L2 XConnect pair SRC-1-DST-1 configured" loc="l2plugin/xconnect_config.go(126)" logger=vpp.xc-conf
+
+2018-11-12 16:38:25,300 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.29979" level=error msg="failed to configure linux interface SRC-1 with registered VPP interface name:\"SRC-1\" type:AUTO_TAP enabled:true host_if_name:\"SRC-icmp-responder1\" namespace:<type:FILE_REF_NS filepath:\"/proc/23818/ns/net\" > tap:<temp_if_name:\"SRC-icmp-responder1\" > : failed to read TAP interface SRC-icmp-responder1 from linux: numerical result out of range\n/go/src/github.com/ligato/vpp-agent/plugins/linux/ifplugin/interface_config.go:1072 (0xc3f674)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:107 (0xd77141)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:61 (0xd7741e)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:34 (0xd77204)\n/go/src/github.com/ligato/vpp-agent/plugins/linux/watch_events.go:60 (0xd7695f)\n/usr/local/go/src/runtime/asm_amd64.s:1333 (0x45b771)\n" loc="ifplugin/interface_config.go(1128)" logger=linux.if-conf
+
+2018-11-12 16:38:25,312 DEBG 'vpp' stdout output:
+/usr/bin/vpp[23590]: tapcli_flag_change:679: Couldn't get interface flags for tapcli-1: No such device (errno 19)
+
+2018-11-12 16:38:25,313 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.31276" level=info msg="L2 XConnect pair DST-1-SRC-1 configured" loc="l2plugin/xconnect_config.go(126)" logger=vpp.xc-conf
+time="2018-11-12 16:38:25.31291" level=debug msg="TX Done - all events callbacks received" loc="syncbase/done.go(79)" logger=defaultLogger
+time="2018-11-12 16:38:25.31321" level=info msg="there is no linux tap configuration entry for interface icmp-responder1" loc="ifplugin/interface_config.go(351)" logger=linux.if-conf
+
+2018-11-12 16:38:25,313 DEBG 'agent' stdout output:
+time="2018-11-12 16:38:25.31369" level=info msg="transport: loopyWriter.run returning. connection error: desc = \"transport is closing\"" loc="grpclog/logger.go(55)" logger=grpc.grpc-server
+

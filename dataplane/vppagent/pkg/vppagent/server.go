@@ -15,23 +15,12 @@
 package vppagent
 
 import (
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
-	"github.com/sirupsen/logrus"
+	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"google.golang.org/grpc"
 )
 
-func LocalMechanism(c *dataplane.Connection, s SrcDst) *common.LocalMechanism {
-	logrus.Infof("LocalMechanism requested for %#v: %s", c, s.String())
-	var rv *common.LocalMechanism
-	if s == SRC {
-		rv = c.LocalSource
-	}
-	if s == DST {
-		dst, ok := c.Destination.(*dataplane.Connection_Local)
-		if ok {
-			rv = dst.Local
-		}
-	}
-	logrus.Infof("LocalMechanism found for %v: %s: %#v", c, s.String(), rv)
-	return rv
+func NewServer(vppAgentEndpoint string) *grpc.Server {
+	server := grpc.NewServer()
+	dataplane.RegisterDataplaneOperationsServer(server, NewVPPAgent(vppAgentEndpoint))
+	return server
 }

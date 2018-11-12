@@ -20,7 +20,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
+	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 
@@ -35,6 +35,7 @@ const (
 	IPv4Key = "ipv4"
 	// IPv4PrefixLengthKey defines the name of the key ipv4 prefix length in parameters map (optional)
 	IPv4PrefixLengthKey = "ipv4prefixlength"
+	LinuxIfMaxLength    = 15 // The actual value is 15, but best be safe
 )
 
 type KernelInterfaceConverter struct {
@@ -61,6 +62,10 @@ func (c *KernelInterfaceConverter) Validate() error {
 	}
 	if _, ok := lm.Parameters[nsmd.LocalMechanismParameterNetNsInodeKey]; !ok {
 		return fmt.Errorf("Missing Required LocalMechanism.Parameter[%s] for network namespace", nsmd.LocalMechanismParameterNetNsInodeKey)
+	}
+	iface, ok := lm.Parameters[nsmd.LocalMechanismParameterInterfaceNameKey]
+	if ok && len(iface) > LinuxIfMaxLength {
+
 	}
 	// TODO validated namespace, and IPv4 keys here
 
@@ -101,33 +106,39 @@ func (c *KernelInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Data
 	}
 	filepath, err := fs.FindFileInProc(inode, "/ns/net")
 	if err != nil {
-		logrus.Errorf("No file found in /proc/*/ns/net with inode %i", inode)
+		logrus.Errorf("No file found in /proc/*/ns/net with inode %d", inode)
 		return nil, err
 	}
 	iface := lm.Parameters[nsmd.LocalMechanismParameterInterfaceNameKey]
-	if c.Side == SRC {
-		iface = "SRC-" + iface
-	}
+	tmpIface := TempIfName()
+	logrus.Infof("tmpIface: %s len(tmpIface) %d\n", tmpIface, len(tmpIface))
+
+	description := lm.Parameters[nsmd.LocalMechanismParameterInterfaceDescriptionKey]
+
 	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
 		Name:    name,
 		Type:    interfaces.InterfaceType_TAP_INTERFACE,
 		Enabled: true,
 		Tap: &interfaces.Interfaces_Interface_Tap{
-			HostIfName: iface,
-			Namespace:  filepath,
+			Version:    2,
+			HostIfName: tmpIface,
 		},
 	})
 	rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
-		Name:    "",
-		Type:    linux_interfaces.LinuxInterfaces_AUTO_TAP,
-		Enabled: true,
-		IpAddresses: []string{
-			"10.10.10.1/24",
-		},
+		Name:        name,
+		Type:        linux_interfaces.LinuxInterfaces_AUTO_TAP,
+		Enabled:     true,
+		Description: description,
+		// IpAddresses: []string{
+		// 	"10.10.10.1/24",
+		// },
 		HostIfName: iface,
 		Namespace: &linux_interfaces.LinuxInterfaces_Interface_Namespace{
 			Type:     linux_interfaces.LinuxInterfaces_Interface_Namespace_FILE_REF_NS,
 			Filepath: filepath,
+		},
+		Tap: &linux_interfaces.LinuxInterfaces_Interface_Tap{
+			TempIfName: tmpIface,
 		},
 	})
 

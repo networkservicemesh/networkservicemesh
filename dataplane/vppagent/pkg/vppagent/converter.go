@@ -17,7 +17,7 @@ package vppagent
 import (
 	"fmt"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
+	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 )
