@@ -77,19 +77,6 @@ check:
 verify:
 	@./scripts/update-codegen.sh && ./scripts/add-openapi-bits.sh && ./scripts/verify-codegen.sh
 
-# Individual targets are found in .nsm.mk
-
-docker-build: ;
-
-# Individual targets are found in .nsm.mk
-docker-push: docker-login
-
-# Individual targets are found in .nsm.mk
-docker-save: ;
-
-
-
-
 .PHONY: format deps generate install test test-race vet
 #
 # The following targets are meant to be run when working with the code locally.

@@ -76,6 +76,8 @@ docker-%-push: docker-login docker-%-build
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
 	docker push ${ORG}/$*
 
+PHONY: docker-push
+docker-push: $(addsuffix -push,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 
 
