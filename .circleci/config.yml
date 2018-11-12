@@ -78,6 +78,9 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
+            sudo ./.circleci/install-yq.sh
+      - run:
+          command: |
             ./.circleci/set-nameserver.sh sudo
             sudo apt-get install gettext-base
       - run:
@@ -137,7 +140,11 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
             make docker-nsmd-build
+            make docker-nsmd-push
   build-nsmd-k8s:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -150,6 +157,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
             export TAG="$BUILD_TAG"
+            make docker-nsmd-k8s-build
             make docker-nsmd-k8s-push
   build-nsmdp:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
@@ -160,7 +168,11 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
             make docker-nsmdp-build
+            make docker-nsmdp-push
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -170,8 +182,11 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
-            cd examples
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
             make docker-icmp-responder-nse-build
+            make docker-icmp-responder-nse-push
   build-nsc:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -181,8 +196,11 @@ jobs:
       - setup_remote_docker
       - run:
           command: |
-            cd examples
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
             make docker-nsc-build
+            make docker-nsc-push
   build-vpp:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -255,15 +273,16 @@ workflows:
       - build-memif-test:
           requires:
             - sanity-check
-      - build:
-          requires:
-            - sanity-check
       - packet-deploy:
           requires:
             - sanity-check
       - packet-integration-tests:
           requires:
-            - build
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-icmp-responder-nse
+            - build-nsc
             - packet-deploy
       - packet-destroy:
           requires:
