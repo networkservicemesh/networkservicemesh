@@ -40,7 +40,7 @@ CONTAINER_BUILD_PREFIX = docker
 include .docker.mk
 
 .PHONY: k8s-deploy
-k8s-deploy: $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
+k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
@@ -77,17 +77,11 @@ k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 .PHONY: k8s-build
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-%-build
-k8s-%-build: ${CONTAINER_BUILD_PREFIX}-%-build
+.PHONY: k8s-save-deploy
+k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-%-save
-k8s-%-save: ${CONTAINER_BUILD_PREFIX}-%-save
-
-.PHONY: k8s-build-deploy
-k8s-build-deploy: $(addsuffix -build-deploy,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-%-build-deploy
-k8s-%-build-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-save  k8s-%-load-images
+.PHONY: k8s-%-save-deploy
+k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
 	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
 
 NSMD_CONTAINERS = nsmd nsmdp nsmd-k8s
@@ -110,3 +104,16 @@ k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PR
 .PHONY: k8s-vppagent-dataplane-load-images
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
 
+.PHONY: k8s-nsc-build
+k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
+
+.PHONY: k8s-nsc-save
+k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
+
+.PHONY: k8s-icmp-responder-nse-build
+k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-build
+
+.PHONY: k8s-icmp-responder-nse-save
+k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
+
+# TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
