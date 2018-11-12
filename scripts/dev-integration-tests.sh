@@ -20,35 +20,35 @@
 set -xe
 
 # Verify the image exists
-if [ "x$(docker images|grep networkservicemesh/netmesh)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/nsmd)" == "x" ]
 then
-    echo "Docker image networkservicemesh/netmesh not found"
+    echo "Docker image networkservicemesh/nsmd not found"
     echo "Please build the image before running integration tests"
     exit 1
 fi
-if [ "x$(docker images|grep networkservicemesh/test-dataplane)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/nsmdp)" == "x" ]
 then
-    echo "Docker image networkservicemesh/test-dataplane not found"
+    echo "Docker image networkservicemesh/nsmdp not found"
     echo "Please build the image before running integration tests"
     exit 1
 fi
-if [ "x$(docker images|grep networkservicemesh/nsm-init)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/nsmd-k8s)" == "x" ]
 then
-    echo "Docker image networkservicemesh/nsm-init not found"
+    echo "Docker image networkservicemesh/nsmd-k8s not found"
     echo "Please build the image before running integration tests"
     exit 1
 fi
-if [ "x$(docker images|grep networkservicemesh/nse)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/icmp-responder)" == "x" ]
 then
-    echo "Docker image networkservicemesh/nse not found"
+    echo "Docker image networkservicemesh/icmp-responder not found"
     echo "Please build the image before running integration tests"
     exit 1
 fi
-if [ "x$(docker images|grep networkservicemesh/sidecar-injector)" == "x" ]
+if [ "x$(docker images|grep networkservicemesh/nsc)" == "x" ]
 then
-    echo "Docker image networkservicemesh/sidecar-injector not found"
+    echo "Docker image networkservicemesh/nsc not found"
     echo "Please build the image before running integration tests"
-    exit 0
+    exit 1
 fi
 
 # run_tests returns an error on failure
