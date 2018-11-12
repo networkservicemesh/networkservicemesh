@@ -59,6 +59,26 @@ function run_tests() {
         sleep 2
     done
 
+    # start icmp-responder-nse
+    kubectl apply -f k8s/conf/icmp-responder-nse.yaml
+    wait_for_pods default
+
+    typeset -i cnt=240
+    until kubectl get nse | grep icmp; do
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
+
+    typeset -i cnt=240
+    until kubectl get netsvc | grep icmp-responder; do
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
+
+    # start icmp-responder-nse
+    kubectl apply -f k8s/conf/nsc.yaml
+    wait_for_pods default
+
     #
     # Final log collection
     #
