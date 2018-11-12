@@ -10,6 +10,7 @@ jobs:
           command: |
             sudo apt-get install yamllint python3-pkg-resources
             ./.circleci/install-shellcheck.sh
+            ./.circleci/install-yq.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make check dep-check verify
