@@ -10,8 +10,8 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
