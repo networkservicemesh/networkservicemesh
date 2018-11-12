@@ -36,8 +36,9 @@ type Model interface {
 
 type impl struct {
 	sync.RWMutex
-	endpoints         []*registry.NetworkServiceEndpoint
-	dataplanes        []*Dataplane
+	endpoints         map[string]*registry.NetworkServiceEndpoint
+	networkServices   map[string][]*registry.NetworkServiceEndpoint
+	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
 	nsmUrl            string
 }
@@ -45,11 +46,9 @@ type impl struct {
 func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint {
 	i.RLock()
 	defer i.RUnlock()
-	var endpoints []*registry.NetworkServiceEndpoint
-	for _, e := range i.endpoints {
-		if e.NetworkServiceName == name {
-			endpoints = append(endpoints, e)
-		}
+	var endpoints = i.networkServices[name]
+	if endpoints == nil {
+		endpoints = []*registry.NetworkServiceEndpoint{}
 	}
 	return endpoints
 }
@@ -57,30 +56,49 @@ func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServic
 func (i *impl) GetEndpoint(name string) *registry.NetworkServiceEndpoint {
 	i.RLock()
 	defer i.RUnlock()
-	for _, e := range i.endpoints {
-		if e.EndpointName == name {
-			return e
-		}
-	}
-	return nil
+	return i.endpoints[name]
 }
 
 func (i *impl) AddEndpoint(endpoint *registry.NetworkServiceEndpoint) {
 	i.Lock()
-	i.endpoints = append(i.endpoints, endpoint)
-	i.Unlock()
+	defer i.Unlock()
+	i.endpoints[endpoint.EndpointName] = endpoint
+	serviceName := endpoint.NetworkServiceName
+	services := i.networkServices[serviceName]
+	if services == nil {
+		services = []*registry.NetworkServiceEndpoint{ endpoint }
+	} else {
+		services = append(services, endpoint)
+	}
+	i.networkServices[serviceName] = services
+
 	logrus.Infof("Endpoint added: %v", endpoint)
 }
 
 func (i *impl) DeleteEndpoint(name string) error {
 	i.Lock()
 	defer i.Unlock()
-	for idx, e := range i.endpoints {
-		if e.EndpointName == name {
-			i.endpoints = append(i.endpoints[:idx], i.endpoints[idx+1:]...)
-			return nil
+
+	endpoint := i.endpoints[name]
+	if endpoint != nil {
+		services := i.networkServices[endpoint.NetworkServiceName]
+		if len(services) > 1 {
+			for idx, e := range services {
+				if e == endpoint {
+					services = append(services[:idx], services[idx+1:]...)
+					break
+				}
+			}
+			// Update services with removed item.
+			i.networkServices[endpoint.NetworkServiceName] = services
+		} else {
+			delete(i.networkServices, endpoint.NetworkServiceName)
 		}
+
+		delete(i.endpoints, name)
 	}
+
+
 	return fmt.Errorf("no endpoint with name: %s", name)
 }
 
@@ -96,17 +114,18 @@ func (i *impl) GetDataplane(name string) *Dataplane {
 }
 
 func (i *impl) SelectDataplane() (*Dataplane, error) {
-	if len(i.dataplanes) == 0 {
-		return nil, fmt.Errorf("no dataplanes registered")
-	} else {
-		return i.dataplanes[0], nil
+	i.Lock()
+	defer i.Unlock()
+	for _, v := range i.dataplanes {
+		return v, nil // TODO: Return first for now
 	}
+	return nil, fmt.Errorf("no dataplanes registered")
 }
 
 func (i *impl) AddDataplane(dataplane *Dataplane) {
 	i.Lock()
-	i.dataplanes = append(i.dataplanes, dataplane)
-	i.Unlock()
+	defer i.Unlock()
+	i.dataplanes[dataplane.RegisteredName] = dataplane
 	logrus.Infof("Dataplane added: %v", dataplane)
 }
 
@@ -114,12 +133,7 @@ func (i *impl) DeleteDataplane(name string) {
 	i.Lock()
 	defer i.Unlock()
 
-	for idx, dp := range i.dataplanes {
-		if dp.RegisteredName == name {
-			i.dataplanes = append(i.dataplanes[:idx], i.dataplanes[idx+1:]...)
-			return
-		}
-	}
+	delete(i.dataplanes, name)
 }
 
 func (i *impl) GetNsmUrl() string {
@@ -129,6 +143,9 @@ func (i *impl) GetNsmUrl() string {
 func NewModel(nsmUrl string) Model {
 	return &impl{
 		nsmUrl: nsmUrl,
+		dataplanes: make(map[string]*Dataplane),
+		networkServices: make(map[string][]*registry.NetworkServiceEndpoint),
+		endpoints: make(map[string]*registry.NetworkServiceEndpoint),
 	}
 }
 
