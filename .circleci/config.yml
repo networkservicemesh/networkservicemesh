@@ -14,39 +14,6 @@ jobs:
       - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make check dep-check verify
 
-  build:
-    working_directory: /go/src/github.com/ligato/networkservicemesh
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-            make verify docker-build docker-push
-      - run:
-          when: on_fail
-          name: Trigger packet-destroy
-          command: |
-            echo "Wait for 10 minutes to allow deploy to happen"
-            typeset -i numsec=900
-            typeset -i cnt=0
-            while [ $cnt -lt ${numsec} ]; do
-              echo -ne "Waited $cnt seconds out of $numsec\033[0K\r"
-              ((cnt=cnt+1))
-              sleep 1
-            done
-            curl --user ${CIRCLE_API_PROJECT_TOKEN}: \
-                --data build_parameters[CIRCLE_JOB]=packet-destroy \
-                --data build_parameters[CIRCLE_WORKFLOW_ID]=${CIRCLE_WORKFLOW_ID} \
-                --data revision=$CIRCLE_SHA1 \
-                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
-
-
   packet-deploy:
     working_directory: /cncf
     docker:
@@ -201,6 +168,16 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsc-build
             make docker-nsc-push
+  go-test:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            go test ./...
 workflows:
   version: 2
   build-and-test:
@@ -219,6 +196,9 @@ workflows:
           requires:
             - sanity-check
       - build-nsc:
+          requires:
+            - sanity-check
+      - go-test:
           requires:
             - sanity-check
       - packet-deploy:
