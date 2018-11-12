@@ -11,10 +11,11 @@ jobs:
             sudo apt-get install yamllint python3-pkg-resources
             ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
-      - run: go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
       - run: make check dep-check
+      - run: go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/
       - run: go get -u github.com/golang/protobuf/protoc-gen-go
-      - run: go generate ./...; git diff --exit-code || echo "Run go generate ./... and recommit"
+      - run: ./scripts/install-protoc.sh
+      - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || echo "Run go generate ./... and recommit"
 
   build:
     working_directory: /go/src/github.com/ligato/networkservicemesh
