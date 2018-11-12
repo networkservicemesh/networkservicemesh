@@ -18,6 +18,7 @@
 . scripts/integration-test-helpers.sh
 
 function run_tests() {
+    COMMIT=${COMMIT:-latest}
     kubectl get nodes
     kubectl version
     kubectl api-versions
@@ -32,8 +33,18 @@ function run_tests() {
 
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
-    kubectl apply -f k8s/conf/nsmd.yaml
-    kubectl apply -f k8s/conf/icmp-responder-nse.yaml
+
+
+    cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
+    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
+    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"
+    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd-k8s:"${COMMIT}"
+
+    cp k8s/conf/nsmd.yaml /tmp/icmp-responder-nse.yaml
+    yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
+
+    kubectl apply -f /tmp/nsmd.yaml
+    kubectl apply -f /tmp/icmp-responder-nse.yaml
 
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
