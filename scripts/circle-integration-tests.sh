@@ -23,9 +23,7 @@ KUBECTL_VERSION=v1.11.3
 curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
  	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
 
-COMMIT="${CIRCLE_SHA1:8:8}"
-
-./scripts/generate-configs.sh "$COMMIT"
+# COMMIT="${CIRCLE_SHA1:8:8}"
 
 . scripts/integration-tests.sh
 
