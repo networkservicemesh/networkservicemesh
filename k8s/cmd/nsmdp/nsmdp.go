@@ -48,26 +48,30 @@ type nsmClientEndpoints struct {
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	logrus.Info("Client request for nsmdp resource...")
-	responses := pluginapi.AllocateResponse{}
+	responses := &pluginapi.AllocateResponse{}
 	for range reqs.ContainerRequests {
 		workspace, err := nsmd.RequestWorkspace()
+		logrus.Infof("Received Workspace %v", workspace)
 		if err != nil {
 			logrus.Errorf("error talking to nsmd: %v", err)
 		} else {
 			mount := &pluginapi.Mount{
-				ContainerPath: socketBaseDir,
-				HostPath:      workspace,
+				ContainerPath: workspace.ClientBaseDir,
+				HostPath:      workspace.HostBasedir + workspace.Workspace,
 				ReadOnly:      false,
 			}
 			responses.ContainerResponses = append(responses.ContainerResponses, &pluginapi.ContainerAllocateResponse{
 				Mounts: []*pluginapi.Mount{mount},
 				Envs: map[string]string{
 					nsmd.NsmDevicePluginEnv: "true",
+					nsmd.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
+					nsmd.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
 				},
 			})
 		}
 	}
-	return &responses, nil
+	logrus.Infof("AllocateResponse: %v", responses)
+	return responses, nil
 }
 
 // Register registers

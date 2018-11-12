@@ -11,9 +11,11 @@ message ClientConnectionRequest {
 // indicates that connection was refused and admission_error will provide details
 // why connection was refused.
 message ClientConnectionReply {
-    bool accepted = 1;
-    string admission_error = 2;
-    string workspace = 3;
+    string workspace = 1;
+    string hostBasedir = 2;
+    string clientBaseDir = 3;
+    string nsmServerSocket = 4;
+    string nsmClientSocket = 5;
 }
 
 // DeleteConnectionRequest is sent by a nsm-k8s to delete connection with a client.
@@ -22,7 +24,7 @@ message DeleteConnectionRequest {
 }
 
 message DeleteConnectionReply {
-    bool success = 1;
+
 }
 
 service NSMD {

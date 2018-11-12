@@ -64,7 +64,7 @@ endif
 
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
-.PHONY: all check verify docker-build docker-push
+.PHONY: all check verify # docker-build docker-push
 #
 # The all target is what is used by the travis-ci system to build the Docker images
 # which are used to run the code in each run.
@@ -78,6 +78,7 @@ verify:
 	@./scripts/update-codegen.sh && ./scripts/add-openapi-bits.sh && ./scripts/verify-codegen.sh
 
 # Individual targets are found in .nsm.mk
+
 docker-build: ;
 
 # Individual targets are found in .nsm.mk
@@ -85,6 +86,7 @@ docker-push: docker-login
 
 # Individual targets are found in .nsm.mk
 docker-save: ;
+
 
 
 

@@ -16,12 +16,12 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
+	"math/rand"
+	"sync"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	"math/rand"
-	"net"
-	"sync"
+	"github.com/sirupsen/logrus"
 )
 
 type networkService struct {
@@ -39,26 +39,11 @@ type message struct {
 }
 
 func (ns *networkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
-	connectionContext := &networkservice.ConnectionContext{
-		ConnectionContext: make(map[string]string),
-	}
-
-	srcIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(srcIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 1
-
-	dstIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(dstIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 3
-
-	connectionContext.ConnectionContext["src_ip"] = srcIP.String() + "/30"
-	connectionContext.ConnectionContext["dst_ip"] = dstIP.String() + "/30"
-
-	connection := &networkservice.Connection{
-		ConnectionId:      request.Connection.ConnectionId,
-		NetworkService:    request.Connection.NetworkService,
-		LocalMechanism:    request.LocalMechanismPreference[0],
-		ConnectionContext: connectionContext,
+	logrus.Infof("Request for Network Service received %v", request)
+	connection, err := ns.CompleteConnection(request)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
 	}
 
 	ns.requestChan <- message{"created", connection}
