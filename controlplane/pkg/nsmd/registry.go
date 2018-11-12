@@ -25,12 +25,14 @@ import (
 )
 
 type registryServer struct {
-	model model.Model
+	model     model.Model
+	workspace *Workspace
 }
 
-func NewRegistryServer(model model.Model) registry.NetworkServiceRegistryServer {
+func NewRegistryServer(model model.Model, workspace *Workspace) registry.NetworkServiceRegistryServer {
 	return &registryServer{
-		model: model,
+		model:     model,
+		workspace: workspace,
 	}
 }
 
@@ -61,7 +63,9 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 	ep := es.model.GetEndpoint(endpoint.EndpointName)
 	if ep == nil {
 		es.model.AddEndpoint(endpoint)
+		WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, endpoint)
 	}
+	WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, ep)
 
 	return endpoint, nil
 }
@@ -82,6 +86,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 		logrus.Error(err)
 		return nil, err
 	}
+	WorkSpaceRegistry().DeleteEndpointToWorkspace(request.EndpointName)
 	if err := es.model.DeleteEndpoint(request.EndpointName); err != nil {
 		return &common.Empty{}, err
 	}
