@@ -11,7 +11,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/dataplanes/vpp/pkg/nsmutils"
+	"github.com/ligato/networkservicemesh/utils/nsmutils"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
