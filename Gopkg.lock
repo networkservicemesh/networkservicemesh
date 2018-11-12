@@ -719,7 +719,6 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
-    "github.com/go-openapi/spec",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/onsi/gomega",
@@ -757,7 +756,6 @@
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
     "k8s.io/kube-openapi/cmd/openapi-gen",
-    "k8s.io/kube-openapi/pkg/common",
     "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1",
   ]
   solver-name = "gps-cdcl"

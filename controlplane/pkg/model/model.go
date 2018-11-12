@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
