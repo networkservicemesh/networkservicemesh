@@ -97,10 +97,6 @@ required = [
 
 [[constraint]]
   branch = "master"
-  name = "github.com/go-openapi/spec"
-
-[[constraint]]
-  branch = "master"
   name = "k8s.io/kube-openapi"
 
 [prune]

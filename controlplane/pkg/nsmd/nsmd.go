@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmdapi"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

@@ -21,7 +21,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"

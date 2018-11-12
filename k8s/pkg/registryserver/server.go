@@ -1,7 +1,7 @@
 package registryserver
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"google.golang.org/grpc"
 )

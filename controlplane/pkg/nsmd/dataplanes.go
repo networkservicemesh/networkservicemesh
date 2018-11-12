@@ -22,9 +22,9 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
+	dataplaneregistrarapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
-	dataplaneapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplane"
-	dataplaneregistrarapi "github.com/ligato/networkservicemesh/pkg/nsm/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
