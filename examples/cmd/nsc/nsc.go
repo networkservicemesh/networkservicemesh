@@ -42,7 +42,7 @@ func main() {
 
 	logrus.Infof("Connecting to nsm server on socket: %s...", nsmServerSocket)
 	if _, err := os.Stat(nsmServerSocket); err != nil {
-		logrus.Fatalln("nsc: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
+		logrus.Fatalf("nsc: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
 	}
 
 	conn, err := tools.SocketOperationCheck(nsmServerSocket)
