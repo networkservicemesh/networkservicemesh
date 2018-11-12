@@ -201,49 +201,6 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsc-build
             make docker-nsc-push
-  build-vpp:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            cd dataplanes/vpp
-            make docker-build-vpp docker-push-vpp
-  build-vpp-daemon:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            cd dataplanes/vpp
-            make docker-build-vpp-daemon docker-push-vpp-daemon
-  build-memif-test:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            cd dataplanes/vpp
-            make docker-build-memif-test docker-push-memif-test
-
 workflows:
   version: 2
   build-and-test:
@@ -262,15 +219,6 @@ workflows:
           requires:
             - sanity-check
       - build-nsc:
-          requires:
-            - sanity-check
-      - build-vpp:
-          requires:
-            - sanity-check
-      - build-vpp-daemon:
-          requires:
-            - sanity-check
-      - build-memif-test:
           requires:
             - sanity-check
       - packet-deploy:
