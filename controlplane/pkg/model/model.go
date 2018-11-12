@@ -66,7 +66,7 @@ func (i *impl) AddEndpoint(endpoint *registry.NetworkServiceEndpoint) {
 	serviceName := endpoint.NetworkServiceName
 	services := i.networkServices[serviceName]
 	if services == nil {
-		services = []*registry.NetworkServiceEndpoint{ endpoint }
+		services = []*registry.NetworkServiceEndpoint{endpoint}
 	} else {
 		services = append(services, endpoint)
 	}
@@ -97,7 +97,6 @@ func (i *impl) DeleteEndpoint(name string) error {
 
 		delete(i.endpoints, name)
 	}
-
 
 	return fmt.Errorf("no endpoint with name: %s", name)
 }
@@ -142,10 +141,10 @@ func (i *impl) GetNsmUrl() string {
 
 func NewModel(nsmUrl string) Model {
 	return &impl{
-		nsmUrl: nsmUrl,
-		dataplanes: make(map[string]*Dataplane),
+		nsmUrl:          nsmUrl,
+		dataplanes:      make(map[string]*Dataplane),
 		networkServices: make(map[string][]*registry.NetworkServiceEndpoint),
-		endpoints: make(map[string]*registry.NetworkServiceEndpoint),
+		endpoints:       make(map[string]*registry.NetworkServiceEndpoint),
 	}
 }
 

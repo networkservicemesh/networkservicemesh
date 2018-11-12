@@ -52,10 +52,10 @@ func TestModelAddEndpoint(t *testing.T) {
 	model := NewModel("127.0.0.1:5000")
 
 	ep1 := &registry.NetworkServiceEndpoint{
-		NetworkServiceName:"golden-network",
-		EndpointName: "ep1",
+		NetworkServiceName: "golden-network",
+		EndpointName:       "ep1",
 	}
-	model.AddEndpoint( ep1)
+	model.AddEndpoint(ep1)
 	Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
 
 	Expect(model.GetNetworkServiceEndpoints("golden-network")[0]).To(Equal(ep1))
@@ -67,15 +67,15 @@ func TestModelTwoEndpoint(t *testing.T) {
 	model := NewModel("127.0.0.1:5000")
 
 	ep1 := &registry.NetworkServiceEndpoint{
-		NetworkServiceName:"golden-network",
-		EndpointName: "ep1",
+		NetworkServiceName: "golden-network",
+		EndpointName:       "ep1",
 	}
 	ep2 := &registry.NetworkServiceEndpoint{
-		NetworkServiceName:"golden-network",
-		EndpointName: "ep2",
+		NetworkServiceName: "golden-network",
+		EndpointName:       "ep2",
 	}
-	model.AddEndpoint( ep1 )
-	model.AddEndpoint( ep2 )
+	model.AddEndpoint(ep1)
+	model.AddEndpoint(ep2)
 	Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
 	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
@@ -88,19 +88,18 @@ func TestModelAddDeleteEndpoint(t *testing.T) {
 	model := NewModel("127.0.0.1:5000")
 
 	ep1 := &registry.NetworkServiceEndpoint{
-		NetworkServiceName:"golden-network",
-		EndpointName: "ep1",
+		NetworkServiceName: "golden-network",
+		EndpointName:       "ep1",
 	}
 	ep2 := &registry.NetworkServiceEndpoint{
-		NetworkServiceName:"golden-network",
-		EndpointName: "ep2",
+		NetworkServiceName: "golden-network",
+		EndpointName:       "ep2",
 	}
-	model.AddEndpoint( ep1 )
-	model.AddEndpoint( ep2 )
+	model.AddEndpoint(ep1)
+	model.AddEndpoint(ep2)
 	model.DeleteEndpoint("ep1")
 	Expect(model.GetEndpoint("ep1")).To(BeNil())
 	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
 	Expect(len(model.GetNetworkServiceEndpoints("golden-network"))).To(Equal(1))
 }
-
