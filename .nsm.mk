@@ -40,11 +40,6 @@ docker-build-release:
 		docker tag ${ORG}/release ${ORG}/release:${COMMIT} ;\
 	fi
 
-#
-# Targets to push docker images
-#
-# NOTE: These assume that ${COMMIT} is set and are meant to be called from travis-ci only.
-#
 .PHONY: docker-login
 docker-login:
 	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
