@@ -51,7 +51,7 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 			logrus.Infof("NetworkServiceRegistryClient successfully registered")
 			return
 		}
-		err = fmt.Errorf("Stopped before success trying to dial Network Registry Server")
+		err = fmt.Errorf("stopped before success trying to dial Network Registry Server")
 		logrus.Error(err)
 	})
 	return registryClient, err
