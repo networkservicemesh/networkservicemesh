@@ -116,16 +116,6 @@ func (c *KernelInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Data
 
 	description := lm.Parameters[nsmd.LocalMechanismParameterInterfaceDescriptionKey]
 
-	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
-		Name:    name,
-		Type:    interfaces.InterfaceType_TAP_INTERFACE,
-		Enabled: true,
-		Tap: &interfaces.Interfaces_Interface_Tap{
-			Version:    2,
-			HostIfName: tmpIface,
-		},
-	})
-
 	var ipAddresses []string
 	if c.Side == SRC && c.ConnectionContext != nil && c.ConnectionContext.ConnectionContext != nil && c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextSrcIPKey] != "" {
 		// TODO validate IP address
@@ -136,6 +126,32 @@ func (c *KernelInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Data
 		ipAddresses = []string{c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextDstIPKey]}
 	}
 
+	// We append an Interfaces.  Interfaces creates the vpp side of an interface.
+	//   In this case, a Tapv2 interface that has one side in vpp, and the other
+	//   as a Linux kernel interface
+	// Important details:
+	//       Interfaces.HostIfName - This is the linux interface name given
+	//          to the Linux side of the TAP.  If you wish to apply additional
+	//          config like an Ip address, you should make this a random
+	//          tmpIface name, and it *must* match the LinuxIntefaces.Tap.TempIfName
+	//       Interfaces.Tap.Namespace - do not set this, due to a bug in vppagent
+	//          LinuxInterfaces can only be applied if vppagent finds the
+	//          interface in vppagent's netns.  So leave it there in the Interfaces
+	//          The interface name may be no longer than 15 chars (Linux limitation)
+	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
+		Name:    name,
+		Type:    interfaces.InterfaceType_TAP_INTERFACE,
+		Enabled: true,
+		Tap: &interfaces.Interfaces_Interface_Tap{
+			Version:    2,
+			HostIfName: tmpIface,
+		},
+	})
+	// We apply configuration to LinuxInterfaces
+	// Important details:
+	//    - If you have created a TAP, LinuxInterfaces.Tap.TempIfName must match
+	//      Interfaces.Tap.HostIfName from above
+	//    - LinuxInterfaces.HostIfName - must be no longer than 15 chars (linux limitation)
 	rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
 		Name:        name,
 		Type:        linux_interfaces.LinuxInterfaces_AUTO_TAP,

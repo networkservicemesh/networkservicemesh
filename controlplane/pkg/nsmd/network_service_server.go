@@ -86,7 +86,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 	var dpApiConnection *dataplaneapi.Connection
 	// If NSE is local, build parameters
-	if srv.model.GetNsmUrl() == endpoint.Labels[KeyNsmUrl] {
+	if srv.model.GetNsmUrl() == endpoint.Labels[KEY_NSM_URL] {
 		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
 		if workspace == nil {
 			err := fmt.Errorf("cannot find workspace for endpoint %#v", endpoint)
