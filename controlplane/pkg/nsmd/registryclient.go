@@ -40,7 +40,7 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 			registryAddress = "localhost:5000"
 		}
 		for stopRedial {
-			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
+			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure(), grpc.WithBlock())
 			if err != nil {
 				logrus.Errorf("Failed to dial Network Service Registry at %s: %s", registryAddress, err)
 				continue
