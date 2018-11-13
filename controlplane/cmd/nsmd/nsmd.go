@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,14 +18,18 @@ func main() {
 	model := model.NewModel(nsmUrl)
 	defer nsmd.StopRegistryClient()
 
+	// spin up registry client
+	_, err := nsmd.RegistryClient()
+	if err != nil {
+		logrus.Fatalf("Error starting registry client")
+	}
+
 	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
-		os.Exit(1)
 	}
 
 	if err := nsmd.StartNSMServer(model); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
-		os.Exit(1)
 	}
 
 	var wg sync.WaitGroup
@@ -35,5 +40,9 @@ func main() {
 		<-c
 		wg.Done()
 	}()
+	err = ioutil.WriteFile("/tmp/online", []byte("online"), 555)
+	if err != nil {
+		logrus.Fatalf("Error writing /tmp/online readiness check", err)
+	}
 	wg.Wait()
 }
