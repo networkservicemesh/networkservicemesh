@@ -41,6 +41,16 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
+
+    if [[ -v $NSM_DEV ]]
+    then
+      docker pull networkservicemesh/nsmdp:"${COMMIT}"
+      docker pull networkservicemesh/nsmd:"${COMMIT}"
+      docker pull networkservicemesh/nsmd-k8s:"${COMMIT}"
+      docker pull networkservicemesh/icmp-responder-nse:"${COMMIT}"
+      docker pull networkservicemesh/nsc:"${COMMIT}"
+    fi
+
     mkdir -p /tmp/nsmconfigs
     rm /tmp/nsmconfigs/* || true
     cp k8s/conf/* /tmp/nsmconfigs
@@ -59,8 +69,6 @@ function run_tests() {
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
     typeset -i cnt=240
     until kubectl get crd | grep networkserviceendpoints.networkservicemesh.io ; do
-        kubectl get pods
-        kubectl get crds
         ((cnt=cnt-1)) || return 1
         sleep 2
     done
@@ -84,9 +92,6 @@ function run_tests() {
     typeset -i cnt=240
     until kubectl get nse | grep icmp; do
         ((cnt=cnt-1)) || return 1
-        kubectl get pods
-        kubectl get nses
-        kubectl get netsvc
         sleep 2
     done
 
