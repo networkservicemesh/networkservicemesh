@@ -24,17 +24,17 @@ import (
 
 func ValidateNetworkServiceRequest(request *networkservice.NetworkServiceRequest) error {
 	if request == nil {
-		return fmt.Errorf("Request may not be nil")
+		return fmt.Errorf("request may not be nil")
 	}
 	if request.Connection == nil {
-		return fmt.Errorf("Request.Connection may not be nil")
+		return fmt.Errorf("request.Connection may not be nil")
 	}
 	return ValidateConnection(request.Connection)
 }
 
 func ValidateConnection(connection *networkservice.Connection) error {
 	if connection == nil {
-		return fmt.Errorf("Connection may not be nil")
+		return fmt.Errorf("connection may not be nil")
 	}
 	if connection.ConnectionId == "" {
 		return fmt.Errorf("Connection.ConnectionId may not be empty")

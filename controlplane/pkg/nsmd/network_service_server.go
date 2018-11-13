@@ -87,16 +87,16 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	var dpApiConnection *dataplaneapi.Connection
 
 	// If NSE is local, build parameters
-	if srv.model.GetNsmUrl() == endpoint.Labels[KEY_NSM_URL] {
+	if srv.model.GetNsmUrl() == endpoint.Labels[KeyNsmUrl] {
 		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
 		if workspace == nil {
-			err := fmt.Errorf("Cannot find workspace for endpoint %#v", endpoint)
+			err := fmt.Errorf("cannot find workspace for endpoint %#v", endpoint)
 			logrus.Error(err)
 			return nil, err
 		}
 		nseConn, err := tools.SocketOperationCheck(workspace.NsmClientSocket())
 		if err != nil {
-			logrus.Errorf("Unable to connect to nse %#v", endpoint)
+			logrus.Errorf("unable to connect to nse %#v", endpoint)
 			return nil, err
 		}
 		defer nseConn.Close()
@@ -117,7 +117,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		nseConnection, e := client.Request(ctx, message)
 		err = ValidateConnection(nseConnection, true)
 		if err != nil {
-			err = fmt.Errorf("Failure Validating NSE Connection: %s", err)
+			err = fmt.Errorf("failure Validating NSE Connection: %s", err)
 			return nil, err
 		}
 

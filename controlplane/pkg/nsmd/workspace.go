@@ -41,7 +41,6 @@ const (
 	clientBaseDir   = "/var/lib/networkservicemesh/"
 	NsmServerSocket = "nsm.server.io.sock"
 	NsmClientSocket = "nsm.client.io.sock"
-	dirMask         = 0777
 )
 
 type Workspace struct {

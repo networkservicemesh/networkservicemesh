@@ -35,12 +35,9 @@ import (
 
 const (
 	// SocketBaseDir defines the location of NSM client socket
-	socketBaseDir = "/var/lib/networkservicemesh/"
-	resourceName  = "nsm.ligato.io/socket"
+	resourceName = "nsm.ligato.io/socket"
 	// ServerSock defines the name of NSM client socket
-	ServerSock      = "nsm.ligato.io.sock"
-	initDeviceCount = 10
-	socketMask      = 0077
+	ServerSock = "nsm.ligato.io.sock"
 )
 
 type nsmClientEndpoints struct {

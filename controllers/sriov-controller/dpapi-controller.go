@@ -221,7 +221,7 @@ func (s *serviceInstanceController) register() error {
 }
 
 func (s *serviceInstanceController) buildDeviceList(health string) []*pluginapi.Device {
-	deviceList := []*pluginapi.Device{}
+	deviceList := make([]*pluginapi.Device, 0)
 	s.Lock()
 	defer s.Unlock()
 	for _, vf := range s.vfs {
@@ -282,7 +282,7 @@ func (s *serviceInstanceController) Allocate(ctx context.Context, reqs *pluginap
 	responses := pluginapi.AllocateResponse{}
 	// Allocating slice of vfioConfigs, the content of this slice will be saved as a json file and make available to POD requesting
 	// the network service.
-	vfioDevs := []vfioConfig{}
+	vfioDevs := make([]vfioConfig, 0)
 	// Bulding per network service key for Env variable, it will point to the network service configuration
 	// file.
 	networkServiceName := strings.ToLower(strings.Split(s.networkServiceName, "/")[1])
@@ -313,7 +313,7 @@ func (s *serviceInstanceController) Allocate(ctx context.Context, reqs *pluginap
 				key: path.Join(containerConfigFilePath, configFileName),
 			},
 			Mounts: []*pluginapi.Mount{
-				&pluginapi.Mount{
+				{
 					// Adding this specific network service configuration file into the container
 					ContainerPath: path.Join(containerConfigFilePath, configFileName),
 					HostPath:      configFile.Name(),
