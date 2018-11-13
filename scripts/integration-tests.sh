@@ -41,16 +41,6 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
-
-    if [[ -z "$NSM_DEV" ]]
-    then
-      docker pull networkservicemesh/nsmdp:"${COMMIT}"
-      docker pull networkservicemesh/nsmd:"${COMMIT}"
-      docker pull networkservicemesh/nsmd-k8s:"${COMMIT}"
-      docker pull networkservicemesh/icmp-responder-nse:"${COMMIT}"
-      docker pull networkservicemesh/nsc:"${COMMIT}"
-    fi
-
     mkdir -p /tmp/nsmconfigs
     rm /tmp/nsmconfigs/* || true
     cp k8s/conf/* /tmp/nsmconfigs
