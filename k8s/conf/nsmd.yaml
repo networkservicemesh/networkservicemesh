@@ -29,6 +29,8 @@ spec:
               command:
                 - cat
                 - /tmp/online
+            initialDelaySeconds: 5
+            periodSeconds: 5
         - name: nsmd-k8s
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent
