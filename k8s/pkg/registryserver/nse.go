@@ -23,6 +23,7 @@ type registryService struct {
 }
 
 func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
+	logrus.Error("Received RegisterNSE request", request)
 	// get network service
 	_, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
 		ObjectMeta: metav1.ObjectMeta{
@@ -34,12 +35,14 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 		Status: v1.NetworkServiceStatus{},
 	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
+		logrus.Error("k8s error adding netsvc", request, err)
 		return nil, err
 	}
 
 	nsmurl := ""
 	nsmurl, ok := request.Labels["nsmurl"]
 	if !ok {
+		logrus.Error("nsmurl must be defined", request)
 		return nil, errors.New("nsmurl must be defined")
 	}
 
@@ -59,6 +62,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 		},
 	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
+		logrus.Error("k8s error adding nsm", request, err)
 		return nil, err
 	}
 
@@ -76,6 +80,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 		},
 	})
 	if err != nil {
+		logrus.Error("k8s error adding nse", request, err)
 		return nil, err
 	}
 
