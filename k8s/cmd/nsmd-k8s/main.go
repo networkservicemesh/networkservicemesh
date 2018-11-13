@@ -35,7 +35,7 @@ func main() {
 	}
 	flag.Parse()
 
-	// check if CRD is installed
+	// Get config
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		logrus.Println("Unable to get in cluster config, attempting to fall back to kubeconfig", err)
@@ -44,14 +44,17 @@ func main() {
 			logrus.Fatalln("Unable to build config", err)
 		}
 	}
+	logrus.Println("Built k8s config")
 
 	// Initialize clientset
 	clientset, e := clientset.NewForConfig(config)
 	if e != nil {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", e)
 	}
+	logrus.Println("New clientset created")
 
 	err = InstallCRDs(clientset)
+	logrus.Println("If necessary, CRDs created")
 
 	nsmClientSet, err := versioned.NewForConfig(config)
 
@@ -59,6 +62,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalln(err)
 	}
+	logrus.Println("Listening: " + address)
 
 	server := registryserver.New(nsmClientSet)
 	err = server.Serve(listener)
