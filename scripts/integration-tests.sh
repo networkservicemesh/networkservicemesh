@@ -45,8 +45,8 @@ function run_tests() {
     rm /tmp/nsmconfigs/* || true
     cp k8s/conf/* /tmp/nsmconfigs
 
-    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
-    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd-k8s:"${COMMIT}"
+    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmd-k8s:"${COMMIT}"
+    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmdp:"${COMMIT}"
     yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd:"${COMMIT}"
 
     yq w -i /tmp/nsmconfigs/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/icmp-responder-nse:"${COMMIT}"
