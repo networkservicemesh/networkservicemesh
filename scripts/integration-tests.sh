@@ -21,11 +21,7 @@ function run_tests() {
     COMMIT=${COMMIT:-latest}
     kubectl get nodes
     typeset -i cnt=240
-    until kubectl get nodes --no-headers | grep nsm ; do
-        ((cnt=cnt-1)) || return 1
-        sleep 2
-    done
-    until kubectl get nodes --no-headers | grep -v NotReady ; do
+    until kubectl get nodes --no-headers | grep -v NotReady | grep Ready ; do
         kubectl get pods
         kubectl get crds
         ((cnt=cnt-1)) || return 1
@@ -45,14 +41,19 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
+    mkdir -p /tmp/nsmconfigs
+    rm /tmp/nsmconfigs/* || true
+    cp k8s/conf/* /tmp/nsmconfigs
 
-    cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
-    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
-    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"
-    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd-k8s:"${COMMIT}"
+    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
+    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"
+    yq w -i /tmp/nsmconfigs/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd-k8s:"${COMMIT}"
 
-    cp k8s/conf/nsmd.yaml /tmp/icmp-responder-nse.yaml
-    yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
+    yq w -i /tmp/nsmconfigs/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/icmp-responder-nse:"${COMMIT}"
+
+    yq w -i /tmp/nsmconfigs/nsc.yaml spec.template.spec.containers[0].image networkservicemesh/nsc:"${COMMIT}"
+
+    kubectl apply -f /tmp/nsmconfigs/nsmd.yaml
 
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
@@ -69,9 +70,16 @@ function run_tests() {
         sleep 2
     done
 
+
     # start icmp-responder-nse
-    kubectl apply -f k8s/conf/icmp-responder-nse.yaml
+    kubectl apply -f /tmp/nsmconfigs/icmp-responder-nse.yaml
     wait_for_pods default
+
+    typeset -i cnt=240
+    until kubectl get netsvc | grep icmp-responder; do
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
 
     typeset -i cnt=240
     until kubectl get nse | grep icmp; do
@@ -82,14 +90,9 @@ function run_tests() {
         sleep 2
     done
 
-    typeset -i cnt=240
-    until kubectl get netsvc | grep icmp-responder; do
-        ((cnt=cnt-1)) || return 1
-        sleep 2
-    done
 
-    # start icmp-responder-nse
-    kubectl apply -f k8s/conf/nsc.yaml
+    # start nsc
+    kubectl apply -f /tmp/nsmconfigs/nsc.yaml
     wait_for_pods default
 
     #
