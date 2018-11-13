@@ -20,6 +20,17 @@
 function run_tests() {
     COMMIT=${COMMIT:-latest}
     kubectl get nodes
+    typeset -i cnt=240
+    until kubectl get nodes --no-headers | grep nsm ; do
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
+    until kubectl get nodes --no-headers | grep -v NotReady ; do
+        kubectl get pods
+        kubectl get crds
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
     kubectl version
     kubectl api-versions
     kubectl label --overwrite --all=true nodes app=nsmd-ds
