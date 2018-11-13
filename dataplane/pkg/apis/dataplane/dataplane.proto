@@ -3,6 +3,8 @@ syntax = "proto3";
 package dataplane;
 
 import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+// Note: factor Connection context out of networkservice so we don't have to over import here.
+import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice/networkservice.proto";
 
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
@@ -25,9 +27,10 @@ message Connection {
         common.LocalMechanism local = 2;
         common.RemoteMechanism remote = 3;
     }
+    networkservice.ConnectionContext connection_context = 4;
     // For ConnectRequest this will be nil, but for DisconnectRequest it will 
     // carry a connection id returned by the dataplane controller 
-    string connection_id = 4;
+    string connection_id = 5;
 }
 
 message Reply {

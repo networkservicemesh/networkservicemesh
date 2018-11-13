@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
@@ -124,15 +125,24 @@ func (c *KernelInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Data
 			HostIfName: tmpIface,
 		},
 	})
+
+	var ipAddresses []string
+	if c.Side == SRC && c.ConnectionContext != nil && c.ConnectionContext.ConnectionContext != nil && c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextSrcIPKey] != "" {
+		// TODO validate IP address
+		ipAddresses = []string{c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextSrcIPKey]}
+	}
+	if c.Side == DST && c.ConnectionContext != nil && c.ConnectionContext.ConnectionContext != nil && c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextDstIPKey] != "" {
+		// TODO validate IP address
+		ipAddresses = []string{c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextDstIPKey]}
+	}
+
 	rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
 		Name:        name,
 		Type:        linux_interfaces.LinuxInterfaces_AUTO_TAP,
 		Enabled:     true,
 		Description: description,
-		// IpAddresses: []string{
-		// 	"10.10.10.1/24",
-		// },
-		HostIfName: iface,
+		IpAddresses: ipAddresses,
+		HostIfName:  iface,
 		Namespace: &linux_interfaces.LinuxInterfaces_Interface_Namespace{
 			Type:     linux_interfaces.LinuxInterfaces_Interface_Namespace_FILE_REF_NS,
 			Filepath: filepath,
