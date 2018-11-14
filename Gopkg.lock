@@ -192,6 +192,25 @@
   version = "v1.1.5"
 
 [[projects]]
+  digest = "1:262db43bc625384e015645a8f8ba7efc31d285359b5202c4d55d48a4b13ae409"
+  name = "github.com/ligato/vpp-agent"
+  packages = [
+    "plugins/linux/model/interfaces",
+    "plugins/linux/model/l3",
+    "plugins/vpp/model/acl",
+    "plugins/vpp/model/bfd",
+    "plugins/vpp/model/interfaces",
+    "plugins/vpp/model/l2",
+    "plugins/vpp/model/l3",
+    "plugins/vpp/model/l4",
+    "plugins/vpp/model/nat",
+    "plugins/vpp/model/rpc",
+    "plugins/vpp/model/stn",
+  ]
+  pruneopts = "NUT"
+  revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
+
+[[projects]]
   branch = "master"
   digest = "1:84a5a2b67486d5d67060ac393aa255d05d24ed5ee41daecd5635ec22657b6492"
   name = "github.com/mailru/easyjson"
@@ -255,6 +274,14 @@
   pruneopts = "NUT"
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
+
+[[projects]]
+  digest = "1:0975c74a2cd70df6c2ae353c6283a25ce759dda7e1e706e5c07458baf3faca22"
+  name = "github.com/rs/xid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "15d26544def341f036c5f8dca987a4cbe575032c"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:b2339e83ce9b5c4f79405f949429a7f68a9a904fed903c672aac1e7ceb7f5f02"
@@ -705,7 +732,12 @@
     "github.com/go-errors/errors",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
+    "github.com/ligato/vpp-agent/plugins/linux/model/interfaces",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/interfaces",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/l2",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/rpc",
     "github.com/onsi/gomega",
+    "github.com/rs/xid",
     "github.com/sirupsen/logrus",
     "golang.org/x/net/context",
     "golang.org/x/sys/unix",

@@ -85,9 +85,8 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	defer dpCancel()
 
 	var dpApiConnection *dataplaneapi.Connection
-
 	// If NSE is local, build parameters
-	if srv.model.GetNsmUrl() == endpoint.Labels[KeyNsmUrl] {
+	if srv.model.GetNsmUrl() == endpoint.Labels[KEY_NSM_URL] {
 		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
 		if workspace == nil {
 			err := fmt.Errorf("cannot find workspace for endpoint %#v", endpoint)
@@ -110,7 +109,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 					Type:       common.LocalMechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{},
 				},
-				ConnectionContext: nil,
+				ConnectionContext: nscConnection.GetConnectionContext(),
 				Labels:            nil,
 			},
 		}
@@ -121,42 +120,15 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			return nil, err
 		}
 
-		// srcip := strings.Split(nseConnection.LocalMechanism.Parameters["src_ip"], "/")
-		// if len(srcip) != 2 {
-		// 	err := errors.New("src_ip is not specified as cidr")
-		// 	logrus.Error(err)
-		// 	return nil, err
-		// }
-		// dstip := strings.Split(nseConnection.LocalMechanism.Parameters["dst_ip"], "/")
-		// if len(dstip) != 2 {
-		// 	err := errors.New("dst_ip is not specified as cidr")
-		// 	logrus.Error(err)
-		// 	return nil, err
-		// }
 		if e != nil {
 			logrus.Errorf("error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
 			return nil, e
 		}
 
-		// srcMechanism := &common.LocalMechanism{
-		// 	Type: common.LocalMechanismType_KERNEL_INTERFACE,
-		// 	Parameters: map[string]string{
-		// 		nsmutils.NSMkeyNamespace: nscConnection.LocalMechanism.Parameters["netns"],
-		// 		// nsmutils.NSMkeyIPv4:             srcip[0],
-		// 		// nsmutils.NSMkeyIPv4PrefixLength: srcip[1],
-		// 	},
-		// }
-		// dstMechanism := &common.LocalMechanism{
-		// 	Type: common.LocalMechanismType_KERNEL_INTERFACE,
-		// 	Parameters: map[string]string{
-		// 		nsmutils.NSMkeyNamespace: nseConnection.LocalMechanism.Parameters["netns"],
-		// 		// nsmutils.NSMkeyIPv4:             dstip[0],
-		// 		// nsmutils.NSMkeyIPv4PrefixLength: dstip[1],
-		// 	},
-		// }
 		dpApiConnection = &dataplaneapi.Connection{
-			ConnectionId: connectionID,
-			LocalSource:  nscConnection.GetLocalMechanism(),
+			ConnectionContext: nseConnection.GetConnectionContext(),
+			ConnectionId:      connectionID,
+			LocalSource:       nscConnection.GetLocalMechanism(),
 			Destination: &dataplaneapi.Connection_Local{
 				Local: nseConnection.GetLocalMechanism(),
 			},
@@ -175,7 +147,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		ConnectionId:      connectionID,
 		NetworkService:    netsvc,
 		LocalMechanism:    request.LocalMechanismPreference[0],
-		ConnectionContext: request.Connection.ConnectionContext,
+		ConnectionContext: dpApiConnection.ConnectionContext,
 		Labels:            nil,
 	}, nil
 }

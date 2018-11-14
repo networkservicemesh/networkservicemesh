@@ -1,0 +1,39 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+spec:
+  template:
+    metadata:
+      labels:
+        app: nsm-vpp-dataplane
+    spec:
+      hostPID: true
+      containers:
+        - name: vppagent-dataplane
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vppagent-dataplane:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: workspace
+              mountPath: /var/lib/networkservicemesh/
+              mountPropagation: Bidirectional
+        - name: vppagent
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vppagent:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: INITIAL_LOGLVL
+              value: debug
+          volumeMounts:
+            - name: workspace
+              mountPath: /var/lib/networkservicemesh
+      volumes:
+        - hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+          name: workspace
+metadata:
+  name: nsm-vppagent-dataplane
+  namespace: default
