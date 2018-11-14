@@ -14,6 +14,7 @@ jobs:
       - run: make check dep-check
       - run: go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/
       - run: go get -u github.com/golang/protobuf/protoc-gen-go
+      - run: go get golang.org/x/tools/cmd/stringer
       - run: ./scripts/install-protoc.sh
       - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || echo "Run go generate ./... and recommit"
 
@@ -204,6 +205,34 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsc-build
             make docker-nsc-push
+  build-vppagent:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-vppagent-build
+            make docker-vppagent-push
+  build-vppagent-dataplane:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-vppagent-dataplane-build
+            make docker-vppagent-dataplane-push
 workflows:
   version: 2
   build-and-test:
@@ -222,6 +251,12 @@ workflows:
           requires:
             - sanity-check
       - build-nsc:
+          requires:
+            - sanity-check
+      - build-vppagent:
+          requires:
+            - sanity-check
+      - build-vppagent-dataplane:
           requires:
             - sanity-check
       - packet-deploy:

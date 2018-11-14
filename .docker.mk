@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s icmp-responder-nse
+BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s icmp-responder-nse vppagent vppagent-dataplane
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
