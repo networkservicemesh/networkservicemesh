@@ -34,6 +34,7 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
+    kubectl taint nodes --all node.kubernetes.io/not-ready
 
     cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
@@ -52,8 +53,6 @@ function run_tests() {
 
     kubectl apply -f /tmp/vppagent-dataplane.yaml
     kubectl apply -f /tmp/nsmd.yaml
-    kubectl apply -f /tmp/icmp-responder-nse.yaml
-    kubectl apply -f /tmp/nsc.yaml
 
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
@@ -68,6 +67,11 @@ function run_tests() {
         sleep 2
     done
 
+    wait_for_pods default
+
+    kubectl apply -f /tmp/icmp-responder-nse.yaml
+    kubectl apply -f /tmp/nsc.yaml
+
     typeset -i cnt=240
     until kubectl get nse | grep icmp ; do
         ((cnt=cnt-1)) || return 1
@@ -75,7 +79,6 @@ function run_tests() {
     done
 
     wait_for_pods default
-
     #
     # Final log collection
     #
