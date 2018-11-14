@@ -34,8 +34,6 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
-    kubectl taint nodes --all node.kubernetes.io/not-ready
-
     cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"
