@@ -16,13 +16,13 @@ package nsmd
 
 import (
 	"fmt"
-	"os"
-	"strings"
-	"sync"
-
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"net"
+	"os"
+	"strings"
+	"sync"
 )
 
 var once sync.Once
@@ -40,6 +40,16 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 			registryAddress = "localhost:5000"
 		}
 		for stopRedial {
+			for true {
+				conn, err := net.Dial("tcp", registryAddress)
+				if err != nil {
+					logrus.Println("Waiting for registry liveness probe...")
+					continue
+				}
+				conn.Close()
+				break
+			}
+			logrus.Println("Registry port now available, attempting to connect...")
 			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure(), grpc.WithBlock())
 			if err != nil {
 				logrus.Errorf("Failed to dial Network Service Registry at %s: %s", registryAddress, err)

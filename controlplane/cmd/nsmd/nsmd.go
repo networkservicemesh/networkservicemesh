@@ -40,6 +40,9 @@ func main() {
 		<-c
 		wg.Done()
 	}()
-	ioutil.WriteFile("/tmp/online", []byte("online"), 555)
+	err = ioutil.WriteFile("/tmp/online", []byte("online"), 555)
+	if err != nil {
+		logrus.Fatalf("Error writing /tmp/online readiness check", err)
+	}
 	wg.Wait()
 }
