@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -85,11 +85,11 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.Net
 
 }
 
-func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*common.Empty, error) {
+func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	if err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{}); err != nil {
 		return nil, err
 	}
-	return &common.Empty{}, nil
+	return &empty.Empty{}, nil
 }
 
 func (rs registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {

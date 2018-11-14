@@ -15,21 +15,24 @@
 package vppagent
 
 import (
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 )
 
-func LocalMechanism(c *dataplane.Connection, s SrcDst) *common.LocalMechanism {
-	var rv *common.LocalMechanism
+func LocalMechanism(c *dataplane.CrossConnect, s SrcDst) *connection.Mechanism {
+	var rv *connection.Mechanism
 	if s == SRC {
-		rv = c.LocalSource
+		src, ok := c.GetSource().(*dataplane.CrossConnect_LocalSource)
+		if ok {
+			rv = src.LocalSource.GetMechanism()
+		}
 	}
 	if s == DST {
-		dst, ok := c.Destination.(*dataplane.Connection_Local)
+		dst, ok := c.GetDestination().(*dataplane.CrossConnect_LocalDestination)
 		if ok {
-			rv = dst.Local
+			rv = dst.LocalDestination.GetMechanism()
 		}
 	}
 	return rv

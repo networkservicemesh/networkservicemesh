@@ -19,7 +19,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
 func ValidateNetworkServiceRequest(request *networkservice.NetworkServiceRequest) error {
@@ -32,11 +33,11 @@ func ValidateNetworkServiceRequest(request *networkservice.NetworkServiceRequest
 	return ValidateConnection(request.Connection)
 }
 
-func ValidateConnection(connection *networkservice.Connection) error {
+func ValidateConnection(connection *connection.Connection) error {
 	if connection == nil {
 		return fmt.Errorf("connection may not be nil")
 	}
-	if connection.ConnectionId == "" {
+	if connection.GetId() == "" {
 		return fmt.Errorf("Connection.ConnectionId may not be empty")
 	}
 	// TODO we should validate the Network Service matches the NSE

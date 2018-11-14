@@ -29,8 +29,8 @@ type Converter interface {
 	ToDataRequest(*rpc.DataRequest) (*rpc.DataRequest, error)
 }
 
-type ConnectionConverterFactory func(*dataplane.Connection) Converter
-type MechanismConverterFactory func(*dataplane.Connection, SrcDst) Converter
+type ConnectionConverterFactory func(*dataplane.CrossConnect) Converter
+type MechanismConverterFactory func(*dataplane.CrossConnect, SrcDst) Converter
 
 var connectionConverterFactories = []ConnectionConverterFactory{
 	// TODO: MemifDirectConnectionConverter,
@@ -41,7 +41,7 @@ var mechanismConverterFactories = []MechanismConverterFactory{
 	NewKernelInterfaceConverter,
 }
 
-func NewConnectionConverter(c *dataplane.Connection) Converter {
+func NewConnectionConverter(c *dataplane.CrossConnect) Converter {
 	for _, converterFactory := range connectionConverterFactories {
 		converter := converterFactory(c)
 		logrus.Infof("Attempting Connection Converter: %s", converter.Name())
@@ -54,10 +54,10 @@ func NewConnectionConverter(c *dataplane.Connection) Converter {
 	return nil
 }
 
-func NewMechanismConverter(c *dataplane.Connection, s SrcDst) Converter {
+func NewMechanismConverter(c *dataplane.CrossConnect, s SrcDst) Converter {
 	for _, converterFactory := range mechanismConverterFactories {
 		converter := converterFactory(c, s)
-		logrus.Infof("Attempting Mechanism Converter: %s", converter.Name())
+		logrus.Infof("Attempting Mechanism Converter: %s for side %s of crossconnect %v", converter.Name(), s, c)
 		err := converter.Validate()
 		if err == nil {
 			return converter
@@ -67,7 +67,7 @@ func NewMechanismConverter(c *dataplane.Connection, s SrcDst) Converter {
 	return nil
 }
 
-func DataRequestFromConnection(c *dataplane.Connection, d *rpc.DataRequest) (*rpc.DataRequest, error) {
+func DataRequestFromConnection(c *dataplane.CrossConnect, d *rpc.DataRequest) (*rpc.DataRequest, error) {
 	converter := NewConnectionConverter(c)
 	if converter != nil {
 		rv, err := converter.ToDataRequest(d)

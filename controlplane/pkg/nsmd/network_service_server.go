@@ -6,12 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-errors/errors"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
+	"github.com/golang/protobuf/ptypes/empty"
 
+	"github.com/go-errors/errors"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -34,8 +36,8 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace) networkser
 	}
 }
 
-func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
-	logrus.Infof("Received request from client to connect to NetworkService: %#v", request)
+func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
 	err := ValidateNetworkServiceRequest(request)
 	if err != nil {
 		logrus.Error(err)
@@ -44,10 +46,10 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	connectionID := srv.model.ConnectionId()
 	nscConnection := request.GetConnection()
 	// TODO: Mechanism selection
-	nscConnection.LocalMechanism = request.LocalMechanismPreference[0]
-	_, ok := nscConnection.LocalMechanism.Parameters[LocalMechanismParameterInterfaceNameKey]
+	nscConnection.Mechanism = request.MechanismPreferences[0]
+	_, ok := nscConnection.Mechanism.Parameters[LocalMechanismParameterInterfaceNameKey]
 	if !ok {
-		nscConnection.LocalMechanism.Parameters[LocalMechanismParameterInterfaceNameKey] = nscConnection.GetNetworkService() + connectionID
+		nscConnection.Mechanism.Parameters[LocalMechanismParameterInterfaceNameKey] = nscConnection.GetNetworkService() + connectionID
 	}
 	netsvc := request.Connection.NetworkService
 	if strings.TrimSpace(netsvc) == "" {
@@ -79,41 +81,42 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		return nil, err
 	}
 	defer dataplaneConn.Close()
-	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(dataplaneConn)
+	dataplaneClient := dataplaneapi.NewDataplaneClient(dataplaneConn)
 
 	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer dpCancel()
 
-	var dpApiConnection *dataplaneapi.Connection
+	var dpApiConnection *dataplaneapi.CrossConnect
 	// If NSE is local, build parameters
 	if srv.model.GetNsmUrl() == endpoint.Labels[KEY_NSM_URL] {
 		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
 		if workspace == nil {
-			err := fmt.Errorf("cannot find workspace for endpoint %#v", endpoint)
+			err := fmt.Errorf("cannot find workspace for endpoint %v", endpoint)
 			logrus.Error(err)
 			return nil, err
 		}
 		nseConn, err := tools.SocketOperationCheck(workspace.NsmClientSocket())
 		if err != nil {
-			logrus.Errorf("unable to connect to nse %#v", endpoint)
+			logrus.Errorf("unable to connect to nse %v", endpoint)
 			return nil, err
 		}
 		defer nseConn.Close()
 
 		client := networkservice.NewNetworkServiceClient(nseConn)
 		message := &networkservice.NetworkServiceRequest{
-			Connection: &networkservice.Connection{
-				ConnectionId:   connectionID,
+			Connection: &connection.Connection{
+				Id:             connectionID,
 				NetworkService: endpoint.GetNetworkServiceName(),
-				LocalMechanism: &common.LocalMechanism{
-					Type:       common.LocalMechanismType_KERNEL_INTERFACE,
+				Mechanism: &connection.Mechanism{
+					Type:       connection.MechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{},
 				},
-				ConnectionContext: nscConnection.GetConnectionContext(),
-				Labels:            nil,
+				Context: nscConnection.GetContext(),
+				Labels:  nil,
 			},
 		}
 		nseConnection, e := client.Request(ctx, message)
+		nscConnection.Context = nseConnection.Context
 		err = ValidateConnection(nseConnection, true)
 		if err != nil {
 			err = fmt.Errorf("failure Validating NSE Connection: %s", err)
@@ -125,41 +128,36 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			return nil, e
 		}
 
-		dpApiConnection = &dataplaneapi.Connection{
-			ConnectionContext: nseConnection.GetConnectionContext(),
-			ConnectionId:      connectionID,
-			LocalSource:       nscConnection.GetLocalMechanism(),
-			Destination: &dataplaneapi.Connection_Local{
-				Local: nseConnection.GetLocalMechanism(),
+		dpApiConnection = &dataplaneapi.CrossConnect{
+			Id: connectionID,
+			Source: &dataplaneapi.CrossConnect_LocalSource{
+				nscConnection,
+			},
+			Destination: &dataplaneapi.CrossConnect_LocalDestination{
+				nseConnection,
 			},
 		}
 	} else {
 		// TODO connection is remote, send to nsm
 	}
-	logrus.Infof("Sending request to dataplane: %#v", dpApiConnection)
-	_, err = dataplaneClient.ConnectRequest(dpCtx, dpApiConnection)
+	logrus.Infof("Sending request to dataplane: %v", dpApiConnection)
+	rv, err := dataplaneClient.Request(dpCtx, dpApiConnection)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
 		return nil, err
 	}
-
-	return &networkservice.Connection{
-		ConnectionId:      connectionID,
-		NetworkService:    netsvc,
-		LocalMechanism:    request.LocalMechanismPreference[0],
-		ConnectionContext: dpApiConnection.ConnectionContext,
-		Labels:            nil,
-	}, nil
+	// TODO - be more cautious here about bad return values from Dataplane
+	return rv.GetSource().(*dataplaneapi.CrossConnect_LocalSource).LocalSource, nil
 }
 
-func (srv *networkServiceServer) Close(context.Context, *networkservice.Connection) (*networkservice.Connection, error) {
+func (srv *networkServiceServer) Close(context.Context, *connection.Connection) (*empty.Empty, error) {
 	panic("implement me")
 }
 
-func (srv *networkServiceServer) Monitor(*networkservice.Connection, networkservice.NetworkService_MonitorServer) error {
+func (srv *networkServiceServer) Monitor(*connection.Connection, networkservice.NetworkService_MonitorServer) error {
 	panic("implement me")
 }
 
-func (srv *networkServiceServer) MonitorConnections(*common.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
+func (srv *networkServiceServer) MonitorConnections(*empty.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
 	panic("implement me")
 }

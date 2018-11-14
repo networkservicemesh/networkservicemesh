@@ -21,6 +21,6 @@ import (
 
 func NewServer(vppAgentEndpoint string) *grpc.Server {
 	server := grpc.NewServer()
-	dataplane.RegisterDataplaneOperationsServer(server, NewVPPAgent(vppAgentEndpoint))
+	dataplane.RegisterDataplaneServer(server, NewVPPAgent(vppAgentEndpoint))
 	return server
 }

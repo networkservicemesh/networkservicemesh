@@ -21,10 +21,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 )
@@ -55,18 +55,16 @@ func main() {
 	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &networkservice.Connection{
+		Connection: &connection.Connection{
 			NetworkService: "icmp-responder",
-			ConnectionContext: &networkservice.ConnectionContext{
-				ConnectionContext: map[string]string{
-					"requires": "src_ip,dst_ip",
-				},
+			Context: map[string]string{
+				"requires": "src_ip,dst_ip",
 			},
 			Labels: make(map[string]string),
 		},
-		LocalMechanismPreference: []*common.LocalMechanism{
+		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type:       common.LocalMechanismType_KERNEL_INTERFACE,
+				Type:       connection.MechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{nsmd.LocalMechanismParameterNetNsInodeKey: netns},
 			},
 		},

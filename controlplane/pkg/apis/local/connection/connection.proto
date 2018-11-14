@@ -36,7 +36,7 @@ message Mechanism {
  }
 
  message Connection {
-    string connection_id = 1;
+    string id = 1;
     string network_service = 2;
     Mechanism mechanism = 3;
     map<string,string> context = 4;

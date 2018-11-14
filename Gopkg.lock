@@ -106,7 +106,7 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  digest = "1:5b2f26f078977356e5d72eb6a1c89576f6ef6019ebc0eef7449a6ae56024f379"
+  digest = "1:b9b834c658f81fce6ad3f50d2077aad6fc9c3a883c5770764f527349fc45e368"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -119,6 +119,7 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/empty",
     "ptypes/timestamp",
   ]
   pruneopts = "NUT"
@@ -732,6 +733,7 @@
     "github.com/go-errors/errors",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
+    "github.com/golang/protobuf/ptypes/empty",
     "github.com/ligato/vpp-agent/plugins/linux/model/interfaces",
     "github.com/ligato/vpp-agent/plugins/vpp/model/interfaces",
     "github.com/ligato/vpp-agent/plugins/vpp/model/l2",

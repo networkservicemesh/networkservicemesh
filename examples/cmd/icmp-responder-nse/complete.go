@@ -21,22 +21,22 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
-func (ns *networkService) CompleteConnection(request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+func (ns *networkService) CompleteConnection(request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	err := ValidateNetworkServiceRequest(request)
 	if err != nil {
 		return nil, err
 	}
 	netns, _ := tools.GetCurrentNS()
-	localMechanism := &common.LocalMechanism{
-		Type: common.LocalMechanismType_KERNEL_INTERFACE,
+	mechanism := &connection.Mechanism{
+		Type: connection.MechanismType_KERNEL_INTERFACE,
 		Parameters: map[string]string{
 			nsmd.LocalMechanismParameterNetNsInodeKey: netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
-			nsmd.LocalMechanismParameterInterfaceNameKey: request.GetConnection().GetNetworkService() + request.GetConnection().GetConnectionId(),
+			nsmd.LocalMechanismParameterInterfaceNameKey: request.GetConnection().GetNetworkService() + request.GetConnection().GetId(),
 		},
 	}
 
@@ -48,20 +48,18 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 	binary.BigEndian.PutUint32(dstIP, ns.nextIP)
 	ns.nextIP = ns.nextIP + 3
 
-	connectionContext := &networkservice.ConnectionContext{
-		ConnectionContext: make(map[string]string),
-	}
+	connectionContext := make(map[string]string)
 
-	connectionContext.ConnectionContext["src_ip"] = srcIP.String() + "/30"
-	connectionContext.ConnectionContext["dst_ip"] = dstIP.String() + "/30"
+	connectionContext["src_ip"] = srcIP.String() + "/30"
+	connectionContext["dst_ip"] = dstIP.String() + "/30"
 
 	// TODO take into consideration LocalMechnism preferences sent in request
 
-	connection := &networkservice.Connection{
-		ConnectionId:      request.Connection.ConnectionId,
-		NetworkService:    request.Connection.NetworkService,
-		LocalMechanism:    localMechanism,
-		ConnectionContext: connectionContext,
+	connection := &connection.Connection{
+		Id:             request.GetConnection().GetId(),
+		NetworkService: request.GetConnection().GetNetworkService(),
+		Mechanism:      mechanism,
+		Context:        connectionContext,
 	}
 	return connection, nil
 }

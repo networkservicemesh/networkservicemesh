@@ -24,13 +24,14 @@ service Dataplane {
 
 message CrossConnect {
     string id = 1;
+    string payload = 2;
     oneof source {
-        local.connection.Connection local_source = 2;
-        remote.connection.Connection remote_source = 3;
+        local.connection.Connection local_source = 3;
+        remote.connection.Connection remote_source = 4;
     }
     oneof destination {
-        local.connection.Connection local_destination = 4;
-        remote.connection.Connection remote_destination = 5;
+        local.connection.Connection local_destination = 5;
+        remote.connection.Connection remote_destination = 6;
     }
 }
 
