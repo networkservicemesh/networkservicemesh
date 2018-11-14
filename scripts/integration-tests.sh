@@ -43,6 +43,14 @@ function run_tests() {
     cp k8s/conf/icmp-responder-nse.yaml /tmp/icmp-responder-nse.yaml
     yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/icmp-responder-nse:"${COMMIT}"
 
+    cp k8s/conf/nsc.yaml /tmp/nsc.yaml
+    yq w -i /tmp/nsc.yaml spec.template.spec.containers[0].image networkservicemesh/nsc:"${COMMIT}"
+
+    cp k8s/conf/vppagent-dataplane.yaml /tmp/vppagent-dataplane.yaml
+    yq w -i /tmp/vppagent-dataplane.yaml spec.template.spec.containers[0].image networkservicemesh/vppagent-dataplane:"${COMMIT}"
+    yq w -i /tmp/vppagent-dataplane.yaml spec.template.spec.containers[1].image networkservicemesh/vppagent:"${COMMIT}"
+
+    kubectl apply -f /tmp/vppagent-dataplane.yaml
     kubectl apply -f /tmp/nsmd.yaml
     kubectl apply -f /tmp/icmp-responder-nse.yaml
     kubectl apply -f /tmp/nsc.yaml

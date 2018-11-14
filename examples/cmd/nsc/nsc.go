@@ -76,7 +76,7 @@ func main() {
 	reply, err := nsmConnectionClient.Request(context.Background(), request)
 
 	if err != nil {
-		logrus.Errorf("failure to request connection with error: %+v", err)
+		logrus.Fatalln("failure to request connection with error: %+v", err)
 	}
 	logrus.Infof("Received reply: %v", reply)
 
