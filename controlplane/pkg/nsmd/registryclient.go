@@ -50,7 +50,7 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 				break
 			}
 			logrus.Println("Registry port now available, attempting to connect...")
-			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure(), grpc.WithBlock())
+			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
 			if err != nil {
 				logrus.Errorf("Failed to dial Network Service Registry at %s: %s", registryAddress, err)
 				continue
