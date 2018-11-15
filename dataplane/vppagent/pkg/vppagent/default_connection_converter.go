@@ -23,14 +23,14 @@ import (
 )
 
 type DefaultConnectionConverter struct {
-	*dataplane.Connection
+	*dataplane.CrossConnect
 	srcMechanismConverter Converter
 	dstMechanismConverter Converter
 }
 
-func NewDefaultConnectionConverter(c *dataplane.Connection) Converter {
+func NewDefaultConnectionConverter(c *dataplane.CrossConnect) Converter {
 	rv := &DefaultConnectionConverter{
-		Connection: c,
+		CrossConnect: c,
 	}
 	return rv
 }
@@ -40,17 +40,23 @@ func (c *DefaultConnectionConverter) Name() string {
 }
 
 func (c *DefaultConnectionConverter) Validate() error {
-	c.srcMechanismConverter = NewMechanismConverter(c.Connection, SRC)
+	if c == nil {
+		return fmt.Errorf("Cannot Validate nil Converter")
+	}
+	if c.CrossConnect == nil {
+		return fmt.Errorf("Cannot Validate nil CrossConnect")
+	}
+	c.srcMechanismConverter = NewMechanismConverter(c.CrossConnect, SRC)
 	if c.srcMechanismConverter == nil {
-		return fmt.Errorf("Unsupported Mechanism %#v", c.LocalSource)
+		return fmt.Errorf("Unsupported Mechanism")
 	}
 	err := c.srcMechanismConverter.Validate()
 	if err != nil {
 		return err
 	}
-	c.dstMechanismConverter = NewMechanismConverter(c.Connection, DST)
+	c.dstMechanismConverter = NewMechanismConverter(c.CrossConnect, DST)
 	if c.dstMechanismConverter == nil {
-		fmt.Errorf("UnsupportedMechanism %#v", c.Destination)
+		return fmt.Errorf("UnsupportedMechanism %#v", c.Destination)
 	}
 	err = c.dstMechanismConverter.Validate()
 	if err != nil {

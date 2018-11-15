@@ -17,8 +17,11 @@ package vppagent
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes/empty"
+
+	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	remote "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -31,22 +34,22 @@ type VPPAgent struct {
 	mechanisms       *Mechanisms
 
 	// Internal state
-	connections map[string]*dataplane.Connection
-	updateCh    chan *Mechanisms
+	crossConnects map[string]*dataplane.CrossConnect
+	updateCh      chan *Mechanisms
 }
 
 func NewVPPAgent(vppAgentEndpoint string) *VPPAgent {
 	// TODO provide some validations here for inputs
 	return &VPPAgent{
-		connections:      make(map[string]*dataplane.Connection),
+		crossConnects:    make(map[string]*dataplane.CrossConnect),
 		vppAgentEndpoint: vppAgentEndpoint,
 		mechanisms: &Mechanisms{
-			localMechanisms: []*common.LocalMechanism{
-				&common.LocalMechanism{
-					Type: common.LocalMechanismType_KERNEL_INTERFACE,
+			localMechanisms: []*local.Mechanism{
+				&local.Mechanism{
+					Type: local.MechanismType_KERNEL_INTERFACE,
 				},
-				&common.LocalMechanism{
-					Type: common.LocalMechanismType_MEM_INTERFACE,
+				&local.Mechanism{
+					Type: local.MechanismType_MEM_INTERFACE,
 				},
 			},
 		},
@@ -55,11 +58,11 @@ func NewVPPAgent(vppAgentEndpoint string) *VPPAgent {
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
 type Mechanisms struct {
-	remoteMechanisms []*common.RemoteMechanism
-	localMechanisms  []*common.LocalMechanism
+	remoteMechanisms []*remote.Mechanism
+	localMechanisms  []*local.Mechanism
 }
 
-func (v VPPAgent) MonitorMechanisms(empty *common.Empty, updateSrv dataplane.DataplaneOperations_MonitorMechanismsServer) error {
+func (v VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
 	if err := updateSrv.Send(&dataplane.MechanismUpdate{
 		RemoteMechanisms: v.mechanisms.remoteMechanisms,
@@ -85,12 +88,12 @@ func (v VPPAgent) MonitorMechanisms(empty *common.Empty, updateSrv dataplane.Dat
 	}
 }
 
-func (v VPPAgent) ConnectRequest(ctx context.Context, connection *dataplane.Connection) (*dataplane.Reply, error) {
-	logrus.Infof("vppagent.ConnectRequest called with %#v", connection)
+func (v VPPAgent) Request(ctx context.Context, connection *dataplane.CrossConnect) (*dataplane.CrossConnect, error) {
+	logrus.Infof("Request(ConnectRequest) called with %v", connection)
 	return v.ConnectOrDisConnect(ctx, connection, true)
 }
 
-func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, connection *dataplane.Connection, connect bool) (*dataplane.Reply, error) {
+func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *dataplane.CrossConnect, connect bool) (*dataplane.CrossConnect, error) {
 	// TODO look at whether keepin a single conn might be better
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
@@ -99,7 +102,7 @@ func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, connection *dataplane
 	}
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
-	dataChange, err := DataRequestFromConnection(connection, nil)
+	dataChange, err := DataRequestFromConnection(crossConnect, nil)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -114,19 +117,18 @@ func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, connection *dataplane
 		logrus.Error(err)
 		// TODO handle connection tracking
 		// TODO handle teardown of any partial config that happened
-		return &dataplane.Reply{
-			Connection:    connection,
-			Success:       false,
-			ExtendedError: err.Error(),
-		}, err
+		return crossConnect, err
 	}
-	return &dataplane.Reply{
-		Connection: connection,
-		Success:    true,
-	}, nil
+	return crossConnect, nil
 }
 
-func (v VPPAgent) DisconnectRequest(ctx context.Context, connection *dataplane.Connection) (*dataplane.Reply, error) {
-	logrus.Infof("vppagent.DisconnectRequest called with %#v", connection)
-	return v.ConnectOrDisConnect(ctx, connection, false)
+func (v VPPAgent) Close(ctx context.Context, crossConnect *dataplane.CrossConnect) (*empty.Empty, error) {
+	logrus.Infof("vppagent.DisconnectRequest called with %#v", crossConnect)
+	_, err := v.ConnectOrDisConnect(ctx, crossConnect, false)
+	return &empty.Empty{}, err
+}
+
+func (v VPPAgent) MonitorCrossConnects(*empty.Empty, dataplane.Dataplane_MonitorCrossConnectsServer) error {
+	// TODO Implement
+	return nil
 }

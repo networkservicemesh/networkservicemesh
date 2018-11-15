@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,7 +34,7 @@ func ValidateNetworkServiceRequest(request *networkservice.NetworkServiceRequest
 		return err
 	}
 
-	localMechanismPreferences := request.GetLocalMechanismPreference()
+	localMechanismPreferences := request.GetMechanismPreferences()
 	// If we don't have preferences, we will default to KERNEL INTERFACE
 	if len(localMechanismPreferences) == 0 {
 		err := fmt.Errorf("NetworkServiceRequest.LocalMechanismPreferences cannot be zero length")
@@ -51,7 +51,7 @@ func ValidateNetworkServiceRequest(request *networkservice.NetworkServiceRequest
 	return nil
 }
 
-func ValidateConnection(connection *networkservice.Connection, complete bool) error {
+func ValidateConnection(connection *connection.Connection, complete bool) error {
 	if connection == nil {
 		err := fmt.Errorf("NetworkServiceRequest.Connection cannot be nil")
 		logrus.Error(err)
@@ -65,13 +65,13 @@ func ValidateConnection(connection *networkservice.Connection, complete bool) er
 		return err
 	}
 	if !complete {
-		localMechanism := connection.GetLocalMechanism()
+		localMechanism := connection.GetMechanism()
 		if localMechanism != nil {
 			err := fmt.Errorf("NetworkServiceRequest.Connection.LocalMechanism must be nil when passed to NetworkService.Request")
 			logrus.Error(err)
 			return err
 		}
-		connectionID := connection.GetConnectionId()
+		connectionID := connection.GetId()
 		if connectionID != "" {
 			err := fmt.Errorf("NetworkServiceRequest.Connection.ConnectionId must be empty when passed to NetworkService.Request")
 			logrus.Error(err)
@@ -79,11 +79,11 @@ func ValidateConnection(connection *networkservice.Connection, complete bool) er
 		}
 	}
 	if complete {
-		err := ValidateLocalMechanism(connection.GetLocalMechanism(), complete)
+		err := ValidateLocalMechanism(connection.GetMechanism(), complete)
 		if err != nil {
 			return err
 		}
-		connectionID := connection.GetConnectionId()
+		connectionID := connection.GetId()
 		if connectionID == "" {
 			err := fmt.Errorf("Connection.ConnectionId must be not be empty")
 			logrus.Error(err)
@@ -93,13 +93,13 @@ func ValidateConnection(connection *networkservice.Connection, complete bool) er
 	return nil
 }
 
-func ValidateLocalMechanism(localMechanism *common.LocalMechanism, complete bool) error {
+func ValidateLocalMechanism(localMechanism *connection.Mechanism, complete bool) error {
 	if localMechanism == nil {
 		err := fmt.Errorf("LocalMechanism must not be nil")
 		logrus.Error(err)
 		return err
 	}
-	if localMechanism.GetType() == common.LocalMechanismType_KERNEL_INTERFACE {
+	if localMechanism.GetType() == connection.MechanismType_KERNEL_INTERFACE {
 		parameters := localMechanism.GetParameters()
 		if parameters == nil {
 			err := fmt.Errorf("KERNEL_INTERFACE LocalMechanism type requires parameter %s, which is missing", LocalMechanismParameterNetNsInodeKey)

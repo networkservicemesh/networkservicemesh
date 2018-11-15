@@ -19,8 +19,9 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,35 +30,35 @@ type networkService struct {
 	networkService string
 	nextIP         uint32
 	requestChan    chan message
-	connections    map[string]*networkservice.Connection
+	connections    map[string]*connection.Connection
 	monitors       map[int64]chan message
 }
 
 type message struct {
 	message    string
-	connection *networkservice.Connection
+	connection *connection.Connection
 }
 
-func (ns *networkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+func (ns *networkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Request for Network Service received %v", request)
-	connection, err := ns.CompleteConnection(request)
+	conn, err := ns.CompleteConnection(request)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 
-	ns.requestChan <- message{"created", connection}
+	ns.requestChan <- message{"created", conn}
 
-	return connection, nil
+	return conn, nil
 }
 
-func (ns *networkService) Close(_ context.Context, connection *networkservice.Connection) (*networkservice.Connection, error) {
+func (ns *networkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	// remove from connection
-	ns.requestChan <- message{"close", connection}
-	return connection, nil
+	ns.requestChan <- message{"close", conn}
+	return &empty.Empty{}, nil
 }
 
-func (ns *networkService) Monitor(connection *networkservice.Connection, monitorServer networkservice.NetworkService_MonitorServer) error {
+func (ns *networkService) Monitor(conn *connection.Connection, monitorServer networkservice.NetworkService_MonitorServer) error {
 	monitor := make(chan message)
 	key := rand.Int63()
 
@@ -72,7 +73,7 @@ func (ns *networkService) Monitor(connection *networkservice.Connection, monitor
 	}()
 
 	for msg := range monitor {
-		if msg.connection.ConnectionId == connection.ConnectionId {
+		if msg.connection.Id == conn.Id {
 			err := monitorServer.Send(msg.connection)
 			if err != nil {
 				return err
@@ -82,7 +83,7 @@ func (ns *networkService) Monitor(connection *networkservice.Connection, monitor
 	return nil
 }
 
-func (ns *networkService) MonitorConnections(_ *common.Empty, monitorServer networkservice.NetworkService_MonitorConnectionsServer) error {
+func (ns *networkService) MonitorConnections(_ *empty.Empty, monitorServer networkservice.NetworkService_MonitorConnectionsServer) error {
 	monitor := make(chan message)
 	key := rand.Int63()
 
@@ -111,7 +112,7 @@ func New() networkservice.NetworkServiceServer {
 		networkService: "icmp-responder",
 		nextIP:         169083137, // 10.20.1.1
 		requestChan:    requestChan,
-		connections:    make(map[string]*networkservice.Connection),
+		connections:    make(map[string]*connection.Connection),
 		monitors:       make(map[int64]chan message),
 	}
 

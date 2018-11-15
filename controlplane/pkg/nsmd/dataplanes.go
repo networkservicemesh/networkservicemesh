@@ -21,10 +21,10 @@ import (
 	"path"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -67,10 +67,10 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		return
 	}
 	defer conn.Close()
-	dataplaneClient := dataplaneapi.NewDataplaneOperationsClient(conn)
+	dataplaneClient := dataplaneapi.NewDataplaneClient(conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &common.Empty{})
+	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &empty.Empty{})
 	if err != nil {
 		logrus.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
 		model.DeleteDataplane(dataplaneName)
@@ -96,7 +96,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 func (r *dataplaneRegistrarServer) RequestLiveness(liveness dataplaneregistrarapi.DataplaneRegistration_RequestLivenessServer) error {
 	logrus.Infof("Liveness Request received")
 	for {
-		if err := liveness.SendMsg(&common.Empty{}); err != nil {
+		if err := liveness.SendMsg(&empty.Empty{}); err != nil {
 			logrus.Errorf("deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 			return err
 		}

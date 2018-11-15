@@ -19,8 +19,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
@@ -115,7 +115,7 @@ func (dr *dataplaneRegistration) livenessMonitor(ctx context.Context) {
 			}
 			return
 		default:
-			err := stream.RecvMsg(&common.Empty{})
+			err := stream.RecvMsg(&empty.Empty{})
 			if err != nil {
 				logrus.Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
 				if dr.onConnect != nil {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"

@@ -18,14 +18,14 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
@@ -40,14 +40,14 @@ const (
 )
 
 type KernelInterfaceConverter struct {
-	*dataplane.Connection
+	*dataplane.CrossConnect
 	Side SrcDst
 }
 
-func NewKernelInterfaceConverter(c *dataplane.Connection, s SrcDst) Converter {
+func NewKernelInterfaceConverter(c *dataplane.CrossConnect, s SrcDst) Converter {
 	rv := &KernelInterfaceConverter{
-		Connection: c,
-		Side:       s,
+		CrossConnect: c,
+		Side:         s,
 	}
 	return rv
 }
@@ -57,16 +57,19 @@ func (c *KernelInterfaceConverter) Name() string {
 }
 
 func (c *KernelInterfaceConverter) Validate() error {
-	lm := LocalMechanism(c.Connection, c.Side)
-	if lm == nil || lm.Type != common.LocalMechanismType_KERNEL_INTERFACE {
-		return fmt.Errorf("Mechanism %#v is not of type KERNEL_INTERFACE", lm)
+	if c == nil {
+		return fmt.Errorf("Cannot Validate nil")
+	}
+	lm := LocalMechanism(c.CrossConnect, c.Side)
+	if lm == nil || lm.Type != local.MechanismType_KERNEL_INTERFACE {
+		return fmt.Errorf("Mechanism %v is not of type KERNEL_INTERFACE", lm)
 	}
 	if _, ok := lm.Parameters[nsmd.LocalMechanismParameterNetNsInodeKey]; !ok {
 		return fmt.Errorf("Missing Required LocalMechanism.Parameter[%s] for network namespace", nsmd.LocalMechanismParameterNetNsInodeKey)
 	}
 	iface, ok := lm.Parameters[nsmd.LocalMechanismParameterInterfaceNameKey]
 	if ok && len(iface) > LinuxIfMaxLength {
-
+		return fmt.Errorf("%s may not exceed %d characters", nsmd.LocalMechanismParameterInterfaceNameKey, LinuxIfMaxLength)
 	}
 	// TODO validated namespace, and IPv4 keys here
 
@@ -75,7 +78,7 @@ func (c *KernelInterfaceConverter) Validate() error {
 
 func (c *KernelInterfaceConverter) FullySpecify() error {
 	err := c.Validate()
-	lm := LocalMechanism(c.Connection, c.Side)
+	lm := LocalMechanism(c.CrossConnect, c.Side)
 	if err != nil {
 		return err
 	}
@@ -85,7 +88,7 @@ func (c *KernelInterfaceConverter) FullySpecify() error {
 		//         ideally, we'd name them nsm-#, but this requires
 		//         work to figure out what interfaces we already have
 		//         in the namespace
-		lm.Parameters[nsmd.LocalMechanismParameterInterfaceNameKey] = c.Side.String() + "-" + c.ConnectionId
+		lm.Parameters[nsmd.LocalMechanismParameterInterfaceNameKey] = c.Side.String() + "-" + c.Id
 	}
 	return nil
 }
@@ -95,11 +98,11 @@ func (c *KernelInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Data
 	if rv == nil {
 		rv = &rpc.DataRequest{}
 	}
-	lm := LocalMechanism(c.Connection, c.Side)
+	lm := LocalMechanism(c.CrossConnect, c.Side)
 	if err != nil {
 		return nil, err
 	}
-	name := c.Side.String() + "-" + c.ConnectionId
+	name := c.Side.String() + "-" + c.Id
 	inode, err := strconv.ParseUint(lm.Parameters[nsmd.LocalMechanismParameterNetNsInodeKey], 10, 64)
 	if err != nil {
 		logrus.Errorf("%s is not an inode number", lm.Parameters[nsmd.LocalMechanismParameterNetNsInodeKey])
@@ -117,13 +120,17 @@ func (c *KernelInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Data
 	description := lm.Parameters[nsmd.LocalMechanismParameterInterfaceDescriptionKey]
 
 	var ipAddresses []string
-	if c.Side == SRC && c.ConnectionContext != nil && c.ConnectionContext.ConnectionContext != nil && c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextSrcIPKey] != "" {
-		// TODO validate IP address
-		ipAddresses = []string{c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextSrcIPKey]}
+	if c.Side == SRC && c.GetSource() != nil {
+		lsrc, ok := c.GetSource().(*dataplane.CrossConnect_LocalSource)
+		if ok && lsrc.LocalSource != nil && lsrc.LocalSource.Context[connectioncontext.SrcIpKey] != "" {
+			ipAddresses = []string{lsrc.LocalSource.Context[connectioncontext.SrcIpKey]}
+		}
 	}
-	if c.Side == DST && c.ConnectionContext != nil && c.ConnectionContext.ConnectionContext != nil && c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextDstIPKey] != "" {
-		// TODO validate IP address
-		ipAddresses = []string{c.ConnectionContext.ConnectionContext[networkservice.ConnectionContextDstIPKey]}
+	if c.Side == DST && c.GetDestination() != nil {
+		lsrc, ok := c.GetDestination().(*dataplane.CrossConnect_LocalDestination)
+		if ok && lsrc.LocalDestination != nil && lsrc.LocalDestination.Context[connectioncontext.DstIpKey] != "" {
+			ipAddresses = []string{lsrc.LocalDestination.Context[connectioncontext.DstIpKey]}
+		}
 	}
 
 	// We append an Interfaces.  Interfaces creates the vpp side of an interface.

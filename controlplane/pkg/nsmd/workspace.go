@@ -19,7 +19,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/pkg/tools"

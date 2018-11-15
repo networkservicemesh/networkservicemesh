@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package dataplaneregistrar;
 
-import "github.com/ligato/networkservicemesh/pkg/nsm/apis/common/common.proto";
+import "github.com/golang/protobuf/ptypes/empty/empty.proto";
 
 // DataplaneRegistrationRequest is sent by the dataplane to NSM
 // to advertise itself and inform NSM about the location of the dataplane socket
@@ -21,7 +21,7 @@ service DataplaneRegistration {
     // RequestLiveness is a stream initiated by NSM to inform the dataplane that NSM is still alive and
     // no re-registration is required. Detection a failure on this "channel" will mean
     // that NSM is gone and the dataplane needs to start re-registration logic.
-    rpc RequestLiveness (stream common.Empty) returns (stream common.Empty);
+    rpc RequestLiveness (stream google.protobuf.Empty) returns (stream google.protobuf.Empty);
 }
 
 // DataplaneUnRegistrationRequest is sent by the dataplane to NSM
