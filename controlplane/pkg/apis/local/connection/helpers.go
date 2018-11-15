@@ -13,7 +13,7 @@ func (c *Connection) IsValid() error {
 		return fmt.Errorf("Connection cannot be nil")
 	}
 	if c.GetNetworkService() == "" {
-		return fmt.Errorf("Connection.NetowrkService cannot be empty: %v", c)
+		return fmt.Errorf("Connection.NetworkService cannot be empty: %v", c)
 	}
 
 	if c.GetMechanism() != nil {
