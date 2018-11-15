@@ -22,6 +22,7 @@ import (
 	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -102,7 +103,7 @@ func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *datapla
 	}
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
-	dataChange, err := DataRequestFromConnection(crossConnect, nil)
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect).ToDataRequest(nil)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

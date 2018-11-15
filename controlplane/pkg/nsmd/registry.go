@@ -52,7 +52,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 	if request.Labels == nil {
 		request.Labels = make(map[string]string)
 	}
-	request.Labels[KEY_NSM_URL] = es.model.GetNsmUrl()
+	request.Labels[registry.NsmUrlKey] = es.model.GetNsmUrl()
 
 	endpoint, err := client.RegisterNSE(context.Background(), request)
 	if err != nil {

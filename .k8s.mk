@@ -77,6 +77,9 @@ k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 .PHONY: k8s-build
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
+.PHONY: k8s-save
+k8s-save: $(addsuffix -save,$(addprefix k8s-,$(DEPLOYS)))
+
 .PHONY: k8s-save-deploy
 k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)))
 

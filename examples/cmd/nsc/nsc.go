@@ -64,8 +64,11 @@ func main() {
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type:       connection.MechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{nsmd.LocalMechanismParameterNetNsInodeKey: netns},
+				Type: connection.MechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{
+					connection.NetNsInodeKey:    netns,
+					connection.InterfaceNameKey: "icmp-responder1",
+				},
 			},
 		},
 	}
