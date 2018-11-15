@@ -88,8 +88,11 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 
 	return c, err
 }
-func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string) error {
-	for ; true; <-time.After(1 * time.Second) {
+func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string, interval time.Duration) error {
+	if interval < 0 {
+		return errors.New("interval must be positive")
+	}
+	for ; true; <-time.After(interval) {
 		select {
 		case <-ctx.Done():
 			return errors.New("timeout waiting for: " + protoType + ":" + registryAddress)

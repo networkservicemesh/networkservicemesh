@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/sirupsen/logrus"
@@ -42,7 +43,7 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 			registryAddress = "localhost:5000"
 		}
 		for stopRedial {
-			tools.WaitForPortAvailable(context.Background(), "tcp", registryAddress)
+			tools.WaitForPortAvailable(context.Background(), "tcp", registryAddress, 1*time.Second)
 			logrus.Println("Registry port now available, attempting to connect...")
 			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
 			if err != nil {
