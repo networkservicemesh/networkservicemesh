@@ -17,9 +17,10 @@ package nsmd
 import (
 	"fmt"
 
+	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -70,7 +71,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 	return endpoint, nil
 }
 
-func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*common.Empty, error) {
+func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	// TODO make sure we track which registry server we got the RegisterNSE from so we can only allow a deletion
 	// of what you advertised
 	logrus.Infof("Received Endpoint Remove request: %+v", request)
@@ -88,9 +89,9 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	}
 	WorkSpaceRegistry().DeleteEndpointToWorkspace(request.EndpointName)
 	if err := es.model.DeleteEndpoint(request.EndpointName); err != nil {
-		return &common.Empty{}, err
+		return &empty.Empty{}, err
 	}
-	return &common.Empty{}, nil
+	return &empty.Empty{}, nil
 }
 
 func (es *registryServer) Close() {

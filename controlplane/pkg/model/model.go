@@ -7,15 +7,16 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 
-	"github.com/ligato/networkservicemesh/pkg/nsm/apis/common"
+	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	remote "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/sirupsen/logrus"
 )
 
 type Dataplane struct {
 	RegisteredName   string
 	SocketLocation   string
-	LocalMechanisms  []*common.LocalMechanism
-	RemoteMechanisms []*common.RemoteMechanism
+	LocalMechanisms  []*local.Mechanism
+	RemoteMechanisms []*remote.Mechanism
 }
 
 type Model interface {

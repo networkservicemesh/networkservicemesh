@@ -13,12 +13,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core manages the lifecycle of all plugins (start, graceful
-// shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
-// must be implemented by each plugin.
+// This contains the core Network Service Mesh API definitions for external
+// consumption via gRPC protobufs.
 
-package common
+syntax = "proto3";
 
-//go:generate protoc -I . common.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:deepcopy-gen=package,register
+package remote.connection;
+option go_package = "connection";
+
+message Mechanism {
+    MechanismType type = 1;
+    map<string,string> parameters = 2;
+}
+
+enum MechanismType {
+    NONE = 0;
+    VXLAN = 1;
+    VXLAN_GPE = 2;
+    GRE = 3;
+    SRV6 = 4;
+    MPLSoEthernet = 5;
+    MPLSoGRE = 6;
+    MPLSoUDP = 7;
+}
+
+message Connection {
+    string connection_id = 1;
+    string network_service = 2;
+    Mechanism mechanism = 3;
+    map<string,string> context = 4;
+    map<string,string> labels = 5;
+}
