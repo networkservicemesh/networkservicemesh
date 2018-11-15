@@ -59,6 +59,8 @@ function run_tests() {
         sleep 2
     done
 
+    wait_for_pods default
+
     #
     # Final log collection
     #
