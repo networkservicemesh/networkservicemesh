@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -34,9 +33,9 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 	mechanism := &connection.Mechanism{
 		Type: connection.MechanismType_KERNEL_INTERFACE,
 		Parameters: map[string]string{
-			nsmd.LocalMechanismParameterNetNsInodeKey: netns,
+			connection.NetNsInodeKey: netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
-			nsmd.LocalMechanismParameterInterfaceNameKey: request.GetConnection().GetNetworkService() + request.GetConnection().GetId(),
+			connection.InterfaceNameKey: request.GetConnection().GetNetworkService() + request.GetConnection().GetId(),
 		},
 	}
 
