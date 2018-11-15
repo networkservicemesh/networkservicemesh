@@ -17,6 +17,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
 	"net"
 	"os"
@@ -86,14 +87,19 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 
 	return c, err
 }
-func WaitForPortAvailable(protoType string, registryAddress string) {
-	for true {
-		conn, err := net.Dial(protoType, registryAddress)
-		if err != nil {
-			logrus.Println("Waiting for registry liveness probe...")
-			continue
+func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("timeout waiting for: " + protoType + ":" + registryAddress)
+		case <-time.After(1 * time.Second):
+			conn, err := net.Dial(protoType, registryAddress)
+			if err != nil {
+				logrus.Println("Waiting for registry liveness probe...")
+				continue
+			}
+			conn.Close()
+			return nil
 		}
-		conn.Close()
-		break
 	}
 }

@@ -15,6 +15,7 @@
 package nsmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"os"
@@ -41,7 +42,7 @@ func RegistryClient() (registry.NetworkServiceRegistryClient, error) {
 			registryAddress = "localhost:5000"
 		}
 		for stopRedial {
-			tools.WaitForPortAvailable("tcp", registryAddress)
+			tools.WaitForPortAvailable(context.Background(), "tcp", registryAddress)
 			logrus.Println("Registry port now available, attempting to connect...")
 			conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
 			if err != nil {
