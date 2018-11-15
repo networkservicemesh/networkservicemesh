@@ -40,11 +40,9 @@ function run_tests() {
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd-k8s:"${COMMIT}"
 
-    cp k8s/conf/nsmd.yaml /tmp/icmp-responder-nse.yaml
     yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
 
     kubectl apply -f /tmp/nsmd.yaml
-    kubectl apply -f /tmp/icmp-responder-nse.yaml
 
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
@@ -61,6 +59,15 @@ function run_tests() {
 
     wait_for_pods default
 
+    cp k8s/conf/icmp-responder-nse.yaml /tmp/icmp-responder-nse.yaml
+    yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/icmp-responder-nse:"${COMMIT}"
+    kubectl apply -f /tmp/icmp-responder-nse.yaml
+
+    typeset -i cnt=240
+    until kubectl get nse | grep icmp; do
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
     #
     # Final log collection
     #
