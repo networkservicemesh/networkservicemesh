@@ -17,6 +17,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"time"
@@ -84,4 +85,15 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 	)
 
 	return c, err
+}
+func WaitForPortAvailable(protoType string, registryAddress string) {
+	for true {
+		conn, err := net.Dial(protoType, registryAddress)
+		if err != nil {
+			logrus.Println("Waiting for registry liveness probe...")
+			continue
+		}
+		conn.Close()
+		break
+	}
 }
