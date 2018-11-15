@@ -31,8 +31,8 @@ if [ "$1" = "icmp-responder-nse" ]; then
     output=/bin/$1
 fi
 
-if [ "$1" = "icmp-reponder-nse" ]; then
-    go_file=./dataplanes/vppagent/cmd/vppagent-dataplane.go
+if [ "$1" = "vppagent-dataplane" ]; then
+    go_file=./dataplane/vppagent/cmd/vppagent-dataplane.go
     port=40003
     output=/bin/$1
 fi

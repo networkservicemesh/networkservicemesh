@@ -50,8 +50,8 @@ docker-kill: $(addsuffix -kill,$(addprefix docker-,$(KILL_CONTAINERS)))
 
 .PHONY: docker-%-kill
 docker-%-kill:
-	@echo "Killing $*..."
-	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker kill < /tmp/container.$* || echo "$* already killed"
+	@echo "Killing $*... $$(cat /tmp/container.$* | cut -c1-12)"
+	@docker container ls | grep $$(cat /tmp/container.$* | cut -c1-12) > /dev/null && xargs docker kill < /tmp/container.$* || echo "$* already killed"
 
 .PHONY: docker-logs
 docker-logs: $(addsuffix -logs,$(addprefix docker-,$(LOG_CONTAINERS)))
@@ -61,15 +61,27 @@ docker-%-logs:
 	@echo "Showing nsmd logs..."
 	@xargs docker logs < /tmp/container.$*
 
+.PHONY:
 docker-devenv-build: docker/debug/Dockerfile.debug
 	@${DOCKERBUILD} -t networkservicemesh/devenv -f docker/debug/Dockerfile.debug .
 
+.PHONY: docker-devenv-run
 docker-devenv-run:
-	@docker run --privileged -ti  -p 40000-40100:40000-40100/tcp -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh"  -v $$(pwd | rev | cut -d'/' -f4- | rev):/go/src networkservicemesh/devenv /go/src/github.com/ligato/networkservicemesh/scripts/debug_env.sh
+	@docker run -d --privileged -p 40000-40100:40000-40100/tcp -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh"  -v $$(pwd | rev | cut -d'/' -f4- | rev):/go/src networkservicemesh/devenv > /tmp/container.devenv
+	@xargs docker logs -f < /tmp/container.devenv
+
+.PHONY: docker-devenv-kill
+docker-devenv-kill:
+	@docker kill $$(docker ps | grep networkservicemesh/devenv | cut -c1-12) 2&>1 > /dev/null || echo "DevEnv already killed"
+
+.PHONY: docker-devenv-attach
+docker-devenv-attach:
+	@docker exec -ti $$(docker container ls | grep networkservicemesh/devenv | cut -c1-12) bash
+
 
 .PHONY: docker-%-debug
 docker-%-debug:
-	@docker exec -ti $$(docker container ls | grep networkservicemesh/debug | cut -c1-12) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
+	@docker exec -ti $$(docker container ls | grep networkservicemesh/devenv | cut -c1-12) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
 
 .PHONY: docker-push-%
 docker-%-push: docker-login docker-%-build

@@ -20,6 +20,18 @@ vagrant-start:
 vagrant-restart:
 	@cd scripts/vagrant; vagrant destroy -f;sleep 2;vagrant up
 
+.PHONY: vagrant-suspend
+vagrant-suspend:
+	@cd scripts/vagrant; vagrant suspend
+
+.PHONY: vagrant-resume
+vagrant-resume:
+	@cd scripts/vagrant; vagrant resume
+
+.PHONY: vagrant-ssh
+vagrant-ssh:
+	@cd scripts/vagrant; vagrant ssh
+
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:
 	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
