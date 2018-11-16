@@ -68,6 +68,16 @@ function run_tests() {
         ((cnt=cnt-1)) || return 1
         sleep 2
     done
+
+    cp k8s/conf/nsc.yaml /tmp/nsc.yaml
+    yq w -i /tmp/nsc.yaml spec.template.spec.containers[0].image networkservicemesh/nsc:"${COMMIT}"
+    kubectl apply -f /tmp/nsc.yaml
+
+    typeset -i cnt=240
+    until kubectl get pods | grep nsc | grep Running ; do
+        ((cnt=cnt-1)) || return 1
+        sleep 2
+    done
     #
     # Final log collection
     #
