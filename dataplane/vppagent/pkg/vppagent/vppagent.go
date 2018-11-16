@@ -41,7 +41,7 @@ type VPPAgent struct {
 
 func NewVPPAgent(vppAgentEndpoint string) *VPPAgent {
 	// TODO provide some validations here for inputs
-	return &VPPAgent{
+	rv := &VPPAgent{
 		crossConnects:    make(map[string]*dataplane.CrossConnect),
 		vppAgentEndpoint: vppAgentEndpoint,
 		mechanisms: &Mechanisms{
@@ -55,6 +55,8 @@ func NewVPPAgent(vppAgentEndpoint string) *VPPAgent {
 			},
 		},
 	}
+	rv.reset()
+	return rv
 }
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
@@ -121,6 +123,23 @@ func (v VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *datapla
 		return crossConnect, err
 	}
 	return crossConnect, nil
+}
+
+func (v VPPAgent) reset() error {
+	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("can't dial grpc server: %v", err)
+		return err
+	}
+	defer conn.Close()
+	client := rpc.NewDataResyncServiceClient(conn)
+	logrus.Infof("Resetting vppagent...")
+	_, err = client.Resync(context.Background(), &rpc.DataRequest{})
+	if err != nil {
+		logrus.Errorf("failed to reset vppagent: %s", err)
+	}
+	logrus.Infof("Finished resetting vppagent...")
+	return nil
 }
 
 func (v VPPAgent) Close(ctx context.Context, crossConnect *dataplane.CrossConnect) (*empty.Empty, error) {
