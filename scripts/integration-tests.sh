@@ -34,6 +34,9 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
+    cp k8s/conf/vppagent-dataplane.yaml /tmp/vppagent-dataplane.yaml
+    yq w -i /tmp/vppagent-dataplane.yaml spec.template.spec.containers[0].image networkservicemesh/vppagent-dataplane:"${COMMIT}"
+    kubectl apply -f /tmp/vppagent-dataplane.yaml
 
     cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
