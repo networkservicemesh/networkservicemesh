@@ -26,6 +26,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:f90b8392b93331d9b45212b3c8056af949b8bf4002a67b4a11b530ef566455d2"
+  name = "github.com/docker/docker"
+  packages = ["pkg/mount"]
+  pruneopts = "NUT"
+  revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
+  version = "v1.13.1"
+
+[[projects]]
   digest = "1:3537d33c077a9666720dc987fddfecb07270606ac0a58f67abd08e3b252c0a45"
   name = "github.com/emicklei/go-restful"
   packages = [
@@ -729,6 +737,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/docker/docker/pkg/mount",
     "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
     "github.com/golang/protobuf/proto",
