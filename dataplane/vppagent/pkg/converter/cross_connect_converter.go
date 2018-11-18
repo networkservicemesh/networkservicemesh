@@ -4,17 +4,17 @@ import (
 	"fmt"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
-	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 )
 
 type CrossConnectConverter struct {
-	*dataplane.CrossConnect
+	*crossconnect.CrossConnect
 }
 
-func NewCrossConnectConverter(c *dataplane.CrossConnect) *CrossConnectConverter {
+func NewCrossConnectConverter(c *crossconnect.CrossConnect) *CrossConnectConverter {
 	return &CrossConnectConverter{
 		CrossConnect: c,
 	}
