@@ -28,6 +28,7 @@ To generate the deepcopy functions, clientset, listers and informers, run the fo
 
 ```
 go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
+go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
 GOPATH=<path to go base> ./scripts/update-codegen.sh
 ```
 

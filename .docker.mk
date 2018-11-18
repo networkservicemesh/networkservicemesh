@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_CONTAINERS=nsc nsmd nsmdp nsmd-k8s icmp-responder-nse vppagent vppagent-dataplane
+BUILD_CONTAINERS=nsc nsmd nsmdp nsmd-k8s icmp-responder-nse vppagent vppagent-dataplane devenv
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
@@ -50,8 +50,8 @@ docker-kill: $(addsuffix -kill,$(addprefix docker-,$(KILL_CONTAINERS)))
 
 .PHONY: docker-%-kill
 docker-%-kill:
-	@echo "Killing $*..."
-	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker kill < /tmp/container.$* || echo "$* already killed"
+	@echo "Killing $*... $$(cat /tmp/container.$* | cut -c1-12)"
+	@docker container ls | grep $$(cat /tmp/container.$* | cut -c1-12) > /dev/null && xargs docker kill < /tmp/container.$* || echo "$* already killed"
 
 .PHONY: docker-logs
 docker-logs: $(addsuffix -logs,$(addprefix docker-,$(LOG_CONTAINERS)))
@@ -61,14 +61,27 @@ docker-%-logs:
 	@echo "Showing nsmd logs..."
 	@xargs docker logs < /tmp/container.$*
 
-docker-build-debug: docker/debug/Dockerfile.debug
-	@${DOCKERBUILD} -t networkservicemesh/debug -f docker/debug/Dockerfile.debug .
+.PHONY:
+docker-devenv-build: docker/debug/Dockerfile.debug
+	@${DOCKERBUILD} -t networkservicemesh/devenv -f docker/debug/Dockerfile.debug .
 
-.PHONY: docker-debug-%
-docker-debug-%: docker-build-debug docker-%-kill
-	@${DOCKERBUILD} -t networkservicemesh/$*-debug -f build/Dockerfile.$*-debug .
-	@docker run -d --privileged -p 127.0.0.1:40000:40000 -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/$*-debug > /tmp/container.$*
-	@docker container ls | grep $$(cat /tmp/container.$*| cut -c1-12) > /dev/null && xargs docker logs < /tmp/container.$*
+.PHONY: docker-devenv-run
+docker-devenv-run:
+	@docker run -d --privileged -p 40000-40100:40000-40100/tcp -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh"  -v $$(pwd | rev | cut -d'/' -f4- | rev):/go/src networkservicemesh/devenv > /tmp/container.devenv
+	@xargs docker logs -f < /tmp/container.devenv
+
+.PHONY: docker-devenv-kill
+docker-devenv-kill:
+	@docker kill $$(docker ps | grep networkservicemesh/devenv | cut -c1-12) 2&>1 > /dev/null || echo "DevEnv already killed"
+
+.PHONY: docker-devenv-attach
+docker-devenv-attach:
+	@docker exec -ti $$(docker container ls | grep networkservicemesh/devenv | cut -c1-12) bash
+
+
+.PHONY: docker-%-debug
+docker-%-debug:
+	@docker exec -ti $$(docker container ls | grep networkservicemesh/devenv | cut -c1-12) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
 
 .PHONY: docker-push-%
 docker-%-push: docker-login docker-%-build
