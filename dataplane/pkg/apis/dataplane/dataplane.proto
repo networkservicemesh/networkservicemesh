@@ -13,13 +13,24 @@ message MechanismUpdate {
     repeated local.connection.Mechanism local_mechanisms = 2;
 }
 
+enum CrossConnectEventType {
+    INITIAL_STATE_TRANSFER = 0;
+    UPDATE = 1;
+    DELETE = 2;
+}
+
+message CrossConnectEvent {
+    CrossConnectEventType type = 1;
+    map<string,CrossConnect> cross_connects = 2;
+}
+
 // Dataplane inlcudes other operations which NSM will request dataplane module
 // to execute to establish connectivity requested by NSM clients.
 service Dataplane {
     rpc Request (CrossConnect) returns (CrossConnect);
     rpc Close (CrossConnect) returns (google.protobuf.Empty);
     rpc MonitorMechanisms(google.protobuf.Empty) returns (stream MechanismUpdate);
-    rpc MonitorCrossConnects(google.protobuf.Empty) returns (stream CrossConnect);
+    rpc MonitorCrossConnects(google.protobuf.Empty) returns (stream CrossConnectEvent);
 }
 
 message CrossConnect {
