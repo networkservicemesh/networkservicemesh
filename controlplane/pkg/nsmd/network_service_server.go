@@ -112,6 +112,12 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			},
 		}
 		nseConnection, e := client.Request(ctx, message)
+		err = nseConnection.IsComplete()
+		if err != nil {
+			fmt.Errorf("NetworkService.Request() failed with error: %s", err)
+			logrus.Error(err)
+			return nil, err
+		}
 		request.GetConnection().Context = nseConnection.Context
 		err = nseConnection.IsComplete()
 		if err != nil {
@@ -153,13 +159,5 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 }
 
 func (srv *networkServiceServer) Close(context.Context, *connection.Connection) (*empty.Empty, error) {
-	panic("implement me")
-}
-
-func (srv *networkServiceServer) Monitor(*connection.Connection, networkservice.NetworkService_MonitorServer) error {
-	panic("implement me")
-}
-
-func (srv *networkServiceServer) MonitorConnections(*empty.Empty, networkservice.NetworkService_MonitorConnectionsServer) error {
 	panic("implement me")
 }
