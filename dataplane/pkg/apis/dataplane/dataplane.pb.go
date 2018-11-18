@@ -8,6 +8,7 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	empty "github.com/golang/protobuf/ptypes/empty"
+	crossconnect "github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	connection1 "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	grpc "google.golang.org/grpc"
@@ -24,34 +25,6 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
-type CrossConnectEventType int32
-
-const (
-	CrossConnectEventType_INITIAL_STATE_TRANSFER CrossConnectEventType = 0
-	CrossConnectEventType_UPDATE                 CrossConnectEventType = 1
-	CrossConnectEventType_DELETE                 CrossConnectEventType = 2
-)
-
-var CrossConnectEventType_name = map[int32]string{
-	0: "INITIAL_STATE_TRANSFER",
-	1: "UPDATE",
-	2: "DELETE",
-}
-
-var CrossConnectEventType_value = map[string]int32{
-	"INITIAL_STATE_TRANSFER": 0,
-	"UPDATE":                 1,
-	"DELETE":                 2,
-}
-
-func (x CrossConnectEventType) String() string {
-	return proto.EnumName(CrossConnectEventType_name, int32(x))
-}
-
-func (CrossConnectEventType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_617387e490a04ffa, []int{0}
-}
 
 // Message sent by dataplane module informing NSM of any changes in its
 // operations parameters or constraints
@@ -102,357 +75,35 @@ func (m *MechanismUpdate) GetLocalMechanisms() []*connection1.Mechanism {
 	return nil
 }
 
-type CrossConnectEvent struct {
-	Type                 CrossConnectEventType    `protobuf:"varint,1,opt,name=type,proto3,enum=dataplane.CrossConnectEventType" json:"type,omitempty"`
-	CrossConnects        map[string]*CrossConnect `protobuf:"bytes,2,rep,name=cross_connects,json=crossConnects,proto3" json:"cross_connects,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
-	XXX_unrecognized     []byte                   `json:"-"`
-	XXX_sizecache        int32                    `json:"-"`
-}
-
-func (m *CrossConnectEvent) Reset()         { *m = CrossConnectEvent{} }
-func (m *CrossConnectEvent) String() string { return proto.CompactTextString(m) }
-func (*CrossConnectEvent) ProtoMessage()    {}
-func (*CrossConnectEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_617387e490a04ffa, []int{1}
-}
-
-func (m *CrossConnectEvent) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CrossConnectEvent.Unmarshal(m, b)
-}
-func (m *CrossConnectEvent) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CrossConnectEvent.Marshal(b, m, deterministic)
-}
-func (m *CrossConnectEvent) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CrossConnectEvent.Merge(m, src)
-}
-func (m *CrossConnectEvent) XXX_Size() int {
-	return xxx_messageInfo_CrossConnectEvent.Size(m)
-}
-func (m *CrossConnectEvent) XXX_DiscardUnknown() {
-	xxx_messageInfo_CrossConnectEvent.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CrossConnectEvent proto.InternalMessageInfo
-
-func (m *CrossConnectEvent) GetType() CrossConnectEventType {
-	if m != nil {
-		return m.Type
-	}
-	return CrossConnectEventType_INITIAL_STATE_TRANSFER
-}
-
-func (m *CrossConnectEvent) GetCrossConnects() map[string]*CrossConnect {
-	if m != nil {
-		return m.CrossConnects
-	}
-	return nil
-}
-
-type CrossConnect struct {
-	Id      string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Payload string `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
-	// Types that are valid to be assigned to Source:
-	//	*CrossConnect_LocalSource
-	//	*CrossConnect_RemoteSource
-	Source isCrossConnect_Source `protobuf_oneof:"source"`
-	// Types that are valid to be assigned to Destination:
-	//	*CrossConnect_LocalDestination
-	//	*CrossConnect_RemoteDestination
-	Destination          isCrossConnect_Destination `protobuf_oneof:"destination"`
-	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
-	XXX_unrecognized     []byte                     `json:"-"`
-	XXX_sizecache        int32                      `json:"-"`
-}
-
-func (m *CrossConnect) Reset()         { *m = CrossConnect{} }
-func (m *CrossConnect) String() string { return proto.CompactTextString(m) }
-func (*CrossConnect) ProtoMessage()    {}
-func (*CrossConnect) Descriptor() ([]byte, []int) {
-	return fileDescriptor_617387e490a04ffa, []int{2}
-}
-
-func (m *CrossConnect) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CrossConnect.Unmarshal(m, b)
-}
-func (m *CrossConnect) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CrossConnect.Marshal(b, m, deterministic)
-}
-func (m *CrossConnect) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CrossConnect.Merge(m, src)
-}
-func (m *CrossConnect) XXX_Size() int {
-	return xxx_messageInfo_CrossConnect.Size(m)
-}
-func (m *CrossConnect) XXX_DiscardUnknown() {
-	xxx_messageInfo_CrossConnect.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CrossConnect proto.InternalMessageInfo
-
-func (m *CrossConnect) GetId() string {
-	if m != nil {
-		return m.Id
-	}
-	return ""
-}
-
-func (m *CrossConnect) GetPayload() string {
-	if m != nil {
-		return m.Payload
-	}
-	return ""
-}
-
-type isCrossConnect_Source interface {
-	isCrossConnect_Source()
-}
-
-type CrossConnect_LocalSource struct {
-	LocalSource *connection1.Connection `protobuf:"bytes,3,opt,name=local_source,json=localSource,proto3,oneof"`
-}
-
-type CrossConnect_RemoteSource struct {
-	RemoteSource *connection.Connection `protobuf:"bytes,4,opt,name=remote_source,json=remoteSource,proto3,oneof"`
-}
-
-func (*CrossConnect_LocalSource) isCrossConnect_Source() {}
-
-func (*CrossConnect_RemoteSource) isCrossConnect_Source() {}
-
-func (m *CrossConnect) GetSource() isCrossConnect_Source {
-	if m != nil {
-		return m.Source
-	}
-	return nil
-}
-
-func (m *CrossConnect) GetLocalSource() *connection1.Connection {
-	if x, ok := m.GetSource().(*CrossConnect_LocalSource); ok {
-		return x.LocalSource
-	}
-	return nil
-}
-
-func (m *CrossConnect) GetRemoteSource() *connection.Connection {
-	if x, ok := m.GetSource().(*CrossConnect_RemoteSource); ok {
-		return x.RemoteSource
-	}
-	return nil
-}
-
-type isCrossConnect_Destination interface {
-	isCrossConnect_Destination()
-}
-
-type CrossConnect_LocalDestination struct {
-	LocalDestination *connection1.Connection `protobuf:"bytes,5,opt,name=local_destination,json=localDestination,proto3,oneof"`
-}
-
-type CrossConnect_RemoteDestination struct {
-	RemoteDestination *connection.Connection `protobuf:"bytes,6,opt,name=remote_destination,json=remoteDestination,proto3,oneof"`
-}
-
-func (*CrossConnect_LocalDestination) isCrossConnect_Destination() {}
-
-func (*CrossConnect_RemoteDestination) isCrossConnect_Destination() {}
-
-func (m *CrossConnect) GetDestination() isCrossConnect_Destination {
-	if m != nil {
-		return m.Destination
-	}
-	return nil
-}
-
-func (m *CrossConnect) GetLocalDestination() *connection1.Connection {
-	if x, ok := m.GetDestination().(*CrossConnect_LocalDestination); ok {
-		return x.LocalDestination
-	}
-	return nil
-}
-
-func (m *CrossConnect) GetRemoteDestination() *connection.Connection {
-	if x, ok := m.GetDestination().(*CrossConnect_RemoteDestination); ok {
-		return x.RemoteDestination
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*CrossConnect) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _CrossConnect_OneofMarshaler, _CrossConnect_OneofUnmarshaler, _CrossConnect_OneofSizer, []interface{}{
-		(*CrossConnect_LocalSource)(nil),
-		(*CrossConnect_RemoteSource)(nil),
-		(*CrossConnect_LocalDestination)(nil),
-		(*CrossConnect_RemoteDestination)(nil),
-	}
-}
-
-func _CrossConnect_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*CrossConnect)
-	// source
-	switch x := m.Source.(type) {
-	case *CrossConnect_LocalSource:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.LocalSource); err != nil {
-			return err
-		}
-	case *CrossConnect_RemoteSource:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.RemoteSource); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("CrossConnect.Source has unexpected type %T", x)
-	}
-	// destination
-	switch x := m.Destination.(type) {
-	case *CrossConnect_LocalDestination:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.LocalDestination); err != nil {
-			return err
-		}
-	case *CrossConnect_RemoteDestination:
-		b.EncodeVarint(6<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.RemoteDestination); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("CrossConnect.Destination has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _CrossConnect_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*CrossConnect)
-	switch tag {
-	case 3: // source.local_source
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(connection1.Connection)
-		err := b.DecodeMessage(msg)
-		m.Source = &CrossConnect_LocalSource{msg}
-		return true, err
-	case 4: // source.remote_source
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(connection.Connection)
-		err := b.DecodeMessage(msg)
-		m.Source = &CrossConnect_RemoteSource{msg}
-		return true, err
-	case 5: // destination.local_destination
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(connection1.Connection)
-		err := b.DecodeMessage(msg)
-		m.Destination = &CrossConnect_LocalDestination{msg}
-		return true, err
-	case 6: // destination.remote_destination
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(connection.Connection)
-		err := b.DecodeMessage(msg)
-		m.Destination = &CrossConnect_RemoteDestination{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _CrossConnect_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*CrossConnect)
-	// source
-	switch x := m.Source.(type) {
-	case *CrossConnect_LocalSource:
-		s := proto.Size(x.LocalSource)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *CrossConnect_RemoteSource:
-		s := proto.Size(x.RemoteSource)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	// destination
-	switch x := m.Destination.(type) {
-	case *CrossConnect_LocalDestination:
-		s := proto.Size(x.LocalDestination)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *CrossConnect_RemoteDestination:
-		s := proto.Size(x.RemoteDestination)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
 func init() {
-	proto.RegisterEnum("dataplane.CrossConnectEventType", CrossConnectEventType_name, CrossConnectEventType_value)
 	proto.RegisterType((*MechanismUpdate)(nil), "dataplane.MechanismUpdate")
-	proto.RegisterType((*CrossConnectEvent)(nil), "dataplane.CrossConnectEvent")
-	proto.RegisterMapType((map[string]*CrossConnect)(nil), "dataplane.CrossConnectEvent.CrossConnectsEntry")
-	proto.RegisterType((*CrossConnect)(nil), "dataplane.CrossConnect")
 }
 
 func init() { proto.RegisterFile("dataplane.proto", fileDescriptor_617387e490a04ffa) }
 
 var fileDescriptor_617387e490a04ffa = []byte{
-	// 615 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x94, 0xcf, 0x4e, 0xdb, 0x40,
-	0x10, 0xc6, 0x59, 0x03, 0xa1, 0x99, 0xf0, 0x27, 0xac, 0x5a, 0x1a, 0xb9, 0x54, 0x8a, 0x38, 0xa1,
-	0x4a, 0xb5, 0x51, 0xe8, 0x01, 0xb5, 0xa7, 0x90, 0x18, 0x35, 0x02, 0xa2, 0x6a, 0x31, 0x95, 0x2a,
-	0xb5, 0x8a, 0x36, 0xce, 0x62, 0x2c, 0x1c, 0xaf, 0xeb, 0x5d, 0x53, 0xf9, 0x61, 0x7a, 0xeb, 0x3b,
-	0xf6, 0xd2, 0x43, 0xe5, 0x5d, 0x27, 0x98, 0x82, 0x23, 0xa4, 0x5e, 0xa2, 0xcd, 0x7c, 0xdf, 0xfc,
-	0x66, 0xec, 0x9d, 0x31, 0x6c, 0x4d, 0xa8, 0xa4, 0x71, 0x48, 0x23, 0x66, 0xc5, 0x09, 0x97, 0x1c,
-	0xd7, 0xe7, 0x01, 0xf3, 0xab, 0x1f, 0xc8, 0xeb, 0x74, 0x6c, 0x79, 0x7c, 0x6a, 0x87, 0x81, 0x4f,
-	0x25, 0xb7, 0x23, 0x26, 0x7f, 0xf0, 0xe4, 0x46, 0xb0, 0xe4, 0x36, 0xf0, 0xd8, 0x94, 0x89, 0x6b,
-	0xdb, 0xe3, 0x91, 0x4c, 0x78, 0xa8, 0x52, 0xec, 0xf8, 0xc6, 0xb7, 0x69, 0x1c, 0x08, 0x3b, 0xe4,
-	0x1e, 0x0d, 0x73, 0x2d, 0x62, 0x9e, 0x0c, 0x78, 0x54, 0x3a, 0xea, 0x42, 0xe6, 0xb7, 0xff, 0xa0,
-	0x27, 0x6c, 0xca, 0x25, 0x5b, 0x88, 0x3f, 0x2c, 0xe1, 0x7d, 0x1e, 0xd2, 0xc8, 0xb7, 0x95, 0x30,
-	0x4e, 0xaf, 0xec, 0x58, 0x66, 0x31, 0x13, 0x36, 0x9b, 0xc6, 0x32, 0xd3, 0xbf, 0x3a, 0x69, 0xef,
-	0x17, 0x82, 0xad, 0x73, 0xe6, 0x5d, 0xd3, 0x28, 0x10, 0xd3, 0xcb, 0x78, 0x42, 0x25, 0xc3, 0x03,
-	0xd8, 0xd6, 0xe5, 0x46, 0xd3, 0x99, 0x22, 0x5a, 0xa8, 0xbd, 0xbc, 0xdf, 0xe8, 0xec, 0x5a, 0x5a,
-	0xb1, 0x4a, 0xd5, 0xe7, 0xe9, 0xa4, 0xa9, 0xc5, 0x79, 0x40, 0xe0, 0x13, 0x68, 0xaa, 0xf7, 0x52,
-	0x26, 0x19, 0x8a, 0xf4, 0xca, 0x52, 0xc2, 0xe3, 0xa0, 0x2d, 0xa5, 0xdd, 0x71, 0xf6, 0xfe, 0x20,
-	0xd8, 0xee, 0x25, 0x5c, 0x88, 0x9e, 0xb6, 0x3b, 0xb7, 0x2c, 0x92, 0xf8, 0x1d, 0xac, 0xe4, 0xcf,
-	0xd5, 0x42, 0x6d, 0xb4, 0xbf, 0xd9, 0x69, 0x5b, 0x77, 0x37, 0xfb, 0xc0, 0xeb, 0x66, 0x31, 0x23,
-	0xca, 0x8d, 0x3f, 0xc3, 0xa6, 0x97, 0xcb, 0xa3, 0xa2, 0xf4, 0xac, 0x23, 0x7b, 0x51, 0xfe, 0xbd,
-	0x88, 0x70, 0x22, 0x99, 0x64, 0x64, 0xc3, 0x2b, 0xc7, 0xcc, 0x2f, 0x80, 0x1f, 0x9a, 0x70, 0x13,
-	0x96, 0x6f, 0x58, 0xa6, 0x5a, 0xac, 0x93, 0xfc, 0x88, 0xdf, 0xc2, 0xea, 0x2d, 0x0d, 0x53, 0xd6,
-	0x32, 0xda, 0x68, 0xbf, 0xd1, 0x79, 0x59, 0x51, 0x96, 0x68, 0xd7, 0x7b, 0xe3, 0x08, 0xed, 0xfd,
-	0x36, 0x60, 0xbd, 0xac, 0xe1, 0x4d, 0x30, 0x82, 0x49, 0x01, 0x35, 0x82, 0x09, 0x6e, 0xc1, 0x5a,
-	0x4c, 0xb3, 0x90, 0xd3, 0x89, 0xa2, 0xd6, 0xc9, 0xec, 0x2f, 0xee, 0xc2, 0xba, 0xbe, 0x01, 0xc1,
-	0xd3, 0xc4, 0x63, 0xad, 0x65, 0x55, 0x74, 0xf7, 0xe1, 0xdb, 0xef, 0xcd, 0x8f, 0x1f, 0x97, 0x48,
-	0x43, 0xc9, 0x17, 0x2a, 0x05, 0xf7, 0x61, 0xa3, 0x98, 0x87, 0x82, 0xb1, 0xa2, 0x18, 0xaf, 0x1f,
-	0x99, 0x85, 0x7b, 0x90, 0x75, 0xad, 0x17, 0x94, 0x53, 0xd8, 0xd6, 0x8d, 0x4c, 0x98, 0x90, 0x41,
-	0x44, 0x73, 0x53, 0x6b, 0xf5, 0x09, 0xdd, 0x20, 0xa2, 0x67, 0xa8, 0x7f, 0x97, 0x87, 0x87, 0x80,
-	0x8b, 0x96, 0xca, 0xb4, 0xda, 0x53, 0xfa, 0x42, 0xa4, 0x98, 0xee, 0x12, 0xef, 0xf8, 0x19, 0xd4,
-	0xf4, 0xb3, 0x1d, 0x6f, 0x40, 0xa3, 0x84, 0x7c, 0x73, 0x0a, 0x2f, 0x1e, 0x9d, 0x25, 0x6c, 0xc2,
-	0xce, 0x60, 0x38, 0x70, 0x07, 0xdd, 0xb3, 0xd1, 0x85, 0xdb, 0x75, 0x9d, 0x91, 0x4b, 0xba, 0xc3,
-	0x8b, 0x13, 0x87, 0x34, 0x97, 0x30, 0x40, 0xed, 0xf2, 0x53, 0xbf, 0xeb, 0x3a, 0x4d, 0x94, 0x9f,
-	0xfb, 0xce, 0x99, 0xe3, 0x3a, 0x4d, 0xa3, 0xf3, 0xd3, 0x80, 0x7a, 0x7f, 0x76, 0xd9, 0xf8, 0x03,
-	0xac, 0x11, 0xf6, 0x3d, 0x65, 0x42, 0xe2, 0xaa, 0x19, 0x30, 0xab, 0x04, 0x7c, 0x04, 0xab, 0xbd,
-	0x90, 0x0b, 0x56, 0x9d, 0xba, 0x63, 0xf9, 0x9c, 0xfb, 0x61, 0xf1, 0x95, 0x1b, 0xa7, 0x57, 0x96,
-	0x93, 0xef, 0x7d, 0xbe, 0xdd, 0xe7, 0x3c, 0x0a, 0x24, 0x4f, 0x4a, 0x7b, 0x5a, 0x61, 0x36, 0xcd,
-	0x12, 0xfd, 0x9f, 0xcf, 0xc4, 0x01, 0xc2, 0x43, 0x78, 0x5e, 0xa0, 0xee, 0x0d, 0x7e, 0x25, 0x6d,
-	0x77, 0xd1, 0x86, 0x1d, 0xa0, 0x71, 0x4d, 0xf9, 0x0f, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0x65,
-	0x21, 0x42, 0x52, 0xa3, 0x05, 0x00, 0x00,
+	// 331 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x92, 0xbf, 0x4e, 0x23, 0x31,
+	0x10, 0x87, 0xb5, 0x77, 0xba, 0x3b, 0xc5, 0x57, 0x24, 0x6c, 0x81, 0xd0, 0x42, 0x81, 0xa8, 0xa8,
+	0x6c, 0x94, 0x94, 0x54, 0x28, 0x80, 0x44, 0x91, 0x26, 0x12, 0x0d, 0x02, 0x21, 0xaf, 0x33, 0x71,
+	0xac, 0x78, 0x3d, 0xc6, 0xf6, 0x82, 0xf2, 0x3e, 0x3c, 0x13, 0xcf, 0x83, 0xd6, 0xce, 0x9f, 0x0d,
+	0x82, 0x34, 0x69, 0x56, 0x3b, 0xfe, 0x3c, 0x9f, 0x35, 0x3f, 0x0d, 0xe9, 0x4e, 0x78, 0xe0, 0x56,
+	0x73, 0x03, 0xd4, 0x3a, 0x0c, 0x98, 0x77, 0xd6, 0x07, 0xc5, 0xa3, 0x54, 0x61, 0x56, 0x97, 0x54,
+	0x60, 0xc5, 0xb4, 0x92, 0x3c, 0x20, 0x33, 0x10, 0xde, 0xd0, 0xcd, 0x3d, 0xb8, 0x57, 0x25, 0xa0,
+	0x02, 0x3f, 0x63, 0x02, 0x4d, 0x70, 0xa8, 0x63, 0x0b, 0xb3, 0x73, 0xc9, 0xb8, 0x55, 0x9e, 0x69,
+	0x14, 0x5c, 0x37, 0xcc, 0x80, 0x08, 0x0a, 0x4d, 0xeb, 0x37, 0x3d, 0x54, 0x3c, 0xed, 0x61, 0x77,
+	0x50, 0x61, 0x80, 0x9d, 0xfa, 0x87, 0x3d, 0xf4, 0xc2, 0xa1, 0xf7, 0x4b, 0xe3, 0x56, 0xb1, 0x74,
+	0x0f, 0x5a, 0x6e, 0x89, 0x9a, 0x1b, 0xc9, 0x22, 0x28, 0xeb, 0x29, 0xb3, 0x61, 0x61, 0xc1, 0x33,
+	0xa8, 0x6c, 0x58, 0xa4, 0x6f, 0x6a, 0x3a, 0x7b, 0xcf, 0x48, 0x77, 0x04, 0x62, 0xc6, 0x8d, 0xf2,
+	0xd5, 0xbd, 0x9d, 0xf0, 0x00, 0xf9, 0x1d, 0x39, 0x48, 0xa3, 0x3c, 0x57, 0x2b, 0xe2, 0x8f, 0xb2,
+	0xd3, 0xdf, 0xe7, 0xff, 0xfb, 0x27, 0x34, 0x11, 0xda, 0x9a, 0x6c, 0xdd, 0x3e, 0xee, 0x25, 0xb8,
+	0x3e, 0xf0, 0xf9, 0x2d, 0xe9, 0xc5, 0xcc, 0xdb, 0xa6, 0x5f, 0xd1, 0x74, 0x4c, 0x23, 0xf8, 0x5e,
+	0xd4, 0x8d, 0x6c, 0xe3, 0xe9, 0x7f, 0x64, 0xa4, 0x73, 0xbd, 0x5a, 0x81, 0xfc, 0x8a, 0xfc, 0x1b,
+	0xc3, 0x4b, 0x0d, 0x3e, 0xe4, 0x05, 0xdd, 0x4a, 0x62, 0xd8, 0x14, 0xc3, 0x54, 0x14, 0x3b, 0x58,
+	0x7e, 0x49, 0xfe, 0x0c, 0x35, 0x7a, 0xd8, 0x29, 0x38, 0xa4, 0x12, 0x51, 0xea, 0xe5, 0x12, 0x96,
+	0xf5, 0x94, 0xde, 0x34, 0xd1, 0x35, 0x01, 0x8d, 0xd0, 0xa8, 0x80, 0xae, 0x35, 0xea, 0x0f, 0x97,
+	0x8b, 0x82, 0x6e, 0x96, 0xf9, 0x4b, 0xd2, 0x17, 0x59, 0xf9, 0x37, 0xde, 0x1e, 0x7c, 0x06, 0x00,
+	0x00, 0xff, 0xff, 0xa5, 0xf5, 0x5c, 0x35, 0xf2, 0x02, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -467,10 +118,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type DataplaneClient interface {
-	Request(ctx context.Context, in *CrossConnect, opts ...grpc.CallOption) (*CrossConnect, error)
-	Close(ctx context.Context, in *CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error)
+	Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error)
+	Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error)
 	MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (Dataplane_MonitorMechanismsClient, error)
-	MonitorCrossConnects(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (Dataplane_MonitorCrossConnectsClient, error)
 }
 
 type dataplaneClient struct {
@@ -481,8 +131,8 @@ func NewDataplaneClient(cc *grpc.ClientConn) DataplaneClient {
 	return &dataplaneClient{cc}
 }
 
-func (c *dataplaneClient) Request(ctx context.Context, in *CrossConnect, opts ...grpc.CallOption) (*CrossConnect, error) {
-	out := new(CrossConnect)
+func (c *dataplaneClient) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
+	out := new(crossconnect.CrossConnect)
 	err := c.cc.Invoke(ctx, "/dataplane.Dataplane/Request", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -490,7 +140,7 @@ func (c *dataplaneClient) Request(ctx context.Context, in *CrossConnect, opts ..
 	return out, nil
 }
 
-func (c *dataplaneClient) Close(ctx context.Context, in *CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *dataplaneClient) Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/dataplane.Dataplane/Close", in, out, opts...)
 	if err != nil {
@@ -531,44 +181,11 @@ func (x *dataplaneMonitorMechanismsClient) Recv() (*MechanismUpdate, error) {
 	return m, nil
 }
 
-func (c *dataplaneClient) MonitorCrossConnects(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (Dataplane_MonitorCrossConnectsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Dataplane_serviceDesc.Streams[1], "/dataplane.Dataplane/MonitorCrossConnects", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &dataplaneMonitorCrossConnectsClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Dataplane_MonitorCrossConnectsClient interface {
-	Recv() (*CrossConnectEvent, error)
-	grpc.ClientStream
-}
-
-type dataplaneMonitorCrossConnectsClient struct {
-	grpc.ClientStream
-}
-
-func (x *dataplaneMonitorCrossConnectsClient) Recv() (*CrossConnectEvent, error) {
-	m := new(CrossConnectEvent)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // DataplaneServer is the server API for Dataplane service.
 type DataplaneServer interface {
-	Request(context.Context, *CrossConnect) (*CrossConnect, error)
-	Close(context.Context, *CrossConnect) (*empty.Empty, error)
+	Request(context.Context, *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error)
+	Close(context.Context, *crossconnect.CrossConnect) (*empty.Empty, error)
 	MonitorMechanisms(*empty.Empty, Dataplane_MonitorMechanismsServer) error
-	MonitorCrossConnects(*empty.Empty, Dataplane_MonitorCrossConnectsServer) error
 }
 
 func RegisterDataplaneServer(s *grpc.Server, srv DataplaneServer) {
@@ -576,7 +193,7 @@ func RegisterDataplaneServer(s *grpc.Server, srv DataplaneServer) {
 }
 
 func _Dataplane_Request_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CrossConnect)
+	in := new(crossconnect.CrossConnect)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -588,13 +205,13 @@ func _Dataplane_Request_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: "/dataplane.Dataplane/Request",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneServer).Request(ctx, req.(*CrossConnect))
+		return srv.(DataplaneServer).Request(ctx, req.(*crossconnect.CrossConnect))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Dataplane_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CrossConnect)
+	in := new(crossconnect.CrossConnect)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -606,7 +223,7 @@ func _Dataplane_Close_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: "/dataplane.Dataplane/Close",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneServer).Close(ctx, req.(*CrossConnect))
+		return srv.(DataplaneServer).Close(ctx, req.(*crossconnect.CrossConnect))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -632,27 +249,6 @@ func (x *dataplaneMonitorMechanismsServer) Send(m *MechanismUpdate) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Dataplane_MonitorCrossConnects_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(empty.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(DataplaneServer).MonitorCrossConnects(m, &dataplaneMonitorCrossConnectsServer{stream})
-}
-
-type Dataplane_MonitorCrossConnectsServer interface {
-	Send(*CrossConnectEvent) error
-	grpc.ServerStream
-}
-
-type dataplaneMonitorCrossConnectsServer struct {
-	grpc.ServerStream
-}
-
-func (x *dataplaneMonitorCrossConnectsServer) Send(m *CrossConnectEvent) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 var _Dataplane_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "dataplane.Dataplane",
 	HandlerType: (*DataplaneServer)(nil),
@@ -670,11 +266,6 @@ var _Dataplane_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "MonitorMechanisms",
 			Handler:       _Dataplane_MonitorMechanisms_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "MonitorCrossConnects",
-			Handler:       _Dataplane_MonitorCrossConnects_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-errors/errors"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
@@ -80,7 +81,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer dpCancel()
 
-	var dpApiConnection *dataplaneapi.CrossConnect
+	var dpApiConnection *crossconnect.CrossConnect
 	// If NSE is local, build parameters
 	if srv.model.GetNsmUrl() == endpoint.Labels[registry.NsmUrlKey] {
 		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
@@ -128,13 +129,13 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			return nil, e
 		}
 
-		dpApiConnection = &dataplaneapi.CrossConnect{
+		dpApiConnection = &crossconnect.CrossConnect{
 			Id:      request.GetConnection().GetId(),
 			Payload: endpoint.Payload,
-			Source: &dataplaneapi.CrossConnect_LocalSource{
+			Source: &crossconnect.CrossConnect_LocalSource{
 				request.GetConnection(),
 			},
-			Destination: &dataplaneapi.CrossConnect_LocalDestination{
+			Destination: &crossconnect.CrossConnect_LocalDestination{
 				nseConnection,
 			},
 		}
@@ -148,7 +149,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		return nil, err
 	}
 	// TODO - be more cautious here about bad return values from Dataplane
-	return rv.GetSource().(*dataplaneapi.CrossConnect_LocalSource).LocalSource, nil
+	return rv.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource, nil
 }
 
 func (srv *networkServiceServer) Close(context.Context, *connection.Connection) (*empty.Empty, error) {
