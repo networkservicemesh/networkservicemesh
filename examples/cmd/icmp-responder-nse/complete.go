@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"net"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/ligato/networkservicemesh/pkg/tools"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -59,6 +61,11 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 		NetworkService: request.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
 		Context:        connectionContext,
+	}
+	err = connection.IsComplete()
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
 	}
 	return connection, nil
 }

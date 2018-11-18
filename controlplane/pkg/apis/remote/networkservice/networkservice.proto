@@ -33,6 +33,4 @@ message NetworkServiceRequest {
 service NetworkService {
     rpc Request(NetworkServiceRequest) returns (remote.connection.Connection);
     rpc Close(remote.connection.Connection) returns (google.protobuf.Empty);
-    rpc Monitor(remote.connection.Connection) returns (stream remote.connection.Connection);
-    rpc MonitorConnections(google.protobuf.Empty) returns (stream remote.connection.Connection);
 }
