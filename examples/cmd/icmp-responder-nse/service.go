@@ -16,22 +16,20 @@ package main
 
 import (
 	"context"
-	"math/rand"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/sirupsen/logrus"
 )
 
 type networkService struct {
 	sync.RWMutex
-	networkService string
-	nextIP         uint32
-	requestChan    chan message
-	connections    map[string]*connection.Connection
-	monitors       map[int64]chan message
+	networkService          string
+	nextIP                  uint32
+	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 }
 
 type message struct {
@@ -46,85 +44,23 @@ func (ns *networkService) Request(ctx context.Context, request *networkservice.N
 		logrus.Error(err)
 		return nil, err
 	}
-
-	ns.requestChan <- message{"created", conn}
+	ns.monitorConnectionServer.UpdateConnection(conn)
 
 	return conn, nil
 }
 
 func (ns *networkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	// remove from connection
-	ns.requestChan <- message{"close", conn}
+	ns.monitorConnectionServer.DeleteConnection(conn)
 	return &empty.Empty{}, nil
 }
 
-func (ns *networkService) Monitor(conn *connection.Connection, monitorServer networkservice.NetworkService_MonitorServer) error {
-	monitor := make(chan message)
-	key := rand.Int63()
-
-	ns.Lock()
-	ns.monitors[key] = monitor
-	ns.Unlock()
-
-	defer func() {
-		ns.Lock()
-		delete(ns.monitors, key)
-		ns.Unlock()
-	}()
-
-	for msg := range monitor {
-		if msg.connection.Id == conn.Id {
-			err := monitorServer.Send(msg.connection)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (ns *networkService) MonitorConnections(_ *empty.Empty, monitorServer networkservice.NetworkService_MonitorConnectionsServer) error {
-	monitor := make(chan message)
-	key := rand.Int63()
-
-	ns.Lock()
-	ns.monitors[key] = monitor
-	ns.Unlock()
-
-	defer func() {
-		ns.Lock()
-		delete(ns.monitors, key)
-		ns.Unlock()
-	}()
-
-	for msg := range monitor {
-		err := monitorServer.Send(msg.connection)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func New() networkservice.NetworkServiceServer {
-	requestChan := make(chan message)
+	monitor := monitor_connection_server.NewMonitorConnectionServer()
 	service := networkService{
-		networkService: "icmp-responder",
-		nextIP:         169083137, // 10.20.1.1
-		requestChan:    requestChan,
-		connections:    make(map[string]*connection.Connection),
-		monitors:       make(map[int64]chan message),
+		networkService:          "icmp-responder",
+		nextIP:                  169083137, // 10.20.1.1
+		monitorConnectionServer: monitor,
 	}
-
-	go func() {
-		for nextMessage := range service.requestChan {
-			service.RLock()
-			for _, monitor := range service.monitors {
-				monitor <- nextMessage
-			}
-			service.RUnlock()
-		}
-	}()
-
 	return &service
 }
