@@ -66,6 +66,32 @@ func (m *Mechanism) IsValid() error {
 			return fmt.Errorf("Mechanism.Type %s Mechanism.Parameters[%s]: %s may not exceed %d characters", m.Type, InterfaceNameKey, m.GetParameters()[InterfaceNameKey], LinuxIfMaxLength)
 		}
 	}
+
+	if m.Type == MechanismType_MEM_INTERFACE {
+		if _, ok := m.Parameters[Workspace]; !ok {
+			return fmt.Errorf("Missing Required LocalMechanism.Parameter[%s]", Workspace)
+		}
+
+		if master, ok := m.Parameters[Master]; ok {
+			if isMaster, err := strconv.ParseBool(master); err != nil || !isMaster {
+				return fmt.Errorf("Mechanism.Type %s if Mechanism.Parameters[%s] is specified, it should be 'true'", m.Type, Master)
+			}
+		}
+
+		isMaster, err := strconv.ParseBool(m.Parameters[Master])
+		if err != nil {
+			isMaster = false
+		}
+
+		isSlave, err := strconv.ParseBool(m.Parameters[Slave])
+		if err != nil {
+			isSlave = false
+		}
+
+		if isMaster && isSlave {
+			return fmt.Errorf("Memif mechanism can't be master and slave at the same time")
+		}
+	}
 	return nil
 }
 
