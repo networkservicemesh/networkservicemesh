@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package crossconnect;
+
+import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection/connection.proto";
+import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
+import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+
+enum CrossConnectEventType {
+    INITIAL_STATE_TRANSFER = 0;
+    UPDATE = 1;
+    DELETE = 2;
+}
+
+message CrossConnectEvent {
+    CrossConnectEventType type = 1;
+    map<string,CrossConnect> cross_connects = 2;
+}
+
+message CrossConnect {
+    string id = 1;
+    string payload = 2;
+    oneof source {
+        local.connection.Connection local_source = 3;
+        remote.connection.Connection remote_source = 4;
+    }
+    oneof destination {
+        local.connection.Connection local_destination = 5;
+        remote.connection.Connection remote_destination = 6;
+    }
+}
+
+service MonitorCrossConnect {
+    rpc MonitorCrossConnects(google.protobuf.Empty) returns (stream crossconnect.CrossConnectEvent);
+}

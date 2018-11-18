@@ -25,8 +25,10 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
@@ -42,28 +44,19 @@ const (
 type VPPAgent struct {
 	// Parameters set in constructor
 	vppAgentEndpoint string
-	mechanisms       *Mechanisms
+	monitor          monitor_crossconnect_server.MonitorCrossConnectServer
 
 	// Internal state from here on
-	updateCh chan *Mechanisms
-
-	crossConnectEventCh      chan *dataplane.CrossConnectEvent
-	newMonitorRecipientCh    chan dataplane.Dataplane_MonitorCrossConnectsServer
-	closedMonitorRecipientCh chan dataplane.Dataplane_MonitorCrossConnectsServer
-
-	// monitorRecipients and crossConnects should only ever be updated by the monitor() method
-	monitorRecipients []dataplane.Dataplane_MonitorCrossConnectsServer
-	crossConnects     map[string]*dataplane.CrossConnect
+	mechanisms *Mechanisms
+	updateCh   chan *Mechanisms
 }
 
-func NewVPPAgent(vppAgentEndpoint string) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
-		crossConnects:         make(map[string]*dataplane.CrossConnect),
-		updateCh:              make(chan *Mechanisms, 1),
-		crossConnectEventCh:   make(chan *dataplane.CrossConnectEvent, 10),
-		newMonitorRecipientCh: make(chan dataplane.Dataplane_MonitorCrossConnectsServer, 10),
-		vppAgentEndpoint:      vppAgentEndpoint,
+		updateCh:         make(chan *Mechanisms, 1),
+		vppAgentEndpoint: vppAgentEndpoint,
+		monitor:          monitor,
 		mechanisms: &Mechanisms{
 			localMechanisms: []*local.Mechanism{
 				&local.Mechanism{
@@ -76,7 +69,6 @@ func NewVPPAgent(vppAgentEndpoint string) *VPPAgent {
 		},
 	}
 	rv.reset()
-	go rv.monitorCrossConnects()
 	return rv
 }
 
@@ -112,16 +104,10 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 	}
 }
 
-func (v *VPPAgent) Request(ctx context.Context, crossConnect *dataplane.CrossConnect) (*dataplane.CrossConnect, error) {
+func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
-	xconEvent := &dataplane.CrossConnectEvent{
-		Type: dataplane.CrossConnectEventType_UPDATE,
-		CrossConnects: map[string]*dataplane.CrossConnect{
-			xcon.GetId(): xcon,
-		},
-	}
-	v.crossConnectEventCh <- xconEvent
+	v.monitor.UpdateCrossConnect(xcon)
 	return xcon, err
 }
 
@@ -144,7 +130,7 @@ func masterSlave(src, dst *local.Mechanism) (*local.Mechanism, *local.Mechanism)
 	return dst, src
 }
 
-func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *dataplane.CrossConnect, connect bool) (*dataplane.CrossConnect, error) {
+func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
 
@@ -226,63 +212,9 @@ func (v *VPPAgent) reset() error {
 	return nil
 }
 
-func (v *VPPAgent) Close(ctx context.Context, crossConnect *dataplane.CrossConnect) (*empty.Empty, error) {
+func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("vppagent.DisconnectRequest called with %#v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, false)
-	xconEvent := &dataplane.CrossConnectEvent{
-		Type: dataplane.CrossConnectEventType_DELETE,
-		CrossConnects: map[string]*dataplane.CrossConnect{
-			xcon.GetId(): xcon,
-		},
-	}
-	v.crossConnectEventCh <- xconEvent
+	v.monitor.DeleteCrossConnect(xcon)
 	return &empty.Empty{}, err
-}
-
-func (v *VPPAgent) MonitorCrossConnects(_ *empty.Empty, recipient dataplane.Dataplane_MonitorCrossConnectsServer) error {
-	v.newMonitorRecipientCh <- recipient
-	go func() {
-		select {
-		case <-recipient.Context().Done():
-			v.closedMonitorRecipientCh <- recipient
-		}
-	}()
-	return nil
-}
-
-func (v *VPPAgent) monitorCrossConnects() {
-	for {
-		select {
-		case newRecipient := <-v.newMonitorRecipientCh:
-			initialStateTransferEvent := &dataplane.CrossConnectEvent{
-				Type:          dataplane.CrossConnectEventType_INITIAL_STATE_TRANSFER,
-				CrossConnects: v.crossConnects,
-			}
-			newRecipient.Send(initialStateTransferEvent)
-			v.monitorRecipients = append(v.monitorRecipients, newRecipient)
-			// TODO handle case where a monitorRecipient goes away
-		case closedRecipent := <-v.closedMonitorRecipientCh:
-			for j, r := range v.monitorRecipients {
-				if r == closedRecipent {
-					v.monitorRecipients = append(v.monitorRecipients[:j], v.monitorRecipients[j+1:]...)
-					break
-				}
-			}
-		case crossConnectEvent := <-v.crossConnectEventCh:
-			for _, xcon := range crossConnectEvent.GetCrossConnects() {
-				if crossConnectEvent.GetType() == dataplane.CrossConnectEventType_UPDATE {
-					v.crossConnects[xcon.GetId()] = xcon
-				}
-				if crossConnectEvent.GetType() == dataplane.CrossConnectEventType_DELETE {
-					delete(v.crossConnects, xcon.GetId())
-				}
-			}
-			for _, recipient := range v.monitorRecipients {
-				err := recipient.Send(crossConnectEvent)
-				if err != nil {
-					logrus.Errorf("Received error trying to send crossConnectEvent %v to %v: %s", crossConnectEvent, recipient, err)
-				}
-			}
-		}
-	}
 }
