@@ -12,5 +12,8 @@ func NewLocalConnectionConverter(c *connection.Connection, name string, ipAddres
 	if c.GetMechanism().GetType() == connection.MechanismType_KERNEL_INTERFACE {
 		return NewKernelConnectionConverter(c, name, ipAddressKey)
 	}
+	if c.GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE {
+		return NewMemifInterfaceConverter(c, name)
+	}
 	return nil
 }
