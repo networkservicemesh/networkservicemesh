@@ -120,3 +120,15 @@ k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-buil
 k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
+
+.PHONY: k8s-%-debug
+k8s-%-debug:
+	@kubectl exec -ti $$(kubectl get pods | grep $*- | cut -d \  -f1) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
+
+.PHONY: k8s-nsmd-debug
+k8s-nsmd-debug:
+	@kubectl exec -ti $$(kubectl get pods | grep nsmd- | cut -d \  -f1) -c nsmd /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh nsmd
+
+.PHONY: k8s-%-%-proxy
+k8s-%-forward:
+	@kubectl port-forward $$(kubectl get pods | grep nsmd- | cut -d \  -f1) $(port):$(port)

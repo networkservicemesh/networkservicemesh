@@ -1,0 +1,44 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: nsmd
+spec:
+  template:
+    metadata:
+      labels:
+        app: nsmd-ds
+    spec:
+      containers:
+        - name: nsmdp
+          image: networkservicemesh/nsmdp
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: kubelet-socket
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+        - name: nsmd
+          image: networkservicemesh/devenv:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+            - name: sources
+              mountPath: /go/src
+        - name: nsmd-k8s
+          image: networkservicemesh/nsmd-k8s
+          imagePullPolicy: IfNotPresent
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet/device-plugins
+            type: DirectoryOrCreate
+          name: kubelet-socket
+        - hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+          name: nsm-socket
+        - hostPath:
+            path: /go/src
+            type: DirectoryOrCreate
+          name: sources
