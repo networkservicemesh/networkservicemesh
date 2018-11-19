@@ -27,8 +27,8 @@ ifeq ($(CLUSTER_RULES_PREFIX),)
 CLUSTER_RULES_PREFIX := vagrant
 endif
 include .vagrant.mk
-
 include .kubeadm.mk
+include .packet.mk
 
 # .null.mk allows you to skip the vagrant machinery with:
 # export CLUSTER_RULES_PREFIX=null
