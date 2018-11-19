@@ -18,7 +18,9 @@ import (
 	"context"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 
@@ -74,8 +76,8 @@ func main() {
 
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		if err := grpcServer.Serve(connectionServer); err != nil {
 			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
 		}
@@ -116,7 +118,23 @@ func main() {
 	}
 	logrus.Infoln("NSE registered: " + registeredNSE.EndpointName)
 
+	// prepare and defer removing of the advertised endpoint
+	removeNSE := &registry.RemoveNSERequest{
+		EndpointName: registeredNSE.EndpointName,
+	}
+
+	defer registryConnection.RemoveNSE(context.Background(), removeNSE)
+
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
+
+	wg.Add(1)
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		wg.Done()
+	}()
+
 	// Now block on WaitGroup
 	wg.Wait()
 }
