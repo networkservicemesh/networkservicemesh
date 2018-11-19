@@ -44,6 +44,7 @@ k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
+	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
 	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
 
 .PHONY: k8s-delete
