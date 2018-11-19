@@ -18,6 +18,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -61,6 +64,14 @@ func main() {
 	}
 
 	server := registryserver.New(nsmClientSet)
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		removeCRDs(clientset)
+	}()
+
 	err = server.Serve(listener)
 	logrus.Fatalln(err)
 }
@@ -108,4 +119,15 @@ func installCRDs(clientset *clientset.Clientset) error {
 		}
 	}
 	return nil
+}
+
+func removeCRDs(clientset *clientset.Clientset) {
+	for _, crdName := range nsmCRDNames {
+		name := crdName.Plural + "." + nsmGroup
+		logrus.Infof("Deleting resource %s", name)
+		err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(name, &v12.DeleteOptions{})
+		if err != nil {
+			logrus.Errorf("Error %v", err)
+		}
+	}
 }
