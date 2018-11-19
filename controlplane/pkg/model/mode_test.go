@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	. "github.com/onsi/gomega"
 	"testing"
 )
@@ -102,4 +102,84 @@ func TestModelAddDeleteEndpoint(t *testing.T) {
 	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
 	Expect(len(model.GetNetworkServiceEndpoints("golden-network"))).To(Equal(1))
+}
+
+type ListenerImpl struct {
+	endpoints  int
+	dataplanes int
+}
+
+func (impl *ListenerImpl) EndpointAdded(endpoint *registry.NetworkServiceEndpoint) {
+	impl.endpoints++
+}
+
+func (impl *ListenerImpl) EndpointDeleted(endpoint *registry.NetworkServiceEndpoint) {
+	impl.endpoints--
+}
+
+func (impl *ListenerImpl) DataplaneAdded(dataplane *Dataplane) {
+	impl.dataplanes++
+}
+
+func (impl *ListenerImpl) DataplaneDeleted(dataplane *Dataplane) {
+	impl.dataplanes--
+}
+
+func TestModelListeners(t *testing.T) {
+	RegisterTestingT(t)
+
+	model := NewModel("127.0.0.1:5000")
+	listener := &ListenerImpl{}
+	model.AddListener(listener)
+
+	Expect(listener.dataplanes).To(Equal(0))
+	Expect(listener.endpoints).To(Equal(0))
+
+	model.RemoveListener(listener)
+}
+
+func TestModelListenDataplane(t *testing.T) {
+	RegisterTestingT(t)
+
+	model := NewModel("127.0.0.1:5000")
+	listener := &ListenerImpl{}
+	model.AddListener(listener)
+
+	model.AddDataplane(&Dataplane{
+		RegisteredName: "test_name",
+		SocketLocation: "location",
+	})
+
+	Expect(listener.dataplanes).To(Equal(1))
+	Expect(listener.endpoints).To(Equal(0))
+
+	model.DeleteDataplane("test_name")
+
+	Expect(listener.dataplanes).To(Equal(0))
+	Expect(listener.endpoints).To(Equal(0))
+
+	model.RemoveListener(listener)
+}
+
+func TestModelListenEndpoint(t *testing.T) {
+	RegisterTestingT(t)
+
+	model := NewModel("127.0.0.1:5000")
+	listener := &ListenerImpl{}
+	model.AddListener(listener)
+
+	model.AddEndpoint(&registry.NetworkServiceEndpoint{
+		NetworkServiceName: "golden-network",
+		EndpointName:       "ep1",
+	})
+
+	Expect(listener.dataplanes).To(Equal(0))
+	Expect(listener.endpoints).To(Equal(1))
+
+	model.DeleteEndpoint("ep1")
+
+	Expect(listener.dataplanes).To(Equal(0))
+	Expect(listener.endpoints).To(Equal(0))
+
+	model.RemoveListener(listener)
 }
