@@ -120,7 +120,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		nseConnection, e := client.Request(ctx, message)
 		err = nseConnection.IsComplete()
 		if err != nil {
-			fmt.Errorf("NetworkService.Request() failed with error: %s", err)
+			err = fmt.Errorf("NetworkService.Request() failed with error: %s", err)
 			logrus.Error(err)
 			return nil, err
 		}
