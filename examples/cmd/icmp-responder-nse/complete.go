@@ -27,7 +27,7 @@ import (
 )
 
 func (ns *networkService) CompleteConnection(request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	err := ValidateNetworkServiceRequest(request)
+	err := request.IsValid()
 	if err != nil {
 		return nil, err
 	}
