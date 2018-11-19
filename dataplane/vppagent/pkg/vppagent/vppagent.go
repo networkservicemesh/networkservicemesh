@@ -62,11 +62,16 @@ func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.Mo
 		monitor:          monitor,
 		mechanisms: &Mechanisms{
 			localMechanisms: []*local.Mechanism{
-				&local.Mechanism{
+				{
 					Type: local.MechanismType_KERNEL_INTERFACE,
 				},
-				&local.Mechanism{
+				{
 					Type: local.MechanismType_MEM_INTERFACE,
+				},
+			},
+			remoteMechanisms: []*remote.Mechanism{
+				{
+					Type: remote.MechanismType_VXLAN,
 				},
 			},
 		},
