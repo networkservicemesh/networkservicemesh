@@ -20,6 +20,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -44,6 +45,10 @@ func main() {
 	if _, err := os.Stat(nsmServerSocket); err != nil {
 		logrus.Fatalf("nsc: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
 	}
+
+	// Wait till we actually have an nsmd to talk to
+	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+	err = tools.WaitForPortAvailable(ctx, "unix", nsmServerSocket, 100*time.Millisecond)
 
 	conn, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
@@ -73,17 +78,19 @@ func main() {
 		},
 	}
 
-	logrus.Infof("Sending request %v", request)
-	reply, err := nsmConnectionClient.Request(context.Background(), request)
+	for ; true; <-time.After(100 * time.Millisecond) {
+		logrus.Infof("Sending request %v", request)
+		reply, err := nsmConnectionClient.Request(context.Background(), request)
 
-	if err != nil {
-		logrus.Errorf("failure to request connection with error: %+v", err)
+		if err != nil {
+			logrus.Errorf("failure to request connection with error: %+v", err)
+			continue
+		}
+		logrus.Infof("Received reply: %v", reply)
+		break
+		// Init related activities ends here
 	}
-	logrus.Infof("Received reply: %v", reply)
-
-	// Init related activities ends here
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 	c := make(chan os.Signal)
