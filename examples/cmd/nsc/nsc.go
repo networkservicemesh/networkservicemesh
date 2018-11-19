@@ -47,8 +47,9 @@ func main() {
 	}
 
 	// Wait till we actually have an nsmd to talk to
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	err = tools.WaitForPortAvailable(ctx, "unix", nsmServerSocket, 100*time.Millisecond)
+	defer cancel()
 
 	conn, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
