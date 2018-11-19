@@ -103,12 +103,18 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 				// TODO track connection ids
 				Id:             srv.model.ConnectionId(),
 				NetworkService: endpoint.GetNetworkServiceName(),
-				Mechanism: &connection.Mechanism{
+				Context:        request.GetConnection().GetContext(),
+				Labels:         nil,
+			},
+			MechanismPreferences: []*connection.Mechanism{
+				&connection.Mechanism{
+					Type:       connection.MechanismType_MEM_INTERFACE,
+					Parameters: map[string]string{},
+				},
+				&connection.Mechanism{
 					Type:       connection.MechanismType_KERNEL_INTERFACE,
 					Parameters: map[string]string{},
 				},
-				Context: request.GetConnection().GetContext(),
-				Labels:  nil,
 			},
 		}
 		nseConnection, e := client.Request(ctx, message)
