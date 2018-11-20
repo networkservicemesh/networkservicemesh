@@ -12,6 +12,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -27,6 +28,7 @@ const (
 type networkServiceServer struct {
 	model     model.Model
 	workspace *Workspace
+	monitor   monitor_connection_server.MonitorConnectionServer
 }
 
 func NewNetworkServiceServer(model model.Model, workspace *Workspace) networkservice.NetworkServiceServer {
@@ -162,7 +164,9 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		return nil, err
 	}
 	// TODO - be more cautious here about bad return values from Dataplane
-	return rv.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource, nil
+	con := rv.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource
+	srv.workspace.MonitorConnectionServer().UpdateConnection(con)
+	return con, nil
 }
 
 func (srv *networkServiceServer) Close(context.Context, *connection.Connection) (*empty.Empty, error) {
