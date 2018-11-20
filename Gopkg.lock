@@ -710,8 +710,16 @@
   revision = "4242d8e6c5dba56827bb7bcf14ad11cda38f3991"
 
 [[projects]]
+  digest = "1:9cc257b3c9ff6a0158c9c661ab6eebda1fe8a4a4453cd5c4044dc9a2ebfb992b"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
-  digest = "1:d6ba16e62174c4917083b2b8a75778f1becf43223d3b5a8b9639587fcc64cc50"
+  digest = "1:90f16a49f856e6d94089444e487c535f4cd41f59a1e90c51deb9dcf965f3c50b"
   name = "k8s.io/kube-openapi"
   packages = [
     "cmd/openapi-gen",
@@ -723,7 +731,7 @@
     "pkg/util/sets",
   ]
   pruneopts = "T"
-  revision = "e494cc58111187acad93e64529228a2fc0153e39"
+  revision = "0317810137be915b9cf888946c6e115c1bfac693"
 
 [[projects]]
   digest = "1:df2b14e78fc1a922561c830ef3cf25b97bb160df2465a961aea8e4e87d69f556"
