@@ -45,6 +45,8 @@ message Connection {
     Mechanism mechanism = 3;
     map<string,string> context = 4;
     map<string,string> labels = 5;
+    string source_network_service_manager_name = 6;
+    string destination_network_service_manager_name = 7;
 }
 
 enum ConnectionEventType {
