@@ -2,8 +2,11 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"net"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
@@ -15,9 +18,11 @@ import (
 )
 
 const (
-	ServerSock         = "/var/lib/networkservicemesh/nsm.io.sock"
-	NsmDevicePluginEnv = "NSM_DEVICE_PLUGIN"
-	folderMask         = 0777
+	ServerSock            = "/var/lib/networkservicemesh/nsm.io.sock"
+	NsmDevicePluginEnv    = "NSM_DEVICE_PLUGIN"
+	folderMask            = 0777
+	NsmdApiAddress        = "NSMD_API_ADDRESS"
+	NsmdApiDefaultAddress = "0.0.0.0:5007"
 )
 
 type nsmServer struct {
@@ -125,4 +130,37 @@ func StartNSMServer(model model.Model) error {
 	logrus.Infof("NSM gRPC socket: %s is operational", ServerSock)
 
 	return nil
+}
+
+func StartAPIServer(model model.Model) (error) {
+	nsmdApiAddress := os.Getenv(NsmdApiAddress)
+	if strings.TrimSpace(nsmdApiAddress) == "" {
+		nsmdApiAddress = NsmdApiDefaultAddress
+	}
+
+	sock, err := net.Listen("tcp", nsmdApiAddress)
+	if err != nil {
+		return err
+	}
+	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+
+	// Start Cross connect monitor and server
+	startCrossConnectMonitor(grpcServer, model)
+	// TODO: Add more public API services here.
+
+	go func() {
+		if err := grpcServer.Serve(sock); err != nil {
+			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
+		}
+	}()
+	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
+
+	return nil
+}
+
+func startCrossConnectMonitor(grpcServer *grpc.Server, model model.Model) {
+	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
+	monitorClient := NewMonitorCrossConnectClient(monitor)
+	monitorClient.Register(model)
 }

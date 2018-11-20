@@ -1,4 +1,4 @@
-package monitor_crossconnect_server
+package nsmd
 
 import (
 	"context"
