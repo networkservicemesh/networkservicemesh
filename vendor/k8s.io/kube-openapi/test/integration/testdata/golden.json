@@ -104,6 +104,18 @@
      },
      "Protocol": {
       "type": "string"
+     },
+     "a": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "b": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "c": {
+      "type": "integer",
+      "format": "int32"
      }
     }
    },
