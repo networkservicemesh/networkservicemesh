@@ -12,7 +12,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -53,7 +52,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	// Get endpoints
 	endpoints := srv.model.GetNetworkServiceEndpoints(request.GetConnection().GetNetworkService())
 	if len(endpoints) == 0 {
-		return nil, errors.New(fmt.Sprintf("netwwork service '%s' not found", request.Connection.NetworkService))
+		return nil, errors.New(fmt.Sprintf("network service '%s' not found", request.Connection.NetworkService))
 	}
 
 	// Select endpoint at random
@@ -83,8 +82,8 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 	var dpApiConnection *crossconnect.CrossConnect
 	// If NSE is local, build parameters
-	if srv.model.GetNsmUrl() == endpoint.Labels[registry.NsmUrlKey] {
-		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint)
+	if srv.model.GetNsm().GetName() == endpoint.GetNetworkServiceManager().GetName() {
+		workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
 		if workspace == nil {
 			err := fmt.Errorf("cannot find workspace for endpoint %v", endpoint)
 			logrus.Error(err)
@@ -102,7 +101,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			Connection: &connection.Connection{
 				// TODO track connection ids
 				Id:             srv.model.ConnectionId(),
-				NetworkService: endpoint.GetNetworkServiceName(),
+				NetworkService: endpoint.GetNetworkService().GetName(),
 				Context:        request.GetConnection().GetContext(),
 				Labels:         nil,
 			},
@@ -143,7 +142,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 		dpApiConnection = &crossconnect.CrossConnect{
 			Id:      request.GetConnection().GetId(),
-			Payload: endpoint.Payload,
+			Payload: endpoint.GetNetworkService().GetPayload(),
 			Source: &crossconnect.CrossConnect_LocalSource{
 				request.GetConnection(),
 			},
@@ -152,7 +151,9 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			},
 		}
 	} else {
-		// TODO connection is remote, send to nsm
+		err := fmt.Errorf("Unable to find NSE matching request locally: %v", request)
+		logrus.Error(err)
+		return nil, err
 	}
 	logrus.Infof("Sending request to dataplane: %v", dpApiConnection)
 	rv, err := dataplaneClient.Request(dpCtx, dpApiConnection)

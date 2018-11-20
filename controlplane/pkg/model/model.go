@@ -29,10 +29,10 @@ type ModelListener interface {
 }
 
 type Model interface {
-	GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint
+	GetNetworkServiceEndpoints(name string) []*registry.NSERegistration
 
-	GetEndpoint(name string) *registry.NetworkServiceEndpoint
-	AddEndpoint(endpoint *registry.NetworkServiceEndpoint)
+	GetEndpoint(name string) *registry.NSERegistration
+	AddEndpoint(endpoint *registry.NSERegistration)
 	DeleteEndpoint(name string) error
 
 	GetDataplane(name string) *Dataplane
@@ -45,15 +45,19 @@ type Model interface {
 
 	AddListener(listener ModelListener)
 	RemoveListener(listener ModelListener)
+
+	SetNsm(nsm *registry.NetworkServiceManager)
+	GetNsm() *registry.NetworkServiceManager
 }
 
 type impl struct {
 	sync.RWMutex
-	endpoints         map[string]*registry.NetworkServiceEndpoint
-	networkServices   map[string][]*registry.NetworkServiceEndpoint
+	endpoints         map[string]*registry.NSERegistration
+	networkServices   map[string][]*registry.NSERegistration
 	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
 	nsmUrl            string
+	nsm               *registry.NetworkServiceManager
 	listeners         []ModelListener
 }
 
@@ -70,30 +74,30 @@ func (i *impl) RemoveListener(listener ModelListener) {
 	}
 }
 
-func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint {
+func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NSERegistration {
 	i.RLock()
 	defer i.RUnlock()
 	var endpoints = i.networkServices[name]
 	if endpoints == nil {
-		endpoints = []*registry.NetworkServiceEndpoint{}
+		endpoints = []*registry.NSERegistration{}
 	}
 	return endpoints
 }
 
-func (i *impl) GetEndpoint(name string) *registry.NetworkServiceEndpoint {
+func (i *impl) GetEndpoint(name string) *registry.NSERegistration {
 	i.RLock()
 	defer i.RUnlock()
 	return i.endpoints[name]
 }
 
-func (i *impl) AddEndpoint(endpoint *registry.NetworkServiceEndpoint) {
+func (i *impl) AddEndpoint(endpoint *registry.NSERegistration) {
 	i.Lock()
 	defer i.Unlock()
-	i.endpoints[endpoint.EndpointName] = endpoint
-	serviceName := endpoint.NetworkServiceName
+	i.endpoints[endpoint.GetNetworkserviceEndpoint().GetEndpointName()] = endpoint
+	serviceName := endpoint.GetNetworkService().GetName()
 	services := i.networkServices[serviceName]
 	if services == nil {
-		services = []*registry.NetworkServiceEndpoint{endpoint}
+		services = []*registry.NSERegistration{endpoint}
 	} else {
 		services = append(services, endpoint)
 	}
@@ -102,7 +106,7 @@ func (i *impl) AddEndpoint(endpoint *registry.NetworkServiceEndpoint) {
 	logrus.Infof("Endpoint added: %v", endpoint)
 
 	for _, l := range i.listeners {
-		l.EndpointAdded(endpoint)
+		l.EndpointAdded(endpoint.GetNetworkserviceEndpoint())
 	}
 }
 
@@ -112,7 +116,7 @@ func (i *impl) DeleteEndpoint(name string) error {
 
 	endpoint := i.endpoints[name]
 	if endpoint != nil {
-		services := i.networkServices[endpoint.NetworkServiceName]
+		services := i.networkServices[endpoint.GetNetworkService().GetName()]
 		if len(services) > 1 {
 			for idx, e := range services {
 				if e == endpoint {
@@ -121,14 +125,14 @@ func (i *impl) DeleteEndpoint(name string) error {
 				}
 			}
 			// Update services with removed item.
-			i.networkServices[endpoint.NetworkServiceName] = services
+			i.networkServices[endpoint.GetNetworkService().GetName()] = services
 		} else {
-			delete(i.networkServices, endpoint.NetworkServiceName)
+			delete(i.networkServices, endpoint.GetNetworkService().GetName())
 		}
 		delete(i.endpoints, name)
 
 		for _, l := range i.listeners {
-			l.EndpointDeleted(endpoint)
+			l.EndpointDeleted(endpoint.GetNetworkserviceEndpoint())
 		}
 		return nil
 	}
@@ -185,12 +189,20 @@ func (i *impl) GetNsmUrl() string {
 	return i.nsmUrl
 }
 
+func (i *impl) GetNsm() *registry.NetworkServiceManager {
+	return i.nsm
+}
+
+func (i *impl) SetNsm(nsm *registry.NetworkServiceManager) {
+	i.nsm = nsm
+}
+
 func NewModel(nsmUrl string) Model {
 	return &impl{
 		nsmUrl:          nsmUrl,
 		dataplanes:      make(map[string]*Dataplane),
-		networkServices: make(map[string][]*registry.NetworkServiceEndpoint),
-		endpoints:       make(map[string]*registry.NetworkServiceEndpoint),
+		networkServices: make(map[string][]*registry.NSERegistration),
+		endpoints:       make(map[string]*registry.NSERegistration),
 		listeners:       []ModelListener{},
 	}
 }
