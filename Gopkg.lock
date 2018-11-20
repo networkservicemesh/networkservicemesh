@@ -540,8 +540,8 @@
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "NUT"
-  revision = "6b7e25efea53b47ea8eabf213954d95afc514d36"
-  version = "kubernetes-1.12.1"
+  revision = "ba848ee89ca33b38df441261aaa6fc32642e5628"
+  version = "kubernetes-1.12.2"
 
 [[projects]]
   digest = "1:3e353d8babd8117333e032d7f61229ef379f59302575eb87fea15052178e97c2"
