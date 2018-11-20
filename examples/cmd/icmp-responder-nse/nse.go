@@ -57,8 +57,6 @@ func main() {
 	}
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
-	// NSM socket path will be used to drop NSE socket for NSM's Connection request
-	connectionServerSocket := nsmClientSocket
 	if err := tools.SocketCleanup(nsmClientSocket); err != nil {
 		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %v", nsmClientSocket, err)
 	}
@@ -109,18 +107,24 @@ func main() {
 		NetworkServiceName: networkServiceName,
 		Payload:            "IP",
 		Labels:             make(map[string]string),
-		SocketLocation:     connectionServerSocket,
+	}
+	registration := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkServiceName,
+			Payload: "IP",
+		},
+		NetworkserviceEndpoint: nse,
 	}
 
-	registeredNSE, err := registryConnection.RegisterNSE(context.Background(), nse)
+	registeredNSE, err := registryConnection.RegisterNSE(context.Background(), registration)
 	if err != nil {
 		logrus.Fatalln("unable to register endpoint", err)
 	}
-	logrus.Infoln("NSE registered: " + registeredNSE.EndpointName)
+	logrus.Infof("NSE registered: %v", registeredNSE)
 
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
-		EndpointName: registeredNSE.EndpointName,
+		EndpointName: registeredNSE.GetNetworkserviceEndpoint().GetEndpointName(),
 	}
 
 	defer registryConnection.RemoveNSE(context.Background(), removeNSE)

@@ -37,7 +37,7 @@ func NewRegistryServer(model model.Model, workspace *Workspace) registry.Network
 	}
 }
 
-func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
+func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	logrus.Infof("Received RegisterNSE request: %v", request)
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
@@ -48,27 +48,32 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.Net
 		logrus.Error(err)
 		return nil, err
 	}
-	// TODO fix url setting here
-	if request.Labels == nil {
-		request.Labels = make(map[string]string)
-	}
-	request.Labels[registry.NsmUrlKey] = es.model.GetNsmUrl()
 
-	endpoint, err := client.RegisterNSE(context.Background(), request)
+	// Some notes here:
+	// 1)  Yes, we are overwriting anything we get for NetworkServiceManager
+	//     from the NSE.  NSE's shouldn't specify NetworkServiceManager
+	// 2)  We are not specifying Name or LastSeen, the nsmd-k8s will fill those
+	//     in
+	request.NetworkServiceManager = &registry.NetworkServiceManager{
+		Url: es.model.GetNsmUrl(),
+	}
+
+	registration, err := client.RegisterNSE(context.Background(), request)
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)
 		return nil, err
 	}
 
-	ep := es.model.GetEndpoint(endpoint.EndpointName)
+	ep := es.model.GetEndpoint(registration.GetNetworkserviceEndpoint().GetEndpointName())
 	if ep == nil {
-		es.model.AddEndpoint(endpoint)
-		WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, endpoint)
+		es.model.AddEndpoint(registration)
+		WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, registration.GetNetworkserviceEndpoint())
 	}
-	WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, ep)
+	WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, ep.GetNetworkserviceEndpoint())
+	logrus.Infof("Received upstream NSERegitration: %v", registration)
 
-	return endpoint, nil
+	return registration, nil
 }
 
 func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {

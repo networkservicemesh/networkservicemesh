@@ -15,6 +15,7 @@
 package nsmd
 
 import (
+	"context"
 	"net"
 	"os"
 	"sync"
@@ -74,6 +75,18 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	w.listener = listener
 	logrus.Infof("Creating new NetworkServiceRegistryServer")
 	w.registryServer = NewRegistryServer(model, w)
+	// TODO - do something more elegant than this to get our NSM
+	if model.GetNsm() == nil {
+		nsm, err := w.registryServer.RegisterNSE(context.Background(), &registry.NSERegistration{
+			NetworkServiceManager: &registry.NetworkServiceManager{
+				Url: model.GetNsmUrl(),
+			},
+		})
+		if err != nil {
+			logrus.Errorf("Failed to get my own NetworkServiceManager: %s", err)
+		}
+		model.SetNsm(nsm.GetNetworkServiceManager())
+	}
 	logrus.Infof("Creating new NetworkServiceServer")
 	w.networkServiceServer = NewNetworkServiceServer(model, w)
 

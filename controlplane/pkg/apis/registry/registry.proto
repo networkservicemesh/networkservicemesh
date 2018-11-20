@@ -3,13 +3,26 @@ syntax = "proto3";
 package registry;
 
 import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+import "github.com/golang/protobuf/ptypes/timestamp/timestamp.proto";
 
 message NetworkServiceEndpoint {
     string network_service_name = 1;
-    string endpoint_name = 2;
-    string payload = 3;
+    string payload = 2;
+    string endpoint_name = 3;
     map<string, string> labels = 4;
-    string socket_location = 5;
+    string state = 5;
+}
+
+message NetworkService {
+    string name = 1;
+    string payload = 2;
+}
+
+message NetworkServiceManager {
+    string name = 1;
+    string url = 2;
+    google.protobuf.Timestamp last_seen = 3;
+    string state = 4;
 }
 
 message RemoveNSERequest {
@@ -21,11 +34,19 @@ message FindNetworkServiceRequest {
 }
 message FindNetworkServiceResponse {
     string payload = 1;
-    repeated NetworkServiceEndpoint network_service_endpoints = 2;
+    NetworkService network_service = 2;
+    map<string,NetworkServiceManager> network_service_managers = 3;
+    repeated NetworkServiceEndpoint network_service_endpoints = 4;
+}
+
+message NSERegistration {
+    NetworkService network_service =1;
+    NetworkServiceManager network_service_manager =2;
+    NetworkServiceEndpoint networkservice_endpoint = 3;
 }
 
 service NetworkServiceRegistry {
-    rpc RegisterNSE (NetworkServiceEndpoint) returns (NetworkServiceEndpoint);
+    rpc RegisterNSE (NSERegistration) returns (NSERegistration);
     rpc RemoveNSE (RemoveNSERequest) returns (google.protobuf.Empty);
 }
 
