@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitor_crossconnect_server
+package nsmd
 
 import (
 	"context"
@@ -20,16 +20,30 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
 	"time"
 )
 
+type NSMMonitorCrossConnectClient interface {
+	Register(model model.Model)
+	Unregister(model model.Model)
+}
+
 type nsmMonitorCrossConnectClient struct {
-	monitor    MonitorCrossConnectServer // All connections is here
+	monitor    monitor_crossconnect_server.MonitorCrossConnectServer // All connections is here
 	model      model.Model
 	dataplanes map[string]*dataplaneCrossConnectInfo
+}
+
+func (client *nsmMonitorCrossConnectClient) Register(model model.Model) {
+	model.AddListener(client)
+}
+
+func (client *nsmMonitorCrossConnectClient) Unregister(model model.Model) {
+	model.RemoveListener(client)
 }
 
 type dataplaneCrossConnectInfo struct {
@@ -53,12 +67,12 @@ func (client *nsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Data
 func (client *nsmMonitorCrossConnectClient) DataplaneDeleted(dataplane *model.Dataplane) {
 }
 
-func StartNSMMonitorCrossConnectClient(model model.Model, monitor MonitorCrossConnectServer) {
+func NewMonitorCrossConnectClient(monitor monitor_crossconnect_server.MonitorCrossConnectServer) NSMMonitorCrossConnectClient {
 	rv := &nsmMonitorCrossConnectClient{
 		dataplanes: make(map[string]*dataplaneCrossConnectInfo),
 		monitor:    monitor,
 	}
-	model.AddListener(rv)
+	return rv
 }
 
 func dial(ctx context.Context, network string, address string) (*grpc.ClientConn, error) {

@@ -17,10 +17,7 @@ package monitor_crossconnect_server
 import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"net"
 )
 
 type MonitorCrossConnectServer interface {
@@ -129,28 +126,4 @@ func (m *monitorCrossConnectServer) GetCrossConnect(crossconnectId string) (*cro
 
 func (m *monitorCrossConnectServer) SendCrossConnectEvent(event *crossconnect.CrossConnectEvent) {
 	m.crossConnectEventCh <- event
-}
-
-func StartNSMCrossConnectServer(model model.Model, address string) (error, *grpc.Server, MonitorCrossConnectServer) {
-	logrus.Infof("Starting NSM CrossConnect gRPC server listening on socket: %s", address)
-
-	sock, err := net.Listen("tcp", address)
-	if err != nil {
-		return err, nil, nil
-	}
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
-
-	monitor := NewMonitorCrossConnectServer()
-	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-
-	StartNSMMonitorCrossConnectClient(model, monitor)
-
-	go func() {
-		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Error("failed to start NSMD CrossConnectMonitor grpc server")
-		}
-	}()
-	logrus.Infof("NSM CrossConnect gRPC socket: %s is operational", address)
-
-	return nil, grpcServer, monitor
 }
