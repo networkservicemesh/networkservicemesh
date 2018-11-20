@@ -52,22 +52,25 @@ jobs:
 
 
   packet-deploy:
-    working_directory: /cncf
     docker:
-      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
+      - image: circleci/golang:1.10
     steps:
-      - checkout:
-          path:
-            nsm
-      - run: nsm/.circleci/set-nameserver.sh
-      - run: nsm/.circleci/provision.sh packet-deploy
+      - checkout
+      - run: pwd
+      - run: ls
+      - run: wget https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
+      - run: unzip terraform_0.11.10_linux_amd64.zip
+      - run: mv terraform /go/bin/
+      - run: mkdir data
+      - run: ssh-keygen -t rsa -f data/sshkey -q -N ""
+      - run: ssh-add data/sshkey
+      - run: .circleci/provision.sh
+      - run: make packet-get-kubeconfig
+      - run: cp kubeconfig data/
+      - run: cp -a scripts/terraform/ data/
       - run:
           when: on_fail
-          command: nsm/.circleci/provision.sh packet-destroy
-      - run:
-          command: kubectl create -f /cncf/rbac/
-          environment:
-            KUBECONFIG: /cncf/data/kubeconfig
+          command: .circleci/destroy-cluster.sh
       - save_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
@@ -95,19 +98,15 @@ jobs:
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
-          command: |
-            mv /cncf/data ./data
-          name: Move Cache
-      - run:
           command: ./scripts/circle-integration-tests.sh
           environment:
-            KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
           when: always
           name: Dump Logs
           command: ./scripts/dump_logs.sh
           environment:
-            KUBECONFIG: /go/src/github.com/ligato/networkservicemesh/data/kubeconfig
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
           when: on_fail
           name: Trigger packet-destroy
@@ -120,20 +119,23 @@ jobs:
 
 
   packet-destroy:
-    working_directory: /cncf
     docker:
-      - image: registry.cncf.ci/cncf/cross-cloud/provisioning:production
+      - image: circleci/golang:1.10
     steps:
+      - checkout
+      - run:
+          command: |
+            sudo mkdir -p /cncf/data
+            sudo chown -R circleci:circleci /cncf/
+          name: Cache Prep
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - checkout:
-          path:
-            nsm
-      - run: nsm/.circleci/set-nameserver.sh
-      - run: nsm/.circleci/provision.sh packet-destroy
-      - run:
-          when: on_fail
-          command: nsm/.circleci/provision.sh packet-destroy
+      - run: wget https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
+      - run: unzip terraform_0.11.10_linux_amd64.zip
+      - run: mv terraform /go/bin/
+      - run: cp -a data/terraform/* ./scripts/terraform/
+      - run: cd ./scripts/terraform && terraform init && cd ../..
+      - run: .circleci/destroy-cluster.sh
 
   build-nsmd:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
