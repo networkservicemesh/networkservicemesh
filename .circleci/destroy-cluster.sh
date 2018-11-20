@@ -14,21 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-K8S_DEPLOYMENT_NAME=nsm-ci-"${CIRCLE_WORKFLOW_ID:0:8}"
+# K8S_DEPLOYMENT_NAME=nsm-ci-"${CIRCLE_WORKFLOW_ID:0:8}"
+export TF_VAR_auth_token="${PACKET_AUTH_TOKEN}"
+export TF_VAR_master_hostname="ci-${CIRCLE_BUILD_NUM}-master"
+export TF_VAR_project_id="${PACKET_PROJECT_ID}"
+export TF_VAR_public_key="${PWD}/data/sshkey.pub"
+export TF_VAR_public_key_name="key-${CIRCLE_BUILD_NUM}"
 
-# Circle CI use Remote Docker and do not support folder mount.
-# So we create a dummy container which will hold a volume with deplyment data
-docker create -v /cncf/data --name configs alpine:3.7 /bin/true
-# copy a deployment data into this volume
-docker cp data/. configs:/cncf/data
-# start cross-cloud container using this volume
-docker run \
-  --volumes-from configs \
-  --dns 147.75.69.23 --dns 8.8.8.8 \
-  -e NAME="${K8S_DEPLOYMENT_NAME}" \
-  -e CLOUD=packet \
-  -e COMMAND=destroy \
-  -e BACKEND=file \
-  -e PACKET_AUTH_TOKEN="${PACKET_AUTH_TOKEN}" \
-  -e TF_VAR_packet_project_id="${PACKET_PROJECT_ID}" \
-  -ti registry.cncf.ci/cncf/cross-cloud/provisioning:production
+make packet-stop

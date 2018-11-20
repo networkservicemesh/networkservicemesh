@@ -30,3 +30,10 @@ cmd/nsm-init/nsm-init
 *.swo
 
 containers.txt
+
+#terraform
+scripts/terraform/packet.tfvars
+*.tfstate
+*.backup
+**/.terraform*
+**/.terraform*
