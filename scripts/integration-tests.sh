@@ -79,11 +79,11 @@ function run_tests() {
         sleep 2
     done
 
-    if kubectl exec -it $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@') -- ping -c 1 10.20.1.2 ; then
-    echo "ping successful"
+    if kubectl exec -it "$(kubectl get pods -o=name | grep nsc | sed 's@.*/@@')" -- ping -c 1 10.20.1.2 ; then
+        echo "ping successful"
     else
-    echo "ping unsuccessful"
-    return 1
+        echo "ping unsuccessful"
+        return 1
     fi
 
     # We're all good now
