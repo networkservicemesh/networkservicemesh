@@ -19,6 +19,15 @@ type Dataplane struct {
 	RemoteMechanisms []*remote.Mechanism
 }
 
+// Model change listener
+type ModelListener interface {
+	EndpointAdded(endpoint *registry.NetworkServiceEndpoint)
+	EndpointDeleted(endpoint *registry.NetworkServiceEndpoint)
+
+	DataplaneAdded(dataplane *Dataplane)
+	DataplaneDeleted(dataplane *Dataplane)
+}
+
 type Model interface {
 	GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint
 
@@ -33,6 +42,9 @@ type Model interface {
 
 	GetNsmUrl() string
 	ConnectionId() string
+
+	AddListener(listener ModelListener)
+	RemoveListener(listener ModelListener)
 }
 
 type impl struct {
@@ -42,6 +54,20 @@ type impl struct {
 	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
 	nsmUrl            string
+	listeners         []ModelListener
+}
+
+func (i *impl) AddListener(listener ModelListener) {
+	i.listeners = append(i.listeners, listener)
+}
+
+func (i *impl) RemoveListener(listener ModelListener) {
+	for idx, v := range i.listeners {
+		if v == listener {
+			i.listeners = append(i.listeners[:idx], i.listeners[idx+1:]...)
+			return
+		}
+	}
 }
 
 func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NetworkServiceEndpoint {
@@ -74,6 +100,10 @@ func (i *impl) AddEndpoint(endpoint *registry.NetworkServiceEndpoint) {
 	i.networkServices[serviceName] = services
 
 	logrus.Infof("Endpoint added: %v", endpoint)
+
+	for _, l := range i.listeners {
+		l.EndpointAdded(endpoint)
+	}
 }
 
 func (i *impl) DeleteEndpoint(name string) error {
@@ -95,8 +125,12 @@ func (i *impl) DeleteEndpoint(name string) error {
 		} else {
 			delete(i.networkServices, endpoint.NetworkServiceName)
 		}
-
 		delete(i.endpoints, name)
+
+		for _, l := range i.listeners {
+			l.EndpointDeleted(endpoint)
+		}
+		return nil
 	}
 
 	return fmt.Errorf("no endpoint with name: %s", name)
@@ -127,13 +161,24 @@ func (i *impl) AddDataplane(dataplane *Dataplane) {
 	defer i.Unlock()
 	i.dataplanes[dataplane.RegisteredName] = dataplane
 	logrus.Infof("Dataplane added: %v", dataplane)
+
+	for _, l := range i.listeners {
+		l.DataplaneAdded(dataplane)
+	}
 }
 
 func (i *impl) DeleteDataplane(name string) {
 	i.Lock()
 	defer i.Unlock()
 
-	delete(i.dataplanes, name)
+	dataplane := i.dataplanes[name]
+	if dataplane != nil {
+		delete(i.dataplanes, name)
+
+		for _, l := range i.listeners {
+			l.DataplaneDeleted(dataplane)
+		}
+	}
 }
 
 func (i *impl) GetNsmUrl() string {
@@ -146,6 +191,7 @@ func NewModel(nsmUrl string) Model {
 		dataplanes:      make(map[string]*Dataplane),
 		networkServices: make(map[string][]*registry.NetworkServiceEndpoint),
 		endpoints:       make(map[string]*registry.NetworkServiceEndpoint),
+		listeners:       []ModelListener{},
 	}
 }
 
