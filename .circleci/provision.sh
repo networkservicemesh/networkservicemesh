@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export TF_VAR_project_id="${PACKET_PROJECT_ID}"
 export TF_VAR_auth_token="${PACKET_AUTH_TOKEN}"
 export TF_VAR_master_hostname="ci-${CIRCLE_BUILD_NUM}-master"
-export TF_VAR_public_key_name="key-${CIRCLE_BUILD_NUM}"
+export TF_VAR_project_id="${PACKET_PROJECT_ID}"
 export TF_VAR_public_key="${PWD}/data/sshkey.pub"
-# K8S_DEPLOYMENT_NAME=nsm-ci-"${CIRCLE_WORKFLOW_ID:0:8}"
+export TF_VAR_public_key_name="key-${CIRCLE_BUILD_NUM}"
+
 echo "workdir: ${PWD}"
 make packet-init
 make packet-start
