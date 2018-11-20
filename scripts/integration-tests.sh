@@ -78,10 +78,13 @@ function run_tests() {
         ((cnt=cnt-1)) || return 1
         sleep 2
     done
-    #
-    # Final log collection
-    #
-    #kubectl get netsvc,nse --all-namespaces
+
+    if kubectl exec -it "$(kubectl get pods -o=name | grep nsc | sed 's@.*/@@')" -- ping -c 1 10.20.1.2 ; then
+        echo "ping successful"
+    else
+        echo "ping unsuccessful"
+        return 1
+    fi
 
     # We're all good now
     return 0
