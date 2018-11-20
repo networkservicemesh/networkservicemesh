@@ -21,8 +21,6 @@ syntax = "proto3";
 package remote.connection;
 option go_package = "connection";
 
-import "github.com/golang/protobuf/ptypes/empty/empty.proto";
-
 message Mechanism {
     MechanismType type = 1;
     map<string,string> parameters = 2;
@@ -60,6 +58,10 @@ message ConnectionEvent {
     map<string,Connection> connections = 2;
 }
 
+message MonitorScopeSelector {
+    string network_service_manager_name = 1;
+}
+
 service MonitorConnection {
-    rpc MonitorConnections(google.protobuf.Empty) returns (stream ConnectionEvent);
+    rpc MonitorConnections(MonitorScopeSelector) returns (stream ConnectionEvent);
 }
