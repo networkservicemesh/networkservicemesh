@@ -18,11 +18,11 @@ import (
 )
 
 const (
-	ServerSock            = "/var/lib/networkservicemesh/nsm.io.sock"
-	NsmDevicePluginEnv    = "NSM_DEVICE_PLUGIN"
-	folderMask            = 0777
-	NsmdApiAddress        = "NSMD_API_ADDRESS"
-	NsmdApiDefaultAddress = "0.0.0.0:5007"
+	ServerSock             = "/var/lib/networkservicemesh/nsm.io.sock"
+	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
+	folderMask             = 0777
+	NsmdApiAddressEnv      = "NSMD_API_ADDRESS"
+	NsmdApiAddressDefaults = "0.0.0.0:5007"
 )
 
 type nsmServer struct {
@@ -133,9 +133,9 @@ func StartNSMServer(model model.Model) error {
 }
 
 func StartAPIServer(model model.Model) (error) {
-	nsmdApiAddress := os.Getenv(NsmdApiAddress)
+	nsmdApiAddress := os.Getenv(NsmdApiAddressEnv)
 	if strings.TrimSpace(nsmdApiAddress) == "" {
-		nsmdApiAddress = NsmdApiDefaultAddress
+		nsmdApiAddress = NsmdApiAddressDefaults
 	}
 
 	sock, err := net.Listen("tcp", nsmdApiAddress)
