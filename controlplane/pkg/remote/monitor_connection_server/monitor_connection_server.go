@@ -15,9 +15,12 @@
 package monitor_connection_server
 
 import (
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	InitialChanSize = 10
 )
 
 type MonitorConnectionServer interface {
@@ -42,20 +45,21 @@ func NewMonitorConnectionServer() MonitorConnectionServer {
 	// TODO provide some validations here for inputs
 	rv := &monitorConnectionServer{
 		crossConnects:            make(map[string]*connection.Connection),
-		crossConnectEventCh:      make(chan *connection.ConnectionEvent, 10),
-		newMonitorRecipientCh:    make(chan connection.MonitorConnection_MonitorConnectionsServer, 10),
-		closedMonitorRecipientCh: make(chan connection.MonitorConnection_MonitorConnectionsServer, 10),
+		crossConnectEventCh:      make(chan *connection.ConnectionEvent, InitialChanSize),
+		newMonitorRecipientCh:    make(chan connection.MonitorConnection_MonitorConnectionsServer, InitialChanSize),
+		closedMonitorRecipientCh: make(chan connection.MonitorConnection_MonitorConnectionsServer, InitialChanSize),
 	}
 	go rv.monitorConnections()
 	return rv
 }
 
-func (m *monitorConnectionServer) MonitorConnections(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
-	m.newMonitorRecipientCh <- recipient
+func (m *monitorConnectionServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+	filter := NewMonitorConnectionFilter(selector, recipient)
+	m.newMonitorRecipientCh <- filter
 	go func() {
 		select {
-		case <-recipient.Context().Done():
-			m.closedMonitorRecipientCh <- recipient
+		case <-filter.Context().Done():
+			m.closedMonitorRecipientCh <- filter
 		}
 	}()
 	return nil
@@ -116,8 +120,8 @@ func (m *monitorConnectionServer) DeleteConnection(con *connection.Connection) {
 	}
 }
 
-func (m *monitorConnectionServer) GetConnection(crossconnectId string) (*connection.Connection, bool) {
-	con, ok := m.crossConnects[crossconnectId]
+func (m *monitorConnectionServer) GetConnection(connectionId string) (*connection.Connection, bool) {
+	con, ok := m.crossConnects[connectionId]
 	return con, ok
 }
 
