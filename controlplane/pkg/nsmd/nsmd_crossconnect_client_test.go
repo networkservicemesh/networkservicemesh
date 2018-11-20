@@ -1,10 +1,11 @@
-package monitor_crossconnect_server
+package nsmd
 
 import (
 	"context"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -14,6 +15,31 @@ import (
 	"time"
 )
 
+func startAPIServer(model model.Model, nsmdApiAddress string ) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
+	sock, err := net.Listen("tcp", nsmdApiAddress)
+	if err != nil {
+		return err, nil, nil
+	}
+	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+
+	// Start Cross connect monitor and server
+	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
+	monitorClient := NewMonitorCrossConnectClient(monitor)
+	monitorClient.Register(model)
+	// TODO: Add more public API services here.
+
+	go func() {
+		if err := grpcServer.Serve(sock); err != nil {
+			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
+		}
+	}()
+	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
+
+	return nil, grpcServer, monitor
+}
+
+
 func TestCCServerEmpty(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -21,7 +47,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 	crossConnectAddress := "127.0.0.1:5007"
 
-	err, grpcServer, monitor := StartNSMCrossConnectServer(myModel, crossConnectAddress)
+	err, grpcServer, monitor := startAPIServer(myModel, crossConnectAddress)
 	defer grpcServer.Stop()
 
 	Expect(err).To(BeNil())
@@ -43,7 +69,7 @@ func TestCCServer(t *testing.T) {
 	myModel := model.NewModel("127.0.0.1:5000")
 	crossConnectAddress := "127.0.0.1:5007"
 
-	err, grpcServer, _ := StartNSMCrossConnectServer(myModel, crossConnectAddress)
+	err, grpcServer, _ := startAPIServer(myModel, crossConnectAddress)
 	Expect(err).To(BeNil())
 	defer grpcServer.Stop()
 
@@ -123,14 +149,14 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 	}
 }
 
-func createCrossMonitorDataplaneMock(dataplaneSocket string) (net.Listener, *grpc.Server, MonitorCrossConnectServer) {
+func createCrossMonitorDataplaneMock(dataplaneSocket string) (net.Listener, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
 	tools.SocketCleanup(dataplaneSocket)
 	ln, err := net.Listen("unix", dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 	}
 	server := grpc.NewServer()
-	monitor := NewMonitorCrossConnectServer()
+	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
 
 	go server.Serve(ln)
