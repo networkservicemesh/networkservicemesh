@@ -1,8 +1,6 @@
 package registryserver
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"log"
 	"time"
 
@@ -19,14 +17,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	NodeNameLabelKey = "nodeName"
+)
+
 type registryService struct {
 	clientset *nsmClientset.Clientset
+	nsmName   string
 }
 
 func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	logrus.Infof("Received RegisterNSE(%v)", request)
 	// get network service
-	_, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
+	networkService, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: request.NetworkService.GetName(),
 		},
@@ -43,13 +46,9 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 		return nil, errors.New("NSERegistration.NetworkServiceManager.Url must be defined")
 	}
 
-	sum := md5.Sum([]byte(request.GetNetworkServiceManager().GetUrl()))
-	sumSlice := sum[:]
-	nsmName := hex.EncodeToString(sumSlice)
-
-	_, err = rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Create(&v1.NetworkServiceManager{
+	nsm := &v1.NetworkServiceManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: nsmName,
+			Name: rs.nsmName,
 		},
 		Spec: v1.NetworkServiceManagerSpec{},
 		Status: v1.NetworkServiceManagerStatus{
@@ -57,19 +56,27 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 			URL:      request.GetNetworkServiceManager().GetUrl(),
 			State:    v1.RUNNING,
 		},
-	})
+	}
+
+	_, err = rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Create(nsm)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, err
 	}
+
+	labels := request.GetNetworkserviceEndpoint().GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels["networkservicename"] = request.GetNetworkService().GetName()
 	if request.GetNetworkserviceEndpoint() != nil {
 		nseResponse, err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: request.GetNetworkService().GetName(),
-				Labels:       map[string]string{"networkservicename": request.GetNetworkService().GetName()},
+				Labels:       labels,
 			},
 			Spec: v1.NetworkServiceEndpointSpec{
 				NetworkServiceName: request.GetNetworkService().GetName(),
-				NsmName:            nsmName,
+				NsmName:            rs.nsmName,
 			},
 			Status: v1.NetworkServiceEndpointStatus{
 				State: v1.RUNNING,
@@ -79,7 +86,14 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 			return nil, err
 		}
 
-		request.GetNetworkserviceEndpoint().EndpointName = nseResponse.Name
+		request.NetworkserviceEndpoint = &registry.NetworkServiceEndpoint{
+			NetworkServiceName:        nseResponse.Spec.NetworkServiceName,
+			Payload:                   networkService.Spec.Payload,
+			NetworkServiceManagerName: nsm.GetObjectMeta().GetName(),
+			EndpointName:              nseResponse.GetObjectMeta().GetName(),
+			Labels:                    nseResponse.GetObjectMeta().GetLabels(),
+			State:                     string(nseResponse.Status.State),
+		}
 	}
 	logrus.Infof("Returned from RegisterNSE: %v", request)
 	return request, nil
@@ -112,14 +126,18 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 	NSMs := make(map[string]*registry.NetworkServiceManager)
 	for i, endpoint := range endpointList.Items {
 		log.Println(endpoint.Name)
-		NSEs[i] = &registry.NetworkServiceEndpoint{}
-		NSEs[i].EndpointName = endpoint.Name
+		NSEs[i] = &registry.NetworkServiceEndpoint{
+			EndpointName:              endpoint.Name,
+			NetworkServiceName:        endpoint.Spec.NetworkServiceName,
+			NetworkServiceManagerName: endpoint.Spec.NsmName,
+			Payload:                   payload,
+			Labels:                    endpoint.ObjectMeta.Labels,
+		}
+		// TODO check in the NSMs map first before potentially looking up again
 		manager, e := rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Get(endpoint.Spec.NsmName, metav1.GetOptions{})
 		if e != nil {
 			return nil, e
 		}
-		// TODO delete line "NSEs[i].Labels["nsmurl"] = manager.Status.URL"
-		NSEs[i].Labels["nsmurl"] = manager.Status.URL
 		NSMs[endpoint.Spec.NsmName] = &registry.NetworkServiceManager{
 			Name: manager.ObjectMeta.Name,
 			Url:  manager.Status.URL,
