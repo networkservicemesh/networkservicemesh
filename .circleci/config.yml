@@ -104,8 +104,26 @@ jobs:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
           when: always
-          name: Dump Logs
-          command: make k8s-logs
+          name: Dump Logs - nsc
+          command: make k8s-nsc-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
+          name: Dump Logs - nsmd
+          command: make k8s-nsmd-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
+          name: Dump Logs - icmp-responder-nse
+          command: make k8s-icmp-responder-nse-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
+          name: Dump Logs - vppagent-dataplane
+          command: make k8s-vppagent-dataplane-logs
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
