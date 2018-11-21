@@ -2,6 +2,12 @@ package main
 
 import (
 	"flag"
+	"net"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/ligato/networkservicemesh/k8s/pkg/registryserver"
@@ -13,11 +19,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"net"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
 
 	"os/signal"
 	"syscall"
@@ -28,7 +29,11 @@ func main() {
 	if strings.TrimSpace(address) == "" {
 		address = "127.0.0.1:5000"
 	}
-	logrus.Println("Starting NSMD Kubernetes on " + address)
+	nsmName, ok := os.LookupEnv("NODE_NAME")
+	if !ok {
+		logrus.Fatalf("You must set env variable NODE_NAME to match the name of your Node.  See https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/")
+	}
+	logrus.Println("Starting NSMD Kubernetes on " + address + " with NsmName " + nsmName)
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -63,7 +68,7 @@ func main() {
 		logrus.Fatalln(err)
 	}
 
-	server := registryserver.New(nsmClientSet)
+	server := registryserver.New(nsmClientSet, nsmName)
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
