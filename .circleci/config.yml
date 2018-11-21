@@ -208,20 +208,6 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsc-build
             make docker-nsc-push
-  build-vppagent:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            make docker-vppagent-build
-            make docker-vppagent-push
   build-vppagent-dataplane:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -254,9 +240,6 @@ workflows:
           requires:
             - sanity-check
       - build-nsc:
-          requires:
-            - sanity-check
-      - build-vppagent:
           requires:
             - sanity-check
       - build-vppagent-dataplane:
