@@ -65,15 +65,15 @@ func (m *Mechanism) isValid() error {
 
 	if m.GetType() == MechanismType_VXLAN {
 		if _, err := m.SrcIP(); err != nil {
-			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), VXLANSrcIP)
+			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANSrcIP)
 		}
 
 		if _, err := m.DstIP(); err != nil {
-			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), VXLANDstIP)
+			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANDstIP)
 		}
 
 		if _, err := m.VNI(); err != nil {
-			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), VXLANVNI)
+			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANVNI)
 		}
 	}
 
@@ -100,7 +100,7 @@ func (m *Mechanism) getIPParameter(name string) (string, error) {
 
 	ip, ok := m.Parameters[name]
 	if !ok {
-		return "", fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), name)
+		return "", fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for the VXLAN tunnel", m.GetType(), name)
 	}
 
 	parsedIP := net.ParseIP(ip)
@@ -122,12 +122,13 @@ func (m *Mechanism) VNI() (uint32, error) {
 
 	vxlanvni, ok := m.Parameters[VXLANVNI]
 	if !ok {
-		return 0, fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), VXLANVNI)
+		return 0, fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s]", m.GetType(), VXLANVNI)
 	}
 
-	vni, err := strconv.ParseUint(vxlanvni, 10, 64)
+	vni, err := strconv.ParseUint(vxlanvni, 10, 24)
+
 	if err != nil {
-		return 0, fmt.Errorf("Mechanism.Parameters[%s] must be a valid IPv4 or IPv6 address, instead was: %s: %v", VXLANVNI, vxlanvni, m)
+		return 0, fmt.Errorf("Mechanism.Parameters[%s] must be a valid 24-bit unsigned integer, instead was: %s: %v", VXLANVNI, vxlanvni, m)
 	}
 
 	return uint32(vni), nil

@@ -2,7 +2,7 @@ package connection
 
 // Remote connection constants
 const (
-	VXLANSrcIP = "srcIp"
-	VXLANDstIP = "dstIp"
+	VXLANSrcIP = "src_ip"
+	VXLANDstIP = "dst_ip"
 	VXLANVNI   = "vni"
 )
