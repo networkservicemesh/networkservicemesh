@@ -146,10 +146,10 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			Id:      request.GetConnection().GetId(),
 			Payload: endpoint.GetNetworkService().GetPayload(),
 			Source: &crossconnect.CrossConnect_LocalSource{
-				request.GetConnection(),
+				LocalSource: request.GetConnection(),
 			},
 			Destination: &crossconnect.CrossConnect_LocalDestination{
-				nseConnection,
+				LocalDestination: nseConnection,
 			},
 		}
 	} else {

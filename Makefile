@@ -32,13 +32,7 @@ GOGET=${GOCMD} get
 GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
-GOVET=${GOCMD} tool vet
-GOVETTARGETS=controllers \
-	controlplane \
-	examples \
-	k8s \
-	pkg \
-	utils
+GOVET=${GOCMD} vet
 
 # Export some of the above variables so they persist for the shell scripts
 # which are run from the Makefiles
@@ -98,7 +92,7 @@ test-race:
 	@${GOTEST} -race ./... -cover
 
 vet:
-	${GOVET} ${GOVETTARGETS}
+	${GOVET} ./...
 
 # Travis
 .PHONY: travis

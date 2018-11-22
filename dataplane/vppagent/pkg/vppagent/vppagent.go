@@ -199,7 +199,8 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 }
 
 func (v *VPPAgent) reset() error {
-	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {

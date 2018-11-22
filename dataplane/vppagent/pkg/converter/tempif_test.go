@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/vppagent/converter"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 )
 
 func TestTempIf(t *testing.T) {

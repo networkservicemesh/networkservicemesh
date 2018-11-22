@@ -4,7 +4,7 @@ import (
 	fmt "fmt"
 	"strconv"
 
-	"github.com/ligato/networkservicemesh/utils/fs"
+	"github.com/ligato/networkservicemesh/pkg/fs"
 )
 
 // IsValid - returns nil if Connection is minimally valid.
