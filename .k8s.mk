@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd vppagent-dataplane icmp-responder-nse nsc
+DEPLOYS = nsmd vppagent-dataplane icmp-responder-nse nsc dpr
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -119,6 +119,12 @@ k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-buil
 
 .PHONY: k8s-icmp-responder-nse-save
 k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
+
+.PHONY: k8s-dpr-build
+k8s-dpr-build:  ${CONTAINER_BUILD_PREFIX}-dpr-build
+
+.PHONY: k8s-dpr-save
+k8s-dpr-save:  ${CONTAINER_BUILD_PREFIX}-dpr-save
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
