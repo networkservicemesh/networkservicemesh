@@ -2,15 +2,16 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"net"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -100,10 +101,27 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 	return &nsmdapi.DeleteConnectionReply{}, nil
 }
 
+func waitForDataplaneAvailable(model model.Model) {
+	logrus.Info("Waiting for dataplane available...")
+	ticker := time.NewTicker(100 * time.Millisecond)
+	available := make(chan bool)
+	go func() {
+		for _ = range ticker.C {
+			dp, _ := model.SelectDataplane()
+			if dp != nil {
+				available <- true
+				ticker.Stop()
+			}
+		}
+	}()
+	<-available
+}
+
 func StartNSMServer(model model.Model) error {
 	if err := tools.SocketCleanup(ServerSock); err != nil {
 		return err
 	}
+	waitForDataplaneAvailable(model)
 	sock, err := net.Listen("unix", ServerSock)
 	if err != nil {
 		return err
@@ -132,7 +150,7 @@ func StartNSMServer(model model.Model) error {
 	return nil
 }
 
-func StartAPIServer(model model.Model) (error) {
+func StartAPIServer(model model.Model) error {
 	nsmdApiAddress := os.Getenv(NsmdApiAddressEnv)
 	if strings.TrimSpace(nsmdApiAddress) == "" {
 		nsmdApiAddress = NsmdApiAddressDefaults
