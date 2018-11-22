@@ -149,8 +149,17 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	return nil
 }
 
+func waitForNsmdAvailable() {
+	for {
+		if tools.WaitForPortAvailable(context.Background(), "unix", nsmd.ServerSock, 100*time.Millisecond) == nil {
+			break
+		}
+	}
+}
+
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
 func NewNSMDeviceServer() error {
+	waitForNsmdAvailable()
 	nsm := &nsmClientEndpoints{}
 	if err := startDeviceServer(nsm); err != nil {
 		return err
