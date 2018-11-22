@@ -79,7 +79,7 @@ func main() {
 		},
 	}
 
-	for ; true; <-time.After(100 * time.Millisecond) {
+	for ; true; <-time.After(5 * time.Second) {
 		logrus.Infof("Sending request %v", request)
 		reply, err := nsmConnectionClient.Request(context.Background(), request)
 

@@ -98,7 +98,7 @@ k8s-nsmd-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_
 .PHONY: k8s-nsmd-load-images
 k8s-nsmd-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMD_CONTAINERS)))
 
-VPPAGENT_DATAPLANE_CONTAINERS = vppagent vppagent-dataplane
+VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane
 .PHONY: k8s-vppagent-dataplane-build
 k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
 
@@ -121,6 +121,27 @@ k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-buil
 k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
+
+.PHONY: k8s-logs
+k8s-logs: $(addsuffix -logs,$(addprefix k8s-,$(DEPLOYS)))
+
+.PHONY: k8s-%logs
+k8s-%-logs:
+	@echo "K8s logs for $*"
+	@kubectl logs $$(kubectl get pods --all-namespaces | grep $* | awk '{print $$2}') || true
+	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep $* | awk '{print $$2}') || true
+
+.PHONY: k8s-nsmd-logs
+k8s-nsmd-logs:
+	@echo "K8s logs for nsmd container nsmd"
+	@kubectl logs $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd || true
+	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd || true
+	@echo "K8s logs for nsmd container nsmdp"
+	@kubectl logs $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmdp || true
+	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmdp || true
+	@echo "K8s logs for nsmd container nsmd-k8s"
+	@kubectl logs $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd-k8s || true
+	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd-k8s || true
 
 .PHONY: k8s-%-debug
 k8s-%-debug:

@@ -20,6 +20,9 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
+
+	"github.com/ligato/networkservicemesh/pkg/tools"
 
 	"github.com/docker/docker/pkg/mount"
 
@@ -196,6 +199,8 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 }
 
 func (v *VPPAgent) reset() error {
+	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)

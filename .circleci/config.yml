@@ -104,8 +104,26 @@ jobs:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
           when: always
-          name: Dump Logs
-          command: ./scripts/dump_logs.sh
+          name: Dump Logs - nsc
+          command: make k8s-nsc-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
+          name: Dump Logs - nsmd
+          command: make k8s-nsmd-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
+          name: Dump Logs - icmp-responder-nse
+          command: make k8s-icmp-responder-nse-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
+          name: Dump Logs - vppagent-dataplane
+          command: make k8s-vppagent-dataplane-logs
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
@@ -208,20 +226,6 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsc-build
             make docker-nsc-push
-  build-vppagent:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            make docker-vppagent-build
-            make docker-vppagent-push
   build-vppagent-dataplane:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -254,9 +258,6 @@ workflows:
           requires:
             - sanity-check
       - build-nsc:
-          requires:
-            - sanity-check
-      - build-vppagent:
           requires:
             - sanity-check
       - build-vppagent-dataplane:

@@ -1,3 +1,0 @@
-FROM ligato/vpp-agent
-RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "0.0.0.0:9111"' > /opt/vpp-agent/dev/grpc.conf
-COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
