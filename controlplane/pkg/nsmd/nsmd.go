@@ -103,18 +103,11 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 
 func waitForDataplaneAvailable(model model.Model) {
 	logrus.Info("Waiting for dataplane available...")
-	ticker := time.NewTicker(100 * time.Millisecond)
-	available := make(chan bool)
-	go func() {
-		for _ = range ticker.C {
-			dp, _ := model.SelectDataplane()
-			if dp != nil {
-				available <- true
-				ticker.Stop()
-			}
+	for ; true; <-time.After(100 * time.Millisecond) {
+		if dp, _ := model.SelectDataplane(); dp != nil {
+			break
 		}
-	}()
-	<-available
+	}
 }
 
 func StartNSMServer(model model.Model) error {
