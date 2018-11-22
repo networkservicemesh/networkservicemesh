@@ -63,6 +63,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 					nsmd.NsmDevicePluginEnv: "true",
 					nsmd.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
 					nsmd.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
+					nsmd.WorkspaceEnv:       workspace.ClientBaseDir,
 				},
 			})
 		}

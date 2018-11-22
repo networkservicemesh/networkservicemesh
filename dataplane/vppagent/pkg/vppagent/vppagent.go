@@ -16,17 +16,10 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"path"
-	"strconv"
-	"time"
-
-	"github.com/ligato/networkservicemesh/pkg/tools"
-
-	"github.com/docker/docker/pkg/mount"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -38,10 +31,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	MemifBaseDirectory = "/memif"
 )
 
 type VPPAgent struct {
@@ -119,60 +108,10 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	return xcon, err
 }
 
-func createDirectory(path string) error {
-	if err := os.MkdirAll(path, 0777); err != nil {
-		return err
-	}
-	logrus.Infof("Create directory: %s", path)
-	return nil
-}
-
-func buildMemifDirectory(mechanism *local.Mechanism) string {
-	return path.Join(mechanism.Parameters[local.Workspace], MemifBaseDirectory)
-}
-
-func masterSlave(src, dst *local.Mechanism) (*local.Mechanism, *local.Mechanism) {
-	if isMaster, _ := strconv.ParseBool(src.GetParameters()[local.Master]); isMaster {
-		return src, dst
-	}
-	return dst, src
-}
-
 func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-
-		//memif direct connection
-		srcMechanism := crossConnect.GetLocalSource().GetMechanism()
-		dstMechanism := crossConnect.GetLocalDestination().GetMechanism()
-		master, slave := masterSlave(srcMechanism, dstMechanism)
-
-		masterSocketDir := path.Join(buildMemifDirectory(master), crossConnect.Id)
-		slaveSocketDir := path.Join(buildMemifDirectory(slave), crossConnect.Id)
-
-		if err := createDirectory(masterSocketDir); err != nil {
-			return nil, err
-		}
-
-		if err := createDirectory(slaveSocketDir); err != nil {
-			return nil, err
-		}
-
-		if err := mount.Mount(masterSocketDir, slaveSocketDir, "hard", "bind"); err != nil {
-			return nil, err
-		}
-		logrus.Infof("Successfully mount folder %s to %s", masterSocketDir, slaveSocketDir)
-
-		if master.GetParameters()[local.SocketFilename] != slave.GetParameters()[local.SocketFilename] {
-			masterSocket := path.Join(masterSocketDir, master.GetParameters()[local.SocketFilename])
-			slaveSocket := path.Join(slaveSocketDir, slave.GetParameters()[local.SocketFilename])
-
-			if err := os.Symlink(masterSocket, slaveSocket); err != nil {
-				return nil, fmt.Errorf("failed to create symlink: %s", err)
-			}
-		}
-
-		return crossConnect, nil
+		return memif.DirectConnection(crossConnect)
 	}
 
 	// TODO look at whether keepin a single conn might be better

@@ -16,16 +16,16 @@ package converter
 
 import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
-	"path"
 	"strconv"
 )
 
 type MemifInterfaceConverter struct {
 	*connection.Connection
-	name string
-	id   uint32
+	name      string
+	ipAddress string
 }
 
 func NewMemifInterfaceConverter(c *connection.Connection, name string) Converter {
@@ -36,26 +36,42 @@ func NewMemifInterfaceConverter(c *connection.Connection, name string) Converter
 	return rv
 }
 
+func NewMemifInterfaceWithIpConverter(c *connection.Connection, name string, ipAddress string) Converter {
+	rv := &MemifInterfaceConverter{
+		Connection: c,
+		name:       name,
+		ipAddress:  ipAddress,
+	}
+	return rv
+}
+
 func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
 	if rv == nil {
 		rv = &rpc.DataRequest{}
 	}
-	socketFilename, ok := c.Mechanism.Parameters[connection.SocketFilename]
-	if !ok {
-		socketFilename = "mymemif.sock"
-	}
-	socketPath := path.Join(c.Mechanism.Parameters[connection.Workspace], socketFilename)
+
 	isMaster, err := strconv.ParseBool(c.Mechanism.Parameters[connection.Master])
 	if err != nil {
 		isMaster = false
 	}
+
+	if err := memif.CreateDirectory(memif.BuildMemifDirectory(c.Mechanism)); err != nil {
+		return nil, err
+	}
+
+	var ipAddresses []string
+	if c.ipAddress != "" {
+		ipAddresses = []string{c.ipAddress}
+	}
+
 	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
-		Name:    c.name,
-		Type:    interfaces.InterfaceType_MEMORY_INTERFACE,
-		Enabled: true,
+		Name:        c.name,
+		Type:        interfaces.InterfaceType_MEMORY_INTERFACE,
+		Enabled:     true,
+		IpAddresses: ipAddresses,
 		Memif: &interfaces.Interfaces_Interface_Memif{
 			Master:         isMaster,
-			SocketFilename: socketPath,
+			SocketFilename: memif.BuildSocketPath(c.Mechanism),
 		},
 	})
 	return rv, nil
