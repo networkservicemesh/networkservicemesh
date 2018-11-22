@@ -37,7 +37,7 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 		Parameters: map[string]string{
 			connection.NetNsInodeKey: netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
-			connection.InterfaceNameKey: request.GetConnection().GetNetworkService() + request.GetConnection().GetId(),
+			connection.InterfaceNameKey: "nsm" + request.GetConnection().GetId(),
 		},
 	}
 

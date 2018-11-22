@@ -3,6 +3,9 @@ ENV PACKAGEPATH=github.com/ligato/networkservicemesh/
 COPY [".","/go/src/${PACKAGEPATH}"]
 WORKDIR /go/src/${PACKAGEPATH}/
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd/vppagent-dataplane.go
-FROM alpine as runtime
+FROM ligato/vpp-agent:v1.7 as runtime
 COPY --from=build /go/bin/vppagent-dataplane /bin/vppagent-dataplane
-ENTRYPOINT ["/bin/vppagent-dataplane"]
+RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf
+COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
+COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
+

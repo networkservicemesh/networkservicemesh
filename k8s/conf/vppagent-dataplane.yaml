@@ -18,17 +18,6 @@ spec:
             - name: workspace
               mountPath: /var/lib/networkservicemesh/
               mountPropagation: Bidirectional
-        - name: vppagent
-          securityContext:
-            privileged: true
-          image: networkservicemesh/vppagent:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: INITIAL_LOGLVL
-              value: debug
-          volumeMounts:
-            - name: workspace
-              mountPath: /var/lib/networkservicemesh
       volumes:
         - hostPath:
             path: /var/lib/networkservicemesh
