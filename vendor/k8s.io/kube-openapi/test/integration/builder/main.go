@@ -18,7 +18,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -73,7 +72,7 @@ func main() {
 	// Marshal the swagger spec into JSON, then write it out.
 	specBytes, err := json.MarshalIndent(swagger, " ", " ")
 	if err != nil {
-		panic(fmt.Sprintf("json marshal error: %s", err.Error()))
+		log.Fatalf("json marshal error: %s", err.Error())
 	}
 	err = ioutil.WriteFile(swaggerFilename, specBytes, 0644)
 	if err != nil {
