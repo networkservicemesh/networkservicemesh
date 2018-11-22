@@ -29,19 +29,6 @@ type registryService struct {
 func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	logrus.Infof("Received RegisterNSE(%v)", request)
 	// get network service
-	networkService, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: request.NetworkService.GetName(),
-		},
-		Spec: v1.NetworkServiceSpec{
-			Payload: request.NetworkService.GetPayload(),
-		},
-		Status: v1.NetworkServiceStatus{},
-	})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return nil, err
-	}
-
 	if request.GetNetworkServiceManager().GetUrl() == "" {
 		return nil, errors.New("NSERegistration.NetworkServiceManager.Url must be defined")
 	}
@@ -58,8 +45,9 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 		},
 	}
 
-	_, err = rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Create(nsm)
+	_, err := rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Create(nsm)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
+		logrus.Errorf("Failed to register nsm: %s", err)
 		return nil, err
 	}
 
@@ -68,7 +56,20 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 		labels = make(map[string]string)
 	}
 	labels["networkservicename"] = request.GetNetworkService().GetName()
-	if request.GetNetworkserviceEndpoint() != nil {
+	if request.GetNetworkserviceEndpoint() != nil && request.GetNetworkService() != nil {
+		networkService, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: request.NetworkService.GetName(),
+			},
+			Spec: v1.NetworkServiceSpec{
+				Payload: request.NetworkService.GetPayload(),
+			},
+			Status: v1.NetworkServiceStatus{},
+		})
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			logrus.Errorf("Failed to register nsm: %s", err)
+			return nil, err
+		}
 		nseResponse, err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: request.GetNetworkService().GetName(),
