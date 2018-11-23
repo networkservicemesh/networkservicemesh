@@ -1,10 +1,9 @@
 package nsmd
 
 import (
-	"net"
-
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"golang.org/x/sys/unix"
+	"net"
 )
 
 type customListener struct {
@@ -46,4 +45,20 @@ func (l *customListener) Accept() (net.Conn, error) {
 		Conn:      conn,
 		localAddr: &net.UnixAddr{Net: "unix", Name: l.serverSocket},
 	}, nil
+}
+
+func GetLocalIPAddress() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "127.0.0.1"
+	}
+
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return "127.0.0.1"
 }

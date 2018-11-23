@@ -2,51 +2,39 @@ package nsmd
 
 import (
 	"fmt"
-	"net"
-	"os"
-	"strings"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/network_service_server"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
+
 	"sync"
 	"time"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
+
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-const (
-	ServerSock             = "/var/lib/networkservicemesh/nsm.io.sock"
-	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
-	folderMask             = 0777
-	NsmdApiAddressEnv      = "NSMD_API_ADDRESS"
-	NsmdApiAddressDefaults = "0.0.0.0:5007"
-)
-
 type nsmServer struct {
 	sync.Mutex
-	id         int
-	workspaces map[string]*Workspace
-	model      model.Model
+	id              int
+	workspaces      map[string]*Workspace
+	model           model.Model
+	serviceRegistry serviceregistry.ServiceRegistry
 }
 
-func RequestWorkspace() (*nsmdapi.ClientConnectionReply, error) {
-	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
-	if _, err := os.Stat(ServerSock); err != nil {
-		return nil, err
-	}
-
-	conn, err := tools.SocketOperationCheck(ServerSock)
+func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.ClientConnectionReply, error) {
+	client, con, err := serviceRegistry.NSMDApiClient()
 	if err != nil {
-		return nil, err
+		logrus.Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
-	defer conn.Close()
+	defer con.Close()
 
-	logrus.Info("Requesting nsmd for client connection...")
-	client := nsmdapi.NewNSMDClient(conn)
 	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{})
 	if err != nil {
 		return nil, err
@@ -63,7 +51,7 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 	nsm.Unlock()
 
 	logrus.Infof("Creating new workspace for: %+v", request)
-	workspace, err := NewWorkSpace(nsm.model, fmt.Sprintf("nsm-%d", id))
+	workspace, err := NewWorkSpace(nsm.model, nsm.serviceRegistry, fmt.Sprintf("nsm-%d", id))
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -110,46 +98,44 @@ func waitForDataplaneAvailable(model model.Model) {
 	}
 }
 
-func StartNSMServer(model model.Model) error {
+func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) error {
 	if err := tools.SocketCleanup(ServerSock); err != nil {
 		return err
 	}
 	waitForDataplaneAvailable(model)
-	sock, err := net.Listen("unix", ServerSock)
-	if err != nil {
-		return err
-	}
+
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	nsm := nsmServer{
-		workspaces: make(map[string]*Workspace),
-		model:      model,
+		workspaces:      make(map[string]*Workspace),
+		model:           model,
+		serviceRegistry: serviceRegistry,
 	}
 	nsmdapi.RegisterNSMDServer(grpcServer, &nsm)
 
-	logrus.Infof("Starting NSM gRPC server listening on socket: %s", ServerSock)
+	sock, err := apiRegistry.NewNSMServerListener()
+	if err != nil {
+		logrus.Errorf("failed to start device plugin grpc server %+v", err)
+		return err
+	}
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			logrus.Error("failed to start device plugin grpc server")
 		}
 	}()
+
 	// Check if the socket of NSM server is operation
-	conn, err := tools.SocketOperationCheck(ServerSock)
+	_, conn, err := serviceRegistry.NSMDApiClient()
 	if err != nil {
 		return err
 	}
 	conn.Close()
-	logrus.Infof("NSM gRPC socket: %s is operational", ServerSock)
+	logrus.Infof("NSM gRPC socket: %s is operational", sock.Addr().String())
 
 	return nil
 }
 
-func StartAPIServer(model model.Model) error {
-	nsmdApiAddress := os.Getenv(NsmdApiAddressEnv)
-	if strings.TrimSpace(nsmdApiAddress) == "" {
-		nsmdApiAddress = NsmdApiAddressDefaults
-	}
-
-	sock, err := net.Listen("tcp", nsmdApiAddress)
+func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, serviceRegistry serviceregistry.ServiceRegistry) error {
+	sock, err := apiRegistry.NewPublicListener()
 	if err != nil {
 		return err
 	}
@@ -157,6 +143,10 @@ func StartAPIServer(model model.Model) error {
 
 	// Start Cross connect monitor and server
 	startCrossConnectMonitor(grpcServer, model)
+
+	// Register Remote NetworkServiceManager
+	network_service_server.NewRemoteNetworkServiceServer(model, serviceRegistry, grpcServer)
+
 	// TODO: Add more public API services here.
 
 	go func() {
@@ -164,7 +154,7 @@ func StartAPIServer(model model.Model) error {
 			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
 		}
 	}()
-	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
+	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
 
 	return nil
 }

@@ -17,6 +17,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"net"
 	"path"
 	"time"
@@ -184,7 +185,7 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 
 // StartDataplaneRegistrarServer registers and starts gRPC server which is listening for
 // Network Service Dataplane Registrar requests.
-func StartDataplaneRegistrarServer(model model.Model) error {
+func StartDataplaneRegistrarServer(model model.Model, apiRegistry serviceregistry.ApiRegistry) error {
 	dataplaneRegistrarServer := &dataplaneRegistrarServer{
 		grpcServer:                   grpc.NewServer(),
 		dataplaneRegistrarSocketPath: path.Join(DataplaneRegistrarSocketBaseDir, DataplaneRegistrarSocket),

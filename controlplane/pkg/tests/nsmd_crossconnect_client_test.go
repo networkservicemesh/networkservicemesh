@@ -1,4 +1,4 @@
-package nsmd
+package tests
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ import (
 	"time"
 )
 
-func startAPIServer(model model.Model, nsmdApiAddress string ) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
+func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
 	if err != nil {
 		return err, nil, nil
@@ -25,7 +26,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string ) (error, *grpc.Ser
 	// Start Cross connect monitor and server
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := NewMonitorCrossConnectClient(monitor)
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor)
 	monitorClient.Register(model)
 	// TODO: Add more public API services here.
 
@@ -39,11 +40,10 @@ func startAPIServer(model model.Model, nsmdApiAddress string ) (error, *grpc.Ser
 	return nil, grpcServer, monitor
 }
 
-
 func TestCCServerEmpty(t *testing.T) {
 	RegisterTestingT(t)
 
-	myModel := model.NewModel("127.0.0.1:5000")
+	myModel := model.NewModel()
 
 	crossConnectAddress := "127.0.0.1:5007"
 
@@ -66,7 +66,7 @@ func TestCCServerEmpty(t *testing.T) {
 func TestCCServer(t *testing.T) {
 	RegisterTestingT(t)
 
-	myModel := model.NewModel("127.0.0.1:5000")
+	myModel := model.NewModel()
 	crossConnectAddress := "127.0.0.1:5007"
 
 	err, grpcServer, _ := startAPIServer(myModel, crossConnectAddress)
@@ -119,7 +119,7 @@ func TestCCServer(t *testing.T) {
 
 func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {
 	var err error
-	conn, err := dial(context.Background(), "tcp", address)
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return nil

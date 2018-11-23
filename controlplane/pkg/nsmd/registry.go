@@ -16,6 +16,7 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -26,14 +27,16 @@ import (
 )
 
 type registryServer struct {
-	model     model.Model
-	workspace *Workspace
+	model           model.Model
+	workspace       *Workspace
+	serviceRegistry serviceregistry.ServiceRegistry
 }
 
-func NewRegistryServer(model model.Model, workspace *Workspace) registry.NetworkServiceRegistryServer {
+func NewRegistryServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry) registry.NetworkServiceRegistryServer {
 	return &registryServer{
-		model:     model,
-		workspace: workspace,
+		model:           model,
+		workspace:       workspace,
+		serviceRegistry: serviceRegistry,
 	}
 }
 
@@ -42,7 +45,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	client, err := RegistryClient()
+	client, err := es.serviceRegistry.RegistryClient()
 	if err != nil {
 		err = fmt.Errorf("attempt to connect to upstream registry failed with: %v", err)
 		logrus.Error(err)
@@ -55,7 +58,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	// 2)  We are not specifying Name or LastSeen, the nsmd-k8s will fill those
 	//     in
 	request.NetworkServiceManager = &registry.NetworkServiceManager{
-		Url: es.model.GetNsmUrl(),
+		Url: es.serviceRegistry.GetPublicAPI(),
 	}
 
 	registration, err := client.RegisterNSE(context.Background(), request)
@@ -80,7 +83,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	// TODO make sure we track which registry server we got the RegisterNSE from so we can only allow a deletion
 	// of what you advertised
 	logrus.Infof("Received Endpoint Remove request: %+v", request)
-	client, err := RegistryClient()
+	client, err := es.serviceRegistry.RegistryClient()
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)

@@ -12,22 +12,25 @@ import (
 )
 
 func main() {
-	// TODO add a real url
-	nsmUrl := "127.0.0.1:5000"
-	model := model.NewModel(nsmUrl)
-	defer nsmd.StopRegistryClient()
 
-	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
+	apiRegistry := nsmd.NewApiRegistry()
+	serviceRegistry := nsmd.NewServiceRegistry()
+
+	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
+
+	defer serviceRegistry.Stop()
+
+	if err := nsmd.StartDataplaneRegistrarServer(model, apiRegistry); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
 		os.Exit(1)
 	}
 
-	if err := nsmd.StartNSMServer(model); err != nil {
+	if err := nsmd.StartNSMServer(model, serviceRegistry, apiRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
 		os.Exit(1)
 	}
 
-	if err := nsmd.StartAPIServer(model); err != nil {
+	if err := nsmd.StartAPIServer(model, apiRegistry, serviceRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd api service: %+v", err)
 		os.Exit(1)
 	}

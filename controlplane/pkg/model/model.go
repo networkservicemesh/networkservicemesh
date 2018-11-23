@@ -42,7 +42,6 @@ type Model interface {
 	DeleteDataplane(name string)
 	SelectDataplane() (*Dataplane, error)
 
-	GetNsmUrl() string
 	ConnectionId() string
 
 	AddListener(listener ModelListener)
@@ -58,7 +57,6 @@ type impl struct {
 	networkServices   map[string][]*registry.NSERegistration
 	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
-	nsmUrl            string
 	nsm               *registry.NetworkServiceManager
 	listeners         []ModelListener
 	roundRobin        map[string]int
@@ -207,10 +205,6 @@ func (i *impl) DeleteDataplane(name string) {
 	}
 }
 
-func (i *impl) GetNsmUrl() string {
-	return i.nsmUrl
-}
-
 func (i *impl) GetNsm() *registry.NetworkServiceManager {
 	return i.nsm
 }
@@ -219,9 +213,8 @@ func (i *impl) SetNsm(nsm *registry.NetworkServiceManager) {
 	i.nsm = nsm
 }
 
-func NewModel(nsmUrl string) Model {
+func NewModel() Model {
 	return &impl{
-		nsmUrl:          nsmUrl,
 		dataplanes:      make(map[string]*Dataplane),
 		networkServices: make(map[string][]*registry.NSERegistration),
 		endpoints:       make(map[string]*registry.NSERegistration),
