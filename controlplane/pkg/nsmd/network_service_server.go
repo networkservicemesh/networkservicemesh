@@ -2,12 +2,9 @@ package nsmd
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-
-	"github.com/go-errors/errors"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -50,19 +47,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	request.GetConnection().Id = srv.model.ConnectionId()
 	// TODO: Mechanism selection
 	request.GetConnection().Mechanism = request.MechanismPreferences[0]
-
-	// Get endpoints
-	endpoints := srv.model.GetNetworkServiceEndpoints(request.GetConnection().GetNetworkService())
-	if len(endpoints) == 0 {
-		return nil, errors.New(fmt.Sprintf("network service '%s' not found", request.Connection.NetworkService))
-	}
-
-	// Select endpoint at random
-	idx := rand.Intn(len(endpoints))
-	endpoint := endpoints[idx]
-	if endpoint == nil {
-		return nil, errors.New("should not see this error, scaffolding called")
-	}
+	request.GetConnection().GetMechanism().GetParameters()[connection.Workspace] = srv.workspace.Name()
 
 	// get dataplane
 	dp, err := srv.model.SelectDataplane()
@@ -81,6 +66,11 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer dpCancel()
+
+	endpoint, err := srv.model.SelectEndpoint(request.GetConnection().GetNetworkService())
+	if err != nil {
+		return nil, err
+	}
 
 	var dpApiConnection *crossconnect.CrossConnect
 	// If NSE is local, build parameters
@@ -125,6 +115,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 			logrus.Error(err)
 			return nil, err
 		}
+		nseConnection.GetMechanism().GetParameters()[connection.Workspace] = workspace.Name()
 		request.GetConnection().Context = nseConnection.Context
 		err = nseConnection.IsComplete()
 		if err != nil {

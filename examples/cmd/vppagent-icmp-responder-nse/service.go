@@ -16,12 +16,13 @@ package main
 
 import (
 	"context"
+	"sync"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 type vppagentNetworkService struct {
@@ -30,7 +31,7 @@ type vppagentNetworkService struct {
 	nextIP                  uint32
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	vppAgentEndpoint        string
-	workspace               string
+	baseDir                 string
 }
 
 func (ns *vppagentNetworkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -40,11 +41,12 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		logrus.Error(err)
 		return nil, err
 	}
-	if err := ns.CreateVppInterface(nseConnection); err != nil {
+	if err := ns.CreateVppInterface(ctx, nseConnection, ns.baseDir); err != nil {
 		return nil, err
 	}
 
 	ns.monitorConnectionServer.UpdateConnection(nseConnection)
+	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, nseConnection)
 	return nseConnection, nil
 }
 
@@ -54,14 +56,14 @@ func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Conn
 	return &empty.Empty{}, nil
 }
 
-func New(vppAgentEndpoint string, workspace string) networkservice.NetworkServiceServer {
+func New(vppAgentEndpoint string, baseDir string) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
 	service := vppagentNetworkService{
 		networkService:          NetworkServiceName,
-		nextIP:                  169083137, // 10.20.1.1
+		nextIP:                  169738497, // 10.30.1.1
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
-		workspace:               workspace,
+		baseDir:                 baseDir,
 	}
 	service.Reset()
 	return &service

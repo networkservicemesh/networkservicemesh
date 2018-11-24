@@ -16,10 +16,11 @@ package vppagent
 
 import (
 	"context"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/ligato/networkservicemesh/pkg/tools"
-	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -41,13 +42,15 @@ type VPPAgent struct {
 	// Internal state from here on
 	mechanisms *Mechanisms
 	updateCh   chan *Mechanisms
+	baseDir    string
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
 		vppAgentEndpoint: vppAgentEndpoint,
+		baseDir:          baseDir,
 		monitor:          monitor,
 		mechanisms: &Mechanisms{
 			localMechanisms: []*local.Mechanism{
@@ -122,7 +125,10 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	}
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect).ToDataRequest(nil)
+	conversionParameters := &converter.CrossConnectConversionParameters{
+		BaseDir: v.baseDir,
+	}
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

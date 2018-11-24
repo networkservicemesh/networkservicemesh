@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
+	"time"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"time"
 )
 
-func (ns *vppagentNetworkService) CreateVppInterface(nseConnection *connection.Connection) error {
+func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
@@ -20,19 +21,24 @@ func (ns *vppagentNetworkService) CreateVppInterface(nseConnection *connection.C
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 
-	dataChange, err := converter.NewMemifInterfaceWithIpConverter(nseConnection, nseConnection.GetId(),
-		nseConnection.GetContext()["dst_ip"]).ToDataRequest(nil)
+	conversionParameters := &converter.ConnectionConversionParameters{
+		Name:      "DST-" + nseConnection.GetId(),
+		Terminate: true,
+		Side:      converter.DESTINATION,
+		BaseDir:   baseDir,
+	}
+	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(nil)
 
 	if err != nil {
 		logrus.Error(err)
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(context.Background(), dataChange); err != nil {
+	if _, err := client.Put(ctx, dataChange); err != nil {
 		logrus.Error(err)
+		client.Del(ctx, dataChange)
 		return err
 	}
-
 	return nil
 }
 

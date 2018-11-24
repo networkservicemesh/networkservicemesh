@@ -34,7 +34,7 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	NetworkServiceName      = "vppagent-icmp-responder"
+	NetworkServiceName      = "icmp-responder"
 	DefaultVPPAgentEndpoint = "localhost:9112"
 )
 

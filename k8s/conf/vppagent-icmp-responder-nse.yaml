@@ -8,7 +8,6 @@ spec:
         networkservicemesh.io: "true"
         networkservicemesh.io/app: "vppagent-icmp-responder-nse"
     spec:
-      hostPID: true
       containers:
         - name: icmp-responder-nse
           securityContext:

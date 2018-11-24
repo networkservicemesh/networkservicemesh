@@ -29,13 +29,9 @@ func (ns *vppagentNetworkService) CompleteConnection(request *networkservice.Net
 	if err != nil {
 		return nil, err
 	}
-	mechanism := &connection.Mechanism{
-		Type: connection.MechanismType_MEM_INTERFACE,
-		Parameters: map[string]string{
-			connection.Master:         "true",
-			connection.SocketFilename: "nse.sock",
-			connection.Workspace:      ns.workspace,
-		},
+	mechanism, err := connection.NewMechanism(connection.MechanismType_MEM_INTERFACE, "nsm"+request.GetConnection().GetId(), "")
+	if err != nil {
+		return nil, err
 	}
 
 	srcIP := make(net.IP, 4)
