@@ -19,7 +19,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
@@ -39,7 +38,13 @@ const (
 )
 
 func main() {
-	var wg sync.WaitGroup
+	// Capture signals to cleanup before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
 	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
 	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
@@ -57,7 +62,6 @@ func main() {
 	linuxNS, err := tools.GetCurrentNS()
 	if err != nil {
 		logrus.Fatalf("nse: failed to get a linux namespace with error: %v, exiting...", err)
-		os.Exit(1)
 	}
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
@@ -78,7 +82,6 @@ func main() {
 
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
-	wg.Add(1)
 	go func() {
 		if err := grpcServer.Serve(connectionServer); err != nil {
 			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
@@ -94,8 +97,7 @@ func main() {
 	// NSE connection server is ready and now endpoints can be advertised to NSM
 
 	if _, err := os.Stat(nsmServerSocket); err != nil {
-		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
 	}
 
 	conn, err := tools.SocketOperationCheck(nsmServerSocket)
@@ -132,17 +134,12 @@ func main() {
 	}
 
 	defer registryConnection.RemoveNSE(context.Background(), removeNSE)
+	defer grpcServer.Stop()
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
 
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-
-	// Now block on WaitGroup
-	wg.Wait()
+	select {
+	case <-c:
+		logrus.Info("Closing vppagent-icmp-responder-nse")
+	}
 }

@@ -291,6 +291,7 @@ workflows:
             - build-nsmd-k8s
             - build-nsmdp
             - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
             - build-nsc
             - packet-deploy
       - packet-destroy:
