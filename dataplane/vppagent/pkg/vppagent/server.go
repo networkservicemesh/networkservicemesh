@@ -21,10 +21,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewServer(vppAgentEndpoint string) *grpc.Server {
+func NewServer(vppAgentEndpoint string, baseDir string) *grpc.Server {
 	server := grpc.NewServer()
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
-	dataplane.RegisterDataplaneServer(server, NewVPPAgent(vppAgentEndpoint, monitor))
+	dataplane.RegisterDataplaneServer(server, NewVPPAgent(vppAgentEndpoint, monitor, baseDir))
 	return server
 }

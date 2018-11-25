@@ -8,12 +8,12 @@ type LocalConnectionConverter struct {
 	ipAddressKey string
 }
 
-func NewLocalConnectionConverter(c *connection.Connection, name string, ipAddressKey string) Converter {
+func NewLocalConnectionConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
 	if c.GetMechanism().GetType() == connection.MechanismType_KERNEL_INTERFACE {
-		return NewKernelConnectionConverter(c, name, ipAddressKey)
+		return NewKernelConnectionConverter(c, conversionParameters)
 	}
 	if c.GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE {
-		return NewMemifInterfaceConverter(c, name)
+		return NewMemifInterfaceConverter(c, conversionParameters)
 	}
 	return nil
 }

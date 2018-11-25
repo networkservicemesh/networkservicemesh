@@ -28,6 +28,9 @@ import (
 )
 
 const (
+	NsmBaseDirKey     = "NSM_BASEDIR"
+	DefaultNsmBaseDir = "/var/lib/networkservicemesh/"
+	// TODO Convert all the defaults to properly use NsmBaseDir
 	DataplaneRegistrarSocketKey     = "DATAPLANE_REGISTRAR_SOCKET"
 	DefaultDataplaneRegistrarSocket = "/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock"
 	DataplaneSocketKey              = "DATAPLANE_SOCKET"
@@ -49,6 +52,14 @@ func main() {
 		syscall.SIGQUIT)
 
 	logrus.Info("Starting vppagent-dataplane")
+
+	nsmBaseDir, ok := os.LookupEnv(NsmBaseDirKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", NsmBaseDirKey, DefaultNsmBaseDir)
+		nsmBaseDir = DefaultNsmBaseDir
+	}
+	logrus.Infof("nsmBaseDir: %s", nsmBaseDir)
+
 	dataplaneRegistrarSocket, ok := os.LookupEnv(DataplaneRegistrarSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketKey, DefaultDataplaneRegistrarSocket)
@@ -87,7 +98,7 @@ func main() {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 	}
 	logrus.Info("Creating vppagent server")
-	server := vppagent.NewServer(vppAgentEndpoint)
+	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir)
 	go server.Serve(ln)
 	logrus.Info("vppagent server serving")
 

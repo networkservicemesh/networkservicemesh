@@ -63,6 +63,12 @@ function run_tests() {
     yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/icmp-responder-nse:"${COMMIT}"
     kubectl apply -f /tmp/icmp-responder-nse.yaml
 
+    cp k8s/conf/vppagent-icmp-responder-nse.yaml /tmp/vppagent-icmp-responder-nse.yaml
+    yq w -i /tmp/vppagent-icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/vppagent-icmp-responder-nse:"${COMMIT}"
+    kubectl apply -f /tmp/vppagent-icmp-responder-nse.yaml
+
+    wait_for_pods default
+
     typeset -i cnt=240
     until kubectl get nse | grep icmp; do
         ((cnt=cnt-1)) || return 1
@@ -79,12 +85,34 @@ function run_tests() {
         sleep 2
     done
 
-    if kubectl exec -it "$(kubectl get pods -o=name | grep nsc | sed 's@.*/@@')" -- ping -c 1 10.20.1.2 ; then
-        echo "ping successful"
-    else
-        echo "ping unsuccessful"
-        return 1
-    fi
+    #  Ping all the things!
+    for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
+        for ip in $(kubectl exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
+            if [ "${ip}" = "10.20.1.1/30" ];then
+                targetIp="10.20.1.2"
+                endpointName="icmp-responder-nse"
+            elif [ "${ip}" = "10.30.1.1/30" ];then
+                targetIp="10.30.1.2"
+                endpointName="vppagent-icmp-responder-nse"
+            fi
+            if [ ! -z ${targetIp} ]; then
+                if kubectl exec -it "${nsc}" -- ping -c 1 ${targetIp} ; then
+                    echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
+                    PingSuccess="true"
+                else
+                    echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} unsuccessful"
+                    return 1
+                fi
+                unset targetIp
+                unset endpointName
+            fi
+        done
+        if [ -z ${PingSuccess} ]; then
+            echo "NSC ${nsc} failed to connect to an icmp-responder NetworkService"
+            return 1
+        fi
+        unset PingSuccess
+    done
 
     # We're all good now
     return 0

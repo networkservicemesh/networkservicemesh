@@ -15,23 +15,33 @@
 package converter
 
 import (
+	fmt "fmt"
+	"os"
+	"path"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
-	"path"
-	"strconv"
 )
 
 type MemifInterfaceConverter struct {
 	*connection.Connection
-	name string
-	id   uint32
+	conversionParameters *ConnectionConversionParameters
 }
 
-func NewMemifInterfaceConverter(c *connection.Connection, name string) Converter {
+func NewMemifInterfaceConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
 	rv := &MemifInterfaceConverter{
-		Connection: c,
-		name:       name,
+		Connection:           c,
+		conversionParameters: conversionParameters,
+	}
+	return rv
+}
+
+func NewMemifInterfaceWithIpConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
+	rv := &MemifInterfaceConverter{
+		Connection:           c,
+		conversionParameters: conversionParameters,
 	}
 	return rv
 }
@@ -40,22 +50,34 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataR
 	if rv == nil {
 		rv = &rpc.DataRequest{}
 	}
-	socketFilename, ok := c.Mechanism.Parameters[connection.SocketFilename]
-	if !ok {
-		socketFilename = "mymemif.sock"
+	fullyQualifiedSocketFilename := path.Join(c.conversionParameters.BaseDir, c.Connection.GetMechanism().GetSocketFilename())
+	SocketDir := path.Dir(fullyQualifiedSocketFilename)
+	if c.conversionParameters.Terminate {
+		if err := os.MkdirAll(SocketDir, 0777); err != nil {
+			return nil, err
+		}
 	}
-	socketPath := path.Join(c.Mechanism.Parameters[connection.Workspace], socketFilename)
-	isMaster, err := strconv.ParseBool(c.Mechanism.Parameters[connection.Master])
-	if err != nil {
-		isMaster = false
+
+	var ipAddresses []string
+	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
+		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
 	}
+	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
+		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
+	}
+
+	if c.conversionParameters.Name == "" {
+		return nil, fmt.Errorf("ConnnectionConversionParameters.Name cannot be empty")
+	}
+
 	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
-		Name:    c.name,
-		Type:    interfaces.InterfaceType_MEMORY_INTERFACE,
-		Enabled: true,
+		Name:        c.conversionParameters.Name,
+		Type:        interfaces.InterfaceType_MEMORY_INTERFACE,
+		Enabled:     true,
+		IpAddresses: ipAddresses,
 		Memif: &interfaces.Interfaces_Interface_Memif{
-			Master:         isMaster,
-			SocketFilename: socketPath,
+			Master:         c.conversionParameters.Terminate,
+			SocketFilename: path.Join(fullyQualifiedSocketFilename),
 		},
 	})
 	return rv, nil
