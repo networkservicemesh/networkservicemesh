@@ -1,15 +1,16 @@
 ---
 apiVersion: extensions/v1beta1
-kind: DaemonSet
+kind: Deployment
 spec:
+  replicas: 1
   template:
     metadata:
       labels:
         networkservicemesh.io: "true"
-        networkservicemesh.io/app: "vppagent-icmp-responder-nse"
+        networkservicemesh.io/app: "nse"
     spec:
       containers:
-        - name: icmp-responder-nse
+        - name: icmp-responder-nse\
           securityContext:
             privileged: true
           image: networkservicemesh/vppagent-icmp-responder-nse:latest
