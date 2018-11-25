@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -34,6 +35,7 @@ type Model interface {
 	GetEndpoint(name string) *registry.NSERegistration
 	AddEndpoint(endpoint *registry.NSERegistration)
 	DeleteEndpoint(name string) error
+	SelectEndpoint(nsName string) (*registry.NSERegistration, error)
 
 	GetDataplane(name string) *Dataplane
 	AddDataplane(dataplane *Dataplane)
@@ -59,6 +61,7 @@ type impl struct {
 	nsmUrl            string
 	nsm               *registry.NetworkServiceManager
 	listeners         []ModelListener
+	roundRobin        map[string]int
 }
 
 func (i *impl) AddListener(listener ModelListener) {
@@ -140,6 +143,25 @@ func (i *impl) DeleteEndpoint(name string) error {
 	return fmt.Errorf("no endpoint with name: %s", name)
 }
 
+func (i *impl) SelectEndpoint(nsName string) (*registry.NSERegistration, error) {
+	nseRegistrations := i.GetNetworkServiceEndpoints(nsName)
+	if len(nseRegistrations) == 0 {
+		return nil, fmt.Errorf("network service '%s' not found", nsName)
+	}
+	if len(nseRegistrations) == 0 {
+		return nil, fmt.Errorf("No NSERegistrations for %s found", nsName)
+	}
+	i.Lock()
+	defer i.Unlock()
+	idx := i.roundRobin[nsName] % len(nseRegistrations)
+	endpoint := nseRegistrations[idx]
+	if endpoint == nil {
+		return nil, errors.New("should not see this error, scaffolding called")
+	}
+	i.roundRobin[nsName] = (idx + 1) % len(nseRegistrations)
+	return endpoint, nil
+}
+
 func (i *impl) GetDataplane(name string) *Dataplane {
 	i.RLock()
 	defer i.RUnlock()
@@ -204,6 +226,7 @@ func NewModel(nsmUrl string) Model {
 		networkServices: make(map[string][]*registry.NSERegistration),
 		endpoints:       make(map[string]*registry.NSERegistration),
 		listeners:       []ModelListener{},
+		roundRobin:      make(map[string]int),
 	}
 }
 

@@ -1,21 +1,22 @@
 ---
 apiVersion: extensions/v1beta1
-kind: Deployment
+kind: DaemonSet
 spec:
-  replicas: 2
   template:
     metadata:
       labels:
         networkservicemesh.io: "true"
-        networkservicemesh.io/app: "nsc"
+        networkservicemesh.io/app: "vppagent-icmp-responder-nse"
     spec:
       containers:
-        - name: nsc
-          image: networkservicemesh/nsc:latest
+        - name: icmp-responder-nse
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vppagent-icmp-responder-nse:latest
           imagePullPolicy: IfNotPresent
           resources:
             limits:
               nsm.ligato.io/socket: 1
 metadata:
-  name: nsc
+  name: vppagent-icmp-responder-nse
   namespace: default

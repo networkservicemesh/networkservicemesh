@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
@@ -13,15 +14,13 @@ import (
 
 type KernelConnectionConverter struct {
 	*connection.Connection
-	name         string
-	ipAddressKey string
+	conversionParameters *ConnectionConversionParameters
 }
 
-func NewKernelConnectionConverter(c *connection.Connection, name string, ipAddressKey string) *KernelConnectionConverter {
+func NewKernelConnectionConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) *KernelConnectionConverter {
 	return &KernelConnectionConverter{
-		Connection:   c,
-		name:         name,
-		ipAddressKey: ipAddressKey,
+		Connection:           c,
+		conversionParameters: conversionParameters,
 	}
 }
 
@@ -46,6 +45,14 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 	}
 	tmpIface := TempIfName()
 
+	var ipAddresses []string
+	if c.conversionParameters.Side == DESTINATION {
+		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
+	}
+	if c.conversionParameters.Side == SOURCE {
+		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
+	}
+
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
 
 	// We append an Interfaces.  Interfaces creates the vpp side of an interface.
@@ -61,7 +68,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 	//          interface in vppagent's netns.  So leave it there in the Interfaces
 	//          The interface name may be no longer than 15 chars (Linux limitation)
 	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
-		Name:    c.name,
+		Name:    c.conversionParameters.Name,
 		Type:    interfaces.InterfaceType_TAP_INTERFACE,
 		Enabled: true,
 		Tap: &interfaces.Interfaces_Interface_Tap{
@@ -75,11 +82,11 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 	//      Interfaces.Tap.HostIfName from above
 	//    - LinuxInterfaces.HostIfName - must be no longer than 15 chars (linux limitation)
 	rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
-		Name:        c.name,
+		Name:        c.conversionParameters.Name,
 		Type:        linux_interfaces.LinuxInterfaces_AUTO_TAP,
 		Enabled:     true,
 		Description: m.GetParameters()[connection.InterfaceDescriptionKey],
-		IpAddresses: []string{c.GetContext()[c.ipAddressKey]}, // TODO - this is wrong... need to use Dst or Src key selectively
+		IpAddresses: ipAddresses, // TODO - this is wrong... need to use Dst or Src key selectively
 		HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 		Namespace: &linux_interfaces.LinuxInterfaces_Interface_Namespace{
 			Type:     linux_interfaces.LinuxInterfaces_Interface_Namespace_FILE_REF_NS,

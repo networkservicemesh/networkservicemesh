@@ -2,8 +2,8 @@ package converter
 
 import (
 	"fmt"
+	"path"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
 	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
@@ -12,11 +12,13 @@ import (
 
 type CrossConnectConverter struct {
 	*crossconnect.CrossConnect
+	conversionParameters *CrossConnectConversionParameters
 }
 
-func NewCrossConnectConverter(c *crossconnect.CrossConnect) *CrossConnectConverter {
+func NewCrossConnectConverter(c *crossconnect.CrossConnect, conversionParameters *CrossConnectConversionParameters) *CrossConnectConverter {
 	return &CrossConnectConverter{
-		CrossConnect: c,
+		CrossConnect:         c,
+		conversionParameters: conversionParameters,
 	}
 }
 
@@ -30,9 +32,15 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 	if rv == nil {
 		rv = &rpc.DataRequest{}
 	}
-
 	if c.GetLocalSource() != nil {
-		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), "SRC-"+c.GetId(), connectioncontext.SrcIpKey).ToDataRequest(rv)
+		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
+		conversionParameters := &ConnectionConversionParameters{
+			Name:      "SRC-" + c.GetId(),
+			Terminate: false,
+			Side:      SOURCE,
+			BaseDir:   baseDir,
+		}
+		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -46,7 +54,14 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 	}
 
 	if c.GetLocalDestination() != nil {
-		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), "DST-"+c.GetId(), connectioncontext.DstIpKey).ToDataRequest(rv)
+		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
+		conversionParameters := &ConnectionConversionParameters{
+			Name:      "DST-" + c.GetId(),
+			Terminate: false,
+			Side:      DESTINATION,
+			BaseDir:   baseDir,
+		}
+		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
