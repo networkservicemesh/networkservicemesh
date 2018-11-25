@@ -3,6 +3,12 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
@@ -13,11 +19,6 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"net"
-	"os"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -64,10 +65,10 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Networ
 		return nil, nil, err
 	}
 
-	logrus.Println("Remote Network Service is available, attempting to connect...")
+	logrus.Infof("Remote Network Service %s is available at %s, attempting to connect...", nsm.GetName(), nsm.GetUrl())
 	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure())
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
+		logrus.Errorf("Failed to dial Network Service Registry %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
 	}
 	client := remote_networkservice.NewNetworkServiceClient(conn)

@@ -39,8 +39,11 @@ vagrant-ssh:
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:
 	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
-		echo "Loading image $*.tar"; \
-		cd scripts/vagrant; vagrant ssh -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+		cd scripts/vagrant; \
+		echo "Loading image $*.tar to master"; \
+		vagrant ssh master -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+		echo "Loading image $*.tar to worker"; \
+		vagrant ssh worker -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
 	else \
 		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist"; \
 		exit 1; \

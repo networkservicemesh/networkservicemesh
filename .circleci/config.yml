@@ -104,6 +104,17 @@ jobs:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
           when: always
+          name: Dump K8s state
+          command: |
+            kubectl get pods -o wide
+            kubectl get nodes
+            kubectl get nse
+            kubectl get netsvc
+            kubectl get nsm
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
+          when: always
           name: Dump Logs - nsc
           command: make k8s-nsc-logs
           environment:
