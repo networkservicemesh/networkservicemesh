@@ -41,12 +41,15 @@ const (
 )
 
 type nsmClientEndpoints struct {
+	allocatedDevices map[string]bool
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	logrus.Info("Client request for nsmdp resource...")
 	responses := &pluginapi.AllocateResponse{}
-	for range reqs.ContainerRequests {
+	for _, req := range reqs.ContainerRequests {
+		id := req.DevicesIDs[0]
+		n.allocatedDevices[id] = true
 		workspace, err := nsmd.RequestWorkspace()
 		logrus.Infof("Received Workspace %v", workspace)
 		if err != nil {
@@ -109,7 +112,7 @@ func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 	logrus.Infof("ListAndWatch was called with s: %+v", s)
 	for {
 		resp := new(pluginapi.ListAndWatchResponse)
-		for dev := 1; dev < 10; dev++ {
+		for dev := 1; dev < 10+len(n.allocatedDevices); dev++ {
 			resp.Devices = append(resp.Devices, &pluginapi.Device{
 				ID:     fmt.Sprintf("%d", dev),
 				Health: pluginapi.Healthy,
@@ -161,7 +164,9 @@ func waitForNsmdAvailable() {
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
 func NewNSMDeviceServer() error {
 	waitForNsmdAvailable()
-	nsm := &nsmClientEndpoints{}
+	nsm := &nsmClientEndpoints{
+		allocatedDevices: make(map[string]bool),
+	}
 	if err := startDeviceServer(nsm); err != nil {
 		return err
 	}
