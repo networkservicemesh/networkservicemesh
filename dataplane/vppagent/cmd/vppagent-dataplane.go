@@ -39,6 +39,7 @@ const (
 	DefaultDataplaneName            = "vppagent"
 	DataplaneVPPAgentEndpointKey    = "VPPAGENT_ENDPOINT"
 	DefaultVPPAgentEndpoint         = "localhost:9111"
+	SrcIpEnvKey                     = "NSM_DATAPLANE_SRC_IP"
 )
 
 func main() {
@@ -87,6 +88,15 @@ func main() {
 		dataplaneName = DefaultDataplaneName
 	}
 
+	srcIpStr, ok := os.LookupEnv(SrcIpEnvKey)
+	if !ok {
+		logrus.Fatalf("Env variable %s must be set to valid srcIp for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIpEnvKey)
+	}
+	srcIp := net.ParseIP(srcIpStr)
+	if srcIp == nil {
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIpEnvKey, srcIpStr)
+	}
+
 	logrus.Infof("dataplaneName: %s", dataplaneName)
 
 	err := tools.SocketCleanup(dataplaneSocket)
@@ -98,7 +108,7 @@ func main() {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 	}
 	logrus.Info("Creating vppagent server")
-	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir)
+	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp)
 	go server.Serve(ln)
 	logrus.Info("vppagent server serving")
 

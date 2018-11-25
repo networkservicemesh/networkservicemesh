@@ -15,16 +15,18 @@
 package vppagent
 
 import (
+	"net"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"google.golang.org/grpc"
 )
 
-func NewServer(vppAgentEndpoint string, baseDir string) *grpc.Server {
+func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP) *grpc.Server {
 	server := grpc.NewServer()
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
-	dataplane.RegisterDataplaneServer(server, NewVPPAgent(vppAgentEndpoint, monitor, baseDir))
+	dataplane.RegisterDataplaneServer(server, NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp))
 	return server
 }

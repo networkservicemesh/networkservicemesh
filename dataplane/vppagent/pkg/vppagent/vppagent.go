@@ -16,7 +16,7 @@ package vppagent
 
 import (
 	"context"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
+	"net"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -28,6 +28,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -45,7 +46,7 @@ type VPPAgent struct {
 	baseDir    string
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string, srcIp net.IP) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
@@ -64,6 +65,9 @@ func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.Mo
 			remoteMechanisms: []*remote.Mechanism{
 				{
 					Type: remote.MechanismType_VXLAN,
+					Parameters: map[string]string{
+						remote.VXLANSrcIP: srcIp.String(),
+					},
 				},
 			},
 		},
@@ -80,10 +84,12 @@ type Mechanisms struct {
 
 func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
-	if err := updateSrv.Send(&dataplane.MechanismUpdate{
+	initialUpdate := &dataplane.MechanismUpdate{
 		RemoteMechanisms: v.mechanisms.remoteMechanisms,
 		LocalMechanisms:  v.mechanisms.localMechanisms,
-	}); err != nil {
+	}
+	logrus.Infof("Sending MonitorMechanisms update: %v", initialUpdate)
+	if err := updateSrv.Send(initialUpdate); err != nil {
 		logrus.Errorf("vpp-agent dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
@@ -93,6 +99,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 		// them back to NSM.
 		case update := <-v.updateCh:
 			v.mechanisms = update
+			logrus.Infof("Sending MonitorMechanisms update: %v", update)
 			if err := updateSrv.Send(&dataplane.MechanismUpdate{
 				RemoteMechanisms: update.remoteMechanisms,
 				LocalMechanisms:  update.localMechanisms,
