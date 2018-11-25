@@ -108,8 +108,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	}
 
 	var dpApiConnection *crossconnect.CrossConnect
-
-	if srv.model.GetNsm().GetUrl() == endpoint.GetNetworkServiceManager().GetUrl() {
+	if srv.model.GetNsm().GetName() == endpoint.GetNetworkServiceManager().GetName() {
 		dpApiConnection, err = srv.performLocalNSERequest(ctx, request, endpoint)
 	} else {
 		dpApiConnection, err = srv.performRemoteNSERequest(ctx, request, endpoint)
