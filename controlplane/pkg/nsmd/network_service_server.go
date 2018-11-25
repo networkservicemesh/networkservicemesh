@@ -241,7 +241,8 @@ func (srv *networkServiceServer) performLocalNSERequest(ctx context.Context, req
 		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
 		return nil, err
 	}
-
+	workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
+	nseConnection.GetMechanism().GetParameters()[connection.Workspace] = workspace.Name()
 	dpApiConnection := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
 		Payload: endpoint.GetNetworkService().GetPayload(),
@@ -283,7 +284,7 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
 		return nil, err
 	}
-
+	nseConnection.GetMechanism().GetParameters()[connection.Workspace] = srv.workspace.Name()
 	dpApiConnection := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
 		Payload: endpoint.GetNetworkService().GetPayload(),
