@@ -10,14 +10,14 @@ spec:
     spec:
       hostPID: true
       containers:
-      - name: vppagent-nsc
-        securityContext:
-          privileged: true
-        image: networkservicemesh/vppagent-nsc:latest
-        imagePullPolicy: IfNotPresent
-        resources:
-          limits:
-            nsm.ligato.io/socket: 1
+        - name: vppagent-nsc
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vppagent-nsc:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
 metadata:
   name: vppagent-nsc
   namespace: default
