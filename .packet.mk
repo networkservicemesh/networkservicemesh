@@ -31,8 +31,7 @@ packet-init:
 packet-start:
 	@pushd scripts/terraform
 	@terraform apply ${TF_PACKET_VARS}
-	@scp ${SSH_OPTS} install-kubernetes.sh root@`terraform output master.public_ip`:install-kubernetes.sh
-	@ssh ${SSH_OPTS} root@`terraform output master.public_ip` ./install-kubernetes.sh
+	@./create-kubernetes-cluster.sh
 	@popd
 
 .ONESHELL:
