@@ -4,7 +4,7 @@ echo "**************************************************************************
 echo "          Welcome to NetworkServiceMesh Dev/Debug environment                   "
 echo "********************************************************************************"
 echo ""
-cd /go/src/github.com/ligato/networkservicemesh || exit 101
+cd "$GOPATH/src/github.com/ligato/networkservicemesh" || exit 101
 export PS1='DevEnv: \[\e[0;32m\]\u\[\e[m\] \[\e[1;34m\]\w\[\e[m\] \[\e[1;32m\]\$\[\e[m\] \[\e[1;37m\]'
 
 echo "Call dep ensure"
