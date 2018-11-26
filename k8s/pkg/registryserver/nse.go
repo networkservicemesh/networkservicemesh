@@ -149,11 +149,25 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 		}
 	}
 
+	var matches []*registry.NetworkService_Match
+
+	for _, m := range service.Spec.Matches {
+		match := &registry.NetworkService_Match{
+			SourceSelector: m.SourceSelector,
+			Route: &registry.NetworkService_Match_Destination{
+				DestinationSelector: m.Route.DestinationSelector,
+				Weight:              m.Route.Weight,
+			},
+		}
+		matches = append(matches, match)
+	}
+
 	response := &registry.FindNetworkServiceResponse{
 		Payload: payload,
 		NetworkService: &registry.NetworkService{
 			Name:    service.ObjectMeta.Name,
 			Payload: service.Spec.Payload,
+			Matches: matches,
 		},
 		NetworkServiceManagers:  NSMs,
 		NetworkServiceEndpoints: NSEs,
