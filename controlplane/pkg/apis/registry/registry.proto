@@ -17,6 +17,17 @@ message NetworkServiceEndpoint {
 message NetworkService {
     string name = 1;
     string payload = 2;
+    repeated Match matches = 3;
+}
+
+message Match {
+    map<string, string> source_selector = 1;
+    repeated Destination routes = 2;
+}
+
+message Destination{
+    map<string, string> destination_selector = 1;
+    uint32 weight = 2;
 }
 
 message NetworkServiceManager {
