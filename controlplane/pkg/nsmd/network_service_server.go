@@ -3,7 +3,6 @@ package nsmd
 import (
 	"errors"
 	"fmt"
-
 	"math/rand"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
@@ -159,12 +158,15 @@ func (srv *networkServiceServer) createLocalNSERequest(endpoint *registry.NSEReg
 }
 
 func (srv *networkServiceServer) getEndpoint(request *networkservice.NetworkServiceRequest) (*registry.NSERegistration, error) {
-	endpoint, err := srv.model.SelectEndpoint(request.GetConnection().GetNetworkService())
+	networkService := request.GetConnection().GetNetworkService()
+	logrus.Infof("Selecting  endpoint for %s", networkService)
+	endpoint, err := srv.model.SelectEndpoint(networkService)
 	if err == nil {
 		return endpoint, nil
 	}
+	logrus.Infof("No local endpoint with name: %s found...", networkService)
 	// Request endpoints from registry
-	endpoints := getEndpointsFromRegistry(srv.serviceRegistry, request.GetConnection().GetNetworkService())
+	endpoints := getEndpointsFromRegistry(srv.serviceRegistry, networkService)
 	if len(endpoints) == 0 {
 		return nil, errors.New(fmt.Sprintf("network service '%s' not found", request.Connection.NetworkService))
 	}
@@ -271,6 +273,8 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 	message := srv.createRemoteNSERequest(endpoint, request, dataplane)
 	nseConnection, e := client.Request(ctx, message)
 
+	logrus.Infof("Recieved Remote NSE Connection %+v", nseConnection)
+
 	if e != nil {
 		logrus.Errorf("error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
 		return nil, e
@@ -287,7 +291,15 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
 		return nil, err
 	}
-	nseConnection.GetMechanism().GetParameters()[connection.Workspace] = srv.workspace.Name()
+
+	if nseConnection.GetMechanism().Type == remote_connection.MechanismType_VXLAN {
+		// We need to switch directions of src<->dst
+		m := nseConnection.GetMechanism()
+		remoteDst := m.Parameters[remote_connection.VXLANDstIP]
+		nseConnection.GetMechanism().Parameters[remote_connection.VXLANDstIP] = m.Parameters[remote_connection.VXLANSrcIP]
+		nseConnection.GetMechanism().Parameters[remote_connection.VXLANSrcIP] = remoteDst
+		nseConnection.GetMechanism().Parameters[remote_connection.VXLANVNI] = "1"
+	}
 	dpApiConnection := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
 		Payload: endpoint.GetNetworkService().GetPayload(),

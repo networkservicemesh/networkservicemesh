@@ -93,6 +93,7 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	}
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := rv.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
+	logrus.Info("Dataplane: Returned connection obj %+v", con)
 	srv.monitor.UpdateConnection(con)
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return con, nil
@@ -115,7 +116,10 @@ func (srv *remoteNetworkServiceServer) selectMechanism(request *remote_networkse
 		// TODO: Add other mechanisms support
 		if mechanism.Type == remote_connection.MechanismType_VXLAN {
 			// Update DST IP to be ours
-			mechanism.Parameters[remote_connection.VXLANDstIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
+			remoteSrc := mechanism.Parameters[remote_connection.VXLANSrcIP]
+			mechanism.Parameters[remote_connection.VXLANSrcIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
+			mechanism.Parameters[remote_connection.VXLANDstIP] = remoteSrc
+			mechanism.Parameters[remote_connection.VXLANVNI] = "1"
 		}
 		return mechanism, nil
 	}
@@ -171,7 +175,7 @@ func (srv *remoteNetworkServiceServer) performLocalNSERequest(ctx context.Contex
 	request.GetConnection().Context = nseConnection.Context
 	err = request.GetConnection().IsComplete()
 	if err != nil {
-		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
+		err = fmt.Errorf("Failure Validating request.GetConnection(): %s %+v", err, request.GetConnection())
 		return nil, err
 	}
 
@@ -191,13 +195,13 @@ func (srv *remoteNetworkServiceServer) performLocalNSERequest(ctx context.Contex
 func (srv *remoteNetworkServiceServer) validateNSEConnection(nseConnection *connection.Connection) error {
 	err := nseConnection.IsComplete()
 	if err != nil {
-		err = fmt.Errorf("NetworkService.Request() failed with error: %s", err)
+		err = fmt.Errorf("NetworkService.Request().LocalNSE failed with error: %s %+v", err, nseConnection)
 		logrus.Error(err)
 		return err
 	}
 	err = nseConnection.IsComplete()
 	if err != nil {
-		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
+		err = fmt.Errorf("NetworkService.Request().LocalNSE failed validating NSE Connection: %s %+v", err, nseConnection)
 		return err
 	}
 	return nil

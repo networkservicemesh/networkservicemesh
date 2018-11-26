@@ -3,6 +3,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/connectivity"
 	"net"
 	"os"
 	"strings"
@@ -26,7 +27,7 @@ const (
 	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
 	folderMask             = 0777
 	NsmdApiAddressEnv      = "NSMD_API_ADDRESS"
-	NsmdApiAddressDefaults = "0.0.0.0:5007"
+	NsmdApiAddressDefaults = "0.0.0.0:5001"
 )
 
 type apiRegistry struct {
@@ -120,6 +121,8 @@ func (impl *nsmdServiceRegistry) RegistryClient() (registry.NetworkServiceRegist
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
+	logrus.Info("Requesting RegistryClient...")
+
 	impl.initRegistryClient()
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceRegistryClient(impl.registryClientConnection), nil
@@ -135,6 +138,8 @@ func (impl *nsmdServiceRegistry) NetworkServiceDiscovery() (registry.NetworkServ
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
+	logrus.Info("Requesting NetworkServiceDiscoveryClient...")
+
 	impl.initRegistryClient()
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceDiscoveryClient(impl.registryClientConnection), nil
@@ -144,7 +149,7 @@ func (impl *nsmdServiceRegistry) NetworkServiceDiscovery() (registry.NetworkServ
 
 func (impl *nsmdServiceRegistry) initRegistryClient() {
 	var err error
-	if impl.registryClientConnection != nil {
+	if impl.registryClientConnection != nil && impl.registryClientConnection.GetState() == connectivity.Ready {
 		return // Connection already established.
 	}
 	// TODO doing registry Address here is ugly
