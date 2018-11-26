@@ -62,7 +62,7 @@ func main() {
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: "vppagent-icmp-responder",
+			NetworkService: "icmp-responder",
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
