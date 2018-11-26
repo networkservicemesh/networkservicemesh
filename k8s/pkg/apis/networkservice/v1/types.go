@@ -25,13 +25,13 @@ type NetworkService struct {
 }
 
 type NetworkServiceSpec struct {
-	Payload string  `json:"payload"`
-	Matches []Match `json:"matches"`
+	Payload string   `json:"payload"`
+	Matches []*Match `json:"matches"`
 }
 
 type Match struct {
 	SourceSelector *metaV1.LabelSelector `json:"sourceSelector,omitempty"`
-	Route          Destination           `json:"route"`
+	Routes         []*Destination        `json:"route"`
 }
 
 type Destination struct {

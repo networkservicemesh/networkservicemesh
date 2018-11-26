@@ -53,7 +53,17 @@ func (in *Match) DeepCopyInto(out *Match) {
 		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
-	in.Route.DeepCopyInto(&out.Route)
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]*Destination, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(Destination)
+				(*in).DeepCopyInto(*out)
+			}
+		}
+	}
 	return
 }
 
@@ -320,9 +330,13 @@ func (in *NetworkServiceSpec) DeepCopyInto(out *NetworkServiceSpec) {
 	*out = *in
 	if in.Matches != nil {
 		in, out := &in.Matches, &out.Matches
-		*out = make([]Match, len(*in))
+		*out = make([]*Match, len(*in))
 		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(Match)
+				(*in).DeepCopyInto(*out)
+			}
 		}
 	}
 	return
