@@ -20,7 +20,6 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -29,8 +28,10 @@ func (in *Destination) DeepCopyInto(out *Destination) {
 	*out = *in
 	if in.DestinationSelector != nil {
 		in, out := &in.DestinationSelector, &out.DestinationSelector
-		*out = new(metav1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	return
 }
@@ -50,8 +51,10 @@ func (in *Match) DeepCopyInto(out *Match) {
 	*out = *in
 	if in.SourceSelector != nil {
 		in, out := &in.SourceSelector, &out.SourceSelector
-		*out = new(metav1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes

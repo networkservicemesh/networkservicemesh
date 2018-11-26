@@ -30,13 +30,13 @@ type NetworkServiceSpec struct {
 }
 
 type Match struct {
-	SourceSelector *metaV1.LabelSelector `json:"sourceSelector,omitempty"`
-	Routes         []*Destination        `json:"route"`
+	SourceSelector map[string]string `json:"sourceSelector,omitempty"`
+	Routes         []*Destination    `json:"route"`
 }
 
 type Destination struct {
-	DestinationSelector *metaV1.LabelSelector `json:"destinationSelector,omitempty"`
-	Weight              uint32                `json:"weight,omitempty"`
+	DestinationSelector map[string]string `json:"destinationSelector,omitempty"`
+	Weight              uint32            `json:"weight,omitempty"`
 }
 
 type NetworkServiceStatus struct{}

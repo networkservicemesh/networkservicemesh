@@ -118,7 +118,3 @@ required = [
     name = "k8s.io/kube-openapi"
     unused-packages = false
     non-go = false
-
-  [[prune.project]]
-    name = "k8s.io/apimachinery"
-    non-go = false
