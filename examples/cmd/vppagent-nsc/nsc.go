@@ -18,6 +18,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"path"
 	"sync"
 	"syscall"
 	"time"
@@ -30,6 +31,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	DefaultVPPAgentEndpoint = "localhost:9113"
+)
+
 func main() {
 	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
 	netns, err := tools.GetCurrentNS()
@@ -40,6 +45,10 @@ func main() {
 
 	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
 	// TODO handle case where env variable is not set
+
+	workspace, _ := os.LookupEnv(nsmd.WorkspaceEnv)
+	logrus.Infof("workspace: %s", workspace)
+	// TODO handle missing env
 
 	logrus.Infof("Connecting to nsm server on socket: %s...", nsmServerSocket)
 	if _, err := os.Stat(nsmServerSocket); err != nil {
@@ -62,7 +71,7 @@ func main() {
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: "vppagent-icmp-responder",
+			NetworkService: "icmp-responder",
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
@@ -70,18 +79,19 @@ func main() {
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: connection.MechanismType_KERNEL_INTERFACE,
+				Type: connection.MechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
-					connection.NetNsInodeKey:    netns,
-					connection.InterfaceNameKey: "icmp-responder1",
+					connection.InterfaceNameKey: "icmp-responder",
+					connection.SocketFilename:   path.Join("icmp-responder", "memif.sock"),
 				},
 			},
 		},
 	}
 
+	var reply *connection.Connection
 	for ; true; <-time.After(5 * time.Second) {
 		logrus.Infof("Sending request %v", request)
-		reply, err := nsmConnectionClient.Request(context.Background(), request)
+		reply, err = nsmConnectionClient.Request(context.Background(), request)
 
 		if err != nil {
 			logrus.Errorf("failure to request connection with error: %+v", err)
@@ -91,6 +101,14 @@ func main() {
 		break
 		// Init related activities ends here
 	}
+	if err := Reset(DefaultVPPAgentEndpoint); err != nil {
+		logrus.Fatal(err)
+	}
+
+	if err := CreateVppInterface(reply, workspace, DefaultVPPAgentEndpoint); err != nil {
+		logrus.Fatal(err)
+	}
+
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
 	var wg sync.WaitGroup
 	wg.Add(1)
