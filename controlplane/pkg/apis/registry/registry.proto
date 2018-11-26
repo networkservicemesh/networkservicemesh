@@ -4,6 +4,7 @@ package registry;
 
 import "github.com/golang/protobuf/ptypes/empty/empty.proto";
 import "github.com/golang/protobuf/ptypes/timestamp/timestamp.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 
 message NetworkServiceEndpoint {
     string network_service_name = 1;
@@ -17,6 +18,15 @@ message NetworkServiceEndpoint {
 message NetworkService {
     string name = 1;
     string payload = 2;
+    message Match {
+        k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector source_selector = 1;
+        message Destination{
+            k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector destination_selector = 1;
+            uint32 weight = 2;
+        }
+        Destination route = 2;
+    };
+    repeated Match matches = 3;
 }
 
 message NetworkServiceManager {
