@@ -6,6 +6,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	connection2 "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -26,11 +27,29 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	srv.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
+		RemoteMechanisms: []*connection2.Mechanism{
+			&connection2.Mechanism{
+				Type: connection2.MechanismType_VXLAN,
+				Parameters: map[string]string{
+					connection2.VXLANVNI:   "1",
+					connection2.VXLANSrcIP: "127.0.0.1",
+				},
+			},
+		},
 	})
 
 	srv2.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
+		RemoteMechanisms: []*connection2.Mechanism{
+			&connection2.Mechanism{
+				Type: connection2.MechanismType_VXLAN,
+				Parameters: map[string]string{
+					connection2.VXLANVNI:   "3",
+					connection2.VXLANSrcIP: "127.0.0.2",
+				},
+			},
+		},
 	})
 
 	// Register in both
@@ -40,11 +59,11 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 			Payload: "test",
 		},
 		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: "my_man",
+			Name: srv2.serviceRegistry.GetPublicAPI(),
 			Url:  srv2.serviceRegistry.GetPublicAPI(),
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceManagerName: "my_man",
+			NetworkServiceManagerName: srv2.serviceRegistry.GetPublicAPI(),
 			Payload:                   "test",
 			NetworkServiceName:        "golden_network",
 			EndpointName:              "golden_network_provider",

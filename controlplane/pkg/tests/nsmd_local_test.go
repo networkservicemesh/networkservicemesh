@@ -31,11 +31,11 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 			Payload: "test",
 		},
 		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: "my_man",
+			Name: srv.serviceRegistry.GetPublicAPI(),
 			Url:  srv.serviceRegistry.GetPublicAPI(),
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceManagerName: "my_man",
+			NetworkServiceManagerName: srv.serviceRegistry.GetPublicAPI(),
 			Payload:                   "test",
 			NetworkServiceName:        "golden_network",
 			EndpointName:              "golden_network_provider",

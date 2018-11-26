@@ -23,9 +23,10 @@ import (
 type nsmdTestServiceDiscovery struct {
 	apiRegistry *testApiRegistry
 
-	services  map[string]*registry.NetworkService
-	managers  map[string]*registry.NetworkServiceManager
-	endpoints map[string]*registry.NetworkServiceEndpoint
+	services   map[string]*registry.NetworkService
+	managers   map[string]*registry.NetworkServiceManager
+	endpoints  map[string]*registry.NetworkServiceEndpoint
+	nsmCounter int
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
@@ -33,6 +34,8 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 		impl.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
 	}
 	if in.GetNetworkServiceManager() != nil {
+		in.NetworkServiceManager.Name = in.GetNetworkServiceManager().Url
+		impl.nsmCounter++
 		impl.managers[in.GetNetworkServiceManager().Name] = in.GetNetworkServiceManager()
 	}
 	if in.GetNetworkserviceEndpoint() != nil {
@@ -51,6 +54,7 @@ func newNSMDTestServiceDiscovery(testApi *testApiRegistry) *nsmdTestServiceDisco
 		endpoints:   make(map[string]*registry.NetworkServiceEndpoint),
 		managers:    make(map[string]*registry.NetworkServiceManager),
 		apiRegistry: testApi,
+		nsmCounter:  0,
 	}
 }
 
@@ -63,7 +67,9 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 			endpoints = append(endpoints, ep)
 
 			mgr := impl.managers[ep.NetworkServiceManagerName]
-			managers[mgr.Name] = mgr
+			if mgr != nil {
+				managers[mgr.Name] = mgr
+			}
 		}
 	}
 
@@ -78,6 +84,10 @@ type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
 	testDataplaneConnection *testDataplaneConnection
+}
+
+func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
+	// Do Nothing.
 }
 
 func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {

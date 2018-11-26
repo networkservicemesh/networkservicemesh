@@ -8,11 +8,9 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 
-	"sync"
-	"time"
-
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
@@ -89,20 +87,11 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 	return &nsmdapi.DeleteConnectionReply{}, nil
 }
 
-func waitForDataplaneAvailable(model model.Model) {
-	logrus.Info("Waiting for dataplane available...")
-	for ; true; <-time.After(100 * time.Millisecond) {
-		if dp, _ := model.SelectDataplane(); dp != nil {
-			break
-		}
-	}
-}
-
 func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) error {
 	if err := tools.SocketCleanup(ServerSock); err != nil {
 		return err
 	}
-	waitForDataplaneAvailable(model)
+	serviceRegistry.WaitForDataplaneAvailable(model)
 
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	nsm := nsmServer{

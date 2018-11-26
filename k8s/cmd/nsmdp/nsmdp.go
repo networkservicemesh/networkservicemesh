@@ -166,7 +166,7 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	nsm := &nsmClientEndpoints{
 		serviceRegistry: serviceRegistry,
 	}
-	
+
 	if err := startDeviceServer(nsm); err != nil {
 		return err
 	}

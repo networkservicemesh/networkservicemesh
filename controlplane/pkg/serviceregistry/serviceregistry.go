@@ -31,4 +31,6 @@ type ServiceRegistry interface {
 
 	EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 	RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
+
+	WaitForDataplaneAvailable(model model.Model)
 }

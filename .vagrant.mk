@@ -34,7 +34,11 @@ vagrant-resume:
 
 .PHONY: vagrant-ssh
 vagrant-ssh:
-	@cd scripts/vagrant; vagrant ssh
+	@cd scripts/vagrant; vagrant ssh master
+
+.PHONY: vagrant-ssh-slave
+vagrant-ssh-worker:
+	@cd scripts/vagrant; vagrant ssh worker
 
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:

@@ -186,3 +186,12 @@ func NewServiceRegistry() serviceregistry.ServiceRegistry {
 		stopRedial: true,
 	}
 }
+
+func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
+	logrus.Info("Waiting for dataplane available...")
+	for ; true; <-time.After(100 * time.Millisecond) {
+		if dp, _ := model.SelectDataplane(); dp != nil {
+			break
+		}
+	}
+}

@@ -39,19 +39,26 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 		logrus.Error(err)
 		return nil, err
 	}
-	// Create a ConnectId for the request.GetConnection()
-	request.GetConnection().Id = srv.model.ConnectionId()
-	// TODO: Mechanism selection
-	request.GetConnection().Mechanism = request.MechanismPreferences[0]
 
-	// Get endpoints
-	endpoint, err := getEndpoint(srv, request)
+	// get dataplane
+	dp, err := srv.model.SelectDataplane()
 	if err != nil {
 		return nil, err
 	}
 
-	// get dataplane
-	dp, err := srv.model.SelectDataplane()
+	// Create a ConnectId for the request.GetConnection()
+	request.GetConnection().Id = srv.model.ConnectionId()
+
+	mechanism, err := srv.selectMechanism(request, dp)
+
+	request.GetConnection().Mechanism = mechanism
+
+	// We need to select a dataplane Remote address to be good one.
+
+	logrus.Infof("Selected Remote Mechanism: %+v", request.MechanismPreferences[0])
+
+	// Get endpoints
+	endpoint, err := getEndpoint(srv, request)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +96,30 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	srv.monitor.UpdateConnection(con)
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return con, nil
+}
+
+func findMechanism(MechanismPreferences []*remote_connection.Mechanism, mechanismType remote_connection.MechanismType) *remote_connection.Mechanism {
+	for _, m := range MechanismPreferences {
+		if m.Type == mechanismType {
+			return m
+		}
+	}
+	return nil
+}
+func (srv *remoteNetworkServiceServer) selectMechanism(request *remote_networkservice.NetworkServiceRequest, dataplane *model.Dataplane) (*remote_connection.Mechanism, error) {
+	for _, mechanism := range request.MechanismPreferences {
+		dp_mechanism := findMechanism(dataplane.RemoteMechanisms, remote_connection.MechanismType_VXLAN)
+		if dp_mechanism == nil {
+			continue
+		}
+		// TODO: Add other mechanisms support
+		if mechanism.Type == remote_connection.MechanismType_VXLAN {
+			// Update DST IP to be ours
+			mechanism.Parameters[remote_connection.VXLANDstIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
+		}
+		return mechanism, nil
+	}
+	return nil, errors.New(fmt.Sprintf("Failed to select mechanism. No matched mechanisms found..."))
 }
 
 func (srv *remoteNetworkServiceServer) createLocalNSERequest(endpoint *registry.NSERegistration, request *remote_networkservice.NetworkServiceRequest) *networkservice.NetworkServiceRequest {
