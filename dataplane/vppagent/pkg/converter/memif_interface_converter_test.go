@@ -17,7 +17,7 @@ const (
 	socketFilename       = "test.sock"
 	connectionId         = "1"
 	interfaceName        = "test-interface"
-	baseDir              = "./tmp-test-basedir"
+	baseDir              = "./tmp-test-vpp-memif"
 	srcIp                = "10.30.1.1/30"
 	dstIp                = "10.30.1.2/30"
 )
@@ -51,9 +51,14 @@ func createTestConnection() *connection.Connection {
 	}
 }
 
-func checkInterface(intf *interfaces.Interfaces_Interface, ip string) {
+var ipAddress = map[ConnectionContextSide][]string{
+	SOURCE:      {srcIp},
+	DESTINATION: {dstIp},
+}
+
+func checkInterface(intf *interfaces.Interfaces_Interface, side ConnectionContextSide) {
 	Expect(intf.Name).To(Equal(interfaceName))
-	Expect(intf.IpAddresses).To(Equal([]string{ip}))
+	Expect(intf.IpAddresses).To(Equal(ipAddress[side]))
 	Expect(intf.Type).To(Equal(interfaces.InterfaceType_MEMORY_INTERFACE))
 }
 
@@ -75,7 +80,7 @@ func TestSourceSideConverter(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest.Interfaces[0], srcIp)
+	checkInterface(dataRequest.Interfaces[0], SOURCE)
 
 	Expect(dataRequest.Interfaces[0].Memif).ToNot(BeNil())
 	checkMemif(dataRequest.Interfaces[0].Memif, false)
@@ -94,7 +99,7 @@ func TestDestinationSideConverter(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest.Interfaces[0], dstIp)
+	checkInterface(dataRequest.Interfaces[0], NEITHER)
 
 	Expect(dataRequest.Interfaces[0].Memif).ToNot(BeNil())
 	checkMemif(dataRequest.Interfaces[0].Memif, false)
@@ -113,7 +118,7 @@ func TestTerminateDestinationSideConverter(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest.Interfaces[0], dstIp)
+	checkInterface(dataRequest.Interfaces[0], DESTINATION)
 
 	Expect(dataRequest.Interfaces[0].Memif).ToNot(BeNil())
 	checkMemif(dataRequest.Interfaces[0].Memif, true)
