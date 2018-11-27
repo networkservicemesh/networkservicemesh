@@ -3,7 +3,7 @@ jobs:
   sanity-check:
     working_directory: /go/src/github.com/ligato/networkservicemesh
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.10
     steps:
       - checkout
       - run:
