@@ -13,10 +13,10 @@ jobs:
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
       - run: make vet check dep-check
       - run: go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/
-      - run: go get -u github.com/golang/protobuf/protoc-gen-go
+      - run: go install ./vendor/github.com/golang/protobuf/protoc-gen-go/
       - run: go get golang.org/x/tools/cmd/stringer
       - run: ./scripts/install-protoc.sh
-      - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit";exit 1)
+      - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
 
   build:
