@@ -16,10 +16,10 @@ package vppagent
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -114,7 +114,7 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-		return memif.DirectConnection(crossConnect)
+		return memif.DirectConnection(crossConnect, v.baseDir)
 	}
 
 	// TODO look at whether keepin a single conn might be better

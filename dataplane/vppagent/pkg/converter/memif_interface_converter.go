@@ -38,14 +38,6 @@ func NewMemifInterfaceConverter(c *connection.Connection, conversionParameters *
 	return rv
 }
 
-func NewMemifInterfaceWithIpConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
-	rv := &MemifInterfaceConverter{
-		Connection:           c,
-		conversionParameters: conversionParameters,
-	}
-	return rv
-}
-
 func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
 	if rv == nil {
 		rv = &rpc.DataRequest{}
@@ -62,7 +54,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataR
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
 	}
-	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
+	if c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
 	}
 

@@ -1,44 +1,57 @@
 package memif
 
 import (
-	"fmt"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 )
 
-func DirectConnection(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-	srcMechanism := crossConnect.GetLocalSource().GetMechanism()
-	dstMechanism := crossConnect.GetLocalDestination().GetMechanism()
-	master, slave := MasterSlave(srcMechanism, dstMechanism)
+func DirectConnection(crossConnect *crossconnect.CrossConnect, baseDir string) (*crossconnect.CrossConnect, error) {
+	src := crossConnect.GetLocalSource().GetMechanism()
+	dst := crossConnect.GetLocalDestination().GetMechanism()
 
-	masterSocketDir := path.Join(BuildMemifDirectory(master), crossConnect.Id)
-	slaveSocketDir := path.Join(BuildMemifDirectory(slave), crossConnect.Id)
+	fullyQualifiedDstSocketFilename := path.Join(baseDir, dst.GetWorkspace(), dst.GetSocketFilename())
+	dstSocketDir, dstSocketFilename := path.Split(fullyQualifiedDstSocketFilename)
 
-	if err := CreateDirectory(masterSocketDir); err != nil {
+	fullyQualifiedSrcSocketFilename := path.Join(baseDir, src.GetWorkspace(), src.GetSocketFilename())
+	srcSocketDir, srcSocketFilename := path.Split(fullyQualifiedSrcSocketFilename)
+
+	if err := createDirectory(srcSocketDir); err != nil {
 		return nil, err
 	}
 
-	if err := CreateDirectory(slaveSocketDir); err != nil {
+	if err := mount.Mount(dstSocketDir, srcSocketDir, "hard", "bind"); err != nil {
+		deleteFolder(srcSocketDir)
 		return nil, err
 	}
 
-	if err := mount.Mount(masterSocketDir, slaveSocketDir, "hard", "bind"); err != nil {
-		return nil, err
+	if srcSocketFilename == dstSocketFilename {
+		return crossConnect, nil
 	}
-	logrus.Infof("Successfully mount folder %s to %s", masterSocketDir, slaveSocketDir)
 
-	if master.GetParameters()[local.SocketFilename] != slave.GetParameters()[local.SocketFilename] {
-		masterSocket := path.Join(masterSocketDir, master.GetParameters()[local.SocketFilename])
-		slaveSocket := path.Join(slaveSocketDir, slave.GetParameters()[local.SocketFilename])
-
-		if err := os.Symlink(masterSocket, slaveSocket); err != nil {
-			return nil, fmt.Errorf("failed to create symlink: %s", err)
-		}
+	if err := os.Symlink(fullyQualifiedDstSocketFilename, fullyQualifiedSrcSocketFilename); err != nil {
+		mount.Unmount(srcSocketDir)
+		deleteFolder(srcSocketDir)
+		return nil, err
 	}
 
 	return crossConnect, nil
+}
+
+func createDirectory(path string) error {
+	if err := os.MkdirAll(path, 0777); err != nil {
+		return err
+	}
+	logrus.Infof("Create directory: %s", path)
+	return nil
+}
+
+func deleteFolder(path string) error {
+	if err := os.RemoveAll(path); err != nil {
+		return err
+	}
+	logrus.Infof("Remove directory: %s", path)
+	return nil
 }
