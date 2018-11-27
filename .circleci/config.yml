@@ -99,7 +99,9 @@ jobs:
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
-          command: ./scripts/circle-integration-tests.sh
+          command: |
+            ./scripts/circle-integration-tests.sh
+            make k8s-check
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:

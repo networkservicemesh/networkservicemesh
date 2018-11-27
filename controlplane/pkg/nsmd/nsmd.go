@@ -4,13 +4,15 @@ import (
 	"fmt"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 
+	"sync"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"sync"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
@@ -106,6 +108,7 @@ func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRe
 		logrus.Errorf("failed to start device plugin grpc server %+v", err)
 		return err
 	}
+	setLocalNSM(model, serviceRegistry)
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			logrus.Error("failed to start device plugin grpc server")
@@ -120,6 +123,26 @@ func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRe
 	conn.Close()
 	logrus.Infof("NSM gRPC socket: %s is operational", sock.Addr().String())
 
+	return nil
+}
+
+func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) error {
+	client, err := serviceRegistry.RegistryClient()
+	if err != nil {
+		err = fmt.Errorf("Failed to get RegistryClient: %s", err)
+		return err
+	}
+	nsm, err := client.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Url: serviceRegistry.GetPublicAPI(),
+		},
+	})
+	if err != nil {
+		err = fmt.Errorf("Failed to get my own NetworkServiceManager: %s", err)
+		return err
+	}
+	logrus.Infof("Setting local NSM %v", nsm.GetNetworkServiceManager())
+	model.SetNsm(nsm.GetNetworkServiceManager())
 	return nil
 }
 

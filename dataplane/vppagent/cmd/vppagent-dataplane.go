@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -96,10 +97,15 @@ func main() {
 	if srcIp == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIpEnvKey, srcIpStr)
 	}
+	ifaceName, srcIpNet, err := MgmtIface(srcIp)
+	if err != nil {
+		logrus.Fatalf("Unable to extract interface name for SrcIP: %s", srcIp)
+	}
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", srcIp, ifaceName, srcIpNet)
 
 	logrus.Infof("dataplaneName: %s", dataplaneName)
 
-	err := tools.SocketCleanup(dataplaneSocket)
+	err = tools.SocketCleanup(dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", dataplaneSocket, err)
 	}
@@ -108,7 +114,7 @@ func main() {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 	}
 	logrus.Info("Creating vppagent server")
-	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp)
+	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp, *srcIpNet, ifaceName)
 	go server.Serve(ln)
 	logrus.Info("vppagent server serving")
 
@@ -122,4 +128,28 @@ func main() {
 		logrus.Info("Closing Dataplane Registration")
 		registration.Close()
 	}
+}
+
+func MgmtIface(srcIp net.IP) (string, *net.IPNet, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", nil, err
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", nil, err
+		}
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				if v.IP.Equal(srcIp) {
+					return iface.Name, v, nil
+				}
+			default:
+				return "", nil, fmt.Errorf("Type of addr not net.IPNET")
+			}
+		}
+	}
+	return "", nil, nil
 }

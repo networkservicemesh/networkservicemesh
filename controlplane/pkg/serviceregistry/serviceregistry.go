@@ -1,6 +1,8 @@
 package serviceregistry
 
 import (
+	"net"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
@@ -8,7 +10,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type ApiRegistry interface {
@@ -33,4 +34,6 @@ type ServiceRegistry interface {
 	RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 
 	WaitForDataplaneAvailable(model model.Model)
+
+	WorkspaceName(endpoint *registry.NSERegistration) string
 }

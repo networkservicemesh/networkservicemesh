@@ -1,9 +1,7 @@
 package nsmd
 
 import (
-	"errors"
 	"fmt"
-	"math/rand"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -43,32 +41,30 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceReg
 	}
 }
 
-func getEndpointsFromRegistry(serviceRegistry serviceregistry.ServiceRegistry, networkServiceName string) []*registry.NSERegistration {
+func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, networkServiceName string) *registry.NSERegistration {
 	// Get endpoints
-	discoveryClient, err := serviceRegistry.NetworkServiceDiscovery()
-	result := []*registry.NSERegistration{}
+	discoveryClient, err := srv.serviceRegistry.NetworkServiceDiscovery()
 	if err != nil {
 		logrus.Error(err)
-		return result
+		return nil
 	}
 	nseRequest := &registry.FindNetworkServiceRequest{
 		NetworkServiceName: networkServiceName,
 	}
-	endpointResponse, err := discoveryClient.FindNetworkService(context.Background(), nseRequest)
+	endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 	if err != nil {
 		logrus.Error(err)
-		return result
+		return nil
 	}
-	for _, nse := range endpointResponse.NetworkServiceEndpoints {
-		result = append(result, &registry.NSERegistration{
-			NetworkServiceManager:  endpointResponse.NetworkServiceManagers[nse.NetworkServiceManagerName],
-			NetworkserviceEndpoint: nse,
-			NetworkService: &registry.NetworkService{
-				Name: nse.NetworkServiceName,
-			},
-		})
+	endpoint := srv.model.GetSelector().SelectEndpoint(endpointResponse.GetNetworkService(), endpointResponse.GetNetworkServiceEndpoints())
+	if endpoint == nil {
+		return nil
 	}
-	return result
+	return &registry.NSERegistration{
+		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
+		NetworkserviceEndpoint: endpoint,
+		NetworkService:         endpointResponse.GetNetworkService(),
+	}
 }
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -101,7 +97,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		defer dataplaneConn.Close()
 	}
 
-	endpoint, err := srv.getEndpoint(request)
+	endpoint := srv.getEndpointFromRegistry(ctx, request.GetConnection().GetNetworkService())
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +116,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 	logrus.Infof("Sending request to dataplane: %v", dpApiConnection)
 
-	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
-	defer dpCancel()
-	rv, err := dataplaneClient.Request(dpCtx, dpApiConnection)
+	rv, err := dataplaneClient.Request(ctx, dpApiConnection)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
 		return nil, err
@@ -155,29 +149,6 @@ func (srv *networkServiceServer) createLocalNSERequest(endpoint *registry.NSEReg
 		},
 	}
 	return message
-}
-
-func (srv *networkServiceServer) getEndpoint(request *networkservice.NetworkServiceRequest) (*registry.NSERegistration, error) {
-	networkService := request.GetConnection().GetNetworkService()
-	logrus.Infof("Selecting  endpoint for %s", networkService)
-	endpoint, err := srv.model.SelectEndpoint(networkService)
-	if err == nil {
-		return endpoint, nil
-	}
-	logrus.Infof("No local endpoint with name: %s found...", networkService)
-	// Request endpoints from registry
-	endpoints := getEndpointsFromRegistry(srv.serviceRegistry, networkService)
-	if len(endpoints) == 0 {
-		return nil, errors.New(fmt.Sprintf("network service '%s' not found", request.Connection.NetworkService))
-	}
-
-	// Select endpoint at random
-	idx := rand.Intn(len(endpoints))
-	endpoint = endpoints[idx]
-	if endpoint == nil {
-		return nil, errors.New("should not see this error, scaffolding called")
-	}
-	return endpoint, nil
 }
 
 func (srv *networkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
@@ -272,8 +243,12 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 
 	message := srv.createRemoteNSERequest(endpoint, request, dataplane)
 	nseConnection, e := client.Request(ctx, message)
+	if e != nil {
+		logrus.Infof("Received Error in Response to '%s'.Request(%v): %s", message.GetConnection().GetDestinationNetworkServiceManagerName(), message, e)
+		return nil, e
+	}
 
-	logrus.Infof("Recieved Remote NSE Connection %+v", nseConnection)
+	logrus.Infof("Received Reply to '%s'.Request(%v) %v", message.GetConnection().GetDestinationNetworkServiceManagerName(), message, nseConnection)
 
 	if e != nil {
 		logrus.Errorf("error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
@@ -298,7 +273,7 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 		remoteDst := m.Parameters[remote_connection.VXLANDstIP]
 		nseConnection.GetMechanism().Parameters[remote_connection.VXLANDstIP] = m.Parameters[remote_connection.VXLANSrcIP]
 		nseConnection.GetMechanism().Parameters[remote_connection.VXLANSrcIP] = remoteDst
-		nseConnection.GetMechanism().Parameters[remote_connection.VXLANVNI] = "1"
+		nseConnection.GetMechanism().Parameters[remote_connection.VXLANVNI] = srv.model.Vni()
 	}
 	dpApiConnection := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
@@ -324,10 +299,13 @@ func (srv *networkServiceServer) createRemoteNSERequest(endpoint *registry.NSERe
 	message := &remote_networkservice.NetworkServiceRequest{
 		Connection: &remote_connection.Connection{
 			// TODO track connection ids
-			Id:             srv.model.ConnectionId(),
-			NetworkService: endpoint.GetNetworkService().GetName(),
-			Context:        request.GetConnection().GetContext(),
-			Labels:         nil,
+			Id:                                   srv.model.ConnectionId(),
+			NetworkService:                       request.GetConnection().GetNetworkService(),
+			Context:                              request.GetConnection().GetContext(),
+			Labels:                               request.GetConnection().GetLabels(),
+			DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
+			SourceNetworkServiceManagerName:      srv.model.GetNsm().GetName(),
+			NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
 		},
 		MechanismPreferences: remoteM,
 	}

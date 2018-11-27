@@ -3,6 +3,9 @@ package tests
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -16,8 +19,6 @@ import (
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"net"
-	"time"
 )
 
 type nsmdTestServiceDiscovery struct {
@@ -88,6 +89,10 @@ type nsmdTestServiceRegistry struct {
 
 func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
 	// Do Nothing.
+}
+
+func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
+	return ""
 }
 
 func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {

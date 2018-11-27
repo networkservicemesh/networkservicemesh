@@ -3,12 +3,13 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/connectivity"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc/connectivity"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
@@ -91,6 +92,15 @@ func (impl *nsmdServiceRegistry) EndpointConnection(endpoint *registry.NSERegist
 	client := networkservice.NewNetworkServiceClient(nseConn)
 
 	return client, nseConn, nil
+}
+
+func (impl *nsmdServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
+	// TODO - this is terribly dirty and needs to be fixed
+	workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
+	if workspace != nil { // In case of tests this could be empty
+		return workspace.Name()
+	}
+	return ""
 }
 
 func (impl *nsmdServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {

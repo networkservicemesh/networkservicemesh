@@ -4,6 +4,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+
 	"github.com/go-errors/errors"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -49,6 +51,16 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		logrus.Errorf("Failed to register nsm: %s", err)
 		return nil, err
+	}
+	lastSeen, err := ptypes.TimestampProto(nsm.Status.LastSeen.Time)
+	if err != nil {
+		logrus.Errorf("Failed time conversion of %v", nsm.Status.LastSeen)
+	}
+	request.NetworkServiceManager = &registry.NetworkServiceManager{
+		Name:     nsm.GetName(),
+		Url:      nsm.Status.URL,
+		State:    string(nsm.Status.State),
+		LastSeen: lastSeen,
 	}
 
 	labels := request.GetNetworkserviceEndpoint().GetLabels()

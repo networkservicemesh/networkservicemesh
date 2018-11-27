@@ -15,11 +15,11 @@
 package nsmd
 
 import (
-	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"net"
 	"os"
 	"sync"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -79,18 +79,6 @@ func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegi
 	w.listener = listener
 	logrus.Infof("Creating new NetworkServiceRegistryServer")
 	w.registryServer = NewRegistryServer(model, w, serviceRegistry)
-	// TODO - do something more elegant than this to get our NSM
-	if model.GetNsm() == nil {
-		nsm, err := w.registryServer.RegisterNSE(context.Background(), &registry.NSERegistration{
-			NetworkServiceManager: &registry.NetworkServiceManager{
-				Url: serviceRegistry.GetPublicAPI(),
-			},
-		})
-		if err != nil {
-			logrus.Errorf("Failed to get my own NetworkServiceManager: %s", err)
-		}
-		model.SetNsm(nsm.GetNetworkServiceManager())
-	}
 
 	logrus.Infof("Creating new MonitorConnectionServer")
 	w.monitorConnectionServer = monitor_connection_server.NewMonitorConnectionServer()

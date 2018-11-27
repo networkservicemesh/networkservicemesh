@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -16,8 +18,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"math/rand"
-	"time"
 )
 
 const (
@@ -58,10 +58,7 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	logrus.Infof("Selected Remote Mechanism: %+v", request.MechanismPreferences[0])
 
 	// Get endpoints
-	endpoint, err := getEndpoint(srv, request)
-	if err != nil {
-		return nil, err
-	}
+	endpoint := srv.model.GetEndpoint(request.GetConnection().GetNetworkServiceEndpointName())
 
 	logrus.Infof("RemoteNSMD: Preparing to program dataplane: %v...", dp)
 
@@ -119,7 +116,7 @@ func (srv *remoteNetworkServiceServer) selectMechanism(request *remote_networkse
 			remoteSrc := mechanism.Parameters[remote_connection.VXLANSrcIP]
 			mechanism.Parameters[remote_connection.VXLANSrcIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
 			mechanism.Parameters[remote_connection.VXLANDstIP] = remoteSrc
-			mechanism.Parameters[remote_connection.VXLANVNI] = "1"
+			mechanism.Parameters[remote_connection.VXLANVNI] = srv.model.Vni()
 		}
 		return mechanism, nil
 	}
@@ -131,9 +128,9 @@ func (srv *remoteNetworkServiceServer) createLocalNSERequest(endpoint *registry.
 		Connection: &connection.Connection{
 			// TODO track connection ids
 			Id:             srv.model.ConnectionId(),
-			NetworkService: endpoint.GetNetworkService().GetName(),
+			NetworkService: request.GetConnection().GetNetworkService(),
 			Context:        request.GetConnection().GetContext(),
-			Labels:         nil,
+			Labels:         request.GetConnection().GetLabels(),
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			&connection.Mechanism{
@@ -173,6 +170,10 @@ func (srv *remoteNetworkServiceServer) performLocalNSERequest(ctx context.Contex
 	}
 
 	request.GetConnection().Context = nseConnection.Context
+	// TODO - this is a terrible dirty way to do this, needs cleanup
+	nseConnection.GetMechanism().GetParameters()[connection.Workspace] = srv.serviceRegistry.WorkspaceName(endpoint)
+	logrus.Infof("Set ")
+
 	err = request.GetConnection().IsComplete()
 	if err != nil {
 		err = fmt.Errorf("Failure Validating request.GetConnection(): %s %+v", err, request.GetConnection())
@@ -211,22 +212,6 @@ func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *re
 	srv.monitor.DeleteConnection(connection)
 	//TODO: Add call to dataplane
 	return nil, nil
-}
-
-func getEndpoint(srv *remoteNetworkServiceServer, request *remote_networkservice.NetworkServiceRequest) (*registry.NSERegistration, error) {
-	endpoints := srv.model.GetNetworkServiceEndpoints(request.GetConnection().GetNetworkService())
-	if len(endpoints) == 0 {
-		// Request endpoints from registry
-		return nil, errors.New(fmt.Sprintf("network service '%s' not found", request.Connection.NetworkService))
-	}
-
-	// Select endpoint at random
-	idx := rand.Intn(len(endpoints))
-	endpoint := endpoints[idx]
-	if endpoint == nil {
-		return nil, errors.New("should not see this error, scaffolding called")
-	}
-	return endpoint, nil
 }
 
 func NewRemoteNetworkServiceServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, grpcServer *grpc.Server) {

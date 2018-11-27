@@ -29,6 +29,8 @@ import (
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
+
+	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -41,17 +43,23 @@ type VPPAgent struct {
 	monitor          monitor_crossconnect_server.MonitorCrossConnectServer
 
 	// Internal state from here on
-	mechanisms *Mechanisms
-	updateCh   chan *Mechanisms
-	baseDir    string
+	mechanisms    *Mechanisms
+	updateCh      chan *Mechanisms
+	baseDir       string
+	srcIP         net.IP
+	srcIPNet      net.IPNet
+	mgmtIfaceName string
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string, srcIp net.IP) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
 		vppAgentEndpoint: vppAgentEndpoint,
 		baseDir:          baseDir,
+		srcIP:            srcIP,
+		srcIPNet:         srcIPNet,
+		mgmtIfaceName:    mgmtIfaceName,
 		monitor:          monitor,
 		mechanisms: &Mechanisms{
 			localMechanisms: []*local.Mechanism{
@@ -66,13 +74,14 @@ func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.Mo
 				{
 					Type: remote.MechanismType_VXLAN,
 					Parameters: map[string]string{
-						remote.VXLANSrcIP: srcIp.String(),
+						remote.VXLANSrcIP: srcIP.String(),
 					},
 				},
 			},
 		},
 	}
 	rv.reset()
+	rv.programMgmtInterface()
 	return rv
 }
 
@@ -171,6 +180,38 @@ func (v *VPPAgent) reset() error {
 		logrus.Errorf("failed to reset vppagent: %s", err)
 	}
 	logrus.Infof("Finished resetting vppagent...")
+	return nil
+}
+
+func (v *VPPAgent) programMgmtInterface() error {
+	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
+	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("can't dial grpc server: %v", err)
+		return err
+	}
+	defer conn.Close()
+	client := rpc.NewDataChangeServiceClient(conn)
+	dataRequest := &rpc.DataRequest{
+		Interfaces: []*interfaces.Interfaces_Interface{
+			&interfaces.Interfaces_Interface{
+				Name:        "mgmt",
+				Type:        interfaces.InterfaceType_AF_PACKET_INTERFACE,
+				Enabled:     true,
+				IpAddresses: []string{v.srcIPNet.String()},
+				Afpacket: &interfaces.Interfaces_Interface_Afpacket{
+					HostIfName: v.mgmtIfaceName,
+				},
+			},
+		},
+	}
+	logrus.Infof("Setting up Mgmt Interface %v", dataRequest)
+	_, err = client.Put(context.Background(), dataRequest)
+	if err != nil {
+		logrus.Errorf("Error Setting up Mgmt Interface: %s", err)
+		return err
+	}
 	return nil
 }
 
