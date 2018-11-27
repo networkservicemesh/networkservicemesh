@@ -124,7 +124,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		}
 		err = request.GetConnection().IsComplete()
 		if err != nil {
-			err = fmt.Errorf("failure Validating NSE Connection: %s", err)
+			err = fmt.Errorf("failure Validating NSC Connection: %s", err)
 			return nil, err
 		}
 
