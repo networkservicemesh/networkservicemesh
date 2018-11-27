@@ -220,12 +220,12 @@ type testApiRegistry struct {
 }
 
 func (impl *testApiRegistry) NewNSMServerListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:" + strconv.Itoa(impl.nsmdPort))
+	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(impl.nsmdPort))
 	return listener, err
 }
 
 func (impl *testApiRegistry) NewPublicListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:" + strconv.Itoa(impl.nsmdPublicPort))
+	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(impl.nsmdPublicPort))
 	return listener, err
 }
 
@@ -236,7 +236,7 @@ func newTestApiRegistry() *testApiRegistry {
 	nsmdPublicPort := apiPortIterator + 1
 	apiPortIterator += 2
 	return &testApiRegistry{
-		nsmdPort: nsmdPort,
+		nsmdPort:       nsmdPort,
 		nsmdPublicPort: nsmdPublicPort,
 	}
 }

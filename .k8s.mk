@@ -42,8 +42,18 @@ include .docker.mk
 .PHONY: k8s-deploy
 k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 
+.PHONY: k8s-redeploy
+k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
+
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
+	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
+	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
+
+
+
+.PHONY: k8s-%-deployonly
+k8s-%-deployonly:
 	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
 	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
 
@@ -144,6 +154,9 @@ k8s-%-logs:
 		echo "NSC Logs: $${pod}:"; \
 		kubectl logs $${pod} || true; \
 		kubectl logs -p $${pod} || true; \
+		echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
+		echo 'Network information'; \
+		kubectl exec -ti $${pod} ifconfig; \
 	done
 
 .PHONY: k8s-nsmd-logs
@@ -156,6 +169,9 @@ k8s-nsmd-logs:
 			echo "K8s logs for $${pod} container $${container}"; \
 			kubectl logs $${pod} --container $${container} || true; \
 			kubectl logs -p $${pod} --container $${container} || true ;\
+			echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
+			echo 'NSMD Network information'; \
+			kubectl exec -ti $${pod} --container $${container} ifconfig; \
 		done \
 	done
 

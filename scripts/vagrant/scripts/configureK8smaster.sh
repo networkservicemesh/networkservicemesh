@@ -1,6 +1,6 @@
 #!/bin/bash
 # Get the IP address that VirtualBox has given this VM
-IPADDR=$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
+IPADDR=192.168.1.51 #$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
 echo This VM has IP address "$IPADDR"
 
 # Setup Hugepages
@@ -9,7 +9,10 @@ echo This VM has IP address "$IPADDR"
 
 # Set up Kubernetes
 NODENAME=$(hostname -s)
-kubeadm init --apiserver-cert-extra-sans="$IPADDR"  --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME" --pod-network-cidr="10.32.0.0/12"
+kubeadm init --apiserver-cert-extra-sans="$IPADDR" --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME" --pod-network-cidr="10.32.0.0/12"
+
+echo "KUBELET_EXTRA_ARGS= --node-ip=${IPADDR}" > /etc/default/kubelet
+service kubelet restart
 
 # Set up admin creds for the vagrant user
 echo Copying credentials to /home/vagrant...
