@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc
+DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc vppagent-nsc
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -120,16 +120,17 @@ k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-buil
 .PHONY: k8s-icmp-responder-nse-save
 k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
 
-VPPAGENT_NSE_CONTAINERS = vppagent-nse vppagent-icmp-responder-nse
 .PHONY: k8s-vppagent-icmp-responder-nse-build
-k8s-vppagent-icmp-responder-nse-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_NSE_CONTAINERS)))
+k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-build
 
 .PHONY: k8s-vppagent-icmp-responder-nse-save
-k8s-vppagent-icmp-responder-nse-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_NSE_CONTAINERS)))
+k8s-vppagent-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-save
 
-.PHONY: k8s-vppagent-icmp-responder-nse-load-images
-k8s-vppagent-icmp-responder-nse-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_NSE_CONTAINERS)))
+.PHONY: k8s-vppagent-nsc-build
+k8s-vppagent-nsc-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-build
 
+.PHONY: k8s-vppagent-nsc-save
+k8s-vppagent-nsc-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-save
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
