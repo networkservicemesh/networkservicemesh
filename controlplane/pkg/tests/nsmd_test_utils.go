@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -219,19 +220,25 @@ type testApiRegistry struct {
 }
 
 func (impl *testApiRegistry) NewNSMServerListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:")
-	impl.nsmdPort = listener.Addr().(*net.TCPAddr).Port
+	listener, err := net.Listen("tcp", "127.0.0.1:" + strconv.Itoa(impl.nsmdPort))
 	return listener, err
 }
 
 func (impl *testApiRegistry) NewPublicListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:")
-	impl.nsmdPublicPort = listener.Addr().(*net.TCPAddr).Port
+	listener, err := net.Listen("tcp", "127.0.0.1:" + strconv.Itoa(impl.nsmdPublicPort))
 	return listener, err
 }
 
+var apiPortIterator = 5001
+
 func newTestApiRegistry() *testApiRegistry {
-	return &testApiRegistry{}
+	nsmdPort := apiPortIterator
+	nsmdPublicPort := apiPortIterator + 1
+	apiPortIterator += 2
+	return &testApiRegistry{
+		nsmdPort: nsmdPort,
+		nsmdPublicPort: nsmdPublicPort,
+	}
 }
 
 func newNetworkServiceClient(nsmServerSocket string) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {

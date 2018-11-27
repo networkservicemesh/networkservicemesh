@@ -8,16 +8,8 @@ spec:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: networkservicemesh.io/app
-                    operator: In
-                    values:
-                      - icmp-responder-nsc
-              topologyKey: "kubernetes.io/hostname"
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       containers:
         - name: nsc
           image: networkservicemesh/nsc:latest

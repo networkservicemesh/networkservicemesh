@@ -165,12 +165,37 @@ k8s-%-debug:
 
 .PHONY: k8s-nsmd-debug
 k8s-nsmd-debug:
-	@kubectl exec -ti $$(kubectl get pods | grep nsmd- | cut -d \  -f1) -c nsmd /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh nsmd
+	@kubectl exec -ti $(pod) -c nsmd /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh nsmd
 
-.PHONY: k8s-%-%-proxy
-k8s-%-forward:
-	@kubectl port-forward $$(kubectl get pods | grep nsmd- | cut -d \  -f1) $(port):$(port)
+.PHONY: k8s-forward
+k8s-forward:
+	@echo "Forwardning temote 40000 to $(port) for $(pod)"
+	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port):40000
 
 .PHONY: k8s-check
 k8s-check:
 	./scripts/nsc_ping_all.sh
+
+.PHONY: k8s-terminating-cleanup
+k8s-terminating-cleanup:
+	@kubectl get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs kubectl delete pods --force --grace-period 0 {}
+
+.PHONE: k8s-kublet-restart
+k8s-kublet-restart: vagrant-kublet-restart
+
+.PHONE: k8s-pods
+k8s-pods:
+	@kubectl get pods -o wide
+
+.PHONY: k8s-nsmd-master-tlogs
+k8s-nsmd-master-tlogs:
+	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-master | grep nsmd | cut -d\  -f1) -c nsmd
+
+.PHONY: k8s-nsmd-worker-tlogs
+k8s-nsmd-worker-tlogs:
+	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-worker | grep nsmd | cut -d\  -f1) -c nsmd
+
+
+
+
+

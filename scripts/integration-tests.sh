@@ -19,7 +19,7 @@
 
 function run_tests() {
     COMMIT=${COMMIT:-latest}
-    kubectl get nodes
+    kubectl get nodes -o wide
     kubectl version
     kubectl api-versions
     kubectl label --overwrite --all=true nodes app=nsmd-ds
