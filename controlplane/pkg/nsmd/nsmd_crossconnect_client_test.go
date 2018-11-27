@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func startAPIServer(model model.Model, nsmdApiAddress string ) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
+func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
 	if err != nil {
 		return err, nil, nil
@@ -38,7 +38,6 @@ func startAPIServer(model model.Model, nsmdApiAddress string ) (error, *grpc.Ser
 
 	return nil, grpcServer, monitor
 }
-
 
 func TestCCServerEmpty(t *testing.T) {
 	RegisterTestingT(t)
