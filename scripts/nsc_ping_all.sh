@@ -25,8 +25,12 @@ for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
     done
     if [ -z ${PingSuccess} ]; then
         EXIT_VAL=1
+        echo "+++++++==ERROR==ERROR=============================================================================+++++"
         echo "NSC ${nsc} failed to connect to an icmp-responder NetworkService"
         kubectl get pod "${nsc}" -o wide
+        echo "POD ${nsc} Network dump -------------------------------"
+        kubectl exec -ti "${nsc}" ifconfig
+        echo "+++++++==ERROR==ERROR=============================================================================+++++"
     fi
     unset PingSuccess
 done
