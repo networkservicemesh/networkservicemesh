@@ -11,5 +11,3 @@ chown "$(id -u vagrant):$(id -g vagrant)" /home/vagrant/.kube/config
 # Joining K8s
 bash /vagrant/scripts/kubeadm_join_cmd.sh
 
-
-kubectl label nodes $(hostname -s) nsm_ci_role=node2

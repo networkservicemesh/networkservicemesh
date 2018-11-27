@@ -36,7 +36,6 @@ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl versio
 # Untaint master
 echo "Untainting Master"
 kubectl taint nodes --all node-role.kubernetes.io/master-
-kubectl label nodes "$(hostname -s)" nsm_ci_role=node1
 
 # Save the kubeadm join command with token
 kubeadm token create --print-join-command > /vagrant/scripts/kubeadm_join_cmd.sh
