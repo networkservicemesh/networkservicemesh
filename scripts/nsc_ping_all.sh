@@ -7,12 +7,12 @@ for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
     for ip in $(kubectl exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
         if [[ "${ip}" == 10.20.1.* ]];then
             lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
-            nextOp=$(($lastSegment + 1))
+            nextOp=$((lastSegment + 1))
             targetIp="10.20.1.${nextOp}"
             endpointName="icmp-responder-nse"
         elif [[ "${ip}" == 10.30.1.* ]];then
             lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
-            nextOp=$(($lastSegment + 1))
+            nextOp=$((lastSegment + 1))
             targetIp="10.30.1.${nextOp}"
             endpointName="vppagent-icmp-responder-nse"
         fi
