@@ -156,7 +156,7 @@ k8s-%-logs:
 		kubectl logs -p $${pod} || true; \
 		echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
 		echo 'Network information'; \
-		kubectl exec -ti $${pod} ifconfig; \
+		kubectl exec -ti $${pod} ip addr; \
 	done
 
 .PHONY: k8s-nsmd-logs
@@ -171,7 +171,7 @@ k8s-nsmd-logs:
 			kubectl logs -p $${pod} --container $${container} || true ;\
 			echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
 			echo 'NSMD Network information'; \
-			kubectl exec -ti $${pod} --container $${container} ifconfig; \
+			kubectl exec -ti $${pod} --container $${container} ip addr; \
 		done \
 	done
 
