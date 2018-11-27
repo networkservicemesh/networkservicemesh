@@ -70,7 +70,7 @@ required = [
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.12.2"
+  version = "kubernetes-1.12.3"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
