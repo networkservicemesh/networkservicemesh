@@ -2,10 +2,10 @@ package converter_test
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"testing"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/vppagent/converter"
 )
 
 func TestTempIf(t *testing.T) {

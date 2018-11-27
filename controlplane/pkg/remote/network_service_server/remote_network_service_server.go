@@ -90,7 +90,7 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	}
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := rv.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
-	logrus.Info("Dataplane: Returned connection obj %+v", con)
+	logrus.Infof("Dataplane: Returned connection obj %+v", con)
 	srv.monitor.UpdateConnection(con)
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return con, nil
