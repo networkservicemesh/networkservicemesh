@@ -1,6 +1,6 @@
 #!/bin/bash
 # Get the IP address that VirtualBox has given this VM
-IPADDR=192.168.1.51 #$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
+IPADDR=$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
 echo This VM has IP address "$IPADDR"
 
 # Setup Hugepages
