@@ -6,18 +6,18 @@ for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     for ip in $(kubectl exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
         if [[ "${ip}" == 10.20.1.* ]];then
-            lastSegment=`echo ${ip} | cut -d . -f 4 | cut -d / -f 1`
-            nextOp=`expr $lastSegment + 1`
+            lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
+            nextOp=$(($lastSegment + 1))
             targetIp="10.20.1.${nextOp}"
             endpointName="icmp-responder-nse"
         elif [[ "${ip}" == 10.30.1.* ]];then
-            lastSegment=`echo ${ip} | cut -d . -f 4 | cut -d / -f 1`
-            nextOp=`expr $lastSegment + 1`
+            lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
+            nextOp=$(($lastSegment + 1))
             targetIp="10.30.1.${nextOp}"
             endpointName="vppagent-icmp-responder-nse"
         fi
-        if [ ! -z ${targetIp} ]; then
-            if kubectl exec -it "${nsc}" -- ping -c 1 ${targetIp} ; then
+        if [ ! -z "${targetIp}" ]; then
+            if kubectl exec -it "${nsc}" -- ping -c 1 "${targetIp}" ; then
                 echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                 PingSuccess="true"
             else
