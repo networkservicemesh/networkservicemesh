@@ -1,0 +1,8 @@
+auth_token = ""
+project_id = ""
+public_key_name = ""
+public_key = ""
+
+master_hostname = ""
+
+worker1_hostname = ""
