@@ -2,8 +2,7 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  # Specify your hostname if you like
-  config.vm.hostname = "kube-master"
+
   config.vm.synced_folder "../..", "/go/src/github.com/ligato/networkservicemesh"
 
   config.vm.provider "virtualbox" do |v|
@@ -19,7 +18,6 @@ Vagrant.configure("2") do |config|
     v.vmx["numvcpus"] = "2"
   end
   config.vm.box = "bento/ubuntu-18.04"
-  config.vm.define "networkservicemesh"
   config.vm.network "private_network", type: "dhcp"
 
   config.vm.provision "shell", inline: <<-EOC
@@ -33,4 +31,13 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", path: "scripts/load_images.sh"
   config.vm.provision "shell", inline: "sudo usermod -a -G docker vagrant"
   config.vm.provision "shell", inline: "mkdir -p /var/lib/networkservicemesh"
+  config.vm.define "master" do |master|
+    master.vm.hostname = "kube-master"
+    master.vm.provision "shell", path: "scripts/configureK8smaster.sh"
+  end
+  config.vm.define "worker" do |worker|
+    worker.vm.hostname = "kube-worker"
+    worker.vm.provision "shell", path: "scripts/configureK8sworker.sh"
+  end
+
 end

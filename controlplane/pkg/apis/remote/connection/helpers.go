@@ -65,15 +65,15 @@ func (m *Mechanism) isValid() error {
 
 	if m.GetType() == MechanismType_VXLAN {
 		if _, err := m.SrcIP(); err != nil {
-			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANSrcIP)
+			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANSrcIP, err)
 		}
 
 		if _, err := m.DstIP(); err != nil {
-			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANDstIP)
+			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANDstIP, err)
 		}
 
 		if _, err := m.VNI(); err != nil {
-			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANVNI)
+			return fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANVNI, err)
 		}
 	}
 

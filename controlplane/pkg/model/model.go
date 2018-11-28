@@ -1,12 +1,12 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/selector"
 
 	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -35,21 +35,22 @@ type Model interface {
 	GetEndpoint(name string) *registry.NSERegistration
 	AddEndpoint(endpoint *registry.NSERegistration)
 	DeleteEndpoint(name string) error
-	SelectEndpoint(nsName string) (*registry.NSERegistration, error)
 
 	GetDataplane(name string) *Dataplane
 	AddDataplane(dataplane *Dataplane)
 	DeleteDataplane(name string)
 	SelectDataplane() (*Dataplane, error)
 
-	GetNsmUrl() string
 	ConnectionId() string
+	Vni() string
 
 	AddListener(listener ModelListener)
 	RemoveListener(listener ModelListener)
 
 	SetNsm(nsm *registry.NetworkServiceManager)
 	GetNsm() *registry.NetworkServiceManager
+
+	GetSelector() selector.Selector
 }
 
 type impl struct {
@@ -58,10 +59,10 @@ type impl struct {
 	networkServices   map[string][]*registry.NSERegistration
 	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
-	nsmUrl            string
+	lastVNI           uint64
 	nsm               *registry.NetworkServiceManager
 	listeners         []ModelListener
-	roundRobin        map[string]int
+	selector          selector.Selector
 }
 
 func (i *impl) AddListener(listener ModelListener) {
@@ -143,25 +144,6 @@ func (i *impl) DeleteEndpoint(name string) error {
 	return fmt.Errorf("no endpoint with name: %s", name)
 }
 
-func (i *impl) SelectEndpoint(nsName string) (*registry.NSERegistration, error) {
-	nseRegistrations := i.GetNetworkServiceEndpoints(nsName)
-	if len(nseRegistrations) == 0 {
-		return nil, fmt.Errorf("network service '%s' not found", nsName)
-	}
-	if len(nseRegistrations) == 0 {
-		return nil, fmt.Errorf("No NSERegistrations for %s found", nsName)
-	}
-	i.Lock()
-	defer i.Unlock()
-	idx := i.roundRobin[nsName] % len(nseRegistrations)
-	endpoint := nseRegistrations[idx]
-	if endpoint == nil {
-		return nil, errors.New("should not see this error, scaffolding called")
-	}
-	i.roundRobin[nsName] = (idx + 1) % len(nseRegistrations)
-	return endpoint, nil
-}
-
 func (i *impl) GetDataplane(name string) *Dataplane {
 	i.RLock()
 	defer i.RUnlock()
@@ -207,10 +189,6 @@ func (i *impl) DeleteDataplane(name string) {
 	}
 }
 
-func (i *impl) GetNsmUrl() string {
-	return i.nsmUrl
-}
-
 func (i *impl) GetNsm() *registry.NetworkServiceManager {
 	return i.nsm
 }
@@ -219,14 +197,14 @@ func (i *impl) SetNsm(nsm *registry.NetworkServiceManager) {
 	i.nsm = nsm
 }
 
-func NewModel(nsmUrl string) Model {
+func NewModel() Model {
 	return &impl{
-		nsmUrl:          nsmUrl,
 		dataplanes:      make(map[string]*Dataplane),
 		networkServices: make(map[string][]*registry.NSERegistration),
 		endpoints:       make(map[string]*registry.NSERegistration),
 		listeners:       []ModelListener{},
-		roundRobin:      make(map[string]int),
+		selector:        selector.NewRoundRobinSelector(),
+		lastVNI:         1,
 	}
 }
 
@@ -235,4 +213,15 @@ func (i *impl) ConnectionId() string {
 	defer i.Unlock()
 	i.lastConnnectionId++
 	return strconv.FormatUint(i.lastConnnectionId, 16)
+}
+
+func (i *impl) Vni() string {
+	i.Lock()
+	defer i.Unlock()
+	i.lastVNI++
+	return strconv.FormatUint(i.lastVNI, 10)
+}
+
+func (i *impl) GetSelector() selector.Selector {
+	return i.selector
 }

@@ -37,3 +37,5 @@ scripts/terraform/packet.tfvars
 *.backup
 **/.terraform*
 **/.terraform*
+
+scripts/vagrant/.kube/

@@ -1,3 +1,4 @@
 .kube/config
 .vagrant
 images/
+scripts/kubeadm_join_cmd.sh

@@ -51,11 +51,6 @@ required = [
   revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
 
 [[override]]
-  name = "github.com/gogo/protobuf"
-  # Constraint to match the protobuf needed by vpp-agent
-  version = "1.1.1"
-
-[[override]]
   name = "github.com/vishvananda/netns"
   # revision is set because verioned release is missing 2 important fixes
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
@@ -117,4 +112,10 @@ required = [
   [[prune.project]]
     name = "k8s.io/kube-openapi"
     unused-packages = false
+    non-go = false
+
+  [[prune.project]]
+    name = "github.com/golang/protobuf"
+    unused-packages = false
+    go-tests = false
     non-go = false

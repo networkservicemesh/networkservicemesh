@@ -19,40 +19,16 @@ sed -i '0,/ExecStart=/s//Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=cgroupf
 # Setup Hugepages
 #sed -i '9,/KUBELET_EXTRA_ARGS=--cgroup-driver=cgroupfs/KUBELET_EXTRA_ARGS=--cgroup-driver=cgroupfs --feature-gates HugePages=false/'
 
-# Get the IP address that VirtualBox has given this VM
-IPADDR=$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
-echo This VM has IP address "$IPADDR"
-
-# Setup Hugepages
-#echo "Copying /vagrant/10-kubeadm.conf to /etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
-#cp /vagrant/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
-
-# Set up Kubernetes
-NODENAME=$(hostname -s)
-kubeadm init --apiserver-cert-extra-sans="$IPADDR"  --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME"
-
-# Set up admin creds for the vagrant user
-echo Copying credentials to /home/vagrant...
-sudo --user=vagrant mkdir -p /home/vagrant/.kube
-cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
-chown "$(id -u vagrant):$(id -g vagrant)" /home/vagrant/.kube/config
-
-# Set up admin creds for the root user
-echo Copying credentials to /root
-mkdir -p /root/.kube
-cp -i /etc/kubernetes/admin.conf /root/.kube/config
-
-# Make credentials available outside of vagrant
-echo Copying credentials out of vagrant
-mkdir -p /vagrant/.kube/
-cp /etc/kubernetes/admin.conf /vagrant/.kube/config
-
-echo "Attempting kubectl version"
-kubectl version
-
-# Install networking
-kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
-
-# Untaint master
-echo "Untainting Master"
-kubectl taint nodes --all node-role.kubernetes.io/master-
+# kubeproxy seems to needs these to actually work properly...
+sysctl net.bridge.bridge-nf-call-iptables=1
+{
+    echo ip_vs_rr 
+    echo ip_vs_wrr
+    echo ip_vs_sh 
+    echo ip_vs 
+} >> /etc/modprobe
+modprobe ip_vs_rr
+modprobe ip_vs_wrr 
+modprobe ip_vs_sh 
+modprobe ip_vs
+lsmod | grep ip_vs

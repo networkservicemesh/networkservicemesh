@@ -35,30 +35,18 @@ func main() {
 	netns, err := tools.GetCurrentNS()
 	if err != nil {
 		logrus.Fatalf("nsc: failed to get a linux namespace with error: %+v, exiting...", err)
+		os.Exit(101)
 	}
 	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
 
-	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
-	// TODO handle case where env variable is not set
-
-	logrus.Infof("Connecting to nsm server on socket: %s...", nsmServerSocket)
-	if _, err := os.Stat(nsmServerSocket); err != nil {
-		logrus.Fatalf("nsc: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
-	}
-
-	// Wait till we actually have an nsmd to talk to
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	err = tools.WaitForPortAvailable(ctx, "unix", nsmServerSocket, 100*time.Millisecond)
-	defer cancel()
-
-	conn, err := tools.SocketOperationCheck(nsmServerSocket)
+	// Init related activities start here
+	logrus.Info("Connecting to nsm server on socket")
+	nsmConnectionClient, conn, err := nsmd.NewNetworkServiceClient()
 	if err != nil {
-		logrus.Fatalf("nsm client: failure to communicate with the socket %s with error: %+v", nsmServerSocket, err)
+		logrus.Fatalf("nsc: failed to connect with NSMD: %+v, exiting...", err)
+		os.Exit(101)
 	}
 	defer conn.Close()
-
-	// Init related activities start here
-	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{

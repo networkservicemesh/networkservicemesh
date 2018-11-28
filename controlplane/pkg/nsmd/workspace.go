@@ -15,10 +15,11 @@
 package nsmd
 
 import (
-	"context"
 	"net"
 	"os"
 	"sync"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -57,7 +58,7 @@ type Workspace struct {
 	state WorkspaceState
 }
 
-func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
+func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{}
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
@@ -77,25 +78,13 @@ func NewWorkSpace(model model.Model, name string) (*Workspace, error) {
 	}
 	w.listener = listener
 	logrus.Infof("Creating new NetworkServiceRegistryServer")
-	w.registryServer = NewRegistryServer(model, w)
-	// TODO - do something more elegant than this to get our NSM
-	if model.GetNsm() == nil {
-		nsm, err := w.registryServer.RegisterNSE(context.Background(), &registry.NSERegistration{
-			NetworkServiceManager: &registry.NetworkServiceManager{
-				Url: model.GetNsmUrl(),
-			},
-		})
-		if err != nil {
-			logrus.Errorf("Failed to get my own NetworkServiceManager: %s", err)
-		}
-		model.SetNsm(nsm.GetNetworkServiceManager())
-	}
+	w.registryServer = NewRegistryServer(model, w, serviceRegistry)
 
 	logrus.Infof("Creating new MonitorConnectionServer")
 	w.monitorConnectionServer = monitor_connection_server.NewMonitorConnectionServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model, w)
+	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry)
 
 	logrus.Infof("Creating new GRPC Server")
 	w.grpcServer = grpc.NewServer()

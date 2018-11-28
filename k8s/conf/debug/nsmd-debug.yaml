@@ -29,6 +29,11 @@ spec:
         - name: nsmd-k8s
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
       volumes:
         - hostPath:
             path: /var/lib/kubelet/device-plugins

@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc vppagent-nsc
+DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -42,8 +42,18 @@ include .docker.mk
 .PHONY: k8s-deploy
 k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 
+.PHONY: k8s-redeploy
+k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
+
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
+	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
+	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
+
+
+
+.PHONY: k8s-%-deployonly
+k8s-%-deployonly:
 	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
 	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
 
@@ -98,14 +108,12 @@ k8s-nsmd-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_
 .PHONY: k8s-nsmd-load-images
 k8s-nsmd-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMD_CONTAINERS)))
 
-VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane
-.PHONY: k8s-vppagent-dataplane-build
-k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
-
-.PHONY: k8s-vppagent-dataplane-save
-k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
-
-.PHONY: k8s-vppagent-dataplane-load-images
+VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane	
+.PHONY: k8s-vppagent-dataplane-build	
+k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))	
+ .PHONY: k8s-vppagent-dataplane-save	
+k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))	
+ .PHONY: k8s-vppagent-dataplane-load-images	
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
 
 .PHONY: k8s-nsc-build
@@ -113,6 +121,7 @@ k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 
 .PHONY: k8s-nsc-save
 k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
+
 
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-build
@@ -140,24 +149,39 @@ k8s-logs: $(addsuffix -logs,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-%logs
 k8s-%-logs:
 	@echo "K8s logs for $*"
-	@for nsc in $$(kubectl get pods --all-namespaces | grep $* | awk '{print $$2}');do \
+	@for pod in $$(kubectl get pods --all-namespaces | grep $* | awk '{print $$2}');do \
 		echo '******************************************'; \
-		echo "NSC Logs: $${nsc}:"; \
-		kubectl logs $${nsc} || true; \
-		kubectl logs -p $${nsc} || true; \
+		echo "Logs: $${pod}:"; \
+		kubectl logs $${pod} || true; \
+		kubectl logs -p $${pod} || true; \
+		echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
+		echo "Network information for $${pod}"; \
+		kubectl exec -ti $${pod} ip addr; \
+		kubectl exec -ti $${pod} ip neigh; \
+		if [[ "$${pod}" == *"vppagent"* ]]; then \
+			echo "vpp information for $${pod}"; \
+			kubectl exec -it $${pod} vppctl show int; \
+			kubectl exec -it $${pod} vppctl show int addr; \
+			kubectl exec -it $${pod} vppctl show vxlan tunnel; \
+			kubectl exec -it $${pod} vppctl show memif; \
+		fi; \
 	done
 
 .PHONY: k8s-nsmd-logs
 k8s-nsmd-logs:
-	@echo "K8s logs for nsmd container nsmd"
-	@kubectl logs $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd || true
-	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd || true
-	@echo "K8s logs for nsmd container nsmdp"
-	@kubectl logs $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmdp || true
-	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmdp || true
-	@echo "K8s logs for nsmd container nsmd-k8s"
-	@kubectl logs $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd-k8s || true
-	@kubectl logs -p $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}') --container nsmd-k8s || true
+	@echo "K8s logs for nsmds"
+	@echo '******************************************'
+	@for pod in $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}'); do \
+		for container in nsmd nsmdp nsmd-k8s; do \
+			echo '------------------------------------------'; \
+			echo "K8s logs for $${pod} container $${container}"; \
+			kubectl logs $${pod} --container $${container} || true; \
+			kubectl logs -p $${pod} --container $${container} || true ;\
+			echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
+			echo 'NSMD Network information'; \
+			kubectl exec -ti $${pod} --container $${container} ip addr; \
+		done \
+	done
 
 .PHONY: k8s-%-debug
 k8s-%-debug:
@@ -165,8 +189,37 @@ k8s-%-debug:
 
 .PHONY: k8s-nsmd-debug
 k8s-nsmd-debug:
-	@kubectl exec -ti $$(kubectl get pods | grep nsmd- | cut -d \  -f1) -c nsmd /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh nsmd
+	@kubectl exec -ti $(pod) -c nsmd /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh nsmd
 
-.PHONY: k8s-%-%-proxy
-k8s-%-forward:
-	@kubectl port-forward $$(kubectl get pods | grep nsmd- | cut -d \  -f1) $(port):$(port)
+.PHONY: k8s-forward
+k8s-forward:
+	@echo "Forwarding remote 40000 to $(port) for $(pod)"
+	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port):40000
+
+.PHONY: k8s-check
+k8s-check:
+	./scripts/nsc_ping_all.sh
+
+.PHONY: k8s-terminating-cleanup
+k8s-terminating-cleanup:
+	@kubectl get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs kubectl delete pods --force --grace-period 0 {}
+
+.PHONE: k8s-kublet-restart
+k8s-kublet-restart: vagrant-kublet-restart
+
+.PHONE: k8s-pods
+k8s-pods:
+	@kubectl get pods -o wide
+
+.PHONY: k8s-nsmd-master-tlogs
+k8s-nsmd-master-tlogs:
+	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-master | grep nsmd | cut -d\  -f1) -c nsmd
+
+.PHONY: k8s-nsmd-worker-tlogs
+k8s-nsmd-worker-tlogs:
+	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-worker | grep nsmd | cut -d\  -f1) -c nsmd
+
+
+
+
+
