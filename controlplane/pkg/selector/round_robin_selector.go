@@ -17,7 +17,7 @@ func NewRoundRobinSelector() Selector {
 	}
 }
 
-func (rr *roundRobinSelector) SelectEndpoint(ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+func (rr *roundRobinSelector) SelectEndpoint(ns *registry.NetworkService, nsLabels map[string]string, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	if rr == nil {
 		return nil
 	}
