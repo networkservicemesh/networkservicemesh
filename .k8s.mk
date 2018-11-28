@@ -141,6 +141,14 @@ k8s-vppagent-nsc-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-build
 .PHONY: k8s-vppagent-nsc-save
 k8s-vppagent-nsc-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-save
 
+
+.PHONY: k8s-crossconnect-monitor-build
+k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-build
+
+.PHONY: k8s-crossconnect-monitor-save
+k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
+
+
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
 .PHONY: k8s-logs
