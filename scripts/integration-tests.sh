@@ -34,19 +34,9 @@ function run_tests() {
     kubectl apply -f k8s/conf/cluster-role-admin.yaml
     kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
-    cp k8s/conf/vppagent-dataplane.yaml /tmp/vppagent-dataplane.yaml
-    yq w -i /tmp/vppagent-dataplane.yaml spec.template.spec.containers[0].image networkservicemesh/vppagent-dataplane:"${COMMIT}"
-    kubectl apply -f /tmp/vppagent-dataplane.yaml
-
-    cp k8s/conf/crossconnect-monitor.yaml /tmp/crossconnect-monitor.yaml
-    yq w -i /tmp/crossconnect-monitor.yaml spec.template.spec.containers[0].image networkservicemesh/crossconnect-monitor:"${COMMIT}"
-    kubectl apply -f /tmp/crossconnect-monitor.yaml
-
-    cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
-    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
-    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"
-    yq w -i /tmp/nsmd.yaml spec.template.spec.containers[2].image networkservicemesh/nsmd-k8s:"${COMMIT}"
-    kubectl apply -f /tmp/nsmd.yaml
+    make k8s-vppagent-dataplane-deploy
+    make k8s-nsmd-deploy
+    make k8s-crossconnect-monitor-deploy
 
     # Wait til settles
     echo "INFO: Waiting for Network Service Mesh daemonset to be up and CRDs to be available ..."
@@ -63,13 +53,8 @@ function run_tests() {
 
     wait_for_pods default
 
-    cp k8s/conf/icmp-responder-nse.yaml /tmp/icmp-responder-nse.yaml
-    yq w -i /tmp/icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/icmp-responder-nse:"${COMMIT}"
-    kubectl apply -f /tmp/icmp-responder-nse.yaml
-
-    cp k8s/conf/vppagent-icmp-responder-nse.yaml /tmp/vppagent-icmp-responder-nse.yaml
-    yq w -i /tmp/vppagent-icmp-responder-nse.yaml spec.template.spec.containers[0].image networkservicemesh/vppagent-icmp-responder-nse:"${COMMIT}"
-    kubectl apply -f /tmp/vppagent-icmp-responder-nse.yaml
+    make k8s-icmp-responder-nse-deploy
+    make k8s-vppagent-icmp-responder-nse-deploy
 
     wait_for_pods default
 
@@ -79,9 +64,7 @@ function run_tests() {
         sleep 2
     done
 
-    cp k8s/conf/nsc.yaml /tmp/nsc.yaml
-    yq w -i /tmp/nsc.yaml spec.template.spec.containers[0].image networkservicemesh/nsc:"${COMMIT}"
-    kubectl apply -f /tmp/nsc.yaml
+    make k8s-nsc-deploy
 
     wait_for_pods default
 
