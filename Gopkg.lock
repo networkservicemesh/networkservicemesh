@@ -747,8 +747,8 @@
   name = "k8s.io/kubernetes"
   packages = ["pkg/kubelet/apis/deviceplugin/v1beta1"]
   pruneopts = "NUT"
-  revision = "17c77c7898218073f14c8d573582e8d2313dc740"
-  version = "v1.12.2"
+  revision = "435f92c719f279a3a67808c80521ea17d5715c66"
+  version = "v1.12.3"
 
 [solve-meta]
   analyzer-name = "dep"
