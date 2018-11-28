@@ -41,7 +41,7 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceReg
 	}
 }
 
-func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, networkServiceName string) *registry.NSERegistration {
+func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, requestConnection *connection.Connection) *registry.NSERegistration {
 	// Get endpoints
 	discoveryClient, err := srv.serviceRegistry.NetworkServiceDiscovery()
 	if err != nil {
@@ -49,14 +49,14 @@ func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, ne
 		return nil
 	}
 	nseRequest := &registry.FindNetworkServiceRequest{
-		NetworkServiceName: networkServiceName,
+		NetworkServiceName: requestConnection.GetNetworkService(),
 	}
 	endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 	if err != nil {
 		logrus.Error(err)
 		return nil
 	}
-	endpoint := srv.model.GetSelector().SelectEndpoint(endpointResponse.GetNetworkService(), endpointResponse.GetNetworkServiceEndpoints())
+	endpoint := srv.model.GetSelector().SelectEndpoint(requestConnection, endpointResponse.GetNetworkService(), endpointResponse.GetNetworkServiceEndpoints())
 	if endpoint == nil {
 		return nil
 	}
@@ -97,7 +97,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		defer dataplaneConn.Close()
 	}
 
-	endpoint := srv.getEndpointFromRegistry(ctx, request.GetConnection().GetNetworkService())
+	endpoint := srv.getEndpointFromRegistry(ctx, request.GetConnection())
 	if err != nil {
 		return nil, err
 	}
