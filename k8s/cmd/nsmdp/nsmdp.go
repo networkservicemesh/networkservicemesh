@@ -154,6 +154,12 @@ func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 				Health: pluginapi.Healthy,
 			})
 		}
+		for _, w := range workspaces {
+			resp.Devices = append(resp.Devices, &pluginapi.Device{
+				ID:     w,
+				Health: pluginapi.Healthy,
+			})
+		}
 		if err := s.Send(resp); err != nil {
 			logrus.Errorf("Failed to send response to kubelet: %v\n", err)
 		}
