@@ -203,7 +203,7 @@ func NewModel() Model {
 		networkServices: make(map[string][]*registry.NSERegistration),
 		endpoints:       make(map[string]*registry.NSERegistration),
 		listeners:       []ModelListener{},
-		selector:        selector.NewRoundRobinSelector(),
+		selector:        selector.NewMatchSelector(),
 		lastVNI:         1,
 	}
 }
