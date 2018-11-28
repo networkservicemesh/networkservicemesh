@@ -45,17 +45,19 @@ k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-redeploy
 k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
 
+.PHONY: k8s-deployonly
+k8s-deployonly: $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
+
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
 	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
-	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
-
+	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
 
 .PHONY: k8s-%-deployonly
 k8s-%-deployonly:
 	@while [ "$(kubectl get pods | grep $* 2>&1 > /dev/null)" ]; do echo "Wait for $* to terminate"; sleep 1; done
-	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
+	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
 .PHONY: k8s-delete
 k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
