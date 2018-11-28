@@ -226,6 +226,7 @@
   ]
   pruneopts = "NUT"
   revision = "d2ae51e30bb34e5dec059de71c2d0f42ecb10a09"
+  version = "v1.7"
 
 [[projects]]
   branch = "master"
