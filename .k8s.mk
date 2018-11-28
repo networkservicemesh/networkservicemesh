@@ -157,6 +157,7 @@ k8s-%-logs:
 		echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
 		echo "Network information for $${pod}"; \
 		kubectl exec -ti $${pod} ip addr; \
+		kubectl exec -ti $${pod} ip neigh; \
 		if [[ "$${pod}" == *"vppagent"* ]]; then \
 			echo "vpp information for $${pod}"; \
 			kubectl exec -it $${pod} vppctl show int; \
@@ -192,7 +193,7 @@ k8s-nsmd-debug:
 
 .PHONY: k8s-forward
 k8s-forward:
-	@echo "Forwardning temote 40000 to $(port) for $(pod)"
+	@echo "Forwardning remote 40000 to $(port) for $(pod)"
 	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port):40000
 
 .PHONY: k8s-check

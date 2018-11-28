@@ -20,7 +20,7 @@ func main() {
 
 	defer serviceRegistry.Stop()
 
-	if err := nsmd.StartDataplaneRegistrarServer(model, apiRegistry); err != nil {
+	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
 		os.Exit(1)
 	}

@@ -1,6 +1,6 @@
 package networkservice
 
-import fmt "fmt"
+import "fmt"
 
 func (ns *NetworkServiceRequest) IsValid() error {
 	if ns == nil {
