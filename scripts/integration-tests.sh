@@ -38,6 +38,10 @@ function run_tests() {
     yq w -i /tmp/vppagent-dataplane.yaml spec.template.spec.containers[0].image networkservicemesh/vppagent-dataplane:"${COMMIT}"
     kubectl apply -f /tmp/vppagent-dataplane.yaml
 
+    cp k8s/conf/crossconnect-monitor.yaml /tmp/crossconnect-monitor.yaml
+    yq w -i /tmp/crossconnect-monitor.yaml spec.template.spec.containers[0].image networkservicemesh/crossconnect-monitor:"${COMMIT}"
+    kubectl apply -f /tmp/crossconnect-monitor.yaml
+
     cp k8s/conf/nsmd.yaml /tmp/nsmd.yaml
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[0].image networkservicemesh/nsmdp:"${COMMIT}"
     yq w -i /tmp/nsmd.yaml spec.template.spec.containers[1].image networkservicemesh/nsmd:"${COMMIT}"

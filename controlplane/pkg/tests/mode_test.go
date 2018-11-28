@@ -186,3 +186,30 @@ func TestModelListenEndpoint(t *testing.T) {
 
 	model.RemoveListener(listener)
 }
+
+func TestModelListenExistingEndpoint(t *testing.T) {
+	RegisterTestingT(t)
+
+	model := newModel()
+	listener := &ListenerImpl{}
+
+	model.AddEndpoint(&registry.NSERegistration{
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: "golden-network",
+			EndpointName:       "ep1",
+		},
+	})
+
+	// Since model will call for all existing, this should be same
+	model.AddListener(listener)
+
+	Expect(listener.dataplanes).To(Equal(0))
+	Expect(listener.endpoints).To(Equal(1))
+
+	model.DeleteEndpoint("ep1")
+
+	Expect(listener.dataplanes).To(Equal(0))
+	Expect(listener.endpoints).To(Equal(0))
+
+	model.RemoveListener(listener)
+}
