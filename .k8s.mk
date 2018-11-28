@@ -151,12 +151,19 @@ k8s-%-logs:
 	@echo "K8s logs for $*"
 	@for pod in $$(kubectl get pods --all-namespaces | grep $* | awk '{print $$2}');do \
 		echo '******************************************'; \
-		echo "NSC Logs: $${pod}:"; \
+		echo "Logs: $${pod}:"; \
 		kubectl logs $${pod} || true; \
 		kubectl logs -p $${pod} || true; \
 		echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
-		echo 'Network information'; \
+		echo "Network information for $${pod}"; \
 		kubectl exec -ti $${pod} ip addr; \
+		if [[ "$${pod}" == *"vppagent"* ]]; then \
+			echo "vpp information for $${pod}"; \
+			kubectl exec -it $${pod} vppctl show int; \
+			kubectl exec -it $${pod} vppctl show int addr; \
+			kubectl exec -it $${pod} vppctl show vxlan tunnel; \
+			kubectl exec -it $${pod} vppctl show memif; \
+		fi; \
 	done
 
 .PHONY: k8s-nsmd-logs
