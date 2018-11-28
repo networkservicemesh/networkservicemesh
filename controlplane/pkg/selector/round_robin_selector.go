@@ -3,6 +3,7 @@ package selector
 import (
 	"sync"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
@@ -17,7 +18,7 @@ func NewRoundRobinSelector() Selector {
 	}
 }
 
-func (rr *roundRobinSelector) SelectEndpoint(ns *registry.NetworkService, nsLabels map[string]string, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+func (rr *roundRobinSelector) SelectEndpoint(requestConnection *connection.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	if rr == nil {
 		return nil
 	}

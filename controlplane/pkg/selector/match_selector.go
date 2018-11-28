@@ -18,6 +18,7 @@ package selector
 import (
 	"sync"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
@@ -46,7 +47,7 @@ func isSubset(A, B map[string]string) bool {
 	return true
 }
 
-func (m *matchSelector) matchEndpoint(ns *registry.NetworkService, nsLabels map[string]string, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	//Iterate through the matches
 	for _, match := range ns.GetMatches() {
 		// All match source selector labels should be present in the requested labels map
@@ -67,16 +68,16 @@ func (m *matchSelector) matchEndpoint(ns *registry.NetworkService, nsLabels map[
 
 		if len(nseCandidates) > 0 {
 			// We found candidates. Use RoundRobin to select one
-			return m.roundRobin.SelectEndpoint(ns, nil, nseCandidates)
+			return m.roundRobin.SelectEndpoint(nil, ns, nseCandidates)
 		}
 	}
 	return nil
 }
 
-func (m *matchSelector) SelectEndpoint(ns *registry.NetworkService, nsLabels map[string]string, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	if len(ns.GetMatches()) == 0 {
-		return m.roundRobin.SelectEndpoint(ns, nil, networkServiceEndpoints)
+		return m.roundRobin.SelectEndpoint(nil, ns, networkServiceEndpoints)
 	}
 
-	return m.matchEndpoint(ns, nsLabels, networkServiceEndpoints)
+	return m.matchEndpoint(requestConnection.GetLabels(), ns, networkServiceEndpoints)
 }
