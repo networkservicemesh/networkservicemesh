@@ -79,11 +79,7 @@ function run_tests() {
     yq w -i /tmp/nsc.yaml spec.template.spec.containers[0].image networkservicemesh/nsc:"${COMMIT}"
     kubectl apply -f /tmp/nsc.yaml
 
-    typeset -i cnt=240
-    until kubectl get pods | grep nsc | grep Running ; do
-        ((cnt=cnt-1)) || return 1
-        sleep 2
-    done
+    wait_for_pods default
 
     # We're all good now
     return 0
