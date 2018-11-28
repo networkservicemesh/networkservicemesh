@@ -193,7 +193,7 @@ k8s-nsmd-debug:
 
 .PHONY: k8s-forward
 k8s-forward:
-	@echo "Forwardning remote 40000 to $(port) for $(pod)"
+	@echo "Forwarding remote 40000 to $(port) for $(pod)"
 	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port):40000
 
 .PHONY: k8s-check
