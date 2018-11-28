@@ -218,6 +218,20 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsmdp-build
             make docker-nsmdp-push
+  build-crossconnect-monitor:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-crossconnect-monitor-build
+            make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -287,6 +301,9 @@ workflows:
       - build-nsmd-k8s:
           requires:
             - sanity-check
+      - build-crossconnect-monitor:
+          requires:
+            - sanity-check
       - build-nsmdp:
           requires:
             - sanity-check
@@ -310,6 +327,7 @@ workflows:
             - build-nsmd
             - build-nsmd-k8s
             - build-nsmdp
+            - build-crossconnect-monitor
             - build-icmp-responder-nse
             - build-vppagent-icmp-responder-nse
             - build-nsc
