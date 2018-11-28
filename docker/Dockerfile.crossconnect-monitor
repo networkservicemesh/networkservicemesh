@@ -1,0 +1,8 @@
+FROM golang:alpine as build
+ENV PACKAGEPATH=github.com/ligato/networkservicemesh/
+COPY [".","/go/src/${PACKAGEPATH}"]
+WORKDIR /go/src/${PACKAGEPATH}/
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/crossconnect-monitor ./k8s/cmd/crossconnect-monitor
+FROM alpine as runtime
+COPY --from=build /go/bin/crossconnect-monitor /bin/crossconnect-monitor
+ENTRYPOINT ["/bin/crossconnect-monitor"]

@@ -37,6 +37,12 @@ if [ "$1" = "vppagent-dataplane" ]; then
     output=/bin/$1
 fi
 
+if [ "$1" = "crossconnect-monitor" ]; then
+    go_file=./k8s/cmd/crossconnect_monitor
+    port=40004
+    output=/bin/$1
+fi
+
 
 # Debug entry point
 mkdir -p ./bin

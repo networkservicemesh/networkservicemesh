@@ -141,6 +141,12 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
+          when: always
+          name: Dump CrossConnect Monitor logs
+          command: make k8s-crossconnect-monitor-logs
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+      - run:
           when: on_fail
           name: Trigger packet-destroy
           command: |
