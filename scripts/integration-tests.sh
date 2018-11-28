@@ -19,7 +19,7 @@
 
 function run_tests() {
     COMMIT=${COMMIT:-latest}
-    kubectl get nodes
+    kubectl get nodes -o wide
     kubectl version
     kubectl api-versions
     kubectl label --overwrite --all=true nodes app=nsmd-ds
@@ -79,40 +79,7 @@ function run_tests() {
     yq w -i /tmp/nsc.yaml spec.template.spec.containers[0].image networkservicemesh/nsc:"${COMMIT}"
     kubectl apply -f /tmp/nsc.yaml
 
-    typeset -i cnt=240
-    until kubectl get pods | grep nsc | grep Running ; do
-        ((cnt=cnt-1)) || return 1
-        sleep 2
-    done
-
-    #  Ping all the things!
-    for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
-        for ip in $(kubectl exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
-            if [ "${ip}" = "10.20.1.1/30" ];then
-                targetIp="10.20.1.2"
-                endpointName="icmp-responder-nse"
-            elif [ "${ip}" = "10.30.1.1/30" ];then
-                targetIp="10.30.1.2"
-                endpointName="vppagent-icmp-responder-nse"
-            fi
-            if [ ! -z ${targetIp} ]; then
-                if kubectl exec -it "${nsc}" -- ping -c 1 ${targetIp} ; then
-                    echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
-                    PingSuccess="true"
-                else
-                    echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} unsuccessful"
-                    return 1
-                fi
-                unset targetIp
-                unset endpointName
-            fi
-        done
-        if [ -z ${PingSuccess} ]; then
-            echo "NSC ${nsc} failed to connect to an icmp-responder NetworkService"
-            return 1
-        fi
-        unset PingSuccess
-    done
+    wait_for_pods default
 
     # We're all good now
     return 0

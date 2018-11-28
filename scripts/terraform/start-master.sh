@@ -5,8 +5,7 @@ mkdir -p "$HOME"/.kube
 sudo cp -f /etc/kubernetes/admin.conf "$HOME"/.kube/config
 sudo chown "$(id -u):$(id -g)" "$HOME"/.kube/config
 
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16"
 
 kubectl taint nodes --all node-role.kubernetes.io/master-
 

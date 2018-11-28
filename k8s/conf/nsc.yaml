@@ -2,13 +2,14 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 spec:
-  replicas: 2
+  replicas: 4
   template:
     metadata:
       labels:
-        networkservicemesh.io: "true"
-        networkservicemesh.io/app: "nsc"
+        networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       containers:
         - name: nsc
           image: networkservicemesh/nsc:latest

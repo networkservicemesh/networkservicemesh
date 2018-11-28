@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"net"
 	"os"
 	"os/signal"
@@ -41,13 +42,14 @@ const (
 )
 
 type nsmClientEndpoints struct {
+	serviceRegistry serviceregistry.ServiceRegistry
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	logrus.Info("Client request for nsmdp resource...")
 	responses := &pluginapi.AllocateResponse{}
 	for range reqs.ContainerRequests {
-		workspace, err := nsmd.RequestWorkspace()
+		workspace, err := nsmd.RequestWorkspace(n.serviceRegistry)
 		logrus.Infof("Received Workspace %v", workspace)
 		if err != nil {
 			logrus.Errorf("error talking to nsmd: %v", err)
@@ -159,9 +161,12 @@ func waitForNsmdAvailable() {
 }
 
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
-func NewNSMDeviceServer() error {
+func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	waitForNsmdAvailable()
-	nsm := &nsmClientEndpoints{}
+	nsm := &nsmClientEndpoints{
+		serviceRegistry: serviceRegistry,
+	}
+
 	if err := startDeviceServer(nsm); err != nil {
 		return err
 	}
@@ -172,7 +177,9 @@ func NewNSMDeviceServer() error {
 }
 
 func main() {
-	err := NewNSMDeviceServer()
+
+	serviceRegistry := nsmd.NewServiceRegistry()
+	err := NewNSMDeviceServer(serviceRegistry)
 
 	if err != nil {
 		logrus.Errorf("failed to start server: %v", err)

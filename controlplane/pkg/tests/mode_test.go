@@ -1,17 +1,22 @@
-package model
+package tests
 
 import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	mdl "github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	. "github.com/onsi/gomega"
 	"testing"
 )
 
+func newModel() mdl.Model {
+	return mdl.NewModel()
+}
+
 func TestModelAddRemove(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 
-	model.AddDataplane(&Dataplane{
+	model.AddDataplane(&mdl.Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
@@ -26,9 +31,9 @@ func TestModelAddRemove(t *testing.T) {
 func TestModelSelectDataplane(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 
-	model.AddDataplane(&Dataplane{
+	model.AddDataplane(&mdl.Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
@@ -39,7 +44,7 @@ func TestModelSelectDataplane(t *testing.T) {
 func TestModelSelectDataplaneNone(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 
 	dp, err := model.SelectDataplane()
 	Expect(dp).To(BeNil())
@@ -49,7 +54,7 @@ func TestModelSelectDataplaneNone(t *testing.T) {
 func TestModelAddEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	model.AddEndpoint(ep1)
@@ -72,7 +77,7 @@ func createNSERegistration(networkServiceName string, endpointName string) *regi
 func TestModelTwoEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	ep2 := createNSERegistration("golden-network", "ep2")
@@ -87,7 +92,7 @@ func TestModelTwoEndpoint(t *testing.T) {
 func TestModelAddDeleteEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	ep2 := createNSERegistration("golden-network", "ep2")
@@ -113,18 +118,18 @@ func (impl *ListenerImpl) EndpointDeleted(endpoint *registry.NetworkServiceEndpo
 	impl.endpoints--
 }
 
-func (impl *ListenerImpl) DataplaneAdded(dataplane *Dataplane) {
+func (impl *ListenerImpl) DataplaneAdded(dataplane *mdl.Dataplane) {
 	impl.dataplanes++
 }
 
-func (impl *ListenerImpl) DataplaneDeleted(dataplane *Dataplane) {
+func (impl *ListenerImpl) DataplaneDeleted(dataplane *mdl.Dataplane) {
 	impl.dataplanes--
 }
 
 func TestModelListeners(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 	listener := &ListenerImpl{}
 	model.AddListener(listener)
 
@@ -137,11 +142,11 @@ func TestModelListeners(t *testing.T) {
 func TestModelListenDataplane(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 	listener := &ListenerImpl{}
 	model.AddListener(listener)
 
-	model.AddDataplane(&Dataplane{
+	model.AddDataplane(&mdl.Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
@@ -160,7 +165,7 @@ func TestModelListenDataplane(t *testing.T) {
 func TestModelListenEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
-	model := NewModel("127.0.0.1:5000")
+	model := newModel()
 	listener := &ListenerImpl{}
 	model.AddListener(listener)
 
