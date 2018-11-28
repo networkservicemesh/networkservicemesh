@@ -1,0 +1,26 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  template:
+    metadata:
+      labels:
+        app: nsmd-ds
+    spec:
+      containers:
+        - name: crossconnect-monitor
+          image: networkservicemesh/crossconnect-monitor:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet/device-plugins
+            type: DirectoryOrCreate
+          name: kubelet-socket
+metadata:
+  name: crossconnect-monitor
+  namespace: default

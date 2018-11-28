@@ -44,6 +44,7 @@ type Model interface {
 	ConnectionId() string
 	Vni() string
 
+	// After listener will be added it will be called for all existing dataplanes/endpoints
 	AddListener(listener ModelListener)
 	RemoveListener(listener ModelListener)
 
@@ -66,10 +67,26 @@ type impl struct {
 }
 
 func (i *impl) AddListener(listener ModelListener) {
+	i.Lock()
 	i.listeners = append(i.listeners, listener)
+	i.Unlock()
+
+	i.RLock()
+	defer i.RUnlock()
+
+	// We need to notify this listener about all already added dataplanes/endpoints
+	for _, dp := range i.dataplanes {
+		listener.DataplaneAdded(dp)
+	}
+
+	for _, ep := range i.endpoints {
+		listener.EndpointAdded(ep.NetworkserviceEndpoint)
+	}
 }
 
 func (i *impl) RemoveListener(listener ModelListener) {
+	i.Lock()
+	defer i.Unlock()
 	for idx, v := range i.listeners {
 		if v == listener {
 			i.listeners = append(i.listeners[:idx], i.listeners[idx+1:]...)

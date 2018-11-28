@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc
+DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -185,6 +185,7 @@ k8s-nsmd-logs:
 
 .PHONY: k8s-%-debug
 k8s-%-debug:
+	@echo "Debugging $*"
 	@kubectl exec -ti $$(kubectl get pods | grep $*- | cut -d \  -f1) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
 
 .PHONY: k8s-nsmd-debug
@@ -193,8 +194,8 @@ k8s-nsmd-debug:
 
 .PHONY: k8s-forward
 k8s-forward:
-	@echo "Forwarding remote 40000 to $(port) for $(pod)"
-	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port):40000
+	@echo "Forwarding local $(port1) to $(port2) for $(pod)"
+	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port1):$(port2)
 
 .PHONY: k8s-check
 k8s-check:
