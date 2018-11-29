@@ -2,10 +2,9 @@ package converter
 
 import (
 	"fmt"
-
+	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
@@ -47,10 +46,10 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 
 	var ipAddresses []string
 	if c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
+		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
 	}
 	if c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
+		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -76,6 +75,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 			HostIfName: tmpIface,
 		},
 	})
+
 	// We apply configuration to LinuxInterfaces
 	// Important details:
 	//    - If you have created a TAP, LinuxInterfaces.Tap.TempIfName must match
@@ -96,5 +96,17 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 			TempIfName: tmpIface,
 		},
 	})
+
+	// Process static routes
+	for _, route := range c.Connection.GetContext().GetRoutes() {
+		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+			DstIpAddr:	route.DstIpAddr,
+			GwAddr: route.GwAddr,
+			Interface: m.GetParameters()[connection.InterfaceNameKey],
+			Metric: route.Metric,
+
+		})
+	}
+
 	return rv, nil
 }

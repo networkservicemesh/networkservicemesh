@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/binary"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 
 	"github.com/sirupsen/logrus"
@@ -49,18 +50,16 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 	binary.BigEndian.PutUint32(dstIP, ns.nextIP)
 	ns.nextIP = ns.nextIP + 3
 
-	connectionContext := make(map[string]string)
-
-	connectionContext["src_ip"] = srcIP.String() + "/30"
-	connectionContext["dst_ip"] = dstIP.String() + "/30"
-
 	// TODO take into consideration LocalMechnism preferences sent in request
 
 	connection := &connection.Connection{
 		Id:             request.GetConnection().GetId(),
 		NetworkService: request.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context:        connectionContext,
+		Context:        &connectioncontext.ConnectionContext{
+			SrcIpAddr: srcIP.String() + "/30",
+			DstIpAddr: dstIP.String() + "/30",
+		},
 	}
 	err = connection.IsComplete()
 	if err != nil {

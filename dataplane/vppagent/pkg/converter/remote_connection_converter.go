@@ -16,9 +16,9 @@
 package converter
 
 import (
-	fmt "fmt"
-
+	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
@@ -81,6 +81,17 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 			Vni:        vni,
 		},
 	})
+
+	// Process routes
+	for _, route := range c.Connection.GetContext().GetRoutes() {
+		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+			DstIpAddr:	route.DstIpAddr,
+			SrcIpAddr: srcip,
+			Interface: c.name,
+			GwAddr: route.GwAddr,
+			Metric: route.Metric,
+		})
+	}
 
 	return rv, nil
 }

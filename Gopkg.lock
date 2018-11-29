@@ -763,6 +763,7 @@
     "github.com/golang/protobuf/ptypes/empty",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/ligato/vpp-agent/plugins/linux/model/interfaces",
+    "github.com/ligato/vpp-agent/plugins/linux/model/l3",
     "github.com/ligato/vpp-agent/plugins/vpp/model/interfaces",
     "github.com/ligato/vpp-agent/plugins/vpp/model/l2",
     "github.com/ligato/vpp-agent/plugins/vpp/model/rpc",

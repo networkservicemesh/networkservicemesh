@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 	"strconv"
 	"time"
@@ -129,18 +130,16 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 		},
 	}
 
-	connectionContext := make(map[string]string)
-
-	connectionContext["src_ip"] = "169083138/30"
-	connectionContext["dst_ip"] = "169083137/30"
-
 	// TODO take into consideration LocalMechnism preferences sent in request
 
 	connection := &connection.Connection{
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context:        connectionContext,
+		Context:        &connectioncontext.ConnectionContext{
+			SrcIpAddr:"169083138/30",
+			DstIpAddr: "169083137/30",
+		},
 	}
 	err := connection.IsComplete()
 	if err != nil {

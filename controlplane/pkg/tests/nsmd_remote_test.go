@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
@@ -103,8 +104,9 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: "golden_network",
-			Context: map[string]string{
-				"requires": "src_ip,dst_ip",
+			Context: &connectioncontext.ConnectionContext{
+				DstIpRequired: true,
+				SrcIpReqiured: true,
 			},
 			Labels: make(map[string]string),
 		},
