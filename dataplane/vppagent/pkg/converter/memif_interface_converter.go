@@ -15,11 +15,11 @@
 package converter
 
 import (
-	fmt "fmt"
+	"fmt"
+	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"os"
 	"path"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
@@ -60,10 +60,10 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 
 	var ipAddresses []string
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
+		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
 	}
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
+		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
 	}
 
 	if c.conversionParameters.Name == "" {
@@ -80,5 +80,15 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 			SocketFilename: path.Join(fullyQualifiedSocketFilename),
 		},
 	})
+
+	// Process static routes
+	for _, route := range c.Connection.GetContext().GetRoutes() {
+		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+			DstIpAddr:	route.DstIpAddr,
+			GwAddr: route.GwAddr,
+			Interface: c.conversionParameters.Name,
+			Metric: route.Metric,
+		})
+	}
 	return rv, nil
 }

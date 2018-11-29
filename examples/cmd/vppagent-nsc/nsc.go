@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"os"
 	"os/signal"
 	"sync"
@@ -75,8 +76,9 @@ func main() {
 
 		Connection: &connection.Connection{
 			NetworkService: "icmp-responder",
-			Context: map[string]string{
-				"requires": "src_ip,dst_ip",
+			Context: &connectioncontext.ConnectionContext {
+				SrcIpReqiured: true,
+				DstIpRequired: true,
 			},
 			Labels: make(map[string]string),
 		},
