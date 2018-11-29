@@ -4,6 +4,7 @@ package nsmdapi;
 
 // ConnectionRequest is sent by a NSM client to build a connection with NSM.
 message ClientConnectionRequest {
+    string workspace = 1;
 }
 
 // ClientConnectionReply is sent back by NSM as a reply to ClientConnectionRequest
@@ -27,7 +28,15 @@ message DeleteConnectionReply {
 
 }
 
+message EnumConnectionRequest {
+}
+
+message EnumConnectionReply {
+    repeated string workspace = 1;
+}
+
 service NSMD {
     rpc RequestClientConnection (ClientConnectionRequest) returns (ClientConnectionReply);
+    rpc EnumConnection (EnumConnectionRequest) returns (EnumConnectionReply);
     rpc DeleteClientConnection (DeleteConnectionRequest) returns (DeleteConnectionReply);
 }

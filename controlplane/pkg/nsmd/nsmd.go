@@ -2,18 +2,15 @@ package nsmd
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
-
-	"sync"
-
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -22,20 +19,19 @@ import (
 
 type nsmServer struct {
 	sync.Mutex
-	id              int
 	workspaces      map[string]*Workspace
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
 }
 
-func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.ClientConnectionReply, error) {
+func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
 	client, con, err := serviceRegistry.NSMDApiClient()
 	if err != nil {
 		logrus.Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
 	defer con.Close()
 
-	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{})
+	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{Workspace: id})
 	if err != nil {
 		return nil, err
 	}
@@ -45,13 +41,8 @@ func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi
 
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
 	logrus.Infof("Requested client connection to nsmd : %+v", request)
-	nsm.Lock()
-	nsm.id++
-	id := nsm.id
-	nsm.Unlock()
 
-	logrus.Infof("Creating new workspace for: %+v", request)
-	workspace, err := NewWorkSpace(nsm.model, nsm.serviceRegistry, fmt.Sprintf("nsm-%d", id))
+	workspace, err := NewWorkSpace(nsm.model, nsm.serviceRegistry, request.Workspace)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -87,6 +78,16 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 	nsm.Unlock()
 
 	return &nsmdapi.DeleteConnectionReply{}, nil
+}
+
+func (nsm *nsmServer) EnumConnection(context context.Context, request *nsmdapi.EnumConnectionRequest) (*nsmdapi.EnumConnectionReply, error) {
+	nsm.Lock()
+	defer nsm.Unlock()
+	workspaces := make([]string, len(nsm.workspaces), len(nsm.workspaces))
+	for w := range nsm.workspaces {
+		workspaces = append(workspaces, w)
+	}
+	return &nsmdapi.EnumConnectionReply{Workspace: workspaces}, nil
 }
 
 func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) error {
