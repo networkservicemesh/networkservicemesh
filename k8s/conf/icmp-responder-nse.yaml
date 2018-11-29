@@ -27,6 +27,9 @@ spec:
         - name: icmp-responder-nse
           image: networkservicemesh/icmp-responder-nse:latest
           imagePullPolicy: IfNotPresent
+          env:
+            - name: IP_ADDRESS
+              value: "10.20.1.1"
           resources:
             limits:
               nsm.ligato.io/socket: 1

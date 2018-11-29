@@ -21,11 +21,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-
+	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -35,6 +33,7 @@ const (
 	// networkServiceName defines Network Service Name the NSE is serving for
 	NetworkServiceName      = "icmp-responder"
 	DefaultVPPAgentEndpoint = "localhost:9112"
+	ipAddressEnv            = "IP_ADDRESS"
 )
 
 func main() {
@@ -78,7 +77,9 @@ func main() {
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
-	nseConn := New(DefaultVPPAgentEndpoint, workspace)
+	ipAddress, _ := os.LookupEnv(ipAddressEnv)
+	logrus.Infof("starting IP address: %s", ipAddress)
+	nseConn := New(DefaultVPPAgentEndpoint, workspace, ipAddress)
 
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
