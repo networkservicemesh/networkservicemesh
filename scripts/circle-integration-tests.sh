@@ -24,6 +24,7 @@ curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KU
  	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
 
 COMMIT="${CIRCLE_SHA1:8:8}"
+export CLUSTER_RULES_PREFIX=null
 
 . scripts/integration-tests.sh
 
