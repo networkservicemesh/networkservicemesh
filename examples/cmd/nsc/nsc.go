@@ -92,7 +92,7 @@ func main() {
 
 		for _, r := range requests {
 			wg.Add(1)
-			go func(errorCh chan<- error) {
+			go func(r *networkservice.NetworkServiceRequest, errorCh chan<- error) {
 				logrus.Infof("start goroutine for requesting connection with %v", r.Connection.NetworkService)
 				defer wg.Done()
 				attempt := 0
@@ -111,7 +111,7 @@ func main() {
 				}
 				errorCh <- fmt.Errorf("unable to setup connection with %v after %v attempts",
 					r.Connection.NetworkService, attempt)
-			}(errorCh)
+			}(r, errorCh)
 		}
 
 		wg.Wait()
