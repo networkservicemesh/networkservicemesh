@@ -19,6 +19,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -87,6 +88,7 @@ type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
 	testDataplaneConnection *testDataplaneConnection
+	localTestNSE            networkservice.NetworkServiceClient
 }
 
 func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
@@ -114,9 +116,11 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Ne
 }
 
 type localTestNSENetworkServiceClient struct {
+	req *networkservice.NetworkServiceRequest
 }
 
 func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+	impl.req = in
 	netns, _ := tools.GetCurrentNS()
 	if netns == "" {
 		netns = "12"
@@ -132,7 +136,7 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 
 	// TODO take into consideration LocalMechnism preferences sent in request
 
-	connection := &connection.Connection{
+	conn := &connection.Connection{
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
@@ -141,12 +145,12 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 			DstIpAddr: "169083137/30",
 		},
 	}
-	err := connection.IsComplete()
+	err := conn.IsComplete()
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
-	return connection, nil
+	return conn, nil
 }
 
 func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
@@ -155,7 +159,7 @@ func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *con
 }
 
 func (impl *nsmdTestServiceRegistry) EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	return &localTestNSENetworkServiceClient{}, nil, nil
+	return impl.localTestNSE, nil, nil
 }
 
 type testDataplaneConnection struct {
@@ -273,7 +277,59 @@ func (srv *nsmdFullServerImpl) Stop() {
 	srv.serviceRegistry.Stop()
 }
 
-func newNSMDFullServer() (*nsmdFullServerImpl, error) {
+func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string) {
+	impl.testModel.AddDataplane(&model.Dataplane{
+		RegisteredName: dp_name,
+		SocketLocation: dp_addr,
+	})
+}
+
+func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *registry.NSERegistration {
+	reg := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkServiceName,
+			Payload: payload,
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Name: nse_address,
+			Url:  nse_address,
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceManagerName: nse_address,
+			Payload:                   payload,
+			NetworkServiceName:        networkServiceName,
+			EndpointName:              networkServiceName + "provider",
+		},
+	}
+	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), reg)
+	Expect(err).To(BeNil())
+	Expect(regResp.NetworkService.Name).To(Equal(networkServiceName))
+	return reg
+}
+
+func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networkservice.NetworkServiceClient, *grpc.ClientConn) {
+	client, con, err := srv.serviceRegistry.NSMDApiClient()
+	Expect(err).To(BeNil())
+	defer con.Close()
+
+	response, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{
+		Workspace: clientName,
+	})
+
+	Expect(err).To(BeNil())
+
+	logrus.Printf("workspace %s", response.Workspace)
+
+	Expect(response.Workspace).To(Equal(clientName))
+	Expect(response.HostBasedir).To(Equal("/var/lib/networkservicemesh/"))
+
+	// Now we could try to connect via Client API
+	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
+	Expect(err).To(BeNil())
+	return nsmClient, conn
+}
+
+func newNSMDFullServer() *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry)
@@ -282,21 +338,16 @@ func newNSMDFullServer() (*nsmdFullServerImpl, error) {
 		nseRegistry:             srv.nseRegistry,
 		apiRegistry:             srv.apiRegistry,
 		testDataplaneConnection: &testDataplaneConnection{},
+		localTestNSE:            &localTestNSENetworkServiceClient{},
 	}
 
 	srv.testModel = model.NewModel()
 
 	// Lets start NSMD NSE registry service
 	err := nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry)
-	if err != nil {
-		srv.Stop()
-		return nil, err
-	}
-
+	Expect(err).To(BeNil())
 	err = nsmd.StartAPIServer(srv.testModel, srv.apiRegistry, srv.serviceRegistry)
-	if err != nil {
-		return nil, err
-	}
+	Expect(err).To(BeNil())
 
-	return srv, nil
+	return srv
 }

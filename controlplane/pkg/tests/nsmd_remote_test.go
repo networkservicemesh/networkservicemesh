@@ -5,8 +5,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	connection2 "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	. "github.com/onsi/gomega"
@@ -19,11 +17,8 @@ import (
 func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv, err := newNSMDFullServer()
-	Expect(err).To(BeNil())
-
-	srv2, err := newNSMDFullServer()
-	Expect(err).To(BeNil())
+	srv := newNSMDFullServer()
+	srv2 := newNSMDFullServer()
 
 	srv.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
@@ -54,51 +49,12 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	})
 
 	// Register in both
-	nseReg := &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name:    "golden_network",
-			Payload: "test",
-		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: srv2.serviceRegistry.GetPublicAPI(),
-			Url:  srv2.serviceRegistry.GetPublicAPI(),
-		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceManagerName: srv2.serviceRegistry.GetPublicAPI(),
-			Payload:                   "test",
-			NetworkServiceName:        "golden_network",
-			EndpointName:              "golden_network_provider",
-		},
-	}
-	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), nseReg)
-	Expect(err).To(BeNil())
-	Expect(regResp.NetworkService.Name).To(Equal("golden_network"))
-
+	nseReg := srv.registerFakeEndpoint("golden_network", "test", srv2.serviceRegistry.GetPublicAPI())
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
 
-	// Now we could connect and check RequestClient connection code is working fine.
-	// It will use our mock registration service to register itself to.
-	// Since we passed our api registry, we could connect using our test service Registry.
-
-	client, con, err := srv.serviceRegistry.NSMDApiClient()
-	Expect(err).To(BeNil())
-	defer con.Close()
-
-	response, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{
-		Workspace: "nsm-1",
-	})
-
-	Expect(err).To(BeNil())
-
-	logrus.Printf("workspace %s", response.Workspace)
-
-	Expect(response.Workspace).To(Equal("nsm-1"))
-	Expect(response.HostBasedir).To(Equal("/var/lib/networkservicemesh/"))
-
 	// Now we could try to connect via Client API
-	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
-	Expect(err).To(BeNil())
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
@@ -106,7 +62,7 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				DstIpRequired: true,
-				SrcIpReqiured: true,
+				SrcIpRequired: true,
 			},
 			Labels: make(map[string]string),
 		},

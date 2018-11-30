@@ -17,6 +17,7 @@ package nsmd
 import (
 	"net"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -84,7 +85,7 @@ func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegi
 	w.monitorConnectionServer = monitor_connection_server.NewMonitorConnectionServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry)
+	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes())
 
 	logrus.Infof("Creating new GRPC Server")
 	w.grpcServer = grpc.NewServer()
@@ -166,4 +167,16 @@ func (w *Workspace) cleanup() {
 			w.listener.Close()
 		}
 	}
+}
+
+func getExcludedPrefixes() []string {
+	//TODO: Add a better way to pass this value to NSMD
+	excluded_prefixes := []string{}
+	exclude_prefixes_env, ok := os.LookupEnv(ExcludedPrefixesEnv)
+	if ok {
+		for _, s := range strings.Split(exclude_prefixes_env, ",") {
+			excluded_prefixes = append(excluded_prefixes, strings.TrimSpace(s))
+		}
+	}
+	return excluded_prefixes
 }
