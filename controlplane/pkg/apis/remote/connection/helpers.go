@@ -17,6 +17,7 @@ package connection
 
 import (
 	fmt "fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 	"strconv"
 )
@@ -36,6 +37,16 @@ func (c *Connection) IsValid() error {
 		}
 	}
 	return nil
+}
+
+func (c *Connection) UpdateContext(newContext *connectioncontext.ConnectionContext) error {
+	oldCtx := c.Context
+	c.Context = newContext
+	err := c.IsValid()
+	if err != nil {
+		return err
+	}
+	return c.GetContext().IsCompleteAgainsOriginal(oldCtx)
 }
 
 // IsComplete - Have I been told enough to actually give you what you asked for

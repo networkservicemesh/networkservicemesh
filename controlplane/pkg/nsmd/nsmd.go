@@ -109,7 +109,11 @@ func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRe
 		logrus.Errorf("failed to start device plugin grpc server %+v", err)
 		return err
 	}
-	setLocalNSM(model, serviceRegistry)
+	err = setLocalNSM(model, serviceRegistry)
+	if err != nil {
+		logrus.Errorf("failed to set local NSM %+v", err)
+		return err
+	}
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			logrus.Error("failed to start device plugin grpc server")

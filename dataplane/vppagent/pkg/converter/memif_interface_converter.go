@@ -84,7 +84,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 	// Process static routes
 	for _, route := range c.Connection.GetContext().GetRoutes() {
 		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-			DstIpAddr: route.TargetAddr,
+			DstIpAddr: route.Prefix,
 			Interface: c.conversionParameters.Name,
 		})
 	}
