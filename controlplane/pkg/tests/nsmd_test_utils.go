@@ -136,8 +136,8 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context:        &connectioncontext.ConnectionContext{
-			SrcIpAddr:"169083138/30",
+		Context: &connectioncontext.ConnectionContext{
+			SrcIpAddr: "169083138/30",
 			DstIpAddr: "169083137/30",
 		},
 	}

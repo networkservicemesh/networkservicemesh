@@ -73,8 +73,8 @@ func main() {
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: "icmp-responder",
-			Context: &connectioncontext.ConnectionContext {
-				SrcIpReqiured: true,
+			Context: &connectioncontext.ConnectionContext{
+				SrcIpRequired: true,
 				DstIpRequired: true,
 			},
 			Labels: make(map[string]string),

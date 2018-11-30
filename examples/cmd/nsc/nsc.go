@@ -18,14 +18,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"os"
-	"sync"
-	"time"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
+	"os"
+	"sync"
+	"time"
 )
 
 const (
@@ -38,8 +38,8 @@ func newNetworkServiceRequest(networkServiceName string, nsLabels map[string]str
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: networkServiceName,
-			Context: &connectioncontext.ConnectionContext {
-				SrcIpReqiured: true,
+			Context: &connectioncontext.ConnectionContext{
+				SrcIpRequired: true,
 				DstIpRequired: true,
 			},
 			Labels: nsLabels,
