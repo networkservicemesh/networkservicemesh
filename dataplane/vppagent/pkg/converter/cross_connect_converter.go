@@ -47,7 +47,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 	}
 
 	if c.GetRemoteSource() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), "SRC-"+c.GetId()).ToDataRequest(rv)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), "SRC-"+c.GetId(), SOURCE).ToDataRequest(rv)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -68,7 +68,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 	}
 
 	if c.GetRemoteDestination() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId()).ToDataRequest(rv)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
