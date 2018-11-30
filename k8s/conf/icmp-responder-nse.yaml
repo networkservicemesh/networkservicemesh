@@ -26,6 +26,9 @@ spec:
       containers:
         - name: icmp-responder-nse
           image: networkservicemesh/icmp-responder-nse:latest
+          env:
+          - name: NSE_LABELS
+            value: "impl=kernel"
           imagePullPolicy: IfNotPresent
           env:
             - name: IP_ADDRESS
