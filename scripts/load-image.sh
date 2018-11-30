@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
 img_name=$1
-root=$(pwd)
-docker_hash=$(docker images -q networkservicemesh/${img_name});
-cd scripts/vagrant;
+
+docker_hash=$(docker images -q "networkservicemesh/${img_name}");
+cd scripts/vagrant || exit 101
 
 load_image() {
     node_name=$1
-    node_hash=$(vagrant ssh --no-tty ${node_name} -c "docker images -q networkservicemesh/${img_name}")
+    node_hash=$(vagrant ssh --no-tty "${node_name}" -c "docker images -q networkservicemesh/${img_name}")
 
-    if [ ${docker_hash} != ${node_hash} ]; then
+    if [ "${docker_hash}" != "${node_hash}" ]; then
         echo "Loading image ${img_name}.tar to ${node_name}";
-        vagrant ssh ${node_name} -c "sudo docker load -i /vagrant/images/${img_name}.tar" > /dev/null 2>&1;
+        vagrant ssh "${node_name}" -c "sudo docker load -i /vagrant/images/${img_name}.tar" > /dev/null 2>&1;
     else
         echo "Local docker image ${img_name} hash: ${docker_hash} ${node_name} hash ${node_hash} are same... No need to load"
     fi
