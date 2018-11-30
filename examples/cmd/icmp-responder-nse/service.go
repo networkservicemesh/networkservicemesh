@@ -16,6 +16,8 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
+	"net"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -55,11 +57,22 @@ func (ns *networkService) Close(_ context.Context, conn *connection.Connection) 
 	return &empty.Empty{}, nil
 }
 
-func New() networkservice.NetworkServiceServer {
+func ip2int(ip net.IP) uint32 {
+	if ip == nil {
+		return 0
+	}
+	if len(ip) == 16 {
+		return binary.BigEndian.Uint32(ip[12:16])
+	}
+	return binary.BigEndian.Uint32(ip)
+}
+
+func New(ip string) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
+	netIP := net.ParseIP(ip)
 	service := networkService{
 		networkService:          "icmp-responder",
-		nextIP:                  169083137, // 10.20.1.1
+		nextIP:                  ip2int(netIP), // 10.20.1.1
 		monitorConnectionServer: monitor,
 	}
 	return &service
