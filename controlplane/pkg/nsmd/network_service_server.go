@@ -267,14 +267,6 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 		return nil, err
 	}
 
-	if nseConnection.GetMechanism().Type == remote_connection.MechanismType_VXLAN {
-		// We need to switch directions of src<->dst
-		m := nseConnection.GetMechanism()
-		remoteDst := m.Parameters[remote_connection.VXLANDstIP]
-		nseConnection.GetMechanism().Parameters[remote_connection.VXLANDstIP] = m.Parameters[remote_connection.VXLANSrcIP]
-		nseConnection.GetMechanism().Parameters[remote_connection.VXLANSrcIP] = remoteDst
-		nseConnection.GetMechanism().Parameters[remote_connection.VXLANVNI] = srv.model.Vni()
-	}
 	dpApiConnection := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
 		Payload: endpoint.GetNetworkService().GetPayload(),

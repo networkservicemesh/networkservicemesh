@@ -114,8 +114,8 @@ func (srv *remoteNetworkServiceServer) selectMechanism(request *remote_networkse
 		if mechanism.Type == remote_connection.MechanismType_VXLAN {
 			// Update DST IP to be ours
 			remoteSrc := mechanism.Parameters[remote_connection.VXLANSrcIP]
-			mechanism.Parameters[remote_connection.VXLANSrcIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
-			mechanism.Parameters[remote_connection.VXLANDstIP] = remoteSrc
+			mechanism.Parameters[remote_connection.VXLANSrcIP] = remoteSrc
+			mechanism.Parameters[remote_connection.VXLANDstIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
 			mechanism.Parameters[remote_connection.VXLANVNI] = srv.model.Vni()
 		}
 		return mechanism, nil
