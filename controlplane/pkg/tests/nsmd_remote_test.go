@@ -84,7 +84,9 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 	defer con.Close()
 
-	response, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{})
+	response, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{
+		Workspace: "nsm-1",
+	})
 
 	Expect(err).To(BeNil())
 
