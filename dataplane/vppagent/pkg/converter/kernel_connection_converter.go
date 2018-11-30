@@ -100,11 +100,8 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	// Process static routes
 	for _, route := range c.Connection.GetContext().GetRoutes() {
 		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-			DstIpAddr:	route.DstIpAddr,
-			GwAddr: route.GwAddr,
+			DstIpAddr: route.TargetAddr,
 			Interface: m.GetParameters()[connection.InterfaceNameKey],
-			Metric: route.Metric,
-
 		})
 	}
 
