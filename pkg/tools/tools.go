@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-errors/errors"
@@ -108,4 +109,14 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 		}
 	}
 	return nil
+}
+
+func ParseStringToMap(input, sep string) map[string]string {
+	result := map[string]string{}
+	pairs := strings.Split(input, sep)
+	for _, pair := range pairs {
+		p := strings.Split(pair, "=")
+		result[p[0]] = p[1]
+	}
+	return result
 }
