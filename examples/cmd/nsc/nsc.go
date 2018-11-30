@@ -16,41 +16,26 @@ package main
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
-
+	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/examples/cmd/nsc/utils"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
+	"os"
+	"sync"
+	"time"
 )
 
-func main() {
-	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
-	netns, err := tools.GetCurrentNS()
-	if err != nil {
-		logrus.Fatalf("nsc: failed to get a linux namespace with error: %+v, exiting...", err)
-		os.Exit(101)
-	}
-	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
+const (
+	attemptsMax = 10
+)
 
-	// Init related activities start here
-	logrus.Info("Connecting to nsm server on socket")
-	nsmConnectionClient, conn, err := nsmd.NewNetworkServiceClient()
-	if err != nil {
-		logrus.Fatalf("nsc: failed to connect with NSMD: %+v, exiting...", err)
-		os.Exit(101)
-	}
-	defer conn.Close()
-
-	request := &networkservice.NetworkServiceRequest{
+func newNetworkServiceRequest(networkServiceName string, intf string, netns string) *networkservice.NetworkServiceRequest {
+	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: "icmp-responder",
+			NetworkService: networkServiceName,
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
@@ -61,32 +46,83 @@ func main() {
 				Type: connection.MechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
 					connection.NetNsInodeKey:    netns,
-					connection.InterfaceNameKey: "icmp-responder1",
+					connection.InterfaceNameKey: intf,
 				},
 			},
 		},
 	}
+}
 
-	for ; true; <-time.After(5 * time.Second) {
-		logrus.Infof("Sending request %v", request)
-		reply, err := nsmConnectionClient.Request(context.Background(), request)
-
-		if err != nil {
-			logrus.Errorf("failure to request connection with error: %+v", err)
-			continue
-		}
-		logrus.Infof("Received reply: %v", reply)
-		break
-		// Init related activities ends here
+func main() {
+	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
+	netns, err := tools.GetCurrentNS()
+	if err != nil {
+		logrus.Fatalf("nsc: failed to get a linux namespace with error: %+v, exiting...", err)
+		os.Exit(101)
 	}
-	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
+
+	networkServices, ok := os.LookupEnv("NETWORK_SERVICES")
+	if !ok {
+		logrus.Infof("nsc: no services to connect, exiting...")
+		os.Exit(0)
+	}
+
+	// Init related activities start here
+	logrus.Info("Connecting to nsm server on socket")
+	nsmConnectionClient, conn, err := nsmd.NewNetworkServiceClient()
+	if err != nil {
+		logrus.Fatalf("nsc: failed to connect with NSMD: %+v, exiting...", err)
+		os.Exit(101)
+	}
+	defer conn.Close()
+
+	nsConfig := utils.ParseNetworkServices(networkServices)
+	var requests []*networkservice.NetworkServiceRequest
+
+	for ns, intf := range nsConfig {
+		requests = append(requests, newNetworkServiceRequest(ns, intf, netns))
+	}
+
+	errorCh := make(chan error)
+	waitCh := make(chan struct{})
+
 	go func() {
-		<-c
-		wg.Done()
+		var wg sync.WaitGroup
+
+		for _, r := range requests {
+			wg.Add(1)
+			go func(r *networkservice.NetworkServiceRequest, errorCh chan<- error) {
+				logrus.Infof("start goroutine for requesting connection with %v", r.Connection.NetworkService)
+				defer wg.Done()
+				attempt := 0
+				for attempt < attemptsMax {
+					<-time.Tick(time.Second)
+
+					attempt++
+					logrus.Infof("Sending request %v", r)
+					reply, err := nsmConnectionClient.Request(context.Background(), r)
+					if err != nil {
+						logrus.Errorf("failure to request connection with error: %+v", err)
+						continue
+					}
+					logrus.Infof("Received reply: %v", reply)
+					return
+				}
+				errorCh <- fmt.Errorf("unable to setup connection with %v after %v attempts",
+					r.Connection.NetworkService, attempt)
+			}(r, errorCh)
+		}
+
+		wg.Wait()
+		close(waitCh)
 	}()
-	wg.Wait()
+
+	select {
+	case err := <-errorCh:
+		logrus.Error(err)
+		os.Exit(1)
+	case <-waitCh:
+		logrus.Info("nsm client: initialization is completed successfully")
+	}
 }

@@ -11,9 +11,16 @@ spec:
       nodeSelector:
         node-role.kubernetes.io/master: ""
       containers:
+        - name: alpine-img
+          image: alpine:latest
+          command: ['tail', '-f', '/dev/null']
+      initContainers:
         - name: nsc
           image: networkservicemesh/nsc:latest
           imagePullPolicy: IfNotPresent
+          env:
+            - name: NETWORK_SERVICES
+              value: "nsm1:icmp-responder"
           resources:
             limits:
               nsm.ligato.io/socket: 1
