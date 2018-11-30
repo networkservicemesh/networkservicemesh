@@ -16,6 +16,8 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
+	"net"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -56,11 +58,22 @@ func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Conn
 	return &empty.Empty{}, nil
 }
 
-func New(vppAgentEndpoint string, baseDir string) networkservice.NetworkServiceServer {
+func ip2int(ip net.IP) uint32 {
+	if ip == nil {
+		return 0
+	}
+	if len(ip) == 16 {
+		return binary.BigEndian.Uint32(ip[12:16])
+	}
+	return binary.BigEndian.Uint32(ip)
+}
+
+func New(vppAgentEndpoint string, baseDir string, ip string) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
+	netIP := net.ParseIP(ip)
 	service := vppagentNetworkService{
 		networkService:          NetworkServiceName,
-		nextIP:                  169738497, // 10.30.1.1
+		nextIP:                  ip2int(netIP),
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
