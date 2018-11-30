@@ -18,7 +18,7 @@ jobs:
       - run: go get golang.org/x/tools/cmd/stringer
       - run: ./scripts/install-protoc.sh
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
-      - run: go build ./...
+      - run: go test ./...
 
   build:
     working_directory: /go/src/github.com/ligato/networkservicemesh
