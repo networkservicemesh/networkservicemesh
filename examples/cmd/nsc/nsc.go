@@ -29,17 +29,18 @@ import (
 )
 
 const (
-	attemptsMax = 10
+	nscLabelsEnv = "NSC_LABELS"
+	attemptsMax  = 10
 )
 
-func newNetworkServiceRequest(networkServiceName string, intf string, netns string) *networkservice.NetworkServiceRequest {
+func newNetworkServiceRequest(networkServiceName string, nsLabels map[string]string, intf string, netns string) *networkservice.NetworkServiceRequest {
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: networkServiceName,
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
-			Labels: make(map[string]string),
+			Labels: nsLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
@@ -78,10 +79,12 @@ func main() {
 	defer conn.Close()
 
 	nsConfig := utils.ParseNetworkServices(networkServices)
+	nscLabels := tools.ParseStringToMap(os.Getenv(nscLabelsEnv), ":")
+
 	var requests []*networkservice.NetworkServiceRequest
 
 	for ns, intf := range nsConfig {
-		requests = append(requests, newNetworkServiceRequest(ns, intf, netns))
+		requests = append(requests, newNetworkServiceRequest(ns, nscLabels, intf, netns))
 	}
 
 	errorCh := make(chan error)

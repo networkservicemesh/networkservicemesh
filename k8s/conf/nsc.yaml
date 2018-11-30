@@ -17,8 +17,11 @@ spec:
       initContainers:
         - name: nsc
           image: networkservicemesh/nsc:latest
+
           imagePullPolicy: IfNotPresent
           env:
+            - name: NSC_LABELS
+              value: "impl=vpp"
             - name: NETWORK_SERVICES
               value: "nsm1:icmp-responder"
           resources:
