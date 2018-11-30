@@ -34,6 +34,7 @@ const (
 	NetworkServiceName      = "icmp-responder"
 	DefaultVPPAgentEndpoint = "localhost:9112"
 	ipAddressEnv            = "IP_ADDRESS"
+	nseLabelsEnv            = "NSE_LABELS"
 )
 
 func main() {
@@ -110,10 +111,12 @@ func main() {
 
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 
+	nseLabels := os.Getenv(nseLabelsEnv)
+
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: NetworkServiceName,
 		Payload:            "IP",
-		Labels:             make(map[string]string),
+		Labels:             tools.ParseStringToMap(nseLabels, ":"),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{

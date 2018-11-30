@@ -28,6 +28,9 @@ spec:
           securityContext:
             privileged: true
           image: networkservicemesh/vppagent-icmp-responder-nse:latest
+          env:
+          - name: NSC_LABELS
+            value: "impl=vpp"
           imagePullPolicy: IfNotPresent
           env:
             - name: IP_ADDRESS
