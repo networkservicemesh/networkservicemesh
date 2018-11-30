@@ -17,6 +17,7 @@ package converter
 
 import (
 	fmt "fmt"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
@@ -27,13 +28,15 @@ import (
 type RemoteConnectionConverter struct {
 	*connection.Connection
 	name string
+	side ConnectionContextSide
 }
 
 // NewRemoteConnectionConverter creates a new remote connection coverter
-func NewRemoteConnectionConverter(c *connection.Connection, name string) *RemoteConnectionConverter {
+func NewRemoteConnectionConverter(c *connection.Connection, name string, side ConnectionContextSide) *RemoteConnectionConverter {
 	return &RemoteConnectionConverter{
 		Connection: c,
 		name:       name,
+		side:       side,
 	}
 }
 
@@ -54,8 +57,14 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 
 	m := c.GetMechanism()
 
+	// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
 	srcip, _ := m.SrcIP()
 	dstip, _ := m.DstIP()
+	if c.side == SOURCE {
+		// If the remote Connection is DESTINATION Side then srcip/dstip need to be flipped from the Connection
+		srcip, _ = m.DstIP()
+		dstip, _ = m.SrcIP()
+	}
 	vni, _ := m.VNI()
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANSrcIP, srcip)
