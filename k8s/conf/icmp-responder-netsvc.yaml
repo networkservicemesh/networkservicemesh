@@ -6,17 +6,17 @@ metadata:
 spec:
   payload: IP
   matches:
-  - match:
-    sourceSelector:
+    - match:
+      sourceSelector:
         impl: vpp
-    route:
-      - destination:
+      route:
+        - destination:
           destinationSelector:
             impl: vpp
-  - match:
-    sourceSelector:
+    - match:
+      sourceSelector:
         impl: kernel
-    route:
-      - destination:
+      route:
+        - destination:
           destinationSelector:
             impl: kernel
