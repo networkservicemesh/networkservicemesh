@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor skydive vpn-gateway-nse vpn-gateway-nsc
+DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor vppagent-firewall-ns skydive vpn-gateway-nse vpn-gateway-nsc
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -174,6 +174,12 @@ k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-
 
 .PHONY: k8s-vppagent-icmp-responder-nse-save
 k8s-vppagent-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-save
+
+.PHONY: k8s-vppagent-firewall-nse-build
+k8s-vppagent-firewall-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-firewall-nse-build
+
+.PHONY: k8s-vppagent-firewall-nse-save
+k8s-vppagent-firewall-nse-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-firewall-nse-save
 
 .PHONY: k8s-vppagent-nsc-build
 k8s-vppagent-nsc-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-build
