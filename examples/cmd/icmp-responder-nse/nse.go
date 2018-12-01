@@ -110,7 +110,7 @@ func main() {
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: networkServiceName,
 		Payload:            "IP",
-		Labels:             tools.ParseStringToMap(nseLabels, ":"),
+		Labels:             tools.ParseKVStringToMap(nseLabels, ":", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{

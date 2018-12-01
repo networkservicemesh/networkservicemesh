@@ -111,12 +111,22 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 	return nil
 }
 
-func ParseStringToMap(input, sep string) map[string]string {
+func parseKV(kv, kvsep string) (string, string) {
+	keyValue := strings.Split(kv, kvsep)
+	if len(keyValue) != 2 {
+		keyValue = []string{"", ""}
+	}
+	return strings.Trim(keyValue[0], " "), strings.Trim(keyValue[1], " ")
+}
+
+// ParseKVStringToMap parses the input string
+func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 	result := map[string]string{}
 	pairs := strings.Split(input, sep)
 	for _, pair := range pairs {
-		p := strings.Split(pair, "=")
-		result[p[0]] = p[1]
+		fmt.Println(pair)
+		k, v := parseKV(pair, kvsep)
+		result[k] = v
 	}
 	return result
 }
