@@ -70,7 +70,7 @@ func checkMemif(memif *interfaces.Interfaces_Interface_Memif, isMaster bool) {
 func TestSourceSideConverter(t *testing.T) {
 	RegisterTestingT(t)
 	conversionParameters := &ConnectionConversionParameters{
-		Terminate: false,
+		Terminate: true,
 		Side:      SOURCE,
 		Name:      interfaceName,
 		BaseDir:   baseDir,

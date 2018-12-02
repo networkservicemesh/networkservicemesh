@@ -44,7 +44,15 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataR
 	}
 	fullyQualifiedSocketFilename := path.Join(c.conversionParameters.BaseDir, c.Connection.GetMechanism().GetSocketFilename())
 	SocketDir := path.Dir(fullyQualifiedSocketFilename)
-	if c.conversionParameters.Terminate {
+
+	var isMaster bool
+	if c.conversionParameters.Side == DESTINATION {
+		isMaster = c.conversionParameters.Terminate
+	} else {
+		isMaster = !c.conversionParameters.Terminate
+	}
+
+	if isMaster {
 		if err := os.MkdirAll(SocketDir, 0777); err != nil {
 			return nil, err
 		}
@@ -54,7 +62,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataR
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
 	}
-	if c.conversionParameters.Side == SOURCE {
+	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
 	}
 
@@ -68,7 +76,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataR
 		Enabled:     true,
 		IpAddresses: ipAddresses,
 		Memif: &interfaces.Interfaces_Interface_Memif{
-			Master:         c.conversionParameters.Terminate,
+			Master:         isMaster,
 			SocketFilename: path.Join(fullyQualifiedSocketFilename),
 		},
 	})
