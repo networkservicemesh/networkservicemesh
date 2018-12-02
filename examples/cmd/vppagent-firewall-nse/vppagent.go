@@ -19,8 +19,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
@@ -85,6 +87,42 @@ func (ns *vppagentNetworkService) CreateVppInterfaceDst(ctx context.Context, nse
 		return err
 	}
 	return nil
+}
+
+func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, error) {
+	if crossConnect.GetLocalSource().GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE &&
+		crossConnect.GetLocalDestination().GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE {
+		return memif.DirectConnection(crossConnect, baseDir)
+	}
+
+	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("can't dial grpc server: %v", err)
+		return nil, err
+	}
+	defer conn.Close()
+	client := rpc.NewDataChangeServiceClient(conn)
+
+	conversionParameters := &converter.CrossConnectConversionParameters{
+		BaseDir: baseDir,
+	}
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil)
+
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
+	if connect {
+		_, err = client.Put(ctx, dataChange)
+	} else {
+		_, err = client.Del(ctx, dataChange)
+	}
+	if err != nil {
+		logrus.Error(err)
+		return crossConnect, err
+	}
+	return crossConnect, nil
 }
 
 func (ns *vppagentNetworkService) Reset() error {

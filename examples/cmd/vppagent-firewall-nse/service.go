@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
@@ -35,6 +36,7 @@ type vppagentNetworkService struct {
 	vppAgentEndpoint        string
 	baseDir                 string
 	clientConnection        networkservice.NetworkServiceClient
+	crossConnects           map[string]*crossconnect.CrossConnect
 }
 
 func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -108,13 +110,42 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		return nil, err
 	}
 
+	crossConnectRequest := &crossconnect.CrossConnect{
+		Id:      request.GetConnection().GetId(),
+		Payload: "IP", // TODO get this dynamically
+		Source: &crossconnect.CrossConnect_LocalSource{
+			outgoingConnection,
+		},
+		Destination: &crossconnect.CrossConnect_LocalDestination{
+			incomingConnection,
+		},
+	}
+
+	crossConnect, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, true, ns.baseDir)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+
+	// Store for cleanup
+	ns.crossConnects[incomingConnection.GetId()] = crossConnect
+
 	ns.monitorConnectionServer.UpdateConnection(incomingConnection)
 	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
 	return incomingConnection, nil
 }
 
-func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
+func (ns *vppagentNetworkService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	// remove from connection
+	crossConnectRequest, ok := ns.crossConnects[conn.GetId()]
+	if ok {
+		_, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, false, ns.baseDir)
+		if err != nil {
+			logrus.Error(err)
+			return nil, err
+		}
+	}
+
 	ns.monitorConnectionServer.DeleteConnection(conn)
 	return &empty.Empty{}, nil
 }
@@ -127,6 +158,7 @@ func New(networkServiceName, vppAgentEndpoint string, baseDir string, clientConn
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
 		clientConnection:        clientConnection,
+		crossConnects:           make(map[string]*crossconnect.CrossConnect),
 	}
 	service.Reset()
 	return &service
