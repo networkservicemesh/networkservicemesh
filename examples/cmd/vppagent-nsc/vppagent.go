@@ -22,7 +22,7 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 
 	conversionParameters := &converter.ConnectionConversionParameters{
 		Name:      "SRC-" + nscConnection.GetId(),
-		Terminate: false,
+		Terminate: true,
 		Side:      converter.SOURCE,
 		BaseDir:   baseDir,
 	}

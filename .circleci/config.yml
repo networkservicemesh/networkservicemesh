@@ -261,7 +261,20 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-vppagent-icmp-responder-nse-build
             make docker-vppagent-icmp-responder-nse-push
-
+  build-vppagent-nsc:
+    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-vppagent-nsc-build
+            make docker-vppagent-nsc-push
   build-nsc:
     working_directory: /go/src/github.com/ligato/networkservicemesh/
     docker:
@@ -313,6 +326,9 @@ workflows:
       - build-vppagent-icmp-responder-nse:
           requires:
             - sanity-check
+      - build-vppagent-nsc:
+          requires:
+            - sanity-check
       - build-nsc:
           requires:
             - sanity-check
@@ -330,6 +346,7 @@ workflows:
             - build-crossconnect-monitor
             - build-icmp-responder-nse
             - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
             - build-nsc
             - packet-deploy
       - packet-destroy:

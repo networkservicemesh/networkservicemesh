@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor
+DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor vppagent-nsc
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
