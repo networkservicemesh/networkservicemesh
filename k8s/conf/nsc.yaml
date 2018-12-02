@@ -19,11 +19,13 @@ spec:
           image: networkservicemesh/nsc:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: NSC_LABELS
+              value: "impl=vpp"
             - name: NETWORK_SERVICES
               value: "nsm1:icmp-responder"
           resources:
             limits:
               nsm.ligato.io/socket: 1
 metadata:
-  name: nsc
+  name: nsc-vpp
   namespace: default

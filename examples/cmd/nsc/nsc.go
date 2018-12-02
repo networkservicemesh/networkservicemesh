@@ -20,7 +20,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/examples/cmd/nsc/utils"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -29,17 +28,19 @@ import (
 )
 
 const (
-	attemptsMax = 10
+	nsEnv        = "NETWORK_SERVICES"
+	nscLabelsEnv = "NSC_LABELS"
+	attemptsMax  = 10
 )
 
-func newNetworkServiceRequest(networkServiceName string, intf string, netns string) *networkservice.NetworkServiceRequest {
+func newNetworkServiceRequest(networkServiceName string, nsLabels map[string]string, intf string, netns string) *networkservice.NetworkServiceRequest {
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: networkServiceName,
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
-			Labels: make(map[string]string),
+			Labels: nsLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
@@ -62,10 +63,15 @@ func main() {
 	}
 	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
 
-	networkServices, ok := os.LookupEnv("NETWORK_SERVICES")
+	networkServices, ok := os.LookupEnv(nsEnv)
 	if !ok {
 		logrus.Infof("nsc: no services to connect, exiting...")
 		os.Exit(0)
+	}
+
+	nscLabels, ok := os.LookupEnv(nscLabelsEnv)
+	if !ok {
+		logrus.Infof("nsc: no services to connect, exiting...")
 	}
 
 	// Init related activities start here
@@ -77,11 +83,13 @@ func main() {
 	}
 	defer conn.Close()
 
-	nsConfig := utils.ParseNetworkServices(networkServices)
+	nsConfig := tools.ParseKVStringToMap(networkServices, ",", ":")
+	nsLabels := tools.ParseKVStringToMap(nscLabels, ",", "=")
+
 	var requests []*networkservice.NetworkServiceRequest
 
-	for ns, intf := range nsConfig {
-		requests = append(requests, newNetworkServiceRequest(ns, intf, netns))
+	for intf, ns := range nsConfig {
+		requests = append(requests, newNetworkServiceRequest(ns, nsLabels, intf, netns))
 	}
 
 	errorCh := make(chan error)
