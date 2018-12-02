@@ -28,8 +28,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
-
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
@@ -128,10 +126,12 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 }
 
 func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-		return memif.DirectConnection(crossConnect, v.baseDir)
-	}
+	// Disabling direct memif while bind mounts are not propagated from host to vppagent based container
+
+	//if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
+	//	crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
+	//	return memif.DirectConnection(crossConnect, v.baseDir)
+	//}
 
 	// TODO look at whether keepin a single conn might be better
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
