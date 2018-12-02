@@ -32,7 +32,7 @@ import (
 
 const (
 	// NetworkServiceName defines Network Service Name the NSE is serving for
-	NetworkServiceName      = "firewall"
+	NetworkServiceNameEnv   = "NETWORK_SERVICE"
 	DefaultVPPAgentEndpoint = "localhost:9112"
 )
 
@@ -45,17 +45,29 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
+	nsmServerSocket, ok := os.LookupEnv(nsmd.NsmServerSocketEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", nsmd.NsmServerSocketEnv, ok)
+	}
 	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
-	// TODO handle missing env
 
-	nsmClientSocket, _ := os.LookupEnv(nsmd.NsmClientSocketEnv)
+	nsmClientSocket, ok := os.LookupEnv(nsmd.NsmClientSocketEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", nsmd.NsmClientSocketEnv, ok)
+	}
 	logrus.Infof("nsmClientSocket: %s", nsmClientSocket)
-	// TODO handle missing env
 
-	workspace, _ := os.LookupEnv(nsmd.WorkspaceEnv)
+	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", nsmd.WorkspaceEnv, ok)
+	}
 	logrus.Infof("workspace: %s", workspace)
-	// TODO handle missing env
+
+	networkServiceName, ok := os.LookupEnv(NetworkServiceNameEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", NetworkServiceNameEnv, ok)
+	}
+	logrus.Infof("Network Service Name: %s", networkServiceName)
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
@@ -106,17 +118,19 @@ func main() {
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 	clientConnection := networkservice.NewNetworkServiceClient(conn)
 
-	nseConn := New(DefaultVPPAgentEndpoint, workspace, clientConnection)
+	nseConn := New(networkServiceName, DefaultVPPAgentEndpoint, workspace, clientConnection)
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: NetworkServiceName,
+		NetworkServiceName: networkServiceName,
 		Payload:            "IP",
-		Labels:             make(map[string]string),
+		Labels: map[string]string{
+			"app": "firewall", // TODO - make these ENV configurable
+		},
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    NetworkServiceName,
+			Name:    networkServiceName,
 			Payload: "IP",
 		},
 		NetworkserviceEndpoint: nse,
@@ -140,6 +154,6 @@ func main() {
 
 	select {
 	case <-c:
-		logrus.Info("Closing vppagent-firewall-nse")
+		logrus.Infof("Closing %v", networkServiceName)
 	}
 }

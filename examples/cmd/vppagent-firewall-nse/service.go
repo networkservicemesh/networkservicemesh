@@ -30,7 +30,7 @@ import (
 
 type vppagentNetworkService struct {
 	sync.RWMutex
-	networkService          string
+	networkServiceName      string
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	vppAgentEndpoint        string
 	baseDir                 string
@@ -42,18 +42,20 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: "icmp-responder",
+			NetworkService: ns.networkServiceName,
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
-			Labels: make(map[string]string),
+			Labels: map[string]string{
+				"app": "firewall", // TODO - make these ENV configurable
+			},
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
 				Type: connection.MechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
-					connection.InterfaceNameKey: "icmp-responder",
-					connection.SocketFilename:   path.Join("icmp-responder", "memif.sock"),
+					connection.InterfaceNameKey: "firewall",
+					connection.SocketFilename:   path.Join("firewall", "memif.sock"),
 				},
 			},
 		},
@@ -117,10 +119,10 @@ func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Conn
 	return &empty.Empty{}, nil
 }
 
-func New(vppAgentEndpoint string, baseDir string, clientConnection networkservice.NetworkServiceClient) networkservice.NetworkServiceServer {
+func New(networkServiceName, vppAgentEndpoint string, baseDir string, clientConnection networkservice.NetworkServiceClient) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
 	service := vppagentNetworkService{
-		networkService:          NetworkServiceName,
+		networkServiceName:      networkServiceName,
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
