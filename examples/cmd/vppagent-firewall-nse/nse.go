@@ -34,7 +34,6 @@ const (
 	// NetworkServiceName defines Network Service Name the NSE is serving for
 	NetworkServiceName      = "firewall"
 	DefaultVPPAgentEndpoint = "localhost:9112"
-	ipAddressEnv            = "IP_ADDRESS"
 )
 
 func main() {
@@ -78,11 +77,6 @@ func main() {
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
-	ipAddress, _ := os.LookupEnv(ipAddressEnv)
-	logrus.Infof("starting IP address: %s", ipAddress)
-	nseConn := New(DefaultVPPAgentEndpoint, workspace, ipAddress)
-
-	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
 	go func() {
 		if err := grpcServer.Serve(connectionServer); err != nil {
@@ -110,6 +104,10 @@ func main() {
 	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", nsmServerSocket)
 
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
+	clientConnection := networkservice.NewNetworkServiceClient(conn)
+
+	nseConn := New(DefaultVPPAgentEndpoint, workspace, clientConnection)
+	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: NetworkServiceName,

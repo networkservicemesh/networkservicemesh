@@ -17,9 +17,9 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
-	"net"
+	"path"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -31,26 +31,84 @@ import (
 type vppagentNetworkService struct {
 	sync.RWMutex
 	networkService          string
-	nextIP                  uint32
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	vppAgentEndpoint        string
 	baseDir                 string
+	clientConnection        networkservice.NetworkServiceClient
+}
+
+func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	logrus.Infof("Initiating an outgoing connection.")
+
+	outgoingRequest := &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			NetworkService: "icmp-responder",
+			Context: map[string]string{
+				"requires": "src_ip,dst_ip",
+			},
+			Labels: make(map[string]string),
+		},
+		MechanismPreferences: []*connection.Mechanism{
+			{
+				Type: connection.MechanismType_MEM_INTERFACE,
+				Parameters: map[string]string{
+					connection.InterfaceNameKey: "icmp-responder",
+					connection.SocketFilename:   path.Join("icmp-responder", "memif.sock"),
+				},
+			},
+		},
+	}
+
+	var outgoingConnection *connection.Connection
+	for ; true; <-time.After(5 * time.Second) {
+		var err error
+		logrus.Infof("Sending outgoing request %v", outgoingRequest)
+		outgoingConnection, err = ns.clientConnection.Request(context.Background(), outgoingRequest)
+
+		if err != nil {
+			logrus.Errorf("failure to request connection with error: %+v", err)
+			continue
+		}
+		logrus.Infof("Received outgoing connection: %v", outgoingConnection)
+		break
+	}
+
+	// vppInterfaceConnection os the same as outgoingConnection minus the context
+	vppInterfaceConnection := connection.Connection{
+		Id:             outgoingConnection.GetId(),
+		NetworkService: outgoingConnection.GetNetworkService(),
+		Mechanism:      outgoingConnection.GetMechanism(),
+		Context:        map[string]string{},
+		Labels:         outgoingConnection.GetLabels(),
+	}
+	if err := ns.CreateVppInterfaceSrc(ctx, &vppInterfaceConnection, ns.baseDir); err != nil {
+		logrus.Fatal(err)
+	}
+
+	return outgoingConnection, nil
 }
 
 func (ns *vppagentNetworkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Request for Network Service received %v", request)
-	nseConnection, err := ns.CompleteConnection(request)
+
+	outgoingConnection, err := ns.outgoingConnectionRequest(ctx, request)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
-	if err := ns.CreateVppInterfaceDst(ctx, nseConnection, ns.baseDir); err != nil {
+
+	incomingConnection, err := ns.CompleteConnection(request, outgoingConnection)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+	if err := ns.CreateVppInterfaceDst(ctx, incomingConnection, ns.baseDir); err != nil {
 		return nil, err
 	}
 
-	ns.monitorConnectionServer.UpdateConnection(nseConnection)
-	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, nseConnection)
-	return nseConnection, nil
+	ns.monitorConnectionServer.UpdateConnection(incomingConnection)
+	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	return incomingConnection, nil
 }
 
 func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
@@ -59,25 +117,14 @@ func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Conn
 	return &empty.Empty{}, nil
 }
 
-func ip2int(ip net.IP) uint32 {
-	if ip == nil {
-		return 0
-	}
-	if len(ip) == 16 {
-		return binary.BigEndian.Uint32(ip[12:16])
-	}
-	return binary.BigEndian.Uint32(ip)
-}
-
-func New(vppAgentEndpoint string, baseDir string, ip string) networkservice.NetworkServiceServer {
+func New(vppAgentEndpoint string, baseDir string, clientConnection networkservice.NetworkServiceClient) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
-	netIP := net.ParseIP(ip)
 	service := vppagentNetworkService{
 		networkService:          NetworkServiceName,
-		nextIP:                  ip2int(netIP),
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
+		clientConnection:        clientConnection,
 	}
 	service.Reset()
 	return &service
