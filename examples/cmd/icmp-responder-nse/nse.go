@@ -35,6 +35,7 @@ const (
 	networkServiceName = "icmp-responder"
 	// starting IP address for address pool
 	ipAddressEnv = "IP_ADDRESS"
+	nseLabelsEnv = "NSE_LABELS"
 )
 
 func main() {
@@ -104,10 +105,12 @@ func main() {
 
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 
+	nseLabels := os.Getenv(nseLabelsEnv)
+
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: networkServiceName,
 		Payload:            "IP",
-		Labels:             make(map[string]string),
+		Labels:             tools.ParseKVStringToMap(nseLabels, ":", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{

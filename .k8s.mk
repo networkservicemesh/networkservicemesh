@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor
+DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -117,6 +117,17 @@ k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_
 k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))	
  .PHONY: k8s-vppagent-dataplane-load-images	
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+
+.PHONY: k8s-icmp-responder-netsvc-build
+k8s-icmp-responder-netsvc-build:
+
+.PHONY: k8s-icmp-responder-netsvc-save
+k8s-icmp-responder-netsvc-save:
+
+.PHONY: k8s-icmp-responder-netsvc-load-images
+k8s-icmp-responder-netsvc-load-images:
+	@echo "Wait for nsmd to register the resources"
+	@sleep 10
 
 .PHONY: k8s-nsc-build
 k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
