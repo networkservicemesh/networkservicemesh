@@ -1,0 +1,3 @@
+FROM nginx
+ COPY examples/nginx/conf/default.conf /etc/nginx/conf.d/
+ COPY examples/nginx/html /usr/share/nginx/html
