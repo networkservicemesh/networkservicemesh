@@ -16,12 +16,12 @@ import (
 )
 
 type nseWithOptions struct {
-	netns         string
-	srcIp         string
-	dstIp         string
-	needMechanism bool
+	netns             string
+	srcIp             string
+	dstIp             string
+	needMechanism     bool
 	need_ip_neighbors bool
-	connection *connection.Connection
+	connection        *connection.Connection
 }
 
 func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
@@ -50,7 +50,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 	if impl.need_ip_neighbors {
 		conn.GetContext().IpNeighbors = []*connectioncontext.IpNeighbor{
 			&connectioncontext.IpNeighbor{
-				Ip: "127.0.0.1",
+				Ip:              "127.0.0.1",
 				HardwareAddress: "ff-ee-ff-ee-ff",
 			},
 		}
@@ -192,9 +192,9 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	srv := newNSMDFullServer()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
-		netns: "12",
-		srcIp: "169083138/30",
-		dstIp: "169083137/30",
+		netns:             "12",
+		srcIp:             "169083138/30",
+		dstIp:             "169083137/30",
 		need_ip_neighbors: true,
 	}
 
@@ -218,4 +218,3 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	Expect(originl.connection.Context.IpNeighbors[0].Ip).To(Equal("127.0.0.1"))
 	Expect(originl.connection.Context.IpNeighbors[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
 }
-

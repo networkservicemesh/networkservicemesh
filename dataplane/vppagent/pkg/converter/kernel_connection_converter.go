@@ -105,8 +105,8 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
 			DstIpAddr: route.Prefix,
 			Interface: c.conversionParameters.Name,
-			Namespace: &l3.LinuxStaticRoutes_Route_Namespace {
-				Type: l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
+			Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
+				Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
 				Filepath: filepath,
 			},
 			GwAddr: dstIpAddresses,
