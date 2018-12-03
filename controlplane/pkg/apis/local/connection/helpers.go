@@ -31,7 +31,7 @@ func (c *Connection) UpdateContext(newContext *connectioncontext.ConnectionConte
 	if err != nil {
 		return err
 	}
-	return c.GetContext().IsCompleteAgainsOriginal(oldCtx)
+	return c.GetContext().MeetsRequirements(oldCtx)
 }
 
 func (c *Connection) IsComplete() error {

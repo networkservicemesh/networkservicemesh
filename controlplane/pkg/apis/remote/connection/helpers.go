@@ -44,9 +44,10 @@ func (c *Connection) UpdateContext(newContext *connectioncontext.ConnectionConte
 	c.Context = newContext
 	err := c.IsValid()
 	if err != nil {
+		c.Context = oldCtx
 		return err
 	}
-	return c.GetContext().IsCompleteAgainsOriginal(oldCtx)
+	return c.GetContext().MeetsRequirements(oldCtx)
 }
 
 // IsComplete - Have I been told enough to actually give you what you asked for

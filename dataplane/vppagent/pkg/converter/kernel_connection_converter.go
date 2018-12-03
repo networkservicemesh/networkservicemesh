@@ -45,11 +45,14 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	tmpIface := TempIfName()
 
 	var ipAddresses []string
+	var dstIpAddresses string
 	if c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
+		dstIpAddresses = c.Connection.GetContext().SrcIpAddr
 	}
 	if c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
+		dstIpAddresses = c.Connection.GetContext().DstIpAddr
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -101,7 +104,12 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	for _, route := range c.Connection.GetContext().GetRoutes() {
 		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
 			DstIpAddr: route.Prefix,
-			Interface: m.GetParameters()[connection.InterfaceNameKey],
+			Interface: c.conversionParameters.Name,
+			Namespace: &l3.LinuxStaticRoutes_Route_Namespace {
+				Type: l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
+				Filepath: filepath,
+			},
+			GwAddr: dstIpAddresses,
 		})
 	}
 

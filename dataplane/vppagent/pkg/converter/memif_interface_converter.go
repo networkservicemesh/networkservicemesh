@@ -59,11 +59,14 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 	}
 
 	var ipAddresses []string
+	var dstIpAddresses string
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
+		dstIpAddresses = c.Connection.GetContext().SrcIpAddr
 	}
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
+		dstIpAddresses = c.Connection.GetContext().DstIpAddr
 	}
 
 	if c.conversionParameters.Name == "" {
@@ -86,6 +89,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
 			DstIpAddr: route.Prefix,
 			Interface: c.conversionParameters.Name,
+			GwAddr: dstIpAddresses,
 		})
 	}
 	return rv, nil
