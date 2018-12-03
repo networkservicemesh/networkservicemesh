@@ -105,5 +105,17 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		})
 	}
 
+	// Process IP Neighbor entries
+	for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
+		rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
+			IpAddr:    neightbour.Ip,
+			HwAddress: neightbour.HardwareAddress,
+			Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
+				Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
+				Filepath: filepath,
+			},
+		})
+	}
+
 	return rv, nil
 }

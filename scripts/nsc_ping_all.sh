@@ -74,6 +74,7 @@ for nsc in $(kubectl get pods -o=name | grep nsc | grep -v vpn-gateway| sed 's@.
             kubectl exec -ti "${nsc}" -- vppctl show memif
         else
             kubectl exec -ti "${nsc}" -- ip addr
+            kubectl exec -ti "${nsc}" ip route
         fi
         echo "+++++++==ERROR==ERROR=============================================================================+++++"
     fi

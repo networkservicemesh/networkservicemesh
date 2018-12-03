@@ -15,14 +15,16 @@ import (
 	"testing"
 )
 
-type nseWithErrors struct {
+type nseWithOptions struct {
 	netns         string
 	srcIp         string
 	dstIp         string
 	needMechanism bool
+	need_ip_neighbors bool
+	connection *connection.Connection
 }
 
-func (impl *nseWithErrors) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
 	var mechanism *connection.Mechanism
 	if impl.needMechanism {
 		mechanism = &connection.Mechanism{
@@ -44,6 +46,16 @@ func (impl *nseWithErrors) Request(ctx context2.Context, in *networkservice.Netw
 			DstIpAddr: impl.dstIp,
 		},
 	}
+
+	if impl.need_ip_neighbors {
+		conn.GetContext().IpNeighbors = []*connectioncontext.IpNeighbor{
+			&connectioncontext.IpNeighbor{
+				Ip: "127.0.0.1",
+				HardwareAddress: "ff-ee-ff-ee-ff",
+			},
+		}
+	}
+	impl.connection = conn
 	return conn, nil
 }
 
@@ -74,7 +86,7 @@ func createRequest(add_exclude bool) *networkservice.NetworkServiceRequest {
 	return request
 }
 
-func (nseWithErrors) Close(ctx context2.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (nseWithOptions) Close(ctx context2.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
 	return nil, nil
 }
 
@@ -104,7 +116,7 @@ func TestNSENoSrc(t *testing.T) {
 
 	srv := newNSMDFullServer()
 
-	srv.serviceRegistry.localTestNSE = &nseWithErrors{
+	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns: "12",
 		//srcIp: "169083138/30",
 		dstIp: "169083137/30",
@@ -173,3 +185,37 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	Expect(ok).To(Equal(true))
 	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"127.0.0.1/24", "abc"}))
 }
+
+func TestNSEIPNeghtbours(t *testing.T) {
+	RegisterTestingT(t)
+
+	srv := newNSMDFullServer()
+
+	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+		netns: "12",
+		srcIp: "169083138/30",
+		dstIp: "169083137/30",
+		need_ip_neighbors: true,
+	}
+
+	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.registerFakeEndpoint("golden_network", "test", srv.serviceRegistry.GetPublicAPI())
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := createRequest(false)
+
+	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	Expect(err).To(BeNil())
+	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	logrus.Print("End of test")
+
+	originl, ok := srv.serviceRegistry.localTestNSE.(*nseWithOptions)
+	Expect(ok).To(Equal(true))
+
+	Expect(len(originl.connection.Context.IpNeighbors)).To(Equal(1))
+	Expect(originl.connection.Context.IpNeighbors[0].Ip).To(Equal("127.0.0.1"))
+	Expect(originl.connection.Context.IpNeighbors[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
+}
+
