@@ -49,9 +49,14 @@ func (ns *vppagentNetworkService) CompleteConnection(request *networkservice.Net
 		Id:             request.GetConnection().GetId(),
 		NetworkService: request.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context:        & connectioncontext.ConnectionContext{
+		Context: &connectioncontext.ConnectionContext{
 			SrcIpAddr: srcIP.String() + "/30",
 			DstIpAddr: dstIP.String() + "/30",
+			Routes: []*connectioncontext.Route{
+				&connectioncontext.Route{
+					Prefix: "8.8.8.8",
+				},
+			},
 		},
 	}
 	err = connection.IsComplete()
