@@ -161,6 +161,17 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
 
+.PHONY: k8s-skydive-load-images
+k8s-skydive-load-images:
+	@echo "Skydive pulled from docker hub"
+
+.PHONY: k8s-skydive-build
+	k8s-skydive-build:
+		@echo "Nothing to build for skydive"
+
+.PHONY: k8s-skydive-save
+	k8s-skydive-save:
+		@echo "Nothing to save for skydive"
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
