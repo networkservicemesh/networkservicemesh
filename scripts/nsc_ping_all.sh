@@ -18,7 +18,7 @@ for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
                 endpointName="vppagent-icmp-responder-nse"
             fi
 
-            if [ ! -z "${targetIp}" ]; then
+            if [ -n "${targetIp}" ]; then
                 if kubectl exec -it "${nsc}" -- vppctl ping "${targetIp}" repeat 3; then
                     echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                     PingSuccess="true"
@@ -44,9 +44,7 @@ for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
                 endpointName="vppagent-icmp-responder-nse"
             fi
 
-            if [ ! -z "${targetIp}" ]; then
-
-
+            if [ -n "${targetIp}" ]; then
                 if kubectl exec -it "${nsc}" -- ping -c 1 "${targetIp}" ; then
                     echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                     PingSuccess="true"
