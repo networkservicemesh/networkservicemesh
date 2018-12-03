@@ -50,8 +50,6 @@ for nsc in $(kubectl get pods -o=name | grep nsc | grep -v vpn-gateway| sed 's@.
             fi
 
             if [ -n "${targetIp}" ]; then
-
-
                 if kubectl exec -it "${nsc}" -- ping -c 1 "${targetIp}" ; then
                     echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                     PingSuccess="true"
