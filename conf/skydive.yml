@@ -1,0 +1,12 @@
+agent:
+  topology:
+    probes:
+      - docker
+
+analyzer:
+  topology:
+    probes:
+      - nsm
+
+etcd:
+  data_dir: /tmp/skydive/etcd
