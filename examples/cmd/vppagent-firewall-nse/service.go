@@ -31,7 +31,8 @@ import (
 
 type vppagentNetworkService struct {
 	sync.RWMutex
-	networkServiceName      string
+	outgoingNscName         string
+	outgoingNscLabels       map[string]string
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	vppAgentEndpoint        string
 	baseDir                 string
@@ -44,13 +45,11 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: ns.networkServiceName,
+			NetworkService: ns.outgoingNscName,
 			Context: map[string]string{
 				"requires": "src_ip,dst_ip",
 			},
-			Labels: map[string]string{
-				"app": "firewall", // TODO - make these ENV configurable
-			},
+			Labels: ns.outgoingNscLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
@@ -150,10 +149,11 @@ func (ns *vppagentNetworkService) Close(ctx context.Context, conn *connection.Co
 	return &empty.Empty{}, nil
 }
 
-func New(networkServiceName, vppAgentEndpoint string, baseDir string, clientConnection networkservice.NetworkServiceClient) networkservice.NetworkServiceServer {
+func New(outgoingNscName, vppAgentEndpoint string, baseDir string, outgoingNscLabels map[string]string, clientConnection networkservice.NetworkServiceClient) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
 	service := vppagentNetworkService{
-		networkServiceName:      networkServiceName,
+		outgoingNscName:         outgoingNscName,
+		outgoingNscLabels:       outgoingNscLabels,
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,

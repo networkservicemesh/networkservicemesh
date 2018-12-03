@@ -32,7 +32,10 @@ import (
 
 const (
 	// NetworkServiceName defines Network Service Name the NSE is serving for
-	NetworkServiceNameEnv   = "NETWORK_SERVICE"
+	advertiseNseNameEnv     = "ADVERTISE_NSE_NAME"
+	advertiseNseLabelsEnv   = "ADVERTISE_NSE_LABELS"
+	outgoingNscNameEnv      = "OUTGOING_NSC_NAME"
+	outgoingNscLabelsEnv    = "OUTGOING_NSC_LABELS"
 	DefaultVPPAgentEndpoint = "localhost:9112"
 )
 
@@ -63,11 +66,29 @@ func main() {
 	}
 	logrus.Infof("workspace: %s", workspace)
 
-	networkServiceName, ok := os.LookupEnv(NetworkServiceNameEnv)
+	advertiseNseName, ok := os.LookupEnv(advertiseNseNameEnv)
 	if !ok {
-		logrus.Fatalf("Error getting %v: %v", NetworkServiceNameEnv, ok)
+		logrus.Fatalf("Error getting %v: %v", advertiseNseNameEnv, ok)
 	}
-	logrus.Infof("Network Service Name: %s", networkServiceName)
+	logrus.Infof("Advertise Network Service Name: %s", advertiseNseName)
+
+	outgoingNscName, ok := os.LookupEnv(outgoingNscNameEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", outgoingNscNameEnv, ok)
+	}
+	logrus.Infof("Outgoing Network Service Name: %s", outgoingNscName)
+
+	advertiseNseLabels, ok := os.LookupEnv(advertiseNseLabelsEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", advertiseNseLabelsEnv, ok)
+	}
+	logrus.Infof("Advertise Labels: %s", advertiseNseLabels)
+
+	outgoingNscLabels, ok := os.LookupEnv(outgoingNscLabelsEnv)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", outgoingNscNameEnv, ok)
+	}
+	logrus.Infof("Outgoing labels: %s", outgoingNscLabels)
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
@@ -118,19 +139,19 @@ func main() {
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 	clientConnection := networkservice.NewNetworkServiceClient(conn)
 
-	nseConn := New(networkServiceName, DefaultVPPAgentEndpoint, workspace, clientConnection)
+	nseConn := New(outgoingNscName, DefaultVPPAgentEndpoint, workspace,
+		tools.ParseKVStringToMap(outgoingNscLabels, ":", "="),
+		clientConnection)
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: networkServiceName,
+		NetworkServiceName: advertiseNseName,
 		Payload:            "IP",
-		Labels: map[string]string{
-			"app": "firewall", // TODO - make these ENV configurable
-		},
+		Labels:             tools.ParseKVStringToMap(advertiseNseLabels, ":", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    networkServiceName,
+			Name:    advertiseNseName,
 			Payload: "IP",
 		},
 		NetworkserviceEndpoint: nse,
@@ -154,6 +175,6 @@ func main() {
 
 	select {
 	case <-c:
-		logrus.Infof("Closing %v", networkServiceName)
+		logrus.Infof("Closing %v", advertiseNseName)
 	}
 }
