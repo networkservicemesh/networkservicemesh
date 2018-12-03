@@ -53,7 +53,8 @@ spec:
     spec:
       containers:
         - name: skydive-analyzer
-          image: matrohon/skydive
+          image: networkservicemesh/skydive
+          imagePullPolicy: IfNotPresent
           args:
             - analyzer
             - --listen=0.0.0.0:8082
@@ -89,7 +90,8 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: matrohon/skydive
+          image: networkservicemesh/skydive
+          imagePullPolicy: IfNotPresent
           args:
             - agent
           ports:
