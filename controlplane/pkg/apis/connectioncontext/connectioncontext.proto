@@ -21,6 +21,11 @@ syntax = "proto3";
 package connectioncontext;
 option go_package = "connectioncontext";
 
+message IpNeighbor {
+    string ip = 1;
+    string hardware_address = 2;
+}
+
 message Route {
     string prefix = 1;                  /* destination address + prefix in format <address>/<prefix> */
 }
@@ -34,4 +39,6 @@ message ConnectionContext {
 
     repeated Route routes = 5;          /* a list of routes via dst_ip_addr as gateway */
     repeated string excluded_prefixes = 6; /* a list of excluded passed to NSE */
+
+    repeated IpNeighbor ip_neighbors  = 7;
 }

@@ -11,6 +11,12 @@ func (c *ConnectionContext) IsComplete() error {
 			return fmt.Errorf("ConnectionContext.Route.Prefix is required and cannot be empty/nil: %v", c)
 		}
 	}
+
+	for _, neightbor := range c.GetIpNeighbors() {
+		if neightbor.GetIp() == "" {
+			return fmt.Errorf("ConnectionContext.IpNeighbors.Ip is required and cannot be empty/nil: %v", c)
+		}
+	}
 	return nil
 }
 
