@@ -10,3 +10,10 @@ analyzer:
 
 etcd:
   data_dir: /tmp/skydive/etcd
+
+ui:
+  topology:
+    favorites:
+      nsm: "G.V().Has('Type', 'container', 'Docker.Labels.io.kubernetes.pod.namespace', 'default').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
+
+    default_filter: "nsm"
