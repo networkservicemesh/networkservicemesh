@@ -32,10 +32,11 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	networkServiceName = "icmp-responder"
+	defaultNetworkServiceName = "icmp-responder"
 	// starting IP address for address pool
-	ipAddressEnv = "IP_ADDRESS"
-	nseLabelsEnv = "NSE_LABELS"
+	ipAddressEnv      = "IP_ADDRESS"
+	nseLabelsEnv      = "NSE_LABELS"
+	networkServiceEnv = "NSE_SERVICE_NAME"
 )
 
 func main() {
@@ -48,6 +49,12 @@ func main() {
 	nsmClientSocket, _ := os.LookupEnv(nsmd.NsmClientSocketEnv)
 	logrus.Infof("nsmClientSocket: %s", nsmClientSocket)
 	// TODO handle missing env
+
+	networkServiceName, present := os.LookupEnv(networkServiceEnv)
+	if !present {
+		networkServiceName = defaultNetworkServiceName
+	}
+	logrus.Infof("networkServiceName: %s", networkServiceName)
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
