@@ -53,6 +53,6 @@ vagrant-%-load-images:
 		echo "Loading image $*.tar to worker"; \
 		vagrant ssh worker -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
 	else \
-		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist"; \
+		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
 	fi
