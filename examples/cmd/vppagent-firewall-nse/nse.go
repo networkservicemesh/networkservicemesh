@@ -48,47 +48,13 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	nsmServerSocket, ok := os.LookupEnv(nsmd.NsmServerSocketEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", nsmd.NsmServerSocketEnv, ok)
-	}
-	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
-
-	nsmClientSocket, ok := os.LookupEnv(nsmd.NsmClientSocketEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", nsmd.NsmClientSocketEnv, ok)
-	}
-	logrus.Infof("nsmClientSocket: %s", nsmClientSocket)
-
-	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", nsmd.WorkspaceEnv, ok)
-	}
-	logrus.Infof("workspace: %s", workspace)
-
-	advertiseNseName, ok := os.LookupEnv(advertiseNseNameEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", advertiseNseNameEnv, ok)
-	}
-	logrus.Infof("Advertise Network Service Name: %s", advertiseNseName)
-
-	outgoingNscName, ok := os.LookupEnv(outgoingNscNameEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", outgoingNscNameEnv, ok)
-	}
-	logrus.Infof("Outgoing Network Service Name: %s", outgoingNscName)
-
-	advertiseNseLabels, ok := os.LookupEnv(advertiseNseLabelsEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", advertiseNseLabelsEnv, ok)
-	}
-	logrus.Infof("Advertise Labels: %s", advertiseNseLabels)
-
-	outgoingNscLabels, ok := os.LookupEnv(outgoingNscLabelsEnv)
-	if !ok {
-		logrus.Fatalf("Error getting %v: %v", outgoingNscNameEnv, ok)
-	}
-	logrus.Infof("Outgoing labels: %s", outgoingNscLabels)
+	nsmServerSocket := getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket")
+	nsmClientSocket := getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket")
+	workspace := getEnv(nsmd.WorkspaceEnv, "workspace")
+	advertiseNseName := getEnv(advertiseNseNameEnv, "Advertise Network Service Name")
+	outgoingNscName := getEnv(outgoingNscNameEnv, "Outgoing Network Service Name")
+	advertiseNseLabels := getEnv(advertiseNseLabelsEnv, "Advertise labels")
+	outgoingNscLabels := getEnv(outgoingNscLabelsEnv, "Outgoing labels")
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
@@ -177,4 +143,13 @@ func main() {
 	case <-c:
 		logrus.Infof("Closing %v", advertiseNseName)
 	}
+}
+
+func getEnv(key, description string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", key, ok)
+	}
+	logrus.Infof("%s: %s", description, value)
+	return value
 }
