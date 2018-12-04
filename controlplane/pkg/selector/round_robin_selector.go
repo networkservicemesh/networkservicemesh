@@ -5,6 +5,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/sirupsen/logrus"
 )
 
 type roundRobinSelector struct {
@@ -33,5 +34,6 @@ func (rr *roundRobinSelector) SelectEndpoint(requestConnection *connection.Conne
 		return nil
 	}
 	rr.roundRobin[ns.GetName()] = rr.roundRobin[ns.GetName()] + 1
+	logrus.Infof("RoundRobin selected %v", endpoint)
 	return endpoint
 }
