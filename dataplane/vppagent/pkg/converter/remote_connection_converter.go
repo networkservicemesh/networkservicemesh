@@ -83,12 +83,17 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	})
 
 	// Process routes
-	for _, route := range c.Connection.GetContext().GetRoutes() {
-		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-			DstIpAddr: route.Prefix,
-			Interface: c.name,
-			GwAddr:    dstip,
-		})
+	if c.side == SOURCE {
+		for _, route := range c.Connection.GetContext().GetRoutes() {
+			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+				DstIpAddr: route.Prefix,
+				Interface: c.name,
+				GwAddr:    dstip,
+				Scope: &l3.LinuxStaticRoutes_Route_Scope{
+					Type: l3.LinuxStaticRoutes_Route_Scope_LINK,
+				},
+			})
+		}
 	}
 
 	return rv, nil

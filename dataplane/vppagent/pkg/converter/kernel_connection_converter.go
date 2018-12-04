@@ -45,14 +45,11 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	tmpIface := TempIfName()
 
 	var ipAddresses []string
-	var dstIpAddresses string
 	if c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
-		dstIpAddresses = c.Connection.GetContext().SrcIpAddr
 	}
 	if c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
-		dstIpAddresses = c.Connection.GetContext().DstIpAddr
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -101,28 +98,35 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	})
 
 	// Process static routes
-	for _, route := range c.Connection.GetContext().GetRoutes() {
-		rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-			DstIpAddr: route.Prefix,
-			Interface: c.conversionParameters.Name,
-			Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
-				Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
-				Filepath: filepath,
-			},
-			GwAddr: dstIpAddresses,
-		})
+	if c.conversionParameters.Side == SOURCE {
+		for _, route := range c.Connection.GetContext().GetRoutes() {
+			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+				DstIpAddr: route.Prefix,
+				Interface: c.conversionParameters.Name,
+				Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
+					Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
+					Filepath: filepath,
+				},
+				GwAddr: c.Connection.GetContext().DstIpAddr,
+				Scope: &l3.LinuxStaticRoutes_Route_Scope{
+					Type: l3.LinuxStaticRoutes_Route_Scope_LINK,
+				},
+			})
+		}
 	}
 
 	// Process IP Neighbor entries
-	for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
-		rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
-			IpAddr:    neightbour.Ip,
-			HwAddress: neightbour.HardwareAddress,
-			Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
-				Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
-				Filepath: filepath,
-			},
-		})
+	if c.conversionParameters.Side == SOURCE {
+		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
+			rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
+				IpAddr:    neightbour.Ip,
+				HwAddress: neightbour.HardwareAddress,
+				Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
+					Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
+					Filepath: filepath,
+				},
+			})
+		}
 	}
 
 	return rv, nil
