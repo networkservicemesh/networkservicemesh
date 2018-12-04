@@ -41,12 +41,12 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceReg
 	}
 }
 
-func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, requestConnection *connection.Connection) *registry.NSERegistration {
+func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, requestConnection *connection.Connection) (*registry.NSERegistration, error) {
 	// Get endpoints
 	discoveryClient, err := srv.serviceRegistry.NetworkServiceDiscovery()
 	if err != nil {
 		logrus.Error(err)
-		return nil
+		return nil, err
 	}
 	nseRequest := &registry.FindNetworkServiceRequest{
 		NetworkServiceName: requestConnection.GetNetworkService(),
@@ -54,17 +54,17 @@ func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, re
 	endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 	if err != nil {
 		logrus.Error(err)
-		return nil
+		return nil, err
 	}
 	endpoint := srv.model.GetSelector().SelectEndpoint(requestConnection, endpointResponse.GetNetworkService(), endpointResponse.GetNetworkServiceEndpoints())
 	if endpoint == nil {
-		return nil
+		return nil, err
 	}
 	return &registry.NSERegistration{
 		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
 		NetworkserviceEndpoint: endpoint,
 		NetworkService:         endpointResponse.GetNetworkService(),
-	}
+	}, nil
 }
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -97,9 +97,9 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		defer dataplaneConn.Close()
 	}
 
-	endpoint := srv.getEndpointFromRegistry(ctx, request.GetConnection())
-	if endpoint == nil {
-		return nil, fmt.Errorf("Failed to find endpoint in registry for %v", request)
+	endpoint, err := srv.getEndpointFromRegistry(ctx, request.GetConnection())
+	if err != nil {
+		return nil, err
 	}
 
 	var dpApiConnection *crossconnect.CrossConnect

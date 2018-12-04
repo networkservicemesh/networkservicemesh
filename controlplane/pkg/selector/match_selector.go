@@ -52,7 +52,7 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 	for _, match := range ns.GetMatches() {
 		// All match source selector labels should be present in the requested labels map
 		if !isSubset(nsLabels, match.GetSourceSelector()) {
-			break
+			continue
 		}
 
 		nseCandidates := []*registry.NetworkServiceEndpoint{}
