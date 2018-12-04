@@ -3,8 +3,9 @@
 
 Vagrant.configure("2") do |config|
 
-  config.vm.synced_folder "../..", "/go/src/github.com/ligato/networkservicemesh", type: "sshfs"
-  config.vm.synced_folder ".", "/vagrant", type: "sshfs"
+  config.vm.synced_folder "../..", "/go/src/github.com/ligato/networkservicemesh"
+  config.vm.synced_folder ".", "/vagrant"
+  config.vm.allowed_synced_folder_types = [:virtualbox, :sshfs]
 
   config.vm.provider "libvirt" do |v|
         v.memory = 4096

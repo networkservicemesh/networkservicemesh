@@ -14,7 +14,7 @@
 
 .PHONY: vagrant-start
 vagrant-start:
-	@cd scripts/vagrant; vagrant up --no-parallel; source env.sh
+	@cd scripts/vagrant; vagrant up --no-parallel;
 
 .PHONY: vagrant-destroy
 vagrant-destroy:
