@@ -53,7 +53,7 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: connection.MechanismType_MEM_INTERFACE,
+				Type: request.GetMechanismPreferences()[0].GetType(),
 				Parameters: map[string]string{
 					connection.InterfaceNameKey: "firewall",
 					connection.SocketFilename:   path.Join("firewall", "memif.sock"),
