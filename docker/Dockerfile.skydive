@@ -1,0 +1,2 @@
+FROM matrohon/skydive
+COPY conf/skydive.yml /etc/skydive.yml
