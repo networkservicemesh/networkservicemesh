@@ -1,0 +1,39 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "vpn-gateway"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: networkservicemesh.io/app
+                    operator: In
+                    values:
+                      - vpn-gateway
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: vpn-gateway
+          image: networkservicemesh/icmp-responder-nse:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSE_SERVICE_NAME
+              value: "secure-intranet-connectivity"
+            - name: NSE_LABELS
+              value: "app=vpn-gateway"
+            - name: IP_ADDRESS
+              value: "10.60.1.1"
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+        - name: nginx
+          image: networkservicemesh/nginx
+metadata:
+  name: vpn-gateway-nse
+  namespace: default
