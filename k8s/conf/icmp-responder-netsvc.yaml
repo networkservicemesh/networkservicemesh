@@ -8,11 +8,11 @@ spec:
   matches:
     - match:
       sourceSelector:
-        impl: vpp
+        app: icmp
       route:
         - destination:
           destinationSelector:
-            impl: vpp
+            app: icmp-responder
     - match:
       sourceSelector:
         impl: kernel
