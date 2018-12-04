@@ -74,14 +74,6 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 
-	// Registering NSE API, it will listen for Connection requests from NSM and return information
-	// needed for NSE's dataplane programming.
-
-	go func() {
-		if err := grpcServer.Serve(connectionServer); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
-		}
-	}()
 	// Check if the socket of Endpoint Connection Server is operation
 	testSocket, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
@@ -105,10 +97,18 @@ func main() {
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
 	clientConnection := networkservice.NewNetworkServiceClient(conn)
 
+	// Registering NSE API, it will listen for Connection requests from NSM and return information
+	// needed for NSE's dataplane programming.
 	nseConn := New(outgoingNscName, DefaultVPPAgentEndpoint, workspace,
 		tools.ParseKVStringToMap(outgoingNscLabels, ":", "="),
 		clientConnection)
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
+
+	go func() {
+		if err := grpcServer.Serve(connectionServer); err != nil {
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
+		}
+	}()
 
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: advertiseNseName,
