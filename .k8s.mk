@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor vppagent-nsc
+DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor vppagent-nsc skydive
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -110,12 +110,12 @@ k8s-nsmd-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_
 .PHONY: k8s-nsmd-load-images
 k8s-nsmd-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMD_CONTAINERS)))
 
-VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane	
-.PHONY: k8s-vppagent-dataplane-build	
-k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))	
- .PHONY: k8s-vppagent-dataplane-save	
-k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))	
- .PHONY: k8s-vppagent-dataplane-load-images	
+VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane
+.PHONY: k8s-vppagent-dataplane-build
+k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+ .PHONY: k8s-vppagent-dataplane-save
+k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+ .PHONY: k8s-vppagent-dataplane-load-images
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
 
 .PHONY: k8s-icmp-responder-netsvc-build
@@ -161,6 +161,11 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
 
+.PHONY: k8s-skydive-build
+k8s-skydive-build: ${CONTAINER_BUILD_PREFIX}-skydive-build
+
+.PHONY: k8s-skydive-save
+k8s-skydive-save: ${CONTAINER_BUILD_PREFIX}-skydive-save
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
