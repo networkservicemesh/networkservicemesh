@@ -100,7 +100,7 @@ func main() {
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
 	nseConn := New(outgoingNscName, DefaultVPPAgentEndpoint, workspace,
-		tools.ParseKVStringToMap(outgoingNscLabels, ":", "="),
+		tools.ParseKVStringToMap(outgoingNscLabels, ",", "="),
 		clientConnection)
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
 
@@ -113,7 +113,7 @@ func main() {
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: advertiseNseName,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(advertiseNseLabels, ":", "="),
+		Labels:             tools.ParseKVStringToMap(advertiseNseLabels, ",", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
