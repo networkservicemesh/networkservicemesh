@@ -25,5 +25,5 @@ spec:
             limits:
               nsm.ligato.io/socket: 1
 metadata:
-  name: nsc-vpn
+  name: vpn-gateway-nsc
   namespace: default
