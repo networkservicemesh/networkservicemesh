@@ -62,7 +62,7 @@ type nsmdServiceRegistry struct {
 }
 
 func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 1*time.Second)
+	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.GetUrl(), 1*time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
