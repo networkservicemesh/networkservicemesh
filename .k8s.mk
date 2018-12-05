@@ -194,8 +194,7 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
 
-<<<<<<< HEAD
-=======
+
 .PHONY: k8s-vpn-gateway-nsc-build
 k8s-vpn-gateway-nsc-build:  ${CONTAINER_BUILD_PREFIX}-vpn-gateway-nsc-build
 
@@ -214,8 +213,6 @@ k8s-skydive-build: ${CONTAINER_BUILD_PREFIX}-skydive-build
 .PHONY: k8s-skydive-save
 k8s-skydive-save: ${CONTAINER_BUILD_PREFIX}-skydive-save
 
-
->>>>>>> 78bccffd... Add secure-intranet-connectivity in the make machinery
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
 .PHONY: k8s-logs
