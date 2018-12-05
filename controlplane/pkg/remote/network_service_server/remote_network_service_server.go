@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -116,7 +117,7 @@ func (srv *remoteNetworkServiceServer) selectMechanism(request *remote_networkse
 			remoteSrc := mechanism.Parameters[remote_connection.VXLANSrcIP]
 			mechanism.Parameters[remote_connection.VXLANSrcIP] = remoteSrc
 			mechanism.Parameters[remote_connection.VXLANDstIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
-			mechanism.Parameters[remote_connection.VXLANVNI] = srv.model.Vni()
+			mechanism.Parameters[remote_connection.VXLANVNI] = strconv.FormatUint(srv.serviceRegistry.VniAllocator().Vni(dp_mechanism.Parameters[remote_connection.VXLANSrcIP], remoteSrc), 10)
 		}
 		return mechanism, nil
 	}
