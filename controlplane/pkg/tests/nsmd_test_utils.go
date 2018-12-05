@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
 	"net"
 	"strconv"
 	"time"
@@ -121,10 +120,6 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Ne
 	}
 	client := remote_networkservice.NewNetworkServiceClient(conn)
 	return client, conn, nil
-}
-
-func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
-	return vni.NewVniAllocator()
 }
 
 type localTestNSENetworkServiceClient struct {
