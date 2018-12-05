@@ -124,7 +124,6 @@ func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 	result := map[string]string{}
 	pairs := strings.Split(input, sep)
 	for _, pair := range pairs {
-		fmt.Println(pair)
 		k, v := parseKV(pair, kvsep)
 		result[k] = v
 	}

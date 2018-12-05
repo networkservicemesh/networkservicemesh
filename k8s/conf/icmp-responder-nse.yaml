@@ -29,7 +29,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: NSE_LABELS
-              value: "impl=kernel"
+              value: "app=icmp-responder"
             - name: IP_ADDRESS
               value: "10.20.1.1"
           resources:

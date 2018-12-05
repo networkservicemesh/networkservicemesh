@@ -20,7 +20,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: NSC_LABELS
-              value: "impl=vpp"
+              value: "app=icmp"
             - name: NETWORK_SERVICES
               value: "nsm1:icmp-responder"
           resources:

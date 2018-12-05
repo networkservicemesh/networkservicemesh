@@ -1,4 +1,5 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018 VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +20,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -31,36 +31,35 @@ import (
 )
 
 const (
-	// networkServiceName defines Network Service Name the NSE is serving for
-	defaultNetworkServiceName = "icmp-responder"
-	// starting IP address for address pool
-	ipAddressEnv      = "IP_ADDRESS"
-	nseLabelsEnv      = "NSE_LABELS"
-	networkServiceEnv = "NSE_SERVICE_NAME"
+	// NetworkServiceName defines Network Service Name the NSE is serving for
+	advertiseNseNameEnv     = "ADVERTISE_NSE_NAME"
+	advertiseNseLabelsEnv   = "ADVERTISE_NSE_LABELS"
+	outgoingNscNameEnv      = "OUTGOING_NSC_NAME"
+	outgoingNscLabelsEnv    = "OUTGOING_NSC_LABELS"
+	DefaultVPPAgentEndpoint = "localhost:9112"
 )
 
 func main() {
-	var wg sync.WaitGroup
+	// Capture signals to cleanup before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
-	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
-	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
-	// TODO handle missing env
-
-	nsmClientSocket, _ := os.LookupEnv(nsmd.NsmClientSocketEnv)
-	logrus.Infof("nsmClientSocket: %s", nsmClientSocket)
-	// TODO handle missing env
-
-	networkServiceName, present := os.LookupEnv(networkServiceEnv)
-	if !present {
-		networkServiceName = defaultNetworkServiceName
-	}
-	logrus.Infof("networkServiceName: %s", networkServiceName)
+	nsmServerSocket := getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket")
+	nsmClientSocket := getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket")
+	workspace := getEnv(nsmd.WorkspaceEnv, "workspace")
+	advertiseNseName := getEnv(advertiseNseNameEnv, "Advertise Network Service Name")
+	outgoingNscName := getEnv(outgoingNscNameEnv, "Outgoing Network Service Name")
+	advertiseNseLabels := getEnv(advertiseNseLabelsEnv, "Advertise labels")
+	outgoingNscLabels := getEnv(outgoingNscLabelsEnv, "Outgoing labels")
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
 	if err != nil {
 		logrus.Fatalf("nse: failed to get a linux namespace with error: %v, exiting...", err)
-		os.Exit(1)
 	}
 	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
@@ -75,20 +74,6 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 
-	// Registering NSE API, it will listen for Connection requests from NSM and return information
-	// needed for NSE's dataplane programming.
-	ipAddress, _ := os.LookupEnv(ipAddressEnv)
-	logrus.Infof("starting IP address: %s", ipAddress)
-	nseConn := New(ipAddress)
-
-	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
-
-	wg.Add(1)
-	go func() {
-		if err := grpcServer.Serve(connectionServer); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
-		}
-	}()
 	// Check if the socket of Endpoint Connection Server is operation
 	testSocket, err := tools.SocketOperationCheck(nsmServerSocket)
 	if err != nil {
@@ -99,8 +84,7 @@ func main() {
 	// NSE connection server is ready and now endpoints can be advertised to NSM
 
 	if _, err := os.Stat(nsmServerSocket); err != nil {
-		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
-		os.Exit(1)
+		logrus.Fatalf("nse: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
 	}
 
 	conn, err := tools.SocketOperationCheck(nsmServerSocket)
@@ -111,17 +95,29 @@ func main() {
 	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", nsmServerSocket)
 
 	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
+	clientConnection := networkservice.NewNetworkServiceClient(conn)
 
-	nseLabels := os.Getenv(nseLabelsEnv)
+	// Registering NSE API, it will listen for Connection requests from NSM and return information
+	// needed for NSE's dataplane programming.
+	nseConn := New(outgoingNscName, DefaultVPPAgentEndpoint, workspace,
+		tools.ParseKVStringToMap(outgoingNscLabels, ",", "="),
+		clientConnection)
+	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
+
+	go func() {
+		if err := grpcServer.Serve(connectionServer); err != nil {
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
+		}
+	}()
 
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: networkServiceName,
+		NetworkServiceName: advertiseNseName,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nseLabels, ",", "="),
+		Labels:             tools.ParseKVStringToMap(advertiseNseLabels, ",", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    networkServiceName,
+			Name:    advertiseNseName,
 			Payload: "IP",
 		},
 		NetworkserviceEndpoint: nse,
@@ -139,17 +135,21 @@ func main() {
 	}
 
 	defer registryConnection.RemoveNSE(context.Background(), removeNSE)
+	defer grpcServer.Stop()
 
 	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
 
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		wg.Done()
-	}()
+	select {
+	case <-c:
+		logrus.Infof("Closing %v", advertiseNseName)
+	}
+}
 
-	// Now block on WaitGroup
-	wg.Wait()
+func getEnv(key, description string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		logrus.Fatalf("Error getting %v: %v", key, ok)
+	}
+	logrus.Infof("%s: %s", description, value)
+	return value
 }

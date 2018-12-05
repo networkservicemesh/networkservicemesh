@@ -1,0 +1,32 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "firewall-icmp-responder"
+        networkservicemesh.io/impl: "vppagent-firewall-icmp-responder"
+    spec:
+      containers:
+        - name: firewall-nse
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vppagent-firewall-nse:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ADVERTISE_NSE_NAME
+              value: "secure-intranet-connectivity"
+            - name: ADVERTISE_NSE_LABELS
+              value: "app=firewall"
+            - name: OUTGOING_NSC_NAME
+              value: "secure-intranet-connectivity"
+            - name: OUTGOING_NSC_LABELS
+              value: "app=firewall"
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+metadata:
+  name: vppagent-firewall-nse
+  namespace: default
