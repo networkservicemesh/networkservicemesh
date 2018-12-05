@@ -126,7 +126,7 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: networkservicemesh/skydive
+          image: matrohon/skydive
           imagePullPolicy: IfNotPresent
           args:
             - agent
