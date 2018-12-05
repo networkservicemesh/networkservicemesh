@@ -85,21 +85,21 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 	if c.conversionParameters.Side == SOURCE {
 		m := c.GetMechanism()
 		filepath, err := m.NetNsFileName()
-		if err != nil {
-			return nil, err
-		}
 		for _, route := range c.Connection.GetContext().GetRoutes() {
-			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+			route := &l3.LinuxStaticRoutes_Route{
 				Name:        "route_" + TempIfName(),
 				DstIpAddr:   appendNetmaskIfNeeded(route.Prefix),
 				Description: "Route to " + route.Prefix,
 				Interface:   c.conversionParameters.Name,
-				Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
+				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
+			}
+			if err == nil {
+				route.Namespace = &l3.LinuxStaticRoutes_Route_Namespace{
 					Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
 					Filepath: filepath,
-				},
-				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
-			})
+				}
+			}
+			rv.LinuxRoutes = append(rv.LinuxRoutes, route)
 		}
 	}
 	return rv, nil
