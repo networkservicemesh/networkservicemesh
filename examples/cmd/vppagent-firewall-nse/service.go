@@ -76,18 +76,6 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 		break
 	}
 
-	// vppInterfaceConnection os the same as outgoingConnection minus the context
-	vppInterfaceConnection := connection.Connection{
-		Id:             outgoingConnection.GetId(),
-		NetworkService: outgoingConnection.GetNetworkService(),
-		Mechanism:      outgoingConnection.GetMechanism(),
-		Context:        map[string]string{},
-		Labels:         outgoingConnection.GetLabels(),
-	}
-	if err := ns.CreateVppInterfaceSrc(ctx, &vppInterfaceConnection, ns.baseDir); err != nil {
-		logrus.Fatal(err)
-	}
-
 	return outgoingConnection, nil
 }
 
