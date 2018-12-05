@@ -1,0 +1,39 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+spec:
+  template:
+    metadata:
+      labels:
+        app: nsm-vpp-dataplane
+    spec:
+      hostPID: true
+      containers:
+        - name: vppagent-dataplane
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vpp-devenv:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSM_DATAPLANE_SRC_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: workspace
+              mountPath: /var/lib/networkservicemesh/
+              mountPropagation: Bidirectional
+            - name: sources
+              mountPath: /go/src
+      volumes:
+        - hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+          name: workspace
+        - hostPath:
+            path: /go/src
+            type: DirectoryOrCreate
+          name: sources
+metadata:
+  name: nsm-vppagent-dataplane
+  namespace: default

@@ -1,0 +1,23 @@
+FROM ligato/vpp-agent:v1.7 as runtime
+
+RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf
+COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
+
+ENV GOPATH=/go/
+
+RUN apt-get update
+RUN apt-get install -y git golang curl
+
+# Compile Delve
+RUN echo "Building DLV"
+RUN go get github.com/derekparker/delve/cmd/dlv
+
+RUN go get -u github.com/golang/protobuf/protoc-gen-go
+RUN go get -u golang.org/x/tools/cmd/stringer
+
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+COPY ["./docker/debug/dev-entry.go","/go/src/"]
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/dev-entry /go/src/dev-entry.go
+
+COPY docker/debug/supervisord.conf /etc/supervisord/supervisord.conf
