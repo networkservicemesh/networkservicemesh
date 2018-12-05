@@ -98,7 +98,7 @@ k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)
 
 .PHONY: k8s-%-save-deploy
 k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
-	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
+	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
 NSMD_CONTAINERS = nsmd nsmdp nsmd-k8s
 .PHONY: k8s-nsmd-build
@@ -128,6 +128,15 @@ k8s-icmp-responder-netsvc-save:
 k8s-icmp-responder-netsvc-load-images:
 	@echo "Wait for nsmd to register the resources"
 	@sleep 10
+
+.PHONY: k8s-skydive-build
+k8s-skydive-build:
+
+.PHONY: k8s-skydive-save
+k8s-skydive-save: k8s-skydive-build
+
+.PHONY: k8s-skydive-load-images
+k8s-skydive-load-images:
 
 .PHONY: k8s-nsc-build
 k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
@@ -160,12 +169,6 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
-
-.PHONY: k8s-skydive-build
-k8s-skydive-build: ${CONTAINER_BUILD_PREFIX}-skydive-build
-
-.PHONY: k8s-skydive-save
-k8s-skydive-save: ${CONTAINER_BUILD_PREFIX}-skydive-save
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 

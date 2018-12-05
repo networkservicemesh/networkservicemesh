@@ -23,6 +23,7 @@ default: all
 include .nsm.mk
 # Pull in k8s targets
 include .k8s.mk
+include .skydive.mk
 include .monitor.mk
 
 GOPATH?=$(shell go env GOPATH)
