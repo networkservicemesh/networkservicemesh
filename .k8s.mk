@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOYS = nsmd icmp-responder-netsvc vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc crossconnect-monitor secure-intranet-connectivity vppagent-firewall-nse skydive vpn-gateway-nse vpn-gateway-nsc
+DEPLOYS = nsmd vppagent-dataplane vppagent-icmp-responder-nse icmp-responder-nse nsc vppagent-nsc crossconnect-monitor secure-intranet-connectivity vppagent-firewall-nse skydive vpn-gateway-nse vpn-gateway-nsc
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -194,24 +194,32 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
 
-
-.PHONY: k8s-vpn-gateway-nsc-build
-k8s-vpn-gateway-nsc-build:  ${CONTAINER_BUILD_PREFIX}-vpn-gateway-nsc-build
-
-.PHONY: k8s-vpn-gateway-nsc-save
-k8s-vpn-gateway-nsc-save:  ${CONTAINER_BUILD_PREFIX}-vpn-gateway-nsc-save
-
-.PHONY: k8s-vpn-gateway-nse-build
-k8s-vpn-gateway-nse-build:  ${CONTAINER_BUILD_PREFIX}-vpn-gateway-nse-build
-
-.PHONY: k8s-vpn-gateway-nse-save
-k8s-vpn-gateway-nse-save:  ${CONTAINER_BUILD_PREFIX}-vpn-gateway-nse-save
-
 .PHONY: k8s-skydive-build
-k8s-skydive-build: ${CONTAINER_BUILD_PREFIX}-skydive-build
+k8s-skydive-build:
 
 .PHONY: k8s-skydive-save
-k8s-skydive-save: ${CONTAINER_BUILD_PREFIX}-skydive-save
+k8s-skydive-save: k8s-skydive-build
+
+.PHONY: k8s-skydive-load-images
+k8s-skydive-load-images:
+
+.PHONY: k8s-vpn-gateway-nse-build
+k8s-vpn-gateway-nse-build:
+
+.PHONY: k8s-vpn-gateway-nse-save
+k8s-vpn-gateway-nse-save:
+
+.PHONY: k8s-vpn-gateway-nse-load-images
+k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
+
+.PHONY: k8s-vpn-gateway-nsc-build
+k8s-vpn-gateway-nsc-build:
+
+.PHONY: k8s-vpn-gateway-nsc-save
+k8s-vpn-gateway-nsc-save: 
+
+.PHONY: k8s-vpn-gateway-nsc-load-images
+k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 

@@ -8,6 +8,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"google.golang.org/grpc"
 )
@@ -36,4 +37,6 @@ type ServiceRegistry interface {
 	WaitForDataplaneAvailable(model model.Model)
 
 	WorkspaceName(endpoint *registry.NSERegistration) string
+
+	VniAllocator() vni.VniAllocator
 }

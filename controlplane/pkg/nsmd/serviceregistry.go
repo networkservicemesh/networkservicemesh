@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
+
 	"google.golang.org/grpc/connectivity"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -59,6 +61,7 @@ type nsmdServiceRegistry struct {
 	sync.RWMutex
 	registryClientConnection *grpc.ClientConn
 	stopRedial               bool
+	vniAllocator             vni.VniAllocator
 }
 
 func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
@@ -198,7 +201,8 @@ func (impl *nsmdServiceRegistry) Stop() {
 
 func NewServiceRegistry() serviceregistry.ServiceRegistry {
 	return &nsmdServiceRegistry{
-		stopRedial: true,
+		stopRedial:   true,
+		vniAllocator: vni.NewVniAllocator(),
 	}
 }
 
@@ -209,4 +213,8 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
 			break
 		}
 	}
+}
+
+func (impl *nsmdServiceRegistry) VniAllocator() vni.VniAllocator {
+	return impl.vniAllocator
 }

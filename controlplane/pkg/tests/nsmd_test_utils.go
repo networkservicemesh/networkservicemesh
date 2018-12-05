@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -110,6 +112,10 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Ne
 	}
 	client := remote_networkservice.NewNetworkServiceClient(conn)
 	return client, conn, nil
+}
+
+func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
+	return vni.NewVniAllocator()
 }
 
 type localTestNSENetworkServiceClient struct {
