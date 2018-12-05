@@ -22,7 +22,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
@@ -90,10 +89,6 @@ func (ns *vppagentNetworkService) CreateVppInterfaceDst(ctx context.Context, nse
 }
 
 func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, error) {
-	if crossConnect.GetLocalSource().GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE {
-		return memif.DirectConnection(crossConnect, baseDir)
-	}
 
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
