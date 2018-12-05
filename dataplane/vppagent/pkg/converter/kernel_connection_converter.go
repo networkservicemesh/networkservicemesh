@@ -2,13 +2,12 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
-	"github.com/sirupsen/logrus"
-
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
+	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/sirupsen/logrus"
 )
 
 type KernelConnectionConverter struct {
@@ -101,16 +100,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	if c.conversionParameters.Side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
 			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-				DstIpAddr: route.Prefix,
-				Interface: c.conversionParameters.Name,
+				Name:        "route_" + TempIfName(),
+				DstIpAddr:   appendNetmaskIfNeeded(route.Prefix),
+				Description: "Route to " + route.Prefix,
+				Interface:   c.conversionParameters.Name,
 				Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
 					Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
 					Filepath: filepath,
 				},
-				GwAddr: c.Connection.GetContext().DstIpAddr,
-				Scope: &l3.LinuxStaticRoutes_Route_Scope{
-					Type: l3.LinuxStaticRoutes_Route_Scope_LINK,
-				},
+				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 			})
 		}
 	}

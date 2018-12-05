@@ -3,6 +3,7 @@ package converter
 import (
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 func TempIfName() string {
@@ -25,4 +26,20 @@ func TempIfName() string {
 	rv = rv[:7] + rv[16:]
 	logrus.Infof("Generated unique TempIfName: %s len(TempIfName) %d", rv, len(rv))
 	return rv
+}
+
+func appendNetmaskIfNeeded(addr string) string {
+	pos := strings.Index(addr, "/")
+	if pos < 0 {
+		addr = addr + "/30" // Add default netmask for static IP.
+	}
+	return addr
+}
+
+func extractCleanIPAddress(addr string) string {
+	maskPos := strings.Index(addr, "/")
+	if maskPos > -1 {
+		addr = addr[0:maskPos]
+	}
+	return addr
 }
