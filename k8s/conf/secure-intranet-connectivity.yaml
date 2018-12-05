@@ -2,21 +2,19 @@
 apiVersion: networkservicemesh.io/v1
 kind: NetworkService
 metadata:
-  name: icmp-responder
+  name: secure-intranet-connectivity
 spec:
   payload: IP
   matches:
     - match:
       sourceSelector:
-        impl: vpp
+        app: firewall
       route:
         - destination:
           destinationSelector:
-            impl: vpp
+            app: vpn-gateway
     - match:
-      sourceSelector:
-        impl: kernel
       route:
         - destination:
           destinationSelector:
-            impl: kernel
+            app: firewall

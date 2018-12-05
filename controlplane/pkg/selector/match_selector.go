@@ -20,6 +20,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/sirupsen/logrus"
 )
 
 type matchSelector struct {
@@ -48,11 +49,12 @@ func isSubset(A, B map[string]string) bool {
 }
 
 func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+	logrus.Infof("Matching ednpoint for labels %v", nsLabels)
 	//Iterate through the matches
 	for _, match := range ns.GetMatches() {
 		// All match source selector labels should be present in the requested labels map
 		if !isSubset(nsLabels, match.GetSourceSelector()) {
-			break
+			continue
 		}
 
 		nseCandidates := []*registry.NetworkServiceEndpoint{}
@@ -75,6 +77,7 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 }
 
 func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+	logrus.Infof("Selecting endpoint for %s with %d matches.", requestConnection.GetNetworkService(), len(ns.GetMatches()))
 	if len(ns.GetMatches()) == 0 {
 		return m.roundRobin.SelectEndpoint(nil, ns, networkServiceEndpoints)
 	}
