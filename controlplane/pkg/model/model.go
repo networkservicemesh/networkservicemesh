@@ -213,12 +213,13 @@ func (i *impl) SetNsm(nsm *registry.NetworkServiceManager) {
 }
 
 func NewModel() Model {
+
 	return &impl{
 		dataplanes:      make(map[string]*Dataplane),
 		networkServices: make(map[string][]*registry.NSERegistration),
 		endpoints:       make(map[string]*registry.NSERegistration),
 		listeners:       []ModelListener{},
-		selector:        selector.NewMatchSelector(),
+		selector:        selector.NewDefaultSelector(),
 	}
 }
 
