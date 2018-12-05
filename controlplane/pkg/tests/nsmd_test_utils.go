@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
 	"net"
 	"strconv"
 	"time"
@@ -91,6 +92,11 @@ type nsmdTestServiceRegistry struct {
 	apiRegistry             *testApiRegistry
 	testDataplaneConnection *testDataplaneConnection
 	localTestNSE            networkservice.NetworkServiceClient
+	vniAllocator            vni.VniAllocator
+}
+
+func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
+	return impl.vniAllocator
 }
 
 func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
@@ -345,6 +351,7 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 		apiRegistry:             srv.apiRegistry,
 		testDataplaneConnection: &testDataplaneConnection{},
 		localTestNSE:            &localTestNSENetworkServiceClient{},
+		vniAllocator:            vni.NewVniAllocator(),
 	}
 
 	srv.testModel = model.NewModel()
