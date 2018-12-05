@@ -17,7 +17,6 @@ package main
 
 import (
 	"context"
-	"path"
 	"sync"
 	"time"
 
@@ -43,6 +42,13 @@ type vppagentNetworkService struct {
 func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Initiating an outgoing connection.")
 
+	outgoingMechanism, err := connection.NewMechanism(request.GetMechanismPreferences()[0].GetType(),
+		"firewall", "A firewall outgoing interface")
+	if err != nil {
+		logrus.Errorf("Failure to prepare the outgoing mechanism preference with error: %+v", err)
+		return nil, err
+	}
+
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: ns.outgoingNscName,
@@ -52,13 +58,7 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 			Labels: ns.outgoingNscLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type: request.GetMechanismPreferences()[0].GetType(),
-				Parameters: map[string]string{
-					connection.InterfaceNameKey: "firewall",
-					connection.SocketFilename:   path.Join("firewall", "memif.sock"),
-				},
-			},
+			outgoingMechanism,
 		},
 	}
 
