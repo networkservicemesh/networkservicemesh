@@ -42,7 +42,6 @@ type Model interface {
 	SelectDataplane() (*Dataplane, error)
 
 	ConnectionId() string
-	Vni() string
 
 	// After listener will be added it will be called for all existing dataplanes/endpoints
 	AddListener(listener ModelListener)
@@ -60,7 +59,6 @@ type impl struct {
 	networkServices   map[string][]*registry.NSERegistration
 	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
-	lastVNI           uint64
 	nsm               *registry.NetworkServiceManager
 	listeners         []ModelListener
 	selector          selector.Selector
@@ -221,7 +219,6 @@ func NewModel() Model {
 		endpoints:       make(map[string]*registry.NSERegistration),
 		listeners:       []ModelListener{},
 		selector:        selector.NewMatchSelector(),
-		lastVNI:         1,
 	}
 }
 
@@ -230,13 +227,6 @@ func (i *impl) ConnectionId() string {
 	defer i.Unlock()
 	i.lastConnnectionId++
 	return strconv.FormatUint(i.lastConnnectionId, 16)
-}
-
-func (i *impl) Vni() string {
-	i.Lock()
-	defer i.Unlock()
-	i.lastVNI++
-	return strconv.FormatUint(i.lastVNI, 10)
 }
 
 func (i *impl) GetSelector() selector.Selector {

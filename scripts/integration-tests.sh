@@ -65,7 +65,7 @@ function run_tests() {
     done
 
     make k8s-nsc-deploy
-#   make k8s-vppagent-nsc-deploy
+    make k8s-vppagent-nsc-deploy
 
     wait_for_pods default
 
