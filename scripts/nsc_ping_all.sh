@@ -2,7 +2,7 @@
 
 #  Ping all the things!
 EXIT_VAL=0
-for nsc in $(kubectl get pods -o=name | grep nsc | sed 's@.*/@@'); do
+for nsc in $(kubectl get pods -o=name | grep nsc | grep -v vpn-gateway| sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     if [[ ${nsc} == vppagent-* ]]; then
         for ip in $(kubectl exec -it "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do

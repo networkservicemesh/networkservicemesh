@@ -98,8 +98,8 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	}
 
 	endpoint := srv.getEndpointFromRegistry(ctx, request.GetConnection())
-	if err != nil {
-		return nil, err
+	if endpoint == nil {
+		return nil, fmt.Errorf("Failed to find endpoint in registry for %v", request)
 	}
 
 	var dpApiConnection *crossconnect.CrossConnect
