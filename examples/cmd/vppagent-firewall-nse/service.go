@@ -105,18 +105,15 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		logrus.Error(err)
 		return nil, err
 	}
-	if err := ns.CreateVppInterfaceDst(ctx, incomingConnection, ns.baseDir); err != nil {
-		return nil, err
-	}
 
 	crossConnectRequest := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
-		Payload: "IP", // TODO get this dynamically
+		Payload: "IP",
 		Source: &crossconnect.CrossConnect_LocalSource{
-			outgoingConnection,
+			incomingConnection,
 		},
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			incomingConnection,
+			outgoingConnection,
 		},
 	}
 
