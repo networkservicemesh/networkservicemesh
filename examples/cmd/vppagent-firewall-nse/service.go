@@ -118,9 +118,8 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 	ingressIfName := dataChange.XCons[0].ReceiveInterface
 
 	aclRules := map[string]string{
-		"Allow ICMP":           "action=reflect,icmptype=8",
-		"Allow TCP 80":         "action=reflect,tcplowport=80,tcpupport=80",
-		"Deny everything else": "action=deny",
+		"Allow ICMP":   "action=reflect,icmptype=8",
+		"Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80",
 	}
 
 	err = ns.ApplyAclOnVppInterface(ctx, "IngressACL", ingressIfName, aclRules)
