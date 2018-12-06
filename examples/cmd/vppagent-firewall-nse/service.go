@@ -17,7 +17,6 @@ package main
 
 import (
 	"context"
-	"path"
 	"sync"
 	"time"
 
@@ -43,6 +42,13 @@ type vppagentNetworkService struct {
 func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Initiating an outgoing connection.")
 
+	outgoingMechanism, err := connection.NewMechanism(request.GetMechanismPreferences()[0].GetType(),
+		"firewall", "A firewall outgoing interface")
+	if err != nil {
+		logrus.Errorf("Failure to prepare the outgoing mechanism preference with error: %+v", err)
+		return nil, err
+	}
+
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: ns.outgoingNscName,
@@ -52,13 +58,7 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 			Labels: ns.outgoingNscLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type: request.GetMechanismPreferences()[0].GetType(),
-				Parameters: map[string]string{
-					connection.InterfaceNameKey: "firewall",
-					connection.SocketFilename:   path.Join("firewall", "memif.sock"),
-				},
-			},
+			outgoingMechanism,
 		},
 	}
 
@@ -76,18 +76,6 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 		break
 	}
 
-	// vppInterfaceConnection os the same as outgoingConnection minus the context
-	vppInterfaceConnection := connection.Connection{
-		Id:             outgoingConnection.GetId(),
-		NetworkService: outgoingConnection.GetNetworkService(),
-		Mechanism:      outgoingConnection.GetMechanism(),
-		Context:        map[string]string{},
-		Labels:         outgoingConnection.GetLabels(),
-	}
-	if err := ns.CreateVppInterfaceSrc(ctx, &vppInterfaceConnection, ns.baseDir); err != nil {
-		logrus.Fatal(err)
-	}
-
 	return outgoingConnection, nil
 }
 
@@ -99,24 +87,24 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		logrus.Error(err)
 		return nil, err
 	}
+	outgoingConnection.GetMechanism().GetParameters()[connection.Workspace] = ""
+	logrus.Infof("outgoingConnection: %v", outgoingConnection)
 
 	incomingConnection, err := ns.CompleteConnection(request, outgoingConnection)
+	logrus.Infof("Completed incomingConnection %v", incomingConnection)
 	if err != nil {
 		logrus.Error(err)
-		return nil, err
-	}
-	if err := ns.CreateVppInterfaceDst(ctx, incomingConnection, ns.baseDir); err != nil {
 		return nil, err
 	}
 
 	crossConnectRequest := &crossconnect.CrossConnect{
 		Id:      request.GetConnection().GetId(),
-		Payload: "IP", // TODO get this dynamically
+		Payload: "IP",
 		Source: &crossconnect.CrossConnect_LocalSource{
-			outgoingConnection,
+			incomingConnection,
 		},
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			incomingConnection,
+			outgoingConnection,
 		},
 	}
 
