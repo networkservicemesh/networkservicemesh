@@ -122,6 +122,7 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
 	v.monitor.UpdateCrossConnect(xcon)
+	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
 

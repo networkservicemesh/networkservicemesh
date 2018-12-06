@@ -19,7 +19,12 @@ for nsc in $(kubectl get pods -o=name | grep nsc | grep -v vpn-gateway| sed 's@.
             fi
 
             if [ -n "${targetIp}" ]; then
-                if kubectl exec -it "${nsc}" -- vppctl ping "${targetIp}" repeat 3; then
+                # Prime the pump, its normal to get a packet loss due to arp
+                kubectl exec -it "${nsc}" -- vppctl ping "${targetIp}" repeat 1 > /dev/null 2>&1
+                OUTPUT=$(kubectl exec -it "${nsc}" -- vppctl ping "${targetIp}" repeat 3)
+                echo "${OUTPUT}"
+                RESULT=$(echo "${OUTPUT}"| grep "packet loss" | awk '{print $6}')
+                if [ "${RESULT}" = "0%" ]; then
                     echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                     PingSuccess="true"
                 else
@@ -65,7 +70,13 @@ for nsc in $(kubectl get pods -o=name | grep nsc | grep -v vpn-gateway| sed 's@.
         echo "NSC ${nsc} failed to connect to an icmp-responder NetworkService"
         kubectl get pod "${nsc}" -o wide
         echo "POD ${nsc} Network dump -------------------------------"
-        kubectl exec -ti "${nsc}" ifconfig
+        if [[ ${nsc} == vppagent-* ]]; then
+            kubectl exec -ti "${nsc}" -- vppctl show int
+            kubectl exec -ti "${nsc}" -- vppctl show int addr
+            kubectl exec -ti "${nsc}" -- vppctl show memif
+        else
+            kubectl exec -ti "${nsc}" -- ip addr
+        fi
         echo "+++++++==ERROR==ERROR=============================================================================+++++"
     fi
     unset PingSuccess

@@ -55,7 +55,7 @@ func compareIps(ip1 net.IP, ip2 net.IP) int {
 		if value < ip2[index] {
 			return -1
 		}
-		if value > -ip2[index] {
+		if value > ip2[index] {
 			return 1
 		}
 	}
