@@ -27,7 +27,30 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, error) {
+func (ns *vppagentNetworkService) ApplyAclOnVppInterface(ctx context.Context, aclname, ifname string, rules map[string]string) error {
+	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("can't dial grpc server: %v", err)
+		return err
+	}
+	defer conn.Close()
+	client := rpc.NewDataChangeServiceClient(conn)
+
+	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(nil)
+
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
+	if _, err := client.Put(ctx, dataChange); err != nil {
+		logrus.Error(err)
+		client.Del(ctx, dataChange)
+		return err
+	}
+	return nil
+}
+
 func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
 
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())

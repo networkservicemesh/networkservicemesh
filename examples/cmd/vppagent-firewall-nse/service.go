@@ -113,6 +113,16 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		logrus.Error(err)
 		return nil, err
 	}
+
+	// The Crossconnect converter generates and puts the Source Interface name here
+	ingressIfName := dataChange.XCons[0].ReceiveInterface
+
+	aclRules := map[string]string{
+		"Allow ICMP":           "action=permit,icmptype=8",
+		"Deny everything else": "action=deny",
+	}
+
+	err = ns.ApplyAclOnVppInterface(ctx, "IngressACL", ingressIfName, aclRules)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
