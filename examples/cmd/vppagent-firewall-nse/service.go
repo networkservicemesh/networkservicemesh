@@ -108,7 +108,11 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		},
 	}
 
-	crossConnect, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, true, ns.baseDir)
+	crossConnect, dataChange, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, true, ns.baseDir)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -126,7 +130,7 @@ func (ns *vppagentNetworkService) Close(ctx context.Context, conn *connection.Co
 	// remove from connection
 	crossConnectRequest, ok := ns.crossConnects[conn.GetId()]
 	if ok {
-		_, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, false, ns.baseDir)
+		_, _, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, false, ns.baseDir)
 		if err != nil {
 			logrus.Error(err)
 			return nil, err

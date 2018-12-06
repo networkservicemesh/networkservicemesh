@@ -28,11 +28,12 @@ import (
 )
 
 func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, error) {
+func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
 
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
@@ -44,7 +45,7 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 
 	if err != nil {
 		logrus.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
@@ -54,9 +55,9 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 	}
 	if err != nil {
 		logrus.Error(err)
-		return crossConnect, err
+		return crossConnect, dataChange, err
 	}
-	return crossConnect, nil
+	return crossConnect, dataChange, nil
 }
 
 func (ns *vppagentNetworkService) Reset() error {
