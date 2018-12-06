@@ -20,7 +20,6 @@ Architecture
 
 Technical Details
 -----------------
-* [Adding sidecar containers](/docs/Adding-sidecar-containers.md)
 
 * TODO - How to discover network namespace from within a pod [Ed to write]
 * TODO - What are Kubernetes CRDs and how do they work?
@@ -34,7 +33,4 @@ How tos
 -------
 * [Quick Start: Run Network Service Mesh](/docs/QUICK-START.md)
 * [Building Network Service Mesh](/docs/BUILD.md)
-* [Running Network Service Mesh in Minikube](/docs/MINIKUBE.md)
-* [Install and run NSM on GKE](/docs/NSM-on-GKE.md)
-* [Gettting a Namespace from inside a Pod](/docs/Getting-a-namespace-from-inside-a-Pod.md)
-* [How to stand up a VM from scratch with everything for NSM](/docs/complete-startup-guide.md)
+* [Debugging](/docs/Debug.md)
