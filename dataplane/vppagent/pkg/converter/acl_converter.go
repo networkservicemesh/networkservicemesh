@@ -107,12 +107,12 @@ func getIcmp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_I
 	return &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp{
 		Icmpv6: false,
 		IcmpCodeRange: &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp_Range{
-			First: uint32(icmpType8),
-			Last:  uint32(icmpType8),
+			First: uint32(0),
+			Last:  uint32(65535),
 		},
 		IcmpTypeRange: &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp_Range{
-			First: uint32(0),
-			Last:  uint32(255),
+			First: uint32(icmpType8),
+			Last:  uint32(icmpType8),
 		},
 	}, nil
 }
@@ -152,7 +152,7 @@ func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tc
 		},
 		SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
 			LowerPort: uint32(0),
-			UpperPort: uint32(0xffff),
+			UpperPort: uint32(65535),
 		},
 		TcpFlagsMask:  0,
 		TcpFlagsValue: 0,
@@ -181,7 +181,7 @@ func getUdp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ud
 		},
 		SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
 			LowerPort: uint32(0),
-			UpperPort: uint32(0xffff),
+			UpperPort: uint32(65535),
 		},
 	}, nil
 }
