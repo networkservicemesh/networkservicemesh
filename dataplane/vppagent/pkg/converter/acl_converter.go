@@ -110,32 +110,39 @@ func getIcmp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_I
 			First: uint32(icmpType8),
 			Last:  uint32(icmpType8),
 		},
-		IcmpTypeRange: nil,
+		IcmpTypeRange: &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp_Range{
+			First: uint32(0),
+			Last:  uint32(255),
+		},
 	}, nil
 }
 
-func getPort(name string, parsed map[string]string) (uint16, error) {
+func getPort(name string, parsed map[string]string) (uint16, bool, error) {
 	port, ok := parsed[name]
 	if !ok {
-		return 0, nil
+		return 0, false, nil
 	}
 	port16, err := strconv.ParseUint(port, 10, 16)
 	if err != nil {
-		return 0, fmt.Errorf("Failed parsing %s [%v] with: %v", name, port, err)
+		return 0, true, fmt.Errorf("Failed parsing %s [%v] with: %v", name, port, err)
 	}
 
-	return uint16(port16), nil
+	return uint16(port16), true, nil
 }
 
 func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tcp, error) {
-	lowerPort, lpErr := getPort("tcplowport", parsed)
-	if lpErr != nil {
+	lowerPort, lpFound, lpErr := getPort("tcplowport", parsed)
+	if !lpFound {
+		return nil, nil
+	} else if lpErr != nil {
 		return nil, lpErr
 	}
 
-	upperPort, upErr := getPort("tcpupport", parsed)
-	if upErr != nil {
-		return nil, upErr
+	upperPort, upFound, upErr := getPort("tcpupport", parsed)
+	if !upFound {
+		return nil, nil
+	} else if upErr != nil {
+		return nil, lpErr
 	}
 
 	return &acl.AccessLists_Acl_Rule_Match_IpRule_Tcp{
@@ -143,21 +150,28 @@ func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tc
 			LowerPort: uint32(lowerPort),
 			UpperPort: uint32(upperPort),
 		},
-		SourcePortRange: nil,
-		TcpFlagsMask:    0,
-		TcpFlagsValue:   0,
+		SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+			LowerPort: uint32(0),
+			UpperPort: uint32(0xffff),
+		},
+		TcpFlagsMask:  0,
+		TcpFlagsValue: 0,
 	}, nil
 }
 
 func getUdp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Udp, error) {
-	lowerPort, lpErr := getPort("udplowport", parsed)
-	if lpErr != nil {
+	lowerPort, lpFound, lpErr := getPort("udplowport", parsed)
+	if !lpFound {
+		return nil, nil
+	} else if lpErr != nil {
 		return nil, lpErr
 	}
 
-	upperPort, upErr := getPort("udpupport", parsed)
-	if upErr != nil {
-		return nil, upErr
+	upperPort, upFound, upErr := getPort("udpupport", parsed)
+	if !upFound {
+		return nil, nil
+	} else if upErr != nil {
+		return nil, lpErr
 	}
 
 	return &acl.AccessLists_Acl_Rule_Match_IpRule_Udp{
@@ -165,7 +179,10 @@ func getUdp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ud
 			LowerPort: uint32(lowerPort),
 			UpperPort: uint32(upperPort),
 		},
-		SourcePortRange: nil,
+		SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+			LowerPort: uint32(0),
+			UpperPort: uint32(0xffff),
+		},
 	}, nil
 }
 
@@ -213,6 +230,13 @@ func getMatch(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match, error)
 }
 
 func (c *aclConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
+	if c == nil {
+		return rv, fmt.Errorf("aclConverter cannot be nil")
+	}
+	// TODO check if 'c' is complete
+	if rv == nil {
+		rv = &rpc.DataRequest{}
+	}
 
 	rules := []*acl.AccessLists_Acl_Rule{}
 
