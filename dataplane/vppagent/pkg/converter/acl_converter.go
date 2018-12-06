@@ -22,6 +22,8 @@ import (
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
 	"net"
+	"strconv"
+	"strings"
 )
 
 type aclConverter struct {
@@ -31,6 +33,17 @@ type aclConverter struct {
 }
 
 // NewAclConverter creates a new ACL converter
+//
+// action - DENY, PERMIT, REFLECT
+//
+// dtsnet, srcnet - IPv4 or IPv6 CIDR
+//
+// icmptype - 8-bit unsigned integer
+//
+// tcplowport, tcpupport - 16-bit unsigned integer
+//
+// udplowport, udpupport - 16-bit unsigned integer
+//
 func NewAclConverter(name, ingress string, rules map[string]string) Converter {
 	rv := &aclConverter{
 		Name:             name,
@@ -45,7 +58,7 @@ func getAction(parsed map[string]string) (acl.AclAction, error) {
 	if !ok {
 		return acl.AclAction(0), fmt.Errorf("Rule should have 'action' set.")
 	}
-	action, ok := acl.AclAction_value[action_name]
+	action, ok := acl.AclAction_value[strings.ToUpper(action_name)]
 	if !ok {
 		return acl.AclAction(0), fmt.Errorf("Rule should have a valid 'action'.")
 	}
@@ -83,25 +96,52 @@ func getIp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ip,
 }
 
 func getIcmp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Icmp, error) {
-	icmpCode := uint32(0)
+	icmpType, ok := parsed["icmptype"]
+	if !ok {
+		return nil, nil
+	}
+	icmpType8, err := strconv.ParseUint(icmpType, 10, 8)
+	if err != nil {
+		return nil, fmt.Errorf("Failed parsing icmptype [%v] with: %v", icmpType, err)
+	}
 	return &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp{
 		Icmpv6: false,
 		IcmpCodeRange: &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp_Range{
-			First: icmpCode,
-			Last:  icmpCode,
+			First: uint32(icmpType8),
+			Last:  uint32(icmpType8),
 		},
 		IcmpTypeRange: nil,
 	}, nil
 }
 
+func getPort(name string, parsed map[string]string) (uint16, error) {
+	port, ok := parsed[name]
+	if !ok {
+		return 0, nil
+	}
+	port16, err := strconv.ParseUint(port, 10, 16)
+	if err != nil {
+		return 0, fmt.Errorf("Failed parsing %s [%v] with: %v", name, port, err)
+	}
+
+	return uint16(port16), nil
+}
+
 func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tcp, error) {
-	LowerPort := uint32(0)
-	UpperPort := uint32(0)
+	lowerPort, lpErr := getPort("tcplowport", parsed)
+	if lpErr != nil {
+		return nil, lpErr
+	}
+
+	upperPort, upErr := getPort("tcpupport", parsed)
+	if upErr != nil {
+		return nil, upErr
+	}
 
 	return &acl.AccessLists_Acl_Rule_Match_IpRule_Tcp{
 		DestinationPortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
-			LowerPort: LowerPort,
-			UpperPort: UpperPort,
+			LowerPort: uint32(lowerPort),
+			UpperPort: uint32(upperPort),
 		},
 		SourcePortRange: nil,
 		TcpFlagsMask:    0,
@@ -110,13 +150,20 @@ func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tc
 }
 
 func getUdp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Udp, error) {
-	LowerPort := uint32(0)
-	UpperPort := uint32(0)
+	lowerPort, lpErr := getPort("udplowport", parsed)
+	if lpErr != nil {
+		return nil, lpErr
+	}
+
+	upperPort, upErr := getPort("udpupport", parsed)
+	if upErr != nil {
+		return nil, upErr
+	}
 
 	return &acl.AccessLists_Acl_Rule_Match_IpRule_Udp{
 		DestinationPortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
-			LowerPort: LowerPort,
-			UpperPort: UpperPort,
+			LowerPort: uint32(lowerPort),
+			UpperPort: uint32(upperPort),
 		},
 		SourcePortRange: nil,
 	}, nil
