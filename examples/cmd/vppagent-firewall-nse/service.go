@@ -87,8 +87,11 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		logrus.Error(err)
 		return nil, err
 	}
+	outgoingConnection.GetMechanism().GetParameters()[connection.Workspace] = ""
+	logrus.Infof("outgoingConnection: %v", outgoingConnection)
 
 	incomingConnection, err := ns.CompleteConnection(request, outgoingConnection)
+	logrus.Infof("Completed incomingConnection %v", incomingConnection)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
