@@ -92,5 +92,10 @@ docker-%-push: docker-login docker-%-build
 PHONY: docker-push
 docker-push: $(addsuffix -push,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
+.PHONY: docker-login
+docker-login:
+	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+
 
 

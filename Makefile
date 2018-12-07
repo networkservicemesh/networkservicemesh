@@ -19,8 +19,6 @@ SHELL:=/bin/bash
 .PHONY: default
 default: all
 
-# Pull in Docker image names
-include .nsm.mk
 # Pull in k8s targets
 include .k8s.mk
 include .skydive.mk
