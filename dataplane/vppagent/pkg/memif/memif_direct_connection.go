@@ -1,11 +1,12 @@
 package memif
 
 import (
+	"os"
+	"path"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/memifproxy"
 	"github.com/sirupsen/logrus"
-	"os"
-	"path"
 )
 
 type DirectMemifConnector struct {
@@ -58,9 +59,9 @@ func (d *DirectMemifConnector) connect(crossConnect *crossconnect.CrossConnect) 
 }
 
 func (d *DirectMemifConnector) disconnect(crossConnect *crossconnect.CrossConnect) {
-	proxy, exist := d.proxyMap[crossConnect.Id]
+	proxy, exist := d.proxyMap[crossConnect.GetId()]
 	if !exist {
-		logrus.Warnf("Proxy for cross connect with id=%s doesn't exist. Nothing to stop")
+		logrus.Warnf("Proxy for cross connect with id=%s doesn't exist. Nothing to stop", crossConnect.GetId())
 		return
 	}
 	proxy.Stop()
