@@ -48,14 +48,14 @@ include .docker.mk
 .PHONY: k8s-deploy
 k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-deploy-infra
-k8s-deploy-infra: k8s-delete-infra $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
+.PHONY: k8s-infra-deploy
+k8s-infra-deploy: k8s-infra-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
 
-.PHONY: k8s-deploy-icmp
-k8s-deploy-icmp: k8s-delete-icmp $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
+.PHONY: k8s-icmp-deploy
+k8s-icmp-deploy: k8s-delete-icmp $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
 
-.PHONY: k8s-deploy-vpn
-k8s-deploy-vpn: k8s-delete-vpn $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
+.PHONY: k8s-vpn-deploy
+k8s-vpn-deploy: k8s-vpn-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
 
 .PHONY: k8s-redeploy
 k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
@@ -77,14 +77,14 @@ k8s-%-deployonly:
 .PHONY: k8s-delete
 k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-delete-infra
-k8s-delete-infra: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_INFRA)))
+.PHONY: k8s-infra-delete
+k8s-infra-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_INFRA)))
 
-.PHONY: k8s-delete-icmp
-k8s-delete-icmp: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_ICMP)))
+.PHONY: k8s-icmp-delete
+k8s-icmp-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_ICMP)))
 
-.PHONY: k8s-delete-vpn
-k8s-delete-vpn: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_VPN)))
+.PHONY: k8s-vpn-delete
+k8s-vpn-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_VPN)))
 
 .PHONY: k8s-%-delete
 k8s-%-delete:
