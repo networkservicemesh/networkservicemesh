@@ -70,6 +70,7 @@ func main() {
 	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 
 	request := &networkservice.NetworkServiceRequest{
+
 		Connection: &connection.Connection{
 			NetworkService: "icmp-responder",
 			Context: map[string]string{
