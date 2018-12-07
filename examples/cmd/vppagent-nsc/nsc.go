@@ -69,7 +69,7 @@ func main() {
 	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 	mechanism, err := connection.NewMechanism(connection.MechanismType_MEM_INTERFACE, "icmp-responder", "vppagent-nsc")
 	if err != nil {
-		logrus.Fatalf("Failed to create mechanism:", err)
+		logrus.Fatalf("Failed to create mechanism: %v", err)
 	}
 	request := &networkservice.NetworkServiceRequest{
 

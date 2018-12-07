@@ -16,9 +16,10 @@
 package tools_test
 
 import (
-	. "github.com/ligato/networkservicemesh/pkg/tools"
 	"reflect"
 	"testing"
+
+	. "github.com/ligato/networkservicemesh/pkg/tools"
 )
 
 func TestParseKVStringToMap(t *testing.T) {
@@ -40,8 +41,8 @@ func TestParseKVStringToMap(t *testing.T) {
 				kvsep: ":",
 			},
 			want: map[string]string{
-				"nsm1": "icmp-responder-nse",
-				"eth2": "vpngateway",
+				"nsm1":  "icmp-responder-nse",
+				"eth12": "vpngateway",
 			},
 		},
 	}
