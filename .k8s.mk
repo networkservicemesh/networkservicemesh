@@ -304,6 +304,7 @@ k8s-forward:
 .PHONY: k8s-check
 k8s-check:
 	./scripts/nsc_ping_all.sh
+	./scripts/verify_vpn_gateway.sh
 
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
