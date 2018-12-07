@@ -108,7 +108,21 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		},
 	}
 
-	crossConnect, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, true, ns.baseDir)
+	crossConnect, dataChange, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, true, ns.baseDir)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+
+	// The Crossconnect converter generates and puts the Source Interface name here
+	ingressIfName := dataChange.XCons[0].ReceiveInterface
+
+	aclRules := map[string]string{
+		"Allow ICMP":   "action=reflect,icmptype=8",
+		"Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80",
+	}
+
+	err = ns.ApplyAclOnVppInterface(ctx, "IngressACL", ingressIfName, aclRules)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -126,7 +140,7 @@ func (ns *vppagentNetworkService) Close(ctx context.Context, conn *connection.Co
 	// remove from connection
 	crossConnectRequest, ok := ns.crossConnects[conn.GetId()]
 	if ok {
-		_, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, false, ns.baseDir)
+		_, _, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, false, ns.baseDir)
 		if err != nil {
 			logrus.Error(err)
 			return nil, err
