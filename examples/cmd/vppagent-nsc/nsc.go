@@ -18,7 +18,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"path"
 	"sync"
 	"syscall"
 	"time"
@@ -68,7 +67,10 @@ func main() {
 
 	// Init related activities start here
 	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
-
+	mechanism, err := connection.NewMechanism(connection.MechanismType_MEM_INTERFACE, "icmp-responder", "vppagent-nsc")
+	if err != nil {
+		logrus.Fatalf("Failed to create mechanism:", err)
+	}
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: "icmp-responder",
@@ -78,13 +80,7 @@ func main() {
 			Labels: make(map[string]string),
 		},
 		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type: connection.MechanismType_MEM_INTERFACE,
-				Parameters: map[string]string{
-					connection.InterfaceNameKey: "icmp-responder",
-					connection.SocketFilename:   path.Join("icmp-responder", "memif.sock"),
-				},
-			},
+			mechanism,
 		},
 	}
 
