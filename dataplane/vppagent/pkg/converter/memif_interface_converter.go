@@ -16,7 +16,7 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
+	l32 "github.com/ligato/vpp-agent/plugins/vpp/model/l3"
 	"os"
 	"path"
 
@@ -83,23 +83,14 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 
 	// Process static routes
 	if c.conversionParameters.Side == SOURCE {
-		m := c.GetMechanism()
-		filepath, err := m.NetNsFileName()
 		for _, route := range c.Connection.GetContext().GetRoutes() {
-			route := &l3.LinuxStaticRoutes_Route{
-				Name:        "route_" + TempIfName(),
-				DstIpAddr:   appendNetmaskIfNeeded(route.Prefix),
-				Description: "Route to " + route.Prefix,
-				Interface:   c.conversionParameters.Name,
-				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
+			route := &l32.StaticRoutes_Route{
+				DstIpAddr:         route.Prefix,
+				Description:       "Route to " + route.Prefix,
+				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
+				OutgoingInterface: c.conversionParameters.Name,
 			}
-			if err == nil {
-				route.Namespace = &l3.LinuxStaticRoutes_Route_Namespace{
-					Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
-					Filepath: filepath,
-				}
-			}
-			rv.LinuxRoutes = append(rv.LinuxRoutes, route)
+			rv.StaticRoutes = append(rv.StaticRoutes, route)
 		}
 	}
 	return rv, nil

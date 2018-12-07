@@ -1,6 +1,9 @@
 package connectioncontext
 
-import "fmt"
+import (
+	"fmt"
+	"net"
+)
 
 func (c *ConnectionContext) IsComplete() error {
 	if c == nil {
@@ -9,6 +12,10 @@ func (c *ConnectionContext) IsComplete() error {
 	for _, route := range c.GetRoutes() {
 		if route.GetPrefix() == "" {
 			return fmt.Errorf("ConnectionContext.Route.Prefix is required and cannot be empty/nil: %v", c)
+		}
+		_, _, err := net.ParseCIDR(route.GetPrefix())
+		if err != nil {
+			return fmt.Errorf("ConnectionContext.Route.Prefix should be a valid CIDR address: %v", c)
 		}
 	}
 

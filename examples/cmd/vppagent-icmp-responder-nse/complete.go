@@ -54,7 +54,7 @@ func (ns *vppagentNetworkService) CompleteConnection(request *networkservice.Net
 			DstIpAddr: dstIP.String() + "/30",
 			Routes: []*connectioncontext.Route{
 				&connectioncontext.Route{
-					Prefix: "8.8.8.8",
+					Prefix: "8.8.8.8/30",
 				},
 			},
 		},

@@ -758,6 +758,7 @@
     "github.com/ligato/vpp-agent/plugins/linux/model/l3",
     "github.com/ligato/vpp-agent/plugins/vpp/model/interfaces",
     "github.com/ligato/vpp-agent/plugins/vpp/model/l2",
+    "github.com/ligato/vpp-agent/plugins/vpp/model/l3",
     "github.com/ligato/vpp-agent/plugins/vpp/model/rpc",
     "github.com/onsi/gomega",
     "github.com/rs/xid",

@@ -86,8 +86,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	if c.side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
 			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-				Name:        "route_" + TempIfName(),
-				DstIpAddr:   appendNetmaskIfNeeded(route.Prefix),
+				Name:        TempRouteName(),
+				DstIpAddr:   route.Prefix,
 				Description: "Route to " + route.Prefix,
 				Interface:   c.name,
 				GwAddr:      extractCleanIPAddress(dstip),

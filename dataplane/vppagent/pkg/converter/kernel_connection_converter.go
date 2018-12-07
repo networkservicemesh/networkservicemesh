@@ -100,8 +100,8 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	if c.conversionParameters.Side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
 			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-				Name:        "route_" + TempIfName(),
-				DstIpAddr:   appendNetmaskIfNeeded(route.Prefix),
+				Name:        TempRouteName(),
+				DstIpAddr:   route.Prefix,
 				Description: "Route to " + route.Prefix,
 				Interface:   c.conversionParameters.Name,
 				Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
@@ -117,11 +117,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	if c.conversionParameters.Side == SOURCE {
 		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
 			rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
+				Name:      TempArpEntryName(),
 				IpAddr:    neightbour.Ip,
 				HwAddress: neightbour.HardwareAddress,
 				Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
 					Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
 					Filepath: filepath,
+				},
+				State: &l3.LinuxStaticArpEntries_ArpEntry_NudState{
+					Type: l3.LinuxStaticArpEntries_ArpEntry_NudState_PERMANENT, // or NOARP, REACHABLE, STALE
 				},
 			})
 		}

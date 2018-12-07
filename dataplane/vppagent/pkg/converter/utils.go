@@ -3,7 +3,7 @@ package converter
 import (
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
-	"strings"
+	"net"
 )
 
 func TempIfName() string {
@@ -28,18 +28,20 @@ func TempIfName() string {
 	return rv
 }
 
-func appendNetmaskIfNeeded(addr string) string {
-	pos := strings.Index(addr, "/")
-	if pos < 0 {
-		addr = addr + "/30" // Add default netmask for static IP.
-	}
-	return addr
+func TempRouteName() string {
+	// almost same as interface for now
+	return "route_" + TempIfName()
+}
+
+func TempArpEntryName() string {
+	// almost same as interface for now
+	return "arp_entry_" + TempIfName()
 }
 
 func extractCleanIPAddress(addr string) string {
-	maskPos := strings.Index(addr, "/")
-	if maskPos > -1 {
-		addr = addr[0:maskPos]
+	ip, _, err := net.ParseCIDR(addr)
+	if err == nil {
+		return ip.String()
 	}
 	return addr
 }
