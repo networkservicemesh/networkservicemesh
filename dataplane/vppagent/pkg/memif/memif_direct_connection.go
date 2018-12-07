@@ -1,57 +1,68 @@
 package memif
 
 import (
-	"github.com/docker/docker/pkg/mount"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/dataplane/pkg/memifproxy"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 )
 
-func DirectConnection(crossConnect *crossconnect.CrossConnect, baseDir string) (*crossconnect.CrossConnect, error) {
-	src := crossConnect.GetLocalSource().GetMechanism()
-	dst := crossConnect.GetLocalDestination().GetMechanism()
+type DirectMemifConnector struct {
+	proxyMap map[string]*memifproxy.Proxy
+	baseDir  string
+}
 
-	fullyQualifiedDstSocketFilename := path.Join(baseDir, dst.GetWorkspace(), dst.GetSocketFilename())
-	dstSocketDir, dstSocketFilename := path.Split(fullyQualifiedDstSocketFilename)
-
-	fullyQualifiedSrcSocketFilename := path.Join(baseDir, src.GetWorkspace(), src.GetSocketFilename())
-	srcSocketDir, srcSocketFilename := path.Split(fullyQualifiedSrcSocketFilename)
-
-	if err := createDirectory(srcSocketDir); err != nil {
-		return nil, err
+func NewDirectMemifConnector(baseDir string) *DirectMemifConnector {
+	return &DirectMemifConnector{
+		proxyMap: make(map[string]*memifproxy.Proxy),
+		baseDir:  baseDir,
 	}
+}
 
-	if err := mount.Mount(dstSocketDir, srcSocketDir, "hard", "bind"); err != nil {
-		deleteFolder(srcSocketDir)
-		return nil, err
+func (d *DirectMemifConnector) ConnectOrDisConnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	if connect {
+		return d.connect(crossConnect)
 	}
-
-	if srcSocketFilename == dstSocketFilename {
-		return crossConnect, nil
-	}
-
-	if err := os.Symlink(fullyQualifiedDstSocketFilename, fullyQualifiedSrcSocketFilename); err != nil {
-		mount.Unmount(srcSocketDir)
-		deleteFolder(srcSocketDir)
-		return nil, err
-	}
-
+	d.disconnect(crossConnect)
 	return crossConnect, nil
 }
 
-func createDirectory(path string) error {
-	if err := os.MkdirAll(path, 0777); err != nil {
-		return err
+func (d *DirectMemifConnector) connect(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+	logrus.Infof("Direct memif cross connect request: %v", crossConnect)
+
+	if _, exist := d.proxyMap[crossConnect.Id]; exist {
+		logrus.Warnf("Proxy for cross connect with id=%s already exists", crossConnect.Id)
+		return crossConnect, nil
 	}
-	logrus.Infof("Create directory: %s", path)
-	return nil
+
+	src := crossConnect.GetLocalSource().GetMechanism()
+	dst := crossConnect.GetLocalDestination().GetMechanism()
+
+	fullyQualifiedDstSocketFilename := path.Join(d.baseDir, dst.GetWorkspace(), dst.GetSocketFilename())
+	fullyQualifiedSrcSocketFilename := path.Join(d.baseDir, src.GetWorkspace(), src.GetSocketFilename())
+
+	if err := os.MkdirAll(path.Dir(fullyQualifiedSrcSocketFilename), 0777); err != nil {
+		return nil, err
+	}
+	logrus.Infof("Successfully created directory: %v", path.Dir(fullyQualifiedSrcSocketFilename))
+
+	proxy := memifproxy.NewProxy(fullyQualifiedSrcSocketFilename, fullyQualifiedDstSocketFilename)
+	if err := proxy.Start(); err != nil {
+		return nil, err
+	}
+
+	d.proxyMap[crossConnect.Id] = proxy
+	logrus.Infof("Add new proxy for cross connect with id=%s", crossConnect.Id)
+	return crossConnect, nil
 }
 
-func deleteFolder(path string) error {
-	if err := os.RemoveAll(path); err != nil {
-		return err
+func (d *DirectMemifConnector) disconnect(crossConnect *crossconnect.CrossConnect) {
+	proxy, exist := d.proxyMap[crossConnect.Id]
+	if !exist {
+		logrus.Warnf("Proxy for cross connect with id=%s doesn't exist. Nothing to stop")
+		return
 	}
-	logrus.Infof("Remove directory: %s", path)
-	return nil
+	proxy.Stop()
+	delete(d.proxyMap, crossConnect.Id)
 }

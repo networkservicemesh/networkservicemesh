@@ -16,6 +16,7 @@ package vppagent
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"net"
 	"time"
 
@@ -41,12 +42,13 @@ type VPPAgent struct {
 	monitor          monitor_crossconnect_server.MonitorCrossConnectServer
 
 	// Internal state from here on
-	mechanisms    *Mechanisms
-	updateCh      chan *Mechanisms
-	baseDir       string
-	srcIP         net.IP
-	srcIPNet      net.IPNet
-	mgmtIfaceName string
+	mechanisms           *Mechanisms
+	updateCh             chan *Mechanisms
+	baseDir              string
+	srcIP                net.IP
+	srcIPNet             net.IPNet
+	mgmtIfaceName        string
+	directMemifConnector *memif.DirectMemifConnector
 }
 
 func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *VPPAgent {
@@ -77,6 +79,7 @@ func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.Mo
 				},
 			},
 		},
+		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
 	}
 	rv.reset()
 	rv.programMgmtInterface()
@@ -127,12 +130,10 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 }
 
 func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	// Disabling direct memif while bind mounts are not propagated from host to vppagent based container
-
-	//if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
-	//	crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-	//	return memif.DirectConnection(crossConnect, v.baseDir)
-	//}
+	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
+		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
+		return v.directMemifConnector.ConnectOrDisConnect(crossConnect, connect)
+	}
 
 	// TODO look at whether keepin a single conn might be better
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
