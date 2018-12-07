@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
@@ -28,7 +27,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (ns *vppagentNetworkService) CreateVppInterfaceSrc(ctx context.Context, outgoingConnection *connection.Connection, baseDir string) error {
+func (ns *vppagentNetworkService) ApplyAclOnVppInterface(ctx context.Context, aclname, ifname string, rules map[string]string) error {
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
@@ -37,13 +36,7 @@ func (ns *vppagentNetworkService) CreateVppInterfaceSrc(ctx context.Context, out
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 
-	conversionParameters := &converter.ConnectionConversionParameters{
-		Name:      "SRC-" + outgoingConnection.GetId(),
-		Terminate: false,
-		Side:      converter.SOURCE,
-		BaseDir:   baseDir,
-	}
-	dataChange, err := converter.NewMemifInterfaceConverter(outgoingConnection, conversionParameters).ToDataRequest(nil)
+	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(nil)
 
 	if err != nil {
 		logrus.Error(err)
@@ -58,42 +51,12 @@ func (ns *vppagentNetworkService) CreateVppInterfaceSrc(ctx context.Context, out
 	return nil
 }
 
-func (ns *vppagentNetworkService) CreateVppInterfaceDst(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
-	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
-	if err != nil {
-		logrus.Errorf("can't dial grpc server: %v", err)
-		return err
-	}
-	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
-
-	conversionParameters := &converter.ConnectionConversionParameters{
-		Name:      "DST-" + nseConnection.GetId(),
-		Terminate: true,
-		Side:      converter.DESTINATION,
-		BaseDir:   baseDir,
-	}
-	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(nil)
-
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(ctx, dataChange); err != nil {
-		logrus.Error(err)
-		client.Del(ctx, dataChange)
-		return err
-	}
-	return nil
-}
-
-func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, error) {
+func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
 
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
@@ -105,7 +68,7 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 
 	if err != nil {
 		logrus.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
@@ -115,9 +78,9 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 	}
 	if err != nil {
 		logrus.Error(err)
-		return crossConnect, err
+		return crossConnect, dataChange, err
 	}
-	return crossConnect, nil
+	return crossConnect, dataChange, nil
 }
 
 func (ns *vppagentNetworkService) Reset() error {
