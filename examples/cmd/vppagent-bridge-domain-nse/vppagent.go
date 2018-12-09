@@ -31,13 +31,24 @@ func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseCon
 
 	ns.Lock()
 	defer ns.Unlock()
-	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(ns.state)
+
+	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(nil)
+	logrus.Infof("datachange %+v", dataChange)
 	interfaceConfig := dataChange.Interfaces[len(dataChange.Interfaces)-1]
-	dataChange.BridgeDomains[0].Interfaces = []*l2.BridgeDomains_BridgeDomain_Interfaces{{
+
+	if ns.state.Interfaces == nil {
+		ns.state.Interfaces = make([]*l2.BridgeDomains_BridgeDomain_Interfaces, 0)
+	}
+
+	newBDInterface := &l2.BridgeDomains_BridgeDomain_Interfaces{
 		Name:                    interfaceConfig.Name,
 		BridgedVirtualInterface: false,
 		SplitHorizonGroup:       1,
-	}}
+	}
+
+	ns.state.Interfaces = append(ns.state.Interfaces, newBDInterface)
+
+	dataChange.BridgeDomains = []*l2.BridgeDomains_BridgeDomain{ns.state}
 
 	if err != nil {
 		logrus.Error(err)
@@ -72,7 +83,7 @@ func (ns *vppagentNetworkService) Reset() error {
 	return nil
 }
 
-func (ns *vppagentNetworkService) CreateBridgeDomain(ctx context.Context, bridgeDomainName string) error {
+func (ns *vppagentNetworkService) CreateBridgeDomain(ctx context.Context) error {
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
@@ -82,10 +93,10 @@ func (ns *vppagentNetworkService) CreateBridgeDomain(ctx context.Context, bridge
 	client := rpc.NewDataChangeServiceClient(conn)
 
 	conversionParameters := &converter.BridgeDomainConversionParameters{
-		Name: bridgeDomainName,
+		ns.state,
 	}
 
-	dataChange, err := converter.NewBridgeDomainConverter(conversionParameters).ToDataRequest(ns.state)
+	dataChange, err := converter.NewBridgeDomainConverter(conversionParameters).ToDataRequest(nil)
 	if err != nil {
 		logrus.Error(err)
 		return err

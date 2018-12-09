@@ -34,7 +34,7 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	NetworkServiceName      = "icmp-responder"
+	NetworkServiceName      = "bridge-domain"
 	DefaultVPPAgentEndpoint = "localhost:9112"
 	ipAddressEnv            = "IP_ADDRESS"
 	nseLabelsEnv            = "NSE_LABELS"
@@ -157,6 +157,6 @@ func main() {
 
 	select {
 	case <-c:
-		logrus.Info("Closing vppagent-icmp-responder-nse")
+		logrus.Info("Closing vppagent-bridge-domain-nse")
 	}
 }

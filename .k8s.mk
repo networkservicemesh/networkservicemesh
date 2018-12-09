@@ -57,7 +57,7 @@ k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 k8s-infra-deploy: k8s-infra-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
 
 .PHONY: k8s-bridge-domain-deploy
-k8s-bridge-domain-deploy: k8s-delete-bridge-domain $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_BRIDGE_DOMAIN)))
+k8s-bridge-domain-deploy: k8s-bridge-domain-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_BRIDGE_DOMAIN)))
 
 .PHONY: k8s-icmp-deploy
 k8s-icmp-deploy: k8s-icmp-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))

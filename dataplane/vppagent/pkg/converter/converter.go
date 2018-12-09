@@ -1,6 +1,9 @@
 package converter
 
-import "github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+import (
+	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+)
 
 type Converter interface {
 	ToDataRequest(*rpc.DataRequest) (*rpc.DataRequest, error)
@@ -26,5 +29,5 @@ type ConnectionConversionParameters struct {
 }
 
 type BridgeDomainConversionParameters struct {
-	Name string
+	BridgeDomain *l2.BridgeDomains_BridgeDomain
 }

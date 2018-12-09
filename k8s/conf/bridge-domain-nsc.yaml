@@ -2,20 +2,20 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 spec:
-  replicas: 2
+  replicas: 4
   template:
     metadata:
       labels:
-        networkservicemesh.io/app: "bridge-domain-nsc"
+        networkservicemesh.io/app: "bridge-domain"
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
+#      nodeSelector:
+#        node-role.kubernetes.io/master: ""
       containers:
         - name: alpine-img
           image: alpine:latest
           command: ['tail', '-f', '/dev/null']
       initContainers:
-        - name: nsc
+        - name: bridge-domain-nsc
           image: networkservicemesh/nsc:latest
           imagePullPolicy: IfNotPresent
           env:
@@ -27,5 +27,5 @@ spec:
             limits:
               nsm.ligato.io/socket: 1
 metadata:
-  name: nsc-vpp
+  name: nsc-bridge-domain
   namespace: default

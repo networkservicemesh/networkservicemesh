@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/binary"
+	"log"
 	"net"
 
 	"github.com/sirupsen/logrus"
@@ -38,14 +39,16 @@ func (ns *vppagentNetworkService) CompleteConnection(request *networkservice.Net
 	binary.BigEndian.PutUint32(srcIP, ns.nextIP)
 	ns.nextIP = ns.nextIP + 1
 
-	dstIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(dstIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 3
+	//dstIP := make(net.IP, 4)
+	//binary.BigEndian.PutUint32(dstIP, ns.nextIP)
+	//ns.nextIP = ns.nextIP + 1
 
 	connectionContext := make(map[string]string)
 
-	connectionContext["src_ip"] = srcIP.String() + "/30"
-	connectionContext["dst_ip"] = dstIP.String() + "/30"
+	connectionContext["src_ip"] = srcIP.String() + "/24"
+	//connectionContext["dst_ip"] = dstIP.String() + "/24"
+
+	log.Println("%+v", connectionContext)
 
 	// TODO take into consideration LocalMechnism preferences sent in request
 

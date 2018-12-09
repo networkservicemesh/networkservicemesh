@@ -21,7 +21,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net"
@@ -35,7 +35,7 @@ type vppagentNetworkService struct {
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	vppAgentEndpoint        string
 	baseDir                 string
-	state                   *rpc.DataRequest
+	state                   *l2.BridgeDomains_BridgeDomain
 	splitHorizonGroup       int
 }
 
@@ -80,18 +80,30 @@ func New(vppAgentEndpoint, baseDir, ip, bridgeDomainName string) networkservice.
 		shg = rand.Int()
 	}
 
+	bridgeDomain := &l2.BridgeDomains_BridgeDomain{
+		Name:                 bridgeDomainName,
+		Flood:                true,
+		UnknownUnicastFlood:  true,
+		Forward:              true,
+		Learn:                true,
+		ArpTermination:       false,
+		MacAge:               120,
+		Interfaces:           nil,
+		ArpTerminationTable:  nil,
+	}
+
 	service := vppagentNetworkService{
 		networkService:          NetworkServiceName,
 		nextIP:                  ip2int(netIP),
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
-		state:                   &rpc.DataRequest{},
+		state:                   bridgeDomain,
 		splitHorizonGroup: 1,
 	}
 
 	service.Reset()
-	service.CreateBridgeDomain(context.Background(), bridgeDomainName)
+	service.CreateBridgeDomain(context.Background())
 
 	return &service
 }

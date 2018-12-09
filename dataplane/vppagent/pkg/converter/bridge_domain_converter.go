@@ -35,19 +35,7 @@ func (c *BridgeDomainConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 		rv = &rpc.DataRequest{}
 	}
 
-	rv.BridgeDomains = []*l2.BridgeDomains_BridgeDomain{
-		{
-			Name:                 c.conversionParameters.Name,
-			Flood:                true,
-			UnknownUnicastFlood:  false,
-			Forward:              true,
-			Learn:                true,
-			ArpTermination:       false,
-			MacAge:               120,
-			Interfaces:           nil,
-			ArpTerminationTable:  nil,
-		},
-	}
+	rv.BridgeDomains = []*l2.BridgeDomains_BridgeDomain{c.conversionParameters.BridgeDomain}
 
 	return rv, nil
 }
