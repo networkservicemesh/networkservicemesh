@@ -17,17 +17,15 @@ package main
 import (
 	"context"
 	"encoding/binary"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
-	"google.golang.org/grpc"
-	"net"
-	"sync"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/sirupsen/logrus"
+	"math/rand"
+	"net"
+	"sync"
 )
 
 type vppagentNetworkService struct {
@@ -37,7 +35,8 @@ type vppagentNetworkService struct {
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	vppAgentEndpoint        string
 	baseDir                 string
-	bridgeDomainName        string
+	state                   *rpc.DataRequest
+	splitHorizonGroup       int
 }
 
 func (ns *vppagentNetworkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -62,43 +61,6 @@ func (ns *vppagentNetworkService) Close(_ context.Context, conn *connection.Conn
 	return &empty.Empty{}, nil
 }
 
-func (ns *vppagentNetworkService) CreateBridgeDomain(vppAgentString string, bridgeDomainName string) error {
-	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
-	if err != nil {
-		logrus.Errorf("can't dial grpc server: %v", err)
-		return err
-	}
-	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
-
-	bridgeDomain := &l2.BridgeDomains_BridgeDomain{
-		Name:                bridgeDomainName,
-		Flood:               true,
-		UnknownUnicastFlood: true,
-		Forward:             false,
-		Learn:               true,
-		ArpTermination:      false,
-		MacAge:              0,
-	}
-
-	bridgeDomains := &l2.BridgeDomains{
-		BridgeDomains: []*l2.BridgeDomains_BridgeDomain{bridgeDomain},
-	}
-
-	dataChange := &rpc.DataRequest{
-		BridgeDomains: bridgeDomains.BridgeDomains,
-	}
-
-	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	ctx := context.Background()
-	if _, err := client.Put(ctx, dataChange); err != nil {
-		logrus.Error(err)
-		client.Del(ctx, dataChange)
-		return err
-	}
-	return nil
-}
-
 func ip2int(ip net.IP) uint32 {
 	if ip == nil {
 		return 0
@@ -112,15 +74,24 @@ func ip2int(ip net.IP) uint32 {
 func New(vppAgentEndpoint, baseDir, ip, bridgeDomainName string) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
 	netIP := net.ParseIP(ip)
+
+	shg := 0
+	for shg == 0 {
+		shg = rand.Int()
+	}
+
 	service := vppagentNetworkService{
 		networkService:          NetworkServiceName,
 		nextIP:                  ip2int(netIP),
 		monitorConnectionServer: monitor,
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
-		bridgeDomainName:        bridgeDomainName,
+		state:                   &rpc.DataRequest{},
+		splitHorizonGroup: 1,
 	}
+
 	service.Reset()
-	service.CreateBridgeDomain(vppAgentEndpoint, bridgeDomainName)
+	service.CreateBridgeDomain(context.Background(), bridgeDomainName)
+
 	return &service
 }

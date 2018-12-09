@@ -24,3 +24,7 @@ type ConnectionConversionParameters struct {
 	Name      string
 	BaseDir   string
 }
+
+type BridgeDomainConversionParameters struct {
+	Name string
+}

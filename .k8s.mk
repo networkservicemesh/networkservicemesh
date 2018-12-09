@@ -18,11 +18,16 @@ K8S_CONF_DIR = k8s/conf/
 DEPLOY_NSM = nsmd vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_NSM) $(DEPLOY_MONITOR)
+
+DEPLOY_BRIDGE_DOMAIN = vppagent-bridge-domain-nse
+
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
+
 DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc
-DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_ICMP_VPP) $(DEPLOY_VPN)
+
+DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_ICMP_VPP) $(DEPLOY_VPN) $(DEPLOY_BRIDGE_DOMAIN)
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
@@ -51,8 +56,11 @@ k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-infra-deploy
 k8s-infra-deploy: k8s-infra-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
 
+.PHONY: k8s-bridge-domain-deploy
+k8s-bridge-domain-deploy: k8s-delete-bridge-domain $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_BRIDGE_DOMAIN)))
+
 .PHONY: k8s-icmp-deploy
-k8s-icmp-deploy: k8s-delete-icmp $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
+k8s-icmp-deploy: k8s-icmp-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
 
 .PHONY: k8s-vpn-deploy
 k8s-vpn-deploy: k8s-vpn-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
@@ -79,6 +87,9 @@ k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-infra-delete
 k8s-infra-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_INFRA)))
+
+.PHONY: k8s-bridge-domain-delete
+k8s-bridge-domain-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_BRIDGE_DOMAIN)))
 
 .PHONY: k8s-icmp-delete
 k8s-icmp-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_ICMP)))
@@ -186,6 +197,11 @@ k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 .PHONY: k8s-nsc-save
 k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
 
+.PHONY: k8s-vppagent-bridge-domain-nse-build
+k8s-vppagent-bridge-domain-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-bridge-domain-nse-build
+
+.PHONY: k8s-vppagent-bridge-domain-nse-save
+k8s-vppagent-bridge-domain-nse-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-bridge-domain-nse-save
 
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-build

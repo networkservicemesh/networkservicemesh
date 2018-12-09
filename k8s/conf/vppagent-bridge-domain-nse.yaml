@@ -1,0 +1,42 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "bridge-domain"
+        networkservicemesh.io/impl: "vppagent-bridge-domain"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: networkservicemesh.io/app
+                    operator: In
+                    values:
+                      - bridge-domain
+                  - key: networkservicemesh.io/impl
+                    operator: In
+                    values:
+                      - vppagent-bridge-domain
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: bridge-domain-nse
+          securityContext:
+            privileged: true
+          image: networkservicemesh/vppagent-bridge-domain-nse:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSE_LABELS
+              value: "app=bridge-domain"
+            - name: IP_ADDRESS
+              value: "10.30.1.1"
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+metadata:
+  name: vppagent-bridge-domain-nse
+  namespace: default

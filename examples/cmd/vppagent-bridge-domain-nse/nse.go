@@ -16,10 +16,13 @@ package main
 
 import (
 	"context"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
@@ -31,11 +34,12 @@ import (
 
 const (
 	// networkServiceName defines Network Service Name the NSE is serving for
-	NetworkServiceName      = "bridge-domain"
+	NetworkServiceName      = "icmp-responder"
 	DefaultVPPAgentEndpoint = "localhost:9112"
 	ipAddressEnv            = "IP_ADDRESS"
 	nseLabelsEnv            = "NSE_LABELS"
-	bridgeDomainName        = "goldengatebridge"
+	bridgenameLabelsEnv     = "BRIDGE_NAME"
+	defaultBridgeName       = "goldengate"
 )
 
 func main() {
@@ -46,6 +50,8 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
+
+	rand.Seed(time.Now().Unix())
 
 	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
 	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
@@ -58,6 +64,12 @@ func main() {
 	workspace, _ := os.LookupEnv(nsmd.WorkspaceEnv)
 	logrus.Infof("workspace: %s", workspace)
 	// TODO handle missing env
+
+	bridgeDomainName, _ := os.LookupEnv(bridgenameLabelsEnv)
+	if strings.TrimSpace(bridgeDomainName) == "" {
+		bridgeDomainName = defaultBridgeName
+	}
+	logrus.Infof("bridgeDomainName: %s", workspace)
 
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	linuxNS, err := tools.GetCurrentNS()
