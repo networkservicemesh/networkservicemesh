@@ -54,10 +54,10 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 	nsm.Unlock()
 	reply := &nsmdapi.ClientConnectionReply{
 		Workspace:       workspace.Name(),
-		HostBasedir:     hostBaseDir,
-		ClientBaseDir:   clientBaseDir,
-		NsmServerSocket: NsmServerSocket,
-		NsmClientSocket: NsmClientSocket,
+		HostBasedir:     workspace.locationProvider.HostBaseDir(),
+		ClientBaseDir:   workspace.locationProvider.ClientBaseDir(),
+		NsmServerSocket: workspace.locationProvider.NsmServerSocket(),
+		NsmClientSocket: workspace.locationProvider.NsmClientSocket(),
 	}
 	logrus.Infof("returning ClientConnectionReply: %+v", reply)
 	return reply, nil

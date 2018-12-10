@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
+	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -92,10 +95,15 @@ type nsmdTestServiceRegistry struct {
 	testDataplaneConnection *testDataplaneConnection
 	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
+	rootDir string
 }
 
 func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
 	return impl.vniAllocator
+}
+
+func (impl *nsmdTestServiceRegistry) NewWorkspaceProvider() serviceregistry.WorkspaceLocationProvider {
+	return nsmd.NewWorkspaceProvider(impl.rootDir)
 }
 
 func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
@@ -222,6 +230,8 @@ func (impl *nsmdTestServiceRegistry) RegistryClient() (registry.NetworkServiceRe
 }
 
 func (impl *nsmdTestServiceRegistry) Stop() {
+	logrus.Printf("Delete temporary workspace root: %s", impl.rootDir)
+	os.RemoveAll(impl.rootDir)
 }
 
 type testApiRegistry struct {
@@ -328,7 +338,6 @@ func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networks
 	logrus.Printf("workspace %s", response.Workspace)
 
 	Expect(response.Workspace).To(Equal(clientName))
-	Expect(response.HostBasedir).To(Equal("/var/lib/networkservicemesh/"))
 
 	// Now we could try to connect via Client API
 	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
@@ -341,18 +350,24 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry)
 
+	rootDir, err := ioutil.TempDir("", "nsmd_test")
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 	srv.serviceRegistry = &nsmdTestServiceRegistry{
 		nseRegistry:             srv.nseRegistry,
 		apiRegistry:             srv.apiRegistry,
 		testDataplaneConnection: &testDataplaneConnection{},
 		localTestNSE:            &localTestNSENetworkServiceClient{},
 		vniAllocator:            vni.NewVniAllocator(),
+		rootDir: rootDir,
 	}
 
 	srv.testModel = model.NewModel()
 
 	// Lets start NSMD NSE registry service
-	err := nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry)
+	err = nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry)
 	Expect(err).To(BeNil())
 	err = nsmd.StartAPIServer(srv.testModel, srv.apiRegistry, srv.serviceRegistry)
 	Expect(err).To(BeNil())

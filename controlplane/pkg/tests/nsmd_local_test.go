@@ -96,6 +96,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	RegisterTestingT(t)
 
 	srv := newNSMDFullServer()
+	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
 	srv.registerFakeEndpoint("golden_network", "test", srv.serviceRegistry.GetPublicAPI())
@@ -115,6 +116,7 @@ func TestNSENoSrc(t *testing.T) {
 	RegisterTestingT(t)
 
 	srv := newNSMDFullServer()
+	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns: "12",
@@ -140,7 +142,7 @@ func TestNSEExcludePrefixes(t *testing.T) {
 	RegisterTestingT(t)
 
 	srv := newNSMDFullServer()
-
+	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.registerFakeEndpoint("golden_network", "test", srv.serviceRegistry.GetPublicAPI())
 
@@ -165,7 +167,7 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	RegisterTestingT(t)
 
 	srv := newNSMDFullServer()
-
+	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.registerFakeEndpoint("golden_network", "test", srv.serviceRegistry.GetPublicAPI())
 
@@ -190,7 +192,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	RegisterTestingT(t)
 
 	srv := newNSMDFullServer()
-
+	defer srv.Stop()
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns:             "12",
 		srcIp:             "169083138/30",

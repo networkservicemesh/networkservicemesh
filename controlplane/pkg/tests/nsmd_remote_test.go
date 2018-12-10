@@ -19,7 +19,8 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 
 	srv := newNSMDFullServer()
 	srv2 := newNSMDFullServer()
-
+	defer srv.Stop()
+	defer srv2.Stop()
 	srv.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",

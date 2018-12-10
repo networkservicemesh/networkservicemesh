@@ -40,14 +40,6 @@ const (
 	CLOSED
 )
 
-const (
-	hostBaseDir     = "/var/lib/networkservicemesh/"
-	nsmBaseDir      = "/var/lib/networkservicemesh/"
-	clientBaseDir   = "/var/lib/networkservicemesh/"
-	NsmServerSocket = "nsm.server.io.sock"
-	NsmClientSocket = "nsm.client.io.sock"
-)
-
 type Workspace struct {
 	name                    string
 	listener                net.Listener
@@ -57,11 +49,15 @@ type Workspace struct {
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state WorkspaceState
+	locationProvider serviceregistry.WorkspaceLocationProvider
 }
 
 func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
-	w := &Workspace{}
+	w := &Workspace{
+		locationProvider: serviceRegistry.NewWorkspaceProvider(),
+	}
+
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	w.state = NEW
 	w.name = name
@@ -120,23 +116,23 @@ func (w *Workspace) Name() string {
 }
 
 func (w *Workspace) NsmDirectory() string {
-	return nsmBaseDir + w.name
+	return w.locationProvider.NsmBaseDir() + w.name
 }
 
 func (w *Workspace) HostDirectory() string {
-	return nsmBaseDir + w.name
+	return w.locationProvider.NsmBaseDir() + w.name
 }
 
 func (w *Workspace) ClientDirectory() string {
-	return clientBaseDir
+	return w.locationProvider.ClientBaseDir()
 }
 
 func (w *Workspace) NsmServerSocket() string {
-	return w.NsmDirectory() + "/" + NsmServerSocket
+	return w.NsmDirectory() + "/" + w.locationProvider.NsmServerSocket()
 }
 
 func (w *Workspace) NsmClientSocket() string {
-	return w.NsmDirectory() + "/" + NsmClientSocket
+	return w.NsmDirectory() + "/" + w.locationProvider.NsmClientSocket()
 }
 
 func (w *Workspace) MonitorConnectionServer() monitor_connection_server.MonitorConnectionServer {

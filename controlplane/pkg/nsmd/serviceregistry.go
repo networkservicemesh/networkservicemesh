@@ -64,6 +64,10 @@ type nsmdServiceRegistry struct {
 	vniAllocator             vni.VniAllocator
 }
 
+func (impl *nsmdServiceRegistry) NewWorkspaceProvider() serviceregistry.WorkspaceLocationProvider {
+	return NewDefaultWorkspaceProvider()
+}
+
 func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.GetUrl(), 1*time.Second)
 	if err != nil {
@@ -217,4 +221,50 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
 
 func (impl *nsmdServiceRegistry) VniAllocator() vni.VniAllocator {
 	return impl.vniAllocator
+}
+
+
+type defaultWorkspaceProvider struct {
+	hostBaseDir     string
+	nsmBaseDir      string
+	clientBaseDir   string
+	nsmServerSocket string
+	nsmClientSocket string
+}
+
+func NewDefaultWorkspaceProvider() serviceregistry.WorkspaceLocationProvider {
+	return NewWorkspaceProvider("/var/lib/networkservicemesh/")
+}
+
+func NewWorkspaceProvider(rootDir string) serviceregistry.WorkspaceLocationProvider {
+	if rootDir[len(rootDir)-1:] != "/" {
+		rootDir += "/"
+	}
+	return &defaultWorkspaceProvider {
+		hostBaseDir: rootDir,
+		nsmBaseDir      : rootDir,
+		clientBaseDir   : rootDir,
+		nsmServerSocket : "nsm.server.io.sock",
+		nsmClientSocket : "nsm.client.io.sock",
+	}
+}
+
+func (w* defaultWorkspaceProvider) HostBaseDir() string {
+	return w.hostBaseDir
+}
+
+func (w *defaultWorkspaceProvider) NsmBaseDir() string {
+	return w.nsmBaseDir
+}
+
+func (w *defaultWorkspaceProvider) ClientBaseDir() string {
+	return w.clientBaseDir
+}
+
+func (w *defaultWorkspaceProvider) NsmServerSocket() string {
+	return w.nsmServerSocket
+}
+
+func (w *defaultWorkspaceProvider) NsmClientSocket() string {
+	return w.nsmClientSocket
 }
