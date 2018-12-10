@@ -29,14 +29,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (ns *vppagentNetworkService) ApplyAclOnVppInterface(ctx context.Context, aclname, ifname string, rules map[string]string) error {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
+func (ns *vppagentBackend) ApplyAclOnVppInterface(ctx context.Context, aclname, ifname string, rules map[string]string) error {
+	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -59,14 +53,11 @@ func (ns *vppagentNetworkService) ApplyAclOnVppInterface(ctx context.Context, ac
 	return nil
 }
 
-func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+func (ns *vppagentBackend) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
 
+	logrus.Infof("ns.vppAgentEndpoint %v", ns.vppAgentEndpoint)
+
+	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return nil, nil, err
@@ -96,7 +87,7 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 	return crossConnect, dataChange, nil
 }
 
-func (ns *vppagentNetworkService) Reset() error {
+func (ns *vppagentBackend) Reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", ns.vppAgentEndpoint, 100*time.Millisecond)

@@ -1,4 +1,5 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018 VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package nscomposer
 
 import (
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
-	"github.com/sirupsen/logrus"
+	"context"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
-func main() {
-
-	client, err := nscomposer.NewNSMClient(nil, nil, nil)
-	if err != nil {
-		logrus.Fatalf("Unable to create the NSM client %v", err)
-	}
-
-	client.Connect()
-	logrus.Info("nsm client: initialization is completed successfully")
-
+type nsComposerBackend interface {
+	New() error
+	Request(ctx context.Context, incoming, outgoing *connection.Connection, workspace string) error
+	Close(ctx context.Context, conn *connection.Connection, baseDir string) (*empty.Empty, error)
+	GetMechanismType() connection.MechanismType
 }

@@ -13,22 +13,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package nscomposer
 
 import (
+	"encoding/binary"
+	"net"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/sirupsen/logrus"
 )
 
-func (ns *vppagentNetworkService) CompleteConnection(request *networkservice.NetworkServiceRequest, outgoingConnection *connection.Connection) (*connection.Connection, error) {
+func (ns *nsEndpoint) CompleteConnection(request *networkservice.NetworkServiceRequest, outgoingConnection *connection.Connection) (*connection.Connection, error) {
 	err := request.IsValid()
 	if err != nil {
 		return nil, err
 	}
-	mechanism, err := connection.NewMechanism(connection.MechanismType_MEM_INTERFACE, "nsm"+request.GetConnection().GetId(), "")
+
+	if outgoingConnection == nil {
+		outgoingConnection = &connection.Connection{
+			Context: &connectioncontext.ConnectionContext{
+				SrcIpRequired: true,
+				DstIpRequired: true,
+			},
+		}
+	}
+
+	mechanism, err := connection.NewMechanism(ns.backend.GetMechanismType(), "nsm"+request.GetConnection().GetId(), "")
 	if err != nil {
 		return nil, err
+	}
+
+	// Force the connection src/dst IPs if configured
+	if ns.nextIP > 0 {
+		srcIP := make(net.IP, 4)
+		binary.BigEndian.PutUint32(srcIP, ns.nextIP)
+		ns.nextIP = ns.nextIP + 1
+
+		dstIP := make(net.IP, 4)
+		binary.BigEndian.PutUint32(dstIP, ns.nextIP)
+		ns.nextIP = ns.nextIP + 3
+
+		outgoingConnection.Context = &connectioncontext.ConnectionContext{
+			SrcIpAddr: srcIP.String() + "/30",
+			DstIpAddr: dstIP.String() + "/30",
+			Routes: []*connectioncontext.Route{
+				{
+					Prefix: "8.8.8.8/30",
+				},
+			},
+		}
 	}
 
 	connection := &connection.Connection{
