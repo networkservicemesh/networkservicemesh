@@ -36,7 +36,7 @@ func TestParseKVStringToMap(t *testing.T) {
 		{
 			name: "SimpleConfig",
 			args: args{
-				input: "nsm1:icmp-responder-nse, eth2:vpngateway",
+				input: "nsm1:icmp-responder-nse, eth12:vpngateway",
 				sep:   ",",
 				kvsep: ":",
 			},
