@@ -36,7 +36,6 @@ type vppagentNetworkService struct {
 	vppAgentEndpoint        string
 	baseDir                 string
 	state                   *l2.BridgeDomains_BridgeDomain
-	splitHorizonGroup       int
 }
 
 func (ns *vppagentNetworkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -99,7 +98,6 @@ func New(vppAgentEndpoint, baseDir, ip, bridgeDomainName string) networkservice.
 		vppAgentEndpoint:        vppAgentEndpoint,
 		baseDir:                 baseDir,
 		state:                   bridgeDomain,
-		splitHorizonGroup: 1,
 	}
 
 	service.Reset()

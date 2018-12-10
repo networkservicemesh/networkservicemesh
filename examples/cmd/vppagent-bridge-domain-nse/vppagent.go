@@ -43,7 +43,6 @@ func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseCon
 	newBDInterface := &l2.BridgeDomains_BridgeDomain_Interfaces{
 		Name:                    interfaceConfig.Name,
 		BridgedVirtualInterface: false,
-		SplitHorizonGroup:       1,
 	}
 
 	ns.state.Interfaces = append(ns.state.Interfaces, newBDInterface)
