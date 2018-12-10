@@ -36,7 +36,7 @@ func (ns *vppagentNetworkService) ApplyAclOnVppInterface(ctx context.Context, ac
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 
-	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(nil)
+	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(nil, true)
 
 	if err != nil {
 		logrus.Error(err)
@@ -64,7 +64,7 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: baseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil)
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 
 	if err != nil {
 		logrus.Error(err)
