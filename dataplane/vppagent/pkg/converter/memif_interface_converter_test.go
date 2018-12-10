@@ -76,7 +76,7 @@ func TestSourceSideConverter(t *testing.T) {
 		BaseDir:   baseDir,
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
-	dataRequest, err := converter.ToDataRequest(nil)
+	dataRequest, err := converter.ToDataRequest(nil, true)
 	Expect(err).To(BeNil())
 
 	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
@@ -95,7 +95,7 @@ func TestDestinationSideConverter(t *testing.T) {
 		BaseDir:   baseDir,
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
-	dataRequest, err := converter.ToDataRequest(nil)
+	dataRequest, err := converter.ToDataRequest(nil, true)
 	Expect(err).To(BeNil())
 
 	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
@@ -114,7 +114,7 @@ func TestTerminateDestinationSideConverter(t *testing.T) {
 		BaseDir:   baseDir,
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
-	dataRequest, err := converter.ToDataRequest(nil)
+	dataRequest, err := converter.ToDataRequest(nil, true)
 	Expect(err).To(BeNil())
 
 	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
