@@ -15,6 +15,7 @@
 package vppagent
 
 import (
+	"context"
 	"net"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -25,8 +26,19 @@ import (
 
 func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *grpc.Server {
 	server := grpc.NewServer()
+
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
-	dataplane.RegisterDataplaneServer(server, NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName))
+
+	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName)
+	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor, CrossConnectClose(vppagent))
+	dataplane.RegisterDataplaneServer(server, vppagent)
 	return server
+}
+
+func CrossConnectClose(vppagent *VPPAgent) func(crossConnect *crossconnect.CrossConnect) error {
+	return func(crossConnect *crossconnect.CrossConnect) error {
+		_, err := vppagent.Close(context.Background(), crossConnect)
+		return err
+	}
 }

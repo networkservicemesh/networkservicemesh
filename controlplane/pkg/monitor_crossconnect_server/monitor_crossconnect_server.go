@@ -20,19 +20,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type MonitorRecipient interface {
+	// Event object shouldn't be modified inside method
+	Send(event *crossconnect.CrossConnectEvent) error
+}
+
 type MonitorCrossConnectServer interface {
 	crossconnect.MonitorCrossConnectServer
+
 	UpdateCrossConnect(xcon *crossconnect.CrossConnect)
 	DeleteCrossConnect(xcon *crossconnect.CrossConnect)
+
+	AddMonitorRecipient(recipient MonitorRecipient)
+	RemoveMonitorRecipient(recipient MonitorRecipient)
 }
 
 type monitorCrossConnectServer struct {
 	crossConnectEventCh      chan *crossconnect.CrossConnectEvent
-	newMonitorRecipientCh    chan crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer
-	closedMonitorRecipientCh chan crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer
+	newMonitorRecipientCh    chan MonitorRecipient
+	closedMonitorRecipientCh chan MonitorRecipient
 
-	// monitorRecipients and crossConnects should only ever be updated by the monitor() method
-	monitorRecipients []crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer
+	monitorRecipients []MonitorRecipient
 	crossConnects     map[string]*crossconnect.CrossConnect
 }
 
@@ -41,24 +49,32 @@ func NewMonitorCrossConnectServer() MonitorCrossConnectServer {
 	rv := &monitorCrossConnectServer{
 		crossConnects:            make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh:      make(chan *crossconnect.CrossConnectEvent, 10),
-		newMonitorRecipientCh:    make(chan crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer, 10),
-		closedMonitorRecipientCh: make(chan crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer, 10),
+		newMonitorRecipientCh:    make(chan MonitorRecipient, 10),
+		closedMonitorRecipientCh: make(chan MonitorRecipient, 10),
 	}
 	go rv.monitorCrossConnects()
 	return rv
 }
 
 func (m *monitorCrossConnectServer) MonitorCrossConnects(_ *empty.Empty, recipient crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
-	m.newMonitorRecipientCh <- recipient
+	m.AddMonitorRecipient(recipient)
 
 	// We need to wait until it will be done and do not exit
 	for {
 		select {
 		case <-recipient.Context().Done():
-			m.closedMonitorRecipientCh <- recipient
+			m.RemoveMonitorRecipient(recipient)
 			return nil
 		}
 	}
+}
+
+func (m *monitorCrossConnectServer) AddMonitorRecipient(recipient MonitorRecipient) {
+	m.newMonitorRecipientCh <- recipient
+}
+
+func (m *monitorCrossConnectServer) RemoveMonitorRecipient(recipient MonitorRecipient) {
+	m.closedMonitorRecipientCh <- recipient
 }
 
 func (m *monitorCrossConnectServer) monitorCrossConnects() {

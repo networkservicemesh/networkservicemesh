@@ -54,7 +54,7 @@ function run_tests() {
     wait_for_pods default
 
     make k8s-icmp-responder-nse-deploy
-    make k8s-vppagent-icmp-responder-nse-deploy
+#    make k8s-vppagent-icmp-responder-nse-deploy
 
     wait_for_pods default
 
@@ -65,7 +65,7 @@ function run_tests() {
     done
 
     make k8s-nsc-deploy
-    make k8s-vppagent-nsc-deploy
+#    make k8s-vppagent-nsc-deploy
 
     wait_for_pods default
 

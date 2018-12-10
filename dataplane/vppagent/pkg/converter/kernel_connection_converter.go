@@ -24,7 +24,7 @@ func NewKernelConnectionConverter(c *connection.Connection, conversionParameters
 	}
 }
 
-func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
+func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
 	if c == nil {
 		return rv, fmt.Errorf("LocalConnectionConverter cannot be nil")
 	}
@@ -40,7 +40,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.Dat
 
 	m := c.GetMechanism()
 	filepath, err := m.NetNsFileName()
-	if err != nil {
+	if err != nil && connect {
 		return nil, err
 	}
 	tmpIface := TempIfName()
