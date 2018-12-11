@@ -6,8 +6,8 @@ spec:
   template:
     metadata:
       labels:
-        networkservicemesh.io/app: "firewall-icmp-responder"
-        networkservicemesh.io/impl: "vppagent-firewall-icmp-responder"
+        networkservicemesh.io/app: "firewall"
+        networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
       containers:
         - name: firewall-nse
