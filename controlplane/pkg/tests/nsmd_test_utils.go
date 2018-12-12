@@ -95,7 +95,7 @@ type nsmdTestServiceRegistry struct {
 	testDataplaneConnection *testDataplaneConnection
 	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
-	rootDir string
+	rootDir                 string
 }
 
 func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
@@ -361,7 +361,7 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 		testDataplaneConnection: &testDataplaneConnection{},
 		localTestNSE:            &localTestNSENetworkServiceClient{},
 		vniAllocator:            vni.NewVniAllocator(),
-		rootDir: rootDir,
+		rootDir:                 rootDir,
 	}
 
 	srv.testModel = model.NewModel()

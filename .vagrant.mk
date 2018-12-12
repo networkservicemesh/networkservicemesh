@@ -41,8 +41,8 @@ vagrant-ssh-worker:
 	@cd scripts/vagrant; vagrant ssh worker
 
 .PHONY: vagrant-kublet-restart
-vagrant-restart-kublet:
-	@cd scripts/vagrant; vagrant master -c "sudo service kubelet restart"; vagrant worker -c "sudo service kubelet restart"
+vagrant-kublet-restart:
+	@cd scripts/vagrant; vagrant ssh master -c "sudo service kubelet restart"; vagrant ssh worker -c "sudo service kubelet restart"
 
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:

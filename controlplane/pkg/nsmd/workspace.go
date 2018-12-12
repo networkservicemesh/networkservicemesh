@@ -48,7 +48,7 @@ type Workspace struct {
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	grpcServer              *grpc.Server
 	sync.Mutex
-	state WorkspaceState
+	state            WorkspaceState
 	locationProvider serviceregistry.WorkspaceLocationProvider
 }
 

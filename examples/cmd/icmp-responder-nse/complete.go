@@ -66,6 +66,28 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 			},
 		},
 	}
+
+	addrs, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range addrs {
+			adrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			for _, a := range adrs {
+				addr, _, _ := net.ParseCIDR(a.String())
+				if addr.String() != "127.0.0.1" {
+					connection.Context.IpNeighbors = append(connection.Context.IpNeighbors,
+						&connectioncontext.IpNeighbor{
+							Ip:              addr.String(),
+							HardwareAddress: iface.HardwareAddr.String(),
+						},
+					)
+				}
+			}
+		}
+	}
+
 	err = connection.IsComplete()
 	if err != nil {
 		logrus.Error(err)

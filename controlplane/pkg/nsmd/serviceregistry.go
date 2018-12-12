@@ -223,7 +223,6 @@ func (impl *nsmdServiceRegistry) VniAllocator() vni.VniAllocator {
 	return impl.vniAllocator
 }
 
-
 type defaultWorkspaceProvider struct {
 	hostBaseDir     string
 	nsmBaseDir      string
@@ -240,16 +239,16 @@ func NewWorkspaceProvider(rootDir string) serviceregistry.WorkspaceLocationProvi
 	if rootDir[len(rootDir)-1:] != "/" {
 		rootDir += "/"
 	}
-	return &defaultWorkspaceProvider {
-		hostBaseDir: rootDir,
-		nsmBaseDir      : rootDir,
-		clientBaseDir   : rootDir,
-		nsmServerSocket : "nsm.server.io.sock",
-		nsmClientSocket : "nsm.client.io.sock",
+	return &defaultWorkspaceProvider{
+		hostBaseDir:     rootDir,
+		nsmBaseDir:      rootDir,
+		clientBaseDir:   rootDir,
+		nsmServerSocket: "nsm.server.io.sock",
+		nsmClientSocket: "nsm.client.io.sock",
 	}
 }
 
-func (w* defaultWorkspaceProvider) HostBaseDir() string {
+func (w *defaultWorkspaceProvider) HostBaseDir() string {
 	return w.hostBaseDir
 }
 

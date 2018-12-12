@@ -119,6 +119,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 			rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
 				Name:      TempArpEntryName(),
 				IpAddr:    neightbour.Ip,
+				Interface: c.conversionParameters.Name,
 				HwAddress: neightbour.HardwareAddress,
 				Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
 					Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
