@@ -2,7 +2,6 @@ package monitor_crossconnect_server
 
 import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 	"strconv"
@@ -37,10 +36,8 @@ func (m *MonitorNetNsInodeServer) Send(event *crossconnect.CrossConnectEvent) er
 
 func copyEvent(event *crossconnect.CrossConnectEvent) *crossconnect.CrossConnectEvent {
 	crossConnectsCopy := map[string]*crossconnect.CrossConnect{}
-	logrus.Infof("Coping event type: %v", event.Type)
 	if len(event.CrossConnects) != 0 {
 		for k, v := range event.CrossConnects {
-			logrus.Infof("key: %v, value: %v", k, v)
 			vCopy := *v
 			crossConnectsCopy[k] = &vCopy
 		}
@@ -74,12 +71,16 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 
 	inodesSet := NewInodeSet(liveInodes)
 	for _, xcon := range m.crossConnects {
-		srcInode, dstInode, err := getInodes(xcon)
+		localInodes, err := getLocalInodes(xcon)
 		if err != nil {
 			return err
 		}
-		if !inodesSet.Contains(srcInode) || !inodesSet.Contains(dstInode) {
-			m.crossConnectClose(xcon)
+		for _, inode := range localInodes {
+			if !inodesSet.Contains(inode) {
+				logrus.Infof("Closing crossconnect: %v", *xcon)
+				m.crossConnectClose(xcon)
+				break
+			}
 		}
 	}
 
@@ -87,50 +88,41 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 }
 
 func (m *MonitorNetNsInodeServer) handleEvent(event *crossconnect.CrossConnectEvent) {
-	if event.Type == crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER {
-		m.crossConnects = event.GetCrossConnects()
-	}
-
-	for _, xcon := range event.GetCrossConnects() {
-		if event.GetType() == crossconnect.CrossConnectEventType_UPDATE {
+	switch event.Type {
+	case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
+		m.crossConnects = map[string]*crossconnect.CrossConnect{}
+		fallthrough
+	case crossconnect.CrossConnectEventType_UPDATE:
+		for _, xcon := range event.GetCrossConnects() {
 			m.crossConnects[xcon.GetId()] = xcon
 		}
-		if event.GetType() == crossconnect.CrossConnectEventType_DELETE {
+		break
+	case crossconnect.CrossConnectEventType_DELETE:
+		for _, xcon := range event.GetCrossConnects() {
 			delete(m.crossConnects, xcon.GetId())
 		}
+		break
 	}
 }
 
-func getSourceMechanismParameters(crossConnect *crossconnect.CrossConnect) map[string]string {
-	if parameters := crossConnect.GetLocalSource().GetMechanism().GetParameters(); parameters != nil {
-		return parameters
-	}
-	return crossConnect.GetRemoteSource().GetMechanism().GetParameters()
-}
+func getLocalInodes(xcon *crossconnect.CrossConnect) ([]uint64, error) {
+	var localInodes []uint64
 
-func getDestinationMechanismParameters(crossConnect *crossconnect.CrossConnect) map[string]string {
-	if parameters := crossConnect.GetLocalDestination().GetMechanism().GetParameters(); parameters != nil {
-		return parameters
-	}
-	return crossConnect.GetRemoteDestination().GetMechanism().GetParameters()
-}
-
-func getInode(parameters map[string]string) (uint64, error) {
-	return strconv.ParseUint(parameters[connection.NetNsInodeKey], 10, 64)
-}
-
-func getInodes(crossConnect *crossconnect.CrossConnect) (uint64, uint64, error) {
-	srcParameters := getSourceMechanismParameters(crossConnect)
-	srcInode, err := getInode(srcParameters)
-	if err != nil {
-		return 0, 0, err
+	inodeStr := xcon.GetLocalSource().GetMechanism().GetNetNsInode()
+	if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
+		localInodes = append(localInodes, inode)
+	} else {
+		return nil, err
 	}
 
-	dstParameters := getDestinationMechanismParameters(crossConnect)
-	dstInode, err := getInode(dstParameters)
-	if err != nil {
-		return 0, 0, err
+	if conn := xcon.GetLocalDestination(); conn != nil {
+		inodeStr := conn.GetMechanism().GetNetNsInode()
+		if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
+			localInodes = append(localInodes, inode)
+		} else {
+			return nil, err
+		}
 	}
 
-	return srcInode, dstInode, nil
+	return localInodes, nil
 }
