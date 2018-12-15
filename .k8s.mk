@@ -52,7 +52,7 @@ k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
 k8s-infra-deploy: k8s-infra-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
 
 .PHONY: k8s-icmp-deploy
-k8s-icmp-deploy: k8s-delete-icmp $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
+k8s-icmp-deploy: k8s-icmp-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
 
 .PHONY: k8s-vpn-deploy
 k8s-vpn-deploy: k8s-vpn-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
