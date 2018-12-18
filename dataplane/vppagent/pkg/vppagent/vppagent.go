@@ -146,7 +146,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: v.baseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil)
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

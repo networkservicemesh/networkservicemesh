@@ -27,7 +27,7 @@ func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseCon
 		Side:      converter.DESTINATION,
 		BaseDir:   baseDir,
 	}
-	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(nil)
+	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(nil, true)
 
 	if err != nil {
 		logrus.Error(err)
