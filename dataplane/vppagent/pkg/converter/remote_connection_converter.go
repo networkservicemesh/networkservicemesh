@@ -41,7 +41,7 @@ func NewRemoteConnectionConverter(c *connection.Connection, name string, side Co
 }
 
 // ToDataRequest handles the data request
-func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
+func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
 	if c == nil {
 		return rv, fmt.Errorf("RemoteConnectionConverter cannot be nil")
 	}

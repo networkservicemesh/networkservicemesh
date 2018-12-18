@@ -22,7 +22,7 @@ func NewCrossConnectConverter(c *crossconnect.CrossConnect, conversionParameters
 	}
 }
 
-func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
+func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
 	if c == nil {
 		return rv, fmt.Errorf("CrossConnectConverter cannot be nil")
 	}
@@ -40,14 +40,14 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 			Side:      SOURCE,
 			BaseDir:   baseDir,
 		}
-		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv)
+		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
 	}
 
 	if c.GetRemoteSource() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), "SRC-"+c.GetId(), SOURCE).ToDataRequest(rv)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), "SRC-"+c.GetId(), SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -61,14 +61,14 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataReq
 			Side:      DESTINATION,
 			BaseDir:   baseDir,
 		}
-		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv)
+		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
 	}
 
 	if c.GetRemoteDestination() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}

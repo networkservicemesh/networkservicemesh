@@ -38,7 +38,7 @@ func NewMemifInterfaceConverter(c *connection.Connection, conversionParameters *
 	return rv
 }
 
-func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest) (*rpc.DataRequest, error) {
+func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
 	if rv == nil {
 		rv = &rpc.DataRequest{}
 	}

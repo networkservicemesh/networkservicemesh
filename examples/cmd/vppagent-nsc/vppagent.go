@@ -26,7 +26,7 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 		Side:      converter.SOURCE,
 		BaseDir:   baseDir,
 	}
-	dataChange, err := converter.NewMemifInterfaceConverter(nscConnection, conversionParameters).ToDataRequest(nil)
+	dataChange, err := converter.NewMemifInterfaceConverter(nscConnection, conversionParameters).ToDataRequest(nil, true)
 
 	if err != nil {
 		logrus.Error(err)

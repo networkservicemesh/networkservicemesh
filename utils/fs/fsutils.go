@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"syscall"
 	"unicode"
 )
@@ -54,4 +55,24 @@ func FindFileInProc(inode uint64, suffix string) (string, error) {
 	}
 
 	return "", fmt.Errorf("not found")
+}
+
+func GetAllNetNs() ([]uint64, error) {
+	files, err := ioutil.ReadDir("/proc")
+	if err != nil {
+		return nil, fmt.Errorf("can't read /proc directory: %+v", err)
+	}
+	inodes := make([]uint64, 0, len(files))
+	for _, f := range files {
+		name := f.Name()
+		if isDigits(name) {
+			filename := path.Join("/proc", name, "/ns/net")
+			inode, err := GetInode(filename)
+			if err != nil {
+				continue
+			}
+			inodes = append(inodes, inode)
+		}
+	}
+	return inodes, nil
 }
