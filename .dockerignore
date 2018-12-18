@@ -1,2 +1,13 @@
-# Vagrant
-scripts/vagrant/
+# Ignore all
+*
+
+# ... except these
+!controllers
+!controlplane
+!dataplane
+!examples
+!k8s/cmd
+!k8s/pkg
+!pkg
+!utils
+!vendor
