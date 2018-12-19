@@ -98,9 +98,9 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 
 	// Process static routes
 	if c.conversionParameters.Side == SOURCE {
-		for _, route := range c.Connection.GetContext().GetRoutes() {
+		for idx, route := range c.Connection.GetContext().GetRoutes() {
 			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-				Name:        TempRouteName(),
+				Name:        fmt.Sprintf("%s_route_%d", c.conversionParameters.Name, idx),
 				DstIpAddr:   route.Prefix,
 				Description: "Route to " + route.Prefix,
 				Interface:   c.conversionParameters.Name,
@@ -115,9 +115,9 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 
 	// Process IP Neighbor entries
 	if c.conversionParameters.Side == SOURCE {
-		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
+		for idx, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
 			rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
-				Name:      TempArpEntryName(),
+				Name:      fmt.Sprintf("%s_arp_%d", c.conversionParameters.Name, idx),
 				IpAddr:    neightbour.Ip,
 				Interface: c.conversionParameters.Name,
 				HwAddress: neightbour.HardwareAddress,

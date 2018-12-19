@@ -28,16 +28,6 @@ func TempIfName() string {
 	return rv
 }
 
-func TempRouteName() string {
-	// almost same as interface for now
-	return "route_" + TempIfName()
-}
-
-func TempArpEntryName() string {
-	// almost same as interface for now
-	return "arp_entry_" + TempIfName()
-}
-
 func extractCleanIPAddress(addr string) string {
 	ip, _, err := net.ParseCIDR(addr)
 	if err == nil {
