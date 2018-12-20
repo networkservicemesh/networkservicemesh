@@ -1,12 +1,13 @@
 # Prerequisites to Build
+
 You will need to install
 
-1. golang
+1. golang - [recommend version 1.11](https://golang.org/dl/)
 2. protobuf
 3. dep
 4. shellcheck - only used for ```make check```
 5. [Docker](https://docs.docker.com/install/) - for building containers
-6. [Vagrant](https://www.vagrantup.com/docs/installation/) - if you want to use the supplied two node K8s cluster for testing
+6. [Vagrant](https://www.vagrantup.com/docs/installation/) - if you want to use the supplied two nodes K8s cluster for testing
 
 
 ## On a Mac:
@@ -46,7 +47,7 @@ instead of
 make k8s-build
 ```
 
-because ```make k8s-save``` will build your containers and save them in scripts/vagrant/images where they can be laoded by the vagrant K8s cluster.
+because ```make k8s-save``` will build your containers and save them in scripts/vagrant/images where they can be loaded by the vagrant K8s cluster.
 
 You can also selectively rebuild any component, say the nsmd, with:
 
@@ -84,12 +85,11 @@ You can remove the effects of k8s-deploy with:
 make k8s-delete
 ```
 
-As in the case with save and build, you can always do this for a particular component, like:
-```make k8s-nsc-deploy``` or ``` make k8s-nsc-delete```. 
+As in the case with save and build, you can always do this for a particular component, like ```make k8s-nsc-deploy``` or ```make k8s-nsc-delete```. 
 
-## Having more control on the deployment
+## Having more control over the deployment
 
-The described quick start method works for fast deployments and quick tests. However the build infrastructure provides a fine grained control over the deployments.
+The described quick start method works for fast deployments and quick tests. However, the build infrastructure provides a fine-grained control over the deployments.
 
 ### Working with the vagrant setup
 
@@ -97,7 +97,7 @@ To spin the default 2 node vagrant setup with Kubernetes on top type:
 ```
 make vagrant-start
 ```
-At any point you can ```make vagrant-suspend``` and ```make vagrant-resume``` to pause and restore the spawn virtual nodes. If for some you need to rebuild or completely destroy the vagrant environment, use ```make vagrant-restart``` and ```make vagrant-destroy```
+At any point, you can ```make vagrant-suspend``` and ```make vagrant-resume``` to pause and restore the spawn virtual nodes. If for some you need to rebuild or completely destroy the vagrant environment, use ```make vagrant-restart``` and ```make vagrant-destroy```
 
 To point your ```kubectl``` to the Kubernetes deployment in the virtual nodes, use:
 ```
@@ -106,16 +106,16 @@ source scripts/vagrant/env.sh
 
 ### Deploying the NSM infrastructure
 
-Network Service Mesh consist of a number of system pods, which take care of service registration, provide the dataplane fucntionality, do monitoring and observability. Once you have configured your ```kubectl``` to the desired Kubernets master (may or may not be set trhough vagrant), you can initiate the NSM infrastructure deployment and deletion using ```make k8s-infra-deploy``` and ```make k8s-infra-delete```.
+Network Service Mesh consists of a number of system pods, which take care of service registration, provide the dataplane functionality, do monitoring and observability. Once you have configured your ```kubectl``` to the desired Kubernets master (may or may not be set through vagrant), you can initiate the NSM infrastructure deployment and deletion using ```make k8s-infra-deploy``` and ```make k8s-infra-delete```.
 
 ### Deploying the ICMP example and testing it
 
-The project comes with a simple, ready to test ICMP example. It deploys a number of ICMP responder NSEs and connects NSCs to them. This shows same and cross node communication and is good for visualising it with the provided monitoring tools.
+The project comes with a simple, ready to test ICMP example. It deploys a number of ICMP responder NSEs and connects NSCs to them. This shows same and cross-node communication and is good for visualising it with the provided monitoring tools.
 The commands to deploy and delete it are ```make k8s-icmp-deploy``` and ```make k8s-icmp-delete```. Checking the operability of the ICMP example is done through ```make k8s-check```
 
 ### Deploying the VPN composed Network Service
 
-One of the big advantages on Network Service Mesh is NS composition, i.e. forming a complex service out of a number of simple NSEs. The project comes with an example that imeplements the "secure-intranet-connectivity" Network Service which connects together a simple ACL based packet filtering firewall and a simulated VPN gateway NSEs. Deploying it is done through ```make k8s-vpn-deploy``` and to uninstall it run ```make k8s-vpn-delete```. Checking VPN's opearbility is done with ```make k8s-check```.
+One of the big advantages on Network Service Mesh is NS composition, i.e. forming a complex service out of a number of simple NSEs. The project comes with an example that implements the "secure-intranet-connectivity" Network Service which connects together a simple ACL based packet filtering firewall and a simulated VPN gateway NSEs. Deploying it is done through ```make k8s-vpn-deploy``` and to uninstall it run ```make k8s-vpn-delete```. Checking VPN's operability is done with ```make k8s-check```.
 
 
 # Helpful Logging tools
@@ -137,6 +137,32 @@ make k8s-crossconnect-monitor-logs
 
 dumps the logs from the crossconnect-monitor, which has been logging new crossconnects as they come into existence and go away throughout
 the cluster.
+
+# Regenerating code
+If you change [types.go](https://github.com/ligato/networkservicemesh/blob/master/k8s/pkg/apis/networkservice/v1/types.go) or any of the .proto files you will need to be able to run ```go generate ./...``` to regenerate the code.
+
+In order to be able to do that you need to have installed:
+
+* protobuf - run ```./scripts/install-protoc.sh```
+* proto-gen-go - run ```go install ./vendor/github.com/golang/protobuf/protoc-gen-go/```
+* deep-copy-gen - run ```go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/```
+
+Then just run:
+
+```
+go generate ./...
+```
+# Updating Deps
+
+If you need to add new dependencies to the vendor/ directory.
+1.  [Install dep](https://golang.github.io/dep/docs/installation.html)
+2.  Run ```dep ensure```
+
+# Shellcheck
+As part of our CI, we run shellcheck on all shell scripts in the repo.
+If you want to run it locally, you need to:
+
+1. [Install shellcheck](https://github.com/koalaman/shellcheck#installing)
 
 # Canonical source on how to build
 
