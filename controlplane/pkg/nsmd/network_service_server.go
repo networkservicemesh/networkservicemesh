@@ -2,7 +2,7 @@ package nsmd
 
 import (
 	"fmt"
-
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
@@ -27,17 +27,19 @@ const (
 )
 
 type networkServiceServer struct {
-	model           model.Model
-	workspace       *Workspace
-	monitor         monitor_connection_server.MonitorConnectionServer
-	serviceRegistry serviceregistry.ServiceRegistry
+	model             model.Model
+	workspace         *Workspace
+	monitor           monitor_connection_server.MonitorConnectionServer
+	serviceRegistry   serviceregistry.ServiceRegistry
+	excluded_prefixes []string
 }
 
-func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry) networkservice.NetworkServiceServer {
+func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry, excluded_prefixes []string) networkservice.NetworkServiceServer {
 	return &networkServiceServer{
-		model:           model,
-		workspace:       workspace,
-		serviceRegistry: serviceRegistry,
+		model:             model,
+		workspace:         workspace,
+		serviceRegistry:   serviceRegistry,
+		excluded_prefixes: excluded_prefixes,
 	}
 }
 
@@ -100,6 +102,16 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	endpoint, err := srv.getEndpointFromRegistry(ctx, request.GetConnection())
 	if err != nil {
 		return nil, err
+	}
+
+	// Update Request with exclude_prefixes
+
+	for _, ep := range srv.excluded_prefixes {
+		c := request.GetConnection()
+		if c.Context == nil {
+			c.Context = &connectioncontext.ConnectionContext{}
+		}
+		c.Context.ExcludedPrefixes = append(c.Context.ExcludedPrefixes, ep)
 	}
 
 	var dpApiConnection *crossconnect.CrossConnect
@@ -208,8 +220,7 @@ func (srv *networkServiceServer) performLocalNSERequest(ctx context.Context, req
 		return nil, err
 	}
 
-	request.GetConnection().Context = nseConnection.Context
-	err = request.GetConnection().IsComplete()
+	err = request.GetConnection().UpdateContext(nseConnection.Context)
 	if err != nil {
 		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
 		return nil, err

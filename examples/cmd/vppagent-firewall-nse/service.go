@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"sync"
 	"time"
 
@@ -52,8 +53,9 @@ func (ns *vppagentNetworkService) outgoingConnectionRequest(ctx context.Context,
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: ns.outgoingNscName,
-			Context: map[string]string{
-				"requires": "src_ip,dst_ip",
+			Context: &connectioncontext.ConnectionContext{
+				SrcIpRequired: true,
+				DstIpRequired: true,
 			},
 			Labels: ns.outgoingNscLabels,
 		},

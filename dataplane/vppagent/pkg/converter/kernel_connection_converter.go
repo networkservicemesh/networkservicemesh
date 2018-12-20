@@ -2,14 +2,12 @@ package converter
 
 import (
 	"fmt"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
+	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/sirupsen/logrus"
 )
 
 type KernelConnectionConverter struct {
@@ -47,10 +45,10 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 
 	var ipAddresses []string
 	if c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.DstIpKey]}
+		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
 	}
 	if c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext()[connectioncontext.SrcIpKey]}
+		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -76,6 +74,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 			HostIfName: tmpIface,
 		},
 	})
+
 	// We apply configuration to LinuxInterfaces
 	// Important details:
 	//    - If you have created a TAP, LinuxInterfaces.Tap.TempIfName must match
@@ -96,5 +95,42 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 			TempIfName: tmpIface,
 		},
 	})
+
+	// Process static routes
+	if c.conversionParameters.Side == SOURCE {
+		for idx, route := range c.Connection.GetContext().GetRoutes() {
+			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
+				Name:        fmt.Sprintf("%s_route_%d", c.conversionParameters.Name, idx),
+				DstIpAddr:   route.Prefix,
+				Description: "Route to " + route.Prefix,
+				Interface:   c.conversionParameters.Name,
+				Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
+					Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
+					Filepath: filepath,
+				},
+				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
+			})
+		}
+	}
+
+	// Process IP Neighbor entries
+	if c.conversionParameters.Side == SOURCE {
+		for idx, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
+			rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
+				Name:      fmt.Sprintf("%s_arp_%d", c.conversionParameters.Name, idx),
+				IpAddr:    neightbour.Ip,
+				Interface: c.conversionParameters.Name,
+				HwAddress: neightbour.HardwareAddress,
+				Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
+					Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
+					Filepath: filepath,
+				},
+				State: &l3.LinuxStaticArpEntries_ArpEntry_NudState{
+					Type: l3.LinuxStaticArpEntries_ArpEntry_NudState_PERMANENT, // or NOARP, REACHABLE, STALE
+				},
+			})
+		}
+	}
+
 	return rv, nil
 }

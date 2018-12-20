@@ -16,8 +16,7 @@
 package converter
 
 import (
-	fmt "fmt"
-
+	"fmt"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"

@@ -170,12 +170,11 @@ func (srv *remoteNetworkServiceServer) performLocalNSERequest(ctx context.Contex
 		return nil, err
 	}
 
-	request.GetConnection().Context = nseConnection.Context
 	// TODO - this is a terrible dirty way to do this, needs cleanup
 	nseConnection.GetMechanism().GetParameters()[connection.Workspace] = srv.serviceRegistry.WorkspaceName(endpoint)
 	logrus.Infof("Set ")
 
-	err = request.GetConnection().IsComplete()
+	err = request.GetConnection().UpdateContext(nseConnection.Context)
 	if err != nil {
 		err = fmt.Errorf("Failure Validating request.GetConnection(): %s %+v", err, request.GetConnection())
 		return nil, err
