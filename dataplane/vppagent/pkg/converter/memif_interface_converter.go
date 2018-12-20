@@ -16,7 +16,7 @@ package converter
 
 import (
 	"fmt"
-	l32 "github.com/ligato/vpp-agent/plugins/vpp/model/l3"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/l3"
 	"os"
 	"path"
 
@@ -84,7 +84,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 	// Process static routes
 	if c.conversionParameters.Side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
-			route := &l32.StaticRoutes_Route{
+			route := &l3.StaticRoutes_Route{
 				DstIpAddr:         route.Prefix,
 				Description:       "Route to " + route.Prefix,
 				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),

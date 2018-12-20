@@ -75,7 +75,7 @@ k8s-%-deployonly:
 	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
 .PHONY: k8s-delete
-k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS))) k8s-vppagent-icmp-responder-nse-delete k8s-vppagent-nsc-delete
+k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-infra-delete
 k8s-infra-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_INFRA)))
@@ -241,7 +241,6 @@ k8s-vpn-gateway-nsc-build:
 
 .PHONY: k8s-vpn-gateway-nsc-save
 k8s-vpn-gateway-nsc-save: 
-
 
 .PHONY: k8s-vpn-gateway-nsc-load-images
 k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images

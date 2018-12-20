@@ -11,8 +11,6 @@ cd /go/src/github.com/ligato/networkservicemesh/ || exit 101
 
 go_file=""
 port=40000
-dlv="dlv"
-
 mkdir -p /bin
 output=/bin/debug
 if [ "$1" = "nsmd" ]; then
@@ -45,13 +43,6 @@ if [ "$1" = "crossconnect-monitor" ]; then
     output=/bin/$1
 fi
 
-if [ "$1" = "vppagent-dataplane" ]; then
-    go_file=./dataplane/vppagent/cmd
-    port=40004
-    output=/bin/$1
-    dlv="/go/bin/dlv"
-fi
-
 
 # Debug entry point
 mkdir -p ./bin
@@ -60,4 +51,4 @@ echo "Compile and start debug of ${go_file} at port ${port}"
 
 # Prepare environment for NSMD
 export NSM_SERVER_SOCKET=/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock
-${dlv} debug --headless --listen=:${port} --api-version=2 --build-flags "-i"  "${go_file}" --output "${output}"
+dlv debug --headless --listen=:${port} --api-version=2 --build-flags "-i"  "${go_file}" --output "${output}"

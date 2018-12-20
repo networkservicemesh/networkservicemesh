@@ -65,10 +65,6 @@ docker-%-logs:
 docker-devenv-build: docker/debug/Dockerfile.debug
 	@${DOCKERBUILD} -t networkservicemesh/devenv -f docker/debug/Dockerfile.debug .
 
-.PHONY:
-docker-vpp-devenv-build: docker/debug/Dockerfile.debug
-	@${DOCKERBUILD} -t networkservicemesh/vpp-devenv -f docker/debug/Dockerfile.vpp-debug .
-
 .PHONY: docker-devenv-run
 docker-devenv-run:
 	@docker run -d --privileged -p 40000-40100:40000-40100/tcp -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh"  -v $$(pwd | rev | cut -d'/' -f4- | rev):/go/src networkservicemesh/devenv > /tmp/container.devenv

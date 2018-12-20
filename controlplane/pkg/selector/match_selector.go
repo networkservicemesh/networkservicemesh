@@ -16,16 +16,11 @@
 package selector
 
 import (
-	"os"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	NsmdNseSelector = "NSMD_NSE_SELECTOR"
 )
 
 type matchSelector struct {
@@ -38,16 +33,6 @@ func NewMatchSelector() Selector {
 	return &matchSelector{
 		roundRobin: NewRoundRobinSelector(),
 	}
-}
-
-func NewDefaultSelector() Selector {
-	selector_name, ok := os.LookupEnv(NsmdNseSelector)
-	if ok {
-		if selector_name == "round-robin" {
-			return NewRoundRobinSelector()
-		}
-	}
-	return NewMatchSelector()
 }
 
 // isSubset checks if B is a subset of A. TODO: reconsider this as a part of "tools"

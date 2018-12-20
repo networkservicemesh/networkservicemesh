@@ -41,10 +41,18 @@ vagrant-ssh-worker:
 	@cd scripts/vagrant; vagrant ssh worker
 
 .PHONY: vagrant-kublet-restart
-vagrant-kublet-restart:
-	@cd scripts/vagrant; vagrant ssh master -c "sudo service kubelet restart"; vagrant ssh worker -c "sudo service kubelet restart"
+vagrant-restart-kublet:
+	@cd scripts/vagrant; vagrant master -c "sudo service kubelet restart"; vagrant worker -c "sudo service kubelet restart"
 
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:
-	@./scripts/load-image.sh $*
-
+	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
+		cd scripts/vagrant; \
+		echo "Loading image $*.tar to master"; \
+		vagrant ssh master -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+		echo "Loading image $*.tar to worker"; \
+		vagrant ssh worker -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+	else \
+		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		exit 1; \
+	fi
