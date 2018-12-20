@@ -1,6 +1,7 @@
 package converter_test
 
 import (
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	. "github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
@@ -33,13 +34,11 @@ func createTestMechanism() *connection.Mechanism {
 	}
 }
 
-func createTestContext() map[string]string {
-	connectionContext := make(map[string]string)
-
-	connectionContext["src_ip"] = srcIp
-	connectionContext["dst_ip"] = dstIp
-
-	return connectionContext
+func createTestContext() *connectioncontext.ConnectionContext {
+	return &connectioncontext.ConnectionContext{
+		SrcIpAddr: srcIp,
+		DstIpAddr: dstIp,
+	}
 }
 
 func createTestConnection() *connection.Connection {

@@ -3,6 +3,7 @@ package converter
 import (
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"net"
 )
 
 func TempIfName() string {
@@ -25,4 +26,12 @@ func TempIfName() string {
 	rv = rv[:7] + rv[16:]
 	logrus.Infof("Generated unique TempIfName: %s len(TempIfName) %d", rv, len(rv))
 	return rv
+}
+
+func extractCleanIPAddress(addr string) string {
+	ip, _, err := net.ParseCIDR(addr)
+	if err == nil {
+		return ip.String()
+	}
+	return addr
 }

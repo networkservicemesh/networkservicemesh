@@ -39,4 +39,14 @@ type ServiceRegistry interface {
 	WorkspaceName(endpoint *registry.NSERegistration) string
 
 	VniAllocator() vni.VniAllocator
+
+	NewWorkspaceProvider() WorkspaceLocationProvider
+}
+
+type WorkspaceLocationProvider interface {
+	HostBaseDir() string
+	NsmBaseDir() string
+	ClientBaseDir() string
+	NsmServerSocket() string
+	NsmClientSocket() string
 }

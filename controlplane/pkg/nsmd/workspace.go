@@ -17,6 +17,7 @@ package nsmd
 import (
 	"net"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -39,14 +40,6 @@ const (
 	CLOSED
 )
 
-const (
-	hostBaseDir     = "/var/lib/networkservicemesh/"
-	nsmBaseDir      = "/var/lib/networkservicemesh/"
-	clientBaseDir   = "/var/lib/networkservicemesh/"
-	NsmServerSocket = "nsm.server.io.sock"
-	NsmClientSocket = "nsm.client.io.sock"
-)
-
 type Workspace struct {
 	name                    string
 	listener                net.Listener
@@ -55,12 +48,16 @@ type Workspace struct {
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	grpcServer              *grpc.Server
 	sync.Mutex
-	state WorkspaceState
+	state            WorkspaceState
+	locationProvider serviceregistry.WorkspaceLocationProvider
 }
 
 func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
-	w := &Workspace{}
+	w := &Workspace{
+		locationProvider: serviceRegistry.NewWorkspaceProvider(),
+	}
+
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	w.state = NEW
 	w.name = name
@@ -84,7 +81,7 @@ func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegi
 	w.monitorConnectionServer = monitor_connection_server.NewMonitorConnectionServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry)
+	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes())
 
 	logrus.Infof("Creating new GRPC Server")
 	w.grpcServer = grpc.NewServer()
@@ -119,23 +116,23 @@ func (w *Workspace) Name() string {
 }
 
 func (w *Workspace) NsmDirectory() string {
-	return nsmBaseDir + w.name
+	return w.locationProvider.NsmBaseDir() + w.name
 }
 
 func (w *Workspace) HostDirectory() string {
-	return nsmBaseDir + w.name
+	return w.locationProvider.NsmBaseDir() + w.name
 }
 
 func (w *Workspace) ClientDirectory() string {
-	return clientBaseDir
+	return w.locationProvider.ClientBaseDir()
 }
 
 func (w *Workspace) NsmServerSocket() string {
-	return w.NsmDirectory() + "/" + NsmServerSocket
+	return w.NsmDirectory() + "/" + w.locationProvider.NsmServerSocket()
 }
 
 func (w *Workspace) NsmClientSocket() string {
-	return w.NsmDirectory() + "/" + NsmClientSocket
+	return w.NsmDirectory() + "/" + w.locationProvider.NsmClientSocket()
 }
 
 func (w *Workspace) MonitorConnectionServer() monitor_connection_server.MonitorConnectionServer {
@@ -166,4 +163,16 @@ func (w *Workspace) cleanup() {
 			w.listener.Close()
 		}
 	}
+}
+
+func getExcludedPrefixes() []string {
+	//TODO: Add a better way to pass this value to NSMD
+	excluded_prefixes := []string{}
+	exclude_prefixes_env, ok := os.LookupEnv(ExcludedPrefixesEnv)
+	if ok {
+		for _, s := range strings.Split(exclude_prefixes_env, ",") {
+			excluded_prefixes = append(excluded_prefixes, strings.TrimSpace(s))
+		}
+	}
+	return excluded_prefixes
 }

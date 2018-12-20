@@ -54,10 +54,10 @@ func (nsm *nsmServer) RequestClientConnection(context context.Context, request *
 	nsm.Unlock()
 	reply := &nsmdapi.ClientConnectionReply{
 		Workspace:       workspace.Name(),
-		HostBasedir:     hostBaseDir,
-		ClientBaseDir:   clientBaseDir,
-		NsmServerSocket: NsmServerSocket,
-		NsmClientSocket: NsmClientSocket,
+		HostBasedir:     workspace.locationProvider.HostBaseDir(),
+		ClientBaseDir:   workspace.locationProvider.ClientBaseDir(),
+		NsmServerSocket: workspace.locationProvider.NsmServerSocket(),
+		NsmClientSocket: workspace.locationProvider.NsmClientSocket(),
 	}
 	logrus.Infof("returning ClientConnectionReply: %+v", reply)
 	return reply, nil
@@ -109,7 +109,11 @@ func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRe
 		logrus.Errorf("failed to start device plugin grpc server %+v", err)
 		return err
 	}
-	setLocalNSM(model, serviceRegistry)
+	err = setLocalNSM(model, serviceRegistry)
+	if err != nil {
+		logrus.Errorf("failed to set local NSM %+v", err)
+		return err
+	}
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			logrus.Error("failed to start device plugin grpc server")

@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
@@ -37,8 +38,9 @@ func newNetworkServiceRequest(networkServiceName string, nsLabels map[string]str
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: networkServiceName,
-			Context: map[string]string{
-				"requires": "src_ip,dst_ip",
+			Context: &connectioncontext.ConnectionContext{
+				SrcIpRequired: true,
+				DstIpRequired: true,
 			},
 			Labels: nsLabels,
 		},

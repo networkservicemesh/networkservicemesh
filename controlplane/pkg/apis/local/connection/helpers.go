@@ -1,7 +1,8 @@
 package connection
 
 import (
-	fmt "fmt"
+	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"strconv"
 )
 
@@ -23,6 +24,16 @@ func (c *Connection) IsValid() error {
 	return nil
 }
 
+func (c *Connection) UpdateContext(newContext *connectioncontext.ConnectionContext) error {
+	oldCtx := c.Context
+	c.Context = newContext
+	err := c.IsValid()
+	if err != nil {
+		return err
+	}
+	return c.GetContext().MeetsRequirements(oldCtx)
+}
+
 func (c *Connection) IsComplete() error {
 	if err := c.IsValid(); err != nil {
 		return err
@@ -32,8 +43,8 @@ func (c *Connection) IsComplete() error {
 		return fmt.Errorf("Connection.Id cannot be empty: %v", c)
 	}
 
-	if c.GetContext() == nil {
-		return fmt.Errorf("Connection.Context cannot be nil: %v", c)
+	if err := c.GetContext().IsComplete(); err != nil {
+		return err
 	}
 
 	return nil

@@ -21,6 +21,8 @@ syntax = "proto3";
 package remote.connection;
 option go_package = "connection";
 
+import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext/connectioncontext.proto";
+
 message Mechanism {
     MechanismType type = 1;
     map<string,string> parameters = 2;
@@ -41,7 +43,7 @@ message Connection {
     string id = 1;
     string network_service = 2;
     Mechanism mechanism = 3;
-    map<string,string> context = 4;
+    connectioncontext.ConnectionContext context = 4;
     map<string,string> labels = 5;
     string source_network_service_manager_name = 6;
     string destination_network_service_manager_name = 7;

@@ -53,9 +53,12 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 		}
 		data := ""
 		println("\u001b[0m\n")
-		for _, cc := range event.CrossConnects {
-
-			data += fmt.Sprintf("\u001b[31m*** %s %s Id:%s \n\u001b[32m%s\n\u001b[0m", address, event.Type, cc.Id, t.Text(cc))
+		for id, cc := range event.CrossConnects {
+			if cc == nil {
+				data += fmt.Sprintf("\u001b[31m*** %s %s Id:%s\n\u001b[0m", address, event.Type, id)
+			} else {
+				data += fmt.Sprintf("\u001b[31m*** %s %s Id:%s \n\u001b[32m%s\n\u001b[0m", address, event.Type, id, t.Text(cc))
+			}
 		}
 		println(data)
 		if !continuousMonitor {
