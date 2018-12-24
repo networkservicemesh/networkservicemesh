@@ -1,4 +1,4 @@
-# Preapring an Ubuntu host to run Network Service Mesh
+# Preparing an Ubuntu host to run Network Service Mesh
 
 The following instructions assume Ubuntu 18.04.
 
@@ -13,7 +13,7 @@ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key AD319E0F7C
 
 ## Kubectl
 
-Although `kubectl` can be donwloaded as a snap, we recommend usint the official Kubernetes repo:
+Although `kubectl` can be downloaded as a snap, we recommend using the official Kubernetes repo:
 
 ```bash
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add

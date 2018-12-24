@@ -9,7 +9,7 @@ You can find instructions for your operation systems in the links below:
 * [OSX](OSX.md)
 * [Ubuntu](Ubuntu.md)
 
-If you have another Linux distrinbution or prefer to go with the upstream, here 
+If you have another Linux distribution or prefer to go with the upstream, here 
 
 * [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
 * [Vagrant](https://www.vagrantup.com/docs/installation/)

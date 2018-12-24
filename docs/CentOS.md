@@ -1,18 +1,18 @@
-# Preapring an Ubuntu host to run Network Service Mesh
+# Preparing an Ubuntu host to run Network Service Mesh
 
-The following instructions assume CentOS 7 installed with Gnomde Desktop.
+The following instructions assume CentOS 7 installed with Gnome Desktop.
 
 
 ## VirtualBox
 
-VirtualBox depends on a kernel module wild with DKMS, so in order to install it you'll need to prepare by adding some dependecies.
+VirtualBox depends on a kernel module wild with DKMS, so in order to install it you'll need to prepare by adding some dependencies.
 
 ```bash
 sudo yum -y install gcc dkms make qt libgomp patch
 sudo yum -y install kernel-headers kernel-devel binutils glibc-headers glibc-devel font-forge
 ```
 
-Add the VirtualBox repo and get the latest released version fo the package.
+Add the VirtualBox repo and get the latest released version of the package.
 
 ```bash
 sudo wget http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo -P /etc/yum.repos.d/
@@ -29,7 +29,7 @@ sudo yum install -y https://releases.hashicorp.com/vagrant/2.2.2/vagrant_2.2.2_x
 
 ## Docker
 
-Docker maintain a repo for CentOS, so the installation is straightfoward.
+Docker maintain a repo for CentOS, so the installation is straightforward.
 
 ```bash
 sudo yum install -y yum-utils device-mapper-persistent-data lvm2
@@ -68,7 +68,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 EOF
 ```
 
-Then install only the `kubectl` pakcage:
+Then install only the `kubectl` package:
 
 ```bash
 sudo yum install -y kubectl
