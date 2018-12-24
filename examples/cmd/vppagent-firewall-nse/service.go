@@ -103,10 +103,10 @@ func (ns *vppagentNetworkService) Request(ctx context.Context, request *networks
 		Id:      request.GetConnection().GetId(),
 		Payload: "IP",
 		Source: &crossconnect.CrossConnect_LocalSource{
-			incomingConnection,
+			LocalSource: incomingConnection,
 		},
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			outgoingConnection,
+			LocalDestination: outgoingConnection,
 		},
 	}
 
