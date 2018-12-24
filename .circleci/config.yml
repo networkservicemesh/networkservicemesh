@@ -19,7 +19,7 @@ jobs:
       - run: ./scripts/install-protoc.sh
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
-      - run: go test ./...
+      - run: go test -short ./...
 
   build:
     working_directory: /go/src/github.com/ligato/networkservicemesh
@@ -102,8 +102,7 @@ jobs:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
           command: |
-            ./scripts/circle-integration-tests.sh
-            make k8s-check
+            go test -v ./integration/...
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
@@ -112,39 +111,6 @@ jobs:
           command: |
             kubectl get pods -o wide
             kubectl get nodes
-            kubectl get nse
-            kubectl get netsvc
-            kubectl get nsm
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-      - run:
-          when: always
-          name: Dump Logs - nsc
-          command: make k8s-nsc-logs
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-      - run:
-          when: always
-          name: Dump Logs - nsmd
-          command: make k8s-nsmd-logs
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-      - run:
-          when: always
-          name: Dump Logs - icmp-responder-nse
-          command: make k8s-icmp-responder-nse-logs
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-      - run:
-          when: always
-          name: Dump Logs - vppagent-dataplane
-          command: make k8s-vppagent-dataplane-logs
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-      - run:
-          when: always
-          name: Dump CrossConnect Monitor logs
-          command: make k8s-crossconnect-monitor-logs
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
