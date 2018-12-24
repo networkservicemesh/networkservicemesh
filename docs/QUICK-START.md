@@ -1,53 +1,20 @@
 # Quick Start Network Service Mesh
 
-This document will configure two Vagrant boxes in a Kubernetes cluster with a master and a worker node. It will also deploy the Network Service Mesh components in the cluster.
+This document will help you configure two Vagrant boxes in a Kubernetes cluster with a master and a worker node. You will also deploy the Network Service Mesh components in the cluster.
 
-The following instructions assume Ubuntu 18.04.
+## Pre-requisites
 
-### Ubuntu pre-requisites installation
+You can find instructions for your operation systems in the links below:
+* [CentOS](CentOS.md)
+* [OSX](OSX.md)
+* [Ubuntu](Ubuntu.md)
 
-To get the latest Vagrant verision we propose adding the following repo:
-
-```bash
-sudo bash -c 'echo deb https://vagrant-deb.linestarve.com/ any main > /etc/apt/sources.list.d/wolfgang42-vagrant.list'
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key AD319E0F7CFFA38B4D9F6E55CE3F3DE92099F7A4
-```
-
-The latest `kubectl` is available with this repo:
-
-```bash
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
-sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-```
-
-After adding these repos, one needs to update and install the required packages as follows:
-
-```bash
-sudo apt update
-sudo apt install -y virtualbox vagrant docker.io kubectl
-```
-
-The Docker service needs to be enabled:
-
-```bash
-sudo systemctl enable docker
-```
-
-And then the current user should be added to the proper user group:
-
-```bash
-sudo usermod -aG docker $USER
-```
-
-Log out and log in again, so that the user group addition takes effect.
-
-### Generic pre-requisites installation instructions
-
-If you are not using Ubuntu, you can try following the generic installation instructions from here:
+If you have another Linux distribution or prefer to go with the upstream, here 
 
 * [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
 * [Vagrant](https://www.vagrantup.com/docs/installation/)
 * [Docker](https://docs.docker.com/install/)
+* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ### Getting the Network Service Mesh project
 
