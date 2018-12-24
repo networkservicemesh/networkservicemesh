@@ -167,7 +167,8 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 }
 
 func (v *VPPAgent) reset() error {
-	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
@@ -186,7 +187,8 @@ func (v *VPPAgent) reset() error {
 }
 
 func (v *VPPAgent) programMgmtInterface() error {
-	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
@@ -197,7 +199,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 	client := rpc.NewDataChangeServiceClient(conn)
 	dataRequest := &rpc.DataRequest{
 		Interfaces: []*interfaces.Interfaces_Interface{
-			&interfaces.Interfaces_Interface{
+			{
 				Name:        "mgmt",
 				Type:        interfaces.InterfaceType_AF_PACKET_INTERFACE,
 				Enabled:     true,

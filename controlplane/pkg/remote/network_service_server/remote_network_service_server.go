@@ -134,11 +134,11 @@ func (srv *remoteNetworkServiceServer) createLocalNSERequest(endpoint *registry.
 			Labels:         request.GetConnection().GetLabels(),
 		},
 		MechanismPreferences: []*connection.Mechanism{
-			&connection.Mechanism{
+			{
 				Type:       connection.MechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{},
 			},
-			&connection.Mechanism{
+			{
 				Type:       connection.MechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{},
 			},
@@ -184,10 +184,10 @@ func (srv *remoteNetworkServiceServer) performLocalNSERequest(ctx context.Contex
 		Id:      request.GetConnection().GetId(),
 		Payload: endpoint.GetNetworkService().GetPayload(),
 		Source: &crossconnect.CrossConnect_RemoteSource{
-			request.GetConnection(),
+			RemoteSource: request.GetConnection(),
 		},
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			nseConnection,
+			LocalDestination: nseConnection,
 		},
 	}
 	return dpApiConnection, nil
