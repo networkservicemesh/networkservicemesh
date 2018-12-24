@@ -27,9 +27,6 @@ GOGET=${GOCMD} get
 GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
-GOVET=${GOCMD} tool vet
-GOVETTARGETS=cmd \
-	pkg
 
 ORG=networkservicemesh
 BUILD_CONTAINERS=icmp-responder-nse nsc nsm-generate-sriov-configmap
@@ -45,8 +42,7 @@ export GOPATH \
        GOGET \
        GOGENERATE \
        GOINSTALL \
-       GOTEST \
-       GOVET
+       GOTEST
 
 # Setup proxies for docker build
 ifeq ($(HTTP_PROXY),)
@@ -137,9 +133,6 @@ test:
 
 test-race:
 	@${GOTEST} -race ./... -cover
-
-vet:
-	${GOVET} ${GOVETTARGETS}
 
 # Test target to debug proxy issues
 checkproxy:
