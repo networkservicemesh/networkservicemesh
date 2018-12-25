@@ -97,6 +97,7 @@ func main() {
 	errorCh := make(chan error)
 	waitCh := make(chan struct{})
 
+	var nsConnection *connection.Connection
 	go func() {
 		var wg sync.WaitGroup
 
@@ -111,12 +112,12 @@ func main() {
 
 					attempt++
 					logrus.Infof("Sending request %v", r)
-					reply, err := nsmConnectionClient.Request(context.Background(), r)
+					nsConnection, err = nsmConnectionClient.Request(context.Background(), r)
 					if err != nil {
 						logrus.Errorf("failure to request connection with error: %+v", err)
 						continue
 					}
-					logrus.Infof("Received reply: %v", reply)
+					logrus.Infof("Received reply: %v", nsConnection)
 					return
 				}
 				errorCh <- fmt.Errorf("unable to setup connection with %v after %v attempts",
@@ -134,5 +135,12 @@ func main() {
 		os.Exit(1)
 	case <-waitCh:
 		logrus.Info("nsm client: initialization is completed successfully")
+
+		logrus.Info("nsm client: closing connection...")
+		if _, err := nsmConnectionClient.Close(context.Background(), nsConnection); err != nil {
+			logrus.Error(err)
+		}
+		logrus.Info("nsm client: connection successfully closed...")
+
 	}
 }
