@@ -3,7 +3,7 @@ package converter
 import "github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 
 type Converter interface {
-	ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error)
+	ToDataRequest(connect bool) ([]*rpc.DataRequest, error)
 }
 
 type CrossConnectConversionParameters struct {

@@ -38,10 +38,9 @@ func NewMemifInterfaceConverter(c *connection.Connection, conversionParameters *
 	return rv
 }
 
-func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
-	if rv == nil {
-		rv = &rpc.DataRequest{}
-	}
+func (c *MemifInterfaceConverter) ToDataRequest(connect bool) ([]*rpc.DataRequest, error) {
+	rv := &rpc.DataRequest{}
+
 	fullyQualifiedSocketFilename := path.Join(c.conversionParameters.BaseDir, c.Connection.GetMechanism().GetSocketFilename())
 	SocketDir := path.Dir(fullyQualifiedSocketFilename)
 
@@ -93,5 +92,5 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 			rv.StaticRoutes = append(rv.StaticRoutes, route)
 		}
 	}
-	return rv, nil
+	return []*rpc.DataRequest{rv}, nil
 }

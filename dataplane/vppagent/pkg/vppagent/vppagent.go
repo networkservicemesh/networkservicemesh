@@ -146,23 +146,27 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: v.baseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(connect)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
-	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if connect {
-		_, err = client.Put(ctx, dataChange)
-	} else {
-		_, err = client.Del(ctx, dataChange)
+
+	for _, dc := range dataChange {
+		logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
+		if connect {
+			_, err = client.Put(ctx, dc)
+		} else {
+			_, err = client.Del(ctx, dc)
+		}
+		if err != nil {
+			logrus.Error(err)
+			// TODO handle connection tracking
+			// TODO handle teardown of any partial config that happened
+			return crossConnect, err
+		}
 	}
-	if err != nil {
-		logrus.Error(err)
-		// TODO handle connection tracking
-		// TODO handle teardown of any partial config that happened
-		return crossConnect, err
-	}
+
 	return crossConnect, nil
 }
 
