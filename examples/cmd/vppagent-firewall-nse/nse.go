@@ -20,5 +20,12 @@ import (
 )
 
 func main() {
-	nscomposer.NsComposerMain(&vppagentBackend{})
+
+	configuration := &nscomposer.NSConfiguration{
+		OutgoingNscMechanism: "mem",
+	}
+
+	backend := &vppagentBackend{}
+
+	nscomposer.NsComposerMain(nil, configuration, backend)
 }

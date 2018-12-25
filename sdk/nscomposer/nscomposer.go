@@ -29,39 +29,40 @@ import (
 	"google.golang.org/grpc"
 )
 
-func runNSEndpoint(configuration *NSConfiguration, clientConnection networkservice.NetworkServiceClient, nsmConnection *grpc.ClientConn, backend nsComposerBackend) (*grpc.Server, registry.NetworkServiceRegistryClient, *registry.RemoveNSERequest, error) {
+func runNSEndpoint(ctx context.Context, configuration *NSConfiguration, backend EndpointBackend) (*grpc.Server, registry.NetworkServiceRegistryClient, *registry.RemoveNSERequest, error) {
+
+	nsmEndpoint, err := NewNSMEndpoint(
+		ctx,
+		configuration,
+		backend)
+
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
 	grpcServer := grpc.NewServer()
-	registryConnection := registry.NewNetworkServiceRegistryClient(nsmConnection)
+	networkservice.RegisterNetworkServiceServer(grpcServer, nsmEndpoint)
 
-	nseConn, err := newNsEndpoint(
-		configuration,
-		clientConnection,
-		backend)
-	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
-
-	connectionServer, _ := nseConn.setupNSEServerConnection()
+	connectionServer, _ := nsmEndpoint.setupNSEServerConnection()
 
 	go func() {
 		if err := grpcServer.Serve(connectionServer); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", configuration.nsmClientSocket, err)
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmEndpoint.configuration.nsmClientSocket, err)
 		}
 	}()
 
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: configuration.AdvertiseNseName,
+		NetworkServiceName: nsmEndpoint.configuration.AdvertiseNseName,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(configuration.AdvertiseNseLabels, ",", "="),
+		Labels:             tools.ParseKVStringToMap(nsmEndpoint.configuration.AdvertiseNseLabels, ",", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    configuration.AdvertiseNseName,
+			Name:    nsmEndpoint.configuration.AdvertiseNseName,
 			Payload: "IP",
 		},
 		NetworkserviceEndpoint: nse,
 	}
 
+	registryConnection := registry.NewNetworkServiceRegistryClient(nsmEndpoint.grpcClient)
 	registeredNSE, err := registryConnection.RegisterNSE(context.Background(), registration)
 	if err != nil {
 		logrus.Fatalln("unable to register endpoint", err)
@@ -78,18 +79,18 @@ func runNSEndpoint(configuration *NSConfiguration, clientConnection networkservi
 	return grpcServer, registryConnection, removeNSE, nil
 }
 
-func NsComposerMain(backend nsComposerBackend) {
+func NsComposerMain(ctx context.Context, configuration *NSConfiguration, backend EndpointBackend) {
 
-	configuration := &NSConfiguration{}
-	configuration.CompleteNSConfiguration()
+	// configuration := &NSConfiguration{}
+	// configuration.CompleteNSConfiguration()
 
-	nsmConnection, err := newNSMConnection(nil, configuration)
-	if err != nil {
-		logrus.Fatalf("Unable to setup the NSMD connection.")
-	}
-	defer nsmConnection.Close()
+	// nsmConnection, err := newNSMConnection(nil, configuration)
+	// if err != nil {
+	// 	logrus.Fatalf("Unable to setup the NSMD connection.")
+	// }
+	// defer nsmConnection.Close()
 
-	grpcServer, registryConnection, removeNSE, err := runNSEndpoint(configuration, nsmConnection.nsClient, nsmConnection.grpcClient, backend)
+	grpcServer, registryConnection, removeNSE, err := runNSEndpoint(ctx, configuration, backend)
 
 	if err != nil {
 		logrus.Fatalf("%v", err)

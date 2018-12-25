@@ -17,8 +17,9 @@ package nscomposer
 
 import (
 	"context"
+	"math/rand"
 	"net"
-	"sync"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -26,33 +27,26 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
+	"github.com/teris-io/shortid"
 )
 
-type nsEndpoint struct {
-	sync.RWMutex
-	configuration           *NSConfiguration
-	outgoingNscName         string
-	outgoingNscLabels       map[string]string
-	workspace               string
-	nextIP                  uint32
-	ioConnMap               map[*connection.Connection]*nsmClient
-	clientConnection        networkservice.NetworkServiceClient
+type nsmEndpoint struct {
+	*nsmConnection
+	mechanismType connection.MechanismType
+
+	// outgoingNscName         string
+	// outgoingNscLabels       map[string]string
+	// workspace               string
+	nextIP    uint32
+	ioConnMap map[*connection.Connection]*nsmClient
+	// clientConnection        networkservice.NetworkServiceClient
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
-	backend                 nsComposerBackend
+	backend                 EndpointBackend
+	id                      *shortid.Shortid
 }
 
-type outgoingClientBackend struct{}
-
-func (ocb *outgoingClientBackend) New() error { return nil }
-func (ocb *outgoingClientBackend) Connect(ctx context.Context, connection *connection.Connection) error {
-	return nil
-}
-func (ocb *outgoingClientBackend) Close(ctx context.Context, connection *connection.Connection) error {
-	return nil
-}
-
-func (ns *nsEndpoint) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*nsmClient, error) {
-	client, err := NewNSMClient(ctx, ns.configuration, &outgoingClientBackend{})
+func (ns *nsmEndpoint) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*nsmClient, error) {
+	client, err := NewNSMClient(ctx, ns.configuration, &dummyClientBackend{})
 	if err != nil {
 		logrus.Errorf("Unable to create the NSM client %v", err)
 		return nil, err
@@ -68,13 +62,13 @@ func (ns *nsEndpoint) outgoingConnectionRequest(ctx context.Context, request *ne
 	return client, nil
 }
 
-func (ns *nsEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Request for Network Service received %v", request)
 
 	var client *nsmClient
 	var err error
-	if len(ns.outgoingNscName) > 0 {
-		client, err = ns.outgoingConnectionRequest(ctx, request)
+	if len(nsme.configuration.OutgoingNscName) > 0 {
+		client, err = nsme.outgoingConnectionRequest(ctx, request)
 		if err != nil {
 			logrus.Error(err)
 			return nil, err
@@ -83,36 +77,36 @@ func (ns *nsEndpoint) Request(ctx context.Context, request *networkservice.Netwo
 	outgoingConnection := client.GetConnection()
 	logrus.Infof("outgoingConnection: %v", outgoingConnection)
 
-	incomingConnection, err := ns.CompleteConnection(request, outgoingConnection)
+	incomingConnection, err := nsme.CompleteConnection(request, outgoingConnection)
 	logrus.Infof("Completed incomingConnection %v", incomingConnection)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 
-	err = ns.backend.Request(ctx, incomingConnection, outgoingConnection, ns.workspace)
+	err = nsme.backend.Request(ctx, incomingConnection, outgoingConnection, nsme.configuration.workspace)
 	if err != nil {
 		logrus.Errorf("The backend returned and error: %v", err)
 		return nil, err
 	}
 
-	ns.ioConnMap[incomingConnection] = client
-	ns.monitorConnectionServer.UpdateConnection(incomingConnection)
+	nsme.ioConnMap[incomingConnection] = client
+	nsme.monitorConnectionServer.UpdateConnection(incomingConnection)
 	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
 	return incomingConnection, nil
 }
 
-func (ns *nsEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
-	if outgoingConnection, ok := ns.ioConnMap[incomingConnection]; ok {
-		ns.clientConnection.Close(ctx, outgoingConnection.GetConnection())
+func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
+	if outgoingConnection, ok := nsme.ioConnMap[incomingConnection]; ok {
+		nsme.nsClient.Close(ctx, outgoingConnection.GetConnection())
 	}
-	ns.clientConnection.Close(ctx, incomingConnection)
-	ns.backend.Close(ctx, incomingConnection, ns.workspace)
-	ns.monitorConnectionServer.DeleteConnection(incomingConnection)
+	nsme.backend.Close(ctx, incomingConnection, nsme.configuration.workspace)
+	nsme.nsClient.Close(ctx, incomingConnection)
+	nsme.monitorConnectionServer.DeleteConnection(incomingConnection)
 	return &empty.Empty{}, nil
 }
 
-func (ns *nsEndpoint) setupNSEServerConnection() (net.Listener, error) {
+func (ns *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
 	c := ns.configuration
 	if err := tools.SocketCleanup(c.nsmClientSocket); err != nil {
 		logrus.Errorf("nse: failure to cleanup stale socket %s with error: %v", c.nsmClientSocket, err)
@@ -128,22 +122,44 @@ func (ns *nsEndpoint) setupNSEServerConnection() (net.Listener, error) {
 	return connectionServer, nil
 }
 
-func newNsEndpoint(configuration *NSConfiguration, clientConnection networkservice.NetworkServiceClient, backend nsComposerBackend) (*nsEndpoint, error) {
-	err := backend.New()
+// NewNSMEndpoint creates a new NSM endpoint
+func NewNSMEndpoint(ctx context.Context, configuration *NSConfiguration, backend EndpointBackend) (*nsmEndpoint, error) {
+	if configuration == nil {
+		configuration = &NSConfiguration{}
+	}
+	configuration.CompleteNSConfiguration()
+
+	if backend == nil {
+		backend = &dummyEndpointBackend{}
+	}
+
+	nsmConnection, err := newNSMConnection(ctx, configuration)
 	if err != nil {
-		logrus.Errorf("Unable to create the backend. Error: %v", err)
+		logrus.Errorf("Error: %v", err)
 		return nil, err
 	}
-	netIP := net.ParseIP(configuration.IPAddress)
-	return &nsEndpoint{
-		configuration:           configuration,
-		outgoingNscName:         configuration.OutgoingNscName,
-		outgoingNscLabels:       tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
-		workspace:               configuration.workspace,
-		nextIP:                  ip2int(netIP),
-		ioConnMap:               map[*connection.Connection]*nsmClient{},
-		clientConnection:        clientConnection,
+
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	endpoint := &nsmEndpoint{
+		nsmConnection: nsmConnection,
+		// outgoingNscName:         configuration.OutgoingNscName,
+		// outgoingNscLabels:       tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
+		// workspace:               configuration.workspace,
+		nextIP:    ip2int(net.ParseIP(configuration.IPAddress)),
+		ioConnMap: map[*connection.Connection]*nsmClient{},
+		// clientConnection:        clientConnection,
 		monitorConnectionServer: monitor_connection_server.NewMonitorConnectionServer(),
+		mechanismType:           mechanismFromString(configuration.OutgoingNscMechanism),
 		backend:                 backend,
-	}, nil
+		id:                      shortid.MustNew(1, shortid.DEFAULT_ABC, rand.Uint64()),
+	}
+
+	err = endpoint.backend.New()
+	if err != nil {
+		logrus.Errorf("Unable to create the endpoint backend. Error: %v", err)
+		return nil, err
+	}
+
+	return endpoint, nil
 }

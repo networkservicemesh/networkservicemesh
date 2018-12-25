@@ -17,13 +17,21 @@ package nscomposer
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
-type nsComposerBackend interface {
+type EndpointBackend interface {
 	New() error
 	Request(ctx context.Context, incoming, outgoing *connection.Connection, workspace string) error
-	Close(ctx context.Context, conn *connection.Connection, baseDir string) (*empty.Empty, error)
-	GetMechanismType() connection.MechanismType
+	Close(ctx context.Context, conn *connection.Connection, baseDir string) error
+}
+
+type dummyEndpointBackend struct{}
+
+func (*dummyEndpointBackend) New() error { return nil }
+func (*dummyEndpointBackend) Request(ctx context.Context, incoming, outgoing *connection.Connection, workspace string) error {
+	return nil
+}
+func (*dummyEndpointBackend) Close(ctx context.Context, conn *connection.Connection, baseDir string) error {
+	return nil
 }

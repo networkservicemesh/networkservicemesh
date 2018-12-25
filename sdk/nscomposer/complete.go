@@ -25,7 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (ns *nsEndpoint) CompleteConnection(request *networkservice.NetworkServiceRequest, outgoingConnection *connection.Connection) (*connection.Connection, error) {
+func (nsme *nsmEndpoint) CompleteConnection(request *networkservice.NetworkServiceRequest, outgoingConnection *connection.Connection) (*connection.Connection, error) {
 	err := request.IsValid()
 	if err != nil {
 		return nil, err
@@ -40,20 +40,20 @@ func (ns *nsEndpoint) CompleteConnection(request *networkservice.NetworkServiceR
 		}
 	}
 
-	mechanism, err := connection.NewMechanism(ns.backend.GetMechanismType(), "nsm"+request.GetConnection().GetId(), "")
+	mechanism, err := connection.NewMechanism(nsme.mechanismType, "nsm"+nsme.id.MustGenerate(), "NSM Endpoint")
 	if err != nil {
 		return nil, err
 	}
 
 	// Force the connection src/dst IPs if configured
-	if ns.nextIP > 0 {
+	if nsme.nextIP > 0 {
 		srcIP := make(net.IP, 4)
-		binary.BigEndian.PutUint32(srcIP, ns.nextIP)
-		ns.nextIP = ns.nextIP + 1
+		binary.BigEndian.PutUint32(srcIP, nsme.nextIP)
+		nsme.nextIP = nsme.nextIP + 1
 
 		dstIP := make(net.IP, 4)
-		binary.BigEndian.PutUint32(dstIP, ns.nextIP)
-		ns.nextIP = ns.nextIP + 3
+		binary.BigEndian.PutUint32(dstIP, nsme.nextIP)
+		nsme.nextIP = nsme.nextIP + 3
 
 		outgoingConnection.Context = &connectioncontext.ConnectionContext{
 			SrcIpAddr: srcIP.String() + "/30",

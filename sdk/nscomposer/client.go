@@ -139,6 +139,10 @@ func NewNSMClient(ctx context.Context, configuration *NSConfiguration, backend C
 		backend:           backend,
 	}
 
-	client.backend.New()
+	err = client.backend.New()
+	if err != nil {
+		logrus.Errorf("Unable to create the client backend. Error: %v", err)
+		return nil, err
+	}
 	return client, nil
 }

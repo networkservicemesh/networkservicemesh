@@ -18,7 +18,6 @@ package main
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
@@ -76,18 +75,18 @@ func (ns *vppagentBackend) Request(ctx context.Context, incoming, outgoing *conn
 	return nil
 }
 
-func (ns *vppagentBackend) Close(ctx context.Context, conn *connection.Connection, baseDir string) (*empty.Empty, error) {
+func (ns *vppagentBackend) Close(ctx context.Context, conn *connection.Connection, baseDir string) error {
 	// remove from connection
 	crossConnectRequest, ok := ns.crossConnects[conn.GetId()]
 	if ok {
 		_, _, err := ns.CrossConnecVppInterfaces(ctx, crossConnectRequest, false, baseDir)
 		if err != nil {
 			logrus.Error(err)
-			return nil, err
+			return err
 		}
 	}
 
-	return &empty.Empty{}, nil
+	return nil
 }
 
 func (ns *vppagentBackend) GetMechanismType() connection.MechanismType {
