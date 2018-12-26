@@ -11,8 +11,6 @@ spec:
     spec:
       containers:
         - name: firewall-nse
-          securityContext:
-            privileged: true
           image: networkservicemesh/vppagent-firewall-nse:latest
           imagePullPolicy: IfNotPresent
           env:
