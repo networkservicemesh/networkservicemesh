@@ -32,14 +32,9 @@ import (
 
 type nsmEndpoint struct {
 	*nsmConnection
-	mechanismType connection.MechanismType
-
-	// outgoingNscName         string
-	// outgoingNscLabels       map[string]string
-	// workspace               string
-	nextIP    uint32
-	ioConnMap map[*connection.Connection]*nsmClient
-	// clientConnection        networkservice.NetworkServiceClient
+	mechanismType           connection.MechanismType
+	nextIP                  uint32
+	ioConnMap               map[*connection.Connection]*nsmClient
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	backend                 EndpointBackend
 	id                      *shortid.Shortid
@@ -56,7 +51,7 @@ func (ns *nsmEndpoint) outgoingConnectionRequest(ctx context.Context, request *n
 	client.mechanismType = request.GetMechanismPreferences()[0].GetType()
 	client.Connect()
 
-	// Hack??
+	// TODO: check this. Hack??
 	client.GetConnection().GetMechanism().GetParameters()[connection.Workspace] = ""
 
 	return client, nil
@@ -142,13 +137,9 @@ func NewNSMEndpoint(ctx context.Context, configuration *NSConfiguration, backend
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	endpoint := &nsmEndpoint{
-		nsmConnection: nsmConnection,
-		// outgoingNscName:         configuration.OutgoingNscName,
-		// outgoingNscLabels:       tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
-		// workspace:               configuration.workspace,
-		nextIP:    ip2int(net.ParseIP(configuration.IPAddress)),
-		ioConnMap: map[*connection.Connection]*nsmClient{},
-		// clientConnection:        clientConnection,
+		nsmConnection:           nsmConnection,
+		nextIP:                  ip2int(net.ParseIP(configuration.IPAddress)),
+		ioConnMap:               map[*connection.Connection]*nsmClient{},
 		monitorConnectionServer: monitor_connection_server.NewMonitorConnectionServer(),
 		mechanismType:           mechanismFromString(configuration.OutgoingNscMechanism),
 		backend:                 backend,

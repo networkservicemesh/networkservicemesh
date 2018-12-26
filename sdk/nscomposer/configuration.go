@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	// NetworkServiceName defines Network Service Name the NSE is serving for
 	advertiseNseNameEnv     = "ADVERTISE_NSE_NAME"
 	advertiseNseLabelsEnv   = "ADVERTISE_NSE_LABELS"
 	outgoingNscNameEnv      = "OUTGOING_NSC_NAME"

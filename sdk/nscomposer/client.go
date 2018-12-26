@@ -31,12 +31,6 @@ const (
 	connectSleep   = 5 * time.Second
 )
 
-type ClientBackend interface {
-	New() error
-	Connect(ctx context.Context, connection *connection.Connection) error
-	Close(ctx context.Context, connection *connection.Connection) error
-}
-
 type nsmClient struct {
 	*nsmConnection
 	outgoingNscName    string
@@ -102,16 +96,6 @@ func (nsmc *nsmClient) Close() error {
 	nsmc.backend.Close(nsmc.context, nsmc.outgoingConnection)
 	nsmc.nsClient.Close(nsmc.context, nsmc.outgoingConnection)
 	nsmc.nsmConnection.Close()
-	return nil
-}
-
-type dummyClientBackend struct{}
-
-func (*dummyClientBackend) New() error { return nil }
-func (*dummyClientBackend) Connect(ctx context.Context, connection *connection.Connection) error {
-	return nil
-}
-func (*dummyClientBackend) Close(ctx context.Context, connection *connection.Connection) error {
 	return nil
 }
 

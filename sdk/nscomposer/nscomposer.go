@@ -81,15 +81,6 @@ func runNSEndpoint(ctx context.Context, configuration *NSConfiguration, backend 
 
 func NsComposerMain(ctx context.Context, configuration *NSConfiguration, backend EndpointBackend) {
 
-	// configuration := &NSConfiguration{}
-	// configuration.CompleteNSConfiguration()
-
-	// nsmConnection, err := newNSMConnection(nil, configuration)
-	// if err != nil {
-	// 	logrus.Fatalf("Unable to setup the NSMD connection.")
-	// }
-	// defer nsmConnection.Close()
-
 	grpcServer, registryConnection, removeNSE, err := runNSEndpoint(ctx, configuration, backend)
 
 	if err != nil {
