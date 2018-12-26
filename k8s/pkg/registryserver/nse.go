@@ -1,7 +1,6 @@
 package registryserver
 
 import (
-	"log"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -29,6 +28,8 @@ type registryService struct {
 }
 
 func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
+	st := time.Now()
+
 	logrus.Infof("Received RegisterNSE(%v)", request)
 	// get network service
 	if request.GetNetworkServiceManager().GetUrl() == "" {
@@ -108,19 +109,22 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 			State:                     string(nseResponse.Status.State),
 		}
 	}
-	logrus.Infof("Returned from RegisterNSE: %v", request)
+	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil
 
 }
 
 func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
+	st := time.Now()
 	if err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{}); err != nil {
 		return nil, err
 	}
+	logrus.Printf("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
 }
 
 func (rs registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
+	st := time.Now()
 	service, e := rs.clientset.Networkservicemesh().NetworkServices("default").Get(request.NetworkServiceName, metav1.GetOptions{})
 	if e != nil {
 		return nil, e
@@ -129,16 +133,18 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 
 	lo := metav1.ListOptions{}
 	lo.LabelSelector = "networkservicename=" + request.NetworkServiceName
+	t1 := time.Now()
 	endpointList, e := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").List(lo)
 	if e != nil {
 		return nil, e
 	}
 
-	logrus.Println(len(endpointList.Items))
+	logrus.Printf("NSE found %d, retrieve time: %v", len(endpointList.Items), time.Since(t1))
 	NSEs := make([]*registry.NetworkServiceEndpoint, len(endpointList.Items))
 	NSMs := make(map[string]*registry.NetworkServiceManager)
+	NSMsREG := make(map[string]*v1.NetworkServiceManager)
 	for i, endpoint := range endpointList.Items {
-		log.Println(endpoint.Name)
+		//log.Println(endpoint.Name)
 		NSEs[i] = &registry.NetworkServiceEndpoint{
 			EndpointName:              endpoint.Name,
 			NetworkServiceName:        endpoint.Spec.NetworkServiceName,
@@ -146,10 +152,13 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 			Payload:                   payload,
 			Labels:                    endpoint.ObjectMeta.Labels,
 		}
-		// TODO check in the NSMs map first before potentially looking up again
-		manager, e := rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Get(endpoint.Spec.NsmName, metav1.GetOptions{})
-		if e != nil {
-			return nil, e
+		manager := NSMsREG[endpoint.Spec.NsmName]
+		if manager == nil {
+			manager, e = rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Get(endpoint.Spec.NsmName, metav1.GetOptions{})
+			if e != nil {
+				return nil, e
+			}
+			NSMsREG[endpoint.Spec.NsmName] = manager
 		}
 		NSMs[endpoint.Spec.NsmName] = &registry.NetworkServiceManager{
 			Name: manager.ObjectMeta.Name,
@@ -191,5 +200,6 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 		NetworkServiceManagers:  NSMs,
 		NetworkServiceEndpoints: NSEs,
 	}
+	logrus.Printf("FindNetworkService done: time %v", time.Since(st))
 	return response, nil
 }
