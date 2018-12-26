@@ -26,6 +26,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	connectRetries = 10
+	connectSleep   = 5 * time.Second
+)
+
 type ClientBackend interface {
 	New() error
 	Connect(ctx context.Context, connection *connection.Connection) error
@@ -66,14 +71,18 @@ func (nsmc *nsmClient) Connect() error {
 		},
 	}
 
-	for ; true; <-time.After(5 * time.Second) {
+	for iteration := connectRetries; true; <-time.After(connectSleep) {
 		var err error
 		logrus.Infof("Sending outgoing request %v", outgoingRequest)
 		nsmc.outgoingConnection, err = nsmc.nsClient.Request(nsmc.context, outgoingRequest)
 
 		if err != nil {
 			logrus.Errorf("failure to request connection with error: %+v", err)
-			continue
+			iteration--
+			if iteration > 0 {
+				continue
+			}
+			logrus.Errorf("Connect failed after %v iterations", connectRetries)
 		}
 
 		logrus.Infof("Received outgoing connection: %v", nsmc.outgoingConnection)
