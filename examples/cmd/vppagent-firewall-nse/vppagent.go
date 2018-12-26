@@ -36,16 +36,16 @@ func (ns *vppagentNetworkService) ApplyAclOnVppInterface(ctx context.Context, ac
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 
-	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(nil, true)
+	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(true)
 
 	if err != nil {
 		logrus.Error(err)
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(ctx, dataChange); err != nil {
+	if _, err := client.Put(ctx, dataChange[0]); err != nil {
 		logrus.Error(err)
-		client.Del(ctx, dataChange)
+		client.Del(ctx, dataChange[0])
 		return err
 	}
 	return nil
@@ -64,7 +64,7 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: baseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(connect)
 
 	if err != nil {
 		logrus.Error(err)
@@ -72,15 +72,15 @@ func (ns *vppagentNetworkService) CrossConnecVppInterfaces(ctx context.Context, 
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
-		_, err = client.Put(ctx, dataChange)
+		_, err = client.Put(ctx, dataChange[0])
 	} else {
-		_, err = client.Del(ctx, dataChange)
+		_, err = client.Del(ctx, dataChange[0])
 	}
 	if err != nil {
 		logrus.Error(err)
-		return crossConnect, dataChange, err
+		return crossConnect, dataChange[0], err
 	}
-	return crossConnect, dataChange, nil
+	return crossConnect, dataChange[0], nil
 }
 
 func (ns *vppagentNetworkService) Reset() error {

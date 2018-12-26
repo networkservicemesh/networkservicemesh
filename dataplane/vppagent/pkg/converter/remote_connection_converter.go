@@ -40,20 +40,18 @@ func NewRemoteConnectionConverter(c *connection.Connection, name string, side Co
 }
 
 // ToDataRequest handles the data request
-func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *RemoteConnectionConverter) ToDataRequest(connect bool) ([]*rpc.DataRequest, error) {
 	if c == nil {
-		return rv, fmt.Errorf("RemoteConnectionConverter cannot be nil")
+		return nil, fmt.Errorf("RemoteConnectionConverter cannot be nil")
 	}
 	if err := c.IsComplete(); err != nil {
-		return rv, err
+		return nil, err
 	}
 	if c.GetMechanism().GetType() != connection.MechanismType_VXLAN {
-		return rv, fmt.Errorf("RemoteConnectionConverter supports only VXLAN. Attempt to use Connection.Mechanism.Type %s", c.GetMechanism().GetType())
-	}
-	if rv == nil {
-		rv = &rpc.DataRequest{}
+		return nil, fmt.Errorf("RemoteConnectionConverter supports only VXLAN. Attempt to use Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 
+	rv := &rpc.DataRequest{}
 	m := c.GetMechanism()
 
 	// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
@@ -81,5 +79,5 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		},
 	})
 
-	return rv, nil
+	return []*rpc.DataRequest{rv}, nil
 }

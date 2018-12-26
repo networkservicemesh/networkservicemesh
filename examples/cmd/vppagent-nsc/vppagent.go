@@ -26,16 +26,16 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 		Side:      converter.SOURCE,
 		BaseDir:   baseDir,
 	}
-	dataChange, err := converter.NewMemifInterfaceConverter(nscConnection, conversionParameters).ToDataRequest(nil, true)
+	dataChange, err := converter.NewMemifInterfaceConverter(nscConnection, conversionParameters).ToDataRequest(true)
 
 	if err != nil {
 		logrus.Error(err)
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(context.Background(), dataChange); err != nil {
+	if _, err := client.Put(context.Background(), dataChange[0]); err != nil {
 		logrus.Error(err)
-		client.Del(context.Background(), dataChange)
+		client.Del(context.Background(), dataChange[0])
 		return err
 	}
 	return nil

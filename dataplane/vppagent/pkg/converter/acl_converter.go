@@ -229,14 +229,12 @@ func getMatch(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match, error)
 	}, nil
 }
 
-func (c *aclConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *aclConverter) ToDataRequest(connect bool) ([]*rpc.DataRequest, error) {
 	if c == nil {
-		return rv, fmt.Errorf("aclConverter cannot be nil")
+		return nil, fmt.Errorf("aclConverter cannot be nil")
 	}
 	// TODO check if 'c' is complete
-	if rv == nil {
-		rv = &rpc.DataRequest{}
-	}
+	rv := &rpc.DataRequest{}
 
 	rules := []*acl.AccessLists_Acl_Rule{}
 
@@ -273,5 +271,5 @@ func (c *aclConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.Da
 		})
 	}
 
-	return rv, nil
+	return []*rpc.DataRequest{rv}, nil
 }
