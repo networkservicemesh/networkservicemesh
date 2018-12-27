@@ -53,14 +53,14 @@ func (ns *vppagentBackend) ApplyAclOnVppInterface(ctx context.Context, aclname, 
 	return nil
 }
 
-func (ns *vppagentBackend) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
+func (ns *vppagentBackend) CrossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (string, error) {
 
 	logrus.Infof("ns.vppAgentEndpoint %v", ns.vppAgentEndpoint)
 
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
-		return nil, nil, err
+		return "", err
 	}
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
@@ -68,23 +68,32 @@ func (ns *vppagentBackend) CrossConnecVppInterfaces(ctx context.Context, crossCo
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: baseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
+
+	xconnConverter := converter.NewCrossConnectConverter(crossConnect, conversionParameters)
+
+	dataChange, err := xconnConverter.ToDataRequest(connect)
 
 	if err != nil {
 		logrus.Error(err)
-		return nil, nil, err
+		return "", err
 	}
-	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if connect {
-		_, err = client.Put(ctx, dataChange)
-	} else {
-		_, err = client.Del(ctx, dataChange)
+
+	for _, dc := range dataChange {
+		logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
+		if connect {
+			_, err = client.Put(ctx, dc)
+		} else {
+			_, err = client.Del(ctx, dc)
+		}
+		if err != nil {
+			logrus.Error(err)
+			// TODO handle connection tracking
+			// TODO handle teardown of any partial config that happened
+			return "", err
+		}
 	}
-	if err != nil {
-		logrus.Error(err)
-		return crossConnect, dataChange, err
-	}
-	return crossConnect, dataChange, nil
+
+	return dataChange[0].GetInterfaces()[0].GetName(), nil
 }
 
 func (ns *vppagentBackend) Reset() error {
