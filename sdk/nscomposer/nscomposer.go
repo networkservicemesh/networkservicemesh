@@ -22,73 +22,18 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
-
-func runNSEndpoint(ctx context.Context, configuration *NSConfiguration, backend EndpointBackend) (*grpc.Server, registry.NetworkServiceRegistryClient, *registry.RemoveNSERequest, error) {
-
-	nsmEndpoint, err := NewNSMEndpoint(
-		ctx,
-		configuration,
-		backend)
-
-	// Registering NSE API, it will listen for Connection requests from NSM and return information
-	// needed for NSE's dataplane programming.
-	grpcServer := grpc.NewServer()
-	networkservice.RegisterNetworkServiceServer(grpcServer, nsmEndpoint)
-
-	connectionServer, _ := nsmEndpoint.setupNSEServerConnection()
-
-	go func() {
-		if err := grpcServer.Serve(connectionServer); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmEndpoint.configuration.nsmClientSocket, err)
-		}
-	}()
-
-	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: nsmEndpoint.configuration.AdvertiseNseName,
-		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nsmEndpoint.configuration.AdvertiseNseLabels, ",", "="),
-	}
-	registration := &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name:    nsmEndpoint.configuration.AdvertiseNseName,
-			Payload: "IP",
-		},
-		NetworkserviceEndpoint: nse,
-	}
-
-	registryConnection := registry.NewNetworkServiceRegistryClient(nsmEndpoint.grpcClient)
-	registeredNSE, err := registryConnection.RegisterNSE(context.Background(), registration)
-	if err != nil {
-		logrus.Fatalln("unable to register endpoint", err)
-	}
-	logrus.Infof("NSE registered: %v", registeredNSE)
-
-	// prepare and defer removing of the advertised endpoint
-	removeNSE := &registry.RemoveNSERequest{
-		EndpointName: registeredNSE.GetNetworkserviceEndpoint().GetEndpointName(),
-	}
-
-	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
-
-	return grpcServer, registryConnection, removeNSE, nil
-}
 
 func NsComposerMain(ctx context.Context, configuration *NSConfiguration, backend EndpointBackend) {
 
-	grpcServer, registryConnection, removeNSE, err := runNSEndpoint(ctx, configuration, backend)
-
+	nsmEndpoint, err := NewNSMEndpoint(ctx, configuration, backend)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
 
-	defer registryConnection.RemoveNSE(context.Background(), removeNSE)
-	defer grpcServer.Stop()
+	nsmEndpoint.Start()
+	defer nsmEndpoint.Delete()
 
 	// Capture signals to cleanup before exiting
 	var wg sync.WaitGroup
@@ -103,9 +48,6 @@ func NsComposerMain(ctx context.Context, configuration *NSConfiguration, backend
 	go func() {
 		<-c
 		wg.Done()
-		logrus.Infof("Deregistering %s at %v", configuration.AdvertiseNseName, registryConnection)
-		logrus.Infof("Stopping %v", grpcServer)
 	}()
 	wg.Wait()
-
 }

@@ -24,10 +24,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/teris-io/shortid"
+	"google.golang.org/grpc"
 )
 
 type nsmEndpoint struct {
@@ -38,10 +40,13 @@ type nsmEndpoint struct {
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 	backend                 EndpointBackend
 	id                      *shortid.Shortid
+	grpcServer              *grpc.Server
+	registryClient          registry.NetworkServiceRegistryClient
+	endpointName            string
 }
 
-func (ns *nsmEndpoint) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*nsmClient, error) {
-	client, err := NewNSMClient(ctx, ns.configuration, &dummyClientBackend{})
+func (nsme *nsmEndpoint) outgoingConnectionRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*nsmClient, error) {
+	client, err := NewNSMClient(ctx, nsme.configuration, &dummyClientBackend{})
 	if err != nil {
 		logrus.Errorf("Unable to create the NSM client %v", err)
 		return nil, err
@@ -101,8 +106,8 @@ func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connecti
 	return &empty.Empty{}, nil
 }
 
-func (ns *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
-	c := ns.configuration
+func (nsme *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
+	c := nsme.configuration
 	if err := tools.SocketCleanup(c.nsmClientSocket); err != nil {
 		logrus.Errorf("nse: failure to cleanup stale socket %s with error: %v", c.nsmClientSocket, err)
 		return nil, err
@@ -115,6 +120,69 @@ func (ns *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
 		return nil, err
 	}
 	return connectionServer, nil
+}
+
+func (nsme *nsmEndpoint) serve(listener net.Listener) {
+	go func() {
+		if err := nsme.grpcServer.Serve(listener); err != nil {
+			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsme.configuration.nsmClientSocket, err)
+		}
+	}()
+}
+
+func (nsme *nsmEndpoint) Start() error {
+	nsme.grpcServer = grpc.NewServer()
+	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
+
+	listener, err := nsme.setupNSEServerConnection()
+
+	if err != nil {
+		logrus.Errorf("Unable to setup NSE")
+		return err
+	}
+
+	// spawn the listnening thread
+	nsme.serve(listener)
+
+	// Registering NSE API, it will listen for Connection requests from NSM and return information
+	// needed for NSE's dataplane programming.
+	nse := &registry.NetworkServiceEndpoint{
+		NetworkServiceName: nsme.configuration.AdvertiseNseName,
+		Payload:            "IP",
+		Labels:             tools.ParseKVStringToMap(nsme.configuration.AdvertiseNseLabels, ",", "="),
+	}
+	registration := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    nsme.configuration.AdvertiseNseName,
+			Payload: "IP",
+		},
+		NetworkserviceEndpoint: nse,
+	}
+
+	nsme.registryClient = registry.NewNetworkServiceRegistryClient(nsme.grpcClient)
+	registeredNSE, err := nsme.registryClient.RegisterNSE(nsme.context, registration)
+	if err != nil {
+		logrus.Fatalln("unable to register endpoint", err)
+	}
+	nsme.endpointName = registeredNSE.GetNetworkserviceEndpoint().GetEndpointName()
+	logrus.Infof("NSE registered: %v", registeredNSE)
+	logrus.Infof("NSE: channel has been successfully advertised, waiting for connection from NSM...")
+
+	return nil
+}
+
+func (nsme *nsmEndpoint) Delete() error {
+	// prepare and defer removing of the advertised endpoint
+	removeNSE := &registry.RemoveNSERequest{
+		EndpointName: nsme.endpointName,
+	}
+	_, err := nsme.registryClient.RemoveNSE(context.Background(), removeNSE)
+	if err != nil {
+		logrus.Errorf("Failed removing NSE: %v, with %v", removeNSE, err)
+	}
+	nsme.grpcServer.Stop()
+
+	return err
 }
 
 // NewNSMEndpoint creates a new NSM endpoint
