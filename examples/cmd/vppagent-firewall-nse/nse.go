@@ -16,7 +16,13 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/ligato/networkservicemesh/sdk/nscomposer"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -27,5 +33,27 @@ func main() {
 
 	backend := &vppagentBackend{}
 
-	nscomposer.NsComposerMain(nil, configuration, backend)
+	nsmEndpoint, err := nscomposer.NewNSMEndpoint(nil, configuration, backend)
+	if err != nil {
+		logrus.Fatalf("%v", err)
+	}
+
+	nsmEndpoint.Start()
+	defer nsmEndpoint.Delete()
+
+	// Capture signals to cleanup before exiting
+	var wg sync.WaitGroup
+	wg.Add(1)
+	c := make(chan os.Signal)
+	signal.Notify(c,
+		os.Interrupt,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+	go func() {
+		<-c
+		wg.Done()
+	}()
+	wg.Wait()
 }
