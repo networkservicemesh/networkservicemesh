@@ -14,14 +14,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
+func (ns *vppagentBackend) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
+	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -50,7 +44,7 @@ func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseCon
 	return nil
 }
 
-func (ns *vppagentNetworkService) Reset() error {
+func (ns *vppagentBackend) Reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", ns.vppAgentEndpoint, 100*time.Millisecond)

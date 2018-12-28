@@ -16,44 +16,36 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+	"context"
 
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
 )
 
-func main() {
+const (
+	defaultVPPAgentEndpoint = "localhost:9112"
+)
 
-	configuration := &nscomposer.NSConfiguration{
-		OutgoingNscMechanism: "mem",
-	}
+type vppagentBackend struct {
+	vppAgentEndpoint string
+}
 
-	backend := &vppagentBackend{}
+func (ns *vppagentBackend) New() error {
+	ns.vppAgentEndpoint = defaultVPPAgentEndpoint
+	ns.Reset()
+	return nil
+}
 
-	nsmEndpoint, err := nscomposer.NewNSMEndpoint(nil, configuration, backend)
+func (ns *vppagentBackend) Request(ctx context.Context, incoming, outgoing *connection.Connection, baseDir string) error {
+	err := ns.CreateVppInterface(ctx, incoming, baseDir)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		logrus.Error(err)
+		return err
 	}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
+	return nil
+}
 
-	// Capture signals to cleanup before exiting
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c,
-		os.Interrupt,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+func (ns *vppagentBackend) Close(ctx context.Context, conn *connection.Connection, baseDir string) error {
+	return nil
 }
