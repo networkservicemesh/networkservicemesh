@@ -16,40 +16,22 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+	"context"
 
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
-	"github.com/sirupsen/logrus"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
-func main() {
+type icmpResponderBackend struct {
+}
 
-	backend := &icmpResponderBackend{}
+func (ns *icmpResponderBackend) New() error {
+	return nil
+}
 
-	nsmEndpoint, err := nscomposer.NewNSMEndpoint(nil, nil, backend)
-	if err != nil {
-		logrus.Fatalf("%v", err)
-	}
+func (ns *icmpResponderBackend) Request(ctx context.Context, incoming, outgoing *connection.Connection, baseDir string) error {
+	return nil
+}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
-
-	// Capture signals to cleanup before exiting
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c,
-		os.Interrupt,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+func (ns *icmpResponderBackend) Close(ctx context.Context, conn *connection.Connection, baseDir string) error {
+	return nil
 }

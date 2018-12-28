@@ -24,9 +24,9 @@ spec:
           image: networkservicemesh/icmp-responder-nse:latest
           imagePullPolicy: IfNotPresent
           env:
-            - name: NSE_SERVICE_NAME
+            - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
-            - name: NSE_LABELS
+            - name: ADVERTISE_NSE_LABELS
               value: "app=vpn-gateway"
             - name: IP_ADDRESS
               value: "10.60.1.1"
