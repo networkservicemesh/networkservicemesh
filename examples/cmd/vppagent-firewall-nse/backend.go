@@ -45,10 +45,10 @@ func (ns *vppagentBackend) Request(ctx context.Context, incoming, outgoing *conn
 		Id:      incoming.GetId(),
 		Payload: "IP",
 		Source: &crossconnect.CrossConnect_LocalSource{
-			incoming,
+			LocalSource: incoming,
 		},
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			outgoing,
+			LocalDestination: outgoing,
 		},
 	}
 
