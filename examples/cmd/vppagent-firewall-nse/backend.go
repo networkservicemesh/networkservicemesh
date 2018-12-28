@@ -85,7 +85,3 @@ func (ns *vppagentBackend) Close(ctx context.Context, conn *connection.Connectio
 
 	return nil
 }
-
-func (ns *vppagentBackend) GetMechanismType() connection.MechanismType {
-	return connection.MechanismType_MEM_INTERFACE
-}
