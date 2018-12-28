@@ -46,15 +46,16 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 
 	var client *nsmClient
 	var err error
+	var outgoingConnection *connection.Connection
 	if len(nsme.configuration.OutgoingNscName) > 0 {
 		client, err = nsme.outgoingConnectionRequest(ctx, request)
 		if err != nil {
 			logrus.Error(err)
 			return nil, err
 		}
+		outgoingConnection = client.GetConnection()
+		logrus.Infof("outgoingConnection: %v", outgoingConnection)
 	}
-	outgoingConnection := client.GetConnection()
-	logrus.Infof("outgoingConnection: %v", outgoingConnection)
 
 	incomingConnection, err := nsme.CompleteConnection(request, outgoingConnection)
 	logrus.Infof("Completed incomingConnection %v", incomingConnection)
