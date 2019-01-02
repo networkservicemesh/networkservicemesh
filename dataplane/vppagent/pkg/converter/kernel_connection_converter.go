@@ -22,15 +22,18 @@ func NewKernelConnectionConverter(c *connection.Connection, conversionParameters
 	}
 }
 
-func (c *KernelConnectionConverter) ToDataRequest(connect bool) ([]*rpc.DataRequest, error) {
+func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
 	if c == nil {
-		return nil, fmt.Errorf("LocalConnectionConverter cannot be nil")
+		return rv, fmt.Errorf("LocalConnectionConverter cannot be nil")
 	}
 	if err := c.IsComplete(); err != nil {
-		return nil, err
+		return rv, err
 	}
 	if c.GetMechanism().GetType() != connection.MechanismType_KERNEL_INTERFACE {
-		return nil, fmt.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
+		return rv, fmt.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
+	}
+	if rv == nil {
+		rv = &rpc.DataRequest{}
 	}
 
 	m := c.GetMechanism()
@@ -49,22 +52,6 @@ func (c *KernelConnectionConverter) ToDataRequest(connect bool) ([]*rpc.DataRequ
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
-
-	if !connect {
-		linuxIntf := &rpc.DataRequest{}
-		linuxIntf.LinuxInterfaces = append(linuxIntf.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
-			Name: c.conversionParameters.Name,
-		})
-
-		intf := &rpc.DataRequest{}
-		intf.Interfaces = append(intf.Interfaces, &interfaces.Interfaces_Interface{
-			Name: c.conversionParameters.Name,
-		})
-
-		return []*rpc.DataRequest{linuxIntf, intf}, nil
-	}
-
-	rv := &rpc.DataRequest{}
 
 	// We append an Interfaces.  Interfaces creates the vpp side of an interface.
 	//   In this case, a Tapv2 interface that has one side in vpp, and the other
@@ -145,5 +132,5 @@ func (c *KernelConnectionConverter) ToDataRequest(connect bool) ([]*rpc.DataRequ
 		}
 	}
 
-	return []*rpc.DataRequest{rv}, nil
+	return rv, nil
 }
