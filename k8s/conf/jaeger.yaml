@@ -13,15 +13,15 @@ spec:
         run: jaeger
     spec:
       containers:
-      - name: jaeger
-        image: jaegertracing/all-in-one:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: http
-          containerPort: 16686
         - name: jaeger
-          containerPort: 6831
-          protocol: UDP
+          image: jaegertracing/all-in-one:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 16686
+            - name: jaeger
+              containerPort: 6831
+              protocol: UDP
 ---
 apiVersion: v1
 kind: Service
@@ -31,11 +31,11 @@ metadata:
     run: jaeger
 spec:
   ports:
-  - name: http
-    port: 16686
-    protocol: TCP
-  - name: jaeger
-    port: 6831
-    protocol: UDP
+    - name: http
+      port: 16686
+      protocol: TCP
+    - name: jaeger
+      port: 6831
+      protocol: UDP
   selector:
     run: jaeger
