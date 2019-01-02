@@ -3,17 +3,14 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -22,9 +19,12 @@ import (
 	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -366,8 +366,9 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 
 	srv.testModel = model.NewModel()
 
+	tracer := opentracing.GlobalTracer()
 	// Lets start NSMD NSE registry service
-	err = nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry)
+	err = nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry, tracer)
 	Expect(err).To(BeNil())
 	err = nsmd.StartAPIServer(srv.testModel, srv.apiRegistry, srv.serviceRegistry)
 	Expect(err).To(BeNil())
