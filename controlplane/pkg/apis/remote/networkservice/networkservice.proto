@@ -23,13 +23,11 @@ package remote.networkservice;
 option go_package = "networkservice";
 
 import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
-import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry/registry.proto";
 import "github.com/golang/protobuf/ptypes/empty/empty.proto";
 
 message NetworkServiceRequest {
     remote.connection.Connection connection = 1;
-    registry.NetworkServiceManager requesterNsm = 2;
-    repeated remote.connection.Mechanism mechanism_preferences = 3;
+    repeated remote.connection.Mechanism mechanism_preferences = 2;
 }
 
 service NetworkService {

@@ -27,16 +27,16 @@ func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseCon
 		Side:      converter.DESTINATION,
 		BaseDir:   baseDir,
 	}
-	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(true)
+	dataChange, err := converter.NewMemifInterfaceConverter(nseConnection, conversionParameters).ToDataRequest(nil, true)
 
 	if err != nil {
 		logrus.Error(err)
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(ctx, dataChange[0]); err != nil {
+	if _, err := client.Put(ctx, dataChange); err != nil {
 		logrus.Error(err)
-		client.Del(ctx, dataChange[0])
+		client.Del(ctx, dataChange)
 		return err
 	}
 	return nil
