@@ -15,7 +15,7 @@
 K8S_CONF_DIR = k8s/conf/
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOY_NSM = nsmd vppagent-dataplane
+DEPLOY_NSM = jaeger nsmd vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
@@ -62,6 +62,11 @@ k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-deployonly
 k8s-deployonly: $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
+
+.PHONY: k8s-jaeger-deploy
+k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
+	@until ! $$(kubectl get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | kubectl apply -f -
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
