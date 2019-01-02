@@ -22,6 +22,7 @@ default: all
 # Pull in k8s targets
 include .k8s.mk
 include .skydive.mk
+include .jaeger.mk
 include .monitor.mk
 
 GOPATH?=$(shell go env GOPATH 2>/dev/null)
