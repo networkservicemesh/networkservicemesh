@@ -13,108 +13,79 @@ import (
 type CrossConnectConverter struct {
 	*crossconnect.CrossConnect
 	conversionParameters *CrossConnectConversionParameters
-	srcInterfaceName     string
-	dstInterfaceName     string
 }
 
 func NewCrossConnectConverter(c *crossconnect.CrossConnect, conversionParameters *CrossConnectConversionParameters) *CrossConnectConverter {
 	return &CrossConnectConverter{
 		CrossConnect:         c,
 		conversionParameters: conversionParameters,
-		srcInterfaceName:     "SRC-" + c.GetId(),
-		dstInterfaceName:     "DST-" + c.GetId(),
 	}
 }
 
-func (c *CrossConnectConverter) ToDataRequest(connect bool) ([]*rpc.DataRequest, error) {
+func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
 	if c == nil {
-		return nil, fmt.Errorf("CrossConnectConverter cannot be nil")
+		return rv, fmt.Errorf("CrossConnectConverter cannot be nil")
 	}
 	if err := c.IsComplete(); err != nil {
-		return nil, err
+		return rv, err
 	}
-
-	xconRequest, err := c.convertXcon(connect)
-	if err != nil {
-		return nil, err
+	if rv == nil {
+		rv = &rpc.DataRequest{}
 	}
-
-	connRequest, err := c.convertConnections(connect)
-	if err != nil {
-		return nil, err
-	}
-
-	if connect {
-		return append(connRequest, xconRequest...), nil
-	} else {
-		return append(xconRequest, connRequest...), nil
-	}
-
-}
-
-func (c *CrossConnectConverter) convertXcon(connect bool) ([]*rpc.DataRequest, error) {
-	xconRequest := &rpc.DataRequest{}
-
-	xconRequest.XCons = append(xconRequest.XCons, &l2.XConnectPairs_XConnectPair{
-		ReceiveInterface:  c.srcInterfaceName,
-		TransmitInterface: c.dstInterfaceName,
-	})
-	xconRequest.XCons = append(xconRequest.XCons, &l2.XConnectPairs_XConnectPair{
-		ReceiveInterface:  c.dstInterfaceName,
-		TransmitInterface: c.srcInterfaceName,
-	})
-
-	return []*rpc.DataRequest{xconRequest}, nil
-}
-
-func (c *CrossConnectConverter) convertConnections(connect bool) ([]*rpc.DataRequest, error) {
-	var rv []*rpc.DataRequest
-
 	if c.GetLocalSource() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
-			Name:      c.srcInterfaceName,
+			Name:      "SRC-" + c.GetId(),
 			Terminate: false,
 			Side:      SOURCE,
 			BaseDir:   baseDir,
 		}
-		requests, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(connect)
+		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
-			return nil, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
-		rv = append(rv, requests...)
 	}
 
 	if c.GetRemoteSource() != nil {
-		requests, err := NewRemoteConnectionConverter(c.GetRemoteSource(), c.srcInterfaceName, SOURCE).ToDataRequest(connect)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), "SRC-"+c.GetId(), SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
-			return nil, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
-		rv = append(rv, requests...)
 	}
 
 	if c.GetLocalDestination() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
-			Name:      c.dstInterfaceName,
+			Name:      "DST-" + c.GetId(),
 			Terminate: false,
 			Side:      DESTINATION,
 			BaseDir:   baseDir,
 		}
-		requests, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(connect)
+		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
-			return nil, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
-		rv = append(rv, requests...)
 	}
 
 	if c.GetRemoteDestination() != nil {
-		requests, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), c.dstInterfaceName, DESTINATION).ToDataRequest(connect)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
-			return nil, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
-		rv = append(rv, requests...)
 	}
+
+	if len(rv.Interfaces) < 2 {
+		return nil, fmt.Errorf("Did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.Interfaces))
+	}
+	ifaces := rv.Interfaces[len(rv.Interfaces)-2:]
+	rv.XCons = append(rv.XCons, &l2.XConnectPairs_XConnectPair{
+		ReceiveInterface:  ifaces[0].Name,
+		TransmitInterface: ifaces[1].Name,
+	})
+	rv.XCons = append(rv.XCons, &l2.XConnectPairs_XConnectPair{
+		ReceiveInterface:  ifaces[1].Name,
+		TransmitInterface: ifaces[0].Name,
+	})
 
 	return rv, nil
 }

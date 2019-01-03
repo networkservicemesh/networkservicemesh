@@ -110,12 +110,6 @@ type ListenerImpl struct {
 	dataplanes int
 }
 
-func (impl *ListenerImpl) ClientConnectionAdded(clientConnection *mdl.ClientConnection) {
-}
-
-func (impl *ListenerImpl) ClientConnectionDeleted(clientConnection *mdl.ClientConnection) {
-}
-
 func (impl *ListenerImpl) EndpointAdded(endpoint *registry.NetworkServiceEndpoint) {
 	impl.endpoints++
 }

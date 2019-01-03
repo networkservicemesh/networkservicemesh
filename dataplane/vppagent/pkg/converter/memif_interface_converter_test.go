@@ -75,14 +75,14 @@ func TestSourceSideConverter(t *testing.T) {
 		BaseDir:   baseDir,
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
-	dataRequest, err := converter.ToDataRequest(true)
+	dataRequest, err := converter.ToDataRequest(nil, true)
 	Expect(err).To(BeNil())
 
-	Expect(dataRequest[0].Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest[0].Interfaces[0], SOURCE)
+	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
+	checkInterface(dataRequest.Interfaces[0], SOURCE)
 
-	Expect(dataRequest[0].Interfaces[0].Memif).ToNot(BeNil())
-	checkMemif(dataRequest[0].Interfaces[0].Memif, false)
+	Expect(dataRequest.Interfaces[0].Memif).ToNot(BeNil())
+	checkMemif(dataRequest.Interfaces[0].Memif, false)
 }
 
 func TestDestinationSideConverter(t *testing.T) {
@@ -94,14 +94,14 @@ func TestDestinationSideConverter(t *testing.T) {
 		BaseDir:   baseDir,
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
-	dataRequest, err := converter.ToDataRequest(true)
+	dataRequest, err := converter.ToDataRequest(nil, true)
 	Expect(err).To(BeNil())
 
-	Expect(dataRequest[0].Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest[0].Interfaces[0], NEITHER)
+	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
+	checkInterface(dataRequest.Interfaces[0], NEITHER)
 
-	Expect(dataRequest[0].Interfaces[0].Memif).ToNot(BeNil())
-	checkMemif(dataRequest[0].Interfaces[0].Memif, false)
+	Expect(dataRequest.Interfaces[0].Memif).ToNot(BeNil())
+	checkMemif(dataRequest.Interfaces[0].Memif, false)
 }
 
 func TestTerminateDestinationSideConverter(t *testing.T) {
@@ -113,14 +113,14 @@ func TestTerminateDestinationSideConverter(t *testing.T) {
 		BaseDir:   baseDir,
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
-	dataRequest, err := converter.ToDataRequest(true)
+	dataRequest, err := converter.ToDataRequest(nil, true)
 	Expect(err).To(BeNil())
 
-	Expect(dataRequest[0].Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest[0].Interfaces[0], DESTINATION)
+	Expect(dataRequest.Interfaces).ToNot(BeEmpty())
+	checkInterface(dataRequest.Interfaces[0], DESTINATION)
 
-	Expect(dataRequest[0].Interfaces[0].Memif).ToNot(BeNil())
-	checkMemif(dataRequest[0].Interfaces[0].Memif, true)
+	Expect(dataRequest.Interfaces[0].Memif).ToNot(BeNil())
+	checkMemif(dataRequest.Interfaces[0].Memif, true)
 
 	os.RemoveAll(baseDir)
 }

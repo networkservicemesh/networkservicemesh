@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"strconv"
 	"sync"
 
@@ -21,14 +20,6 @@ type Dataplane struct {
 	RemoteMechanisms []*remote.Mechanism
 }
 
-type ClientConnection struct {
-	ConnectionId string
-	Xcon         *crossconnect.CrossConnect
-	RemoteNsm    *registry.NetworkServiceManager
-	Endpoint     *registry.NSERegistration
-	Dataplane    *Dataplane
-}
-
 // Model change listener
 type ModelListener interface {
 	EndpointAdded(endpoint *registry.NetworkServiceEndpoint)
@@ -36,9 +27,6 @@ type ModelListener interface {
 
 	DataplaneAdded(dataplane *Dataplane)
 	DataplaneDeleted(dataplane *Dataplane)
-
-	ClientConnectionAdded(clientConnection *ClientConnection)
-	ClientConnectionDeleted(clientConnection *ClientConnection)
 }
 
 type Model interface {
@@ -52,10 +40,6 @@ type Model interface {
 	AddDataplane(dataplane *Dataplane)
 	DeleteDataplane(name string)
 	SelectDataplane() (*Dataplane, error)
-
-	AddClientConnection(clientConnection *ClientConnection)
-	GetClientConnection(connectionId string) *ClientConnection
-	DeleteClientConnection(connectionId string)
 
 	ConnectionId() string
 
@@ -78,36 +62,6 @@ type impl struct {
 	nsm               *registry.NetworkServiceManager
 	listeners         []ModelListener
 	selector          selector.Selector
-	clientConnections map[string]*ClientConnection
-}
-
-func (i *impl) AddClientConnection(clientConnection *ClientConnection) {
-	i.Lock()
-	defer i.Unlock()
-
-	i.clientConnections[clientConnection.ConnectionId] = clientConnection
-	for _, listener := range i.listeners {
-		listener.ClientConnectionAdded(clientConnection)
-	}
-}
-
-func (i *impl) GetClientConnection(connectionId string) *ClientConnection {
-	i.RLock()
-	defer i.RUnlock()
-
-	return i.clientConnections[connectionId]
-}
-
-func (i *impl) DeleteClientConnection(connectionId string) {
-	i.Lock()
-	defer i.Unlock()
-
-	clientConnection := i.clientConnections[connectionId]
-
-	delete(i.clientConnections, connectionId)
-	for _, listener := range i.listeners {
-		listener.ClientConnectionDeleted(clientConnection)
-	}
 }
 
 func (i *impl) AddListener(listener ModelListener) {
@@ -260,12 +214,11 @@ func (i *impl) SetNsm(nsm *registry.NetworkServiceManager) {
 
 func NewModel() Model {
 	return &impl{
-		dataplanes:        make(map[string]*Dataplane),
-		networkServices:   make(map[string][]*registry.NSERegistration),
-		endpoints:         make(map[string]*registry.NSERegistration),
-		listeners:         []ModelListener{},
-		selector:          selector.NewMatchSelector(),
-		clientConnections: make(map[string]*ClientConnection),
+		dataplanes:      make(map[string]*Dataplane),
+		networkServices: make(map[string][]*registry.NSERegistration),
+		endpoints:       make(map[string]*registry.NSERegistration),
+		listeners:       []ModelListener{},
+		selector:        selector.NewMatchSelector(),
 	}
 }
 

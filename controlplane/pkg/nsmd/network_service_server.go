@@ -119,11 +119,11 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		c.Context.ExcludedPrefixes = append(c.Context.ExcludedPrefixes, ep)
 	}
 
-	var clientConnection *model.ClientConnection
+	var dpApiConnection *crossconnect.CrossConnect
 	if srv.model.GetNsm().GetName() == endpoint.GetNetworkServiceManager().GetName() {
-		clientConnection, err = srv.performLocalNSERequest(ctx, request, endpoint, dp)
+		dpApiConnection, err = srv.performLocalNSERequest(ctx, request, endpoint)
 	} else {
-		clientConnection, err = srv.performRemoteNSERequest(ctx, request, endpoint, dp)
+		dpApiConnection, err = srv.performRemoteNSERequest(ctx, request, endpoint, dp)
 	}
 
 	if err != nil {
@@ -131,16 +131,15 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		return nil, err
 	}
 
-	logrus.Infof("Sending request to dataplane: %v", clientConnection.Xcon)
+	logrus.Infof("Sending request to dataplane: %v", dpApiConnection)
 
-	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
+	rv, err := dataplaneClient.Request(ctx, dpApiConnection)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
 		return nil, err
 	}
-	srv.model.AddClientConnection(clientConnection)
 	// TODO - be more cautious here about bad return values from Dataplane
-	con := clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource
+	con := rv.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource
 	srv.workspace.MonitorConnectionServer().UpdateConnection(con)
 	logrus.Info("Dataplane configuration done...")
 	return con, nil
@@ -170,66 +169,8 @@ func (srv *networkServiceServer) createLocalNSERequest(endpoint *registry.NSEReg
 }
 
 func (srv *networkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	logrus.Infof("Closing connection: %v", *connection)
-	clientConnection := srv.model.GetClientConnection(connection.Id)
-	if clientConnection == nil {
-		logrus.Warnf("No connection with id: %s, nothing to close", connection.Id)
-		return &empty.Empty{}, nil
-	}
-
-	if clientConnection.RemoteNsm != nil {
-		remoteClient, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(clientConnection.RemoteNsm)
-		if err != nil {
-			logrus.Error(err)
-			return &empty.Empty{}, err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-		logrus.Info("Remote client successfully created")
-
-		if _, err := remoteClient.Close(ctx, clientConnection.Xcon.GetRemoteDestination()); err != nil {
-			logrus.Error(err)
-			return &empty.Empty{}, err
-		}
-		logrus.Info("Remote part of cross connection successfully closed")
-	} else {
-		endpointClient, conn, err := srv.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
-		if err != nil {
-			logrus.Error(err)
-			return nil, err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-
-		logrus.Info("Closing NSE connection...")
-		if _, err := endpointClient.Close(ctx, clientConnection.Xcon.GetLocalDestination()); err != nil {
-			logrus.Error(err)
-			return &empty.Empty{}, err
-		}
-		logrus.Info("NSE connection successfully closed")
-	}
-
-	logrus.Info("Closing cross connection on dataplane...")
-	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	if conn != nil {
-		defer conn.Close()
-	}
-	if _, err := dataplaneClient.Close(ctx, clientConnection.Xcon); err != nil {
-		logrus.Error(err)
-		return &empty.Empty{}, err
-	}
-	logrus.Info("Cross connection successfully closed on dataplane")
-
-	srv.model.DeleteClientConnection(connection.Id)
 	srv.workspace.MonitorConnectionServer().DeleteConnection(connection)
-
-	return &empty.Empty{}, nil
+	return nil, nil
 }
 
 func (srv *networkServiceServer) validateNSEConnection(nseConnection *connection.Connection) error {
@@ -261,7 +202,7 @@ func (srv *networkServiceServer) validateRemoteNSEConnection(nseConnection *remo
 	return nil
 }
 
-func (srv *networkServiceServer) performLocalNSERequest(ctx context.Context, request *networkservice.NetworkServiceRequest, endpoint *registry.NSERegistration, dataplane *model.Dataplane) (*model.ClientConnection, error) {
+func (srv *networkServiceServer) performLocalNSERequest(ctx context.Context, request *networkservice.NetworkServiceRequest, endpoint *registry.NSERegistration) (*crossconnect.CrossConnect, error) {
 	client, nseConn, err := srv.serviceRegistry.EndpointConnection(endpoint)
 	if err != nil {
 		return nil, err
@@ -303,17 +244,10 @@ func (srv *networkServiceServer) performLocalNSERequest(ctx context.Context, req
 			LocalDestination: nseConnection,
 		},
 	}
-
-	clientConnection := &model.ClientConnection{
-		ConnectionId: request.Connection.Id,
-		Xcon:         dpApiConnection,
-		Endpoint:     endpoint,
-		Dataplane:    dataplane,
-	}
-	return clientConnection, nil
+	return dpApiConnection, nil
 }
 
-func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, request *networkservice.NetworkServiceRequest, endpoint *registry.NSERegistration, dataplane *model.Dataplane) (*model.ClientConnection, error) {
+func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, request *networkservice.NetworkServiceRequest, endpoint *registry.NSERegistration, dataplane *model.Dataplane) (*crossconnect.CrossConnect, error) {
 	client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(endpoint.GetNetworkServiceManager())
 	if err != nil {
 		logrus.Error(err)
@@ -359,17 +293,8 @@ func (srv *networkServiceServer) performRemoteNSERequest(ctx context.Context, re
 			RemoteDestination: nseConnection,
 		},
 	}
-
-	clientConnection := &model.ClientConnection{
-		ConnectionId: request.Connection.Id,
-		Xcon:         dpApiConnection,
-		RemoteNsm:    endpoint.GetNetworkServiceManager(),
-		Endpoint:     endpoint,
-		Dataplane:    dataplane,
-	}
-	return clientConnection, nil
+	return dpApiConnection, nil
 }
-
 func (srv *networkServiceServer) createRemoteNSERequest(endpoint *registry.NSERegistration, request *networkservice.NetworkServiceRequest, dataplane *model.Dataplane) *remote_networkservice.NetworkServiceRequest {
 
 	// We need to obtain parameters for remote mechanism
@@ -391,7 +316,6 @@ func (srv *networkServiceServer) createRemoteNSERequest(endpoint *registry.NSERe
 			NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
 		},
 		MechanismPreferences: remoteM,
-		RequesterNsm:         srv.model.GetNsm(),
 	}
 	return message
 }
