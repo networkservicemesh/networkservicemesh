@@ -14,6 +14,7 @@ spec:
       containers:
         - name: alpine-img
           image: alpine:latest
+          imagePullPolicy: IfNotPresent
           command: ['tail', '-f', '/dev/null']
       initContainers:
         - name: nsc
