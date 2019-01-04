@@ -92,6 +92,14 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := rv.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
 	logrus.Infof("Dataplane: Returned connection obj %+v", con)
+	clientConnection := &model.ClientConnection{
+		ConnectionId: request.Connection.Id,
+		Xcon:         rv,
+		RemoteNsm:    request.RequesterNsm,
+		Endpoint:     endpoint,
+		Dataplane:    dp,
+	}
+	srv.model.AddClientConnection(clientConnection)
 	srv.monitor.UpdateConnection(con)
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return con, nil
@@ -209,9 +217,46 @@ func (srv *remoteNetworkServiceServer) validateNSEConnection(nseConnection *conn
 }
 
 func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *remote_connection.Connection) (*empty.Empty, error) {
+	logrus.Info("Remote closing connection: %v", *connection)
+	clientConnection := srv.model.GetClientConnection(connection.Id)
+	if clientConnection == nil {
+		logrus.Warnf("No connection with id: %s, nothing to close", connection.Id)
+		return &empty.Empty{}, nil
+	}
+
+	endpointClient, conn, err := srv.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+	if conn != nil {
+		defer conn.Close()
+	}
+
+	if _, err := endpointClient.Close(ctx, clientConnection.Xcon.GetLocalDestination()); err != nil {
+		logrus.Error(err)
+		return &empty.Empty{}, err
+	}
+
+	logrus.Info("Remote closing cross connection on dataplane...")
+	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+	if conn != nil {
+		defer conn.Close()
+	}
+	if _, err := dataplaneClient.Close(ctx, clientConnection.Xcon); err != nil {
+		logrus.Error(err)
+		return &empty.Empty{}, err
+	}
+	logrus.Info("Cross connection successfully closed on dataplane")
+
+	srv.model.DeleteClientConnection(connection.Id)
 	srv.monitor.DeleteConnection(connection)
 	//TODO: Add call to dataplane
-	return nil, nil
+	return &empty.Empty{}, nil
 }
 
 func NewRemoteNetworkServiceServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, grpcServer *grpc.Server) {
