@@ -217,7 +217,7 @@ func (srv *remoteNetworkServiceServer) validateNSEConnection(nseConnection *conn
 }
 
 func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *remote_connection.Connection) (*empty.Empty, error) {
-	logrus.Info("Remote closing connection: %v", *connection)
+	logrus.Infof("Remote closing connection: %v", *connection)
 	clientConnection := srv.model.GetClientConnection(connection.Id)
 	if clientConnection == nil {
 		logrus.Warnf("No connection with id: %s, nothing to close", connection.Id)
