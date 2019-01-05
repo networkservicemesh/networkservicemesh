@@ -95,7 +95,6 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	clientConnection := &model.ClientConnection{
 		ConnectionId: request.Connection.Id,
 		Xcon:         rv,
-		RemoteNsm:    request.RequesterNsm,
 		Endpoint:     endpoint,
 		Dataplane:    dp,
 	}

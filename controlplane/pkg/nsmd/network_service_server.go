@@ -386,7 +386,6 @@ func (srv *networkServiceServer) createRemoteNSERequest(endpoint *registry.NSERe
 			NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
 		},
 		MechanismPreferences: remoteM,
-		RequesterNsm:         srv.model.GetNsm(),
 	}
 	return message
 }
