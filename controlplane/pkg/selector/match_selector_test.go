@@ -18,17 +18,12 @@ package selector
 import (
 	"reflect"
 	"strconv"
-	"sync"
 	"testing"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
-type fields struct {
-	Mutex      sync.Mutex
-	roundRobin Selector
-}
 type args struct {
 	requestConnection       *connection.Connection
 	ns                      *registry.NetworkService
@@ -103,10 +98,9 @@ func genArgs(p genArgsParam) args {
 func Test_matchSelector_SelectEndpoint(t *testing.T) {
 
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   *registry.NetworkServiceEndpoint
+		name string
+		args args
+		want *registry.NetworkServiceEndpoint
 	}{
 		{
 			name: "network-service-1 RR fallback",

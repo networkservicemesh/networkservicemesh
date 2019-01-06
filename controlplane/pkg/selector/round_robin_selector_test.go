@@ -17,7 +17,6 @@ package selector
 
 import (
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -25,20 +24,15 @@ import (
 )
 
 func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
-	type fields struct {
-		Mutex      sync.Mutex
-		roundRobin map[string]int
-	}
 	type args struct {
 		requestConnection       *connection.Connection
 		ns                      *registry.NetworkService
 		networkServiceEndpoints []*registry.NetworkServiceEndpoint
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   *registry.NetworkServiceEndpoint
+		name string
+		args args
+		want *registry.NetworkServiceEndpoint
 	}{
 		{
 			name: "network-service-1 first pass",
