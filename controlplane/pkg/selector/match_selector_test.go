@@ -36,29 +36,43 @@ type args struct {
 }
 
 type genArgsParam struct {
-	nsID, labelID, numMatches, numEndpoints int
+	nsID, numMatches, numEndpoints int
+	labelIDs                       []int
+	matchSourceSelector            map[int]map[string]string
+	matchDestinationSelector       map[int]map[string]string
+	endpoints                      []*registry.NetworkServiceEndpoint
 }
 
 func genArgs(p genArgsParam) args {
 
 	labels := map[string]string{}
-	if p.labelID > 0 {
-		labels["label"+strconv.Itoa(p.labelID)] = "value" + strconv.Itoa(p.labelID)
+	for _, id := range p.labelIDs {
+		labels["label"+strconv.Itoa(id)] = "value" + strconv.Itoa(id)
 	}
 	matches := []*registry.Match{}
 
 	for i := 1; i <= p.numMatches; i++ {
-		matches = append(matches, &registry.Match{
-			SourceSelector: map[string]string{
-				"label" + strconv.Itoa(i): "value" + strconv.Itoa(i),
-			},
-			Routes: []*registry.Destination{
-				{
-					DestinationSelector: map[string]string{
-						"label" + strconv.Itoa(i): "value" + strconv.Itoa(i),
-					},
+		sourceSelector := map[string]string{
+			"label" + strconv.Itoa(i): "value" + strconv.Itoa(i),
+		}
+		if _, ok := p.matchSourceSelector[i]; ok {
+			sourceSelector = p.matchSourceSelector[i]
+		}
+		routes := []*registry.Destination{
+			{
+				DestinationSelector: map[string]string{
+					"label" + strconv.Itoa(i): "value" + strconv.Itoa(i),
 				},
 			},
+		}
+		if _, ok := p.matchDestinationSelector[i]; ok {
+			routes = append(routes, &registry.Destination{
+				DestinationSelector: p.matchDestinationSelector[i],
+			})
+		}
+		matches = append(matches, &registry.Match{
+			SourceSelector: sourceSelector,
+			Routes:         routes,
 		})
 	}
 
@@ -72,6 +86,7 @@ func genArgs(p genArgsParam) args {
 			},
 		})
 	}
+	endpoints = append(endpoints, p.endpoints...)
 
 	return args{
 		requestConnection: &connection.Connection{
@@ -98,7 +113,6 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      0,
 					numMatches:   0,
 					numEndpoints: 3,
 				}),
@@ -114,7 +128,6 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      0,
 					numMatches:   0,
 					numEndpoints: 3,
 				}),
@@ -130,7 +143,6 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      0,
 					numMatches:   1,
 					numEndpoints: 3,
 				}),
@@ -141,9 +153,9 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      1,
 					numMatches:   2,
 					numEndpoints: 3,
+					labelIDs:     []int{1},
 				}),
 			want: &registry.NetworkServiceEndpoint{
 				EndpointName: "NSE-1",
@@ -157,9 +169,9 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      2,
 					numMatches:   3,
 					numEndpoints: 5,
+					labelIDs:     []int{2},
 				}),
 			want: &registry.NetworkServiceEndpoint{
 				EndpointName: "NSE-2",
@@ -173,9 +185,9 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      12,
 					numMatches:   42,
 					numEndpoints: 24,
+					labelIDs:     []int{12},
 				}),
 			want: &registry.NetworkServiceEndpoint{
 				EndpointName: "NSE-12",
@@ -189,11 +201,276 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			args: genArgs(
 				genArgsParam{
 					nsID:         1,
-					labelID:      42,
 					numMatches:   42,
 					numEndpoints: 24,
+					labelIDs:     []int{42},
 				}),
 			want: nil,
+		},
+		{
+			name: "network-service-1 label1 label2",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   2,
+					numEndpoints: 2,
+					labelIDs:     []int{1, 2},
+					matchSourceSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-2",
+							Labels: map[string]string{
+								"label1": "value1",
+								"label2": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-2",
+				Labels: map[string]string{
+					"label1": "value1",
+					"label2": "value2",
+				},
+			},
+		},
+		{
+			name: "network-service-1 label1 label2 pass2",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   2,
+					numEndpoints: 2,
+					labelIDs:     []int{1, 2},
+					matchSourceSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-2",
+							Labels: map[string]string{
+								"label1": "value1",
+								"label2": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-1",
+				Labels: map[string]string{
+					"label1": "value1",
+				},
+			},
+		},
+		{
+			name: "network-service-1 label1 label2 pass3",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   2,
+					numEndpoints: 2,
+					labelIDs:     []int{1, 2},
+					matchSourceSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-2",
+							Labels: map[string]string{
+								"label1": "value1",
+								"label2": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-2",
+				Labels: map[string]string{
+					"label1": "value1",
+					"label2": "value2",
+				},
+			},
+		},
+		{
+			name: "network-service-1 label2 label1",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   2,
+					numEndpoints: 2,
+					labelIDs:     []int{2, 1},
+					matchSourceSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-2",
+							Labels: map[string]string{
+								"label1": "value1",
+								"label2": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-1",
+				Labels: map[string]string{
+					"label1": "value1",
+				},
+			},
+		},
+		{
+			name: "network-service-1 label2 label1 pass2",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   2,
+					numEndpoints: 2,
+					labelIDs:     []int{2, 1},
+					matchSourceSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						2: {
+							"label1": "value1",
+							"label2": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-2",
+							Labels: map[string]string{
+								"label1": "value1",
+								"label2": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-2",
+				Labels: map[string]string{
+					"label1": "value1",
+					"label2": "value2",
+				},
+			},
+		},
+		{
+			name: "network-service-1 label10 label20 label30",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   100,
+					numEndpoints: 500,
+					labelIDs:     []int{10, 20, 30},
+					matchSourceSelector: map[int]map[string]string{
+						10: {
+							"label10": "value10",
+							"label20": "value20",
+							"label30": "value30",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						10: {
+							"label221": "value1",
+							"label222": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-221",
+							Labels: map[string]string{
+								"label221": "value1",
+								"label222": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-10",
+				Labels: map[string]string{
+					"label10": "value10",
+				},
+			},
+		},
+		{
+			name: "network-service-1 label10 label20 label30 pass2",
+			args: genArgs(
+				genArgsParam{
+					nsID:         1,
+					numMatches:   100,
+					numEndpoints: 500,
+					labelIDs:     []int{10, 20, 30},
+					matchSourceSelector: map[int]map[string]string{
+						10: {
+							"label10": "value10",
+							"label20": "value20",
+							"label30": "value30",
+						},
+					},
+					matchDestinationSelector: map[int]map[string]string{
+						10: {
+							"label221": "value1",
+							"label222": "value2",
+						},
+					},
+					endpoints: []*registry.NetworkServiceEndpoint{
+						{
+							EndpointName: "NSE-221",
+							Labels: map[string]string{
+								"label221": "value1",
+								"label222": "value2",
+							},
+						},
+					},
+				}),
+			want: &registry.NetworkServiceEndpoint{
+				EndpointName: "NSE-221",
+				Labels: map[string]string{
+					"label221": "value1",
+					"label222": "value2",
+				},
+			},
 		},
 	}
 	m := NewMatchSelector()
