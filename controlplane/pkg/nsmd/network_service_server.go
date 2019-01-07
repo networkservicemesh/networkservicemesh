@@ -31,16 +31,14 @@ type networkServiceServer struct {
 	monitor           monitor_connection_server.MonitorConnectionServer
 	serviceRegistry   serviceregistry.ServiceRegistry
 	excluded_prefixes []string
-	tracer            opentracing.Tracer
 }
 
-func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry, excluded_prefixes []string, tracer opentracing.Tracer) networkservice.NetworkServiceServer {
+func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry, excluded_prefixes []string) networkservice.NetworkServiceServer {
 	return &networkServiceServer{
 		model:             model,
 		workspace:         workspace,
 		serviceRegistry:   serviceRegistry,
 		excluded_prefixes: excluded_prefixes,
-		tracer:            tracer,
 	}
 }
 
@@ -73,7 +71,8 @@ func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, re
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
 
-	span := srv.tracer.StartSpan("client-connect-request")
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("client-connect-request")
 	defer span.Finish()
 
 	// Make sure its a valid request
