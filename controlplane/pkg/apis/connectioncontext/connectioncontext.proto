@@ -30,6 +30,23 @@ message Route {
     string prefix = 1;                  /* destination address + prefix in format <address>/<prefix> */
 }
 
+message IpFamily {
+    enum Family {
+        IPV4 = 0;
+        IPV6 = 1;
+//        ALL = 2;
+//        MPLS = 3;
+    }
+    Family family = 1;
+}
+
+message ExtraPrefixRequest {
+    IpFamily Af_family      = 1;
+    uint32 prefix_len       = 2;
+    uint32 required_number  = 3;
+    uint32 requested_number = 4;
+}
+
 message ConnectionContext {
     string src_ip_addr = 1;             /* source ip address + prefix in format <address>/<prefix> */
     string dst_ip_addr = 2;             /* destination ip address + prefix in format <address>/<prefix> */
@@ -40,5 +57,8 @@ message ConnectionContext {
     repeated Route routes = 5;          /* a list of routes via dst_ip_addr as gateway */
     repeated string excluded_prefixes = 6; /* a list of excluded passed to NSE */
 
-    repeated IpNeighbor ip_neighbors  = 7;
+    repeated IpNeighbor ip_neighbors  = 7; /* A list of ARP table neighbours addresses */
+
+    repeated ExtraPrefixRequest extra_prefix_request = 8;   /* A request for NSE to have provide extra prefixes */
+    repeated string extra_prefixes = 9; /* A list of extra prefixes requested */
 }
