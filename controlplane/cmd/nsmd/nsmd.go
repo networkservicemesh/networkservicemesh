@@ -44,6 +44,7 @@ func initJaeger(service string) (opentracing.Tracer, io.Closer) {
 func main() {
 
 	tracer, closer := initJaeger("nsmd")
+	opentracing.SetGlobalTracer(tracer)
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -57,7 +58,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := nsmd.StartNSMServer(model, serviceRegistry, apiRegistry, tracer); err != nil {
+	if err := nsmd.StartNSMServer(model, serviceRegistry, apiRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
 		os.Exit(1)
 	}
