@@ -15,11 +15,9 @@
 package main
 
 import (
-	"encoding/binary"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"net"
-
 	"github.com/sirupsen/logrus"
+	"net"
 
 	"github.com/ligato/networkservicemesh/pkg/tools"
 
@@ -42,13 +40,11 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 		},
 	}
 
-	srcIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(srcIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 1
-
-	dstIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(dstIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 3
+	//TODO: We need to somehow support IPv6.
+	srcIP, dstIP, prefixes, err := ns.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO take into consideration LocalMechnism preferences sent in request
 
@@ -57,13 +53,14 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 		NetworkService: request.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
 		Context: &connectioncontext.ConnectionContext{
-			SrcIpAddr: srcIP.String() + "/30",
-			DstIpAddr: dstIP.String() + "/30",
+			SrcIpAddr: srcIP.String(),
+			DstIpAddr: dstIP.String(),
 			Routes: []*connectioncontext.Route{
 				&connectioncontext.Route{
 					Prefix: "8.8.8.8/30",
 				},
 			},
+			ExtraPrefixes: prefixes,
 		},
 	}
 
@@ -93,5 +90,6 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 		logrus.Error(err)
 		return nil, err
 	}
+	logrus.Infof("NSE is complete response: %v", connection)
 	return connection, nil
 }
