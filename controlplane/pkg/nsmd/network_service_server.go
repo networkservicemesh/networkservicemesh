@@ -30,15 +30,18 @@ type networkServiceServer struct {
 	monitor           monitor_connection_server.MonitorConnectionServer
 	serviceRegistry   serviceregistry.ServiceRegistry
 	excluded_prefixes []string
+	model.ModelListenerImpl
 }
 
 func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry, excluded_prefixes []string) networkservice.NetworkServiceServer {
-	return &networkServiceServer{
+	rv := &networkServiceServer{
 		model:             model,
 		workspace:         workspace,
 		serviceRegistry:   serviceRegistry,
 		excluded_prefixes: excluded_prefixes,
 	}
+	model.AddListener(rv)
+	return rv
 }
 
 func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, requestConnection *connection.Connection) (*registry.NSERegistration, error) {
@@ -171,54 +174,13 @@ func (srv *networkServiceServer) Close(ctx context.Context, connection *connecti
 		return &empty.Empty{}, nil
 	}
 
-	if clientConnection.RemoteNsm != nil {
-		remoteClient, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(clientConnection.RemoteNsm)
-		if err != nil {
-			logrus.Error(err)
-			return &empty.Empty{}, err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-		logrus.Info("Remote client successfully created")
-
-		if _, err := remoteClient.Close(ctx, clientConnection.Xcon.GetRemoteDestination()); err != nil {
-			logrus.Error(err)
-			return &empty.Empty{}, err
-		}
-		logrus.Info("Remote part of cross connection successfully closed")
-	} else {
-		endpointClient, conn, err := srv.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
-		if err != nil {
-			logrus.Error(err)
-			return nil, err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-
-		logrus.Info("Closing NSE connection...")
-		if _, err := endpointClient.Close(ctx, clientConnection.Xcon.GetLocalDestination()); err != nil {
-			logrus.Error(err)
-			return &empty.Empty{}, err
-		}
-		logrus.Info("NSE connection successfully closed")
-	}
-
-	logrus.Info("Closing cross connection on dataplane...")
-	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
-	if err != nil {
+	if err := srv.CloseXconOnEndpoint(ctx, clientConnection); err != nil {
 		logrus.Error(err)
-		return nil, err
 	}
-	if conn != nil {
-		defer conn.Close()
+
+	if err := srv.CloseXconOnDataplane(context.Background(), clientConnection); err != nil {
+		logrus.Error()
 	}
-	if _, err := dataplaneClient.Close(ctx, clientConnection.Xcon); err != nil {
-		logrus.Error(err)
-		return &empty.Empty{}, err
-	}
-	logrus.Info("Cross connection successfully closed on dataplane")
 
 	srv.model.DeleteClientConnection(connection.Id)
 	srv.workspace.MonitorConnectionServer().DeleteConnection(connection)
@@ -387,4 +349,76 @@ func (srv *networkServiceServer) createRemoteNSERequest(endpoint *registry.NSERe
 		MechanismPreferences: remoteM,
 	}
 	return message
+}
+
+func (srv *networkServiceServer) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
+	switch clientConnection.Xcon.State {
+	case crossconnect.CrossConnectState_SRC_DOWN:
+		if err := srv.CloseXconOnEndpoint(context.Background(), clientConnection); err != nil {
+			logrus.Error(err)
+		}
+		fallthrough
+	case crossconnect.CrossConnectState_DST_DOWN:
+		if err := srv.CloseXconOnDataplane(context.Background(), clientConnection); err != nil {
+			logrus.Error(err)
+		}
+		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+		break
+	}
+}
+
+func (srv *networkServiceServer) CloseXconOnEndpoint(ctx context.Context, clientConnection *model.ClientConnection) error {
+	if clientConnection.RemoteNsm != nil {
+		remoteClient, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(clientConnection.RemoteNsm)
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
+		if conn != nil {
+			defer conn.Close()
+		}
+		logrus.Info("Remote client successfully created")
+
+		if _, err := remoteClient.Close(ctx, clientConnection.Xcon.GetRemoteDestination()); err != nil {
+			logrus.Error(err)
+			return err
+		}
+		logrus.Info("Remote part of cross connection successfully closed")
+	} else {
+		endpointClient, conn, err := srv.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
+		if conn != nil {
+			defer conn.Close()
+		}
+
+		logrus.Info("Closing NSE connection...")
+		if _, err := endpointClient.Close(ctx, clientConnection.Xcon.GetLocalDestination()); err != nil {
+			logrus.Error(err)
+			return err
+		}
+		logrus.Info("NSE connection successfully closed")
+	}
+
+	return nil
+}
+
+func (srv *networkServiceServer) CloseXconOnDataplane(ctx context.Context, clientConnection *model.ClientConnection) error {
+	logrus.Info("Closing cross connection on dataplane...")
+	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+	if conn != nil {
+		defer conn.Close()
+	}
+	if _, err := dataplaneClient.Close(ctx, clientConnection.Xcon); err != nil {
+		logrus.Error(err)
+		return err
+	}
+	logrus.Info("Cross connection successfully closed on dataplane")
+	return nil
 }

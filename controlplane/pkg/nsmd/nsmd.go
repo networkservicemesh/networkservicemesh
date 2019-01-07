@@ -192,6 +192,6 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 func startCrossConnectMonitor(grpcServer *grpc.Server, model model.Model) {
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := NewMonitorCrossConnectClient(monitor)
-	monitorClient.Register(model)
+	monitorClient := NewMonitorCrossConnectClient(monitor, model)
+	model.AddListener(monitorClient)
 }

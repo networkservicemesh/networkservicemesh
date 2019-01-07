@@ -39,7 +39,24 @@ type ModelListener interface {
 
 	ClientConnectionAdded(clientConnection *ClientConnection)
 	ClientConnectionDeleted(clientConnection *ClientConnection)
+	ClientConnectionUpdated(clientConnection *ClientConnection)
 }
+
+type ModelListenerImpl struct{}
+
+func (ModelListenerImpl) EndpointAdded(endpoint *registry.NetworkServiceEndpoint) {}
+
+func (ModelListenerImpl) EndpointDeleted(endpoint *registry.NetworkServiceEndpoint) {}
+
+func (ModelListenerImpl) DataplaneAdded(dataplane *Dataplane) {}
+
+func (ModelListenerImpl) DataplaneDeleted(dataplane *Dataplane) {}
+
+func (ModelListenerImpl) ClientConnectionAdded(clientConnection *ClientConnection) {}
+
+func (ModelListenerImpl) ClientConnectionDeleted(clientConnection *ClientConnection) {}
+
+func (ModelListenerImpl) ClientConnectionUpdated(clientConnection *ClientConnection) {}
 
 type Model interface {
 	GetNetworkServiceEndpoints(name string) []*registry.NSERegistration
@@ -55,6 +72,8 @@ type Model interface {
 
 	AddClientConnection(clientConnection *ClientConnection)
 	GetClientConnection(connectionId string) *ClientConnection
+	GetClientConnectionByXcon(xconId string) *ClientConnection
+	UpdateClientConnection(clientConnection *ClientConnection)
 	DeleteClientConnection(connectionId string)
 
 	ConnectionId() string
@@ -98,13 +117,34 @@ func (i *impl) GetClientConnection(connectionId string) *ClientConnection {
 	return i.clientConnections[connectionId]
 }
 
+func (i *impl) GetClientConnectionByXcon(xconId string) *ClientConnection {
+	i.RLock()
+	defer i.RUnlock()
+
+	for _, clientConnection := range i.clientConnections {
+		if clientConnection.Xcon.Id == xconId {
+			return clientConnection
+		}
+	}
+	return nil
+}
+
+func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
+	i.Lock()
+	i.clientConnections[clientConnection.ConnectionId] = clientConnection
+	i.Unlock()
+
+	for _, listener := range i.listeners {
+		listener.ClientConnectionUpdated(clientConnection)
+	}
+}
+
 func (i *impl) DeleteClientConnection(connectionId string) {
 	i.Lock()
-	defer i.Unlock()
-
 	clientConnection := i.clientConnections[connectionId]
-
 	delete(i.clientConnections, connectionId)
+	i.Unlock()
+
 	for _, listener := range i.listeners {
 		listener.ClientConnectionDeleted(clientConnection)
 	}
