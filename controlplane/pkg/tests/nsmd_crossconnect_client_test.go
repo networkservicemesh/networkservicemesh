@@ -26,8 +26,8 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 	// Start Cross connect monitor and server
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor)
-	monitorClient.Register(model)
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, model)
+	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 
 	go func() {
