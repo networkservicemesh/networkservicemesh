@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, Inc.
+// Copyright 2018, 2019 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nscomposer
+package common
 
 import (
 	"encoding/binary"
@@ -39,7 +39,7 @@ func getEnv(key, description string, mandatory bool) string {
 	return value
 }
 
-func ip2int(ip net.IP) uint32 {
+func Ip2int(ip net.IP) uint32 {
 	if ip == nil {
 		return 0
 	}
@@ -49,7 +49,7 @@ func ip2int(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip)
 }
 
-func mechanismFromString(mechanismName string) connection.MechanismType {
+func MechanismFromString(mechanismName string) connection.MechanismType {
 	mechanismName = strings.ToUpper(mechanismName) + "_INTERFACE"
 	if mechanism, ok := connection.MechanismType_value[mechanismName]; ok {
 		return connection.MechanismType(mechanism)

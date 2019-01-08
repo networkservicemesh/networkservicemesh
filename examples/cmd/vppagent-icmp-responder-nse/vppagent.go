@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (ns *vppagentBackend) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
+func (ns *vppagentComposite) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
@@ -44,7 +44,7 @@ func (ns *vppagentBackend) CreateVppInterface(ctx context.Context, nseConnection
 	return nil
 }
 
-func (ns *vppagentBackend) Reset() error {
+func (ns *vppagentComposite) Reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", ns.vppAgentEndpoint, 100*time.Millisecond)

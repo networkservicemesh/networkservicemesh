@@ -21,15 +21,20 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
+	"github.com/ligato/networkservicemesh/sdk/endpoint"
+	"github.com/ligato/networkservicemesh/sdk/endpoint/composite"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
-	backend := &icmpResponderBackend{}
+	connection := composite.NewConnectionCompositeEndpoint(nil)
+	ipam := composite.NewIpamCompositeEndpoint(nil)
+	monitor := composite.NewMonitorCompositeEndpoint(nil)
+	ipam.SetNext(connection)
+	monitor.SetNext(ipam)
 
-	nsmEndpoint, err := nscomposer.NewNSMEndpoint(nil, nil, backend)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, monitor)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}

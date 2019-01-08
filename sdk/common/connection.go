@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, Inc.
+// Copyright 2018, 2019 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nscomposer
+package common
 
 import (
 	"context"
@@ -26,25 +26,25 @@ import (
 	"google.golang.org/grpc"
 )
 
-type nsmConnection struct {
+type NsmConnection struct {
 	sync.RWMutex
-	context       context.Context
-	configuration *NSConfiguration
-	grpcClient    *grpc.ClientConn
-	nsClient      networkservice.NetworkServiceClient
+	Context       context.Context
+	Configuration *NSConfiguration
+	GrpcClient    *grpc.ClientConn
+	NsClient      networkservice.NetworkServiceClient
 }
 
-func (nsmc *nsmConnection) Close() error {
-	return nsmc.grpcClient.Close()
+func (nsmc *NsmConnection) Close() error {
+	return nsmc.GrpcClient.Close()
 }
 
-func newNSMConnection(ctx context.Context, configuration *NSConfiguration) (*nsmConnection, error) {
+func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*NsmConnection, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	conn := nsmConnection{
-		context:       ctx,
-		configuration: configuration,
+	conn := NsmConnection{
+		Context:       ctx,
+		Configuration: configuration,
 	}
 	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
 	// linuxNS, err := tools.GetCurrentNS()
@@ -56,26 +56,26 @@ func newNSMConnection(ctx context.Context, configuration *NSConfiguration) (*nsm
 	// NSE connection server is ready and now endpoints can be advertised to NSM
 
 	// Check if the socket of Endpoint Connection Server is operable
-	testSocket, err := tools.SocketOperationCheck(configuration.nsmServerSocket)
+	testSocket, err := tools.SocketOperationCheck(configuration.NsmServerSocket)
 	if err != nil {
-		logrus.Errorf("nse: failure to communicate with the nsm on socket %s with error: %v", configuration.nsmServerSocket, err)
+		logrus.Errorf("nse: failure to communicate with the nsm on socket %s with error: %v", configuration.NsmServerSocket, err)
 		return nil, err
 	}
 	testSocket.Close()
 
-	if _, err := os.Stat(configuration.nsmServerSocket); err != nil {
-		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", configuration.nsmServerSocket, err)
+	if _, err := os.Stat(configuration.NsmServerSocket); err != nil {
+		logrus.Errorf("nse: failure to access nsm socket at %s with error: %+v, exiting...", configuration.NsmServerSocket, err)
 		return nil, err
 	}
 
-	conn.grpcClient, err = tools.SocketOperationCheck(configuration.nsmServerSocket)
+	conn.GrpcClient, err = tools.SocketOperationCheck(configuration.NsmServerSocket)
 	if err != nil {
-		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.nsmServerSocket, err)
+		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err
 	}
-	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", configuration.nsmServerSocket)
+	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", configuration.NsmServerSocket)
 
-	conn.nsClient = networkservice.NewNetworkServiceClient(conn.grpcClient)
+	conn.NsClient = networkservice.NewNetworkServiceClient(conn.GrpcClient)
 
 	return &conn, nil
 }

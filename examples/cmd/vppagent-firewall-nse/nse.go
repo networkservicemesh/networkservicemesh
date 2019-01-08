@@ -21,19 +21,32 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
+	"github.com/ligato/networkservicemesh/sdk/common"
+	"github.com/ligato/networkservicemesh/sdk/endpoint"
+	"github.com/ligato/networkservicemesh/sdk/endpoint/composite"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
-	configuration := &nscomposer.NSConfiguration{
-		OutgoingNscMechanism: "mem",
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.TraceLevel)
+
+	configuration := &common.NSConfiguration{
+		MechanismType: "mem",
 	}
 
-	backend := &vppagentBackend{}
+	connection := composite.NewConnectionCompositeEndpoint(configuration)
+	client := composite.NewClientCompositeEndpoint(configuration)
+	vppXConn := newVppAgentXConnComposite(configuration)
+	vppAcl := newVppAgentAclComposite(configuration)
+	monitor := composite.NewMonitorCompositeEndpoint(nil)
+	client.SetNext(connection)
+	vppXConn.SetNext(client)
+	vppAcl.SetNext(vppXConn)
+	monitor.SetNext(vppAcl)
 
-	nsmEndpoint, err := nscomposer.NewNSMEndpoint(nil, configuration, backend)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, monitor)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}

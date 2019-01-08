@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, Inc.
+// Copyright 2018, 2019 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,46 +13,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nscomposer
+package common
 
 import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 )
 
 const (
-	advertiseNseNameEnv     = "ADVERTISE_NSE_NAME"
-	advertiseNseLabelsEnv   = "ADVERTISE_NSE_LABELS"
-	outgoingNscNameEnv      = "OUTGOING_NSC_NAME"
-	outgoingNscLabelsEnv    = "OUTGOING_NSC_LABELS"
-	outgoingNscMechanismEnv = "OUTGOING_NSC_MECHANISM"
-	ipAddressEnv            = "IP_ADDRESS"
+	advertiseNseNameEnv   = "ADVERTISE_NSE_NAME"
+	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
+	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
+	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
+	mechanismTypeEnv      = "MECHANISM_TYPE"
+	ipAddressEnv          = "IP_ADDRESS"
 )
 
 // NSConfiguration contains the fill configuration of
 type NSConfiguration struct {
-	nsmServerSocket      string
-	nsmClientSocket      string
-	workspace            string
-	AdvertiseNseName     string
-	OutgoingNscName      string
-	AdvertiseNseLabels   string
-	OutgoingNscLabels    string
-	OutgoingNscMechanism string
-	IPAddress            string
+	NsmServerSocket    string
+	NsmClientSocket    string
+	Workspace          string
+	AdvertiseNseName   string
+	OutgoingNscName    string
+	AdvertiseNseLabels string
+	OutgoingNscLabels  string
+	MechanismType      string
+	IPAddress          string
 }
 
 func (configuration *NSConfiguration) CompleteNSConfiguration() {
 
-	if len(configuration.nsmServerSocket) == 0 {
-		configuration.nsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
+	if len(configuration.NsmServerSocket) == 0 {
+		configuration.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
 	}
 
-	if len(configuration.nsmClientSocket) == 0 {
-		configuration.nsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
+	if len(configuration.NsmClientSocket) == 0 {
+		configuration.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
 	}
 
-	if len(configuration.workspace) == 0 {
-		configuration.workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
+	if len(configuration.Workspace) == 0 {
+		configuration.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
 	}
 
 	if len(configuration.AdvertiseNseName) == 0 {
@@ -71,11 +71,11 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
 
-	if len(configuration.OutgoingNscMechanism) == 0 {
-		configuration.OutgoingNscMechanism = getEnv(outgoingNscMechanismEnv, "Outgoing mechanism type", false)
+	if len(configuration.MechanismType) == 0 {
+		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
 	}
 
 	if len(configuration.IPAddress) == 0 {
-		configuration.IPAddress = getEnv(ipAddressEnv, "Outgoing labels", false)
+		configuration.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
 	}
 }

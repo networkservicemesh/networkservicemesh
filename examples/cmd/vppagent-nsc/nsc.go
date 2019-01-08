@@ -15,7 +15,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"sync"
@@ -23,7 +22,7 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
+	"github.com/ligato/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,17 +43,13 @@ func (nscb *nsClientBackend) New() error {
 	return nil
 }
 
-func (nscb *nsClientBackend) Connect(ctx context.Context, connection *connection.Connection) error {
+func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 	logrus.Infof("nsClientBackend received: %v", connection)
 	err := CreateVppInterface(connection, nscb.workspace, nscb.vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("VPPAgent failed creating the requested interface with: %v", err)
 	}
 	return err
-}
-
-func (*nsClientBackend) Close(ctx context.Context, connection *connection.Connection) error {
-	return nil
 }
 
 func main() {
@@ -69,16 +64,26 @@ func main() {
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
 
-	configuration := &nscomposer.NSConfiguration{
-		OutgoingNscMechanism: "mem",
-	}
-
-	client, err := nscomposer.NewNSMClient(nil, configuration, backend)
+	client, err := client.NewNSMClient(nil, nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	client.Connect()
+	err = backend.New()
+	if err != nil {
+		logrus.Fatalf("Unable to create the backend %v", err)
+	}
+
+	var outgoingConnection *connection.Connection
+	outgoingConnection, err = client.Connect("if1", "mem", "Primary interface")
+	if err != nil {
+		logrus.Fatalf("Unable to connect %v", err)
+	}
+
+	err = backend.Connect(outgoingConnection)
+	if err != nil {
+		logrus.Fatalf("Unable to connect %v", err)
+	}
 
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
 	var wg sync.WaitGroup

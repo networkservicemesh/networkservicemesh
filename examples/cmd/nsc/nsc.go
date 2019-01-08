@@ -15,18 +15,18 @@
 package main
 
 import (
-	"github.com/ligato/networkservicemesh/sdk/nscomposer"
+	"github.com/ligato/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
-	client, err := nscomposer.NewNSMClient(nil, nil, nil)
+	client, err := client.NewNSMClient(nil, nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	client.Connect()
+	client.Connect("if1", "kernel", "Primary interface")
 	logrus.Info("nsm client: initialization is completed successfully")
 
 }
