@@ -70,8 +70,6 @@ func (p *PortForward) Start() error {
 	case <-readyChan:
 		return nil
 	}
-
-	return nil
 }
 
 func (p *PortForward) Stop() {
