@@ -16,15 +16,18 @@ package nsmd
 
 import (
 	"context"
+	"net"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"net"
-	"time"
 )
 
 type NSMMonitorCrossConnectClient interface {
@@ -76,11 +79,16 @@ func NewMonitorCrossConnectClient(monitor monitor_crossconnect_server.MonitorCro
 }
 
 func dial(ctx context.Context, network string, address string) (*grpc.ClientConn, error) {
+	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.Dial(network, addr)
 		}),
-	)
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer)),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+
 	return conn, err
 }
 

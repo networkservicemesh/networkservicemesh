@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,40 +8,13 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	jaeger "github.com/uber/jaeger-client-go"
-	"github.com/uber/jaeger-client-go/config"
 )
 
-// initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
-func initJaeger(service string) (opentracing.Tracer, io.Closer) {
-	jaegerHost := os.Getenv("JAEGER_SERVICE_HOST")
-	jaegerPort := os.Getenv("JAEGER_SERVICE_PORT_JAEGER")
-	jaegerHostPort := fmt.Sprintf("%s:%s", jaegerHost, jaegerPort)
-
-	logrus.Infof("Using Jaeger host/port: %s", jaegerHostPort)
-
-	cfg := &config.Configuration{
-		Sampler: &config.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &config.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: jaegerHostPort,
-		},
-	}
-	tracer, closer, err := cfg.New(service, config.Logger(jaeger.StdLogger))
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
-	}
-	return tracer, closer
-}
-
 func main() {
-
-	tracer, closer := initJaeger("nsmd")
+	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
 
 	apiRegistry := nsmd.NewApiRegistry()

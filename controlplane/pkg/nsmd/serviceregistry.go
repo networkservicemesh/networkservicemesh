@@ -9,20 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
-
-	"google.golang.org/grpc/connectivity"
-
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 const (
@@ -75,7 +75,12 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Networ
 	}
 
 	logrus.Infof("Remote Network Service %s is available at %s, attempting to connect...", nsm.GetName(), nsm.GetUrl())
-	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure())
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer)),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
 		logrus.Errorf("Failed to dial Network Service Registry %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
@@ -178,7 +183,12 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 	for impl.stopRedial {
 		tools.WaitForPortAvailable(context.Background(), "tcp", registryAddress, 1*time.Second)
 		logrus.Println("Registry port now available, attempting to connect...")
-		conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
+		tracer := opentracing.GlobalTracer()
+		conn, err := grpc.Dial(registryAddress, grpc.WithInsecure(),
+			grpc.WithUnaryInterceptor(
+				otgrpc.OpenTracingClientInterceptor(tracer)),
+			grpc.WithStreamInterceptor(
+				otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 		if err != nil {
 			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", registryAddress, err)
 			continue
