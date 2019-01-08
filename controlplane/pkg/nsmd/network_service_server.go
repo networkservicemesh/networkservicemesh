@@ -15,7 +15,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -70,10 +69,6 @@ func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, re
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
-
-	tracer := opentracing.GlobalTracer()
-	span := tracer.StartSpan("client-connect-request")
-	defer span.Finish()
 
 	// Make sure its a valid request
 	err := request.IsValid()

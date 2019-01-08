@@ -17,15 +17,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	"os"
-	"sync"
-	"time"
 )
 
 const (
@@ -57,6 +59,10 @@ func newNetworkServiceRequest(networkServiceName string, nsLabels map[string]str
 }
 
 func main() {
+	tracer, closer := tools.InitJaeger("nsc")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+
 	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
 	netns, err := tools.GetCurrentNS()
 	if err != nil {

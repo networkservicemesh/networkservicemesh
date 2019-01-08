@@ -1,13 +1,20 @@
 package registryserver
 
 import (
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	opentracing "github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
 
 func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
-	server := grpc.NewServer()
+	tracer := opentracing.GlobalTracer()
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer)),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	srv := &registryService{
 		clientset: clientset,
