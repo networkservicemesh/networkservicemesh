@@ -205,7 +205,12 @@ type K8s struct {
 }
 
 func NewK8s() (*K8s, error) {
-	path := os.Getenv("HOME") + "/.kube/config"
+
+	path := os.Getenv("KUBECONFIG")
+	if len(path) == 0 {
+		path = os.Getenv("HOME") + "/.kube/config"
+	}
+
 	config, err := clientcmd.BuildConfigFromFlags("", path)
 	Expect(err).To(BeNil())
 
