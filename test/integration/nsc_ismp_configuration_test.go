@@ -69,19 +69,34 @@ func TestNSCAndICMPLocal(t *testing.T) {
 	k8s.WaitLogsContains(nscPodNode, "nsc", "nsm client: initialization is completed successfully", 10*time.Second)
 	logrus.Printf("NSC started done: %v", time.Since(s1))
 
-	ipResponse, errOut, error := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
-	Expect(error).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	logrus.Printf("NSC IP status:%s", ipResponse)
+	failures := InterceptGomegaFailures(func() {
+		ipResponse, errOut, error := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+		Expect(error).To(BeNil())
+		Expect(errOut).To(Equal(""))
+		logrus.Printf("NSC IP status:%s", ipResponse)
 
-	Expect(strings.Contains(ipResponse, "10.20.1.1")).To(Equal(true))
-	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
+		Expect(strings.Contains(ipResponse, "10.20.1.1")).To(Equal(true))
+		Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
-	routeResponse, errOut, error := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
-	Expect(error).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	logrus.Printf("NSC Route status:%s", routeResponse)
+		routeResponse, errOut, error := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+		Expect(error).To(BeNil())
+		Expect(errOut).To(Equal(""))
+		logrus.Printf("NSC Route status:%s", routeResponse)
 
-	Expect(strings.Contains(routeResponse, "8.8.8.8")).To(Equal(true))
-	Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
+		Expect(strings.Contains(routeResponse, "8.8.8.8")).To(Equal(true))
+		Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
+	})
+	// Do dumping of container state to dig into what is happened.
+	if len(failures) > 0 {
+		logrus.Errorf("Failues: %v", failures)
+
+		nsmdLogs, _ := k8s.GetLogs(nsmdPodNode, "nsmd")
+		logrus.Errorf("===================== NSMD output since test is failing %v\n=====================", nsmdLogs)
+
+		dataplaneLogs, _ := k8s.GetLogs(nsmdDataplanePodNode, "")
+		logrus.Errorf("===================== Dataplane output since test is failing %v\n=====================", dataplaneLogs)
+
+		t.Fail()
+	}
+
 }

@@ -355,7 +355,7 @@ func (k8s *K8s) GetConfig() *rest.Config {
 }
 
 func isNodeReady(node v1.Node) bool {
-	for _, c := range(node.Status.Conditions) {
+	for _, c := range node.Status.Conditions {
 		if c.Type == v1.NodeReady {
 			resultValue := c.Status == v1.ConditionTrue
 			return resultValue
@@ -363,17 +363,18 @@ func isNodeReady(node v1.Node) bool {
 	}
 	return false
 }
+
 /**
-	Wait for required number of nodes are up and running fine.
- */
+Wait for required number of nodes are up and running fine.
+*/
 func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Node {
 	st := time.Now()
 	warnPrinted := false
 	for {
 		nodes := k8s.GetNodes()
 		ready := 0
-		for _, node := range(nodes) {
-			logrus.Infof("Checking node: %v %v ", node.Name, node.Status)
+		for _, node := range nodes {
+			logrus.Infof("Checking node: %s", node.Name)
 			if isNodeReady(node) {
 				ready++
 			}
@@ -385,7 +386,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 		if since > timeout {
 			Expect(len(nodes)).To(Equal(requiredNumber))
 		}
-		if since > timeout / 10 && !warnPrinted {
+		if since > timeout/10 && !warnPrinted {
 			logrus.Warnf("Waiting for %d nodes to arrive, currenctly have: %d", len(nodes), requiredNumber)
 			warnPrinted = true
 		}
