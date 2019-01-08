@@ -353,3 +353,43 @@ func (k8s *K8s) GetClientSet() (kubernetes.Interface, error) {
 func (k8s *K8s) GetConfig() *rest.Config {
 	return k8s.config
 }
+
+func isNodeReady(node v1.Node) bool {
+	for _, c := range(node.Status.Conditions) {
+		if c.Type == v1.NodeReady {
+			resultValue := c.Status == v1.ConditionTrue
+			return resultValue
+		}
+	}
+	return false
+}
+/**
+	Wait for required number of nodes are up and running fine.
+ */
+func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Node {
+	st := time.Now()
+	warnPrinted := false
+	for {
+		nodes := k8s.GetNodes()
+		ready := 0
+		for _, node := range(nodes) {
+			logrus.Infof("Checking node: %v %v ", node.Name, node.Status)
+			if isNodeReady(node) {
+				ready++
+			}
+		}
+		if ready >= requiredNumber {
+			return nodes
+		}
+		since := time.Since(st)
+		if since > timeout {
+			Expect(len(nodes)).To(Equal(requiredNumber))
+		}
+		if since > timeout / 10 && !warnPrinted {
+			logrus.Warnf("Waiting for %d nodes to arrive, currenctly have: %d", len(nodes), requiredNumber)
+			warnPrinted = true
+		}
+		time.Sleep(time.Second)
+	}
+
+}

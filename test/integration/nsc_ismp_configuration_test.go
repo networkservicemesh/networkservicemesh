@@ -27,8 +27,8 @@ func TestNSCAndICMPLocal(t *testing.T) {
 	s1 := time.Now()
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
-	nodes := k8s.GetNodes()
-	if len(nodes) < 1 {
+	nodes := k8s.GetNodesWait(2, time.Second*10)
+	if len(nodes) < 2 {
 		logrus.Printf("At least one kubernetes node are required for this test")
 		Expect(len(nodes)).To(Equal(2))
 		return

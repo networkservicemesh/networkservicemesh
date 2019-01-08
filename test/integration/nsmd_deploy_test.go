@@ -5,6 +5,7 @@ import (
 	"github.com/ligato/networkservicemesh/test/kube_testing/pods"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -27,15 +28,16 @@ func TestNSMDDdataplabeDeploy(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	k8s.Prepare("nsmd")
-	nodes := k8s.GetNodes()
+	nodes := k8s.GetNodesWait(2, time.Second*60)
 
-	if len(nodes) < 1 {
-		logrus.Printf("At least one kubernetes node are required for this test")
+	if len(nodes) < 2 {
+		logrus.Printf("At least two kubernetes nodes are required for this test")
 		Expect(len(nodes)).To(Equal(2))
 		return
 	}
 
 	nsmdPodNode1 := k8s.CreatePods(pods.NSMDPod("nsmd1", &nodes[0]))
+	nsmdPodNode2 := k8s.CreatePods(pods.NSMDPod("nsmd2", &nodes[1]))
 
 	for _, lpod := range k8s.ListPods() {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)
@@ -45,6 +47,7 @@ func TestNSMDDdataplabeDeploy(t *testing.T) {
 	}
 
 	k8s.DeletePods("default", nsmdPodNode1...)
+	k8s.DeletePods("default", nsmdPodNode2...)
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)
