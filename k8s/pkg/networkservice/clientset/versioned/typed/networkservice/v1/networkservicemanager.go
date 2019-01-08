@@ -1,5 +1,5 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
-// Copyright (c) 2018 Red Hat Inc. and/or its affiliates.
+// Copyright (c) 2019 Cisco and/or its affiliates.
+// Copyright (c) 2019 Red Hat Inc. and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	scheme "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,11 +77,16 @@ func (c *networkServiceManagers) Get(name string, options metav1.GetOptions) (re
 
 // List takes label and field selectors, and returns the list of NetworkServiceManagers that match those selectors.
 func (c *networkServiceManagers) List(opts metav1.ListOptions) (result *v1.NetworkServiceManagerList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.NetworkServiceManagerList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("networkservicemanagers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -87,11 +94,16 @@ func (c *networkServiceManagers) List(opts metav1.ListOptions) (result *v1.Netwo
 
 // Watch returns a watch.Interface that watches the requested networkServiceManagers.
 func (c *networkServiceManagers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("networkservicemanagers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -149,10 +161,15 @@ func (c *networkServiceManagers) Delete(name string, options *metav1.DeleteOptio
 
 // DeleteCollection deletes a collection of objects.
 func (c *networkServiceManagers) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkservicemanagers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
