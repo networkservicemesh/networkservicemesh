@@ -5,6 +5,7 @@
 !controllers
 !controlplane
 !dataplane
+!docker
 !examples
 !k8s/cmd
 !k8s/pkg
