@@ -102,6 +102,7 @@ jobs:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
           command: |
+            ./scripts/prepare-circle-integration-tests.sh
             go test -v ./test/...
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig

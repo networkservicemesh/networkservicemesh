@@ -26,18 +26,13 @@ curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KU
 COMMIT="${CIRCLE_SHA1:8:8}"
 export CLUSTER_RULES_PREFIX=null
 
-. scripts/integration-tests.sh
+kubectl get nodes -o wide
+kubectl version
+kubectl api-versions
+kubectl label --overwrite --all=true nodes app=nsmd-ds
 
-# run_tests returns an error on failure
-run_tests
-exit_code=$?
-if [ "${exit_code}" == "0" ] ; then
-    echo "TESTS: PASS"
-else
-    echo "TESTS: FAIL"
-fi
 
-set +x
-exit ${exit_code}
+kubectl apply -f k8s/conf/cluster-role-admin.yaml
+kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
 # vim: sw=4 ts=4 et si
