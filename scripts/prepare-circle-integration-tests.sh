@@ -23,14 +23,10 @@ KUBECTL_VERSION=v1.11.3
 curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
  	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
 
-COMMIT="${CIRCLE_SHA1:8:8}"
-export CLUSTER_RULES_PREFIX=null
-
 kubectl get nodes -o wide
 kubectl version
 kubectl api-versions
 kubectl label --overwrite --all=true nodes app=nsmd-ds
-
 
 kubectl apply -f k8s/conf/cluster-role-admin.yaml
 kubectl apply -f k8s/conf/cluster-role-binding.yaml
