@@ -24,7 +24,6 @@ import (
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -366,9 +365,8 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 
 	srv.testModel = model.NewModel()
 
-	tracer := opentracing.GlobalTracer()
 	// Lets start NSMD NSE registry service
-	err = nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry, tracer)
+	err = nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry)
 	Expect(err).To(BeNil())
 	err = nsmd.StartAPIServer(srv.testModel, srv.apiRegistry, srv.serviceRegistry)
 	Expect(err).To(BeNil())
