@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -63,6 +64,68 @@ func TestCCServerEmpty(t *testing.T) {
 	Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
 }
 
+func TestXconMonitorClientSingleDataplane(t *testing.T) {
+	RegisterTestingT(t)
+
+	myModel := model.NewModel()
+	xconMonitorClientAddress := "127.0.0.1:5008"
+	err, grpcMonitorClient, _ := startAPIServer(myModel, xconMonitorClientAddress)
+	defer grpcMonitorClient.Stop()
+	Expect(err).To(BeNil())
+
+	dataplaneSocket := "dataplane1.sock"
+	_, grpcMonitorServer, monitorServer := createCrossMonitorDataplaneMock(dataplaneSocket)
+	defer grpcMonitorServer.Stop()
+	myModel.AddDataplane(&model.Dataplane{RegisteredName: "Dataplane1", SocketLocation: dataplaneSocket})
+
+	monitorServer.UpdateCrossConnect(&crossconnect.CrossConnect{
+		Id:      "cc1",
+		Payload: "json_data",
+	})
+	time.Sleep(time.Second)
+
+	events := readNMSDCrossConnectEvents(xconMonitorClientAddress, 1)
+
+	Expect(len(events)).To(Equal(1))
+	Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
+}
+
+func TestXconMonitorClientSeveralDataplane(t *testing.T) {
+	RegisterTestingT(t)
+
+	myModel := model.NewModel()
+	xconMonitorClientAddress := "127.0.0.1:5008"
+	err, grpcMonitorClient, _ := startAPIServer(myModel, xconMonitorClientAddress)
+	defer grpcMonitorClient.Stop()
+	Expect(err).To(BeNil())
+
+	dataplaneSocket1 := "dataplane1.sock"
+	_, grpcMonitorServer, monitorDataplane1 := createCrossMonitorDataplaneMock(dataplaneSocket1)
+	defer grpcMonitorServer.Stop()
+	myModel.AddDataplane(&model.Dataplane{RegisteredName: "Dataplane1", SocketLocation: dataplaneSocket1})
+
+	dataplaneSocket2 := "dataplane2.sock"
+	_, grpcMonitorServer, monitorDataplane2 := createCrossMonitorDataplaneMock(dataplaneSocket2)
+	defer grpcMonitorServer.Stop()
+	myModel.AddDataplane(&model.Dataplane{RegisteredName: "Dataplane2", SocketLocation: dataplaneSocket2})
+
+	monitorDataplane1.UpdateCrossConnect(&crossconnect.CrossConnect{
+		Id:      "cc1",
+		Payload: "json_data",
+	})
+	monitorDataplane2.UpdateCrossConnect(&crossconnect.CrossConnect{
+		Id:      "cc2",
+		Payload: "json_data",
+	})
+	time.Sleep(time.Second)
+	events := readNMSDCrossConnectEvents(xconMonitorClientAddress, 1)
+
+	Expect(len(events)).To(Equal(1))
+	Expect(len(events[0].CrossConnects)).To(Equal(2))
+	Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
+	Expect(events[0].CrossConnects["cc2"].Payload).To(Equal("json_data"))
+}
+
 func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {
 	var err error
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -83,6 +146,7 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 	result := []*crossconnect.CrossConnectEvent{}
 	for {
 		event, err := stream.Recv()
+		logrus.Infof("(test) receive event: %s %v", event.Type, event.CrossConnects)
 		if err != nil {
 			logrus.Errorf("Error2: %+v.", err)
 			return result

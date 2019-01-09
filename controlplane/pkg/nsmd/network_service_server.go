@@ -362,7 +362,6 @@ func (srv *networkServiceServer) ClientConnectionUpdated(clientConnection *model
 		if err := srv.CloseXconOnDataplane(context.Background(), clientConnection); err != nil {
 			logrus.Error(err)
 		}
-		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 		break
 	}
 }

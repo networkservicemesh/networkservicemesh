@@ -73,6 +73,7 @@ type Model interface {
 	AddClientConnection(clientConnection *ClientConnection)
 	GetClientConnection(connectionId string) *ClientConnection
 	GetClientConnectionByXcon(xconId string) *ClientConnection
+	GetClientConnectionByDst(dstId string) *ClientConnection
 	UpdateClientConnection(clientConnection *ClientConnection)
 	DeleteClientConnection(connectionId string)
 
@@ -123,6 +124,25 @@ func (i *impl) GetClientConnectionByXcon(xconId string) *ClientConnection {
 
 	for _, clientConnection := range i.clientConnections {
 		if clientConnection.Xcon.Id == xconId {
+			return clientConnection
+		}
+	}
+	return nil
+}
+
+func (i *impl) GetClientConnectionByDst(dstId string) *ClientConnection {
+	i.RLock()
+	defer i.RUnlock()
+
+	for _, clientConnection := range i.clientConnections {
+		var destinationId string
+		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
+			destinationId = dst.GetId()
+		} else {
+			destinationId = clientConnection.Xcon.GetRemoteDestination().GetId()
+		}
+
+		if destinationId == dstId {
 			return clientConnection
 		}
 	}
