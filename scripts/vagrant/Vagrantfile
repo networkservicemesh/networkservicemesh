@@ -7,23 +7,26 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant"
   config.vm.allowed_synced_folder_types = [:virtualbox, :vmware, :sshfs]
 
-  config.vm.provider "libvirt" do |v|
-        v.memory = 4096
-        v.cpus = 2
+  config.vm.provider "libvirt" do |v, override|
+    override.vm.box = "generic/ubuntu1604"
+    v.memory = 4096
+    v.cpus = 2
   end
-  config.vm.provider "virtualbox" do |v|
-        v.memory = 4096
-        v.cpus = 2
+  config.vm.provider "virtualbox" do |v, override|
+    override.vm.box = "bento/ubuntu-18.04"
+    v.memory = 4096
+    v.cpus = 2
   end
-  config.vm.provider "vmware_desktop" do |v|
+  config.vm.provider "vmware_desktop" do |v, override|
+    override.vm.box = "bento/ubuntu-18.04"
     v.vmx["memsize"] = "4096"
     v.vmx["numvcpus"] = "2"
   end
-  config.vm.provider "vmware_fusion" do |v|
+  config.vm.provider "vmware_fusion" do |v, override|
+    override.vm.box = "bento/ubuntu-18.04"
     v.vmx["memsize"] = "4096"
     v.vmx["numvcpus"] = "2"
   end
-  config.vm.box = "generic/ubuntu1604"
   config.vm.network "private_network", type: "dhcp"
 
   config.vm.provision "shell", inline: <<-EOC
