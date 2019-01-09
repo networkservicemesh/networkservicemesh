@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-K8S_CONF_DIR = k8s/conf/
+K8S_CONF_DIR = k8s/conf
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmd vppagent-dataplane
