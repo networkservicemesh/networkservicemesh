@@ -2,6 +2,12 @@
 
 This Vagrant directory provides a simple environment in which to test various components of Network Service Mesh.
 
+# Prerequisites
+
+Sshfs is used to mount the /vagrant directory of the guest. Hence the vagrant-sshfs plugin for vagrant must be installed.
+If libvirt is used, the vagrant-libvirt plugin must also be installed.
+
+
 # Starting Vagrant
 
 ```bash
