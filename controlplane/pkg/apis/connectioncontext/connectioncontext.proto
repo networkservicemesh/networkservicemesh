@@ -34,14 +34,12 @@ message IpFamily {
     enum Family {
         IPV4 = 0;
         IPV6 = 1;
-//        ALL = 2;
-//        MPLS = 3;
     }
     Family family = 1;
 }
 
 message ExtraPrefixRequest {
-    IpFamily Af_family      = 1;
+    IpFamily addr_family    = 1;
     uint32 prefix_len       = 2;
     uint32 required_number  = 3;
     uint32 requested_number = 4;
@@ -59,6 +57,6 @@ message ConnectionContext {
 
     repeated IpNeighbor ip_neighbors  = 7; /* A list of ARP table neighbours addresses */
 
-    repeated ExtraPrefixRequest extra_prefix_request = 8;   /* A request for NSE to have provide extra prefixes */
+    repeated ExtraPrefixRequest extra_prefix_request = 8;   /* A request for NSE to provide extra prefixes */
     repeated string extra_prefixes = 9; /* A list of extra prefixes requested */
 }

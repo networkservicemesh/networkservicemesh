@@ -76,7 +76,7 @@ func TestExtractPrefixes_1_ipv4(t *testing.T) {
 
 	newPrefixes, prefixes, err := ExtractPrefixes([]string{"10.10.1.0/24"},
 		&connectioncontext.ExtraPrefixRequest{
-			AfFamily:        &connectioncontext.IpFamily{Family: connectioncontext.IpFamily_IPV4},
+			AddrFamily:        &connectioncontext.IpFamily{Family: connectioncontext.IpFamily_IPV4},
 			RequiredNumber:  10,
 			RequestedNumber: 20,
 			PrefixLen:       31,
@@ -93,7 +93,7 @@ func TestExtractPrefixes_1_ipv6(t *testing.T) {
 
 	newPrefixes, prefixes, err := ExtractPrefixes([]string{"100::/64"},
 		&connectioncontext.ExtraPrefixRequest{
-			AfFamily:        &connectioncontext.IpFamily{Family: connectioncontext.IpFamily_IPV6},
+			AddrFamily:        &connectioncontext.IpFamily{Family: connectioncontext.IpFamily_IPV6},
 			RequiredNumber:  100,
 			RequestedNumber: 200,
 			PrefixLen:       128,

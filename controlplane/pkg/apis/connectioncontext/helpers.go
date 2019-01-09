@@ -67,11 +67,11 @@ func (c *ExtraPrefixRequest) IsValid() error {
 	}
 
 	// Check protocols
-	if c.AfFamily == nil {
+	if c.AddrFamily == nil {
 		return fmt.Errorf("ExtraPrefixRequest.AfFamily should not be nil...")
 	}
 
-	switch c.AfFamily.Family {
+	switch c.AddrFamily.Family {
 	case IpFamily_IPV4:
 		if c.PrefixLen > 32 {
 			return fmt.Errorf("ExtraPrefixRequest.PrefixLen should be positive number >=1 and <=32 for IPv4 %v", c)

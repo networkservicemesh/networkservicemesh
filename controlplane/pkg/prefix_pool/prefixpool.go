@@ -51,7 +51,7 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 		RequiredNumber:  1,
 		RequestedNumber: 1,
 		PrefixLen:       uint32(prefixLen),
-		AfFamily:        &connectioncontext.IpFamily{Family: family},
+		AddrFamily:        &connectioncontext.IpFamily{Family: family},
 	})
 	if err != nil {
 		return nil, nil, nil, err
@@ -122,7 +122,7 @@ func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPref
 		}
 	}
 
-	//1 find prefix of disired prefix len and return it
+	//1 find prefix of desired prefix len and return it
 	result := []string{}
 
 	// Make a copy since we need to fit all prefixes before we could finish.
