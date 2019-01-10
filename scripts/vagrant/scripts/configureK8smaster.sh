@@ -41,4 +41,5 @@ echo "Untainting Master"
 kubectl taint nodes --all node-role.kubernetes.io/master-
 
 # Save the kubeadm join command with token
-kubeadm token create --print-join-command > /vagrant/scripts/kubeadm_join_cmd.sh
+echo '#!/bin/sh' > /vagrant/scripts/kubeadm_join_cmd.sh
+kubeadm token create --print-join-command >> /vagrant/scripts/kubeadm_join_cmd.sh

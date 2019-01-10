@@ -238,6 +238,9 @@ func (v *VPPAgent) programMgmtInterface() error {
 func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("vppagent.DisconnectRequest called with %#v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, false)
+	if err != nil {
+		logrus.Warn(err)
+	}
 	v.monitor.DeleteCrossConnect(xcon)
-	return &empty.Empty{}, err
+	return &empty.Empty{}, nil
 }

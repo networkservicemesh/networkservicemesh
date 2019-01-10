@@ -14,7 +14,7 @@
 
 .PHONY: vagrant-start
 vagrant-start:
-	@cd scripts/vagrant; vagrant up
+	@cd scripts/vagrant; vagrant up --no-parallel;
 
 .PHONY: vagrant-destroy
 vagrant-destroy:
@@ -22,7 +22,7 @@ vagrant-destroy:
 
 .PHONY: vagrant-restart
 vagrant-restart: vagrant-destroy
-	@cd scripts/vagrant; sleep 2;vagrant up
+	@cd scripts/vagrant; sleep 2;vagrant up --no-parallel
 
 .PHONY: vagrant-suspend
 vagrant-suspend:
@@ -42,7 +42,7 @@ vagrant-ssh-worker:
 
 .PHONY: vagrant-kublet-restart
 vagrant-restart-kublet:
-	@cd scripts/vagrant; vagrant master -c "sudo service kubelet restart"; vagrant worker -c "sudo service kubelet restart"
+	@cd scripts/vagrant; vagrant ssh master -c "sudo service kubelet restart"; vagrant ssh worker -c "sudo service kubelet restart"
 
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:

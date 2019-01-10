@@ -36,11 +36,9 @@ func (m *MonitorNetNsInodeServer) Send(event *crossconnect.CrossConnectEvent) er
 
 func copyEvent(event *crossconnect.CrossConnectEvent) *crossconnect.CrossConnectEvent {
 	crossConnectsCopy := map[string]*crossconnect.CrossConnect{}
-	if len(event.CrossConnects) != 0 {
-		for k, v := range event.CrossConnects {
-			vCopy := *v
-			crossConnectsCopy[k] = &vCopy
-		}
+	for k, v := range event.CrossConnects {
+		vCopy := *v
+		crossConnectsCopy[k] = &vCopy
 	}
 
 	return &crossconnect.CrossConnectEvent{
@@ -108,15 +106,19 @@ func (m *MonitorNetNsInodeServer) handleEvent(event *crossconnect.CrossConnectEv
 func getLocalInodes(xcon *crossconnect.CrossConnect) ([]uint64, error) {
 	var localInodes []uint64
 
-	inodeStr := xcon.GetLocalSource().GetMechanism().GetNetNsInode()
-	if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
-		localInodes = append(localInodes, inode)
-	} else {
-		return nil, err
+	if conn := xcon.GetLocalSource(); conn != nil {
+		inodeStr := conn.GetMechanism().GetNetNsInode()
+		logrus.Infof("Local source: %s", inodeStr)
+		if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
+			localInodes = append(localInodes, inode)
+		} else {
+			return nil, err
+		}
 	}
 
 	if conn := xcon.GetLocalDestination(); conn != nil {
 		inodeStr := conn.GetMechanism().GetNetNsInode()
+		logrus.Infof("Local destination: %s", inodeStr)
 		if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
 			localInodes = append(localInodes, inode)
 		} else {

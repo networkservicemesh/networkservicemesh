@@ -41,6 +41,12 @@ type nsmMonitorCrossConnectClient struct {
 	dataplanes map[string]*dataplaneCrossConnectInfo
 }
 
+func (client *nsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnection *model.ClientConnection) {
+}
+
+func (client *nsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+}
+
 func (client *nsmMonitorCrossConnectClient) Register(model model.Model) {
 	model.AddListener(client)
 }
