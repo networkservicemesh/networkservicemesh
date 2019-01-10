@@ -31,7 +31,7 @@ spec:
             - name: NSE_LABELS
               value: "app=icmp-responder"
             - name: IP_ADDRESS
-              value: "10.20.1.0/24"
+              value: "10.20.1.1"
           resources:
             limits:
               nsm.ligato.io/socket: 1
