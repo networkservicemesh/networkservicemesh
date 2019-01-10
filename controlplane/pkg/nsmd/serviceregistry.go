@@ -62,6 +62,7 @@ type nsmdServiceRegistry struct {
 	registryClientConnection *grpc.ClientConn
 	stopRedial               bool
 	vniAllocator             vni.VniAllocator
+	registryAddress          string
 }
 
 func (impl *nsmdServiceRegistry) NewWorkspaceProvider() serviceregistry.WorkspaceLocationProvider {
@@ -170,21 +171,16 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 		return // Connection already established.
 	}
 	// TODO doing registry Address here is ugly
-	registryAddress := os.Getenv("NSM_REGISTRY_ADDRESS")
-	registryAddress = strings.TrimSpace(registryAddress)
-	if registryAddress == "" {
-		registryAddress = "127.0.0.1:5000"
-	}
 	for impl.stopRedial {
-		tools.WaitForPortAvailable(context.Background(), "tcp", registryAddress, 1*time.Second)
+		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 1*time.Second)
 		logrus.Println("Registry port now available, attempting to connect...")
-		conn, err := grpc.Dial(registryAddress, grpc.WithInsecure())
+		conn, err := grpc.Dial(impl.registryAddress, grpc.WithInsecure())
 		if err != nil {
-			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", registryAddress, err)
+			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
 			continue
 		}
 		impl.registryClientConnection = conn
-		logrus.Infof("Successfully connected to %s", registryAddress)
+		logrus.Infof("Successfully connected to %s", impl.registryAddress)
 		return
 	}
 	err = fmt.Errorf("stopped before success trying to dial Network Registry Server")
@@ -204,9 +200,20 @@ func (impl *nsmdServiceRegistry) Stop() {
 }
 
 func NewServiceRegistry() serviceregistry.ServiceRegistry {
+	registryAddress := os.Getenv("NSM_REGISTRY_ADDRESS")
+	registryAddress = strings.TrimSpace(registryAddress)
+	if registryAddress == "" {
+		registryAddress = "127.0.0.1:5000"
+	}
+
+	return NewServiceRegistryAt(registryAddress)
+}
+
+func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	return &nsmdServiceRegistry{
-		stopRedial:   true,
-		vniAllocator: vni.NewVniAllocator(),
+		stopRedial:      true,
+		vniAllocator:    vni.NewVniAllocator(),
+		registryAddress: nsmAddress,
 	}
 }
 
