@@ -16,6 +16,7 @@ import (
 func main() {
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -48,6 +49,4 @@ func main() {
 		wg.Done()
 	}()
 	wg.Wait()
-
-	closer.Close()
 }
