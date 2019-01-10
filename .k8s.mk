@@ -15,9 +15,10 @@
 K8S_CONF_DIR = k8s/conf
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
-DEPLOY_NSM = jaeger nsmd vppagent-dataplane
+DEPLOY_TRACING = jaeger
+DEPLOY_NSM = nsmd vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
-DEPLOY_INFRA = $(DEPLOY_NSM) $(DEPLOY_MONITOR)
+DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
