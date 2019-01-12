@@ -18,10 +18,8 @@ message CrossConnectEvent {
 }
 
 enum CrossConnectState {
-    SRC_UP = 0;
-    SRC_DOWN = 1;
-    DST_UP = 2;
-    DST_DOWN = 3;
+    SRC_DOWN = 0;
+    DST_DOWN = 1;
 }
 
 message CrossConnect {

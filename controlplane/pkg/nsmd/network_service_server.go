@@ -2,19 +2,21 @@ package nsmd
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
+
+	"time"
+
+	"github.com/golang/protobuf/ptypes/empty"
+
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -27,20 +29,20 @@ const (
 type networkServiceServer struct {
 	model             model.Model
 	workspace         *Workspace
-	monitor           monitor_connection_server.MonitorConnectionServer
 	serviceRegistry   serviceregistry.ServiceRegistry
 	excluded_prefixes []string
-	model.ModelListenerImpl
+	xconManager       *services.ClientConnectionManager
 }
 
-func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry, excluded_prefixes []string) networkservice.NetworkServiceServer {
+func NewNetworkServiceServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry,
+	excluded_prefixes []string, xconManager *services.ClientConnectionManager) networkservice.NetworkServiceServer {
 	rv := &networkServiceServer{
 		model:             model,
 		workspace:         workspace,
 		serviceRegistry:   serviceRegistry,
 		excluded_prefixes: excluded_prefixes,
+		xconManager:       xconManager,
 	}
-	model.AddListener(rv)
 	return rv
 }
 
@@ -173,18 +175,7 @@ func (srv *networkServiceServer) Close(ctx context.Context, connection *connecti
 		logrus.Warnf("No connection with id: %s, nothing to close", connection.Id)
 		return &empty.Empty{}, nil
 	}
-
-	if err := srv.CloseXconOnEndpoint(ctx, clientConnection); err != nil {
-		logrus.Error(err)
-	}
-
-	if err := srv.CloseXconOnDataplane(context.Background(), clientConnection); err != nil {
-		logrus.Error()
-	}
-
-	srv.model.DeleteClientConnection(connection.Id)
-	srv.workspace.MonitorConnectionServer().DeleteConnection(connection)
-
+	srv.xconManager.DeleteClientConnection(clientConnection, true, true)
 	return &empty.Empty{}, nil
 }
 
@@ -349,75 +340,4 @@ func (srv *networkServiceServer) createRemoteNSERequest(endpoint *registry.NSERe
 		MechanismPreferences: remoteM,
 	}
 	return message
-}
-
-func (srv *networkServiceServer) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
-	switch clientConnection.Xcon.State {
-	case crossconnect.CrossConnectState_SRC_DOWN:
-		if err := srv.CloseXconOnEndpoint(context.Background(), clientConnection); err != nil {
-			logrus.Error(err)
-		}
-		fallthrough
-	case crossconnect.CrossConnectState_DST_DOWN:
-		if err := srv.CloseXconOnDataplane(context.Background(), clientConnection); err != nil {
-			logrus.Error(err)
-		}
-		break
-	}
-}
-
-func (srv *networkServiceServer) CloseXconOnEndpoint(ctx context.Context, clientConnection *model.ClientConnection) error {
-	if clientConnection.RemoteNsm != nil {
-		remoteClient, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(clientConnection.RemoteNsm)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-		logrus.Info("Remote client successfully created")
-
-		if _, err := remoteClient.Close(ctx, clientConnection.Xcon.GetRemoteDestination()); err != nil {
-			logrus.Error(err)
-			return err
-		}
-		logrus.Info("Remote part of cross connection successfully closed")
-	} else {
-		endpointClient, conn, err := srv.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-
-		logrus.Info("Closing NSE connection...")
-		if _, err := endpointClient.Close(ctx, clientConnection.Xcon.GetLocalDestination()); err != nil {
-			logrus.Error(err)
-			return err
-		}
-		logrus.Info("NSE connection successfully closed")
-	}
-
-	return nil
-}
-
-func (srv *networkServiceServer) CloseXconOnDataplane(ctx context.Context, clientConnection *model.ClientConnection) error {
-	logrus.Info("Closing cross connection on dataplane...")
-	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-	if conn != nil {
-		defer conn.Close()
-	}
-	if _, err := dataplaneClient.Close(ctx, clientConnection.Xcon); err != nil {
-		logrus.Error(err)
-		return err
-	}
-	logrus.Info("Cross connection successfully closed on dataplane")
-	return nil
 }

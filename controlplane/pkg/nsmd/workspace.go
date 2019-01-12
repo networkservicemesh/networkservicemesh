@@ -15,6 +15,7 @@
 package nsmd
 
 import (
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"net"
 	"os"
 	"strings"
@@ -25,9 +26,9 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	. "github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -53,7 +54,7 @@ type Workspace struct {
 	locationProvider serviceregistry.WorkspaceLocationProvider
 }
 
-func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
+func NewWorkSpace(model Model, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{
 		locationProvider: serviceRegistry.NewWorkspaceProvider(),
@@ -82,7 +83,8 @@ func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegi
 	w.monitorConnectionServer = monitor_connection_server.NewMonitorConnectionServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes())
+	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes(),
+		services.NewClientConnectionManager(model, serviceRegistry))
 
 	logrus.Infof("Creating new GRPC Server")
 	tracer := opentracing.GlobalTracer()

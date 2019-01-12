@@ -26,15 +26,16 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 type NsmMonitorCrossConnectClient struct {
 	monitor     monitor_crossconnect_server.MonitorCrossConnectServer // All connections is here
-	model       model.Model
 	remotePeers map[string]*remotePeerDescriptor
 	dataplanes  map[string]context.CancelFunc
+	xconManager *services.ClientConnectionManager
 	model.ModelListenerImpl
 }
 
@@ -43,12 +44,12 @@ type remotePeerDescriptor struct {
 	cancel      context.CancelFunc
 }
 
-func NewMonitorCrossConnectClient(monitor monitor_crossconnect_server.MonitorCrossConnectServer, model model.Model) *NsmMonitorCrossConnectClient {
+func NewMonitorCrossConnectClient(monitor monitor_crossconnect_server.MonitorCrossConnectServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
 		monitor:     monitor,
-		model:       model,
 		remotePeers: map[string]*remotePeerDescriptor{},
 		dataplanes:  map[string]context.CancelFunc{},
+		xconManager: xconManager,
 	}
 	return rv
 }
@@ -74,6 +75,10 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Data
 }
 
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dataplane *model.Dataplane) {
+	clientConnections := client.xconManager.GetClientConnectionsByDataplane(dataplane.RegisteredName)
+	for _, clientConnection := range clientConnections {
+		client.xconManager.DeleteClientConnection(clientConnection, false, true)
+	}
 	client.dataplanes[dataplane.RegisteredName]()
 	delete(client.dataplanes, dataplane.RegisteredName)
 }
@@ -93,6 +98,8 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+	client.monitor.DeleteCrossConnect(clientConnection.Xcon)
+
 	if clientConnection.RemoteNsm == nil {
 		return
 	}
@@ -134,32 +141,26 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 			event, err := stream.Recv()
 			if err != nil {
 				logrus.Error(err)
-				//TODO (lobkovilya): handle dataplane dies
 				return
 			}
-			logrus.Infof("Receive event: %s %s", event.Type, event.CrossConnects)
+			logrus.Infof("Receive event from dataplane %s: %s %s", dataplane.RegisteredName, event.Type, event.CrossConnects)
 
 			for _, xcon := range event.GetCrossConnects() {
-				if event.GetType() == crossconnect.CrossConnectEventType_UPDATE {
-					clientConnection := client.model.GetClientConnectionByXcon(xcon.Id)
-					if clientConnection != nil {
-						clientConnection.Xcon = xcon
-						client.model.UpdateClientConnection(clientConnection)
-					}
-
-					client.monitor.UpdateCrossConnect(xcon)
+				clientConnection := client.xconManager.GetClientConnectionByXcon(xcon.Id)
+				if clientConnection == nil {
+					continue
 				}
-				if event.GetType() == crossconnect.CrossConnectEventType_DELETE {
-					clientConnection := client.model.GetClientConnectionByXcon(xcon.Id)
-					if clientConnection != nil {
-						client.model.DeleteClientConnection(clientConnection.ConnectionId)
-					}
 
-					client.monitor.DeleteCrossConnect(xcon)
-				}
-				if event.GetType() == crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER {
+				switch event.GetType() {
+				case crossconnect.CrossConnectEventType_UPDATE:
+					if clientConnection.Xcon.State != xcon.State {
+						client.xconManager.UpdateClientConnectionState(clientConnection, xcon.State)
+					}
 					client.monitor.UpdateCrossConnect(xcon)
-					//TODO (lobkovilya): reconciling
+				case crossconnect.CrossConnectEventType_DELETE:
+					client.xconManager.DeleteClientConnection(clientConnection, false, false)
+				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
+					client.monitor.UpdateCrossConnect(xcon)
 				}
 			}
 		}
@@ -197,20 +198,18 @@ func (client *NsmMonitorCrossConnectClient) remotePeerCrossConnectMonitor(remote
 				//TODO (lobkovilya): handle remote NSM dies
 				return
 			}
-			logrus.Infof("Receive event: %s %s", event.Type, event.CrossConnects)
+			logrus.Infof("Receive event from remote NSM %s: %s %s", remotePeer.GetName(), event.Type, event.CrossConnects)
 
-			if event.GetType() == crossconnect.CrossConnectEventType_UPDATE {
-				for _, xcon := range event.GetCrossConnects() {
-					if xcon.State == crossconnect.CrossConnectState_DST_DOWN {
-						clientConnection := client.model.GetClientConnectionByDst(xcon.GetRemoteSource().GetId())
-						if clientConnection != nil {
-							clientConnection.Xcon.State = xcon.State
-							client.model.UpdateClientConnection(clientConnection)
-						}
-					}
+			for _, xcon := range event.GetCrossConnects() {
+				clientConnection := client.xconManager.GetClientConnectionByDst(xcon.GetRemoteSource().GetId())
+				if clientConnection == nil {
+					continue
+				}
+				switch event.GetType() {
+				case crossconnect.CrossConnectEventType_DELETE:
+					client.xconManager.DeleteClientConnection(clientConnection, true, false)
 				}
 			}
-
 		}
 	}
 }

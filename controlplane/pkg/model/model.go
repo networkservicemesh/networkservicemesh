@@ -27,6 +27,7 @@ type ClientConnection struct {
 	RemoteNsm    *registry.NetworkServiceManager
 	Endpoint     *registry.NSERegistration
 	Dataplane    *Dataplane
+	IsClosing    bool
 }
 
 // Model change listener
@@ -72,8 +73,7 @@ type Model interface {
 
 	AddClientConnection(clientConnection *ClientConnection)
 	GetClientConnection(connectionId string) *ClientConnection
-	GetClientConnectionByXcon(xconId string) *ClientConnection
-	GetClientConnectionByDst(dstId string) *ClientConnection
+	GetAllClientConnections() []*ClientConnection
 	UpdateClientConnection(clientConnection *ClientConnection)
 	DeleteClientConnection(connectionId string)
 
@@ -118,35 +118,16 @@ func (i *impl) GetClientConnection(connectionId string) *ClientConnection {
 	return i.clientConnections[connectionId]
 }
 
-func (i *impl) GetClientConnectionByXcon(xconId string) *ClientConnection {
+func (i *impl) GetAllClientConnections() []*ClientConnection {
 	i.RLock()
 	defer i.RUnlock()
 
-	for _, clientConnection := range i.clientConnections {
-		if clientConnection.Xcon.Id == xconId {
-			return clientConnection
-		}
+	var rv []*ClientConnection
+	for _, v := range i.clientConnections {
+		rv = append(rv, v)
 	}
-	return nil
-}
 
-func (i *impl) GetClientConnectionByDst(dstId string) *ClientConnection {
-	i.RLock()
-	defer i.RUnlock()
-
-	for _, clientConnection := range i.clientConnections {
-		var destinationId string
-		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
-			destinationId = dst.GetId()
-		} else {
-			destinationId = clientConnection.Xcon.GetRemoteDestination().GetId()
-		}
-
-		if destinationId == dstId {
-			return clientConnection
-		}
-	}
-	return nil
+	return rv
 }
 
 func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
@@ -162,6 +143,10 @@ func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
 func (i *impl) DeleteClientConnection(connectionId string) {
 	i.Lock()
 	clientConnection := i.clientConnections[connectionId]
+	if clientConnection == nil {
+		i.Unlock()
+		return
+	}
 	delete(i.clientConnections, connectionId)
 	i.Unlock()
 
@@ -298,15 +283,12 @@ func (i *impl) AddDataplane(dataplane *Dataplane) {
 
 func (i *impl) DeleteDataplane(name string) {
 	i.Lock()
-	defer i.Unlock()
-
 	dataplane := i.dataplanes[name]
-	if dataplane != nil {
-		delete(i.dataplanes, name)
+	delete(i.dataplanes, name)
+	i.Unlock()
 
-		for _, l := range i.listeners {
-			l.DataplaneDeleted(dataplane)
-		}
+	for _, l := range i.listeners {
+		l.DataplaneDeleted(dataplane)
 	}
 }
 

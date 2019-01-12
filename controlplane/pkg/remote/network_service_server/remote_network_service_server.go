@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"strconv"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -30,6 +30,7 @@ type remoteNetworkServiceServer struct {
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
 	monitor         monitor_connection_server.MonitorConnectionServer
+	xconManager     *services.ClientConnectionManager
 }
 
 func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
@@ -222,47 +223,17 @@ func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *re
 		logrus.Warnf("No connection with id: %s, nothing to close", connection.Id)
 		return &empty.Empty{}, nil
 	}
-
-	endpointClient, conn, err := srv.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	if conn != nil {
-		defer conn.Close()
-	}
-
-	if _, err := endpointClient.Close(ctx, clientConnection.Xcon.GetLocalDestination()); err != nil {
-		logrus.Error(err)
-		return &empty.Empty{}, err
-	}
-
-	logrus.Info("Remote closing cross connection on dataplane...")
-	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	if conn != nil {
-		defer conn.Close()
-	}
-	if _, err := dataplaneClient.Close(ctx, clientConnection.Xcon); err != nil {
-		logrus.Error(err)
-		return &empty.Empty{}, err
-	}
-	logrus.Info("Cross connection successfully closed on dataplane")
-
-	srv.model.DeleteClientConnection(connection.Id)
+	srv.xconManager.DeleteClientConnection(clientConnection, true, true)
 	srv.monitor.DeleteConnection(connection)
-	//TODO: Add call to dataplane
 	return &empty.Empty{}, nil
 }
 
-func NewRemoteNetworkServiceServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, grpcServer *grpc.Server) {
-	server := &remoteNetworkServiceServer{
+func NewRemoteNetworkServiceServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry,
+	xconManager *services.ClientConnectionManager) remote_networkservice.NetworkServiceServer {
+	return &remoteNetworkServiceServer{
 		model:           model,
 		serviceRegistry: serviceRegistry,
 		monitor:         monitor_connection_server.NewMonitorConnectionServer(),
+		xconManager:     xconManager,
 	}
-	remote_networkservice.RegisterNetworkServiceServer(grpcServer, server)
 }
