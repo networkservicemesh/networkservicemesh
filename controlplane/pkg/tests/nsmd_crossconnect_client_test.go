@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"net"
 	"testing"
 	"time"
@@ -23,11 +24,12 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 		return err, nil, nil
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	serviceRegistry := nsmd.NewServiceRegistry()
 
 	// Start Cross connect monitor and server
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, model)
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, services.NewClientConnectionManager(model, serviceRegistry))
 	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 
