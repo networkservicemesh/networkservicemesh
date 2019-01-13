@@ -87,7 +87,7 @@ func main() {
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
 	ipAddress, _ := os.LookupEnv(ipAddressEnv)
-	logrus.Infof("IP Network address: %s", ipAddress)
+	logrus.Infof("starting IP address: %s", ipAddress)
 	nseConn := New(ipAddress)
 
 	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)

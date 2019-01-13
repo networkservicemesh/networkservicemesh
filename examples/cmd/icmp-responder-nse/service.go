@@ -16,7 +16,8 @@ package main
 
 import (
 	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/prefix_pool"
+	"encoding/binary"
+	"net"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -29,7 +30,7 @@ import (
 type networkService struct {
 	sync.RWMutex
 	networkService          string
-	prefixPool              prefix_pool.PrefixPool
+	nextIP                  uint32
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 }
 
@@ -46,25 +47,32 @@ func (ns *networkService) Request(ctx context.Context, request *networkservice.N
 		return nil, err
 	}
 	ns.monitorConnectionServer.UpdateConnection(conn)
+
 	return conn, nil
 }
 
 func (ns *networkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	// remove from connection
 	ns.monitorConnectionServer.DeleteConnection(conn)
-	err := ns.prefixPool.Release(conn.Id)
-	return &empty.Empty{}, err
+	return &empty.Empty{}, nil
+}
+
+func ip2int(ip net.IP) uint32 {
+	if ip == nil {
+		return 0
+	}
+	if len(ip) == 16 {
+		return binary.BigEndian.Uint32(ip[12:16])
+	}
+	return binary.BigEndian.Uint32(ip)
 }
 
 func New(ip string) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
-	pool, err := prefix_pool.NewPrefixPool(ip)
-	if err != nil {
-		panic(err.Error())
-	}
+	netIP := net.ParseIP(ip)
 	service := networkService{
 		networkService:          "icmp-responder",
-		prefixPool:              pool, // 10.20.1.1
+		nextIP:                  ip2int(netIP), // 10.20.1.1
 		monitorConnectionServer: monitor,
 	}
 	return &service
