@@ -18,8 +18,8 @@ func TestRequest(t *testing.T) {
 
 	response, error := service.Request(context.Background(), createRequest("c1", "my_service"))
 	Expect(error).To(BeNil())
-	Expect(response.Context.SrcIpAddr).To(Equal("10.20.1.1"))
-	Expect(response.Context.DstIpAddr).To(Equal("10.20.1.2"))
+	Expect(response.Context.SrcIpAddr).To(Equal("10.20.1.1/30"))
+	Expect(response.Context.DstIpAddr).To(Equal("10.20.1.2/30"))
 	Expect(response.Context.DstIpRequired).To(Equal(true))
 	Expect(response.Context.SrcIpRequired).To(Equal(true))
 
