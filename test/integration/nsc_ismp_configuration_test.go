@@ -49,7 +49,7 @@ func TestNSCAndICMPLocal(t *testing.T) {
 	s1 = time.Now()
 	icmpPodNode := k8s.CreatePod(pods.ICMPResponderPod("icmp-responder-nse1", &nodes[0],
 		map[string]string{
-			"NSE_LABELS": "app=icmp-responder", "IP_ADDRESS": "10.20.1.1",
+			"NSE_LABELS": "app=icmp-responder", "IP_ADDRESS": "10.20.1.0/24",
 		},
 	))
 	Expect(icmpPodNode.Name).To(Equal("icmp-responder-nse1"))

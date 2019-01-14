@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -31,6 +32,7 @@ type networkService struct {
 	networkService          string
 	prefixPool              prefix_pool.PrefixPool
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
+	netNS string
 }
 
 type message struct {
@@ -50,9 +52,15 @@ func (ns *networkService) Request(ctx context.Context, request *networkservice.N
 }
 
 func (ns *networkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
+	logrus.Infof("Close for Network Service received %v", conn)
 	// remove from connection
 	ns.monitorConnectionServer.DeleteConnection(conn)
-	err := ns.prefixPool.Release(conn.Id)
+	prefix, requests, err := ns.prefixPool.GetConnectionInformation(conn.Id)
+	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
+	if err != nil {
+		return &empty.Empty{}, err
+	}
+	err = ns.prefixPool.Release(conn.Id)
 	return &empty.Empty{}, err
 }
 
@@ -62,10 +70,13 @@ func New(ip string) networkservice.NetworkServiceServer {
 	if err != nil {
 		panic(err.Error())
 	}
+	netns, _ := tools.GetCurrentNS()
+
 	service := networkService{
 		networkService:          "icmp-responder",
 		prefixPool:              pool, // 10.20.1.1
 		monitorConnectionServer: monitor,
+		netNS: netns,
 	}
 	return &service
 }

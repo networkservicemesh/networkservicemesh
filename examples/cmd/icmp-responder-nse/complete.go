@@ -15,11 +15,10 @@
 package main
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/sirupsen/logrus"
 	"net"
-
-	"github.com/ligato/networkservicemesh/pkg/tools"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -30,11 +29,10 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 	if err != nil {
 		return nil, err
 	}
-	netns, _ := tools.GetCurrentNS()
 	mechanism := &connection.Mechanism{
 		Type: connection.MechanismType_KERNEL_INTERFACE,
 		Parameters: map[string]string{
-			connection.NetNsInodeKey: netns,
+			connection.NetNsInodeKey: ns.netNS,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
 			connection.InterfaceNameKey: "nsm" + request.GetConnection().GetId(),
 		},
@@ -48,20 +46,26 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 
 	// TODO take into consideration LocalMechnism preferences sent in request
 
+	// Copy context to not miss any valuable parameters.
+	context := proto.Clone(request.Connection.Context).(*connectioncontext.ConnectionContext)
+
+	// Update source/dst IP's
+	context.SrcIpAddr = srcIP.String()
+	context.DstIpAddr = dstIP.String()
+
+	//Add extra routes.
+	context.Routes= []*connectioncontext.Route{
+			&connectioncontext.Route{
+				Prefix: "8.8.8.8/30",
+			},
+		}
+	context.ExtraPrefixes= prefixes
+
 	connection := &connection.Connection{
 		Id:             request.GetConnection().GetId(),
 		NetworkService: request.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
-			SrcIpAddr: srcIP.String(),
-			DstIpAddr: dstIP.String(),
-			Routes: []*connectioncontext.Route{
-				&connectioncontext.Route{
-					Prefix: "8.8.8.8/30",
-				},
-			},
-			ExtraPrefixes: prefixes,
-		},
+		Context: context,
 	}
 
 	addrs, err := net.Interfaces()
