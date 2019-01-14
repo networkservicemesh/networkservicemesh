@@ -12,8 +12,6 @@ spec:
       hostPID: true
       containers:
         - name: vppagent-nsc
-          securityContext:
-            privileged: true
           image: networkservicemesh/vppagent-nsc:latest
           imagePullPolicy: IfNotPresent
           env:

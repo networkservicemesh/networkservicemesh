@@ -5,6 +5,6 @@ WORKDIR /go/src/${PACKAGEPATH}/
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-icmp-responder-nse ./examples/cmd/vppagent-icmp-responder-nse
 FROM ligato/vpp-agent:v1.8 as runtime
 COPY --from=build /go/bin/vppagent-icmp-responder-nse /bin/vppagent-icmp-responder-nse
-RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "0.0.0.0:9112"' > /opt/vpp-agent/dev/grpc.conf
+RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "0.0.0.0:9112"' > /opt/vpp-agent/dev/grpc.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY examples/conf/vppagent-icmp-responder-nse/supervisord.conf /etc/supervisord/supervisord.conf
