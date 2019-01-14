@@ -117,7 +117,9 @@ func main() {
 
 					attempt++
 					logrus.Infof("Sending request %v", r)
-					reply, err := nsmConnectionClient.Request(context.Background(), r)
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					reply, err := nsmConnectionClient.Request(ctx, r)
 					if err != nil {
 						logrus.Errorf("failure to request connection with error: %+v", err)
 						continue
