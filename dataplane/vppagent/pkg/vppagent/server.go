@@ -30,7 +30,7 @@ func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet n
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer)),
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 

@@ -80,7 +80,7 @@ func main() {
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer)),
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 

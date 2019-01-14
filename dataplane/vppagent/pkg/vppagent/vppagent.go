@@ -140,7 +140,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
@@ -179,7 +179,7 @@ func (v *VPPAgent) reset() error {
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
@@ -204,7 +204,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {

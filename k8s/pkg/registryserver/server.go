@@ -12,7 +12,7 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer)),
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 

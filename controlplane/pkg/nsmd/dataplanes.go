@@ -190,7 +190,7 @@ func StartDataplaneRegistrarServer(model model.Model) error {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer)),
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 	dataplaneRegistrarServer := &dataplaneRegistrarServer{

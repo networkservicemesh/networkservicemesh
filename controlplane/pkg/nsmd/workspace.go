@@ -88,7 +88,7 @@ func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegi
 	tracer := opentracing.GlobalTracer()
 	w.grpcServer = grpc.NewServer(
 		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer)),
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 

@@ -87,7 +87,7 @@ func Register(kubeletEndpoint string) error {
 			return net.DialTimeout("unix", addr, timeout)
 		}),
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	defer conn.Close()
@@ -183,7 +183,13 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	if err != nil {
 		return err
 	}
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	tracer := opentracing.GlobalTracer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
 	logrus.Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
@@ -227,6 +233,9 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 }
 
 func main() {
+	tracer, closer := tools.InitJaeger("nsmdp")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	serviceRegistry := nsmd.NewServiceRegistry()
 	err := NewNSMDeviceServer(serviceRegistry)

@@ -79,7 +79,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Networ
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
@@ -182,7 +182,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 		tracer := opentracing.GlobalTracer()
 		conn, err := grpc.Dial(impl.registryAddress, grpc.WithInsecure(),
 			grpc.WithUnaryInterceptor(
-				otgrpc.OpenTracingClientInterceptor(tracer)),
+				otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 			grpc.WithStreamInterceptor(
 				otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 		if err != nil {

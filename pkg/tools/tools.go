@@ -90,7 +90,7 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 			return net.DialTimeout("unix", addr, timeout)
 		}),
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 
