@@ -123,6 +123,9 @@ k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-jaeger-save
 k8s-jaeger-save: 
 
+.PHONY: k8s-jaeger-load-images
+k8s-jaeger-load-images: 
+
 .PHONY: k8s-save
 k8s-save: $(addsuffix -save,$(addprefix k8s-,$(DEPLOYS)))
 
