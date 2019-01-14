@@ -17,15 +17,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
-	"os"
-	"sync"
-	"time"
 )
 
 const (
@@ -111,7 +112,9 @@ func main() {
 
 					attempt++
 					logrus.Infof("Sending request %v", r)
-					reply, err := nsmConnectionClient.Request(context.Background(), r)
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					reply, err := nsmConnectionClient.Request(ctx, r)
 					if err != nil {
 						logrus.Errorf("failure to request connection with error: %+v", err)
 						continue
