@@ -47,6 +47,8 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 						"tail", "-f", "/dev/null",
 					},
 				},
+			},
+			InitContainers: []v1.Container {
 				nsc_container,
 			},
 		},
