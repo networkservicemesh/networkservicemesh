@@ -30,10 +30,16 @@ import (
 )
 
 func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	tools.WaitForPortAvailable(ctx, "tcp", vxc.vppAgentEndpoint, 100*time.Millisecond)
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(vxc.vppAgentEndpoint, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 
-	logrus.Infof("ns.vppAgentEndpoint %v", vxc.vppAgentEndpoint)
-
-	conn, err := grpc.Dial(vxc.vppAgentEndpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return nil, nil, err
@@ -84,7 +90,15 @@ func (vxc *vppAgentXConnComposite) reset() error {
 }
 
 func (vac *vppAgentAclComposite) applyAclOnVppInterface(ctx context.Context, aclname, ifname string, rules map[string]string) error {
-	conn, err := grpc.Dial(vac.vppAgentEndpoint, grpc.WithInsecure())
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	tools.WaitForPortAvailable(ctx, "tcp", vac.vppAgentEndpoint, 100*time.Millisecond)
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(vac.vppAgentEndpoint, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err

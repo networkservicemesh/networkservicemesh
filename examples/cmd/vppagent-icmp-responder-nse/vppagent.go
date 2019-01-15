@@ -15,7 +15,16 @@ import (
 )
 
 func (ns *vppagentComposite) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
-	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure())
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	tools.WaitForPortAvailable(ctx, "tcp", ns.vppAgentEndpoint, 100*time.Millisecond)
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
