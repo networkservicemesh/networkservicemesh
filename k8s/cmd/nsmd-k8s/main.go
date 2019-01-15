@@ -4,13 +4,17 @@ import (
 	"flag"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 
 	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/ligato/networkservicemesh/k8s/pkg/registryserver"
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -19,12 +23,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-
-	"os/signal"
-	"syscall"
 )
 
 func main() {
+	tracer, closer := tools.InitJaeger("nsmd-k8s")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+
 	address := os.Getenv("NSMD_K8S_ADDRESS")
 	if strings.TrimSpace(address) == "" {
 		address = "127.0.0.1:5000"

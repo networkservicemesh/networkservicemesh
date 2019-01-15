@@ -22,10 +22,12 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
 	dataplaneregistrarapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -185,8 +187,14 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 // StartDataplaneRegistrarServer registers and starts gRPC server which is listening for
 // Network Service Dataplane Registrar requests.
 func StartDataplaneRegistrarServer(model model.Model) error {
+	tracer := opentracing.GlobalTracer()
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 	dataplaneRegistrarServer := &dataplaneRegistrarServer{
-		grpcServer:                   grpc.NewServer(),
+		grpcServer:                   server,
 		dataplaneRegistrarSocketPath: path.Join(DataplaneRegistrarSocketBaseDir, DataplaneRegistrarSocket),
 		stopChannel:                  make(chan bool),
 		model:                        model,
