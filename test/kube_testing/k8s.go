@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, pods ...*v1.Pod) ([]*v1.Pod, error) {
+func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, timeout time.Duration, pods ...*v1.Pod) ([]*v1.Pod, error) {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error)
@@ -36,7 +36,7 @@ func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace 
 				return
 			}
 
-			err = blockUntilPodReady(client, context.Background(), pod)
+			err = blockUntilPodReady(client, context.Background(), pod, timeout)
 			if err != nil {
 				errChan <- err
 				return
@@ -44,9 +44,9 @@ func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace 
 
 			// Let's fetch more information about pod created
 
-			updated_pod, error := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
+			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				errChan <- error
+				errChan <- err
 				return
 			}
 			resultChan <- updated_pod
@@ -79,9 +79,9 @@ func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace 
 	}
 }
 
-func blockUntilPodReady(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
+func blockUntilPodReady(client kubernetes.Interface, context context.Context, pod *v1.Pod, timeout time.Duration) error {
 
-	err := blockUntilPodExists(client, context, pod)
+	err := blockUntilPodExists(client, context, pod, timeout)
 	if err != nil {
 		return err
 	}
@@ -123,11 +123,12 @@ func isPodReady(pod *v1.Pod) bool {
 	return true
 }
 
-func blockUntilPodExists(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
+func blockUntilPodExists(client kubernetes.Interface, context context.Context, pod *v1.Pod, timeout time.Duration) error {
 
 	exists := make(chan error)
 
 	go func() {
+		st := time.Now()
 		for {
 			pod, err := client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
@@ -141,6 +142,10 @@ func blockUntilPodExists(client kubernetes.Interface, context context.Context, p
 			}
 
 			time.Sleep(time.Millisecond * time.Duration(50))
+			if time.Since(st) > timeout {
+				exists <- fmt.Errorf("Timeout waitinf for Pod to be ready...")
+				break
+			}
 		}
 	}()
 
@@ -280,7 +285,7 @@ func (l *K8s) Prepare(noPods ...string) {
 }
 
 func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
-	results, err := createAndBlock(l.clientset, l.config, "default", templates...)
+	results, err := createAndBlock(l.clientset, l.config, "default", time.Second*60, templates...)
 	Expect(err).To(BeNil())
 
 	l.pods = append(l.pods, results...)
@@ -288,7 +293,7 @@ func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
 }
 
 func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
-	results, err := createAndBlock(l.clientset, l.config, "default", template)
+	results, err := createAndBlock(l.clientset, l.config, "default", time.Second*60, template)
 	Expect(err).To(BeNil())
 
 	l.pods = append(l.pods, results...)
