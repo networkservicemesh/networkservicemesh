@@ -17,28 +17,36 @@ import (
 	"time"
 )
 
-func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, timeout time.Duration, pods ...*v1.Pod) ([]*v1.Pod, error) {
+type PodDeployResult struct {
+	pod *v1.Pod
+	err error
+}
+
+func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
 
 	var wg sync.WaitGroup
-	errChan := make(chan error)
-	doneChan := make(chan struct{})
-	resultChan := make(chan *v1.Pod, len(pods))
+
+	resultChan := make(chan *PodDeployResult, len(pods))
 
 	for _, pod := range pods {
 
 		wg.Add(1)
 		go func(pod *v1.Pod) {
-
+			defer wg.Done()
 			var err error
-			pod, err = client.CoreV1().Pods(namespace).Create(pod)
+			createdPod, err := client.CoreV1().Pods(namespace).Create(pod)
+
+			// We need to have non nil pod in any case.
+			if createdPod != nil {
+				pod = createdPod
+			}
 			if err != nil {
-				errChan <- err
+				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
-
-			err = blockUntilPodReady(client, context.Background(), pod, timeout)
+			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
-				errChan <- err
+				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
 
@@ -46,68 +54,78 @@ func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace 
 
 			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				errChan <- err
+				resultChan <- &PodDeployResult{updated_pod, err}
 				return
 			}
-			resultChan <- updated_pod
-			wg.Done()
+			resultChan <- &PodDeployResult{updated_pod, nil}
 
 		}(pod)
 	}
 
-	go func() {
-		wg.Wait()
-		close(doneChan)
-	}()
+	wg.Wait()
 
-	select {
-	case err := <-errChan:
-		return nil, err
-	case <-doneChan:
-		results := make([]*v1.Pod, len(pods))
-		named := map[string]*v1.Pod{}
-		for i := 0; i < len(pods); i++ {
-			pod := <-resultChan
-			named[pod.Name] = pod
-		}
-		for i := 0; i < len(pods); i++ {
-			results[i] = named[pods[i].Name]
-		}
-
-		// We need to put pods in right order
-		return results, nil
+	results := make([]*PodDeployResult, len(pods))
+	named := map[string]*PodDeployResult{}
+	for i := 0; i < len(pods); i++ {
+		pod := <-resultChan
+		named[pod.pod.Name] = pod
 	}
+	for i := 0; i < len(pods); i++ {
+		results[i] = named[pods[i].Name]
+	}
+
+	// We need to put pods in right order
+	return results
 }
 
-func blockUntilPodReady(client kubernetes.Interface, context context.Context, pod *v1.Pod, timeout time.Duration) error {
+func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
+	st := time.Now()
 
-	err := blockUntilPodExists(client, context, pod, timeout)
-	if err != nil {
-		return err
+	for {
+		pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
+
+		// To be sure we not loose pod information.
+		if pod == nil {
+			sourcePod = pod
+		}
+		if err != nil {
+			return sourcePod, err
+		}
+
+		if pod != nil && pod.Status.Phase != v1.PodPending {
+			break
+		}
+
+		time.Sleep(time.Millisecond * time.Duration(50))
+
+		if time.Since(st) > timeout {
+			return pod, fmt.Errorf("Timeout during waiting for pod change status from PodPendingo")
+		}
 	}
 
-	watcher, err := client.CoreV1().Pods(pod.Namespace).Watch(metaV1.SingleObject(metaV1.ObjectMeta{Name: pod.Name}))
+	watcher, err := client.CoreV1().Pods(sourcePod.Namespace).Watch(metaV1.SingleObject(metaV1.ObjectMeta{Name: sourcePod.Name}))
 
 	if err != nil {
-		return err
+		return sourcePod, err
 	}
 
 	for {
 		select {
-		case <-context.Done():
-			return errors.New("context cancelled/timeout")
 		case _, ok := <-watcher.ResultChan():
 
 			if !ok {
-				return nil
+				return sourcePod, fmt.Errorf("Some error watching for pod status")
 			}
 
-			pod, error := client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
-			if error == nil {
+			pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
+			if err == nil {
 				if isPodReady(pod) {
 					watcher.Stop()
-					return nil
+					return pod, nil
 				}
+			}
+			if time.Since(st) > timeout {
+				return sourcePod, fmt.Errorf("Tiemout during waiting for pod change status from PodPendingo")
 			}
 		}
 	}
@@ -121,48 +139,6 @@ func isPodReady(pod *v1.Pod) bool {
 	}
 
 	return true
-}
-
-func blockUntilPodExists(client kubernetes.Interface, context context.Context, pod *v1.Pod, timeout time.Duration) error {
-
-	exists := make(chan error)
-
-	go func() {
-		st := time.Now()
-		for {
-			pod, err := client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
-			if err != nil {
-				exists <- err
-				break
-			}
-
-			if pod != nil && pod.Status.Phase != v1.PodPending {
-				close(exists)
-				break
-			}
-
-			time.Sleep(time.Millisecond * time.Duration(50))
-			if time.Since(st) > timeout {
-				exists <- fmt.Errorf("Timeout waitinf for Pod to be ready...")
-				break
-			}
-		}
-	}()
-
-	select {
-	case <-context.Done():
-		return errors.New("context cancelled/timeout")
-	case err, ok := <-exists:
-		if err != nil {
-			return err
-		}
-
-		if ok {
-			return errors.New("unintended")
-		}
-
-		return nil
-	}
 }
 
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
@@ -240,7 +216,9 @@ func (o *K8s) deletePods(pods ...*v1.Pod) error {
 		if err != nil {
 			return err
 		}
-		err = blockUntilPodWorking(o.clientset, context.Background(), pod)
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		err = blockUntilPodWorking(o.clientset, ctx, pod)
 		if err != nil {
 			return err
 		}
@@ -284,19 +262,42 @@ func (l *K8s) Prepare(noPods ...string) {
 	}
 }
 
-func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
-	results, err := createAndBlock(l.clientset, l.config, "default", time.Second*60, templates...)
-	Expect(err).To(BeNil())
+/**
 
-	l.pods = append(l.pods, results...)
-	return results
+ */
+func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
+	pods, _ := l.CreatePodsRaw(time.Second*60, true, templates...)
+	return pods
+}
+func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
+	results := createAndBlock(l.clientset, l.config, "default", timeout, templates...)
+	pods := []*v1.Pod{}
+
+	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
+	errs := []error{}
+	for _, podResult := range results {
+		pods = append(pods, podResult.pod)
+		if podResult.err != nil {
+			logrus.Errorf("Error Creating Pod: %v", podResult.err)
+			errs = append(errs, podResult.err)
+		}
+	}
+	l.pods = append(l.pods, pods...)
+
+	// Make sure unit test is failed
+	var err error = nil
+	if failTest {
+		Expect(len(errs)).To(Equal(0))
+	} else {
+		// Lets construct error
+		err = fmt.Errorf("Errors %v", errs)
+	}
+
+	return pods, err
 }
 
 func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
-	results, err := createAndBlock(l.clientset, l.config, "default", time.Second*60, template)
-	Expect(err).To(BeNil())
-
-	l.pods = append(l.pods, results...)
+	results, _ := l.CreatePodsRaw(time.Second*60, true, template)
 	return results[0]
 }
 
