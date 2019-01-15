@@ -55,8 +55,8 @@ func TestNetExtract1(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(requested).To(BeNil())
 
-	Expect(srcIP.String()).To(Equal("10.10.1.1"))
-	Expect(dstIP.String()).To(Equal("10.10.1.2"))
+	Expect(srcIP.String()).To(Equal("10.10.1.1/30"))
+	Expect(dstIP.String()).To(Equal("10.10.1.2/30"))
 
 	err = pool.Release("c1")
 	Expect(err).To(BeNil())
