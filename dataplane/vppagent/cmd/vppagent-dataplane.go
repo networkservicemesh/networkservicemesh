@@ -25,6 +25,7 @@ import (
 	"github.com/ligato/networkservicemesh/dataplane/impl/dataplaneregistrarclient"
 	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,6 +45,9 @@ const (
 )
 
 func main() {
+	tracer, closer := tools.InitJaeger("vppagent-dataplane")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
 	// Capture signals to cleanup before exiting
 	c := make(chan os.Signal, 1)

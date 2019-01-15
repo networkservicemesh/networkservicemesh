@@ -2,21 +2,19 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
-
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -71,6 +69,7 @@ func (srv *networkServiceServer) getEndpointFromRegistry(ctx context.Context, re
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
+
 	// Make sure its a valid request
 	err := request.IsValid()
 	if err != nil {

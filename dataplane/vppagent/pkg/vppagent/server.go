@@ -18,14 +18,21 @@ import (
 	"context"
 	"net"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
+	opentracing "github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
 
 func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *grpc.Server {
-	server := grpc.NewServer()
+	tracer := opentracing.GlobalTracer()
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)

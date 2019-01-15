@@ -23,6 +23,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
@@ -66,7 +67,15 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("nse: failure to listen on a socket %s with error: %v", nsmClientSocket, err)
 	}
-	grpcServer := grpc.NewServer()
+
+	tracer, closer := tools.InitJaeger("vppagent-firewall-nse")
+	defer closer.Close()
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	// Check if the socket of Endpoint Connection Server is operation
 	testSocket, err := tools.SocketOperationCheck(nsmServerSocket)

@@ -20,14 +20,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
-
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -84,7 +85,13 @@ func NewWorkSpace(model model.Model, serviceRegistry serviceregistry.ServiceRegi
 	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes())
 
 	logrus.Infof("Creating new GRPC Server")
-	w.grpcServer = grpc.NewServer()
+	tracer := opentracing.GlobalTracer()
+	w.grpcServer = grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+
 	logrus.Infof("Registering NetworkServiceRegistryServer with grpcServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
 	logrus.Infof("Registering NetworkServiceServer with grpcServer")

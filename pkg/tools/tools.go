@@ -17,17 +17,20 @@ package tools
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/go-errors/errors"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-
-	"regexp"
-	"syscall"
-
+	jaeger "github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/config"
 	"google.golang.org/grpc"
 )
 
@@ -81,11 +84,15 @@ func SocketOperationCheck(listenEndpoint string) (*grpc.ClientConn, error) {
 }
 
 func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
+	tracer := opentracing.GlobalTracer()
 	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}),
-	)
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 
 	return c, err
 }
@@ -128,4 +135,29 @@ func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 		result[k] = v
 	}
 	return result
+}
+
+// initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
+	jaegerHost := os.Getenv("JAEGER_SERVICE_HOST")
+	jaegerPort := os.Getenv("JAEGER_SERVICE_PORT_JAEGER")
+	jaegerHostPort := fmt.Sprintf("%s:%s", jaegerHost, jaegerPort)
+
+	logrus.Infof("Using Jaeger host/port: %s", jaegerHostPort)
+
+	cfg := &config.Configuration{
+		Sampler: &config.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &config.ReporterConfig{
+			LogSpans:           true,
+			LocalAgentHostPort: jaegerHostPort,
+		},
+	}
+	tracer, closer, err := cfg.New(service, config.Logger(jaeger.StdLogger))
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+	}
+	return tracer, closer
 }

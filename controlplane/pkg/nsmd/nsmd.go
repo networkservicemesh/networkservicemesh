@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
@@ -12,6 +13,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -96,7 +98,13 @@ func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRe
 	}
 	serviceRegistry.WaitForDataplaneAvailable(model)
 
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	tracer := opentracing.GlobalTracer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+
 	nsm := nsmServer{
 		workspaces:      make(map[string]*Workspace),
 		model:           model,
@@ -156,7 +164,12 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 	if err != nil {
 		return err
 	}
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	tracer := opentracing.GlobalTracer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	// Start Cross connect monitor and server
 	startCrossConnectMonitor(grpcServer, model)
