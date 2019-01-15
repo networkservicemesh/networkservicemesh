@@ -15,8 +15,10 @@ type PrefixPool interface {
 	/*
 		Process ExtraPrefixesRequest and provide a list of prefixes for clients to use.
 	*/
-	Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP net.IP, dstIP net.IP, requested []string, err error)
+	Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP *net.IPNet, dstIP *net.IPNet, requested []string, err error)
 	Release(connectionId string) error
+	GetConnectionInformation(connectionId string) (string, []string, error)
+	GetPrefixes() []string
 }
 type prefixPool struct {
 	sync.RWMutex
@@ -24,6 +26,10 @@ type prefixPool struct {
 	basePrefixes []string // Just to know where we start from
 	prefixes     []string
 	connections  map[string]*connectionRecord
+}
+
+func (impl *prefixPool) GetPrefixes() []string {
+	return impl.prefixes
 }
 
 type connectionRecord struct {
@@ -39,7 +45,7 @@ func NewPrefixPool(prefixes ...string) (PrefixPool, error) {
 	}, nil
 }
 
-func (impl *prefixPool) Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP net.IP, dstIP net.IP, requested []string, err error) {
+func (impl *prefixPool) Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP *net.IPNet, dstIP *net.IPNet, requested []string, err error) {
 	impl.Lock()
 	defer impl.Unlock()
 
@@ -62,17 +68,17 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 		return nil, nil, nil, err
 	}
 
-	srcIP, err = IncrementIP(ip, ipNet)
+	src, err := IncrementIP(ip, ipNet)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	dstIP, err = IncrementIP(srcIP, ipNet)
+	dst, err := IncrementIP(src, ipNet)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	if len(requested) > 0 {
+	if len(requests) > 0 {
 		requested, remaining, err = ExtractPrefixes(remaining, requests...)
 		if err != nil {
 			return nil, nil, nil, err
@@ -85,8 +91,7 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 		ipNet:    ipNet,
 		prefixes: requested,
 	}
-
-	return srcIP, dstIP, requested, nil
+	return &net.IPNet{ IP: src, Mask: ipNet.Mask }, &net.IPNet{ IP: dst, Mask: ipNet.Mask }, requested, nil
 }
 func (impl *prefixPool) Release(connectionId string) error {
 	impl.Lock()
@@ -110,6 +115,16 @@ func (impl *prefixPool) Release(connectionId string) error {
 
 	impl.prefixes = remaining
 	return nil
+}
+
+func (impl* prefixPool) GetConnectionInformation(connectionId string) (string, []string, error) {
+	impl.RLock()
+	defer impl.RUnlock()
+	conn := impl.connections[connectionId]
+	if conn == nil {
+		return "", nil, fmt.Errorf("No connection with id: %s is found", connectionId)
+	}
+	return conn.ipNet.String(), conn.prefixes, nil
 }
 
 func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPrefixRequest) (requested []string, remaining []string, err error) {
