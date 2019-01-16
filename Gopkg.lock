@@ -867,6 +867,7 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
+    "github.com/gogo/protobuf/proto",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/golang/protobuf/ptypes",
