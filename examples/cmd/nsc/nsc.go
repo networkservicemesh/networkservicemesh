@@ -26,7 +26,7 @@ func main() {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	client.Connect("if1", "kernel", "Primary interface")
+	client.Connect("nsm", "kernel", "Primary interface")
 	logrus.Info("nsm client: initialization is completed successfully")
 
 }
