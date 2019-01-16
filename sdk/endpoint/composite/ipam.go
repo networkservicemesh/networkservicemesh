@@ -64,10 +64,31 @@ func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networks
 		SrcIpAddr: srcIP.String() + "/30",
 		DstIpAddr: dstIP.String() + "/30",
 		Routes: []*connectioncontext.Route{
-			{
+			&connectioncontext.Route{
 				Prefix: "8.8.8.8/30",
 			},
 		},
+	}
+
+	addrs, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range addrs {
+			adrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			for _, a := range adrs {
+				addr, _, _ := net.ParseCIDR(a.String())
+				if addr.String() != "127.0.0.1" {
+					newConnection.Context.IpNeighbors = append(newConnection.Context.IpNeighbors,
+						&connectioncontext.IpNeighbor{
+							Ip:              addr.String(),
+							HardwareAddress: iface.HardwareAddr.String(),
+						},
+					)
+				}
+			}
+		}
 	}
 
 	err = newConnection.IsComplete()
