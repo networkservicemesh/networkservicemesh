@@ -21,7 +21,9 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/sdk/common"
@@ -62,6 +64,7 @@ func (cce *ConnectionCompositeEndpoint) Request(ctx context.Context, request *ne
 			Id:             request.GetConnection().GetId(),
 			NetworkService: request.GetConnection().GetNetworkService(),
 			Mechanism:      mechanism,
+			Context:        proto.Clone(request.Connection.Context).(*connectioncontext.ConnectionContext),
 		}
 	}
 
