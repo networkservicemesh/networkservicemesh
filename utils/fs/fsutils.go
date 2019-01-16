@@ -2,6 +2,7 @@ package fs
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path"
@@ -46,7 +47,9 @@ func FindFileInProc(inode uint64, suffix string) (string, error) {
 			filename := "/proc/" + name + suffix
 			tryInode, err := GetInode(filename)
 			if err != nil {
-				return "", err
+				// Just report into log, do not exit
+				logrus.Errorf("Can't find %s Error: %v", filename, err)
+				continue
 			}
 			if tryInode == inode {
 				return filename, nil
