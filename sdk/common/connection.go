@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// NsmConnection is a NSM manager connection
 type NsmConnection struct {
 	sync.RWMutex
 	Context       context.Context
@@ -34,10 +35,12 @@ type NsmConnection struct {
 	NsClient      networkservice.NetworkServiceClient
 }
 
+// Close terminates the connection
 func (nsmc *NsmConnection) Close() error {
 	return nsmc.GrpcClient.Close()
 }
 
+// NewNSMConnection creates a NsmConnection
 func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*NsmConnection, error) {
 	if ctx == nil {
 		ctx = context.Background()

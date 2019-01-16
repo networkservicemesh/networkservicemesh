@@ -38,6 +38,7 @@ type ConnectionCompositeEndpoint struct {
 	id            *shortid.Shortid
 }
 
+// Request imeplements the request handler
 func (cce *ConnectionCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	err := request.IsValid()
@@ -78,6 +79,7 @@ func (cce *ConnectionCompositeEndpoint) Request(ctx context.Context, request *ne
 	return newConnection, nil
 }
 
+// Close imeplements the close handler
 func (cce *ConnectionCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if cce.GetNext() != nil {
 		return cce.GetNext().Close(ctx, connection)
@@ -85,6 +87,7 @@ func (cce *ConnectionCompositeEndpoint) Close(ctx context.Context, connection *c
 	return &empty.Empty{}, nil
 }
 
+// NewConnectionCompositeEndpoint creates a ConnectionCompositeEndpoint
 func NewConnectionCompositeEndpoint(configuration *common.NSConfiguration) *ConnectionCompositeEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {

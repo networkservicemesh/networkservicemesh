@@ -25,7 +25,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
-// CompositeEndpoint is  the basic service compostion interface
+// CompositeEndpoint is  the base service compostion interface
 type CompositeEndpoint interface {
 	networkservice.NetworkServiceServer
 	SetSelf(CompositeEndpoint)
@@ -40,24 +40,28 @@ type BaseCompositeEndpoint struct {
 	next CompositeEndpoint
 }
 
-func (dce *BaseCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if dce.GetNext() != nil {
-		return dce.GetNext().Request(ctx, request)
+// Request imeplements a dummy request handler
+func (bce *BaseCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	if bce.GetNext() != nil {
+		return bce.GetNext().Request(ctx, request)
 	}
 	return nil, nil
 }
 
-func (dce *BaseCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if dce.GetNext() != nil {
-		return dce.GetNext().Close(ctx, connection)
+// Close imeplements a dummy close handler
+func (bce *BaseCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if bce.GetNext() != nil {
+		return bce.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
+// SetSelf sets the original self struct
 func (bce *BaseCompositeEndpoint) SetSelf(self CompositeEndpoint) {
 	bce.self = self
 }
 
+// GetNext returns the next composite
 func (bce *BaseCompositeEndpoint) GetNext() CompositeEndpoint {
 	return bce.next
 }
@@ -71,6 +75,7 @@ func (bce *BaseCompositeEndpoint) SetNext(next CompositeEndpoint) CompositeEndpo
 	return bce.self
 }
 
+// GetOpaque returns a composite specific arnitrary data
 func (bce *BaseCompositeEndpoint) GetOpaque(interface{}) interface{} {
 	return nil
 }

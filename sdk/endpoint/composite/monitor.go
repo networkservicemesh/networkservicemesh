@@ -28,11 +28,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// MonitorCompositeEndpoint is a monitoring composite
 type MonitorCompositeEndpoint struct {
 	endpoint.BaseCompositeEndpoint
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
 }
 
+// Request imeplements the request handler
 func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if mce.GetNext() == nil {
@@ -52,6 +54,7 @@ func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *netwo
 	return incomingConnection, nil
 }
 
+// Close imeplements the close handler
 func (mce *MonitorCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if mce.GetNext() != nil {
 		return mce.GetNext().Close(ctx, connection)
@@ -60,6 +63,7 @@ func (mce *MonitorCompositeEndpoint) Close(ctx context.Context, connection *conn
 	return &empty.Empty{}, nil
 }
 
+// NewMonitorCompositeEndpoint creates a MonitorCompositeEndpoint
 func NewMonitorCompositeEndpoint(configuration *common.NSConfiguration) *MonitorCompositeEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {

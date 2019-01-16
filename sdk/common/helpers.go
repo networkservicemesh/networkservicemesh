@@ -39,6 +39,7 @@ func getEnv(key, description string, mandatory bool) string {
 	return value
 }
 
+// Ip2int converts and IP address to 32-bit unsignet integer
 func Ip2int(ip net.IP) uint32 {
 	if ip == nil {
 		return 0
@@ -49,6 +50,7 @@ func Ip2int(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip)
 }
 
+// MechanismFromString creates a Mechanism from string
 func MechanismFromString(mechanismName string) connection.MechanismType {
 	mechanismName = strings.ToUpper(mechanismName) + "_INTERFACE"
 	if mechanism, ok := connection.MechanismType_value[mechanismName]; ok {

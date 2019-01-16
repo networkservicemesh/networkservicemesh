@@ -32,6 +32,7 @@ const (
 	connectSleep   = 5 * time.Second
 )
 
+// NsmClient is the NSM client struct
 type NsmClient struct {
 	*common.NsmConnection
 	OutgoingNscName     string
@@ -39,6 +40,7 @@ type NsmClient struct {
 	OutgoingConnections []*connection.Connection
 }
 
+// Connect implements the business logic
 func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection.Connection, error) {
 	logrus.Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
@@ -88,6 +90,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 	return outgoingConnection, nil
 }
 
+// Close will terminate a particular connection
 func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
 	nsmc.NsClient.Close(nsmc.Context, outgoingConnection)
 
@@ -102,6 +105,7 @@ func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
 	return nil
 }
 
+// Destroy stops the whole module
 func (nsmc *NsmClient) Destroy() error {
 	for _, c := range nsmc.OutgoingConnections {
 		nsmc.NsClient.Close(nsmc.Context, c)
@@ -110,6 +114,7 @@ func (nsmc *NsmClient) Destroy() error {
 	return nil
 }
 
+// NewNSMClient creates the NsmClient
 func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*NsmClient, error) {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}

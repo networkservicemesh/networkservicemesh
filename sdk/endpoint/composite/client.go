@@ -34,6 +34,7 @@ type ClientCompositeEndpoint struct {
 	ioConnMap     map[string]*connection.Connection
 }
 
+// Request imeplements the request handler
 func (cce *ClientCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if cce.GetNext() == nil {
@@ -63,6 +64,7 @@ func (cce *ClientCompositeEndpoint) Request(ctx context.Context, request *networ
 	return incomingConnection, nil
 }
 
+// Close imeplements the close handler
 func (cce *ClientCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
 		cce.nsmClient.Close(outgoingConnection)
@@ -83,6 +85,7 @@ func (cce *ClientCompositeEndpoint) GetOpaque(incoming interface{}) interface{} 
 	return nil
 }
 
+// NewClientCompositeEndpoint creates a ClientCompositeEndpoint
 func NewClientCompositeEndpoint(configuration *common.NSConfiguration) *ClientCompositeEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {

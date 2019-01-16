@@ -37,6 +37,7 @@ type IpamCompositeEndpoint struct {
 	prefixPool prefix_pool.PrefixPool
 }
 
+// Request imeplements the request handler
 func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if ice.GetNext() == nil {
@@ -100,6 +101,7 @@ func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networks
 	return newConnection, nil
 }
 
+// Close imeplements the close handler
 func (ice *IpamCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	prefix, requests, err := ice.prefixPool.GetConnectionInformation(connection.GetId())
 	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
@@ -113,6 +115,7 @@ func (ice *IpamCompositeEndpoint) Close(ctx context.Context, connection *connect
 	return &empty.Empty{}, nil
 }
 
+// NewIpamCompositeEndpoint creates a IpamCompositeEndpoint
 func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompositeEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {

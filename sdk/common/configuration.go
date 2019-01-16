@@ -31,7 +31,7 @@ const (
 	ipAddressEnv          = "IP_ADDRESS"
 )
 
-// NSConfiguration contains the fill configuration of
+// NSConfiguration contains the full configuration used in the SDK
 type NSConfiguration struct {
 	NsmServerSocket    string
 	NsmClientSocket    string
@@ -45,6 +45,7 @@ type NSConfiguration struct {
 	IPAddress          string
 }
 
+// CompleteNSConfiguration fills all unset options from the env variables
 func (configuration *NSConfiguration) CompleteNSConfiguration() {
 
 	if len(configuration.NsmServerSocket) == 0 {
