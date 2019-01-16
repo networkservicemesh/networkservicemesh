@@ -22,20 +22,25 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	local_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 type NsmMonitorCrossConnectClient struct {
-	monitor     monitor_crossconnect_server.MonitorCrossConnectServer // All connections is here
-	remotePeers map[string]*remotePeerDescriptor
-	dataplanes  map[string]context.CancelFunc
-	xconManager *services.ClientConnectionManager
+	crossConnectMonitor monitor_crossconnect_server.MonitorCrossConnectServer // All connections is here
+	connectionMonitor   monitor_connection_server.MonitorConnectionServer
+	remotePeers         map[string]*remotePeerDescriptor
+	dataplanes          map[string]context.CancelFunc
+	xconManager         *services.ClientConnectionManager
 	model.ModelListenerImpl
 }
 
@@ -44,12 +49,14 @@ type remotePeerDescriptor struct {
 	cancel      context.CancelFunc
 }
 
-func NewMonitorCrossConnectClient(monitor monitor_crossconnect_server.MonitorCrossConnectServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
+func NewMonitorCrossConnectClient(crossConnectMonitor monitor_crossconnect_server.MonitorCrossConnectServer,
+	connectionMonitor monitor_connection_server.MonitorConnectionServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
-		monitor:     monitor,
-		remotePeers: map[string]*remotePeerDescriptor{},
-		dataplanes:  map[string]context.CancelFunc{},
-		xconManager: xconManager,
+		crossConnectMonitor: crossConnectMonitor,
+		connectionMonitor:   connectionMonitor,
+		remotePeers:         map[string]*remotePeerDescriptor{},
+		dataplanes:          map[string]context.CancelFunc{},
+		xconManager:         xconManager,
 	}
 	return rv
 }
@@ -93,12 +100,18 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{cancel: cancel}
-	go client.remotePeerCrossConnectMonitor(clientConnection.RemoteNsm, ctx)
+	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{cancel: cancel, xconCounter: 1}
+	go client.remotePeerConnectionMonitor(clientConnection.RemoteNsm, ctx)
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
-	client.monitor.DeleteCrossConnect(clientConnection.Xcon)
+	client.crossConnectMonitor.DeleteCrossConnect(clientConnection.Xcon)
+	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
+		client.connectionMonitor.DeleteConnection(conn)
+	}
+	if conn := clientConnection.Xcon.GetRemoteDestination(); conn != nil {
+		client.connectionMonitor.DeleteConnection(conn)
+	}
 
 	if clientConnection.RemoteNsm == nil {
 		return
@@ -137,7 +150,7 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 			logrus.Info("Context timeout exceeded...")
 			return
 		default:
-			logrus.Info("Recv CrossConnect...")
+			logrus.Info("Recv CrossConnect event...")
 			event, err := stream.Recv()
 			if err != nil {
 				logrus.Error(err)
@@ -153,23 +166,24 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 
 				switch event.GetType() {
 				case crossconnect.CrossConnectEventType_UPDATE:
-					if clientConnection.Xcon.State != xcon.State {
-						client.xconManager.UpdateClientConnectionState(clientConnection, xcon.State)
+					if src := xcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
+						client.xconManager.UpdateClientConnectionSrcState(clientConnection, src.State)
 					}
-					client.monitor.UpdateCrossConnect(xcon)
+					if dst := xcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
+						client.xconManager.UpdateClientConnectionDstState(clientConnection, dst.State)
+					}
+					client.crossConnectMonitor.UpdateCrossConnect(xcon)
 				case crossconnect.CrossConnectEventType_DELETE:
 					client.xconManager.DeleteClientConnection(clientConnection, false, false)
 				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
-					client.monitor.UpdateCrossConnect(xcon)
+					client.crossConnectMonitor.UpdateCrossConnect(xcon)
 				}
 			}
 		}
 	}
 }
 
-//remotePeerCrossConnectMonitor is per registered NSM monitoring routine.
-//It listens event from remote NSM (remote peers) and updates state of xcon if ones is down
-func (client *NsmMonitorCrossConnectClient) remotePeerCrossConnectMonitor(remotePeer *registry.NetworkServiceManager, ctx context.Context) {
+func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePeer *registry.NetworkServiceManager, ctx context.Context) {
 	logrus.Infof("Connecting to Remote NSM: %s", remotePeer.Name)
 	conn, err := grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	if err != nil {
@@ -178,8 +192,9 @@ func (client *NsmMonitorCrossConnectClient) remotePeerCrossConnectMonitor(remote
 	}
 	defer conn.Close()
 
-	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
-	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
+	monitorClient := remote_connection.NewMonitorConnectionClient(conn)
+	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: remotePeer.Name}
+	stream, err := monitorClient.MonitorConnections(context.Background(), selector)
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -191,22 +206,22 @@ func (client *NsmMonitorCrossConnectClient) remotePeerCrossConnectMonitor(remote
 			logrus.Info("Context timeout exceeded...")
 			return
 		default:
-			logrus.Info("Recv CrossConnect...")
+			logrus.Info("Recv Connection event...")
 			event, err := stream.Recv()
 			if err != nil {
 				logrus.Error(err)
 				//TODO (lobkovilya): handle remote NSM dies
 				return
 			}
-			logrus.Infof("Receive event from remote NSM %s: %s %s", remotePeer.GetName(), event.Type, event.CrossConnects)
+			logrus.Infof("Receive event from remote NSM %s: %s %s", remotePeer.GetName(), event.Type, event.Connections)
 
-			for _, xcon := range event.GetCrossConnects() {
-				clientConnection := client.xconManager.GetClientConnectionByDst(xcon.GetRemoteSource().GetId())
+			for _, remoteConnection := range event.GetConnections() {
+				clientConnection := client.xconManager.GetClientConnectionByDst(remoteConnection.GetId())
 				if clientConnection == nil {
 					continue
 				}
 				switch event.GetType() {
-				case crossconnect.CrossConnectEventType_DELETE:
+				case connection.ConnectionEventType_DELETE:
 					client.xconManager.DeleteClientConnection(clientConnection, true, false)
 				}
 			}

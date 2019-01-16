@@ -224,16 +224,15 @@ func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *re
 		return &empty.Empty{}, nil
 	}
 	srv.xconManager.DeleteClientConnection(clientConnection, true, true)
-	srv.monitor.DeleteConnection(connection)
 	return &empty.Empty{}, nil
 }
 
 func NewRemoteNetworkServiceServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry,
-	xconManager *services.ClientConnectionManager) remote_networkservice.NetworkServiceServer {
+	xconManager *services.ClientConnectionManager, connectionMonitor monitor_connection_server.MonitorConnectionServer) remote_networkservice.NetworkServiceServer {
 	return &remoteNetworkServiceServer{
 		model:           model,
 		serviceRegistry: serviceRegistry,
-		monitor:         monitor_connection_server.NewMonitorConnectionServer(),
+		monitor:         connectionMonitor,
 		xconManager:     xconManager,
 	}
 }

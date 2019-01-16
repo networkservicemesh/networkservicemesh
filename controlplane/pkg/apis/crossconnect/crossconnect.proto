@@ -17,15 +17,9 @@ message CrossConnectEvent {
     map<string, CrossConnect> cross_connects = 2;
 }
 
-enum CrossConnectState {
-    SRC_DOWN = 0;
-    DST_DOWN = 1;
-}
-
 message CrossConnect {
     string id = 1;
     string payload = 2;
-    CrossConnectState state = 3;
 
     oneof source {
         local.connection.Connection local_source = 4;

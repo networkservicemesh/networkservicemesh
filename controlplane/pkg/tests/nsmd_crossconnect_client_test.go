@@ -4,9 +4,11 @@ import (
 	"context"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
@@ -27,7 +29,11 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 	// Start Cross connect monitor and server
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, services.NewClientConnectionManager(model, serviceRegistry))
+
+	connectionMonitor := monitor_connection_server.NewMonitorConnectionServer()
+	connection.RegisterMonitorConnectionServer(grpcServer, connectionMonitor)
+
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, services.NewClientConnectionManager(model, serviceRegistry))
 	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 

@@ -14,16 +14,13 @@ type MonitorNetNsInodeServer struct {
 	crossConnectServer  MonitorCrossConnectServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
-	crossConnectClose   func(crossConnect *crossconnect.CrossConnect) error
 }
 
-func NewMonitorNetNsInodeServer(crossConnectServer MonitorCrossConnectServer,
-	crossConnectClose func(crossConnect *crossconnect.CrossConnect) error) *MonitorNetNsInodeServer {
+func NewMonitorNetNsInodeServer(crossConnectServer MonitorCrossConnectServer) *MonitorNetNsInodeServer {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
-		crossConnectClose:   crossConnectClose,
 	}
 	crossConnectServer.AddMonitorRecipient(rv)
 	go rv.MonitorNetNsInode()
@@ -62,7 +59,6 @@ func (m *MonitorNetNsInodeServer) MonitorNetNsInode() {
 }
 
 func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
-	logrus.Info("Checking liveness of crossconnects...")
 	liveInodes, err := fs.GetAllNetNs()
 	if err != nil {
 		return err
@@ -71,25 +67,31 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 
 	for _, xcon := range m.crossConnects {
 		if conn := xcon.GetLocalSource(); conn != nil {
-			alive, err := checkConnectionLiveness(conn, inodesSet)
-			if err != nil {
+			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
 				return err
-			}
-			if !alive && xcon.State != crossconnect.CrossConnectState_SRC_DOWN {
-				xcon.State = crossconnect.CrossConnectState_SRC_DOWN
-				m.crossConnectServer.UpdateCrossConnect(xcon)
 			}
 		}
 		if conn := xcon.GetLocalDestination(); conn != nil {
-			alive, err := checkConnectionLiveness(conn, inodesSet)
-			if err != nil {
+			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
 				return err
 			}
-			if !alive && xcon.State != crossconnect.CrossConnectState_DST_DOWN {
-				xcon.State = crossconnect.CrossConnectState_DST_DOWN
-				m.crossConnectServer.UpdateCrossConnect(xcon)
-			}
 		}
+	}
+
+	return nil
+}
+
+func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.CrossConnect, conn *connection.Connection,
+	inodeSet *InodeSet) error {
+	inode, err := strconv.ParseUint(conn.GetMechanism().GetNetNsInode(), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
+		logrus.Infof("Connection is down")
+		conn.State = connection.State_DOWN
+		m.crossConnectServer.UpdateCrossConnect(xcon)
 	}
 
 	return nil
@@ -111,12 +113,4 @@ func (m *MonitorNetNsInodeServer) handleEvent(event *crossconnect.CrossConnectEv
 		}
 		break
 	}
-}
-
-func checkConnectionLiveness(conn *connection.Connection, inodeSet *InodeSet) (bool, error) {
-	inode, err := strconv.ParseUint(conn.GetMechanism().GetNetNsInode(), 10, 64)
-	if err != nil {
-		return false, err
-	}
-	return inodeSet.Contains(inode), nil
 }

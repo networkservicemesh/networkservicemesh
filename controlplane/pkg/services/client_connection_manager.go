@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
@@ -20,20 +20,11 @@ func NewClientConnectionManager(model model.Model, serviceRegistry serviceregist
 	}
 }
 
-func (m *ClientConnectionManager) UpdateClientConnectionState(clientConnection *model.ClientConnection, state crossconnect.CrossConnectState) {
-	clientConnection.Xcon.State = state
-	m.model.UpdateClientConnection(clientConnection)
-
-	switch state {
-	case crossconnect.CrossConnectState_SRC_DOWN:
-		m.CloseRemotes(clientConnection, true, true)
-	case crossconnect.CrossConnectState_DST_DOWN:
-		m.CloseRemotes(clientConnection, true, false)
-	}
-}
-
 func (m *ClientConnectionManager) CloseRemotes(clientConnection *model.ClientConnection,
 	closeDataplane bool, closeEndpoint bool) {
+	logrus.Infof("Closing remotes: dataplane - %v, endpoint - %v, first time - %v ...",
+		closeDataplane, closeEndpoint, !clientConnection.IsClosing)
+
 	if clientConnection.IsClosing {
 		//means that we already invoke closing of remotes, nothing to do here
 		return
@@ -51,6 +42,20 @@ func (m *ClientConnectionManager) CloseRemotes(clientConnection *model.ClientCon
 			logrus.Error()
 		}
 	}
+}
+
+func (m *ClientConnectionManager) UpdateClientConnectionSrcState(clientConnection *model.ClientConnection, state connection.State) {
+	logrus.Info("ClientConnection src state is down")
+	clientConnection.Xcon.GetLocalSource().State = state
+	m.model.UpdateClientConnection(clientConnection)
+	m.CloseRemotes(clientConnection, true, true)
+}
+
+func (m *ClientConnectionManager) UpdateClientConnectionDstState(clientConnection *model.ClientConnection, state connection.State) {
+	logrus.Info("ClientConnection dst state is down")
+	clientConnection.Xcon.GetLocalDestination().State = state
+	m.model.UpdateClientConnection(clientConnection)
+	m.CloseRemotes(clientConnection, true, false)
 }
 
 func (m *ClientConnectionManager) DeleteClientConnection(clientConnection *model.ClientConnection,

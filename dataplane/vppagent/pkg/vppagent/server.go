@@ -15,7 +15,6 @@
 package vppagent
 
 import (
-	"context"
 	"net"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -38,14 +37,7 @@ func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet n
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
 
 	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName)
-	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor, CrossConnectClose(vppagent))
+	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor)
 	dataplane.RegisterDataplaneServer(server, vppagent)
 	return server
-}
-
-func CrossConnectClose(vppagent *VPPAgent) func(crossConnect *crossconnect.CrossConnect) error {
-	return func(crossConnect *crossconnect.CrossConnect) error {
-		_, err := vppagent.Close(context.Background(), crossConnect)
-		return err
-	}
 }

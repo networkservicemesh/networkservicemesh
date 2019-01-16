@@ -2,7 +2,9 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"sync"
 
@@ -175,15 +177,19 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	// Start CrossConnect monitor server
-	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
-	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
+	monitorCrossConnectServer := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorCrossConnectServer)
 
-	// Register CrossConnect monitor client as ModelListener
-	monitorClient := NewMonitorCrossConnectClient(monitor, xconManager)
-	model.AddListener(monitorClient)
+	// Start Connection monitor server
+	monitorConnectionServer := monitor_connection_server.NewMonitorConnectionServer()
+	connection.RegisterMonitorConnectionServer(grpcServer, monitorConnectionServer)
+
+	// Register CrossConnect monitorCrossConnectServer client as ModelListener
+	monitorCrossConnectClient := NewMonitorCrossConnectClient(monitorCrossConnectServer, monitorConnectionServer, xconManager)
+	model.AddListener(monitorCrossConnectClient)
 
 	// Register Remote NetworkServiceManager
-	remoteServer := network_service_server.NewRemoteNetworkServiceServer(model, serviceRegistry, xconManager)
+	remoteServer := network_service_server.NewRemoteNetworkServiceServer(model, serviceRegistry, xconManager, monitorConnectionServer)
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	// TODO: Add more public API services here.
