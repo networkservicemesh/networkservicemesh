@@ -17,7 +17,6 @@ package composite
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"net"
@@ -27,6 +26,7 @@ import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/ligato/networkservicemesh/sdk/common"
 	"github.com/ligato/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
@@ -34,7 +34,7 @@ import (
 
 type IpamCompositeEndpoint struct {
 	endpoint.BaseCompositeEndpoint
-	nextIP uint32
+	prefixPool prefix_pool.PrefixPool
 }
 
 func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -51,24 +51,23 @@ func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networks
 		return nil, err
 	}
 
-	// Force the connection src/dst IPs if configured
-	srcIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(srcIP, ice.nextIP)
-	ice.nextIP = ice.nextIP + 1
+	//TODO: We need to somehow support IPv6.
+	srcIP, dstIP, prefixes, err := ice.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
+	if err != nil {
+		return nil, err
+	}
 
-	dstIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(dstIP, ice.nextIP)
-	ice.nextIP = ice.nextIP + 3
+	// Update source/dst IP's
+	newConnection.Context.SrcIpAddr = srcIP.String()
+	newConnection.Context.DstIpAddr = dstIP.String()
 
-	newConnection.Context = &connectioncontext.ConnectionContext{
-		SrcIpAddr: srcIP.String() + "/30",
-		DstIpAddr: dstIP.String() + "/30",
-		Routes: []*connectioncontext.Route{
-			&connectioncontext.Route{
-				Prefix: "8.8.8.8/30",
-			},
+	//Add extra routes.
+	newConnection.Context.Routes = []*connectioncontext.Route{
+		&connectioncontext.Route{
+			Prefix: "8.8.8.8/30",
 		},
 	}
+	newConnection.Context.ExtraPrefixes = prefixes
 
 	addrs, err := net.Interfaces()
 	if err == nil {
@@ -102,6 +101,12 @@ func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networks
 }
 
 func (ice *IpamCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	prefix, requests, err := ice.prefixPool.GetConnectionInformation(connection.GetId())
+	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
+	if err != nil {
+		logrus.Errorf("Error: %v", err)
+	}
+	err = ice.prefixPool.Release(connection.GetId())
 	if ice.GetNext() != nil {
 		return ice.GetNext().Close(ctx, connection)
 	}
@@ -115,10 +120,15 @@ func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompos
 	}
 	configuration.CompleteNSConfiguration()
 
+	pool, err := prefix_pool.NewPrefixPool(configuration.IPAddress)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	self := &IpamCompositeEndpoint{
-		nextIP: common.Ip2int(net.ParseIP(configuration.IPAddress)),
+		prefixPool: pool,
 	}
 	self.SetSelf(self)
 
