@@ -91,8 +91,11 @@ func NewConnectionCompositeEndpoint(configuration *common.NSConfiguration) *Conn
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	return &ConnectionCompositeEndpoint{
+	self := &ConnectionCompositeEndpoint{
 		mechanismType: common.MechanismFromString(configuration.MechanismType),
 		id:            shortid.MustNew(1, shortid.DEFAULT_ABC, rand.Uint64()),
 	}
+	self.SetSelf(self)
+
+	return self
 }

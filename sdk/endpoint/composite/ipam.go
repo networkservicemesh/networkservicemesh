@@ -117,7 +117,10 @@ func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompos
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	return &IpamCompositeEndpoint{
+	self := &IpamCompositeEndpoint{
 		nextIP: common.Ip2int(net.ParseIP(configuration.IPAddress)),
 	}
+	self.SetSelf(self)
+
+	return self
 }

@@ -28,13 +28,11 @@ import (
 
 func main() {
 
-	connection := composite.NewConnectionCompositeEndpoint(nil)
-	ipam := composite.NewIpamCompositeEndpoint(nil)
-	monitor := composite.NewMonitorCompositeEndpoint(nil)
-	ipam.SetNext(connection)
-	monitor.SetNext(ipam)
+	composite := composite.NewMonitorCompositeEndpoint(nil).SetNext(
+		composite.NewIpamCompositeEndpoint(nil).SetNext(
+			composite.NewConnectionCompositeEndpoint(nil)))
 
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, monitor)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}

@@ -18,6 +18,8 @@ package endpoint
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -26,13 +28,15 @@ import (
 // CompositeEndpoint is  the basic service compostion interface
 type CompositeEndpoint interface {
 	networkservice.NetworkServiceServer
+	SetSelf(CompositeEndpoint)
 	GetNext() CompositeEndpoint
-	SetNext(CompositeEndpoint)
+	SetNext(CompositeEndpoint) CompositeEndpoint
 	GetOpaque(interface{}) interface{}
 }
 
 // BaseCompositeEndpoint is the base service compostion struct
 type BaseCompositeEndpoint struct {
+	self CompositeEndpoint
 	next CompositeEndpoint
 }
 
@@ -50,13 +54,21 @@ func (dce *BaseCompositeEndpoint) Close(ctx context.Context, connection *connect
 	return &empty.Empty{}, nil
 }
 
-// SetNext sets the next composite
-func (bce *BaseCompositeEndpoint) SetNext(next CompositeEndpoint) {
-	bce.next = next
+func (bce *BaseCompositeEndpoint) SetSelf(self CompositeEndpoint) {
+	bce.self = self
 }
 
 func (bce *BaseCompositeEndpoint) GetNext() CompositeEndpoint {
 	return bce.next
+}
+
+// SetNext sets the next composite
+func (bce *BaseCompositeEndpoint) SetNext(next CompositeEndpoint) CompositeEndpoint {
+	if bce.self == nil {
+		logrus.Fatal("Any struct that edtends BaseCompositeEndpoint should have 'self' set. Consider using SetSelf().")
+	}
+	bce.next = next
+	return bce.self
 }
 
 func (bce *BaseCompositeEndpoint) GetOpaque(interface{}) interface{} {

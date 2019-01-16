@@ -138,6 +138,7 @@ func newVppAgentXConnComposite(configuration *common.NSConfiguration) *vppAgentX
 		crossConnects:    make(map[string]crossConnectStruct),
 		workspace:        configuration.Workspace,
 	}
+	newVppAgentXConnComposite.SetSelf(newVppAgentXConnComposite)
 	newVppAgentXConnComposite.reset()
 
 	return newVppAgentXConnComposite
@@ -202,6 +203,7 @@ func newVppAgentAclComposite(configuration *common.NSConfiguration) *vppAgentAcl
 	newVppAgentAclComposite := &vppAgentAclComposite{
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
+	newVppAgentAclComposite.SetSelf(newVppAgentAclComposite)
 
 	return newVppAgentAclComposite
 }

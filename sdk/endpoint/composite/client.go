@@ -96,9 +96,12 @@ func NewClientCompositeEndpoint(configuration *common.NSConfiguration) *ClientCo
 		return nil
 	}
 
-	return &ClientCompositeEndpoint{
+	self := &ClientCompositeEndpoint{
 		ioConnMap:     map[string]*connection.Connection{},
 		mechanismType: configuration.MechanismType,
 		nsmClient:     nsmClient,
 	}
+	self.SetSelf(self)
+
+	return self
 }

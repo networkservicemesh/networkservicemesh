@@ -72,6 +72,7 @@ func newVppAgentComposite(configuration *common.NSConfiguration) *vppagentCompos
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 		workspace:        configuration.Workspace,
 	}
+	newVppAgentComposite.SetSelf(newVppAgentComposite)
 	newVppAgentComposite.Reset()
 
 	return newVppAgentComposite

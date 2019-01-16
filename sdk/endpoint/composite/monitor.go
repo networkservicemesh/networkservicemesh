@@ -67,7 +67,10 @@ func NewMonitorCompositeEndpoint(configuration *common.NSConfiguration) *Monitor
 	}
 	configuration.CompleteNSConfiguration()
 
-	return &MonitorCompositeEndpoint{
+	self := &MonitorCompositeEndpoint{
 		monitorConnectionServer: monitor_connection_server.NewMonitorConnectionServer(),
 	}
+	self.SetSelf(self)
+
+	return self
 }

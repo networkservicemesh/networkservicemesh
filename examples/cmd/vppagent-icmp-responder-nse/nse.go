@@ -33,13 +33,11 @@ func main() {
 		MechanismType: "mem",
 	}
 
-	connection := composite.NewConnectionCompositeEndpoint(nil)
-	vpp := newVppAgentComposite(nil)
-	monitor := composite.NewMonitorCompositeEndpoint(nil)
-	vpp.SetNext(connection)
-	monitor.SetNext(vpp)
+	composite := composite.NewMonitorCompositeEndpoint(configuration).SetNext(
+		newVppAgentComposite(configuration).SetNext(
+			composite.NewConnectionCompositeEndpoint(configuration)))
 
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, monitor)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
