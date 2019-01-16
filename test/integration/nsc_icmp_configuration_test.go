@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const defaultTimeout = 60 * time.Second
+
 func TestNSCAndICMPLocal(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -68,9 +70,9 @@ func testNSCAndICMP(t *testing.T, nodesCount int ) {
 		Expect(corePods[0].Name).To(Equal(corePodName))
 		Expect(corePods[1].Name).To(Equal(dataPlanePodName))
 
-		k8s.WaitLogsContains(nsmdDataplanePodNode[k], "", "Sending MonitorMechanisms update", 60*time.Second)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd", "Dataplane added", 60*time.Second)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "ListAndWatch was called with", 60*time.Second)
+		k8s.WaitLogsContains(nsmdDataplanePodNode[k], "", "Sending MonitorMechanisms update", defaultTimeout)
+		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd", "Dataplane added", defaultTimeout)
+		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "ListAndWatch was called with", defaultTimeout)
 	}
 
 	s1 = time.Now()
@@ -82,7 +84,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int ) {
 	))
 	Expect(icmpPodNode.Name).To(Equal("icmp-responder-nse1"))
 
-	k8s.WaitLogsContains(icmpPodNode, "", "nse: channel has been successfully advertised, waiting for connection from NSM...", 60*time.Second)
+	k8s.WaitLogsContains(icmpPodNode, "", "nse: channel has been successfully advertised, waiting for connection from NSM...", defaultTimeout)
 
 	logrus.Printf("ICMP Responder started done: %v", time.Since(s1))
 
@@ -94,7 +96,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int ) {
 	))
 	Expect(nscPodNode.Name).To(Equal("nsc1"))
 
-	k8s.WaitLogsContains(nscPodNode, "nsc", "nsm client: initialization is completed successfully", 60*time.Second)
+	k8s.WaitLogsContains(nscPodNode, "nsc", "nsm client: initialization is completed successfully", defaultTimeout)
 	logrus.Printf("NSC started done: %v", time.Since(s1))
 
 	var ipResponse string = ""
