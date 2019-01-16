@@ -19,6 +19,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/ligato/networkservicemesh/pkg/tools"
@@ -60,7 +61,22 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 }
 
 func (nsme *nsmEndpoint) Start() error {
-	nsme.grpcServer = grpc.NewServer()
+
+	var grpcOptions []grpc.ServerOption
+	if nsme.Configuration.TracerEnabled {
+
+		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
+		defer closer.Close()
+
+		grpcOptions = append(grpcOptions,
+			grpc.UnaryInterceptor(
+				otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())))
+		grpcOptions = append(grpcOptions,
+			grpc.StreamInterceptor(
+				otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	}
+
+	nsme.grpcServer = grpc.NewServer(grpcOptions...)
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()

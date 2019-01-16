@@ -32,6 +32,8 @@ spec:
               value: "icmp-responder"
             - name: ADVERTISE_NSE_LABELS
               value: "app=icmp-responder"
+            - name: TRACER_ENABLED
+              value: "true"
             - name: IP_ADDRESS
               value: "10.20.1.0/24"
           resources:

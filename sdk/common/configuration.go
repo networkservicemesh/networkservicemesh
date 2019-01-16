@@ -16,6 +16,8 @@
 package common
 
 import (
+	"strconv"
+
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
 )
 
@@ -24,6 +26,7 @@ const (
 	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
 	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
 	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
+	tracerEnabled         = "TRACER_ENABLED"
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
 )
@@ -37,6 +40,7 @@ type NSConfiguration struct {
 	OutgoingNscName    string
 	AdvertiseNseLabels string
 	OutgoingNscLabels  string
+	TracerEnabled      bool
 	MechanismType      string
 	IPAddress          string
 }
@@ -70,6 +74,8 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 	if len(configuration.OutgoingNscLabels) == 0 {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
+
+	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabled, "Tracer enabled", false))
 
 	if len(configuration.MechanismType) == 0 {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)

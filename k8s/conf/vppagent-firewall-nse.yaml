@@ -22,6 +22,8 @@ spec:
               value: "secure-intranet-connectivity"
             - name: OUTGOING_NSC_LABELS
               value: "app=firewall"
+            - name: TRACER_ENABLED
+              value: "true"
           resources:
             limits:
               nsm.ligato.io/socket: 1
