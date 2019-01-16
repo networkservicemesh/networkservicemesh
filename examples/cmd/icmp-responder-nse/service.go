@@ -16,8 +16,8 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
-	"net"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -30,8 +30,9 @@ import (
 type networkService struct {
 	sync.RWMutex
 	networkService          string
-	nextIP                  uint32
+	prefixPool              prefix_pool.PrefixPool
 	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
+	netNS string
 }
 
 type message struct {
@@ -47,33 +48,35 @@ func (ns *networkService) Request(ctx context.Context, request *networkservice.N
 		return nil, err
 	}
 	ns.monitorConnectionServer.UpdateConnection(conn)
-
 	return conn, nil
 }
 
 func (ns *networkService) Close(_ context.Context, conn *connection.Connection) (*empty.Empty, error) {
+	logrus.Infof("Close for Network Service received %v", conn)
 	// remove from connection
 	ns.monitorConnectionServer.DeleteConnection(conn)
-	return &empty.Empty{}, nil
-}
-
-func ip2int(ip net.IP) uint32 {
-	if ip == nil {
-		return 0
+	prefix, requests, err := ns.prefixPool.GetConnectionInformation(conn.Id)
+	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
+	if err != nil {
+		return &empty.Empty{}, err
 	}
-	if len(ip) == 16 {
-		return binary.BigEndian.Uint32(ip[12:16])
-	}
-	return binary.BigEndian.Uint32(ip)
+	err = ns.prefixPool.Release(conn.Id)
+	return &empty.Empty{}, err
 }
 
 func New(ip string) networkservice.NetworkServiceServer {
 	monitor := monitor_connection_server.NewMonitorConnectionServer()
-	netIP := net.ParseIP(ip)
+	pool, err := prefix_pool.NewPrefixPool(ip)
+	if err != nil {
+		panic(err.Error())
+	}
+	netns, _ := tools.GetCurrentNS()
+
 	service := networkService{
 		networkService:          "icmp-responder",
-		nextIP:                  ip2int(netIP), // 10.20.1.1
+		prefixPool:              pool, // 10.20.1.1
 		monitorConnectionServer: monitor,
+		netNS: netns,
 	}
 	return &service
 }
