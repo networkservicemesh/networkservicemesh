@@ -17,6 +17,11 @@ import (
 	"time"
 )
 
+const (
+	podStartTimeout = 5*time.Minute
+	podDeleteTimeout = 5*time.Minute
+)
+
 type PodDeployResult struct {
 	pod *v1.Pod
 	err error
@@ -86,10 +91,10 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 
 		// To be sure we not loose pod information.
 		if pod == nil {
-			sourcePod = pod
+			pod = sourcePod
 		}
 		if err != nil {
-			return sourcePod, err
+			return pod, err
 		}
 
 		if pod != nil && pod.Status.Phase != v1.PodPending {
@@ -99,7 +104,7 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		time.Sleep(time.Millisecond * time.Duration(50))
 
 		if time.Since(st) > timeout {
-			return pod, fmt.Errorf("Timeout during waiting for pod change status from PodPendingo")
+			return pod, podTimeout(pod)
 		}
 	}
 
@@ -125,10 +130,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 				}
 			}
 			if time.Since(st) > timeout {
-				return sourcePod, fmt.Errorf("Tiemout during waiting for pod change status from PodPendingo")
+				return sourcePod, podTimeout(pod)
 			}
 		}
 	}
+}
+
+func podTimeout(pod *v1.Pod) error {
+	return fmt.Errorf("Timeout during waiting for pod change status for pod %s %v status: ", pod.Name, pod.Status.Conditions)
 }
 
 func isPodReady(pod *v1.Pod) bool {
@@ -165,7 +174,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 
 	select {
 	case <-context.Done():
-		return errors.New("context cancelled/timeout")
+		return podTimeout(pod)
 	case err, ok := <-exists:
 		if err != nil {
 			return err
@@ -216,7 +225,7 @@ func (o *K8s) deletePods(pods ...*v1.Pod) error {
 		if err != nil {
 			return err
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
 		defer cancel()
 		err = blockUntilPodWorking(o.clientset, ctx, pod)
 		if err != nil {
@@ -266,7 +275,7 @@ func (l *K8s) Prepare(noPods ...string) {
 
  */
 func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
-	pods, _ := l.CreatePodsRaw(time.Second*60, true, templates...)
+	pods, _ := l.CreatePodsRaw(podStartTimeout, true, templates...)
 	return pods
 }
 func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
@@ -278,7 +287,7 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 	for _, podResult := range results {
 		pods = append(pods, podResult.pod)
 		if podResult.err != nil {
-			logrus.Errorf("Error Creating Pod: %v", podResult.err)
+			logrus.Errorf("Error Creating Pod: %s %v", podResult.pod.Name, podResult.err)
 			errs = append(errs, podResult.err)
 		}
 	}
@@ -297,7 +306,7 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 }
 
 func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
-	results, _ := l.CreatePodsRaw(time.Second*60, true, template)
+	results, _ := l.CreatePodsRaw(podStartTimeout, true, template)
 	return results[0]
 }
 
@@ -396,7 +405,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			logrus.Warnf("Waiting for %d nodes to arrive, currenctly have: %d", len(nodes), requiredNumber)
 			warnPrinted = true
 		}
-		time.Sleep(time.Second)
+		time.Sleep(50*time.Millisecond)
 	}
 
 }

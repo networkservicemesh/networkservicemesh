@@ -15,13 +15,10 @@
 package main
 
 import (
-	"encoding/binary"
+	"github.com/golang/protobuf/proto"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"net"
-
 	"github.com/sirupsen/logrus"
-
-	"github.com/ligato/networkservicemesh/pkg/tools"
+	"net"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -32,39 +29,43 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 	if err != nil {
 		return nil, err
 	}
-	netns, _ := tools.GetCurrentNS()
 	mechanism := &connection.Mechanism{
 		Type: connection.MechanismType_KERNEL_INTERFACE,
 		Parameters: map[string]string{
-			connection.NetNsInodeKey: netns,
+			connection.NetNsInodeKey: ns.netNS,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
 			connection.InterfaceNameKey: "nsm" + request.GetConnection().GetId(),
 		},
 	}
 
-	srcIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(srcIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 1
-
-	dstIP := make(net.IP, 4)
-	binary.BigEndian.PutUint32(dstIP, ns.nextIP)
-	ns.nextIP = ns.nextIP + 3
+	//TODO: We need to somehow support IPv6.
+	srcIP, dstIP, prefixes, err := ns.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO take into consideration LocalMechnism preferences sent in request
+
+	// Copy context to not miss any valuable parameters.
+	context := proto.Clone(request.Connection.Context).(*connectioncontext.ConnectionContext)
+
+	// Update source/dst IP's
+	context.SrcIpAddr = srcIP.String()
+	context.DstIpAddr = dstIP.String()
+
+	//Add extra routes.
+	context.Routes= []*connectioncontext.Route{
+			&connectioncontext.Route{
+				Prefix: "8.8.8.8/30",
+			},
+		}
+	context.ExtraPrefixes= prefixes
 
 	connection := &connection.Connection{
 		Id:             request.GetConnection().GetId(),
 		NetworkService: request.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
-			SrcIpAddr: srcIP.String() + "/30",
-			DstIpAddr: dstIP.String() + "/30",
-			Routes: []*connectioncontext.Route{
-				&connectioncontext.Route{
-					Prefix: "8.8.8.8/30",
-				},
-			},
-		},
+		Context: context,
 	}
 
 	addrs, err := net.Interfaces()
@@ -93,5 +94,6 @@ func (ns *networkService) CompleteConnection(request *networkservice.NetworkServ
 		logrus.Error(err)
 		return nil, err
 	}
+	logrus.Infof("NSE is complete response: %v", connection)
 	return connection, nil
 }
