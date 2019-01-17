@@ -110,6 +110,9 @@ type ListenerImpl struct {
 	dataplanes int
 }
 
+func (impl *ListenerImpl) ClientConnectionUpdated(clientConnection *mdl.ClientConnection) {
+}
+
 func (impl *ListenerImpl) ClientConnectionAdded(clientConnection *mdl.ClientConnection) {
 }
 

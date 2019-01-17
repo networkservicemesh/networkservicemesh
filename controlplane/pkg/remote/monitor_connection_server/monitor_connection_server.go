@@ -54,15 +54,18 @@ func NewMonitorConnectionServer() MonitorConnectionServer {
 }
 
 func (m *monitorConnectionServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+	logrus.Infof("Starting new MonitorConnectionServer, selector - %v ...", selector.NetworkServiceManagerName)
 	filter := NewMonitorConnectionFilter(selector, recipient)
 	m.newMonitorRecipientCh <- filter
-	go func() {
+
+	// We need to wait until it will be done and do not exit
+	for {
 		select {
 		case <-filter.Context().Done():
 			m.closedMonitorRecipientCh <- filter
+			return nil
 		}
-	}()
-	return nil
+	}
 }
 
 func (m *monitorConnectionServer) monitorConnections() {

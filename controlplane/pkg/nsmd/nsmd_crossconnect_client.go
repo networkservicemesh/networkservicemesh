@@ -22,64 +22,41 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	local_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-type NSMMonitorCrossConnectClient interface {
-	Register(model model.Model)
-	Unregister(model model.Model)
+type NsmMonitorCrossConnectClient struct {
+	crossConnectMonitor monitor_crossconnect_server.MonitorCrossConnectServer // All connections is here
+	connectionMonitor   monitor_connection_server.MonitorConnectionServer
+	remotePeers         map[string]*remotePeerDescriptor
+	dataplanes          map[string]context.CancelFunc
+	xconManager         *services.ClientConnectionManager
+	model.ModelListenerImpl
 }
 
-type nsmMonitorCrossConnectClient struct {
-	monitor    monitor_crossconnect_server.MonitorCrossConnectServer // All connections is here
-	model      model.Model
-	dataplanes map[string]*dataplaneCrossConnectInfo
+type remotePeerDescriptor struct {
+	xconCounter int
+	cancel      context.CancelFunc
 }
 
-func (client *nsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnection *model.ClientConnection) {
-}
-
-func (client *nsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
-}
-
-func (client *nsmMonitorCrossConnectClient) Register(model model.Model) {
-	model.AddListener(client)
-}
-
-func (client *nsmMonitorCrossConnectClient) Unregister(model model.Model) {
-	model.RemoveListener(client)
-}
-
-type dataplaneCrossConnectInfo struct {
-	crossConnects map[string]*crossconnect.CrossConnect
-}
-
-func (client *nsmMonitorCrossConnectClient) EndpointAdded(endpoint *registry.NetworkServiceEndpoint) {
-}
-
-func (client *nsmMonitorCrossConnectClient) EndpointDeleted(endpoint *registry.NetworkServiceEndpoint) {
-}
-
-func (client *nsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Dataplane) {
-	info := &dataplaneCrossConnectInfo{
-		crossConnects: make(map[string]*crossconnect.CrossConnect),
-	}
-	client.dataplanes[dataplane.RegisteredName] = info
-	go client.dataplaneCrossConnectMonitor(dataplane, info)
-}
-
-func (client *nsmMonitorCrossConnectClient) DataplaneDeleted(dataplane *model.Dataplane) {
-}
-
-func NewMonitorCrossConnectClient(monitor monitor_crossconnect_server.MonitorCrossConnectServer) NSMMonitorCrossConnectClient {
-	rv := &nsmMonitorCrossConnectClient{
-		dataplanes: make(map[string]*dataplaneCrossConnectInfo),
-		monitor:    monitor,
+func NewMonitorCrossConnectClient(crossConnectMonitor monitor_crossconnect_server.MonitorCrossConnectServer,
+	connectionMonitor monitor_connection_server.MonitorConnectionServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
+	rv := &NsmMonitorCrossConnectClient{
+		crossConnectMonitor: crossConnectMonitor,
+		connectionMonitor:   connectionMonitor,
+		remotePeers:         map[string]*remotePeerDescriptor{},
+		dataplanes:          map[string]context.CancelFunc{},
+		xconManager:         xconManager,
 	}
 	return rv
 }
@@ -98,16 +75,60 @@ func dial(ctx context.Context, network string, address string) (*grpc.ClientConn
 	return conn, err
 }
 
-// dataplaneMonitor is per registered dataplane crossconnect monitoring routine.
+func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Dataplane) {
+	ctx, cancel := context.WithCancel(context.Background())
+	client.dataplanes[dataplane.RegisteredName] = cancel
+	go client.dataplaneCrossConnectMonitor(dataplane, ctx)
+}
+
+func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dataplane *model.Dataplane) {
+	clientConnections := client.xconManager.GetClientConnectionsByDataplane(dataplane.RegisteredName)
+	for _, clientConnection := range clientConnections {
+		client.xconManager.DeleteClientConnection(clientConnection, false, true)
+	}
+	client.dataplanes[dataplane.RegisteredName]()
+	delete(client.dataplanes, dataplane.RegisteredName)
+}
+
+func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnection *model.ClientConnection) {
+	if clientConnection.RemoteNsm == nil {
+		return
+	}
+
+	if remotePeer, exist := client.remotePeers[clientConnection.RemoteNsm.Name]; exist {
+		remotePeer.xconCounter++
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{cancel: cancel, xconCounter: 1}
+	go client.remotePeerConnectionMonitor(clientConnection.RemoteNsm, ctx)
+}
+
+func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+	client.crossConnectMonitor.DeleteCrossConnect(clientConnection.Xcon)
+	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
+		client.connectionMonitor.DeleteConnection(conn)
+	}
+	if conn := clientConnection.Xcon.GetRemoteDestination(); conn != nil {
+		client.connectionMonitor.DeleteConnection(conn)
+	}
+
+	if clientConnection.RemoteNsm == nil {
+		return
+	}
+	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
+	remotePeer.xconCounter--
+	if remotePeer.xconCounter == 0 {
+		remotePeer.cancel()
+		delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+	}
+}
+
+// dataplaneCrossConnectMonitor is per registered dataplane crossconnect monitoring routine.
 // It creates a grpc client for the socket advertsied by the dataplane and listens for a stream of Cross Connect Events.
 // If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
 // monitor will remove all dataplane connections and will terminate itself.
-func (client *nsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(dataplane *model.Dataplane, dataplaneInfo *dataplaneCrossConnectInfo) {
-	var err error
-	if dataplane == nil {
-		logrus.Errorf("Dataplane object store does not have registered plugin %s", dataplane.RegisteredName)
-		return
-	}
+func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(dataplane *model.Dataplane, ctx context.Context) {
 	logrus.Infof("Connecting to Dataplane %s %s", dataplane.RegisteredName, dataplane.SocketLocation)
 	conn, err := dial(context.Background(), "unix", dataplane.SocketLocation)
 	if err != nil {
@@ -115,46 +136,94 @@ func (client *nsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 		return
 	}
 	defer conn.Close()
-	dataplaneClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
-	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplaneClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
+	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
+	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
 	if err != nil {
-		logrus.Warningf("Fail to create update grpc channel for Dataplane CrossConnect monitor %s with error: %+v. Dataplane could not support cross connects monitoring", dataplane.RegisteredName, err)
+		logrus.Error(err)
 		return
 	}
+
 	for {
-		logrus.Infof("Recv from Dataplane CrossConnect %s %s", dataplane.RegisteredName, dataplane.SocketLocation)
-		event, err := stream.Recv()
-		if err != nil {
-			logrus.Errorf("fail to receive event from grpc channel for Dataplane %s with error: %+v.", dataplane.RegisteredName, err)
-			// We need to remove all connections from this dataplane.
-
-			for _, xcon := range dataplaneInfo.crossConnects {
-				client.monitor.DeleteCrossConnect(xcon)
-			}
+		select {
+		case <-ctx.Done():
+			logrus.Info("Context timeout exceeded...")
 			return
+		default:
+			logrus.Info("Recv CrossConnect event...")
+			event, err := stream.Recv()
+			if err != nil {
+				logrus.Error(err)
+				return
+			}
+			logrus.Infof("Receive event from dataplane %s: %s %s", dataplane.RegisteredName, event.Type, event.CrossConnects)
+
+			for _, xcon := range event.GetCrossConnects() {
+				clientConnection := client.xconManager.GetClientConnectionByXcon(xcon.Id)
+				if clientConnection == nil {
+					continue
+				}
+
+				switch event.GetType() {
+				case crossconnect.CrossConnectEventType_UPDATE:
+					if src := xcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
+						client.xconManager.UpdateClientConnectionSrcState(clientConnection, src.State)
+					}
+					if dst := xcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
+						client.xconManager.UpdateClientConnectionDstState(clientConnection, dst.State)
+					}
+					client.crossConnectMonitor.UpdateCrossConnect(xcon)
+				case crossconnect.CrossConnectEventType_DELETE:
+					client.xconManager.DeleteClientConnection(clientConnection, false, false)
+				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
+					client.crossConnectMonitor.UpdateCrossConnect(xcon)
+				}
+			}
 		}
-		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", dataplane.RegisteredName, event.CrossConnects)
+	}
+}
 
-		for _, xcon := range event.GetCrossConnects() {
-			if event.GetType() == crossconnect.CrossConnectEventType_UPDATE {
-				dataplaneInfo.crossConnects[xcon.GetId()] = xcon
+func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePeer *registry.NetworkServiceManager, ctx context.Context) {
+	logrus.Infof("Connecting to Remote NSM: %s", remotePeer.Name)
+	conn, err := grpc.Dial(remotePeer.Url, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("Failed to dial Network Service Registry %s at %s: %s", remotePeer.GetName(), remotePeer.Url, err)
+		return
+	}
+	defer conn.Close()
 
-				// Pass object
-				client.monitor.UpdateCrossConnect(xcon)
+	monitorClient := remote_connection.NewMonitorConnectionClient(conn)
+	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: remotePeer.Name}
+	stream, err := monitorClient.MonitorConnections(context.Background(), selector)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			logrus.Info("Context timeout exceeded...")
+			return
+		default:
+			logrus.Info("Recv Connection event...")
+			event, err := stream.Recv()
+			if err != nil {
+				logrus.Error(err)
+				//TODO (lobkovilya): handle remote NSM dies
+				return
 			}
-			if event.GetType() == crossconnect.CrossConnectEventType_DELETE {
-				delete(dataplaneInfo.crossConnects, xcon.GetId())
+			logrus.Infof("Receive event from remote NSM %s: %s %s", remotePeer.GetName(), event.Type, event.Connections)
 
-				// Pass object
-				client.monitor.DeleteCrossConnect(xcon)
-			}
-			if event.GetType() == crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER {
-				dataplaneInfo.crossConnects[xcon.GetId()] = xcon
-
-				// Pass object
-				client.monitor.UpdateCrossConnect(xcon)
+			for _, remoteConnection := range event.GetConnections() {
+				clientConnection := client.xconManager.GetClientConnectionByDst(remoteConnection.GetId())
+				if clientConnection == nil {
+					continue
+				}
+				switch event.GetType() {
+				case connection.ConnectionEventType_DELETE:
+					client.xconManager.DeleteClientConnection(clientConnection, true, false)
+				}
 			}
 		}
 	}
