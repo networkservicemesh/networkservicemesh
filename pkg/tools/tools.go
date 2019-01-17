@@ -155,7 +155,16 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 			LocalAgentHostPort: jaegerHostPort,
 		},
 	}
-	tracer, closer, err := cfg.New(service, config.Logger(jaeger.StdLogger))
+
+	hostname, err := os.Hostname()
+	var serviceName string
+	if err == nil {
+		serviceName = fmt.Sprintf("%s@%s", service, hostname)
+	} else {
+		serviceName = service
+	}
+
+	tracer, closer, err := cfg.New(serviceName, config.Logger(jaeger.StdLogger))
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}
