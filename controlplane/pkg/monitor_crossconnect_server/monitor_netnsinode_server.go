@@ -2,6 +2,7 @@ package monitor_crossconnect_server
 
 import (
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 	"strconv"
@@ -13,16 +14,13 @@ type MonitorNetNsInodeServer struct {
 	crossConnectServer  MonitorCrossConnectServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
-	crossConnectClose   func(crossConnect *crossconnect.CrossConnect) error
 }
 
-func NewMonitorNetNsInodeServer(crossConnectServer MonitorCrossConnectServer,
-	crossConnectClose func(crossConnect *crossconnect.CrossConnect) error) *MonitorNetNsInodeServer {
+func NewMonitorNetNsInodeServer(crossConnectServer MonitorCrossConnectServer) *MonitorNetNsInodeServer {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
-		crossConnectClose:   crossConnectClose,
 	}
 	crossConnectServer.AddMonitorRecipient(rv)
 	go rv.MonitorNetNsInode()
@@ -61,25 +59,39 @@ func (m *MonitorNetNsInodeServer) MonitorNetNsInode() {
 }
 
 func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
-	logrus.Info("Checking liveness of crossconnects...")
 	liveInodes, err := fs.GetAllNetNs()
 	if err != nil {
 		return err
 	}
-
 	inodesSet := NewInodeSet(liveInodes)
+
 	for _, xcon := range m.crossConnects {
-		localInodes, err := getLocalInodes(xcon)
-		if err != nil {
-			return err
-		}
-		for _, inode := range localInodes {
-			if !inodesSet.Contains(inode) {
-				logrus.Infof("Closing crossconnect: %v", *xcon)
-				m.crossConnectClose(xcon)
-				break
+		if conn := xcon.GetLocalSource(); conn != nil {
+			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
+				return err
 			}
 		}
+		if conn := xcon.GetLocalDestination(); conn != nil {
+			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.CrossConnect, conn *connection.Connection,
+	inodeSet *InodeSet) error {
+	inode, err := strconv.ParseUint(conn.GetMechanism().GetNetNsInode(), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
+		logrus.Infof("Connection is down")
+		conn.State = connection.State_DOWN
+		m.crossConnectServer.UpdateCrossConnect(xcon)
 	}
 
 	return nil
@@ -101,30 +113,4 @@ func (m *MonitorNetNsInodeServer) handleEvent(event *crossconnect.CrossConnectEv
 		}
 		break
 	}
-}
-
-func getLocalInodes(xcon *crossconnect.CrossConnect) ([]uint64, error) {
-	var localInodes []uint64
-
-	if conn := xcon.GetLocalSource(); conn != nil {
-		inodeStr := conn.GetMechanism().GetNetNsInode()
-		logrus.Infof("Local source: %s", inodeStr)
-		if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
-			localInodes = append(localInodes, inode)
-		} else {
-			return nil, err
-		}
-	}
-
-	if conn := xcon.GetLocalDestination(); conn != nil {
-		inodeStr := conn.GetMechanism().GetNetNsInode()
-		logrus.Infof("Local destination: %s", inodeStr)
-		if inode, err := strconv.ParseUint(inodeStr, 10, 64); err == nil {
-			localInodes = append(localInodes, inode)
-		} else {
-			return nil, err
-		}
-	}
-
-	return localInodes, nil
 }

@@ -2,18 +2,20 @@ package tests
 
 import (
 	"context"
-	"net"
-	"testing"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"github.com/ligato/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"net"
+	"testing"
 )
 
 func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
@@ -22,12 +24,17 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 		return err, nil, nil
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	serviceRegistry := nsmd.NewServiceRegistry()
 
 	// Start Cross connect monitor and server
 	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor)
-	monitorClient.Register(model)
+
+	connectionMonitor := monitor_connection_server.NewMonitorConnectionServer()
+	connection.RegisterMonitorConnectionServer(grpcServer, connectionMonitor)
+
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, services.NewClientConnectionManager(model, serviceRegistry))
+	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 
 	go func() {
@@ -83,6 +90,7 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 	result := []*crossconnect.CrossConnectEvent{}
 	for {
 		event, err := stream.Recv()
+		logrus.Infof("(test) receive event: %s %v", event.Type, event.CrossConnects)
 		if err != nil {
 			logrus.Errorf("Error2: %+v.", err)
 			return result

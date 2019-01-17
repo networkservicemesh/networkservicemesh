@@ -26,24 +26,30 @@ import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncon
 
 message Mechanism {
     MechanismType type = 1;
-    map<string,string> parameters = 2;
- }
- 
- enum MechanismType {
-     DEFAULT_INTERFACE = 0;
-     KERNEL_INTERFACE = 1;
-     VHOST_INTERFACE = 2;
-     MEM_INTERFACE = 3;
-     SRIOV_INTERFACE = 4;
-     HW_INTERFACE = 5;
- }
+    map<string, string> parameters = 2;
+}
 
- message Connection {
+enum MechanismType {
+    DEFAULT_INTERFACE = 0;
+    KERNEL_INTERFACE = 1;
+    VHOST_INTERFACE = 2;
+    MEM_INTERFACE = 3;
+    SRIOV_INTERFACE = 4;
+    HW_INTERFACE = 5;
+}
+
+enum State {
+    UP = 0;
+    DOWN = 1;
+}
+
+message Connection {
     string id = 1;
     string network_service = 2;
     Mechanism mechanism = 3;
     connectioncontext.ConnectionContext context = 4;
-    map<string,string> labels = 5;
+    map<string, string> labels = 5;
+    State state = 6;
 }
 
 enum ConnectionEventType {
@@ -54,9 +60,9 @@ enum ConnectionEventType {
 
 message ConnectionEvent {
     ConnectionEventType type = 1;
-    map<string,Connection> connections = 2;
+    map<string, Connection> connections = 2;
 }
 
 service MonitorConnection {
-    rpc MonitorConnections(google.protobuf.Empty) returns (stream ConnectionEvent);
+    rpc MonitorConnections (google.protobuf.Empty) returns (stream ConnectionEvent);
 }

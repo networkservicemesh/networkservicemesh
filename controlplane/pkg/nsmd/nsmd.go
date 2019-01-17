@@ -2,6 +2,10 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -164,6 +168,7 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 	if err != nil {
 		return err
 	}
+	xconManager := services.NewClientConnectionManager(model, serviceRegistry)
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -171,11 +176,21 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	// Start Cross connect monitor and server
-	startCrossConnectMonitor(grpcServer, model)
+	// Start CrossConnect monitor server
+	monitorCrossConnectServer := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorCrossConnectServer)
+
+	// Start Connection monitor server
+	monitorConnectionServer := monitor_connection_server.NewMonitorConnectionServer()
+	connection.RegisterMonitorConnectionServer(grpcServer, monitorConnectionServer)
+
+	// Register CrossConnect monitorCrossConnectServer client as ModelListener
+	monitorCrossConnectClient := NewMonitorCrossConnectClient(monitorCrossConnectServer, monitorConnectionServer, xconManager)
+	model.AddListener(monitorCrossConnectClient)
 
 	// Register Remote NetworkServiceManager
-	network_service_server.NewRemoteNetworkServiceServer(model, serviceRegistry, grpcServer)
+	remoteServer := network_service_server.NewRemoteNetworkServiceServer(model, serviceRegistry, xconManager, monitorConnectionServer)
+	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	// TODO: Add more public API services here.
 
@@ -187,11 +202,4 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
 
 	return nil
-}
-
-func startCrossConnectMonitor(grpcServer *grpc.Server, model model.Model) {
-	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
-	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
-	monitorClient := NewMonitorCrossConnectClient(monitor)
-	monitorClient.Register(model)
 }

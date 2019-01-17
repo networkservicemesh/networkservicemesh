@@ -14,22 +14,23 @@ enum CrossConnectEventType {
 
 message CrossConnectEvent {
     CrossConnectEventType type = 1;
-    map<string,CrossConnect> cross_connects = 2;
+    map<string, CrossConnect> cross_connects = 2;
 }
 
 message CrossConnect {
     string id = 1;
     string payload = 2;
+
     oneof source {
-        local.connection.Connection local_source = 3;
-        remote.connection.Connection remote_source = 4;
+        local.connection.Connection local_source = 4;
+        remote.connection.Connection remote_source = 5;
     }
     oneof destination {
-        local.connection.Connection local_destination = 5;
-        remote.connection.Connection remote_destination = 6;
+        local.connection.Connection local_destination = 6;
+        remote.connection.Connection remote_destination = 7;
     }
 }
 
 service MonitorCrossConnect {
-    rpc MonitorCrossConnects(google.protobuf.Empty) returns (stream crossconnect.CrossConnectEvent);
+    rpc MonitorCrossConnects (google.protobuf.Empty) returns (stream crossconnect.CrossConnectEvent);
 }
