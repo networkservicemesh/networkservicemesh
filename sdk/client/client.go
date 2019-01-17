@@ -71,7 +71,10 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 	for iteration := connectRetries; true; <-time.After(connectSleep) {
 		var err error
 		logrus.Infof("Sending outgoing request %v", outgoingRequest)
-		outgoingConnection, err = nsmc.NsClient.Request(nsmc.Context, outgoingRequest)
+
+		ctx, cancel := context.WithTimeout(nsmc.Context, 5*time.Second)
+		defer cancel()
+		outgoingConnection, err = nsmc.NsClient.Request(ctx, outgoingRequest)
 
 		if err != nil {
 			logrus.Errorf("failure to request connection with error: %+v", err)
