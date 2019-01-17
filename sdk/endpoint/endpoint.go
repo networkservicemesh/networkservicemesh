@@ -17,7 +17,10 @@ package endpoint
 
 import (
 	"context"
+	"io"
 	"net"
+
+	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -34,6 +37,7 @@ type nsmEndpoint struct {
 	grpcServer     *grpc.Server
 	registryClient registry.NetworkServiceRegistryClient
 	endpointName   string
+	tracerCloser   io.Closer
 }
 
 func (nsme *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
@@ -64,16 +68,15 @@ func (nsme *nsmEndpoint) Start() error {
 
 	var grpcOptions []grpc.ServerOption
 	if nsme.Configuration.TracerEnabled {
-
 		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
-		defer closer.Close()
-
 		grpcOptions = append(grpcOptions,
 			grpc.UnaryInterceptor(
 				otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())))
 		grpcOptions = append(grpcOptions,
 			grpc.StreamInterceptor(
 				otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+		opentracing.SetGlobalTracer(tracer)
+		nsme.tracerCloser = closer
 	}
 
 	nsme.grpcServer = grpc.NewServer(grpcOptions...)
@@ -117,6 +120,9 @@ func (nsme *nsmEndpoint) Start() error {
 }
 
 func (nsme *nsmEndpoint) Delete() error {
+	if nsme.Configuration.TracerEnabled {
+		nsme.tracerCloser.Close()
+	}
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
 		EndpointName: nsme.endpointName,
