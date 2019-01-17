@@ -14,7 +14,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
+func (ns *vppagentComposite) CreateVppInterface(ctx context.Context, nseConnection *connection.Connection, baseDir string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	tools.WaitForPortAvailable(ctx, "tcp", ns.vppAgentEndpoint, 100*time.Millisecond)
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.Dial(ns.vppAgentEndpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
@@ -50,7 +53,7 @@ func (ns *vppagentNetworkService) CreateVppInterface(ctx context.Context, nseCon
 	return nil
 }
 
-func (ns *vppagentNetworkService) Reset() error {
+func (ns *vppagentComposite) Reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", ns.vppAgentEndpoint, 100*time.Millisecond)

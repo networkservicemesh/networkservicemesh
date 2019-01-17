@@ -19,10 +19,10 @@ spec:
           image: networkservicemesh/nsc:latest
           imagePullPolicy: IfNotPresent
           env:
-            - name: NSC_LABELS
+            - name: OUTGOING_NSC_LABELS
               value: "app=icmp"
-            - name: NETWORK_SERVICES
-              value: "nsm1:icmp-responder"
+            - name: OUTGOING_NSC_NAME
+              value: "icmp-responder"
           resources:
             limits:
               nsm.ligato.io/socket: 1

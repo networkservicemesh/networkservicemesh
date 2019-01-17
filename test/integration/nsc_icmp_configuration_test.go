@@ -2,14 +2,15 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/ligato/networkservicemesh/test/kube_testing"
 	"github.com/ligato/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"strings"
-	"testing"
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 const defaultTimeout = 60 * time.Second
@@ -22,7 +23,7 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t,1)
+	testNSCAndICMP(t, 1)
 }
 
 func TestNSCAndICMPRemote(t *testing.T) {
@@ -33,14 +34,13 @@ func TestNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t,2)
+	testNSCAndICMP(t, 2)
 }
 
-
 /**
-	If passed 1 both will be on same node, if not on different.
- */
-func testNSCAndICMP(t *testing.T, nodesCount int ) {
+If passed 1 both will be on same node, if not on different.
+*/
+func testNSCAndICMP(t *testing.T, nodesCount int) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -59,9 +59,9 @@ func testNSCAndICMP(t *testing.T, nodesCount int ) {
 	nsmdDataplanePodNode := []*v1.Pod{}
 
 	s1 = time.Now()
-	for k := 0; k< nodesCount; k++ {
+	for k := 0; k < nodesCount; k++ {
 		corePodName := fmt.Sprintf("nsmd%d", k)
-		dataPlanePodName := fmt.Sprintf("nsmd-dataplane%d",k)
+		dataPlanePodName := fmt.Sprintf("nsmd-dataplane%d", k)
 		corePods := k8s.CreatePods(pods.NSMDPod(corePodName, &nodes[k]), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
 		logrus.Printf("Started NSMD/Dataplane: %v on node %d", time.Since(s1), k)
 		nsmdPodNode = append(nsmdPodNode, corePods[0])
@@ -79,19 +79,22 @@ func testNSCAndICMP(t *testing.T, nodesCount int ) {
 	logrus.Infof("Starting ICMP Responder NSE on node: %d", nodesCount-1)
 	icmpPodNode := k8s.CreatePod(pods.ICMPResponderPod("icmp-responder-nse1", &nodes[nodesCount-1],
 		map[string]string{
-			"NSE_LABELS": "app=icmp-responder", "IP_ADDRESS": "10.20.1.0/24",
+			"ADVERTISE_NSE_NAME":   "icmp-responder",
+			"ADVERTISE_NSE_LABELS": "app=icmp-responder",
+			"IP_ADDRESS":           "10.20.1.0/24",
 		},
 	))
 	Expect(icmpPodNode.Name).To(Equal("icmp-responder-nse1"))
 
-	k8s.WaitLogsContains(icmpPodNode, "", "nse: channel has been successfully advertised, waiting for connection from NSM...", defaultTimeout)
+	k8s.WaitLogsContains(icmpPodNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", defaultTimeout)
 
 	logrus.Printf("ICMP Responder started done: %v", time.Since(s1))
 
 	s1 = time.Now()
 	nscPodNode := k8s.CreatePod(pods.NSCPod("nsc1", &nodes[0],
 		map[string]string{
-			"NSC_LABELS": "app=icmp", "NETWORK_SERVICES": "nsm1:icmp-responder",
+			"OUTGOING_NSC_LABELS": "app=icmp",
+			"OUTGOING_NSC_NAME":   "icmp-responder",
 		},
 	))
 	Expect(nscPodNode.Name).To(Equal("nsc1"))

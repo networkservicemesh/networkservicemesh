@@ -28,8 +28,12 @@ spec:
           image: networkservicemesh/icmp-responder-nse:latest
           imagePullPolicy: IfNotPresent
           env:
-            - name: NSE_LABELS
+            - name: ADVERTISE_NSE_NAME
+              value: "icmp-responder"
+            - name: ADVERTISE_NSE_LABELS
               value: "app=icmp-responder"
+            - name: TRACER_ENABLED
+              value: "true"
             - name: IP_ADDRESS
               value: "10.20.1.0/24"
           resources:

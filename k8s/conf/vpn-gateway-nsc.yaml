@@ -21,8 +21,8 @@ spec:
           image: networkservicemesh/nsc:latest
           imagePullPolicy: IfNotPresent
           env:
-            - name: NETWORK_SERVICES
-              value: "vpn1:secure-intranet-connectivity"
+            - name: OUTGOING_NSC_NAME
+              value: "secure-intranet-connectivity"
           resources:
             limits:
               nsm.ligato.io/socket: 1
