@@ -185,7 +185,13 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePeer *registry.NetworkServiceManager, ctx context.Context) {
 	logrus.Infof("Connecting to Remote NSM: %s", remotePeer.Name)
-	conn, err := grpc.Dial(remotePeer.Url, grpc.WithInsecure())
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(remotePeer.Url, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer)),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+
 	if err != nil {
 		logrus.Errorf("Failed to dial Network Service Registry %s at %s: %s", remotePeer.GetName(), remotePeer.Url, err)
 		return

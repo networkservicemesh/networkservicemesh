@@ -13,8 +13,11 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +32,12 @@ var managers = map[string]string{}
 func monitorCrossConnects(address string, continuousMonitor bool) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(address, grpc.WithInsecure(),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())))
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return
@@ -51,6 +59,8 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 			logrus.Errorf("Error: %+v.", err)
 			return
 		}
+		sp := tracer.StartSpan("cross connect event")
+		sp.Finish()
 		data := ""
 		println("\u001b[0m\n")
 		for id, cc := range event.CrossConnects {
@@ -111,6 +121,9 @@ func lookForNSMServers() {
 }
 
 func main() {
+	tracer, closer := tools.InitJaeger("crossconnect-monitor")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(1)

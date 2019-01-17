@@ -9,12 +9,19 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/pkg/tools"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 func main() {
+	tracer, closer := tools.InitJaeger("skydive-client")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+
 	// Capture signals to cleanup before exiting
 	c := make(chan os.Signal, 1)
 	signal.Notify(c,
@@ -49,10 +56,15 @@ func main() {
 }
 
 func dial(ctx context.Context, network string, address string) (*grpc.ClientConn, error) {
+	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.Dial(network, addr)
 		}),
-	)
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+
 	return conn, err
 }
