@@ -1,4 +1,5 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018 VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,144 +16,48 @@
 package main
 
 import (
-	"context"
-	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/ligato/networkservicemesh/sdk/common"
+	"github.com/ligato/networkservicemesh/sdk/endpoint"
+	"github.com/ligato/networkservicemesh/sdk/endpoint/composite"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-)
-
-const (
-	// networkServiceName defines Network Service Name the NSE is serving for
-	NetworkServiceName      = "icmp-responder"
-	DefaultVPPAgentEndpoint = "localhost:9112"
-	ipAddressEnv            = "IP_ADDRESS"
-	nseLabelsEnv            = "NSE_LABELS"
 )
 
 func main() {
+
+	configuration := &common.NSConfiguration{
+		MechanismType: "mem",
+	}
+
+	composite := composite.NewMonitorCompositeEndpoint(configuration).SetNext(
+		newVppAgentComposite(configuration).SetNext(
+			composite.NewConnectionCompositeEndpoint(configuration)))
+
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
+	if err != nil {
+		logrus.Fatalf("%v", err)
+	}
+
+	nsmEndpoint.Start()
+	defer nsmEndpoint.Delete()
+
 	// Capture signals to cleanup before exiting
-	c := make(chan os.Signal, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	c := make(chan os.Signal)
 	signal.Notify(c,
+		os.Interrupt,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
-
-	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
-	logrus.Infof("nsmServerSocket: %s", nsmServerSocket)
-	// TODO handle missing env
-
-	nsmClientSocket, _ := os.LookupEnv(nsmd.NsmClientSocketEnv)
-	logrus.Infof("nsmClientSocket: %s", nsmClientSocket)
-	// TODO handle missing env
-
-	workspace, _ := os.LookupEnv(nsmd.WorkspaceEnv)
-	logrus.Infof("workspace: %s", workspace)
-	// TODO handle missing env
-
-	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
-	linuxNS, err := tools.GetCurrentNS()
-	if err != nil {
-		logrus.Fatalf("nse: failed to get a linux namespace with error: %v, exiting...", err)
-	}
-	logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
-
-	if err := tools.SocketCleanup(nsmClientSocket); err != nil {
-		logrus.Fatalf("nse: failure to cleanup stale socket %s with error: %v", nsmClientSocket, err)
-	}
-
-	logrus.Infof("nse: listening socket %s", nsmClientSocket)
-	connectionServer, err := net.Listen("unix", nsmClientSocket)
-	if err != nil {
-		logrus.Fatalf("nse: failure to listen on a socket %s with error: %v", nsmClientSocket, err)
-	}
-
-	tracer, closer := tools.InitJaeger("vppagent-icmp-responder-nse")
-	defer closer.Close()
-
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
-	// Registering NSE API, it will listen for Connection requests from NSM and return information
-	// needed for NSE's dataplane programming.
-	ipAddress, _ := os.LookupEnv(ipAddressEnv)
-	logrus.Infof("starting IP address: %s", ipAddress)
-	nseConn := New(DefaultVPPAgentEndpoint, workspace, ipAddress)
-
-	networkservice.RegisterNetworkServiceServer(grpcServer, nseConn)
-
 	go func() {
-		if err := grpcServer.Serve(connectionServer); err != nil {
-			logrus.Fatalf("nse: failed to start grpc server on socket %s with error: %v ", nsmClientSocket, err)
-		}
+		<-c
+		wg.Done()
 	}()
-	// Check if the socket of Endpoint Connection Server is operation
-	testSocket, err := tools.SocketOperationCheck(nsmServerSocket)
-	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the nsm on socket %s with error: %v", nsmServerSocket, err)
-	}
-	testSocket.Close()
-
-	// NSE connection server is ready and now endpoints can be advertised to NSM
-
-	if _, err := os.Stat(nsmServerSocket); err != nil {
-		logrus.Fatalf("nse: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
-	}
-
-	conn, err := tools.SocketOperationCheck(nsmServerSocket)
-	if err != nil {
-		logrus.Fatalf("nse: failure to communicate with the registrySocket %s with error: %+v", nsmServerSocket, err)
-	}
-	defer conn.Close()
-	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", nsmServerSocket)
-
-	registryConnection := registry.NewNetworkServiceRegistryClient(conn)
-
-	nseLabels := os.Getenv(nseLabelsEnv)
-
-	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: NetworkServiceName,
-		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nseLabels, ",", "="),
-	}
-	registration := &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name:    NetworkServiceName,
-			Payload: "IP",
-		},
-		NetworkserviceEndpoint: nse,
-	}
-
-	registeredNSE, err := registryConnection.RegisterNSE(context.Background(), registration)
-	if err != nil {
-		logrus.Fatalln("unable to register endpoint", err)
-	}
-	logrus.Infof("NSE registered: %v", registeredNSE)
-
-	// prepare and defer removing of the advertised endpoint
-	removeNSE := &registry.RemoveNSERequest{
-		EndpointName: registeredNSE.GetNetworkserviceEndpoint().GetEndpointName(),
-	}
-
-	defer registryConnection.RemoveNSE(context.Background(), removeNSE)
-	defer grpcServer.Stop()
-
-	logrus.Infof("nse: channel has been successfully advertised, waiting for connection from NSM...")
-
-	select {
-	case <-c:
-		logrus.Info("Closing vppagent-icmp-responder-nse")
-	}
+	wg.Wait()
 }

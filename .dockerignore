@@ -10,5 +10,6 @@
 !k8s/cmd
 !k8s/pkg
 !pkg
+!sdk
 !utils
 !vendor

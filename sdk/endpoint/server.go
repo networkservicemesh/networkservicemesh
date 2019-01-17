@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, Inc.
+// Copyright 2018, 2019 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,34 +13,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package endpoint
 
 import (
+	"context"
+
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/sirupsen/logrus"
 )
 
-func (ns *vppagentNetworkService) CompleteConnection(request *networkservice.NetworkServiceRequest, outgoingConnection *connection.Connection) (*connection.Connection, error) {
-	err := request.IsValid()
+func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	logrus.Infof("Request for Network Service received %v", request)
+
+	incomingConnection, err := nsme.composite.Request(ctx, request)
 	if err != nil {
-		return nil, err
-	}
-	mechanism, err := connection.NewMechanism(connection.MechanismType_MEM_INTERFACE, "nsm"+request.GetConnection().GetId(), "")
-	if err != nil {
+		logrus.Errorf("The composite returned an error: %v", err)
 		return nil, err
 	}
 
-	connection := &connection.Connection{
-		Id:             request.GetConnection().GetId(),
-		NetworkService: request.GetConnection().GetNetworkService(),
-		Mechanism:      mechanism,
-		Context:        outgoingConnection.GetContext(),
-	}
-	err = connection.IsComplete()
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	return connection, nil
+	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	return incomingConnection, nil
+}
+
+func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
+
+	nsme.composite.Close(ctx, incomingConnection)
+	nsme.NsClient.Close(ctx, incomingConnection)
+	return &empty.Empty{}, nil
 }

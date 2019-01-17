@@ -15,97 +15,74 @@
 package main
 
 import (
-	"context"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/ligato/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	DefaultVPPAgentEndpoint = "localhost:9113"
+	defaultVPPAgentEndpoint = "localhost:9113"
 )
 
+type nsClientBackend struct {
+	workspace        string
+	vppAgentEndpoint string
+}
+
+func (nscb *nsClientBackend) New() error {
+	if err := Reset(nscb.vppAgentEndpoint); err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.Infof("workspace: %s", nscb.workspace)
+	return nil
+}
+
+func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
+	logrus.Infof("nsClientBackend received: %v", connection)
+	err := CreateVppInterface(connection, nscb.workspace, nscb.vppAgentEndpoint)
+	if err != nil {
+		logrus.Errorf("VPPAgent failed creating the requested interface with: %v", err)
+	}
+	return err
+}
+
 func main() {
-	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
-	netns, err := tools.GetCurrentNS()
+
+	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
+	if !ok {
+		logrus.Fatalf("Failed gettign %s", nsmd.WorkspaceEnv)
+	}
+
+	backend := &nsClientBackend{
+		workspace:        workspace,
+		vppAgentEndpoint: defaultVPPAgentEndpoint,
+	}
+
+	client, err := client.NewNSMClient(nil, nil)
 	if err != nil {
-		logrus.Fatalf("nsc: failed to get a linux namespace with error: %+v, exiting...", err)
-	}
-	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
-
-	nsmServerSocket, _ := os.LookupEnv(nsmd.NsmServerSocketEnv)
-	// TODO handle case where env variable is not set
-
-	workspace, _ := os.LookupEnv(nsmd.WorkspaceEnv)
-	logrus.Infof("workspace: %s", workspace)
-	// TODO handle missing env
-
-	logrus.Infof("Connecting to nsm server on socket: %s...", nsmServerSocket)
-	if _, err := os.Stat(nsmServerSocket); err != nil {
-		logrus.Fatalf("nsc: failure to access nsm socket at %s with error: %+v, exiting...", nsmServerSocket, err)
+		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	// Wait till we actually have an nsmd to talk to
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	err = tools.WaitForPortAvailable(ctx, "unix", nsmServerSocket, 100*time.Millisecond)
-	defer cancel()
-
-	conn, err := tools.SocketOperationCheck(nsmServerSocket)
+	err = backend.New()
 	if err != nil {
-		logrus.Fatalf("nsm client: failure to communicate with the socket %s with error: %+v", nsmServerSocket, err)
+		logrus.Fatalf("Unable to create the backend %v", err)
 	}
-	defer conn.Close()
 
-	// Init related activities start here
-	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
-	mechanism, err := connection.NewMechanism(connection.MechanismType_MEM_INTERFACE, "icmp-responder", "vppagent-nsc")
+	var outgoingConnection *connection.Connection
+	outgoingConnection, err = client.Connect("if1", "mem", "Primary interface")
 	if err != nil {
-		logrus.Fatalf("Failed to create mechanism: %v", err)
-	}
-	request := &networkservice.NetworkServiceRequest{
-
-		Connection: &connection.Connection{
-			NetworkService: "icmp-responder",
-			Context: &connectioncontext.ConnectionContext{
-				SrcIpRequired: true,
-				DstIpRequired: true,
-			},
-			Labels: make(map[string]string),
-		},
-		MechanismPreferences: []*connection.Mechanism{
-			mechanism,
-		},
+		logrus.Fatalf("Unable to connect %v", err)
 	}
 
-	var reply *connection.Connection
-	for ; true; <-time.After(5 * time.Second) {
-		logrus.Infof("Sending request %v", request)
-		reply, err = nsmConnectionClient.Request(context.Background(), request)
-
-		if err != nil {
-			logrus.Errorf("failure to request connection with error: %+v", err)
-			continue
-		}
-		logrus.Infof("Received reply: %v", reply)
-		break
-		// Init related activities ends here
-	}
-	if err := Reset(DefaultVPPAgentEndpoint); err != nil {
-		logrus.Fatal(err)
-	}
-
-	if err := CreateVppInterface(reply, workspace, DefaultVPPAgentEndpoint); err != nil {
-		logrus.Fatal(err)
+	err = backend.Connect(outgoingConnection)
+	if err != nil {
+		logrus.Fatalf("Unable to connect %v", err)
 	}
 
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")

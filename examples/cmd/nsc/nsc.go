@@ -15,132 +15,18 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"sync"
-	"time"
-
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/ligato/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	nsEnv        = "NETWORK_SERVICES"
-	nscLabelsEnv = "NSC_LABELS"
-	attemptsMax  = 10
-)
-
-func newNetworkServiceRequest(networkServiceName string, nsLabels map[string]string, intf string, netns string) *networkservice.NetworkServiceRequest {
-	return &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
-			NetworkService: networkServiceName,
-			Context: &connectioncontext.ConnectionContext{
-				SrcIpRequired: true,
-				DstIpRequired: true,
-			},
-			Labels: nsLabels,
-		},
-		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type: connection.MechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					connection.NetNsInodeKey:    netns,
-					connection.InterfaceNameKey: intf,
-				},
-			},
-		},
-	}
-}
-
 func main() {
-	tracer, closer := tools.InitJaeger("nsc")
-	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
 
-	// For NSC to program container's dataplane, container's linux namespace must be sent to NSM
-	netns, err := tools.GetCurrentNS()
+	client, err := client.NewNSMClient(nil, nil)
 	if err != nil {
-		logrus.Fatalf("nsc: failed to get a linux namespace with error: %+v, exiting...", err)
-		os.Exit(101)
-	}
-	logrus.Infof("Starting NSC, linux namespace: %s...", netns)
-
-	networkServices, ok := os.LookupEnv(nsEnv)
-	if !ok {
-		logrus.Infof("nsc: no services to connect, exiting...")
-		os.Exit(0)
+		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	nscLabels, ok := os.LookupEnv(nscLabelsEnv)
-	if !ok {
-		logrus.Infof("nsc: no services to connect, exiting...")
-	}
+	client.Connect("nsm", "kernel", "Primary interface")
+	logrus.Info("nsm client: initialization is completed successfully")
 
-	// Init related activities start here
-	logrus.Info("Connecting to nsm server on socket")
-	nsmConnectionClient, conn, err := nsmd.NewNetworkServiceClient()
-	if err != nil {
-		logrus.Fatalf("nsc: failed to connect with NSMD: %+v, exiting...", err)
-		os.Exit(101)
-	}
-	defer conn.Close()
-
-	nsConfig := tools.ParseKVStringToMap(networkServices, ",", ":")
-	nsLabels := tools.ParseKVStringToMap(nscLabels, ",", "=")
-
-	var requests []*networkservice.NetworkServiceRequest
-
-	for intf, ns := range nsConfig {
-		requests = append(requests, newNetworkServiceRequest(ns, nsLabels, intf, netns))
-	}
-
-	errorCh := make(chan error)
-	waitCh := make(chan struct{})
-
-	go func() {
-		var wg sync.WaitGroup
-
-		for _, r := range requests {
-			wg.Add(1)
-			go func(r *networkservice.NetworkServiceRequest, errorCh chan<- error) {
-				logrus.Infof("start goroutine for requesting connection with %v", r.Connection.NetworkService)
-				defer wg.Done()
-				attempt := 0
-				for attempt < attemptsMax {
-					<-time.Tick(time.Second)
-
-					attempt++
-					logrus.Infof("Sending request %v", r)
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					defer cancel()
-					reply, err := nsmConnectionClient.Request(ctx, r)
-					if err != nil {
-						logrus.Errorf("failure to request connection with error: %+v", err)
-						continue
-					}
-					logrus.Infof("Received reply: %v", reply)
-					return
-				}
-				errorCh <- fmt.Errorf("unable to setup connection with %v after %v attempts",
-					r.Connection.NetworkService, attempt)
-			}(r, errorCh)
-		}
-
-		wg.Wait()
-		close(waitCh)
-	}()
-
-	select {
-	case err := <-errorCh:
-		logrus.Error(err)
-		os.Exit(1)
-	case <-waitCh:
-		logrus.Info("nsm client: initialization is completed successfully")
-	}
 }

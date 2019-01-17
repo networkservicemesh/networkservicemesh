@@ -356,6 +356,14 @@
   version = "v1.0.3"
 
 [[projects]]
+  digest = "1:1a266637fc6f5b90d46067af91cd3fbed2cbeac69675aabb41d31ee548c5a1a8"
+  name = "github.com/teris-io/shortid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "6c56cef5189ca1b3d5ef01dc07f4d611dfc0bb33"
+  version = "v1.0"
+
+[[projects]]
   digest = "1:87dee780f88f86f300bbd90116e933347cf4a3c65c1960072d412597a8896d50"
   name = "github.com/uber/jaeger-client-go"
   packages = [
@@ -859,6 +867,7 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/go-errors/errors",
+    "github.com/gogo/protobuf/proto",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
     "github.com/golang/protobuf/ptypes",
@@ -876,6 +885,7 @@
     "github.com/opentracing/opentracing-go",
     "github.com/rs/xid",
     "github.com/sirupsen/logrus",
+    "github.com/teris-io/shortid",
     "github.com/uber/jaeger-client-go",
     "github.com/uber/jaeger-client-go/config",
     "golang.org/x/net/context",
