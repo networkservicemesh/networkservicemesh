@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -44,17 +45,19 @@ func (m *ClientConnectionManager) CloseRemotes(clientConnection *model.ClientCon
 	}
 }
 
+func (m *ClientConnectionManager) UpdateClientConnection(clientConnection *model.ClientConnection) {
+	m.model.UpdateClientConnection(clientConnection)
+}
+
 func (m *ClientConnectionManager) UpdateClientConnectionSrcState(clientConnection *model.ClientConnection, state connection.State) {
 	logrus.Info("ClientConnection src state is down")
 	clientConnection.Xcon.GetLocalSource().State = state
-	m.model.UpdateClientConnection(clientConnection)
 	m.CloseRemotes(clientConnection, true, true)
 }
 
 func (m *ClientConnectionManager) UpdateClientConnectionDstState(clientConnection *model.ClientConnection, state connection.State) {
 	logrus.Info("ClientConnection dst state is down")
 	clientConnection.Xcon.GetLocalDestination().State = state
-	m.model.UpdateClientConnection(clientConnection)
 	m.CloseRemotes(clientConnection, true, false)
 }
 
@@ -65,16 +68,14 @@ func (m *ClientConnectionManager) DeleteClientConnection(clientConnection *model
 	m.model.DeleteClientConnection(clientConnection.ConnectionId)
 }
 
-func (m *ClientConnectionManager) GetClientConnectionByXcon(xconId string) *model.ClientConnection {
-	clientConnections := m.model.GetAllClientConnections()
-
-	for _, clientConnection := range clientConnections {
-		if clientConnection.Xcon.Id == xconId {
-			return clientConnection
-		}
+func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
+	var connectionId string
+	if conn := xcon.GetLocalSource(); conn != nil {
+		connectionId = conn.GetId()
+	} else {
+		connectionId = xcon.GetRemoteSource().GetId()
 	}
-
-	return nil
+	return m.model.GetClientConnection(connectionId)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByDst(dstId string) *model.ClientConnection {

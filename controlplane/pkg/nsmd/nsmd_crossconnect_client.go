@@ -159,7 +159,7 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 			logrus.Infof("Receive event from dataplane %s: %s %s", dataplane.RegisteredName, event.Type, event.CrossConnects)
 
 			for _, xcon := range event.GetCrossConnects() {
-				clientConnection := client.xconManager.GetClientConnectionByXcon(xcon.Id)
+				clientConnection := client.xconManager.GetClientConnectionByXcon(xcon)
 				if clientConnection == nil {
 					continue
 				}
@@ -172,6 +172,8 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 					if dst := xcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
 						client.xconManager.UpdateClientConnectionDstState(clientConnection, dst.State)
 					}
+					clientConnection.Xcon = xcon
+					client.xconManager.UpdateClientConnection(clientConnection)
 					client.crossConnectMonitor.UpdateCrossConnect(xcon)
 				case crossconnect.CrossConnectEventType_DELETE:
 					client.xconManager.DeleteClientConnection(clientConnection, false, false)
