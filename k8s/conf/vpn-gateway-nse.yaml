@@ -28,6 +28,8 @@ spec:
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
               value: "app=vpn-gateway"
+            - name: TRACER_ENABLED
+              value: "true"
             - name: IP_ADDRESS
               value: "10.60.1.0/24"
           resources:
