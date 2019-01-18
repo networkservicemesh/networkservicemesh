@@ -162,12 +162,16 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 		}
 
 		k8s.DeletePods("default", podToKill)
-		time.Sleep(5 * time.Second)
-
-		ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
-		Expect(err).To(BeNil())
-		Expect(errOut).To(Equal(""))
-		Expect(strings.Contains(ipResponse, "nsm")).To(Equal(false))
+		success := false
+		for attempt := 0; attempt < 20; <-time.Tick(300 * time.Millisecond) {
+			attempt++
+			ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
+			if !strings.Contains(ipResponse, "nsm") {
+				success = true
+				break
+			}
+		}
+		Expect(success).To(Equal(true))
 	})
 
 	if len(failures) > 0 {
