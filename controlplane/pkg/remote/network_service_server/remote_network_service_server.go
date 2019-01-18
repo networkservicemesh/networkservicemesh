@@ -85,6 +85,14 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 
 	dpCtx, dpCancel := context.WithTimeout(context.Background(), nseConnectionTimeout)
 	defer dpCancel()
+
+	clientConnection := &model.ClientConnection{
+		ConnectionId: request.Connection.Id,
+		Endpoint:     endpoint,
+		Dataplane:    dp,
+	}
+	srv.model.AddClientConnection(clientConnection)
+
 	rv, err := dataplaneClient.Request(dpCtx, dpApiConnection)
 	if err != nil {
 		logrus.Errorf("RemoteNSMD: Dataplane request failed: %s", err)
@@ -93,13 +101,6 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := rv.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
 	logrus.Infof("Dataplane: Returned connection obj %+v", con)
-	clientConnection := &model.ClientConnection{
-		ConnectionId: request.Connection.Id,
-		Xcon:         rv,
-		Endpoint:     endpoint,
-		Dataplane:    dp,
-	}
-	srv.model.AddClientConnection(clientConnection)
 	srv.monitor.UpdateConnection(con)
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return con, nil

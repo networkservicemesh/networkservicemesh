@@ -157,7 +157,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 		}
 
 		k8s.DeletePods("default", podToKill)
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 
 		ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
 		Expect(err).To(BeNil())
