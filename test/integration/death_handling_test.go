@@ -123,8 +123,13 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one kubernetes node are required for this test")
 
+	nsmds := []*v1.Pod{}
+	dataplanes := []*v1.Pod{}
+
 	for i := 0; i < nodesCount; i++ {
-		deployNsmdAndDataplane(k8s, &nodes[i])
+		nsmd, dataplane := deployNsmdAndDataplane(k8s, &nodes[i])
+		nsmds = append(nsmds, nsmd)
+		dataplanes = append(dataplanes, dataplane)
 	}
 
 	icmp := deployIcmp(k8s, &nodes[nodesCount-1])
@@ -157,7 +162,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 		}
 
 		k8s.DeletePods("default", podToKill)
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 
 		ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
 		Expect(err).To(BeNil())
@@ -167,6 +172,20 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	if len(failures) > 0 {
 		logrus.Errorf("Failues: %v", failures)
+		for k := 0; k < nodesCount; k++ {
+			nsmdLogs, _ := k8s.GetLogs(nsmds[k], "nsmd")
+			logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)
+
+			nsmdk8sLogs, _ := k8s.GetLogs(nsmds[k], "nsmd-k8s")
+			logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdk8sLogs)
+
+			nsmdpLogs, _ := k8s.GetLogs(nsmds[k], "nsmdp")
+			logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdpLogs)
+
+			dataplaneLogs, _ := k8s.GetLogs(dataplanes[k], "")
+			logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
+		}
+
 		t.Fail()
 	}
 }
