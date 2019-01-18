@@ -49,6 +49,7 @@ func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *netwo
 		return nil, err
 	}
 
+	logrus.Infof("Monitor UpdateConnection: %v", incomingConnection)
 	mce.monitorConnectionServer.UpdateConnection(incomingConnection)
 
 	return incomingConnection, nil
@@ -56,10 +57,11 @@ func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *netwo
 
 // Close imeplements the close handler
 func (mce *MonitorCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	logrus.Infof("Monitor DeleteConnection: %v", connection)
+	mce.monitorConnectionServer.DeleteConnection(connection)
 	if mce.GetNext() != nil {
 		return mce.GetNext().Close(ctx, connection)
 	}
-	mce.monitorConnectionServer.DeleteConnection(connection)
 	return &empty.Empty{}, nil
 }
 

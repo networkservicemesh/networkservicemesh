@@ -15,11 +15,17 @@
 package main
 
 import (
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/sdk/client"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
+
+	tracer, closer := tools.InitJaeger("nsc")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
 	client, err := client.NewNSMClient(nil, nil)
 	if err != nil {
