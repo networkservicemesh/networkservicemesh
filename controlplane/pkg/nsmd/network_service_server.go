@@ -132,12 +132,13 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 	logrus.Infof("Sending request to dataplane: %v", clientConnection.Xcon)
 
+	srv.model.AddClientConnection(clientConnection)
 	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
+		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 		return nil, err
 	}
-	srv.model.AddClientConnection(clientConnection)
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource
 	srv.workspace.MonitorConnectionServer().UpdateConnection(con)
