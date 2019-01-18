@@ -22,7 +22,9 @@ import (
 
 	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/ligato/networkservicemesh/pkg/tools"
 	"github.com/ligato/networkservicemesh/sdk/client"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,6 +55,10 @@ func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 }
 
 func main() {
+
+	tracer, closer := tools.InitJaeger("nsc")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
 	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
 	if !ok {
