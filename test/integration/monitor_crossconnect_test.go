@@ -1,0 +1,241 @@
+package nsmd_integration_tests
+
+import (
+	"context"
+	"fmt"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/ligato/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/ligato/networkservicemesh/test/kube_testing"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"testing"
+	"time"
+)
+
+func TestSingleCrossConnect(t *testing.T) {
+	RegisterTestingT(t)
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	s1 := time.Now()
+	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	logrus.Printf("Cleanup done: %v", time.Since(s1))
+
+	nodesCount := 2
+
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+
+	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	err = fwd2.Start()
+	Expect(err).To(BeNil())
+
+	nsmdMonitor1, close1, cancel1 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	defer close1()
+	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
+	defer close2()
+
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, 5*time.Second)
+	Expect(err).To(BeNil())
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, 5*time.Second)
+	Expect(err).To(BeNil())
+}
+
+func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
+	RegisterTestingT(t)
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	s1 := time.Now()
+	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	logrus.Printf("Cleanup done: %v", time.Since(s1))
+
+	nodesCount := 2
+
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
+
+	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	err = fwd2.Start()
+	Expect(err).To(BeNil())
+
+	nsmdMonitor1, close1, cancel1 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	defer close1()
+	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
+	defer close2()
+
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, 5*time.Second)
+	Expect(err).To(BeNil())
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, 5*time.Second)
+	Expect(err).To(BeNil())
+}
+
+func TestSeveralCrossConnects(t *testing.T) {
+	RegisterTestingT(t)
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	s1 := time.Now()
+	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	logrus.Printf("Cleanup done: %v", time.Since(s1))
+
+	nodesCount := 2
+
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc2")
+
+	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd2.Stop()
+
+	err = fwd2.Start()
+	Expect(err).To(BeNil())
+
+	nsmdMonitor1, close1, cancel1 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	defer close1()
+
+	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
+	defer close2()
+
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 2, 5*time.Second)
+	Expect(err).To(BeNil())
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 2, 5*time.Second)
+	Expect(err).To(BeNil())
+}
+func TestCrossConnectMonitorRestart(t *testing.T) {
+	RegisterTestingT(t)
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	s1 := time.Now()
+	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	logrus.Printf("Cleanup done: %v", time.Since(s1))
+
+	nodesCount := 2
+
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc2")
+
+	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	nsmdMonitor, closeFunc, cancel := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, 5*time.Second)
+	Expect(err).To(BeNil())
+	closeFunc()
+
+	logrus.Info("Restarting monitor")
+	nsmdMonitor, closeFunc, cancel = createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	defer closeFunc()
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, 5*time.Second)
+	Expect(err).To(BeNil())
+}
+
+func createCrossConnectClient(address string) (crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, func(), context.CancelFunc) {
+	var err error
+	logrus.Infof("Starting CrossConnections Monitor on %s", address)
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		Expect(err).To(BeNil())
+		return nil, nil, nil
+	}
+
+	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
+	ctx, cancel := context.WithCancel(context.Background())
+	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
+
+	closeFunc := func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}
+	return stream, closeFunc, cancel
+}
+
+func getCrossConnectsFromMonitor(stream crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, cancel context.CancelFunc,
+	xconAmount int, timeout time.Duration) (map[string]*crossconnect.CrossConnect, error) {
+
+	xcons := map[string]*crossconnect.CrossConnect{}
+	events := make(chan *crossconnect.CrossConnectEvent)
+
+	go func() {
+		for {
+			select {
+			case <-stream.Context().Done():
+				return
+			default:
+				event, _ := stream.Recv()
+				if event != nil {
+					events <- event
+				}
+			}
+		}
+	}()
+
+	for {
+		select {
+		case event := <-events:
+			logrus.Infof("Receive event type: %v", event.GetType())
+
+			for _, xcon := range event.CrossConnects {
+				logrus.Infof("xcon: %v", xcon)
+				xcons[xcon.GetId()] = xcon
+			}
+			if len(xcons) == xconAmount {
+				cancel()
+				return xcons, nil
+			}
+		case <-time.After(timeout):
+			cancel()
+			return nil, fmt.Errorf("timeout exceeded")
+		}
+	}
+}
