@@ -15,7 +15,7 @@
 package monitor_connection_server
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/sirupsen/logrus"
 )
 

@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
-	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 )

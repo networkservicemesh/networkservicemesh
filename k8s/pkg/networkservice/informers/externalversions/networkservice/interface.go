@@ -18,8 +18,8 @@
 package networkservicemesh
 
 import (
-	internalinterfaces "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
-	v1 "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/networkservice/v1"
+	internalinterfaces "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/networkservice/v1"
 )
 
 // Interface provides access to each of this group's versions.

@@ -16,7 +16,7 @@ package monitor_connection_server
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
 )
 

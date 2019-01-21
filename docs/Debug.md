@@ -30,7 +30,7 @@ check for deps and call go generate to generate all required code.
 
 We will receive following output:
 <pre>
-user /go/src/github.com/ligato/networkservicemesh $ make docker-devenv-run
+user /go/src/github.com/networkservicemesh/networkservicemesh $ make docker-devenv-run
 Starting NSC DevEnv dummy application
 
 ********************************************************************************
@@ -42,9 +42,9 @@ Install openapi-gen
 Install deepcopy-gen
 Run generators
 Generating deepcopy funcs
-Generating clientset for networkservice:v1 at github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset
-Generating listers for networkservice:v1 at github.com/ligato/networkservicemesh/k8s/pkg/networkservice/listers
-Generating informers for networkservice:v1 at github.com/ligato/networkservicemesh/k8s/pkg/networkservice/informers
+Generating clientset for networkservice:v1 at github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset
+Generating listers for networkservice:v1 at github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/listers
+Generating informers for networkservice:v1 at github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers
 Initialisation done... 
 Please use docker run debug.sh app to attach and start debug for particular application
 #You could do Ctrl+C to detach from this log.

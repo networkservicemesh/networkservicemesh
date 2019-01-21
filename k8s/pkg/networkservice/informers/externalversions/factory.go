@@ -22,9 +22,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	internalinterfaces "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
-	networkservice "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/networkservice"
+	versioned "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	internalinterfaces "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
+	networkservice "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/networkservice"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -40,7 +40,7 @@ Note that some of the members of this structure can be initialized through the e
 The NSM Client's main task is to request a connection to a particular Network Service through NSM. The following code snippet illustrates its usage.
 
 ```go
-import "github.com/ligato/networkservicemesh/sdk/client"
+import "github.com/networkservicemesh/networkservicemesh/sdk/client"
 ...
 client, err := client.NewNSMClient(nil, nil)
 if err != nil {
@@ -58,8 +58,8 @@ The following code implements a simple *endpoint* that upon request will create 
 
 ```go
 import (
-	"github.com/ligato/networkservicemesh/sdk/endpoint"
-	"github.com/ligato/networkservicemesh/sdk/endpoint/composite"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 )
 
 composite := 

@@ -3,13 +3,13 @@ package serviceregistry
 import (
 	"net"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/nsmdapi"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/vni"
-	dataplaneapi "github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
+	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"google.golang.org/grpc"
 )
 

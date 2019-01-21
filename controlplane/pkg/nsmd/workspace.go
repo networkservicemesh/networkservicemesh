@@ -15,20 +15,20 @@
 package nsmd
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"net"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/ligato/networkservicemesh/pkg/tools"
-	. "github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	. "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

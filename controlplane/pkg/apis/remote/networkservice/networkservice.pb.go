@@ -7,7 +7,7 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import empty "github.com/golang/protobuf/ptypes/empty"
-import connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+import connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 
 import (
 	context "golang.org/x/net/context"

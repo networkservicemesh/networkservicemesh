@@ -1,7 +1,7 @@
 version: 2
 jobs:
   sanity-check:
-    working_directory: /go/src/github.com/ligato/networkservicemesh
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.11
     steps:
@@ -22,7 +22,7 @@ jobs:
       - run: go test -short ./...
 
   build:
-    working_directory: /go/src/github.com/ligato/networkservicemesh
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -80,7 +80,7 @@ jobs:
             - data
 
   packet-integration-tests:
-    working_directory: /go/src/github.com/ligato/networkservicemesh
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -145,7 +145,7 @@ jobs:
       - run: .circleci/destroy-cluster.sh
 
   build-nsmd:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -159,7 +159,7 @@ jobs:
             make docker-nsmd-build
             make docker-nsmd-push
   build-nsmd-k8s:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -173,7 +173,7 @@ jobs:
             make docker-nsmd-k8s-build
             make docker-nsmd-k8s-push
   build-nsmdp:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -187,7 +187,7 @@ jobs:
             make docker-nsmdp-build
             make docker-nsmdp-push
   build-crossconnect-monitor:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -201,7 +201,7 @@ jobs:
             make docker-crossconnect-monitor-build
             make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -216,7 +216,7 @@ jobs:
             make docker-icmp-responder-nse-push
 
   build-vppagent-icmp-responder-nse:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -230,7 +230,7 @@ jobs:
             make docker-vppagent-icmp-responder-nse-build
             make docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -244,7 +244,7 @@ jobs:
             make docker-vppagent-nsc-build
             make docker-vppagent-nsc-push
   build-nsc:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:
@@ -258,7 +258,7 @@ jobs:
             make docker-nsc-build
             make docker-nsc-push
   build-vppagent-dataplane:
-    working_directory: /go/src/github.com/ligato/networkservicemesh/
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang:1.10
     steps:

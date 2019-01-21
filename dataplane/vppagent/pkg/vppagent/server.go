@@ -18,9 +18,9 @@ import (
 	"net"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
-	"github.com/ligato/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	opentracing "github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )

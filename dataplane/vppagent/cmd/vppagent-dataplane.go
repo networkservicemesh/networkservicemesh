@@ -22,9 +22,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/dataplane/impl/dataplaneregistrarclient"
-	"github.com/ligato/networkservicemesh/dataplane/vppagent/pkg/vppagent"
-	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/impl/dataplaneregistrarclient"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )

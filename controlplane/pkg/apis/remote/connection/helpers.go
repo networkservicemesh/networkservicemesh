@@ -17,7 +17,7 @@ package connection
 
 import (
 	fmt "fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 	"strconv"
 )

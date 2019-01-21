@@ -7,7 +7,7 @@ if [ $# -eq 0 ] ; then
     exit
 fi
 
-cd /go/src/github.com/ligato/networkservicemesh/ || exit 101
+cd /go/src/github.com/networkservicemesh/networkservicemesh/ || exit 101
 
 go_file=""
 port=40000

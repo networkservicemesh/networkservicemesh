@@ -22,7 +22,7 @@ package local.networkservice;
 
 option go_package = "networkservice";
 
-import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection/connection.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection/connection.proto";
 import "github.com/golang/protobuf/ptypes/empty/empty.proto";
 
 message NetworkServiceRequest {

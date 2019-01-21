@@ -23,7 +23,7 @@ sudo usermod -aG docker $USER
 Logout to get the user into the `docker` usergroup.
 
 Get the Network Service Mesh repo:
-git clone https://github.com/ligato/networkservicemesh
+git clone https://github.com/networkservicemesh/networkservicemesh
 cd networkservicemesh
 
 Build the virtual machines with Docker and Kubernetes installed:

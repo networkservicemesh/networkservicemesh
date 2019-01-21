@@ -19,7 +19,7 @@ If you have another Linux distribution or prefer to go with the upstream, here
 ### Getting the Network Service Mesh project
 
 ```bash
-git clone https://github.com/ligato/networkservicemesh 
+git clone https://github.com/networkservicemesh/networkservicemesh 
 cd networkservicemesh
 ```
 

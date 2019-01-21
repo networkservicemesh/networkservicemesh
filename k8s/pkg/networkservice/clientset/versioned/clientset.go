@@ -18,7 +18,7 @@
 package versioned
 
 import (
-	networkservicemeshv1 "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1"
+	networkservicemeshv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
