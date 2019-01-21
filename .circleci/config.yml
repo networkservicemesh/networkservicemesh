@@ -20,6 +20,8 @@ jobs:
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
       - run: go test -short ./...
+    environment:
+      GO111MODULE: "on"
 
   build:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
