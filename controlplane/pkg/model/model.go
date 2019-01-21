@@ -2,9 +2,10 @@ package model
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"strconv"
 	"sync"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
@@ -283,7 +284,10 @@ func (i *impl) AddDataplane(dataplane *Dataplane) {
 
 func (i *impl) DeleteDataplane(name string) {
 	i.Lock()
-	dataplane := i.dataplanes[name]
+	dataplane, ok := i.dataplanes[name]
+	if !ok {
+		return
+	}
 	delete(i.dataplanes, name)
 	i.Unlock()
 
