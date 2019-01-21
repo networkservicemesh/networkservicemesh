@@ -1,0 +1,28 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "proxy-nsc"
+        networkservicemesh.io/impl: "secure-intranet-connectivity"
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      containers:
+        - name: proxy-nsc
+          image: networkservicemesh/proxy-nsc:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OUTGOING_NSC_NAME
+              value: "secure-intranet-connectivity"
+            - name: PROXY_HOST
+              value: ":8080"
+          resources:
+            limits:
+              nsm.ligato.io/socket: 1
+metadata:
+  name: proxy-nsc
+  namespace: default

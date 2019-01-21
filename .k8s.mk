@@ -22,7 +22,7 @@ DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
-DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc
+DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc proxy-nsc
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_ICMP_VPP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
@@ -192,6 +192,12 @@ k8s-vpn-gateway-nsc-save:
 .PHONY: k8s-vpn-gateway-nsc-load-images
 k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
 
+.PHONY: k8s-proxy-nsc-build
+k8s-proxy-nsc-build: ${CONTAINER_BUILD_PREFIX}-proxy-nsc-build
+
+.PHONY: k8s-proxy-nsc-save
+k8s-proxy-nsc-save: ${CONTAINER_BUILD_PREFIX}-proxy-nsc-save
+
 .PHONY: k8s-nsc-build
 k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 
@@ -317,6 +323,7 @@ k8s-forward:
 k8s-check:
 	./scripts/nsc_ping_all.sh
 	./scripts/verify_vpn_gateway.sh
+	./scripts/verify_proxy_nsc.sh
 
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
