@@ -286,6 +286,7 @@ func (i *impl) DeleteDataplane(name string) {
 	i.Lock()
 	dataplane, ok := i.dataplanes[name]
 	if !ok {
+		i.Unlock()
 		return
 	}
 	delete(i.dataplanes, name)
