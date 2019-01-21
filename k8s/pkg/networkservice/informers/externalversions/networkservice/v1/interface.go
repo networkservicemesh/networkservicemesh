@@ -18,7 +18,7 @@
 package v1
 
 import (
-	internalinterfaces "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

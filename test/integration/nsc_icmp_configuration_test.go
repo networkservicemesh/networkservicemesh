@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ligato/networkservicemesh/test/kube_testing"
-	"github.com/ligato/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"

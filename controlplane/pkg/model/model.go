@@ -2,15 +2,15 @@ package model
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"strconv"
 	"sync"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/selector"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
 
-	local "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	remote "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/sirupsen/logrus"
 )
 

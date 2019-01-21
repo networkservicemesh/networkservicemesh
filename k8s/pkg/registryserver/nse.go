@@ -8,9 +8,9 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	nsmClientset "github.com/ligato/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 

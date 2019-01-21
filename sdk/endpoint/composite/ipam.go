@@ -23,12 +23,12 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/prefix_pool"
-	"github.com/ligato/networkservicemesh/sdk/common"
-	"github.com/ligato/networkservicemesh/sdk/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 )
 

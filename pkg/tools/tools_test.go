@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/ligato/networkservicemesh/pkg/tools"
+	. "github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func TestParseKVStringToMap(t *testing.T) {

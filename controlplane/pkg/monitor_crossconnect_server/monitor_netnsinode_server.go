@@ -1,9 +1,9 @@
 package monitor_crossconnect_server
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/utils/fs"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"

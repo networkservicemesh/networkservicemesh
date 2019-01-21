@@ -1,8 +1,8 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/ligato/networkservicemesh/test/kube_testing"
-	"github.com/ligato/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"strings"
 	"testing"
 	"time"

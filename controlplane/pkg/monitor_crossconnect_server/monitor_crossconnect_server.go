@@ -16,7 +16,7 @@ package monitor_crossconnect_server
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/sirupsen/logrus"
 )
 

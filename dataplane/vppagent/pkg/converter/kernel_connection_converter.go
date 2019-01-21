@@ -2,7 +2,7 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"

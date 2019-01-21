@@ -20,10 +20,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/sdk/client"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )

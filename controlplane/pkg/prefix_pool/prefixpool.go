@@ -2,7 +2,7 @@ package prefix_pool
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"math/big"
 	"net"
 	"sync"

@@ -20,11 +20,11 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
-	"github.com/ligato/networkservicemesh/sdk/common"
-	"github.com/ligato/networkservicemesh/sdk/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 )
 

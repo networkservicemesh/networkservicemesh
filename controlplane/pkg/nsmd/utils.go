@@ -1,7 +1,7 @@
 package nsmd
 
 import (
-	"github.com/ligato/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"golang.org/x/sys/unix"
 	"net"
 )

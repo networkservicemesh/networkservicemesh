@@ -2,21 +2,21 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )

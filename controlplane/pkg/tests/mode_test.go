@@ -1,8 +1,8 @@
 package tests
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	mdl "github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	mdl "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	. "github.com/onsi/gomega"
 	"testing"
 )

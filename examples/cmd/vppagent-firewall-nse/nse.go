@@ -21,9 +21,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ligato/networkservicemesh/sdk/common"
-	"github.com/ligato/networkservicemesh/sdk/endpoint"
-	"github.com/ligato/networkservicemesh/sdk/endpoint/composite"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 	"github.com/sirupsen/logrus"
 )
 

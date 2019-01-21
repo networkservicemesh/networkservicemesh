@@ -16,12 +16,12 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
