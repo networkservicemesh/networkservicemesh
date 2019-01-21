@@ -12,7 +12,7 @@ jobs:
             ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
       - run: go version
-      - run: make vet check dep-check
+      - run: make vet check
       - run: go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/
       - run: go install ./vendor/github.com/golang/protobuf/protoc-gen-go/
       - run: go get golang.org/x/tools/cmd/stringer
@@ -21,7 +21,7 @@ jobs:
       - run: go build ./...
       - run: go test -short ./...
     environment:
-      GO111MODULE: "on"
+      GO111MODULE: 'on'
 
   build:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
