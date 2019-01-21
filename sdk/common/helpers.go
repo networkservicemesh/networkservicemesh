@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
 )
 

@@ -302,11 +302,11 @@ k8s-nsmd-logs:
 .PHONY: k8s-%-debug
 k8s-%-debug:
 	@echo "Debugging $*"
-	@kubectl exec -ti $$(kubectl get pods | grep $*- | cut -d \  -f1) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
+	@kubectl exec -ti $$(kubectl get pods | grep $*- | cut -d \  -f1) /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh $*
 
 .PHONY: k8s-nsmd-debug
 k8s-nsmd-debug:
-	@kubectl exec -ti $(pod) -c nsmd /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh nsmd
+	@kubectl exec -ti $(pod) -c nsmd /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh nsmd
 
 .PHONY: k8s-forward
 k8s-forward:

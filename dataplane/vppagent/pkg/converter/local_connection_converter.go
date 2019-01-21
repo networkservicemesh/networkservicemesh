@@ -1,6 +1,6 @@
 package converter
 
-import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 
 type LocalConnectionConverter struct {
 	*connection.Connection

@@ -139,7 +139,7 @@ dumps the logs from the crossconnect-monitor, which has been logging new crossco
 the cluster.
 
 # Regenerating code
-If you change [types.go](https://github.com/ligato/networkservicemesh/blob/master/k8s/pkg/apis/networkservice/v1/types.go) or any of the .proto files you will need to be able to run ```go generate ./...``` to regenerate the code.
+If you change [types.go](https://github.com/networkservicemesh/networkservicemesh/blob/master/k8s/pkg/apis/networkservice/v1/types.go) or any of the .proto files you will need to be able to run ```go generate ./...``` to regenerate the code.
 
 In order to be able to do that you need to have installed:
 
@@ -166,4 +166,4 @@ If you want to run it locally, you need to:
 
 # Canonical source on how to build
 
-The [.circleci/config.yml](https://github.com/ligato/networkservicemesh/blob/master/.circleci/config.yml) file is the canonical source of how to build Network Service Mesh in case this file becomes out of date.
+The [.circleci/config.yml](https://github.com/networkservicemesh/networkservicemesh/blob/master/.circleci/config.yml) file is the canonical source of how to build Network Service Mesh in case this file becomes out of date.

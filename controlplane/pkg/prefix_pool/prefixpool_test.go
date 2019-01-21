@@ -1,7 +1,7 @@
 package prefix_pool
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"net"

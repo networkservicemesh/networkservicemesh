@@ -19,8 +19,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {

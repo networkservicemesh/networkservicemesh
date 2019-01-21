@@ -1,8 +1,8 @@
 package selector
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 type Selector interface {

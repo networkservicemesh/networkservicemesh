@@ -6,7 +6,7 @@ package connection
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import connectioncontext "github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+import connectioncontext "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 
 import (
 	context "golang.org/x/net/context"

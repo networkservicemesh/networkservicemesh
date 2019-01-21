@@ -18,7 +18,7 @@ package common
 import (
 	"strconv"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 )
 
 const (

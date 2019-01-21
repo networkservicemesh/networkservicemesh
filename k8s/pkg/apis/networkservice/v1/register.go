@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/ligato/networkservicemesh/k8s/pkg/apis/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

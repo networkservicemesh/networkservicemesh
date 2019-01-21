@@ -18,7 +18,7 @@ func checkError(err error) {
 func main() {
 	println("Starting NSC DevEnv dummy application")
 
-	cmd := exec.Command("bash", "/go/src/github.com/ligato/networkservicemesh/scripts/debug_env.sh")
+	cmd := exec.Command("bash", "/go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug_env.sh")
 
 	// Create stdout, stderr streams of type io.Reader
 	stdout, err := cmd.StdoutPipe()

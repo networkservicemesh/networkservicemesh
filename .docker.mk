@@ -81,7 +81,7 @@ docker-devenv-attach:
 
 .PHONY: docker-%-debug
 docker-%-debug:
-	@docker exec -ti $$(docker container ls | grep networkservicemesh/devenv | cut -c1-12) /go/src/github.com/ligato/networkservicemesh/scripts/debug.sh $*
+	@docker exec -ti $$(docker container ls | grep networkservicemesh/devenv | cut -c1-12) /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh $*
 
 .PHONY: docker-push-%
 docker-%-push: docker-login docker-%-build

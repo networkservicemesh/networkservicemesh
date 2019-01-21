@@ -1,7 +1,7 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/ligato/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"strings"
 	"testing"

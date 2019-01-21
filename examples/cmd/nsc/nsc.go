@@ -15,8 +15,8 @@
 package main
 
 import (
-	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/sdk/client"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )

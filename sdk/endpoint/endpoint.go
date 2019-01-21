@@ -23,10 +23,10 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )

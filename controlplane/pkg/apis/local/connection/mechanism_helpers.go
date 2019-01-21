@@ -5,8 +5,8 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/ligato/networkservicemesh/pkg/tools"
-	"github.com/ligato/networkservicemesh/utils/fs"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
 func NewMechanism(t MechanismType, name string, description string) (*Mechanism, error) {

@@ -22,7 +22,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ligato/networkservicemesh/utils/idempotent"
+	"github.com/networkservicemesh/networkservicemesh/utils/idempotent"
 	. "github.com/onsi/gomega"
 )
 

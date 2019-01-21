@@ -14,7 +14,7 @@
 
 package monitor_connection_server
 
-import "github.com/ligato/networkservicemesh/controlplane/pkg/apis/remote/connection"
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 
 type monitorConnectionFilter struct {
 	connection.MonitorConnection_MonitorConnectionsServer

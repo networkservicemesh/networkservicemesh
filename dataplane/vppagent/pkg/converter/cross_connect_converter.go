@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
 	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"

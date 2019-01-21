@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	. "github.com/onsi/gomega"
 	"testing"
 )
