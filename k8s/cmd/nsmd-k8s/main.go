@@ -4,8 +4,10 @@ import (
 	"flag"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
@@ -18,6 +20,14 @@ import (
 )
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
 	tracer, closer := tools.InitJaeger("nsmd-k8s")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -62,4 +72,5 @@ func main() {
 	logrus.Print("nsmd-k8s intialized and waiting for connection")
 	err = server.Serve(listener)
 	logrus.Fatalln(err)
+	<-c
 }
