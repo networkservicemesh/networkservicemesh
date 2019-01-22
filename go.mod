@@ -33,7 +33,7 @@ require (
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
 	github.com/peterbourgon/diskv v2.0.1+incompatible
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.8.1
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.3.0
 	github.com/spf13/pflag v1.0.3
