@@ -26,6 +26,14 @@ import (
 )
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
 	tracer, closer := tools.InitJaeger("nsmd-k8s")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -74,16 +82,10 @@ func main() {
 	}
 
 	server := registryserver.New(nsmClientSet, nsmName)
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-c
-		removeCRDs(clientset)
-	}()
-
 	err = server.Serve(listener)
 	logrus.Fatalln(err)
+	<-c
+	removeCRDs(clientset)
 }
 
 var nsmCRDNames = [...]v1beta1.CustomResourceDefinitionNames{
