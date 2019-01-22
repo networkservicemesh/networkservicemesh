@@ -121,10 +121,10 @@ k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-jaeger-save
-k8s-jaeger-save: 
+k8s-jaeger-save:
 
 .PHONY: k8s-jaeger-load-images
-k8s-jaeger-load-images: 
+k8s-jaeger-load-images:
 
 .PHONY: k8s-save
 k8s-save: $(addsuffix -save,$(addprefix k8s-,$(DEPLOYS)))
@@ -187,7 +187,7 @@ k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
 k8s-vpn-gateway-nsc-build:
 
 .PHONY: k8s-vpn-gateway-nsc-save
-k8s-vpn-gateway-nsc-save: 
+k8s-vpn-gateway-nsc-save:
 
 .PHONY: k8s-vpn-gateway-nsc-load-images
 k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
@@ -230,6 +230,10 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
 
+.PHONY: k8s-crossconnect-load-images
+k8s-crossconnect-monitor-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,crossconnect-monitor))
+
+
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
 
@@ -252,7 +256,7 @@ k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
 k8s-vpn-gateway-nsc-build:
 
 .PHONY: k8s-vpn-gateway-nsc-save
-k8s-vpn-gateway-nsc-save: 
+k8s-vpn-gateway-nsc-save:
 
 .PHONY: k8s-vpn-gateway-nsc-load-images
 k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
