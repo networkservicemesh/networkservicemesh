@@ -95,6 +95,9 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 
 // Close will terminate a particular connection
 func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
+	nsmc.Lock()
+	defer nsmc.Unlock()
+
 	nsmc.NsClient.Close(nsmc.Context, outgoingConnection)
 
 	arr := nsmc.OutgoingConnections
@@ -110,6 +113,9 @@ func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
 
 // Destroy stops the whole module
 func (nsmc *NsmClient) Destroy() error {
+	nsmc.Lock()
+	defer nsmc.Unlock()
+
 	for _, c := range nsmc.OutgoingConnections {
 		nsmc.NsClient.Close(nsmc.Context, c)
 	}
