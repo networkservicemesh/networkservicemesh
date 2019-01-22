@@ -17,6 +17,11 @@ import (
 func TestSingleCrossConnect(t *testing.T) {
 	RegisterTestingT(t)
 
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
@@ -58,6 +63,11 @@ func TestSingleCrossConnect(t *testing.T) {
 
 func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
 
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
@@ -102,6 +112,11 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 func TestSeveralCrossConnects(t *testing.T) {
 	RegisterTestingT(t)
 
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
@@ -144,6 +159,11 @@ func TestSeveralCrossConnects(t *testing.T) {
 }
 func TestCrossConnectMonitorRestart(t *testing.T) {
 	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
 
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
