@@ -29,7 +29,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -87,7 +88,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             sudo ./.circleci/install-yq.sh
@@ -152,7 +154,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -166,7 +169,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -180,7 +184,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -194,7 +199,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -208,7 +214,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -223,7 +230,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -237,7 +245,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -251,7 +260,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -265,7 +275,8 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
