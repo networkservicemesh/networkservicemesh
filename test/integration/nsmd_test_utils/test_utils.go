@@ -2,8 +2,8 @@ package nsmd_test_utils
 
 import (
 	"fmt"
-	"github.com/ligato/networkservicemesh/test/kube_testing"
-	"github.com/ligato/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"

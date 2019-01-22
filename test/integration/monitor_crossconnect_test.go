@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/ligato/networkservicemesh/test/integration/nsmd_test_utils"
-	"github.com/ligato/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -40,7 +40,7 @@ func TestSingleCrossConnect(t *testing.T) {
 
 	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
 	Expect(err).To(BeNil())
-	defer fwd.Stop()
+	defer fwd2.Stop()
 
 	err = fwd2.Start()
 	Expect(err).To(BeNil())
@@ -80,7 +80,7 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 
 	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
 	Expect(err).To(BeNil())
-	defer fwd.Stop()
+	defer fwd2.Stop()
 
 	err = fwd2.Start()
 	Expect(err).To(BeNil())
