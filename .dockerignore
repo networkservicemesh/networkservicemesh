@@ -7,6 +7,8 @@
 !dataplane
 !docker
 !examples
+!go.mod
+!go.sum
 !k8s/cmd
 !k8s/pkg
 !pkg
