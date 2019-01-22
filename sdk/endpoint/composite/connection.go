@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -47,7 +48,7 @@ func (cce *ConnectionCompositeEndpoint) Request(ctx context.Context, request *ne
 		return nil, err
 	}
 
-	mechanism, err := connection.NewMechanism(cce.mechanismType, "nsm"+cce.id.MustGenerate(), "NSM Endpoint")
+	mechanism, err := connection.NewMechanism(cce.mechanismType, cce.generateIfName(), "NSM Endpoint")
 	if err != nil {
 		logrus.Errorf("Mechanism not created: %v", err)
 		return nil, err
@@ -85,6 +86,14 @@ func (cce *ConnectionCompositeEndpoint) Close(ctx context.Context, connection *c
 		return cce.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
+}
+
+func (cce *ConnectionCompositeEndpoint) generateIfName() string {
+	ifName := "nsm" + cce.id.MustGenerate()
+	ifName = strings.Replace(ifName, "-", "", -1)
+	ifName = strings.Replace(ifName, "_", "", -1)
+
+	return ifName
 }
 
 // NewConnectionCompositeEndpoint creates a ConnectionCompositeEndpoint
