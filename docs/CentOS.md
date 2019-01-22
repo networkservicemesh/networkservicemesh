@@ -2,7 +2,6 @@
 
 The following instructions assume CentOS 7 installed with Gnome Desktop.
 
-
 ## VirtualBox
 
 VirtualBox depends on a kernel module wild with DKMS, so in order to install it you'll need to prepare by adding some dependencies.
