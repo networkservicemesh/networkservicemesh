@@ -105,7 +105,7 @@ jobs:
       - run:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
-            go test -v ./test/...
+            GO111MODULE=on go test -v ./test/...
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: 'on'
