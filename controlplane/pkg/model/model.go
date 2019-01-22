@@ -76,7 +76,7 @@ type Model interface {
 	GetClientConnection(connectionId string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
 	UpdateClientConnection(clientConnection *ClientConnection)
-	DeleteClientConnection(connectionId string)
+	DeleteClientConnection(connectionId string) *ClientConnection
 
 	ConnectionId() string
 
@@ -141,11 +141,12 @@ func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
 	}
 }
 
-func (i *impl) DeleteClientConnection(connectionId string) {
+func (i *impl) DeleteClientConnection(connectionId string) *ClientConnection {
 	i.Lock()
 	clientConnection := i.clientConnections[connectionId]
 	if clientConnection == nil {
 		i.Unlock()
+		return nil
 	}
 	delete(i.clientConnections, connectionId)
 	i.Unlock()
@@ -153,6 +154,7 @@ func (i *impl) DeleteClientConnection(connectionId string) {
 	for _, listener := range i.listeners {
 		listener.ClientConnectionDeleted(clientConnection)
 	}
+	return clientConnection
 }
 
 func (i *impl) AddListener(listener ModelListener) {

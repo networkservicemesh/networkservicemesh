@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
@@ -33,7 +34,7 @@ func (m *ClientConnectionManager) UpdateClientConnectionSrcStateDown(clientConne
 	logrus.Info("ClientConnection src state is down")
 	clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
 	m.model.UpdateClientConnection(clientConnection)
-	_= m.manager.Close(context.Background(), clientConnection)
+	_ = m.manager.Close(context.Background(), clientConnection)
 }
 
 func (m *ClientConnectionManager) UpdateClientConnectionDataplaneStateDown(clientConnections []*model.ClientConnection) {
@@ -51,7 +52,7 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConne
 	logrus.Info("ClientConnection dst state is down")
 	if clientConnection.Xcon.GetLocalDestination() != nil {
 		clientConnection.Xcon.GetLocalDestination().State = connection.State_DOWN
-	} else if( clientConnection.Xcon.GetRemoteDestination() != nil) {
+	} else if clientConnection.Xcon.GetRemoteDestination() != nil {
 		clientConnection.Xcon.GetRemoteDestination().State = connection2.State_DOWN
 	}
 	m.model.UpdateClientConnection(clientConnection)

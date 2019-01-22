@@ -3,9 +3,10 @@ package network_service_server
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
-	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"

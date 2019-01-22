@@ -15,6 +15,7 @@ package nsm
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -186,7 +187,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection *m
 	srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 
 	if nseClientError != nil || nseCloseError != nil || dpCloseError != nil {
-		return fmt.Errorf("Close error: %v", []error{ nseClientError, nseCloseError, dpCloseError})
+		return fmt.Errorf("Close error: %v", []error{nseClientError, nseCloseError, dpCloseError})
 	}
 	return nil
 }
