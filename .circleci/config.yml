@@ -26,7 +26,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -58,7 +58,7 @@ jobs:
 
   packet-deploy:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.1
     steps:
       - checkout
       - run: pwd
