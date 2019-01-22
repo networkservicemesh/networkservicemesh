@@ -1,9 +1,9 @@
 package services
 
 import (
-	"context"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
@@ -12,36 +12,14 @@ import (
 type ClientConnectionManager struct {
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
+	manager         nsm.NetworkServiceManager
 }
 
-func NewClientConnectionManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) *ClientConnectionManager {
+func NewClientConnectionManager(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry) *ClientConnectionManager {
 	return &ClientConnectionManager{
 		model:           model,
 		serviceRegistry: serviceRegistry,
-	}
-}
-
-func (m *ClientConnectionManager) CloseRemotes(clientConnection *model.ClientConnection,
-	closeDataplane bool, closeEndpoint bool) {
-	logrus.Infof("Closing remotes: dataplane - %v, endpoint - %v, first time - %v ...",
-		closeDataplane, closeEndpoint, !clientConnection.IsClosing)
-
-	if clientConnection.IsClosing {
-		//means that we already invoke closing of remotes, nothing to do here
-		return
-	}
-	clientConnection.IsClosing = true
-	if closeEndpoint {
-		err := m.CloseXconOnEndpoint(clientConnection)
-		if err != nil {
-			logrus.Error(err)
-		}
-	}
-	if closeDataplane {
-		err := m.CloseXconOnDataplane(clientConnection)
-		if err != nil {
-			logrus.Error()
-		}
+		manager:         manager,
 	}
 }
 
@@ -52,20 +30,21 @@ func (m *ClientConnectionManager) UpdateClientConnection(clientConnection *model
 func (m *ClientConnectionManager) UpdateClientConnectionSrcState(clientConnection *model.ClientConnection, state connection.State) {
 	logrus.Info("ClientConnection src state is down")
 	clientConnection.Xcon.GetLocalSource().State = state
-	m.CloseRemotes(clientConnection, true, true)
+	m.model.UpdateClientConnection(clientConnection)
+	m.manager.Heal(clientConnection, nsm.HealState_SrcDown)
+}
+
+func (m *ClientConnectionManager) UpdateClientConnectionDataplaneStateDown(clientConnection *model.ClientConnection) {
+	logrus.Info("ClientConnection src state is down because of Dataplane down.")
+	clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
+	m.model.UpdateClientConnection(clientConnection)
+	m.manager.Heal(clientConnection, nsm.HealState_DataplaneDown)
 }
 
 func (m *ClientConnectionManager) UpdateClientConnectionDstState(clientConnection *model.ClientConnection, state connection.State) {
 	logrus.Info("ClientConnection dst state is down")
 	clientConnection.Xcon.GetLocalDestination().State = state
-	m.CloseRemotes(clientConnection, true, false)
-}
-
-func (m *ClientConnectionManager) DeleteClientConnection(clientConnection *model.ClientConnection,
-	closeDataplane bool, closeEndpoint bool) {
-	logrus.Info("Deleting client connection...")
-	m.CloseRemotes(clientConnection, closeDataplane, closeEndpoint)
-	m.model.DeleteClientConnection(clientConnection.ConnectionId)
+	m.manager.Heal(clientConnection, nsm.HealState_DstDown)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
@@ -108,60 +87,4 @@ func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) [
 	}
 
 	return rv
-}
-
-func (m *ClientConnectionManager) CloseXconOnDataplane(clientConnection *model.ClientConnection) error {
-	logrus.Info("Closing cross connection on dataplane...")
-	dataplaneClient, conn, err := m.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-	if conn != nil {
-		defer conn.Close()
-	}
-	if _, err := dataplaneClient.Close(context.Background(), clientConnection.Xcon); err != nil {
-		logrus.Error(err)
-		return err
-	}
-	logrus.Info("Cross connection successfully closed on dataplane")
-	return nil
-}
-
-func (m *ClientConnectionManager) CloseXconOnEndpoint(clientConnection *model.ClientConnection) error {
-	if clientConnection.RemoteNsm != nil {
-		remoteClient, conn, err := m.serviceRegistry.RemoteNetworkServiceClient(clientConnection.RemoteNsm)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-		logrus.Info("Remote client successfully created")
-
-		if _, err := remoteClient.Close(context.Background(), clientConnection.Xcon.GetRemoteDestination()); err != nil {
-			logrus.Error(err)
-			return err
-		}
-		logrus.Info("Remote part of cross connection successfully closed")
-	} else {
-		endpointClient, conn, err := m.serviceRegistry.EndpointConnection(clientConnection.Endpoint)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-		if conn != nil {
-			defer conn.Close()
-		}
-
-		logrus.Info("Closing NSE connection...")
-		if _, err := endpointClient.Close(context.Background(), clientConnection.Xcon.GetLocalDestination()); err != nil {
-			logrus.Error(err)
-			return err
-		}
-		logrus.Info("NSE connection successfully closed")
-	}
-
-	return nil
 }

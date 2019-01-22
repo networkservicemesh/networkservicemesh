@@ -7,10 +7,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -28,6 +31,7 @@ type nsmServer struct {
 	workspaces      map[string]*Workspace
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
+	manager         nsm.NetworkServiceManager
 }
 
 func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
@@ -48,7 +52,7 @@ func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
 	logrus.Infof("Requested client connection to nsmd : %+v", request)
 
-	workspace, err := NewWorkSpace(nsm.model, nsm.serviceRegistry, request.Workspace)
+	workspace, err := NewWorkSpace(nsm.model, nsm.manager, nsm.serviceRegistry, request.Workspace)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -96,7 +100,7 @@ func (nsm *nsmServer) EnumConnection(context context.Context, request *nsmdapi.E
 	return &nsmdapi.EnumConnectionReply{Workspace: workspaces}, nil
 }
 
-func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) error {
+func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) error {
 	if err := tools.SocketCleanup(ServerSock); err != nil {
 		return err
 	}
@@ -113,6 +117,7 @@ func StartNSMServer(model model.Model, serviceRegistry serviceregistry.ServiceRe
 		workspaces:      make(map[string]*Workspace),
 		model:           model,
 		serviceRegistry: serviceRegistry,
+		manager:         manager,
 	}
 	nsmdapi.RegisterNSMDServer(grpcServer, &nsm)
 
@@ -163,12 +168,12 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 	return nil
 }
 
-func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, serviceRegistry serviceregistry.ServiceRegistry) error {
+func StartAPIServer(model model.Model, manager nsm.NetworkServiceManager, apiRegistry serviceregistry.ApiRegistry, serviceRegistry serviceregistry.ServiceRegistry) error {
 	sock, err := apiRegistry.NewPublicListener()
 	if err != nil {
 		return err
 	}
-	xconManager := services.NewClientConnectionManager(model, serviceRegistry)
+	xconManager := services.NewClientConnectionManager(model, manager, serviceRegistry)
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -191,7 +196,7 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 	model.AddListener(monitorCrossConnectClient)
 
 	// Register Remote NetworkServiceManager
-	remoteServer := network_service_server.NewRemoteNetworkServiceServer(model, serviceRegistry, xconManager, monitorConnectionServer)
+	remoteServer := network_service_server.NewRemoteNetworkServiceServer(model, manager, serviceRegistry, monitorConnectionServer)
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	// TODO: Add more public API services here.
@@ -204,4 +209,16 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
 
 	return nil
+}
+
+func GetExcludedPrefixes() []string {
+	//TODO: Add a better way to pass this value to NSMD
+	excluded_prefixes := []string{}
+	exclude_prefixes_env, ok := os.LookupEnv(ExcludedPrefixesEnv)
+	if ok {
+		for _, s := range strings.Split(exclude_prefixes_env, ",") {
+			excluded_prefixes = append(excluded_prefixes, strings.TrimSpace(s))
+		}
+	}
+	return excluded_prefixes
 }

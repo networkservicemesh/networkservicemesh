@@ -84,7 +84,7 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Data
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dataplane *model.Dataplane) {
 	clientConnections := client.xconManager.GetClientConnectionsByDataplane(dataplane.RegisteredName)
 	for _, clientConnection := range clientConnections {
-		client.xconManager.DeleteClientConnection(clientConnection, false, true)
+		client.xconManager.UpdateClientConnectionDataplaneStateDown(clientConnection)
 	}
 	client.dataplanes[dataplane.RegisteredName]()
 	delete(client.dataplanes, dataplane.RegisteredName)
@@ -176,7 +176,7 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 					client.xconManager.UpdateClientConnection(clientConnection)
 					client.crossConnectMonitor.Update(xcon)
 				case crossconnect.CrossConnectEventType_DELETE:
-					client.xconManager.DeleteClientConnection(clientConnection, false, false)
+					client.crossConnectMonitor.Delete(xcon)
 				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
 					client.crossConnectMonitor.Update(xcon)
 				}
@@ -224,7 +224,8 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 				}
 				switch event.GetType() {
 				case connection.ConnectionEventType_DELETE:
-					client.xconManager.DeleteClientConnection(clientConnection, true, false)
+					client.xconManager.UpdateClientConnectionDstState(clientConnection, local_connection.State_DOWN)
+					//TODO: Local Connection should be informed about SRC connection is also down.
 				}
 			}
 		}

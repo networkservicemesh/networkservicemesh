@@ -50,6 +50,10 @@ func (c *Connection) UpdateContext(newContext *connectioncontext.ConnectionConte
 	return c.GetContext().MeetsRequirements(oldCtx)
 }
 
+func (c *Connection) SetContext(newContext *connectioncontext.ConnectionContext) {
+	c.Context = newContext
+}
+
 // IsComplete - Have I been told enough to actually give you what you asked for
 func (c *Connection) IsComplete() error {
 	if err := c.IsValid(); err != nil {
@@ -144,4 +148,12 @@ func (m *Mechanism) VNI() (uint32, error) {
 	}
 
 	return uint32(vni), nil
+}
+
+func (c *Connection) SetId(id string) {
+	c.Id = id
+}
+
+func (c *Connection) SetNetworkServiceName(networkService string) {
+	c.NetworkService = networkService
 }

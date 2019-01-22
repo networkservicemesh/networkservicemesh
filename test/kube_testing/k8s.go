@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	podStartTimeout = 5*time.Minute
-	podDeleteTimeout = 5*time.Minute
+	podStartTimeout  = 5 * time.Minute
+	podDeleteTimeout = 5 * time.Minute
 )
 
 type PodDeployResult struct {
@@ -129,10 +129,12 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 					return pod, nil
 				}
 			}
+		case <-time.Tick(time.Second):
 			if time.Since(st) > timeout {
-				return sourcePod, podTimeout(pod)
+				return sourcePod, podTimeout(sourcePod)
 			}
 		}
+
 	}
 }
 
@@ -142,12 +144,12 @@ func podTimeout(pod *v1.Pod) error {
 
 func isPodReady(pod *v1.Pod) bool {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if !containerStatus.Ready {
-			return false
+		if containerStatus.Ready {
+			return true
 		}
 	}
 
-	return true
+	return false
 }
 
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
@@ -405,7 +407,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			logrus.Warnf("Waiting for %d nodes to arrive, currenctly have: %d", len(nodes), requiredNumber)
 			warnPrinted = true
 		}
-		time.Sleep(50*time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 
 }

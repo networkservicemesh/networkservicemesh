@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"os"
 	"os/signal"
 	"sync"
@@ -30,12 +31,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := nsmd.StartNSMServer(model, serviceRegistry, apiRegistry); err != nil {
+	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, nsmd.GetExcludedPrefixes())
+
+	if err := nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
 		os.Exit(1)
 	}
 
-	if err := nsmd.StartAPIServer(model, apiRegistry, serviceRegistry); err != nil {
+	if err := nsmd.StartAPIServer(model, manager, apiRegistry, serviceRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd api service: %+v", err)
 		os.Exit(1)
 	}

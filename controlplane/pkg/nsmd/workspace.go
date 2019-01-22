@@ -16,10 +16,9 @@ package nsmd
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"net"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -29,7 +28,7 @@ import (
 	. "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -54,7 +53,7 @@ type Workspace struct {
 	locationProvider serviceregistry.WorkspaceLocationProvider
 }
 
-func NewWorkSpace(model Model, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
+func NewWorkSpace(model Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{
 		locationProvider: serviceRegistry.NewWorkspaceProvider(),
@@ -83,8 +82,7 @@ func NewWorkSpace(model Model, serviceRegistry serviceregistry.ServiceRegistry, 
 	w.monitorConnectionServer = local_connection_monitor.NewLocalConnectionMonitor()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes(),
-		services.NewClientConnectionManager(model, serviceRegistry))
+	w.networkServiceServer = NewNetworkServiceServer(model, w, manager, serviceRegistry)
 
 	logrus.Infof("Creating new GRPC Server")
 	tracer := opentracing.GlobalTracer()
@@ -172,16 +170,4 @@ func (w *Workspace) cleanup() {
 			w.listener.Close()
 		}
 	}
-}
-
-func getExcludedPrefixes() []string {
-	//TODO: Add a better way to pass this value to NSMD
-	excluded_prefixes := []string{}
-	exclude_prefixes_env, ok := os.LookupEnv(ExcludedPrefixesEnv)
-	if ok {
-		for _, s := range strings.Split(exclude_prefixes_env, ",") {
-			excluded_prefixes = append(excluded_prefixes, strings.TrimSpace(s))
-		}
-	}
-	return excluded_prefixes
 }
