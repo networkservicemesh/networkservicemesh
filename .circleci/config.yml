@@ -58,7 +58,7 @@ jobs:
 
   packet-deploy:
     docker:
-      - image: circleci/golang:1.1
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - run: pwd
@@ -84,7 +84,7 @@ jobs:
   packet-integration-tests:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -129,7 +129,7 @@ jobs:
 
   packet-destroy:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - run:
@@ -149,7 +149,7 @@ jobs:
   build-nsmd:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -163,7 +163,7 @@ jobs:
   build-nsmd-k8s:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -177,7 +177,7 @@ jobs:
   build-nsmdp:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -191,7 +191,7 @@ jobs:
   build-crossconnect-monitor:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -205,7 +205,7 @@ jobs:
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -220,7 +220,7 @@ jobs:
   build-vppagent-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -234,7 +234,7 @@ jobs:
   build-vppagent-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -248,7 +248,7 @@ jobs:
   build-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
@@ -262,7 +262,7 @@ jobs:
   build-vppagent-dataplane:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - setup_remote_docker
