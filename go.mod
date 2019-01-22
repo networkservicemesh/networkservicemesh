@@ -50,6 +50,6 @@ require (
 	k8s.io/client-go v10.0.0+incompatible
 	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20181114233023-0317810137be // indirect
-	k8s.io/kubernetes v1.13.1
+	k8s.io/kubernetes v1.13.2
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
