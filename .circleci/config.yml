@@ -12,22 +12,25 @@ jobs:
             ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
       - run: go version
-      - run: make vet check dep-check
-      - run: go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/
-      - run: go install ./vendor/github.com/golang/protobuf/protoc-gen-go/
+      - run: make vet check
+      - run: go install k8s.io/code-generator/cmd/deepcopy-gen
+      - run: go install github.com/golang/protobuf/protoc-gen-go
       - run: go get golang.org/x/tools/cmd/stringer
       - run: ./scripts/install-protoc.sh
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
       - run: go test -short ./...
+    environment:
+      GO111MODULE: 'on'
 
   build:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -56,7 +59,7 @@ jobs:
 
   packet-deploy:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - run: pwd
@@ -82,10 +85,11 @@ jobs:
   packet-integration-tests:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             sudo ./.circleci/install-yq.sh
@@ -103,9 +107,10 @@ jobs:
       - run:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
-            go test -v ./test/...
+            GO111MODULE=on go test -v ./test/...
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
       - run:
           when: always
           name: Dump K8s state
@@ -124,10 +129,9 @@ jobs:
                 --data revision=$CIRCLE_SHA1 \
                 https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
 
-
   packet-destroy:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - run:
@@ -147,10 +151,11 @@ jobs:
   build-nsmd:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -161,10 +166,11 @@ jobs:
   build-nsmd-k8s:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -175,10 +181,11 @@ jobs:
   build-nsmdp:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -189,10 +196,11 @@ jobs:
   build-crossconnect-monitor:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -203,10 +211,11 @@ jobs:
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -218,10 +227,11 @@ jobs:
   build-vppagent-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -232,10 +242,11 @@ jobs:
   build-vppagent-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -246,10 +257,11 @@ jobs:
   build-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -260,10 +272,11 @@ jobs:
   build-vppagent-dataplane:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
