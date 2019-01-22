@@ -141,7 +141,7 @@ func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
 	}
 }
 
-func (i *impl) DeleteClientConnection(connectionId string) {
+func (i *impl) DeleteClientConnection(connectionId string) *ClientConnection {
 	i.Lock()
 	clientConnection := i.clientConnections[connectionId]
 	if clientConnection == nil {
@@ -153,6 +153,7 @@ func (i *impl) DeleteClientConnection(connectionId string) {
 	for _, listener := range i.listeners {
 		listener.ClientConnectionDeleted(clientConnection)
 	}
+	return clientConnection
 }
 
 func (i *impl) AddListener(listener ModelListener) {
