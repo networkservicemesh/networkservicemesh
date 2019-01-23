@@ -19,7 +19,13 @@ jobs:
       - run: ./scripts/install-protoc.sh
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
-      - run: go test -short ./...
+      - run: mkdir -p ~/junit/
+      - run: gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+
     environment:
       GO111MODULE: 'on'
 
@@ -107,10 +113,15 @@ jobs:
       - run:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
-            GO111MODULE=on go test -v ./test/...
+            mkdir -p ~/junit/
+            gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: 'on'
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
       - run:
           when: always
           name: Dump K8s state
