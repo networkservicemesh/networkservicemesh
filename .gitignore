@@ -39,3 +39,4 @@ scripts/terraform/packet.tfvars
 **/.terraform*
 
 scripts/vagrant/.kube/
+unit-tests.xml
