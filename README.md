@@ -1,6 +1,5 @@
 # Network Service Mesh
 
-[![travis-ci Build Status](https://travis-ci.org/networkservicemesh/networkservicemesh.svg?branch=master)](https://travis-ci.org/networkservicemesh/networkservicemesh)
 [![CircleCI Build Status](https://circleci.com/gh/networkservicemesh/networkservicemesh/tree/master.svg?style=svg)](https://circleci.com/gh/networkservicemesh/networkservicemesh/tree/master)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20license%202.0-blue.svg)](https://github.com/networkservicemesh/networkservicemesh/blob/master/LICENSE)
 [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
