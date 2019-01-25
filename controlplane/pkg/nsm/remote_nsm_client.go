@@ -26,11 +26,12 @@ func (c *nsmClient) Close(ctx context.Context, conn nsm.NSMConnection) error {
 		return fmt.Errorf("Remote NSM Connection is not initialized...")
 	}
 	_, err := c.client.Close(ctx, conn.(*connection.Connection))
+	_= c.Cleanup()
 	return err
 }
 
 func (c *nsmClient) Cleanup() error {
-	if c.connection == nil {
+	if c.client == nil {
 		return fmt.Errorf("Remote NSM Connection is already cleaned...")
 	}
 	var err error
@@ -38,5 +39,6 @@ func (c *nsmClient) Cleanup() error {
 		err = c.connection.Close()
 	}
 	c.connection = nil
+	c.client = nil
 	return err
 }

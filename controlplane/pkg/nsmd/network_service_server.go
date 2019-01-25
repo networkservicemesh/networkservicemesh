@@ -1,6 +1,7 @@
 package nsmd
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -50,7 +51,11 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 
 func (srv *networkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("Closing connection: %v", *connection)
-	err := srv.manager.Close(ctx, connection)
+	clientConnection := srv.model.GetClientConnection(connection.GetId())
+	if clientConnection == nil {
+		return nil, fmt.Errorf("There is no such client connection %v", connection)
+	}
+	err := srv.manager.Close(ctx, clientConnection)
 	if err != nil {
 		logrus.Errorf("Error during connection close: %v", err)
 	}

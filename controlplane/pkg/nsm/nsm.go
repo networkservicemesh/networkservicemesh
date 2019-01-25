@@ -114,13 +114,16 @@ func (srv *networkServiceManager) Request(ctx context.Context, request nsm.NSMRe
 		break
 	}
 
+	srv.model.AddClientConnection(clientConnection)
+
 	logrus.Infof("Sending request to dataplane: %v", clientConnection.Xcon)
 	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
+		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 		return nil, err
 	}
-	srv.model.AddClientConnection(clientConnection)
+
 	if request.IsRemote() {
 		nsmConnection = clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
 	} else {
@@ -148,12 +151,12 @@ func (srv *networkServiceManager) cloneConnection(request nsm.NSMRequest, respon
 	return requestConnection
 }
 
-func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMConnection) error {
-	logrus.Infof("Closing connection %s", connection.GetId())
-	clientConnection := srv.model.DeleteClientConnection(connection.GetId())
-	if clientConnection == nil {
-		return fmt.Errorf("No connection with id: %s, nothing to close", connection.GetId())
+func (srv *networkServiceManager) Close(ctx context.Context, clientConnection *model.ClientConnection) error {
+	logrus.Infof("Closing connection %v", clientConnection)
+	if clientConnection.IsClosing {
+		return nil
 	}
+	clientConnection.IsClosing = true
 	var nseClientError error
 	var nseCloseError error
 
@@ -179,6 +182,9 @@ func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMC
 	}
 
 	dpCloseError := srv.closeDataplane(clientConnection)
+	// TODO: We need to be sure Dataplane is respond well so we could delete connection.
+	srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+
 	if nseClientError != nil || nseCloseError != nil || dpCloseError != nil {
 		return fmt.Errorf("Close error: %v", []error{ nseClientError, nseCloseError, dpCloseError})
 	}
@@ -187,11 +193,9 @@ func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMC
 
 func (srv *networkServiceManager) CreateNSERequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, dataplane *model.Dataplane) nsm.NSMRequest {
 	if srv.isLocalEndpoint(endpoint) {
-		message := srv.createLocalNSERequest(endpoint, requestConnection)
-		return message
+		return srv.createLocalNSERequest(endpoint, requestConnection)
 	} else {
-		message := srv.createRemoteNSMRequest(endpoint, requestConnection, dataplane)
-		return message
+		return srv.createRemoteNSMRequest(endpoint, requestConnection, dataplane)
 	}
 }
 
@@ -253,6 +257,9 @@ func (srv *networkServiceManager) performNSERequest(request nsm.NSMRequest, endp
 		Xcon:         dpApiConnection,
 		Endpoint:     endpoint,
 		Dataplane:    dp,
+	}
+	if !srv.isLocalEndpoint(endpoint) {
+		clientConnection.RemoteNsm = endpoint.GetNetworkServiceManager()
 	}
 	return clientConnection, nil
 }

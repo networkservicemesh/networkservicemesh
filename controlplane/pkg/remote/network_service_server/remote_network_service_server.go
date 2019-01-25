@@ -2,6 +2,7 @@ package network_service_server
 
 import (
 	"context"
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"time"
@@ -55,7 +56,11 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 
 func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *remote_connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("Remote closing connection: %v", *connection)
-	err := srv.manager.Close(ctx, connection)
+	clientConnection := srv.model.GetClientConnection(connection.GetId())
+	if clientConnection == nil {
+		return nil, fmt.Errorf("There is no such client connection %v", connection)
+	}
+	err := srv.manager.Close(ctx, clientConnection)
 	if err != nil {
 		logrus.Errorf("Error during connection close: %v", err)
 	}

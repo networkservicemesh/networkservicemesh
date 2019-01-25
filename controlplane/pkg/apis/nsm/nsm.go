@@ -41,6 +41,6 @@ const (
 
 type NetworkServiceManager interface {
 	Request(ctx context.Context, request NSMRequest, extra_parameters map[string]string) (NSMConnection, error)
-	Close(ctx context.Context, connection NSMConnection) error
+	Close(ctx context.Context, clientConnection *model.ClientConnection) error
 	Heal(connection *model.ClientConnection, healState HealState)
 }

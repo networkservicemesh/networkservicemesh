@@ -14,7 +14,6 @@ func (srv *networkServiceManager) Heal(clientConnection *model.ClientConnection,
 		//means that we already invoke closing of remotes, nothing to do here
 		return
 	}
-	clientConnection.IsClosing = true
 
 	switch healState {
 	case nsm.HealState_DstDown:
@@ -24,13 +23,8 @@ func (srv *networkServiceManager) Heal(clientConnection *model.ClientConnection,
 		// Source is down, lets check if this is dataplane down and we could heal.
 	}
 
-	ls := clientConnection.Xcon.GetLocalSource()
-	var err error
-	if ls != nil {
-		err = srv.Close(context.Background(), ls)
-	} else {
-		err = srv.Close(context.Background(), clientConnection.Xcon.GetRemoteSource())
-	}
+	// We could not find new NSE, so just close Dataplane and let Client know.
+	err := srv.Close(context.Background(), clientConnection)
 	if err != nil {
 		logrus.Errorf("Error in Recovery: %v", err)
 	}
