@@ -1,8 +1,11 @@
 package monitor_crossconnect_server
 
 import (
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 	"github.com/sirupsen/logrus"
 	"strconv"
@@ -10,24 +13,28 @@ import (
 )
 
 type MonitorNetNsInodeServer struct {
-	MonitorRecipient
-	crossConnectServer  MonitorCrossConnectServer
+	monitor.Recipient
+	crossConnectServer  *crossconnect_monitor.CrossConnectMonitor
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
-func NewMonitorNetNsInodeServer(crossConnectServer MonitorCrossConnectServer) *MonitorNetNsInodeServer {
+func NewMonitorNetNsInodeServer(crossConnectServer *crossconnect_monitor.CrossConnectMonitor) *MonitorNetNsInodeServer {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
 	}
-	crossConnectServer.AddMonitorRecipient(rv)
+	crossConnectServer.AddRecipient(rv)
 	go rv.MonitorNetNsInode()
 	return rv
 }
 
-func (m *MonitorNetNsInodeServer) Send(event *crossconnect.CrossConnectEvent) error {
+func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
+	event, ok := msg.(*crossconnect.CrossConnectEvent)
+	if !ok {
+		return fmt.Errorf("wrong type of msg, CrossConnectEvent is needed")
+	}
 	m.crossConnectEventCh <- copyEvent(event)
 	return nil
 }
@@ -91,7 +98,7 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
 		logrus.Infof("Connection is down")
 		conn.State = connection.State_DOWN
-		m.crossConnectServer.UpdateCrossConnect(xcon)
+		m.crossConnectServer.Update(xcon)
 	}
 
 	return nil

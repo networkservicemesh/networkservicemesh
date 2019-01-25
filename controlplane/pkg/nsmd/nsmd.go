@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"sync"
 
@@ -13,11 +14,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -177,11 +177,13 @@ func StartAPIServer(model model.Model, apiRegistry serviceregistry.ApiRegistry, 
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	// Start CrossConnect monitor server
-	monitorCrossConnectServer := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	//monitorCrossConnectServer := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	monitorCrossConnectServer := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorCrossConnectServer)
 
 	// Start Connection monitor server
-	monitorConnectionServer := monitor_connection_server.NewMonitorConnectionServer()
+	//monitorConnectionServer := monitor_connection_server.NewMonitorConnectionServer()
+	monitorConnectionServer := remote_connection_monitor.NewRemoteConnectionMonitor()
 	connection.RegisterMonitorConnectionServer(grpcServer, monitorConnectionServer)
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
