@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ITERATIONS=${ITERATIONS:-3}
+BATCHES=${BATCHES:-1}
 # The direct link of Proxy-NSC to "secure-intranet-connectivity" is disabled for issues
 #DIRECT:=1
 
@@ -31,10 +32,17 @@ for nsc in $(kubectl get pods -o=name | grep proxy-nsc | sed 's@.*/@@'); do
     fi
 
     # This loops and calls with "NSM-App: Firewall" header, directly into the gateway
-    for ((i=1;i<=ITERATIONS;++i)); do
-        call_wget ${i} "${nsc}" "--header='NSM-App: Firewall'"
+    for ((i=1;i<=ITERATIONS;i=i+BATCHES)); do
+        for ((j=1;j<=BATCHES;++j)); do
+            call_wget ${i} "${nsc}" "--header='NSM-App: Firewall'" &
+            pids[${j}]=$!
+        done
+        # wait for all pids
+        for pid in ${pids[*]}; do
+            wait $pid
+        done
+        sleep 1
     done
 done
-
 echo "All check OK. NSC ${nsc} behaving as expected."
 exit 0

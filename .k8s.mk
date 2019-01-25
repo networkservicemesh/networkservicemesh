@@ -22,7 +22,8 @@ DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
-DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc proxy-nsc
+DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc
+DEPLOY_PROXY = vpn-gateway-nse proxy-nsc
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_ICMP_VPP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
@@ -58,6 +59,9 @@ k8s-icmp-deploy: k8s-icmp-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_I
 .PHONY: k8s-vpn-deploy
 k8s-vpn-deploy: k8s-vpn-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
 
+.PHONY: k8s-proxy-deploy
+k8s-proxy-deploy: k8s-proxy-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_PROXY)))
+
 .PHONY: k8s-redeploy
 k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
 
@@ -91,6 +95,9 @@ k8s-icmp-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_ICMP)))
 
 .PHONY: k8s-vpn-delete
 k8s-vpn-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_VPN)))
+
+.PHONY: k8s-proxy-delete
+k8s-proxy-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_PROXY)))
 
 .PHONY: k8s-%-delete
 k8s-%-delete:
