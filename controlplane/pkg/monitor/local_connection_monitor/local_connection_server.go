@@ -18,6 +18,6 @@ func NewLocalConnectionMonitor() *LocalConnectionMonitor {
 	return rv
 }
 
-func (m *LocalConnectionMonitor) MonitorCrossConnects(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (m *LocalConnectionMonitor) MonitorConnections(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	return m.MonitorEntities(recipient)
 }

@@ -141,7 +141,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 	}
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource
-	srv.workspace.MonitorConnectionServer().UpdateConnection(con)
+	srv.workspace.MonitorConnectionServer().Update(con)
 	logrus.Info("Dataplane configuration done...")
 	return con, nil
 }
