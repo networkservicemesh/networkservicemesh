@@ -31,7 +31,7 @@ First let's build the Docker images of the various components
 make k8s-save
 ```
 
-### Local Vagrant setuo
+### Local Vagrant setup
 
 Then we'll configure a Kubernetes cluster. A master and a worker node will be launched in two separate Vagrant machines. The Network Service Mesh components will then be deployed to the cluster.
 
