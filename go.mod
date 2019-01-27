@@ -41,7 +41,7 @@ require (
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
 	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
-	google.golang.org/grpc v1.17.0
+	google.golang.org/grpc v1.18.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 	k8s.io/api v0.0.0-20181213150558-05914d821849
@@ -50,6 +50,6 @@ require (
 	k8s.io/client-go v10.0.0+incompatible
 	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20181114233023-0317810137be // indirect
-	k8s.io/kubernetes v1.13.1
+	k8s.io/kubernetes v1.13.2
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
