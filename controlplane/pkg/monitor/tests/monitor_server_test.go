@@ -43,8 +43,7 @@ func TestSimple(t *testing.T) {
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	go func() {
-		err := grpcServer.Serve(listener)
-		Expect(err).To(BeNil())
+		grpcServer.Serve(listener)
 	}()
 
 	monitor.Update(&crossconnect.CrossConnect{Id: "1"})
