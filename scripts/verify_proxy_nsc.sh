@@ -12,6 +12,7 @@ function call_wget() {
 
     if kubectl exec -it "${nsc}" -- wget "${args}" -O /dev/null --timeout 3 "localhost:8080"; then # 2>&1 >/dev/null; then
         echo "${i}. Proxy NSC accessiing 'secure-intranet-connectivity' with 'app=firewall' successful"
+        exit 0
     else
         echo "Proxy NSC accessiing 'secure-intranet-connectivity' with 'app=firewall' unsuccessful"
         kubectl get pod "${nsc}" -o wide
@@ -34,14 +35,17 @@ for nsc in $(kubectl get pods -o=name | grep proxy-nsc | sed 's@.*/@@'); do
     # This loops and calls with "NSM-App: Firewall" header, directly into the gateway
     for ((i=1;i<=ITERATIONS;i=i+BATCHES)); do
         for ((j=1;j<=BATCHES;++j)); do
-            call_wget ${i} "${nsc}" "--header='NSM-App: Firewall'" &
+            call_wget ${j} "${nsc}" "--header='NSM-App: Firewall'" &
             pids[${j}]=$!
         done
         # wait for all pids
         for pid in ${pids[*]}; do
-            wait $pid
+            if ! wait $pid; then
+                echo "A subprocess failed"
+                exit 1
+            fi
         done
-        sleep 1
+        # sleep 1
     done
 done
 echo "All check OK. NSC ${nsc} behaving as expected."
