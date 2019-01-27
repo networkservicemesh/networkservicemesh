@@ -1,4 +1,4 @@
-# Preparing an Ubuntu host to run Network Service Mesh
+# Preparing a CentOS host to run Network Service Mesh
 
 The following instructions assume CentOS 7 installed with Gnome Desktop.
 
