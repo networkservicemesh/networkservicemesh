@@ -2,15 +2,13 @@
 
 ITERATIONS=${ITERATIONS:-3}
 BATCHES=${BATCHES:-1}
-# The direct link of Proxy-NSC to "secure-intranet-connectivity" is disabled for issues
-#DIRECT:=1
 
 function call_wget() {
     i="$1"
     nsc="$2"
     args="$3"
 
-    if kubectl exec -it "${nsc}" -- wget "${args}" -O /dev/null --timeout 3 "localhost:8080"; then # 2>&1 >/dev/null; then
+    if kubectl exec -it "${nsc}" -- wget "${args}" -O /dev/null --timeout 5 "localhost:8080" 2>&1 >/dev/null; then
         echo "${i}. Proxy NSC accessiing 'secure-intranet-connectivity' with 'app=firewall' successful"
         exit 0
     else
@@ -23,18 +21,9 @@ function call_wget() {
 for nsc in $(kubectl get pods -o=name | grep proxy-nsc | sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
 
-    if [ -n "${DIRECT}" ]; then
-        if kubectl exec -it "${nsc}" -- wget -O /dev/null --timeout 10 "localhost:8080" ; then
-            echo "Proxy NSC accessiing 'secure-intranet-connectivity' successful"
-        else
-            echo "Proxy NSC accessiing 'secure-intranet-connectivity' unsuccessful"
-            kubectl get pod "${nsc}" -o wide
-        fi
-    fi
-
     # This loops and calls with "NSM-App: Firewall" header, directly into the gateway
     for ((i=1;i<=ITERATIONS;i=i+BATCHES)); do
-        for ((j=1;j<=BATCHES;++j)); do
+        for ((j=i;j<i+BATCHES;++j)); do
             call_wget ${j} "${nsc}" "--header='NSM-App: Firewall'" &
             pids[${j}]=$!
         done
