@@ -3,6 +3,9 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
@@ -10,8 +13,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"testing"
-	"time"
 )
 
 func TestSingleCrossConnect(t *testing.T) {
@@ -211,10 +212,15 @@ func createCrossConnectClient(address string) (crossconnect.MonitorCrossConnect_
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
+	if err != nil {
+		Expect(err).To(BeNil())
+		cancel()
+		return nil, nil, nil
+	}
 
 	closeFunc := func() {
 		if err := conn.Close(); err != nil {
-			logrus.Error(err)
+			logrus.Errorf("Closing the stream with: %v", err)
 		}
 	}
 	return stream, closeFunc, cancel
