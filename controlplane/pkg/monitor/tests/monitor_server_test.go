@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
@@ -34,7 +35,7 @@ func startClient(target string) {
 func TestSimple(t *testing.T) {
 	RegisterTestingT(t)
 
-	listener, err := net.Listen("tcp", "localhost:5002")
+	listener, err := net.Listen("tcp", "localhost:0")
 	defer listener.Close()
 	Expect(err).To(BeNil())
 
@@ -48,13 +49,19 @@ func TestSimple(t *testing.T) {
 
 	monitor.Update(&crossconnect.CrossConnect{Id: "1"})
 
-	startClient("localhost:5002")
+	startClient(listenerAddress(listener))
+}
+
+func listenerAddress(listener net.Listener) string {
+	port := listener.Addr().(*net.TCPAddr).Port
+	logrus.Infof("Connect to port: %d", port)
+	return fmt.Sprintf("localhost:%d", port)
 }
 
 func TestSeveralRecipient(t *testing.T) {
 	RegisterTestingT(t)
 
-	listener, err := net.Listen("tcp", "localhost:5002")
+	listener, err := net.Listen("tcp", "localhost:0")
 	defer listener.Close()
 	Expect(err).To(BeNil())
 
@@ -62,20 +69,23 @@ func TestSeveralRecipient(t *testing.T) {
 	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
+	var waitServe sync.WaitGroup
+	waitServe.Add(1)
 	go func() {
-		err := grpcServer.Serve(listener)
-		Expect(err).To(BeNil())
+		go waitServe.Done()
+		_ = grpcServer.Serve(listener)
 	}()
-
+	waitServe.Wait()
 	monitor.Update(&crossconnect.CrossConnect{Id: "1"})
 
 	var wg sync.WaitGroup
 	for i := 0; i < 3; i++ {
 		wg.Add(1)
 		go func() {
-			startClient("localhost:5002")
+			startClient(listenerAddress(listener))
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+	logrus.Infof("######END")
 }
