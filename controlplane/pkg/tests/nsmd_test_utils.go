@@ -5,6 +5,7 @@ import (
 	"fmt"
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"io/ioutil"
 	"net"
 	"os"
@@ -55,6 +56,7 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 }
 
 func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registry.RemoveNSERequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	delete(impl.endpoints, in.EndpointName)
 	return nil, nil
 }
 
@@ -107,8 +109,9 @@ func (impl *nsmdTestServiceRegistry) NewWorkspaceProvider() serviceregistry.Work
 	return nsmd.NewWorkspaceProvider(impl.rootDir)
 }
 
-func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
+func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error {
 	// Do Nothing.
+	return nil
 }
 
 func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
@@ -132,7 +135,8 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Ne
 }
 
 type localTestNSENetworkServiceClient struct {
-	req *networkservice.NetworkServiceRequest
+	req        *networkservice.NetworkServiceRequest
+	prefixPool prefix_pool.PrefixPool
 }
 
 func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
@@ -151,17 +155,21 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 	}
 
 	// TODO take into consideration LocalMechnism preferences sent in request
-
+	srcIP, dstIP, requested, err := impl.prefixPool.Extract(in.Connection.Id, connectioncontext.IpFamily_IPV4, in.Connection.Context.ExtraPrefixRequest...)
+	if err != nil {
+		return nil, err
+	}
 	conn := &connection.Connection{
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
 		Context: &connectioncontext.ConnectionContext{
-			SrcIpAddr: "169083138/30",
-			DstIpAddr: "169083137/30",
+			SrcIpAddr:     srcIP.String(),
+			DstIpAddr:     dstIP.String(),
+			ExtraPrefixes: requested,
 		},
 	}
-	err := conn.IsComplete()
+	err = conn.IsComplete()
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -301,7 +309,7 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
 		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism {
+			&connection.Mechanism{
 				Type: connection.MechanismType_KERNEL_INTERFACE,
 			},
 		},
@@ -309,6 +317,9 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 }
 
 func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *registry.NSERegistration {
+	return srv.registerFakeEndpointWithName(networkServiceName, payload, nse_address, networkServiceName+"provider")
+}
+func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nse_address string, endpointname string) *registry.NSERegistration {
 	reg := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name:    networkServiceName,
@@ -322,7 +333,7 @@ func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, p
 			NetworkServiceManagerName: nse_address,
 			Payload:                   payload,
 			NetworkServiceName:        networkServiceName,
-			EndpointName:              networkServiceName + "provider",
+			EndpointName:              endpointname,
 		},
 	}
 	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), reg)
@@ -361,14 +372,19 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-
+	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	srv.serviceRegistry = &nsmdTestServiceRegistry{
 		nseRegistry:             srv.nseRegistry,
 		apiRegistry:             srv.apiRegistry,
 		testDataplaneConnection: &testDataplaneConnection{},
-		localTestNSE:            &localTestNSENetworkServiceClient{},
-		vniAllocator:            vni.NewVniAllocator(),
-		rootDir:                 rootDir,
+		localTestNSE: &localTestNSENetworkServiceClient{
+			prefixPool: prefixPool,
+		},
+		vniAllocator: vni.NewVniAllocator(),
+		rootDir:      rootDir,
 	}
 
 	srv.testModel = model.NewModel()

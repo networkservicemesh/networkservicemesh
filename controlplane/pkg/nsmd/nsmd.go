@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
@@ -105,7 +106,9 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 	if err := tools.SocketCleanup(ServerSock); err != nil {
 		return err
 	}
-	serviceRegistry.WaitForDataplaneAvailable(model)
+	if err := serviceRegistry.WaitForDataplaneAvailable(model, time.Hour*1); err != nil {
+		return err
+	}
 
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"strconv"
 	"sync"
 
@@ -29,6 +30,29 @@ type ClientConnection struct {
 	Endpoint     *registry.NSERegistration
 	Dataplane    *Dataplane
 	IsClosing    bool
+	Request      nsm.NSMRequest
+}
+
+func (cc *ClientConnection) GetId() string {
+	if cc == nil {
+		return ""
+	}
+	return cc.ConnectionId
+}
+
+func (cc *ClientConnection) GetNetworkService() string {
+	if cc == nil {
+		return ""
+	}
+	return cc.Endpoint.GetNetworkService().GetName()
+}
+
+func (cc *ClientConnection) GetSourceConnection() nsm.NSMConnection {
+	if cc.Xcon.GetLocalSource() != nil {
+		return cc.Xcon.GetLocalSource()
+	} else {
+		return cc.Xcon.GetRemoteSource()
+	}
 }
 
 // Model change listener
@@ -141,7 +165,7 @@ func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
 	}
 }
 
-func (i *impl) DeleteClientConnection(connectionId string) *ClientConnection {
+func (i *impl) DeleteClientConnection(connectionId string) {
 	i.Lock()
 	clientConnection := i.clientConnections[connectionId]
 	if clientConnection == nil {
@@ -153,7 +177,6 @@ func (i *impl) DeleteClientConnection(connectionId string) *ClientConnection {
 	for _, listener := range i.listeners {
 		listener.ClientConnectionDeleted(clientConnection)
 	}
-	return clientConnection
 }
 
 func (i *impl) AddListener(listener ModelListener) {

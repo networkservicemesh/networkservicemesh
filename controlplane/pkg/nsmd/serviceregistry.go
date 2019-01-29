@@ -227,13 +227,18 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	}
 }
 
-func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model) {
+func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error {
 	logrus.Info("Waiting for dataplane available...")
+	st := time.Now()
 	for ; true; <-time.After(100 * time.Millisecond) {
 		if dp, _ := model.SelectDataplane(); dp != nil {
 			break
 		}
+		if time.Since(st) > timeout {
+			break
+		}
 	}
+	return nil
 }
 
 func (impl *nsmdServiceRegistry) VniAllocator() vni.VniAllocator {

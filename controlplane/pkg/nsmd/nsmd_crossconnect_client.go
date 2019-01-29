@@ -102,6 +102,11 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{cancel: cancel, xconCounter: 1}
 	go client.remotePeerConnectionMonitor(clientConnection.RemoteNsm, ctx)
 }
+func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
+	logrus.Infof("ClientConnectionUpdated: %v", clientConnection)
+	//if clientConnection.
+	//client.ClientConnectionUpdated(clientConnection)
+}
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
 	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
@@ -194,6 +199,10 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 		return
 	}
 	defer conn.Close()
+
+	defer func() {
+		logrus.Infof("Remote monitor closed... %v", remotePeer)
+	}()
 
 	monitorClient := remote_connection.NewMonitorConnectionClient(conn)
 	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: remotePeer.Name}

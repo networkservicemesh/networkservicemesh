@@ -40,9 +40,7 @@ func NewRemoteNetworkServiceServer(model model.Model, manager nsm.NetworkService
 
 func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
 	logrus.Infof("RemoteNSMD: Received request from client to connect to NetworkService: %v", request)
-	params := map[string]string{}
-
-	conn, err := srv.manager.Request(ctx, request, params)
+	conn, err := srv.manager.Request(ctx, request)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

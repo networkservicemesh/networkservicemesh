@@ -12,24 +12,20 @@ import (
 	"strconv"
 )
 
-func (srv *networkServiceManager) updateMechanism(nsmConnection nsm.NSMConnection, request nsm.NSMRequest, dataplane *model.Dataplane, extra_parameters map[string]string) error {
+func (srv *networkServiceManager) updateMechanism(nsmConnection nsm.NSMConnection, request nsm.NSMRequest, dataplane *model.Dataplane) error {
 	if request.IsRemote() {
 		mechanism, err := srv.selectRemoteMechanism(request.(*remote_networkservice.NetworkServiceRequest), dataplane)
 		if err != nil {
 			return err
 		}
 		c := nsmConnection.(*remote_connection.Connection)
-		c.Mechanism = proto.Clone(mechanism).(*remote_connection.Mechanism)
-
+		newMechanism := proto.Clone(mechanism).(*remote_connection.Mechanism)
+		c.Mechanism = newMechanism
 		if c.Mechanism == nil {
 			return fmt.Errorf("Required mechanism are not found... %v ", dataplane.RemoteMechanisms)
 		}
 		if c.Mechanism.Parameters == nil {
 			c.Mechanism.Parameters = map[string]string{}
-		}
-
-		for k, v := range extra_parameters {
-			c.Mechanism.Parameters[k] = v
 		}
 	} else {
 		c := nsmConnection.(*connection.Connection)
@@ -48,19 +44,14 @@ func (srv *networkServiceManager) updateMechanism(nsmConnection nsm.NSMConnectio
 		if c.Mechanism.Parameters == nil {
 			c.Mechanism.Parameters = map[string]string{}
 		}
-
-		for k, v := range extra_parameters {
-			c.Mechanism.Parameters[k] = v
-		}
-
 	}
 
 	return nil
 }
 
-func (srv *networkServiceManager) selectRemoteMechanism(request *remote_networkservice.NetworkServiceRequest, dataplane *model.Dataplane) (*remote_connection.Mechanism, error) {
+func (srv *networkServiceManager) selectRemoteMechanism(request *remote_networkservice.NetworkServiceRequest, dp *model.Dataplane) (*remote_connection.Mechanism, error) {
 	for _, mechanism := range request.MechanismPreferences {
-		dp_mechanism := findRemoteMechanism(dataplane.RemoteMechanisms, remote_connection.MechanismType_VXLAN)
+		dp_mechanism := findRemoteMechanism(dp.RemoteMechanisms, remote_connection.MechanismType_VXLAN)
 		if dp_mechanism == nil {
 			continue
 		}

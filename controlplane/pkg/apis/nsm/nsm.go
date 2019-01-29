@@ -2,14 +2,23 @@ package nsm
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"golang.org/x/net/context"
 )
 
+/*
+	Unified request, handles common part of local/Remote network requests.
+*/
 type NSMRequest interface {
 	IsValid() error
 	IsRemote() bool
+	GetConnectionId() string
+	Clone() NSMRequest
+	SetConnection(connection NSMConnection)
 }
+
+/*
+	Unitifed Connection interface, handles common part of local/Remote connections.
+*/
 type NSMConnection interface {
 	IsValid() error
 	SetId(id string)
@@ -22,6 +31,12 @@ type NSMConnection interface {
 	GetLabels() map[string]string
 	GetNetworkServiceEndpointName() string
 	SetNetworkServiceName(service string)
+}
+
+type NSMClientConnection interface {
+	GetId() string
+	GetSourceConnection() NSMConnection
+	GetNetworkService() string
 }
 
 type NetworkServiceClient interface {
@@ -40,7 +55,7 @@ const (
 )
 
 type NetworkServiceManager interface {
-	Request(ctx context.Context, request NSMRequest, extra_parameters map[string]string) (NSMConnection, error)
-	Close(ctx context.Context, clientConnection *model.ClientConnection) error
-	Heal(connection *model.ClientConnection, healState HealState)
+	Request(ctx context.Context, request NSMRequest) (NSMConnection, error)
+	Close(ctx context.Context, clientConnection NSMClientConnection) error
+	Heal(connection NSMClientConnection, healState HealState)
 }

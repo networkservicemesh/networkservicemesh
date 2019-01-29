@@ -21,43 +21,10 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	srv2 := newNSMDFullServer()
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.testModel.AddDataplane(&model.Dataplane{
-		RegisteredName: "test_data_plane",
-		SocketLocation: "tcp:some_addr",
-		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism {
-				Type: connection.MechanismType_KERNEL_INTERFACE,
-			},
-		},
-		RemoteMechanisms: []*connection2.Mechanism{
-			&connection2.Mechanism{
-				Type: connection2.MechanismType_VXLAN,
-				Parameters: map[string]string{
-					connection2.VXLANVNI:   "1",
-					connection2.VXLANSrcIP: "127.0.0.1",
-				},
-			},
-		},
-	})
 
-	srv2.testModel.AddDataplane(&model.Dataplane{
-		RegisteredName: "test_data_plane",
-		SocketLocation: "tcp:some_addr",
-		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism {
-				Type: connection.MechanismType_KERNEL_INTERFACE,
-			},
-		},
-		RemoteMechanisms: []*connection2.Mechanism{
-			&connection2.Mechanism{
-				Type: connection2.MechanismType_VXLAN,
-				Parameters: map[string]string{
-					connection2.VXLANVNI:   "3",
-					connection2.VXLANSrcIP: "127.0.0.2",
-				},
-			},
-		},
-	})
+	srv.testModel.AddDataplane(testDataplane1)
+
+	srv2.testModel.AddDataplane(testDataplane2)
 
 	// Register in both
 	nseReg := srv.registerFakeEndpoint("golden_network", "test", srv2.serviceRegistry.GetPublicAPI())
@@ -109,7 +76,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
 		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism {
+			&connection.Mechanism{
 				Type: connection.MechanismType_KERNEL_INTERFACE,
 			},
 		},

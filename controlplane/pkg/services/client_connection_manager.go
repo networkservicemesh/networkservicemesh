@@ -6,7 +6,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
@@ -53,7 +53,7 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConne
 	if clientConnection.Xcon.GetLocalDestination() != nil {
 		clientConnection.Xcon.GetLocalDestination().State = connection.State_DOWN
 	} else if clientConnection.Xcon.GetRemoteDestination() != nil {
-		clientConnection.Xcon.GetRemoteDestination().State = connection2.State_DOWN
+		clientConnection.Xcon.GetRemoteDestination().State = remote_connection.State_DOWN
 	}
 	m.model.UpdateClientConnection(clientConnection)
 	m.manager.Heal(clientConnection, nsm.HealState_DstDown)

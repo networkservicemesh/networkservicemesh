@@ -37,12 +37,15 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, manager ns
 }
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
-	// This parameters will go into selected mechanism
-	params := map[string]string{}
-	params[connection.Workspace] = srv.workspace.Name()
+	// Update passed local mechanism paramaters to contains a workspace name
+	for _, mechanism := range request.MechanismPreferences {
+		if mechanism.Parameters == nil {
+			mechanism.Parameters = map[string]string{}
+		}
+		mechanism.Parameters[connection.Workspace] = srv.workspace.Name()
+	}
 
-	conn, err := srv.manager.Request(ctx, request, params)
+	conn, err := srv.manager.Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}

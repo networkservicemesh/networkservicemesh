@@ -38,6 +38,7 @@ type connectionRecord struct {
 }
 
 func NewPrefixPool(prefixes ...string) (PrefixPool, error) {
+	//TODO: Add validation of input prefixes.
 	return &prefixPool{
 		basePrefixes: prefixes,
 		prefixes:     prefixes,
