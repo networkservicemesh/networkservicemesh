@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"strconv"
 	"time"
@@ -16,7 +17,6 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 )
@@ -29,7 +29,7 @@ const (
 type remoteNetworkServiceServer struct {
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
-	monitor         monitor_connection_server.MonitorConnectionServer
+	monitor         *remote_connection_monitor.RemoteConnectionMonitor
 	xconManager     *services.ClientConnectionManager
 }
 
@@ -101,7 +101,7 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	// TODO - be more cautious here about bad return values from Dataplane
 	con := rv.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
 	logrus.Infof("Dataplane: Returned connection obj %+v", con)
-	srv.monitor.UpdateConnection(con)
+	srv.monitor.Update(con)
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return con, nil
 }
@@ -229,7 +229,7 @@ func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *re
 }
 
 func NewRemoteNetworkServiceServer(model model.Model, serviceRegistry serviceregistry.ServiceRegistry,
-	xconManager *services.ClientConnectionManager, connectionMonitor monitor_connection_server.MonitorConnectionServer) remote_networkservice.NetworkServiceServer {
+	xconManager *services.ClientConnectionManager, connectionMonitor *remote_connection_monitor.RemoteConnectionMonitor) remote_networkservice.NetworkServiceServer {
 	return &remoteNetworkServiceServer{
 		model:           model,
 		serviceRegistry: serviceRegistry,

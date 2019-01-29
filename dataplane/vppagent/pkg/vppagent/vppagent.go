@@ -16,22 +16,22 @@ package vppagent
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"net"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -40,7 +40,7 @@ import (
 type VPPAgent struct {
 	// Parameters set in constructor
 	vppAgentEndpoint string
-	monitor          monitor_crossconnect_server.MonitorCrossConnectServer
+	monitor          *crossconnect_monitor.CrossConnectMonitor
 
 	// Internal state from here on
 	mechanisms           *Mechanisms
@@ -52,7 +52,7 @@ type VPPAgent struct {
 	directMemifConnector *memif.DirectMemifConnector
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor monitor_crossconnect_server.MonitorCrossConnectServer, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
@@ -125,7 +125,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
-	v.monitor.UpdateCrossConnect(xcon)
+	v.monitor.Update(xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -241,6 +241,6 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.monitor.DeleteCrossConnect(xcon)
+	v.monitor.Delete(xcon)
 	return &empty.Empty{}, nil
 }

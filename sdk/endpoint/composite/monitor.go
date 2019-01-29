@@ -18,11 +18,11 @@ package composite
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
@@ -31,7 +31,7 @@ import (
 // MonitorCompositeEndpoint is a monitoring composite
 type MonitorCompositeEndpoint struct {
 	endpoint.BaseCompositeEndpoint
-	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
+	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 }
 
 // Request imeplements the request handler
@@ -50,7 +50,7 @@ func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *netwo
 	}
 
 	logrus.Infof("Monitor UpdateConnection: %v", incomingConnection)
-	mce.monitorConnectionServer.UpdateConnection(incomingConnection)
+	mce.monitorConnectionServer.Update(incomingConnection)
 
 	return incomingConnection, nil
 }
@@ -58,7 +58,7 @@ func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *netwo
 // Close imeplements the close handler
 func (mce *MonitorCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("Monitor DeleteConnection: %v", connection)
-	mce.monitorConnectionServer.DeleteConnection(connection)
+	mce.monitorConnectionServer.Delete(connection)
 	if mce.GetNext() != nil {
 		return mce.GetNext().Close(ctx, connection)
 	}
@@ -74,7 +74,7 @@ func NewMonitorCompositeEndpoint(configuration *common.NSConfiguration) *Monitor
 	configuration.CompleteNSConfiguration()
 
 	self := &MonitorCompositeEndpoint{
-		monitorConnectionServer: monitor_connection_server.NewMonitorConnectionServer(),
+		monitorConnectionServer: local_connection_monitor.NewLocalConnectionMonitor(),
 	}
 	self.SetSelf(self)
 

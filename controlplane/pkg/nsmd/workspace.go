@@ -15,6 +15,7 @@
 package nsmd
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"net"
 	"os"
@@ -25,11 +26,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local/monitor_connection_server"
+	. "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	. "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -47,7 +47,7 @@ type Workspace struct {
 	listener                net.Listener
 	registryServer          registry.NetworkServiceRegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
-	monitorConnectionServer monitor_connection_server.MonitorConnectionServer
+	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
@@ -80,7 +80,7 @@ func NewWorkSpace(model Model, serviceRegistry serviceregistry.ServiceRegistry, 
 	w.registryServer = NewRegistryServer(model, w, serviceRegistry)
 
 	logrus.Infof("Creating new MonitorConnectionServer")
-	w.monitorConnectionServer = monitor_connection_server.NewMonitorConnectionServer()
+	w.monitorConnectionServer = local_connection_monitor.NewLocalConnectionMonitor()
 
 	logrus.Infof("Creating new NetworkServiceServer")
 	w.networkServiceServer = NewNetworkServiceServer(model, w, serviceRegistry, getExcludedPrefixes(),
@@ -144,7 +144,7 @@ func (w *Workspace) NsmClientSocket() string {
 	return w.NsmDirectory() + "/" + w.locationProvider.NsmClientSocket()
 }
 
-func (w *Workspace) MonitorConnectionServer() monitor_connection_server.MonitorConnectionServer {
+func (w *Workspace) MonitorConnectionServer() *local_connection_monitor.LocalConnectionMonitor {
 	if w == nil {
 		return nil
 	}
