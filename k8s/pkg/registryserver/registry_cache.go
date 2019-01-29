@@ -99,4 +99,5 @@ func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkS
 
 func (rc *registryCacheImpl) Close() error {
 	//todo (lobkovilya): implement close
+	return nil
 }
