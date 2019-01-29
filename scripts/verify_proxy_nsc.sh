@@ -8,7 +8,7 @@ function call_wget() {
     nsc="$2"
     args="$3"
 
-    if kubectl exec -it "${nsc}" -- wget "${args}" -O /dev/null --timeout 5 "localhost:8080" 2>&1 >/dev/null; then
+    if kubectl exec -it "${nsc}" -- wget "${args}" -O /dev/null --timeout 5 "localhost:8080" >/dev/null 2>&1; then
         echo "${i}. Proxy NSC accessiing 'secure-intranet-connectivity' with 'app=firewall' successful"
         exit 0
     else
