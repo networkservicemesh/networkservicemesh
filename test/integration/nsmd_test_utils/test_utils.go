@@ -67,14 +67,14 @@ func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 	startTime := time.Now()
 
 	logrus.Infof("Starting ICMP Responder NSE on node: %s", node.Name)
-	icmp = k8s.CreatePod(pods.ICMPResponderPod(name, node,
+	icmp = k8s.CreatePod(pods.ICMPResponderPod("icmp-responder-nse1", node,
 		map[string]string{
 			"ADVERTISE_NSE_NAME":   "icmp-responder",
 			"ADVERTISE_NSE_LABELS": "app=icmp",
 			"IP_ADDRESS":           "10.20.1.0/24",
 		},
 	))
-	Expect(icmp.Name).To(Equal(name))
+	Expect(icmp.Name).To(Equal("icmp-responder-nse1"))
 
 	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
 

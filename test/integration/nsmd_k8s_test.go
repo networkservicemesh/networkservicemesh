@@ -57,7 +57,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	Expect(response).To(BeNil())
 	logrus.Print(err.Error())
 
-	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = networkservices.networkservicemesh.io \"my_service\" not found"))
+	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = failed to get NetworkService with name: my_service"))
 
 	// Lets register few hundred NSEs and check how it works.
 
