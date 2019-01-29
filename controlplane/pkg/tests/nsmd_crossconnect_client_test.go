@@ -6,9 +6,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/monitor_connection_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	. "github.com/onsi/gomega"
@@ -18,7 +18,7 @@ import (
 	"testing"
 )
 
-func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
+func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
 	if err != nil {
 		return err, nil, nil
@@ -27,10 +27,10 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 	serviceRegistry := nsmd.NewServiceRegistry()
 
 	// Start Cross connect monitor and server
-	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
-	connectionMonitor := monitor_connection_server.NewMonitorConnectionServer()
+	connectionMonitor := remote_connection_monitor.NewRemoteConnectionMonitor()
 	connection.RegisterMonitorConnectionServer(grpcServer, connectionMonitor)
 
 	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, services.NewClientConnectionManager(model, serviceRegistry))
@@ -59,7 +59,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	monitor.UpdateCrossConnect(&crossconnect.CrossConnect{
+	monitor.Update(&crossconnect.CrossConnect{
 		Id:      "cc1",
 		Payload: "json_data",
 	})
@@ -103,14 +103,14 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 	}
 }
 
-func createCrossMonitorDataplaneMock(dataplaneSocket string) (net.Listener, *grpc.Server, monitor_crossconnect_server.MonitorCrossConnectServer) {
+func createCrossMonitorDataplaneMock(dataplaneSocket string) (net.Listener, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor) {
 	tools.SocketCleanup(dataplaneSocket)
 	ln, err := net.Listen("unix", dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 	}
 	server := grpc.NewServer()
-	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
 
 	go server.Serve(ln)

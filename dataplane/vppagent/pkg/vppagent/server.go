@@ -15,13 +15,14 @@
 package vppagent
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"net"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
 
@@ -33,7 +34,7 @@ func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet n
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	monitor := monitor_crossconnect_server.NewMonitorCrossConnectServer()
+	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
 
 	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName)
