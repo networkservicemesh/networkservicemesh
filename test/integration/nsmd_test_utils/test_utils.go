@@ -49,7 +49,7 @@ func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node) (nsmd *v1.Pod,
 	Expect(dataplane.Name).To(Equal(dataplaneName))
 
 	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", defaultTimeout)
-	k8s.WaitLogsContains(nsmd, "nsmd", "Dataplane added", defaultTimeout)
+	k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
 	k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", defaultTimeout)
 
 	return
