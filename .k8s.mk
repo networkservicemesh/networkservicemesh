@@ -120,6 +120,9 @@ k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 .PHONY: k8s-build
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
+.PHONY: k8s-jaeger-build
+k8s-jaeger-build:
+
 .PHONY: k8s-jaeger-save
 k8s-jaeger-save:
 
