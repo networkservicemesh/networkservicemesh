@@ -16,9 +16,10 @@ K8S_CONF_DIR = k8s/conf
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_TRACING = jaeger
+DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_NSM = nsmd vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
-DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
+DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
@@ -69,6 +70,13 @@ k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
 	@until ! $$(kubectl get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
 	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | kubectl apply -f -
 
+.PHONY: k8s-admission-webhook-deploy
+k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete k8s-admission-webhook-load-images k8s-admission-webhook-create-cert
+	@until ! $$(kubectl get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml | kubectl apply -f -
+	@echo "Installing webhook..."
+	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl apply -f -
+
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
 	@until ! $$(kubectl get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
@@ -91,6 +99,15 @@ k8s-icmp-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_ICMP)))
 
 .PHONY: k8s-vpn-delete
 k8s-vpn-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_VPN)))
+
+.PHONY: k8s-admission-webhook-delete
+k8s-admission-webhook-delete:
+	@echo "Uninstalling webhook..."
+	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl delete -f - > /dev/null 2>&1 || echo "admission-webhook-cfg does not exist and thus cannot be deleted"
+	@echo "Deleting ${K8S_CONF_DIR}/admission-webhook.yaml"
+	@kubectl delete -f ${K8S_CONF_DIR}/admission-webhook.yaml > /dev/null 2>&1 || echo "admission-webhook does not exist and thus cannot be deleted"
+	@echo "Deleting nsm-admission-webhook-certs secret..."
+	@kubectl delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
 
 .PHONY: k8s-%-delete
 k8s-%-delete:
@@ -233,6 +250,23 @@ k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-sa
 .PHONY: k8s-crossconnect-load-images
 k8s-crossconnect-monitor-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,crossconnect-monitor))
 
+.PHONY: k8s-admission-webhook-build
+k8s-admission-webhook-build: ${CONTAINER_BUILD_PREFIX}-admission-webhook-build
+
+.PHONY: k8s-admission-webhook-save
+k8s-admission-webhook-save: ${CONTAINER_BUILD_PREFIX}-admission-webhook-save
+
+.PHONY: k8s-admission-webhook-load-images
+k8s-admission-webhook-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,admission-webhook))
+
+.PHONY: k8s-admission-webhook-create-cert
+k8s-admission-webhook-create-cert:
+	./scripts/webhook-create-cert.sh
+
+.PHONY: k8s-admission-webhook-delete-cert
+k8s-admission-webhook-delete-cert:
+	@echo "Deleting nsm-admission-webhook-certs secret..."
+	@kubectl delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
 
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
