@@ -23,3 +23,7 @@ func (ns *NetworkServiceRequest) IsValid() error {
 	}
 	return nil
 }
+
+func (ns *NetworkServiceRequest) IsRemote() bool {
+	return true
+}

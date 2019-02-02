@@ -83,9 +83,7 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Data
 
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dataplane *model.Dataplane) {
 	clientConnections := client.xconManager.GetClientConnectionsByDataplane(dataplane.RegisteredName)
-	for _, clientConnection := range clientConnections {
-		client.xconManager.DeleteClientConnection(clientConnection, false, true)
-	}
+	client.xconManager.UpdateClientConnectionDataplaneStateDown(clientConnections)
 	client.dataplanes[dataplane.RegisteredName]()
 	delete(client.dataplanes, dataplane.RegisteredName)
 }
@@ -105,6 +103,8 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
+
 	client.crossConnectMonitor.Delete(clientConnection.Xcon)
 	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
 		client.connectionMonitor.Delete(conn)
@@ -167,16 +167,16 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 				switch event.GetType() {
 				case crossconnect.CrossConnectEventType_UPDATE:
 					if src := xcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
-						client.xconManager.UpdateClientConnectionSrcState(clientConnection, src.State)
+						client.xconManager.UpdateClientConnectionSrcStateDown(clientConnection)
 					}
 					if dst := xcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
-						client.xconManager.UpdateClientConnectionDstState(clientConnection, dst.State)
+						client.xconManager.UpdateClientConnectionDstStateDown(clientConnection)
 					}
 					clientConnection.Xcon = xcon
 					client.xconManager.UpdateClientConnection(clientConnection)
 					client.crossConnectMonitor.Update(xcon)
 				case crossconnect.CrossConnectEventType_DELETE:
-					client.xconManager.DeleteClientConnection(clientConnection, false, false)
+					client.crossConnectMonitor.Delete(xcon)
 				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
 					client.crossConnectMonitor.Update(xcon)
 				}
@@ -224,7 +224,8 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 				}
 				switch event.GetType() {
 				case connection.ConnectionEventType_DELETE:
-					client.xconManager.DeleteClientConnection(clientConnection, true, false)
+					client.xconManager.UpdateClientConnectionDstStateDown(clientConnection)
+					//TODO: Local Connection should be informed about SRC connection is also down.
 				}
 			}
 		}

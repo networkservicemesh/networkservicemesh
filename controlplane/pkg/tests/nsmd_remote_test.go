@@ -24,6 +24,11 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	srv.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism {
+				Type: connection.MechanismType_KERNEL_INTERFACE,
+			},
+		},
 		RemoteMechanisms: []*connection2.Mechanism{
 			&connection2.Mechanism{
 				Type: connection2.MechanismType_VXLAN,
@@ -38,6 +43,11 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	srv2.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism {
+				Type: connection.MechanismType_KERNEL_INTERFACE,
+			},
+		},
 		RemoteMechanisms: []*connection2.Mechanism{
 			&connection2.Mechanism{
 				Type: connection2.MechanismType_VXLAN,
@@ -98,6 +108,11 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism {
+				Type: connection.MechanismType_KERNEL_INTERFACE,
+			},
+		},
 		RemoteMechanisms: []*connection2.Mechanism{
 			&connection2.Mechanism{
 				Type: connection2.MechanismType_VXLAN,
@@ -160,7 +175,9 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	cross_connection := srv.testModel.GetClientConnection(nsmResponse.Id)
 	Expect(cross_connection).ToNot(BeNil())
 
-	cross_connection2 := srv2.testModel.GetClientConnection(nsmResponse.Id)
+	destConnectionId := cross_connection.Xcon.GetRemoteDestination().GetId()
+
+	cross_connection2 := srv2.testModel.GetClientConnection(destConnectionId)
 	Expect(cross_connection2).ToNot(BeNil())
 
 	//Cross connection successfully created, check it closing
@@ -171,7 +188,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	cross_connection = srv.testModel.GetClientConnection(nsmResponse.Id)
 	Expect(cross_connection).To(BeNil())
 
-	cross_connection2 = srv2.testModel.GetClientConnection(nsmResponse.Id)
+	cross_connection2 = srv2.testModel.GetClientConnection(destConnectionId)
 	Expect(cross_connection2).To(BeNil())
 
 }

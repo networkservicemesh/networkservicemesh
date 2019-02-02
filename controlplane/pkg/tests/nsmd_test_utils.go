@@ -3,6 +3,8 @@ package tests
 import (
 	"context"
 	"fmt"
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"io/ioutil"
 	"net"
 	"os"
@@ -287,6 +289,7 @@ type nsmdFullServerImpl struct {
 	nseRegistry     *nsmdTestServiceDiscovery
 	serviceRegistry *nsmdTestServiceRegistry
 	testModel       model.Model
+	manager         nsm2.NetworkServiceManager
 }
 
 func (srv *nsmdFullServerImpl) Stop() {
@@ -297,6 +300,11 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 	impl.testModel.AddDataplane(&model.Dataplane{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism {
+				Type: connection.MechanismType_KERNEL_INTERFACE,
+			},
+		},
 	})
 }
 
@@ -364,11 +372,12 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 	}
 
 	srv.testModel = model.NewModel()
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, nsmd.GetExcludedPrefixes())
 
 	// Lets start NSMD NSE registry service
-	err = nsmd.StartNSMServer(srv.testModel, srv.serviceRegistry, srv.apiRegistry)
+	err = nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
 	Expect(err).To(BeNil())
-	err = nsmd.StartAPIServer(srv.testModel, srv.apiRegistry, srv.serviceRegistry)
+	err = nsmd.StartAPIServer(srv.testModel, srv.manager, srv.apiRegistry, srv.serviceRegistry)
 	Expect(err).To(BeNil())
 
 	return srv

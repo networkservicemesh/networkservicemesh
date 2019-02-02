@@ -33,7 +33,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 	connectionMonitor := remote_connection_monitor.NewRemoteConnectionMonitor()
 	connection.RegisterMonitorConnectionServer(grpcServer, connectionMonitor)
 
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, services.NewClientConnectionManager(model, serviceRegistry))
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, services.NewClientConnectionManager(model, nil, serviceRegistry))
 	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 
