@@ -134,19 +134,19 @@ func TestNSENoSrc(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
-	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil: dst_ip_addr:\"169083137/30\" "))
+	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = Failed to find NSE for NetworkService golden_network. Checked: 1 of total NSEs: 0. Last NSE Error: failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil: dst_ip_addr:\"169083137/30\" "))
 	Expect(nsmResponse).To(BeNil())
 }
 
 func TestNSEExcludePrefixes(t *testing.T) {
 	RegisterTestingT(t)
 
+	err := os.Setenv(nsmd.ExcludedPrefixesEnv, "127.0.0.1/24, abc")
+
 	srv := newNSMDFullServer()
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.registerFakeEndpoint("golden_network", "test", srv.serviceRegistry.GetPublicAPI())
-
-	err := os.Setenv(nsmd.ExcludedPrefixesEnv, "127.0.0.1/24, abc")
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()

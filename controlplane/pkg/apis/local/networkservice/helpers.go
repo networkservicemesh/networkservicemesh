@@ -1,6 +1,8 @@
 package networkservice
 
-import fmt "fmt"
+import (
+	"fmt"
+)
 
 func (ns *NetworkServiceRequest) IsValid() error {
 	if ns == nil {
@@ -22,4 +24,7 @@ func (ns *NetworkServiceRequest) IsValid() error {
 		return fmt.Errorf("NetworkServiceRequest.MechanismPreferences must have at least one entry: %v", ns)
 	}
 	return nil
+}
+func (ns *NetworkServiceRequest) IsRemote() bool {
+	return false
 }

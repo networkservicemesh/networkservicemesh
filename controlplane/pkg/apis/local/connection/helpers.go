@@ -33,6 +33,9 @@ func (c *Connection) UpdateContext(newContext *connectioncontext.ConnectionConte
 	}
 	return c.GetContext().MeetsRequirements(oldCtx)
 }
+func (c *Connection) SetContext(newContext *connectioncontext.ConnectionContext) {
+	c.Context = newContext
+}
 
 func (c *Connection) IsComplete() error {
 	if err := c.IsValid(); err != nil {
@@ -83,4 +86,16 @@ func (m *Mechanism) IsValid() error {
 		}
 	}
 	return nil
+}
+
+func (c *Connection) SetId(id string) {
+	c.Id = id
+}
+func (c *Connection) GetNetworkServiceEndpointName() string {
+	// Local Connection does't have endpoint name.
+	return ""
+}
+
+func (c *Connection) SetNetworkServiceName(networkService string) {
+	c.NetworkService = networkService
 }
