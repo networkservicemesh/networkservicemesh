@@ -34,8 +34,8 @@ resource "packet_device" "worker1"{
 }
 
 output "master.public_ip" {
-    value = "${packet_device.master.network.0.address}"
+    value = "${packet_device.master.access_public_ipv4}"
 }
 output "worker1.public_ip" {
-    value = "${packet_device.worker1.network.0.address}"
+    value = "${packet_device.worker1.access_public_ipv4}"
 }
