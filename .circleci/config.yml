@@ -98,13 +98,6 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            sudo ./.circleci/install-yq.sh
-      - run:
-          command: |
-            ./.circleci/set-nameserver.sh sudo
-            sudo apt-get install gettext-base
-      - run:
-          command: |
             sudo mkdir -p /cncf/data
             sudo chown -R circleci:circleci /cncf/
           name: Cache Prep
@@ -112,12 +105,12 @@ jobs:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
           command: |
-            ./scripts/prepare-circle-integration-tests.sh
-            mkdir -p ~/junit/
-            gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-            GO111MODULE: 'on'
+            mkdir -p ./scripts/vagrant/.kube/
+            cp /home/circleci/project/data/kubeconfig ./scripts/vagrant/.kube/config
+            make docker-integrationtesting-build
+            mkdir -p ~/junit
+            docker run networkservicemesh/integrationtesting:latest > ~/junit/integration-tests.xml
+          name: Run Integration Tests
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -126,10 +119,8 @@ jobs:
           when: always
           name: Dump K8s state
           command: |
-            kubectl get pods -o wide
-            kubectl get nodes
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            docker run --entrypoint kubectl networkservicemesh/integrationtesting:latest get pods -o wide
+            docker run --entrypoint kubectl networkservicemesh/integrationtesting:latest get nodes
       - run:
           when: on_fail
           name: Trigger packet-destroy
