@@ -18,3 +18,4 @@
 !vendor
 !scripts/vagrant/.kube/config
 !test/
+!.yamllint.yml

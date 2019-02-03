@@ -24,4 +24,3 @@ RUN kubectl get nodes -o wide; \
     kubectl apply -f k8s/conf/cluster-role-binding.yaml; \
     mkdir -p /junit/; \
     CGO_ENABLED=0 GOOS=linux gotestsum --junitfile /junit/integration-tests.xml ./test/...
-ENTRYPOINT ["/bin/cat","/junit/integration-tests.xml"]

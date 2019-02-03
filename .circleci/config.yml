@@ -6,21 +6,13 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: mkdir -p ~/junit
       - run:
           command: |
-            sudo apt-get install yamllint python3-pkg-resources
-            ./.circleci/install-shellcheck.sh
-      - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml' | grep -v 'vendor/')
-      - run: go version
-      - run: make vet check
-      - run: go install k8s.io/code-generator/cmd/deepcopy-gen
-      - run: go install github.com/golang/protobuf/protoc-gen-go
-      - run: go get golang.org/x/tools/cmd/stringer
-      - run: ./scripts/install-protoc.sh
-      # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
-      - run: go build ./...
-      - run: mkdir -p ~/junit/
-      - run: gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+            make docker-sanity-check-build
+            docker run networkservicemesh/sanity-check:latest cat /junit/unit-tests.xml > ~/junit/unit-tests.xml.xml
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -105,11 +97,10 @@ jobs:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
           command: |
-            mkdir -p ./scripts/vagrant/.kube/
+            mkdir -p ./scripts/vagrant/.kube/ ~/junit
             cp /home/circleci/project/data/kubeconfig ./scripts/vagrant/.kube/config
             make docker-integrationtesting-build
-            mkdir -p ~/junit
-            docker run networkservicemesh/integrationtesting:latest > ~/junit/integration-tests.xml
+            docker run networkservicemesh/integrationtesting:latest cat /junit/integration-tests.xml > ~/junit/integration-tests.xml
           name: Run Integration Tests
       - store_test_results:
           path: ~/junit
@@ -119,8 +110,8 @@ jobs:
           when: always
           name: Dump K8s state
           command: |
-            docker run --entrypoint kubectl networkservicemesh/integrationtesting:latest get pods -o wide
-            docker run --entrypoint kubectl networkservicemesh/integrationtesting:latest get nodes
+            docker run networkservicemesh/integrationtesting:latest kubectl get pods -o wide
+            docker run networkservicemesh/integrationtesting:latest kubectl get nodes
       - run:
           when: on_fail
           name: Trigger packet-destroy
