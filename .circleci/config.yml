@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  sanity-check:
+  gomod:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.11
@@ -8,19 +8,9 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - run: mkdir -p ~/junit
       - run:
           command: |
-            make docker-sanity-check-build
-            docker run networkservicemesh/sanity-check:latest cat /junit/unit-tests.xml > ~/junit/unit-tests.xml.xml
-      - store_test_results:
-          path: ~/junit
-      - store_artifacts:
-          path: ~/junit
-
-    environment:
-      GO111MODULE: 'on'
-
+            make docker-gomod-build
   build:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
@@ -31,29 +21,42 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
-            go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-            make verify docker-build docker-push
+            make docker-build-build
+  unittests:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: mkdir -p ~/junit
       - run:
-          when: on_fail
-          name: Trigger packet-destroy
           command: |
-            echo "Wait for 10 minutes to allow deploy to happen"
-            typeset -i numsec=900
-            typeset -i cnt=0
-            while [ $cnt -lt ${numsec} ]; do
-              echo -ne "Waited $cnt seconds out of $numsec\033[0K\r"
-              ((cnt=cnt+1))
-              sleep 1
-            done
-            curl --user ${CIRCLE_API_PROJECT_TOKEN}: \
-                --data build_parameters[CIRCLE_JOB]=packet-destroy \
-                --data build_parameters[CIRCLE_WORKFLOW_ID]=${CIRCLE_WORKFLOW_ID} \
-                --data revision=$CIRCLE_SHA1 \
-                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
-
+            make docker-unittests-build
+            docker run networkservicemesh/unittests:latest cat /junit/unit-tests.xml > ~/junit/unit-tests.xml.xml
+  shellcheck:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            make docker-shellcheck-build
+  yamllint:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            make docker-yamllint-build
 
   packet-deploy:
     docker:
@@ -99,8 +102,8 @@ jobs:
           command: |
             mkdir -p ./scripts/vagrant/.kube/ ~/junit
             cp /home/circleci/project/data/kubeconfig ./scripts/vagrant/.kube/config
-            make docker-integrationtesting-build
-            docker run networkservicemesh/integrationtesting:latest cat /junit/integration-tests.xml > ~/junit/integration-tests.xml
+            make docker-integrationtests-build
+            docker run networkservicemesh/integrationtests:latest cat /junit/integration-tests.xml > ~/junit/integration-tests.xml
           name: Run Integration Tests
       - store_test_results:
           path: ~/junit
@@ -110,8 +113,8 @@ jobs:
           when: always
           name: Dump K8s state
           command: |
-            docker run networkservicemesh/integrationtesting:latest kubectl get pods -o wide
-            docker run networkservicemesh/integrationtesting:latest kubectl get nodes
+            docker run networkservicemesh/integrationtests:latest kubectl get pods -o wide
+            docker run networkservicemesh/integrationtests:latest kubectl get nodes
       - run:
           when: on_fail
           name: Trigger packet-destroy
@@ -281,37 +284,47 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - sanity-check
+      - gomod
+      - shellcheck
+      - yamllint
+      - build:
+          requires:
+          - gomod
       - build-nsmd:
           requires:
-            - sanity-check
+          - gomod
+          - shellcheck
+          - yamllint
       - build-nsmd-k8s:
           requires:
-            - sanity-check
+            - gomod
       - build-crossconnect-monitor:
           requires:
-            - sanity-check
+            - gomod
       - build-nsmdp:
           requires:
-            - sanity-check
+            - gomod
       - build-icmp-responder-nse:
           requires:
-            - sanity-check
+            - gomod
       - build-vppagent-icmp-responder-nse:
           requires:
-            - sanity-check
+            - gomod
       - build-vppagent-nsc:
           requires:
-            - sanity-check
+            - gomod
       - build-nsc:
           requires:
-            - sanity-check
+            - gomod
       - build-vppagent-dataplane:
           requires:
-            - sanity-check
+            - gomod
+      - unittests:
+          requires:
+            - gomod
       - packet-deploy:
           requires:
-            - sanity-check
+            - gomod
       - packet-integration-tests:
           requires:
             - build-nsmd

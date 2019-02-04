@@ -1,0 +1,22 @@
+FROM golang:alpine as build
+RUN apk --no-cache add git
+ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
+ENV GO111MODULE=on
+
+RUN mkdir /root/networkservicemesh
+ADD ["go.mod","/root/networkservicemesh"]
+WORKDIR /root/networkservicemesh/
+RUN go mod download
+
+ADD [".","/root/networkservicemesh"]
+
+# Install gotestsum
+RUN apk --no-cache add curl
+WORKDIR /usr/local/bin
+ENV GOTESTSUM_VERSION=0.3.2
+RUN curl -Ls https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/gotestsum_${GOTESTSUM_VERSION}_linux_amd64.tar.gz | tar -xzvf - gotestsum
+
+WORKDIR /root/networkservicemesh/
+RUN CGO_ENABLED=0 GOOS=linux go vet --all ./...
+RUN mkdir -p /junit
+RUN CGO_ENABLED=0 GOOS=linux gotestsum --junitfile /junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`

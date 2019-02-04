@@ -1,0 +1,32 @@
+FROM golang:alpine as build
+RUN apk --no-cache add git
+ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
+ENV GO111MODULE=on
+
+RUN mkdir /root/networkservicemesh
+ADD ["go.mod","/root/networkservicemesh"]
+WORKDIR /root/networkservicemesh/
+RUN go mod download
+
+# Install gotestsum
+RUN apk --no-cache add curl
+WORKDIR /usr/local/bin
+ENV GOTESTSUM_VERSION=0.3.2
+RUN curl -Ls https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/gotestsum_${GOTESTSUM_VERSION}_linux_amd64.tar.gz | tar -xzvf - gotestsum
+
+ENV KUBECTL_VERSION=v1.11.3	
+RUN curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \	
+ 	chmod +x "kubectl"
+
+WORKDIR /root/networkservicemesh/
+ADD [".","/root/networkservicemesh"]
+
+ENV KUBECONFIG=/root/networkservicemesh/scripts/vagrant/.kube/config
+RUN kubectl get nodes -o wide
+RUN kubectl version
+RUN kubectl api-versions
+RUN kubectl label --overwrite --all=true nodes app=nsmd-ds
+RUN kubectl apply -f k8s/conf/cluster-role-admin.yaml
+RUN kubectl apply -f k8s/conf/cluster-role-binding.yaml
+RUN mkdir -p /junit/
+RUN CGO_ENABLED=0 GOOS=linux gotestsum --junitfile /junit/integration-tests.xml ./test/...

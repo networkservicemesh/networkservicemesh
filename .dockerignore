@@ -5,7 +5,6 @@
 !controllers
 !controlplane
 !dataplane
-!docker
 !examples
 !go.mod
 !go.sum

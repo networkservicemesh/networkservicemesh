@@ -1,0 +1,9 @@
+FROM golang:alpine as build
+RUN apk --no-cache add curl
+ENV SC_VERSION=stable
+WORKDIR /usr/local/bin
+RUN curl -Ls "https://storage.googleapis.com/shellcheck/shellcheck-${SC_VERSION}.linux.x86_64.tar.xz" | tar --xz -xf  - shellcheck-"${SC_VERSION}"/shellcheck --strip-components 1; \
+    shellcheck --version
+WORKDIR /root/networkservicemesh/
+ADD [".","/root/networkservicemesh"]
+RUN shellcheck `find . -name "*.sh" -not -path "*vendor/*"`

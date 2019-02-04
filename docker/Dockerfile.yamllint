@@ -1,0 +1,7 @@
+FROM golang:alpine as build
+RUN apk --no-cache add py-pip
+WORKDIR /root/networkservicemesh/
+ENV SC_VERSION=stable
+RUN pip install yamllint
+ADD [".","/root/networkservicemesh"]
+RUN yamllint -c .yamllint.yml $(find . -name *.yaml | grep -v 'vendor/')
