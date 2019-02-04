@@ -23,7 +23,7 @@ DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
 DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc
-DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_ICMP_VPP) $(DEPLOY_VPN)
+DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
 
