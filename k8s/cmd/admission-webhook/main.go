@@ -95,7 +95,7 @@ func getAnnotationValue(ignoredList []string, metadata *metav1.ObjectMeta) (stri
 
 func validateAnnotationValue(value string) error {
 	urls, err := tools.ParseAnnotationValue(value)
-	logrus.Infof("Annotation nsurls: %+v", urls)
+	logrus.Infof("Annotation nsurls: %v", urls)
 	return err
 }
 
