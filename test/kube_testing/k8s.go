@@ -267,7 +267,7 @@ func (l *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
 		for _, lpod := range l.ListPods() {
 			if strings.Contains(lpod.Name, podName) {
-				l.DeletePods("default", &lpod)
+				l.DeletePods(&lpod)
 			}
 		}
 	}
@@ -312,7 +312,7 @@ func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 	return results[0]
 }
 
-func (l *K8s) DeletePods(namespace string, pods ...*v1.Pod) {
+func (l *K8s) DeletePods(pods ...*v1.Pod) {
 	err := l.deletePods(pods...)
 	Expect(err).To(BeNil())
 

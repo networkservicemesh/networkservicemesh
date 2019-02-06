@@ -161,22 +161,31 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	// 9. We need Add connection to model, or update it in case of Healing.
 	if existingConnection == nil {
 		srv.model.AddClientConnection(clientConnection)
-	} else {
-		srv.model.UpdateClientConnection(clientConnection)
 	}
 
 	// 10. We need to programm dataplane with our values.
+	// 10.1 TODO: Close current dataplane local configuration, since currently Dataplane doesn't support upgrade.
+	if existingConnection != nil {
+		if _, err := dataplaneClient.Close(ctx, existingConnection.Xcon); err != nil {
+			logrus.Errorf("Closing Dataplane error for local connection: %v", err)
+		}
+	}
+	// 10.2 Sending updated request to dataplane.
 	logrus.Infof("Sending request to dataplane: %v", clientConnection.Xcon)
 	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
-		// 10.1 If datplane configuration are failed, we need to close remore NSE actually.
+		// 10.3 If datplane configuration are failed, we need to close remore NSE actually.
 		if dp_err := srv.close(context.Background(), clientConnection, true); dp_err != nil {
-			logrus.Errorf("Failed to NSe.Close() caused by local dataplane confuguration failure.")
+			logrus.Errorf("Failed to NSE.Close() caused by local dataplane configuration failure.")
 		}
-		// 10.2 We need to remove local connection we just added already.
+		// 10.4 We need to remove local connection we just added already.
 		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 		return nil, err
+	}
+	// 11. Send update for client connection
+	if existingConnection != nil {
+		srv.model.UpdateClientConnection(clientConnection)
 	}
 
 	// 11. We are done with configuration here.

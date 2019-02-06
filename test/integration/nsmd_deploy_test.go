@@ -46,8 +46,8 @@ func TestNSMDDdataplabeDeploy(t *testing.T) {
 		}
 	}
 
-	k8s.DeletePods("default", nsmdPodNode1...)
-	k8s.DeletePods("default", nsmdPodNode2...)
+	k8s.DeletePods(nsmdPodNode1...)
+	k8s.DeletePods(nsmdPodNode2...)
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)

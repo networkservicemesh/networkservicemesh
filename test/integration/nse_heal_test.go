@@ -2,8 +2,6 @@ package nsmd_integration_tests
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
-	"k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -12,18 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const defaultTimeout = 60 * time.Second
-
-func createNscPod(node *v1.Node) *v1.Pod {
-	return pods.NSCPod("nsc1", node,
-		map[string]string{
-			"OUTGOING_NSC_LABELS": "app=icmp",
-			"OUTGOING_NSC_NAME":   "icmp-responder",
-		},
-	)
-}
-
-func TestNSCAndICMPLocal(t *testing.T) {
+func TestNSEHealLocal(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -31,10 +18,10 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, createNscPod)
+	testNSEHeal(t, 1)
 }
 
-func TestNSCAndICMPRemote(t *testing.T) {
+func TestNSEHealRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -42,26 +29,13 @@ func TestNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, createNscPod)
-}
-
-func TestNSCAndICMPWebhook(t *testing.T) {
-	RegisterTestingT(t)
-
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testNSCAndICMP(t, 2, func(node *v1.Node) *v1.Pod {
-		return pods.NSCPodWebhook("nsc1", node)
-	})
+	testNSEHeal(t, 2)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *v1.Pod) {
+func testNSEHeal(t *testing.T, nodesCount int) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -74,18 +48,34 @@ func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount )
 
 	// Run ICMP on latest node
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1")
+	nse1 := nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1")
 
 	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1")
-
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
-
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
+	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+
+	// Since all is fine now, we need to add new ICMP responder and delete previous one.
+	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse2")
+
+	logrus.Infof("Delete first NSE")
+	k8s.DeletePods(nse1)
+
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+
+	failures = InterceptGomegaFailures(func() {
+		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
+	})
+	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+}
+
+func printErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*nsmd_test_utils.NodeConf, nscInfo *nsmd_test_utils.NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 		nsmd_test_utils.PrintLogs(k8s, nodes_setup);
 		nscInfo.PrintLogs()
 

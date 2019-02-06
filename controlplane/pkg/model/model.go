@@ -170,9 +170,13 @@ func (i *impl) DeleteClientConnection(connectionId string) {
 	clientConnection := i.clientConnections[connectionId]
 	if clientConnection == nil {
 		i.Unlock()
+		return
 	}
 	delete(i.clientConnections, connectionId)
 	i.Unlock()
+
+	i.RLock()
+	defer i.RUnlock()
 
 	for _, listener := range i.listeners {
 		listener.ClientConnectionDeleted(clientConnection)
