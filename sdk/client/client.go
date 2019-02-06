@@ -83,6 +83,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 				continue
 			}
 			logrus.Errorf("Connect failed after %v iterations", connectRetries)
+			return nil, err
 		}
 
 		nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
@@ -104,7 +105,7 @@ func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
 	for i, c := range arr {
 		if c == outgoingConnection {
 			copy(arr[i:], arr[i+1:])
-			arr[len(arr)-1] = nil // or the zero value of T
+			arr[len(arr)-1] = nil
 			arr = arr[:len(arr)-1]
 		}
 	}
