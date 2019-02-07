@@ -57,6 +57,28 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &priv,
 					},
+					LivenessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							HTTPGet: &v1.HTTPGetAction{
+								Path:   "/liveness",
+								Port:   5555,
+								Scheme: "HTTP",
+							},
+						},
+						InitialDelaySeconds: 3,
+						PeriodSeconds:       3,
+					},
+					ReadinessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							HTTPGet: &v1.HTTPGetAction{
+								Path:   "/readiness",
+								Port:   5555,
+								Scheme: "HTTP",
+							},
+						},
+						InitialDelaySeconds: 5,
+						PeriodSeconds:       3,
+					},
 				},
 			},
 		},
