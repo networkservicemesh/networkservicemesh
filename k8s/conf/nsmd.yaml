@@ -24,6 +24,18 @@ spec:
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 5555
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 5555
+            initialDelaySeconds: 5
+            periodSeconds: 3
         - name: nsmd-k8s
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent

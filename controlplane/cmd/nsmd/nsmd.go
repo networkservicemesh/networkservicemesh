@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -19,6 +19,8 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
+	go nsmd.BeginHealthCheck()
+
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
 
@@ -28,19 +30,19 @@ func main() {
 
 	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
-		os.Exit(1)
+		nsmd.SetDPServerFailed()
 	}
 
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, nsmd.GetExcludedPrefixes())
 
 	if err := nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
-		os.Exit(1)
+		nsmd.SetNSMServerFailed()
 	}
 
 	if err := nsmd.StartAPIServer(model, manager, apiRegistry, serviceRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd api service: %+v", err)
-		os.Exit(1)
+		nsmd.SetAPIServerFailed()
 	}
 
 	var wg sync.WaitGroup
