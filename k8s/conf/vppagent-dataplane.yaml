@@ -23,6 +23,18 @@ spec:
             - name: workspace
               mountPath: /var/lib/networkservicemesh/
               mountPropagation: Bidirectional
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 5555
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 5555
+            initialDelaySeconds: 5
+            periodSeconds: 3
       volumes:
         - hostPath:
             path: /var/lib/networkservicemesh

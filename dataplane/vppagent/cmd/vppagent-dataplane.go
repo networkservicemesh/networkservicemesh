@@ -49,6 +49,8 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
+	go vppagent.BeginHealthCheck()
+
 	// Capture signals to cleanup before exiting
 	c := make(chan os.Signal, 1)
 	signal.Notify(c,
@@ -96,14 +98,17 @@ func main() {
 	srcIpStr, ok := os.LookupEnv(SrcIpEnvKey)
 	if !ok {
 		logrus.Fatalf("Env variable %s must be set to valid srcIp for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIpEnvKey)
+		vppagent.SetSrcIPFailed()
 	}
 	srcIp := net.ParseIP(srcIpStr)
 	if srcIp == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIpEnvKey, srcIpStr)
+		vppagent.SetValidIPFailed()
 	}
 	ifaceName, srcIpNet, err := MgmtIface(srcIp)
 	if err != nil {
 		logrus.Fatalf("Unable to extract interface name for SrcIP: %s", srcIp)
+		vppagent.SetExtractIFNameFailed()
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", srcIp, ifaceName, srcIpNet)
 
@@ -112,10 +117,12 @@ func main() {
 	err = tools.SocketCleanup(dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", dataplaneSocket, err)
+		vppagent.SetSocketCleanFailed()
 	}
 	ln, err := net.Listen("unix", dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
+		vppagent.SetSocketListenFailed()
 	}
 	logrus.Info("Creating vppagent server")
 	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp, *srcIpNet, ifaceName)
