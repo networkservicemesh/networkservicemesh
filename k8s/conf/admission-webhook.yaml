@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nsm-admission-webhook
+  labels:
+    app: nsm-admission-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nsm-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: nsm-admission-webhook
+    spec:
+      containers:
+        - name: nsm-admission-webhook
+          image: networkservicemesh/admission-webhook
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: nsm-admission-webhook-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nsm-admission-webhook-svc
+  labels:
+    app: nsm-admission-webhook
+spec:
+  ports:
+    - port: 443
+      targetPort: 443
+  selector:
+    app: nsm-admission-webhook

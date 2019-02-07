@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -169,4 +170,45 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}
 	return tracer, closer
+}
+
+type NsUrl struct {
+	NsName string
+	Intf   string
+	Params url.Values
+}
+
+func parseNsUrl(urlString string) (*NsUrl, error) {
+	result := &NsUrl{}
+
+	url, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
+	path := strings.Split(url.Path, "/")
+	if len(path) > 2 {
+		return nil, fmt.Errorf("Invalid nsurl format")
+	}
+	if len(path) == 2 {
+		if len(path[1]) > 15 {
+			return nil, fmt.Errorf("Interface part cannot exceed 15 characters")
+		}
+		result.Intf = path[1]
+	}
+	result.NsName = path[0]
+	result.Params = url.Query()
+	return result, nil
+}
+
+func ParseAnnotationValue(value string) ([]*NsUrl, error) {
+	var result []*NsUrl
+	urls := strings.Split(value, ",")
+	for _, u := range urls {
+		nsurl, err := parseNsUrl(u)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, nsurl)
+	}
+	return result, nil
 }
