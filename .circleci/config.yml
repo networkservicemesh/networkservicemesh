@@ -40,8 +40,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             make verify docker-build docker-push
       - run:
@@ -170,8 +169,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsmd-build
             make docker-nsmd-push
   build-nsmd-k8s:
@@ -185,8 +183,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsmd-k8s-build
             make docker-nsmd-k8s-push
   build-nsmdp:
@@ -200,8 +197,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsmdp-build
             make docker-nsmdp-push
   build-crossconnect-monitor:
@@ -215,8 +211,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-crossconnect-monitor-build
             make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
@@ -230,8 +225,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-icmp-responder-nse-build
             make docker-icmp-responder-nse-push
 
@@ -246,8 +240,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-icmp-responder-nse-build
             make docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
@@ -261,8 +254,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-nsc-build
             make docker-vppagent-nsc-push
   build-nsc:
@@ -276,8 +268,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsc-build
             make docker-nsc-push
   build-vppagent-dataplane:
@@ -291,8 +282,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
 workflows:
