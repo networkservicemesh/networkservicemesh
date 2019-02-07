@@ -285,6 +285,21 @@ jobs:
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
+  docker-push-latest:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export TAG="latest"
+            export CONTAINERS=nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane
+            for c in ${CONTAINERS}; do make docker-${c}-build docker-${c}-push; done
+
 workflows:
   version: 2
   build-and-test:
@@ -334,3 +349,9 @@ workflows:
       - packet-destroy:
           requires:
             - packet-integration-tests
+      - docker-push-latest:
+          requires:
+            - packet-destroy
+          filters:
+            branches:
+              only: master
