@@ -1,7 +1,7 @@
 package pods
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,14 +18,14 @@ func AlpinePod(name string, node *v1.Node) *v1.Pod {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "alpine-img",
 					Image:           "alpine:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Command: []string{
 						"tail", "-f", "/dev/null",
 					},
-				},
+				}),
 			},
 		},
 	}

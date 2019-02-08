@@ -117,6 +117,8 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: 'on'
+            CONTAINER_TAG: "circle-${CIRCLE_BUILD_NUM}"
+            CONTAINER_FORCE_PULL: "true"
       - store_test_results:
           path: ~/junit
       - store_artifacts:
