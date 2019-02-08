@@ -1,8 +1,9 @@
 package pods
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func newNSMMount() v1.VolumeMount {
@@ -73,7 +74,7 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 						Handler: v1.Handler{
 							HTTPGet: &v1.HTTPGetAction{
 								Path:   "/liveness",
-								Port:   5555,
+								Port:   intstr.IntOrString{Type: 0, IntVal: 5555, StrVal: ""},
 								Scheme: "HTTP",
 							},
 						},
@@ -84,7 +85,7 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 						Handler: v1.Handler{
 							HTTPGet: &v1.HTTPGetAction{
 								Path:   "/readiness",
-								Port:   5555,
+								Port:   intstr.IntOrString{Type: 0, IntVal: 5555, StrVal: ""},
 								Scheme: "HTTP",
 							},
 						},
