@@ -42,7 +42,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-            make verify docker-build
+            make verify docker-build docker-push
       - run:
           when: on_fail
           name: Trigger packet-destroy
@@ -171,6 +171,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsmd-build
+            make docker-nsmd-push
   build-nsmd-k8s:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -184,6 +185,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsmd-k8s-build
+            make docker-nsmd-k8s-push
   build-nsmdp:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -197,6 +199,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsmdp-build
+            make docker-nsmdp-push
   build-crossconnect-monitor:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -210,6 +213,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-crossconnect-monitor-build
+            make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -223,6 +227,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-icmp-responder-nse-build
+            make docker-icmp-responder-nse-push
 
   build-vppagent-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
@@ -237,6 +242,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-icmp-responder-nse-build
+            make docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -250,6 +256,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-nsc-build
+            make docker-vppagent-nsc-push
   build-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -263,6 +270,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-nsc-build
+            make docker-nsc-push
   build-vppagent-dataplane:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -276,6 +284,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="circle-${CIRCLE_BUILD_NUM}"
             make docker-vppagent-dataplane-build
+            make docker-vppagent-dataplane-push
   docker-push-latest:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -289,7 +298,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="latest"
             export CONTAINERS=nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane
-            for c in ${CONTAINERS}; do docker-${c}-push; done
+            for c in ${CONTAINERS}; do make docker-${c}-build docker-${c}-push; done
 
 workflows:
   version: 2
