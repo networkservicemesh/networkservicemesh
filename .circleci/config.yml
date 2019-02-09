@@ -21,12 +21,10 @@ jobs:
       - run: go build ./...
       - run: mkdir -p ~/junit/
       - run:
-          command: gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-            GO111MODULE: 'on'
-            CONTAINER_TAG: "circle-${COMMIT}"
-            CONTAINER_FORCE_PULL: "true"
+          command: |
+            export CONTAINER_TAG="circle-${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -118,13 +116,10 @@ jobs:
       - run:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
+            export CONTAINER_TAG="circle-${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
             gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-            GO111MODULE: 'on'
-            CONTAINER_TAG: "circle-${COMMIT}"
-            CONTAINER_FORCE_PULL: "true"
       - store_test_results:
           path: ~/junit
       - store_artifacts:
