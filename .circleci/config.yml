@@ -20,7 +20,13 @@ jobs:
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
       - run: mkdir -p ~/junit/
-      - run: gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+      - run:
+          command: gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+            CONTAINER_TAG: "circle-${COMMIT}"
+            CONTAINER_FORCE_PULL: "true"
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -40,7 +46,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             make verify docker-build docker-push
       - run:
@@ -117,7 +123,7 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: 'on'
-            CONTAINER_TAG: "circle-${CIRCLE_BUILD_NUM}"
+            CONTAINER_TAG: "circle-${COMMIT}"
             CONTAINER_FORCE_PULL: "true"
       - store_test_results:
           path: ~/junit
@@ -171,7 +177,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-nsmd-build
             make docker-nsmd-push
   build-nsmd-k8s:
@@ -185,7 +191,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-nsmd-k8s-build
             make docker-nsmd-k8s-push
   build-nsmdp:
@@ -199,7 +205,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-nsmdp-build
             make docker-nsmdp-push
   build-crossconnect-monitor:
@@ -213,7 +219,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-crossconnect-monitor-build
             make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
@@ -227,7 +233,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-icmp-responder-nse-build
             make docker-icmp-responder-nse-push
 
@@ -242,7 +248,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-icmp-responder-nse-build
             make docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
@@ -256,7 +262,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-nsc-build
             make docker-vppagent-nsc-push
   build-nsc:
@@ -270,7 +276,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-nsc-build
             make docker-nsc-push
   build-vppagent-dataplane:
@@ -284,7 +290,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
   docker-push-latest:
