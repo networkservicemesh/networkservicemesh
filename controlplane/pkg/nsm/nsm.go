@@ -330,11 +330,12 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 }
 
 func (srv *networkServiceManager) updateConnectionParameters(nseConnection nsm.NSMConnection, endpoint *registry.NSERegistration) {
-	if srv.getNetworkServiceManagerName() == endpoint.GetNetworkserviceEndpoint().GetEndpointName() {
+	if srv.isLocalEndpoint(endpoint) {
 		workspace := nsmd.WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
 		if workspace != nil { // In case of tests this could be empty
 			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = workspace.Name()
 		}
+		logrus.Infof("Update Local NSE connection parameters: %v", nseConnection.(*connection.Connection).GetMechanism())
 	}
 }
 
