@@ -1,6 +1,7 @@
 package nsmd_integration_tests
 
 import (
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestNSEHealLocal(t *testing.T) {
+func TestDataplaneHealLocal(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -20,10 +21,10 @@ func TestNSEHealLocal(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 1)
+	testDataplaneHeal(t, 1)
 }
 
-func TestNSEHealRemote(t *testing.T) {
+func TestDataplaneHealRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -31,13 +32,13 @@ func TestNSEHealRemote(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 2)
+	testDataplaneHeal(t, 2)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSEHeal(t *testing.T, nodesCount int) {
+func testDataplaneHeal(t *testing.T, nodesCount int) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -53,7 +54,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount )
 
 	// Run ICMP on latest node
-	nse1 := nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1")
+	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1")
 
 	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1")
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
@@ -63,15 +64,21 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	// Do dumping of container state to dig into what is happened.
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 
-	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse2")
+	logrus.Infof("Delete Selected dataplane")
+	k8s.DeletePods(nodes_setup[nodesCount-1].Dataplane)
 
-	logrus.Infof("Delete first NSE")
-	k8s.DeletePods(nse1)
+	k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", 60*time.Second)
+	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	dpName := fmt.Sprintf("dataplane-recovered-%d", nodesCount-1)
+	startTime := time.Now()
+	nodes_setup[nodesCount-1].Dataplane = k8s.CreatePod(pods.VPPDataplanePod(dpName, nodes_setup[nodesCount-1].Node))
+	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), nodes_setup[nodesCount-1].Node.Name)
+
+	// Check NSMd goint into HEAL state.
 
 	logrus.Infof("Waiting for connection recovery...")
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
-	l1, err := k8s.GetLogs(nodes_setup[0].Nsmd, "nsmd")
+	k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+	l1, err := k8s.GetLogs(nodes_setup[nodesCount-1].Nsmd, "nsmd")
 
 	Expect(err).To(BeNil())
 	if strings.Contains(l1, "Dataplane0 request failed:") {
@@ -90,14 +97,4 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
-}
-
-func printErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*nsmd_test_utils.NodeConf, nscInfo *nsmd_test_utils.NSCCheckInfo, t *testing.T) {
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		nsmd_test_utils.PrintLogs(k8s, nodes_setup);
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
 }

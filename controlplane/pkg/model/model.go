@@ -30,6 +30,7 @@ type ClientConnection struct {
 	Endpoint     *registry.NSERegistration
 	Dataplane    *Dataplane
 	IsClosing    bool
+	IsHealing    bool
 	Request      nsm.NSMRequest
 }
 

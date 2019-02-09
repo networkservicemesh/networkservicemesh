@@ -411,3 +411,12 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 	}
 
 }
+
+func (o *K8s) CreateService(service *v1.Service) {
+	_ = o.clientset.CoreV1().Services("default").Delete(service.Name, &metaV1.DeleteOptions{})
+	s, err := o.clientset.CoreV1().Services("default").Create(service)
+	if err != nil {
+		logrus.Errorf("Error creating service: %v %v", s, err)
+	}
+	logrus.Infof("Service is created: %v", s)
+}

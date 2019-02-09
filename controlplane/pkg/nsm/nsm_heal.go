@@ -10,13 +10,19 @@ import (
 func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healState nsm.HealState) {
 	logrus.Infof("Heal %v", connection)
 
-	ctx, cancel := context.WithTimeout(context.Background(), HealTimeout)
-	defer cancel()
 	clientConnection := connection.(*model.ClientConnection)
-	if clientConnection.IsClosing {
-		//means that we already invoke closing of remotes, nothing to do here
+	if clientConnection.IsClosing || clientConnection.IsHealing {
+		//means that we already processing this one, do not need to do it gain.
 		return
 	}
+	clientConnection.IsHealing = true
+	defer func(){
+		// Remove healing state on end
+		clientConnection.IsHealing = false
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), HealTimeout)
+	defer cancel()
 
 	switch healState {
 	case nsm.HealState_DstDown:
@@ -52,6 +58,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	case nsm.HealState_DataplaneDown:
 		// Dataplane is down, we only need to re-programm dataplane.
 		// 1. Wait for dataplane to appear.
+		logrus.Infof("Waiting for Dataplane to recovery...")
 		if err := srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, HealDataplaneTimeout); err != nil {
 			logrus.Errorf("Dataplane is not available on recovery for timeout %v: %v", HealDataplaneTimeout, err)
 			break

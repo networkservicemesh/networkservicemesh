@@ -29,6 +29,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"time"
 )
 
 ///// Network service manager to manage both local/remote NSE connections.
@@ -175,14 +176,24 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
-		// 10.3 If datplane configuration are failed, we need to close remore NSE actually.
-		if dp_err := srv.close(context.Background(), clientConnection, true); dp_err != nil {
-			logrus.Errorf("Failed to NSE.Close() caused by local dataplane configuration failure.")
+		// Let's try again with a short delay
+		<- time.Tick(500)
+		logrus.Errorf("Dataplane request retry: %v", clientConnection.Xcon)
+		clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
+
+		if err != nil {
+			logrus.Errorf("Dataplane request retry failed: %s", err)
+			// 10.3 If datplane configuration are failed, we need to close remore NSE actually.
+			if dp_err := srv.close(context.Background(), clientConnection, true); dp_err != nil {
+				logrus.Errorf("Failed to NSE.Close() caused by local dataplane configuration failure.")
+			}
+			// 10.4 We need to remove local connection we just added already.
+			srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+			return nil, err
 		}
-		// 10.4 We need to remove local connection we just added already.
-		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
-		return nil, err
 	}
+	logrus.Infof("Dataplane configuration sucessfull %v", clientConnection.Xcon)
+
 	// 11. Send update for client connection
 	if existingConnection != nil {
 		srv.model.UpdateClientConnection(clientConnection)

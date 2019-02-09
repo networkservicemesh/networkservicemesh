@@ -42,8 +42,10 @@ func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
 func copyEvent(event *crossconnect.CrossConnectEvent) *crossconnect.CrossConnectEvent {
 	crossConnectsCopy := map[string]*crossconnect.CrossConnect{}
 	for k, v := range event.CrossConnects {
-		vCopy := *v
-		crossConnectsCopy[k] = &vCopy
+		if v != nil {
+			vCopy := *v
+			crossConnectsCopy[k] = &vCopy
+		}
 	}
 
 	return &crossconnect.CrossConnectEvent{
