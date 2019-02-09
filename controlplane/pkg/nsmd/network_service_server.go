@@ -36,6 +36,7 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, manager ns
 }
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
 	// This parameters will go into selected mechanism
 	params := map[string]string{}
 	params[connection.Workspace] = srv.workspace.Name()
