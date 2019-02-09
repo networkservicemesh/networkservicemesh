@@ -133,8 +133,9 @@ jobs:
           when: always
           name: Dump K8s state
           command: |
-            kubectl get pods -o wide
             kubectl get nodes
+            kubectl get pods -o wide
+            kubectl describe pods
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
