@@ -47,13 +47,16 @@ func init() {
 }
 
 func containerMod(c *v1.Container) v1.Container {
-	c.Image = strings.Split(c.Image, ":")[0] + ":" + containerTag
-	if len(containerRegistry) > 0 {
-		c.Image = containerRegistry + "/" + c.Image
+	if strings.HasPrefix(c.Image, "networkservicemesh") {
+		c.Image = strings.Split(c.Image, ":")[0] + ":" + containerTag
+		if len(containerRegistry) > 0 {
+			c.Image = containerRegistry + "/" + c.Image
+		}
+
+		if containerForcePull {
+			c.ImagePullPolicy = v1.PullAlways
+		}
 	}
 
-	if containerForcePull {
-		c.ImagePullPolicy = v1.PullAlways
-	}
 	return *c
 }
