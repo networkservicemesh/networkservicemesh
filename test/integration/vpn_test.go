@@ -2,6 +2,7 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -33,6 +34,10 @@ func TestVPNLocal(t *testing.T) {
 func TestVPNFirewallRemote(t *testing.T) {
 	RegisterTestingT(t)
 
+	if !isVPNRemoteEnabled() {
+		t.Skip("VPN_REMOTE_ENABLED not defined.")
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -47,6 +52,10 @@ func TestVPNFirewallRemote(t *testing.T) {
 
 func TestVPNNSERemote(t *testing.T) {
 	RegisterTestingT(t)
+
+	if !isVPNRemoteEnabled() {
+		t.Skip("VPN_REMOTE_ENABLED not defined.")
+	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -63,6 +72,10 @@ func TestVPNNSERemote(t *testing.T) {
 func TestVPNNSCRemote(t *testing.T) {
 	RegisterTestingT(t)
 
+	if !isVPNRemoteEnabled() {
+		t.Skip("VPN_REMOTE_ENABLED not defined.")
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -73,6 +86,11 @@ func TestVPNNSCRemote(t *testing.T) {
 		"vpn-gateway-nse1":       0,
 		"vpn-gateway-nsc1":       1,
 	}, false)
+}
+
+func isVPNRemoteEnabled() bool {
+	_, ok := os.LookupEnv("VPN_REMOTE_ENABLED")
+	return ok
 }
 
 func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool) {
