@@ -115,6 +115,7 @@ jobs:
             ./scripts/prepare-circle-integration-tests.sh
             mkdir -p ~/junit/
             gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
+          no_output_timeout: 30m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: 'on'
