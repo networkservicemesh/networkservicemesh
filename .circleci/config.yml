@@ -296,6 +296,21 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
+  build-vppagent-firewall-nse:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-vppagent-firewall-nse-build
+            make docker-vppagent-firewall-nse-push
 workflows:
   version: 2
   build-and-test:
@@ -328,6 +343,9 @@ workflows:
       - build-vppagent-dataplane:
           requires:
             - sanity-check
+      - build-vppagent-firewall-nse:
+          requires:
+            - sanity-check
       - packet-deploy:
           requires:
             - sanity-check
@@ -341,6 +359,7 @@ workflows:
             - build-vppagent-icmp-responder-nse
             - build-vppagent-nsc
             - build-nsc
+            - build-vppagent-firewall-nse
             - packet-deploy
       - packet-destroy:
           requires:
