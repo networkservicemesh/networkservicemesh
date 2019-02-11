@@ -33,6 +33,6 @@ kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
 ./scripts/webhook-create-cert.sh
 kubectl apply -f k8s/conf/admission-webhook.yaml
-cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl apply -f -
+./scripts/webhook-patch-ca-bundle.sh < ./k8s/conf/admission-webhook-cfg.yaml | kubectl apply -f -
 
 # vim: sw=4 ts=4 et si
