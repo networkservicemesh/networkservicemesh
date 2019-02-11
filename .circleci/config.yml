@@ -204,6 +204,21 @@ jobs:
             export TAG="$BUILD_TAG"
             make docker-nsmdp-build
             make docker-nsmdp-push
+  build-admission-webhook:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-admission-webhook-build
+            make docker-admission-webhook-push
   build-crossconnect-monitor:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -304,6 +319,9 @@ workflows:
           requires:
             - sanity-check
       - build-nsmd-k8s:
+          requires:
+            - sanity-check
+      - build-admission-webhook:
           requires:
             - sanity-check
       - build-crossconnect-monitor:
