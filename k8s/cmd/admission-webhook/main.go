@@ -99,7 +99,7 @@ func validateAnnotationValue(value string) error {
 	return err
 }
 
-func createPatch(annotationValue string) ([]byte, error) {
+func createPatch(annotationValue string, path string) ([]byte, error) {
 	var patch []patchOperation
 
 	value := []interface{}{
@@ -123,7 +123,7 @@ func createPatch(annotationValue string) ([]byte, error) {
 
 	patch = append(patch, patchOperation{
 		Op:    "add",
-		Path:  "/spec/template/spec/initContainers",
+		Path:  path,
 		Value: value,
 	})
 
@@ -136,20 +136,44 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 	logrus.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 
-	var deployment appsv1.Deployment
-	if err := json.Unmarshal(req.Object.Raw, &deployment); err != nil {
-		logrus.Errorf("Could not unmarshal raw object: %v", err)
+	var meta *metav1.ObjectMeta
+	var path string
+
+	switch req.Kind.Kind {
+	case "Deployment":
+		var deployment appsv1.Deployment
+		if err := json.Unmarshal(req.Object.Raw, &deployment); err != nil {
+			logrus.Errorf("Could not unmarshal raw object: %v", err)
+			return &v1beta1.AdmissionResponse{
+				Result: &metav1.Status{
+					Message: err.Error(),
+				},
+			}
+		}
+		meta = &deployment.ObjectMeta
+		path = "/spec/template/spec/initContainers"
+	case "Pod":
+		var pod corev1.Pod
+		if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
+			logrus.Errorf("Could not unmarshal raw object: %v", err)
+			return &v1beta1.AdmissionResponse{
+				Result: &metav1.Status{
+					Message: err.Error(),
+				},
+			}
+		}
+		meta = &pod.ObjectMeta
+		path = "/spec/initContainers"
+	default:
 		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: err.Error(),
-			},
+			Allowed: true,
 		}
 	}
 
-	value, ok := getAnnotationValue(ignoredNamespaces, &deployment.ObjectMeta)
+	value, ok := getAnnotationValue(ignoredNamespaces, meta)
 
 	if !ok {
-		logrus.Infof("Skipping validation for %s/%s due to policy check", deployment.Namespace, deployment.Name)
+		logrus.Infof("Skipping validation for %s/%s due to policy check", meta.Namespace, meta.Name)
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
@@ -164,7 +188,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		}
 	}
 
-	patchBytes, err := createPatch(value)
+	patchBytes, err := createPatch(value, path)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{

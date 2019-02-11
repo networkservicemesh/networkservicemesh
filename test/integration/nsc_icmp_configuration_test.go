@@ -15,6 +15,15 @@ import (
 
 const defaultTimeout = 60 * time.Second
 
+func createNscPod(node *v1.Node) *v1.Pod {
+	return pods.NSCPod("nsc1", node,
+		map[string]string{
+			"OUTGOING_NSC_LABELS": "app=icmp",
+			"OUTGOING_NSC_NAME":   "icmp-responder",
+		},
+	)
+}
+
 func TestNSCAndICMPLocal(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -23,7 +32,7 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1)
+	testNSCAndICMP(t, 1, createNscPod)
 }
 
 func TestNSCAndICMPRemote(t *testing.T) {
@@ -34,13 +43,26 @@ func TestNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2)
+	testNSCAndICMP(t, 2, createNscPod)
+}
+
+func TestNSCAndICMPWebhook(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 1, func(node *v1.Node) *v1.Pod {
+		return pods.NSCPodWebhook("nsc1", node)
+	})
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int) {
+func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *v1.Pod) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -91,12 +113,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int) {
 	logrus.Printf("ICMP Responder started done: %v", time.Since(s1))
 
 	s1 = time.Now()
-	nscPodNode := k8s.CreatePod(pods.NSCPod("nsc1", &nodes[0],
-		map[string]string{
-			"OUTGOING_NSC_LABELS": "app=icmp",
-			"OUTGOING_NSC_NAME":   "icmp-responder",
-		},
-	))
+	nscPodNode := k8s.CreatePod(nscPodFactory(&nodes[0]))
 	Expect(nscPodNode.Name).To(Equal("nsc1"))
 
 	k8s.WaitLogsContains(nscPodNode, "nsc", "nsm client: initialization is completed successfully", defaultTimeout)

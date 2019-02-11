@@ -16,4 +16,4 @@ webhooks:
       - operations: ["CREATE"]
         apiGroups: ["apps", "extensions", ""]
         apiVersions: ["v1", "v1beta1"]
-        resources: ["deployments", "services"]
+        resources: ["deployments", "services", "pods"]

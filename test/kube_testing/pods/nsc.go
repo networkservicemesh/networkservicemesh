@@ -6,6 +6,38 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
+	pod := &v1.Pod{
+		ObjectMeta: v12.ObjectMeta{
+			Name: name,
+			Annotations: map[string]string{
+				"ns.networkservicemesh.io": "icmp-responder?app=icmp",
+			},
+		},
+		TypeMeta: v12.TypeMeta{
+			Kind: "Deployment",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:            "alpine-img",
+					Image:           "alpine:latest",
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Command: []string{
+						"tail", "-f", "/dev/null",
+					},
+				},
+			},
+		},
+	}
+	if node != nil {
+		pod.Spec.NodeSelector = map[string]string{
+			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
+		}
+	}
+	return pod
+}
+
 func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
@@ -48,7 +80,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 					},
 				},
 			},
-			InitContainers: []v1.Container {
+			InitContainers: []v1.Container{
 				nsc_container,
 			},
 		},
