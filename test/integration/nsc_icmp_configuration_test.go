@@ -54,7 +54,7 @@ func TestNSCAndICMPWebhook(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, func(node *v1.Node) *v1.Pod {
+	testNSCAndICMP(t, 2, func(node *v1.Node) *v1.Pod {
 		return pods.NSCPodWebhook("nsc1", node)
 	})
 }
