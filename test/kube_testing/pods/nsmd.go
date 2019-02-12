@@ -78,8 +78,9 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 								Scheme: "HTTP",
 							},
 						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       3,
+						InitialDelaySeconds: 10,
+						PeriodSeconds:       10,
+						TimeoutSeconds:      3,
 					},
 					ReadinessProbe: &v1.Probe{
 						Handler: v1.Handler{
@@ -89,8 +90,9 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 								Scheme: "HTTP",
 							},
 						},
-						InitialDelaySeconds: 5,
-						PeriodSeconds:       3,
+						InitialDelaySeconds: 10,
+						PeriodSeconds:       10,
+						TimeoutSeconds:      3,
 					},
 				},
 				{
