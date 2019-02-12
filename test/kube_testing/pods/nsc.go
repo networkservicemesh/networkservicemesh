@@ -10,7 +10,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	nsc_container := v1.Container{
+	nsc_container := containerMod(&v1.Container{
 		Name:            "nsc",
 		Image:           "networkservicemesh/nsc:latest",
 		ImagePullPolicy: v1.PullIfNotPresent,
@@ -20,7 +20,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			},
 			Requests: nil,
 		},
-	}
+	})
 	for k, v := range env {
 		nsc_container.Env = append(nsc_container.Env,
 			v1.EnvVar{
