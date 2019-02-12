@@ -39,7 +39,7 @@ func (srv *networkServiceManager) createLocalNSERequest(endpoint *registry.NSERe
 			Id:             srv.createConnectionId(),
 			NetworkService: endpoint.GetNetworkService().GetName(),
 			Context:        requestConnection.GetContext(),
-			Labels:         nil,
+			Labels:         requestConnection.GetLabels(),
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{

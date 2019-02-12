@@ -120,6 +120,10 @@ jobs:
             export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
             gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
+          no_output_timeout: 30m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -289,6 +293,21 @@ jobs:
             export TAG="circle-${COMMIT}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
+  build-vppagent-firewall-nse:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
+            export TAG="$BUILD_TAG"
+            make docker-vppagent-firewall-nse-build
+            make docker-vppagent-firewall-nse-push
   docker-push-latest:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -336,6 +355,9 @@ workflows:
       - build-vppagent-dataplane:
           requires:
             - sanity-check
+      - build-vppagent-firewall-nse:
+          requires:
+            - sanity-check
       - packet-deploy:
           requires:
             - sanity-check
@@ -349,6 +371,7 @@ workflows:
             - build-vppagent-icmp-responder-nse
             - build-vppagent-nsc
             - build-nsc
+            - build-vppagent-firewall-nse
             - packet-deploy
       - packet-destroy:
           requires:

@@ -82,6 +82,7 @@ func main() {
 		removeCRDs(clientset)
 	}()
 
+	logrus.Print("nsmd-k8s intialized and waiting for connection")
 	err = server.Serve(listener)
 	logrus.Fatalln(err)
 }
