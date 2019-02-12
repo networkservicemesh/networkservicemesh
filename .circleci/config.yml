@@ -22,6 +22,7 @@ jobs:
       - run: mkdir -p ~/junit/
       - run:
           command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="circle-${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
             gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
@@ -116,6 +117,7 @@ jobs:
       - run:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
+            export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="circle-${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
