@@ -1,7 +1,7 @@
 package pods
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -58,19 +58,19 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 				},
 			},
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "nsmdp",
 					Image:           "networkservicemesh/nsmdp",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts:    []v1.VolumeMount{newDevMount(), newNSMMount()},
-				},
-				{
+				}),
+				containerMod(&v1.Container{
 					Name:            "nsmd",
 					Image:           "networkservicemesh/nsmd",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts:    []v1.VolumeMount{newNSMMount()},
-				},
-				{
+				}),
+				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
 					Image:           "networkservicemesh/nsmd-k8s",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -80,7 +80,7 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 							Value: nodeName,
 						},
 					},
-				},
+				}),
 			},
 		},
 	}

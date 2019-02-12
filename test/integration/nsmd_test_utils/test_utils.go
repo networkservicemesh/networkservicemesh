@@ -2,12 +2,13 @@ package nsmd_test_utils
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 const defaultTimeout = 60 * time.Second
@@ -62,7 +63,7 @@ func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node) (icmp *v1.Pod) {
 	icmp = k8s.CreatePod(pods.ICMPResponderPod("icmp-responder-nse1", node,
 		map[string]string{
 			"ADVERTISE_NSE_NAME":   "icmp-responder",
-			"ADVERTISE_NSE_LABELS": "app=icmp-responder",
+			"ADVERTISE_NSE_LABELS": "app=icmp",
 			"IP_ADDRESS":           "10.20.1.0/24",
 		},
 	))
@@ -76,6 +77,8 @@ func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node) (icmp *v1.Pod) {
 
 func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string) (nsc *v1.Pod) {
 	startTime := time.Now()
+
+	logrus.Infof("Starting NSC %s on node: %s", name, node.Name)
 	nsc = k8s.CreatePod(pods.NSCPod(name, node,
 		map[string]string{
 			"OUTGOING_NSC_LABELS": "app=icmp",

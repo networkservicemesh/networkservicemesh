@@ -89,8 +89,7 @@ docker-%-debug:
 .PHONY: docker-push-%
 docker-%-push: docker-login docker-%-build
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
-	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
-	docker push ${ORG}/$*
+	docker push ${ORG}/$*:${TAG}
 
 PHONY: docker-push
 docker-push: $(addsuffix -push,$(addprefix docker-,$(BUILD_CONTAINERS)))

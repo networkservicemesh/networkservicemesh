@@ -20,7 +20,12 @@ jobs:
       # - run: PATH=${PATH}:~/bin go generate ./...; git diff --exit-code || (echo "Run go generate ./... and recommit. If that doesn't work make sure you have installed via 'go install ./vendor/github.com/golang/protobuf/protoc-gen-go/'";exit 1)
       - run: go build ./...
       - run: mkdir -p ~/junit/
-      - run: gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="circle-${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -40,8 +45,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             make verify docker-build docker-push
       - run:
@@ -113,6 +117,9 @@ jobs:
       - run:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="circle-${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
             gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
           no_output_timeout: 30m
@@ -127,8 +134,9 @@ jobs:
           when: always
           name: Dump K8s state
           command: |
-            kubectl get pods -o wide
             kubectl get nodes
+            kubectl get pods -o wide
+            kubectl describe pods
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
       - run:
@@ -171,8 +179,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-nsmd-build
             make docker-nsmd-push
   build-nsmd-k8s:
@@ -186,8 +193,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-nsmd-k8s-build
             make docker-nsmd-k8s-push
   build-nsmdp:
@@ -201,8 +207,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-nsmdp-build
             make docker-nsmdp-push
   build-crossconnect-monitor:
@@ -216,8 +221,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-crossconnect-monitor-build
             make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
@@ -231,8 +235,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-icmp-responder-nse-build
             make docker-icmp-responder-nse-push
 
@@ -247,8 +250,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-icmp-responder-nse-build
             make docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
@@ -262,8 +264,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-nsc-build
             make docker-vppagent-nsc-push
   build-nsc:
@@ -277,8 +278,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-nsc-build
             make docker-nsc-push
   build-vppagent-dataplane:
@@ -292,8 +292,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
   build-vppagent-firewall-nse:
@@ -307,10 +306,24 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="circle-${COMMIT}"
             make docker-vppagent-firewall-nse-build
             make docker-vppagent-firewall-nse-push
+  docker-push-latest:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export TAG="latest"
+            export CONTAINERS=nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane
+            for c in ${CONTAINERS}; do make docker-${c}-build docker-${c}-push; done
+
 workflows:
   version: 2
   build-and-test:
@@ -364,3 +377,9 @@ workflows:
       - packet-destroy:
           requires:
             - packet-integration-tests
+      - docker-push-latest:
+          requires:
+            - packet-destroy
+          filters:
+            branches:
+              only: master
