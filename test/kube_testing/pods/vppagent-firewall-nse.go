@@ -6,23 +6,13 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
+func VppAgentFirewallNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	nsc_container := v1.Container{
-		Name:            "nsc",
-		Image:           "networkservicemesh/nsc:latest",
-		ImagePullPolicy: v1.PullIfNotPresent,
-		Resources: v1.ResourceRequirements{
-			Limits: v1.ResourceList{
-				"nsm.ligato.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
-			},
-			Requests: nil,
-		},
-	}
+	var envVars []v1.EnvVar
 	for k, v := range env {
-		nsc_container.Env = append(nsc_container.Env,
+		envVars = append(envVars,
 			v1.EnvVar{
 				Name:  k,
 				Value: v,
@@ -39,16 +29,17 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{
-					Name:            "alpine-img",
-					Image:           "alpine:latest",
+					Name:            "firewall-nse",
+					Image:           "networkservicemesh/vppagent-firewall-nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Command: []string{
-						"tail", "-f", "/dev/null",
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							"nsm.ligato.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+						},
+						Requests: nil,
 					},
+					Env: envVars,
 				},
-			},
-			InitContainers: []v1.Container{
-				nsc_container,
 			},
 		},
 	}
