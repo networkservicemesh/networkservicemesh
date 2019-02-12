@@ -321,8 +321,8 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="latest"
-            export CONTAINERS=nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane
-            for c in ${CONTAINERS}; do make docker-${c}-build docker-${c}-push; done
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane)
+            for c in ${CONTAINERS[@]}; do make docker-${c}-build docker-${c}-push; done
 
 workflows:
   version: 2
