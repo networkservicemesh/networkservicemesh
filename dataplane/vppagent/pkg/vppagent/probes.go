@@ -18,6 +18,8 @@ package vppagent
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -66,6 +68,7 @@ func liveness(w http.ResponseWriter, r *http.Request) {
 }
 
 func BeginHealthCheck() {
+	logrus.Debug("Starting VPP Agent liveness/readiness healthcheck")
 	http.HandleFunc("/liveness", liveness)
 	http.HandleFunc("/readiness", readiness)
 	http.ListenAndServe(healthcheckProbesPort, nil)
