@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/impl/dataplaneregistrarclient"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
@@ -45,6 +46,7 @@ const (
 )
 
 func main() {
+	start := time.Now()
 	tracer, closer := tools.InitJaeger("vppagent-dataplane")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -124,10 +126,14 @@ func main() {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 		vppagent.SetSocketListenFailed()
 	}
+
 	logrus.Info("Creating vppagent server")
 	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp, *srcIpNet, ifaceName)
 	go server.Serve(ln)
 	logrus.Info("vppagent server serving")
+
+	elapsed := time.Since(start)
+	logrus.Debugf("Starting VPP Agent server took: %s", elapsed)
 
 	logrus.Info("Dataplane Registrar Client")
 	registrar := dataplaneregistrarclient.NewDataplaneRegistrarClient(dataplaneRegistrarSocket)

@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
@@ -15,6 +16,7 @@ import (
 )
 
 func main() {
+	start := time.Now()
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -45,10 +47,13 @@ func main() {
 		nsmd.SetAPIServerFailed()
 	}
 
+	elapsed := time.Since(start)
+	logrus.Debugf("Starting NSMD took: %s", elapsed)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		<-c
 		wg.Done()
