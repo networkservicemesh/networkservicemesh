@@ -30,7 +30,7 @@ const (
 	annotationEnv = "NS_NETWORKSERVICEMESH_IO"
 )
 
-type NsmClientV2 struct {
+type NsmClientList struct {
 	clients     []*NsmClient
 	connections []*connection.Connection
 }
@@ -57,14 +57,14 @@ func configFromUrl(configuration *common.NSConfiguration, url *tools.NsUrl) *com
 	return &conf
 }
 
-func NewNSMClientV2(ctx context.Context, configuration *common.NSConfiguration) (*NsmClientV2, error) {
+func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration) (*NsmClientList, error) {
 	annotationValue := os.Getenv(annotationEnv)
 	if len(annotationValue) == 0 {
 		client, err := NewNSMClient(ctx, configuration)
 		if err != nil {
 			return nil, err
 		}
-		return &NsmClientV2{
+		return &NsmClientList{
 			clients: []*NsmClient{client},
 		}, nil
 	}
@@ -83,12 +83,12 @@ func NewNSMClientV2(ctx context.Context, configuration *common.NSConfiguration) 
 		}
 		clients = append(clients, client)
 	}
-	return &NsmClientV2{
+	return &NsmClientList{
 		clients: clients,
 	}, nil
 }
 
-func (nsmc *NsmClientV2) Connect(name, mechanism, description string) error {
+func (nsmc *NsmClientList) Connect(name, mechanism, description string) error {
 	for _, client := range nsmc.clients {
 		conn, err := client.Connect(name, mechanism, description)
 		if err != nil {
