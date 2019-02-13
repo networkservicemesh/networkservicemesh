@@ -10,7 +10,6 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -23,9 +22,8 @@ const (
 )
 
 type registryService struct {
-	clientset *nsmClientset.Clientset
-	nsmName   string
-	cache     RegistryCache
+	nsmName string
+	cache   RegistryCache
 }
 
 func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
@@ -49,7 +47,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 		},
 	}
 
-	_, err := rs.clientset.Networkservicemesh().NetworkServiceManagers("default").Create(nsm)
+	_, err := rs.cache.AddNetworkServiceManager(nsm)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		logrus.Errorf("Failed to register nsm: %s", err)
 		return nil, err
@@ -71,7 +69,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 	}
 	labels["networkservicename"] = request.GetNetworkService().GetName()
 	if request.GetNetworkserviceEndpoint() != nil && request.GetNetworkService() != nil {
-		networkService, err := rs.clientset.Networkservicemesh().NetworkServices("default").Create(&v1.NetworkService{
+		networkService, err := rs.cache.AddNetworkService(&v1.NetworkService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: request.NetworkService.GetName(),
 			},
@@ -84,7 +82,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 			logrus.Errorf("Failed to register nsm: %s", err)
 			return nil, err
 		}
-		nseResponse, err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Create(&v1.NetworkServiceEndpoint{
+		nseResponse, err := rs.cache.AddNetworkServiceEndpoint(&v1.NetworkServiceEndpoint{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: request.GetNetworkService().GetName(),
 				Labels:       labels,
@@ -117,7 +115,10 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 
 func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	st := time.Now()
-	if err := rs.clientset.Networkservicemesh().NetworkServiceEndpoints("default").Delete(request.EndpointName, &metav1.DeleteOptions{}); err != nil {
+
+	logrus.Infof("Received RemoveNSE(%v)", request)
+
+	if err := rs.cache.DeleteNetworkServiceEndpoint(request.EndpointName); err != nil {
 		return nil, err
 	}
 	logrus.Printf("RemoveNSE done: time %v", time.Since(st))
@@ -133,7 +134,7 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 	payload := service.Spec.Payload
 
 	t1 := time.Now()
-	endpointList, err := rs.cache.GetNetworkServiceEndpoints(request.NetworkServiceName)
+	endpointList := rs.cache.GetNetworkServiceEndpoints(request.NetworkServiceName)
 	logrus.Printf("NSE found %d, retrieve time: %v", len(endpointList), time.Since(t1))
 	NSEs := make([]*registry.NetworkServiceEndpoint, len(endpointList))
 

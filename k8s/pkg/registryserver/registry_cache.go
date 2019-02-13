@@ -5,96 +5,106 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
-	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/cache"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 )
 
-const (
-	nseResource = "networkserviceendpoints"
-	nsResource  = "networkservices"
-	nsmResource = "networkservicemanagers"
-)
-
 type RegistryCache interface {
+	AddNetworkService(ns *v1.NetworkService) (*v1.NetworkService, error)
 	GetNetworkService(name string) (*v1.NetworkService, error)
+
+	AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error)
 	GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error)
-	GetNetworkServiceEndpoints(networkServiceName string) ([]*v1.NetworkServiceEndpoint, error)
+
+	AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
+	DeleteNetworkServiceEndpoint(endpointName string) error
+	GetNetworkServiceEndpoints(networkServiceName string) []*v1.NetworkServiceEndpoint
+
+	Run() error
 	Close() error
 }
 
 type registryCacheImpl struct {
-	stores map[string]cache.Store
+	networkServiceCache         *resource_cache.NetworkServiceCache
+	networkServiceEndpointCache *resource_cache.NetworkServiceEndpointCache
+	networkServiceManagerCache  *resource_cache.NetworkServiceManagerCache
+	clientset                   *nsmClientset.Clientset
 }
 
-func NewRegistryCache(clientSet *nsmClientset.Clientset) (RegistryCache, error) {
-	factory := externalversions.NewSharedInformerFactory(clientSet, 100*time.Millisecond)
-	resources := []string{nseResource, nsResource, nsmResource}
-	stores := map[string]cache.Store{}
-
-	for _, resource := range resources {
-		genericInformer, err := factory.ForResource(v1.SchemeGroupVersion.WithResource(resource))
-		if err != nil {
-			return nil, err
-		}
-		informer := genericInformer.Informer()
-		if resource == nsmResource {
-			informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					nsm := obj.(*v1.NetworkServiceManager)
-					logrus.Infof("NSM added: %v", nsm.Name)
-				},
-			})
-		}
-
-		stopper := make(chan struct{})
-
-		go informer.Run(stopper)
-		stores[resource] = informer.GetStore()
-	}
-
+func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
 	return &registryCacheImpl{
-		stores: stores,
-	}, nil
+		networkServiceCache:         resource_cache.NewNetworkServiceCache(),
+		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(),
+		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(),
+		clientset:                   clientset,
+	}
+}
+
+func (rc *registryCacheImpl) Run() error {
+	factory := externalversions.NewSharedInformerFactory(rc.clientset, 100*time.Millisecond)
+	if err := rc.networkServiceCache.Run(factory); err != nil {
+		return err
+	}
+	if err := rc.networkServiceEndpointCache.Run(factory); err != nil {
+		return err
+	}
+	if err := rc.networkServiceManagerCache.Run(factory); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *registryCacheImpl) AddNetworkService(ns *v1.NetworkService) (*v1.NetworkService, error) {
+	nsResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServices("default").Create(ns)
+	if err != nil {
+		return nil, err
+	}
+	rc.networkServiceCache.Add(nsResponse)
+	return nsResponse, nil
 }
 
 func (rc *registryCacheImpl) GetNetworkService(name string) (*v1.NetworkService, error) {
-	item, exist, err := rc.stores[nsResource].GetByKey(name)
-	service, cast := item.(*v1.NetworkService)
+	if ns := rc.networkServiceCache.Get(name); ns == nil {
+		return nil, fmt.Errorf("no NetworkService with name: %v", name)
+	} else {
+		return ns, nil
+	}
+}
+
+func (rc *registryCacheImpl) AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error) {
+	nseResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints("default").Create(nse)
 	if err != nil {
 		return nil, err
 	}
-	if !exist || !cast {
-		return nil, fmt.Errorf("failed to get NetworkService with name: %v", name)
-	}
-	return service, nil
+	rc.networkServiceEndpointCache.Add(nseResponse)
+	return nseResponse, nil
 }
-func (rc *registryCacheImpl) GetNetworkServiceEndpoints(networkServiceName string) ([]*v1.NetworkServiceEndpoint, error) {
-	//todo (lobkovilya): use map to avoid linear search
-	var rv []*v1.NetworkServiceEndpoint
-	for _, item := range rc.stores[nseResource].List() {
-		nse := item.(*v1.NetworkServiceEndpoint)
-		if nse.Spec.NetworkServiceName == networkServiceName {
-			rv = append(rv, nse)
-		}
+
+func (rc *registryCacheImpl) DeleteNetworkServiceEndpoint(endpointName string) error {
+	rc.networkServiceEndpointCache.Delete(endpointName)
+	return rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints("default").Delete(endpointName, &metav1.DeleteOptions{})
+}
+
+func (rc *registryCacheImpl) GetNetworkServiceEndpoints(networkServiceName string) []*v1.NetworkServiceEndpoint {
+	return rc.networkServiceEndpointCache.Get(networkServiceName)
+}
+
+func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
+	nsmResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Create(nsm)
+	if err != nil {
+		return nil, err
 	}
-	return rv, nil
+	rc.networkServiceManagerCache.Add(nsmResponse)
+	return nsmResponse, nil
 }
 
 func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error) {
-	item, exist, err := rc.stores[nsmResource].GetByKey(name)
-
-	logrus.Infof("rc.stores[nsmResource].List(): %v", rc.stores[nsmResource].List())
-	logrus.Infof("rc.stores[nsmResource].ListKeys(): %v", rc.stores[nsmResource].ListKeys())
-
-	nsm, cast := item.(*v1.NetworkServiceManager)
-	if err != nil {
-		return nil, err
+	if nsm := rc.networkServiceManagerCache.Get(name); nsm == nil {
+		return nil, fmt.Errorf("no NetworkServiceManager with name: %v", name)
+	} else {
+		return nsm, nil
 	}
-	if !exist || !cast {
-		return nil, fmt.Errorf("failed to get NetworkServiceManager with name: %v", name)
-	}
-	return nsm, nil
 }
 
 func (rc *registryCacheImpl) Close() error {

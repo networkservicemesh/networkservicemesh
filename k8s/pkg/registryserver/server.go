@@ -5,6 +5,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -16,13 +17,18 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	cache, _ := NewRegistryCache(clientset)
+	cache := NewRegistryCache(clientset)
+	logrus.Info("RegistryCache started")
+
 	srv := &registryService{
-		clientset: clientset,
-		nsmName:   nsmName,
-		cache:     cache,
+		nsmName: nsmName,
+		cache:   cache,
 	}
 	registry.RegisterNetworkServiceRegistryServer(server, srv)
 	registry.RegisterNetworkServiceDiscoveryServer(server, srv)
+
+	if err := cache.Run(); err != nil {
+		logrus.Error(err)
+	}
 	return server
 }
