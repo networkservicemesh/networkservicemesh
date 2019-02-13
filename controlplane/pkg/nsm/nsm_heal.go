@@ -11,15 +11,19 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	logrus.Infof("Heal %v", connection)
 
 	clientConnection := connection.(*model.ClientConnection)
-	if clientConnection.IsClosing || clientConnection.IsHealing {
-		//means that we already processing this one, do not need to do it gain.
+	if clientConnection.ConnectionState != model.ClientConnection_Ready {
+		//means that we already closing/healing
 		return
 	}
-	clientConnection.IsHealing = true
+
 	defer func(){
-		// Remove healing state on end
-		clientConnection.IsHealing = false
+		logrus.Infof("Connection %v healing state is finished...", clientConnection.GetId())
+		clientConnection.ConnectionState = model.ClientConnection_Ready
+		clientConnection.UpdateRecieved = false
 	}()
+
+	clientConnection.ConnectionState = model.ClientConnection_Healing
+	clientConnection.UpdateRecieved = false
 
 	ctx, cancel := context.WithTimeout(context.Background(), HealTimeout)
 	defer cancel()
@@ -48,6 +52,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 				if err != nil {
 					logrus.Errorf("Error in Recovery Close: %v", err)
 				}
+				clientConnection.ConnectionState = model.ClientConnection_Closed
 			} else {
 				logrus.Infof("Heal: Connection recovered: %v", connection)
 			}
@@ -64,20 +69,24 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 			break
 		}
 
-		// We have dataplane now, let's try request all again.
-
+		// We have Dataplane now, let's try request all again.
 		// Update request to contain a proper connection object from previous attempt.
 		request := clientConnection.Request.Clone()
 		request.SetConnection(clientConnection.GetSourceConnection())
+		srv.requestOrClose(ctx, request, clientConnection)
+		return
+	case nsm.HealState_DstUpdate:
+		// Remote DST is updated.
+		// Update request to contain a proper connection object from previous attempt.
+		logrus.Infof("Healing DST Update... %v", clientConnection)
+		if clientConnection.Request != nil {
+			request := clientConnection.Request.Clone()
+			request.SetConnection(clientConnection.GetSourceConnection())
 
-		connection, err := srv.request(ctx, request, clientConnection)
-		if err != nil {
-			logrus.Errorf("Failed to heal connection: %v", err)
-			// Close in any case
-			err = srv.Close(context.Background(), clientConnection)
-			logrus.Errorf("Error in Recovery Close: %v", err)
+			srv.requestOrClose(ctx, request, clientConnection)
 		} else {
-			logrus.Infof("Heal: Connection recovered: %v", connection)
+			logrus.Errorf("Initial request is empty... %v", clientConnection)
+			_ = srv.Close(ctx, clientConnection)
 		}
 		return
 	}
@@ -86,5 +95,17 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	err := srv.Close(context.Background(), clientConnection)
 	if err != nil {
 		logrus.Errorf("Error in Recovery: %v", err)
+	}
+}
+
+func (srv *networkServiceManager) requestOrClose(ctx context.Context, request nsm.NSMRequest, clientConnection *model.ClientConnection) {
+	connection, err := srv.request(ctx, request, clientConnection)
+	if err != nil {
+		logrus.Errorf("Failed to heal connection: %v", err)
+		// Close in case of any errors in recovery.
+		err = srv.Close(context.Background(), clientConnection)
+		logrus.Errorf("Error in Recovery Close: %v", err)
+	} else {
+		logrus.Infof("Heal: Connection recovered: %v", connection)
 	}
 }

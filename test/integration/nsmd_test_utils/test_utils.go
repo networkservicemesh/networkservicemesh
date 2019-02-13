@@ -3,7 +3,6 @@ package nsmd_test_utils
 import (
 	"fmt"
 	"time"
-
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
@@ -11,7 +10,6 @@ import (
 	"k8s.io/api/core/v1"
 	"strings"
 	"testing"
-	"time"
 )
 
 const defaultTimeout = 60 * time.Second

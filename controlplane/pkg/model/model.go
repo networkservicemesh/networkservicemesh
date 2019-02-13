@@ -22,6 +22,14 @@ type Dataplane struct {
 	LocalMechanisms  []*local.Mechanism
 	RemoteMechanisms []*remote.Mechanism
 }
+type ClientConnectionState int8
+const (
+	ClientConnection_Ready = 0
+	ClientConnection_Requesting = 1
+	ClientConnection_Healing	= 2
+	ClientConnection_Closing	= 3
+	ClientConnection_Closed	= 4
+)
 
 type ClientConnection struct {
 	ConnectionId string
@@ -29,9 +37,10 @@ type ClientConnection struct {
 	RemoteNsm    *registry.NetworkServiceManager
 	Endpoint     *registry.NSERegistration
 	Dataplane    *Dataplane
-	IsClosing    bool
-	IsHealing    bool
+	ConnectionState ClientConnectionState
 	Request      nsm.NSMRequest
+
+	UpdateRecieved    bool
 }
 
 func (cc *ClientConnection) GetId() string {

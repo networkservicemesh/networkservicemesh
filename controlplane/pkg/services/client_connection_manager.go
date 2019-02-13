@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -40,7 +41,7 @@ func (m *ClientConnectionManager) UpdateClientConnectionSrcStateDown(clientConne
 func (m *ClientConnectionManager) UpdateClientConnectionDataplaneStateDown(clientConnections []*model.ClientConnection) {
 	logrus.Info("ClientConnection src state is down because of Dataplane down.")
 	for _, clientConnection := range clientConnections {
-		clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
+		m.markSourceConnectionDown(clientConnection)
 		m.model.UpdateClientConnection(clientConnection)
 	}
 	for _, clientConnection := range clientConnections {
@@ -57,6 +58,40 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConne
 	}
 	m.model.UpdateClientConnection(clientConnection)
 	m.manager.Heal(clientConnection, nsm.HealState_DstDown)
+}
+func (m *ClientConnectionManager) UpdateClientConnectionDstUpdated(clientConnection *model.ClientConnection, remoteConnection *remote_connection.Connection) {
+	if clientConnection.ConnectionState == model.ClientConnection_Healing || clientConnection.ConnectionState == model.ClientConnection_Requesting {
+		// Do not need to process but we need to put update event is recieved.
+		clientConnection.UpdateRecieved = true
+		return
+	}
+	if clientConnection.ConnectionState != model.ClientConnection_Ready {
+		return
+	}
+
+	// Check if it update we already have
+	if proto.Equal(remoteConnection, clientConnection.Xcon.GetRemoteDestination()) {
+		// Since they are same, we do not need to do anything.
+		return
+	}
+	/*
+		Lets treat source as down, since we are do know if connection is alive at this moment.
+	 	Example Remote Dataplane die, could lead to new Remote dataplane with different Ip, so Remote connection is in restore state.
+	*/
+	m.markSourceConnectionDown(clientConnection)
+	clientConnection.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
+		RemoteDestination: remoteConnection,
+	}
+	m.model.UpdateClientConnection(clientConnection)
+	m.manager.Heal(clientConnection, nsm.HealState_DstUpdate)
+}
+
+func (m *ClientConnectionManager) markSourceConnectionDown(clientConnection *model.ClientConnection) {
+	if clientConnection.Xcon.GetRemoteSource() != nil {
+		clientConnection.Xcon.GetRemoteSource().State = remote_connection.State_DOWN
+	} else if clientConnection.Xcon.GetLocalSource() != nil {
+		clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
+	}
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {

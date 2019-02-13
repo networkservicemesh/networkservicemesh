@@ -177,7 +177,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	if err != nil {
 		logrus.Errorf("Dataplane request failed: %s", err)
 		// Let's try again with a short delay
-		<- time.Tick(500)
+		<-time.Tick(500)
 		logrus.Errorf("Dataplane request retry: %v", clientConnection.Xcon)
 		clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 
@@ -195,6 +195,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	logrus.Infof("Dataplane configuration sucessfull %v", clientConnection.Xcon)
 
 	// 11. Send update for client connection
+	clientConnection.ConnectionState = model.ClientConnection_Ready
 	if existingConnection != nil {
 		srv.model.UpdateClientConnection(clientConnection)
 	}
@@ -207,6 +208,19 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 	logrus.Info("Dataplane configuration done...")
 	return nsmConnection, nil
+}
+
+func (srv *networkServiceManager) waitRemoteUpdateEvent(existingConnection *model.ClientConnection) {
+	if existingConnection.RemoteNsm == nil {
+		// No need to wait, since there is no remote part
+		return
+	}
+	st := time.Now()
+	for !existingConnection.UpdateRecieved && time.Since(st) < 10*time.Second {
+		// Wait for update event to arrive
+		logrus.Infof("Waiting update event to arrive... %v", existingConnection)
+		<-time.Tick(10000 * time.Millisecond)
+	}
 }
 
 func (srv *networkServiceManager) closeDataplaneLog(existingConnection *model.ClientConnection) {
@@ -258,7 +272,15 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, ignore_end
 			ignore_endpoints[endpoint.NetworkserviceEndpoint.EndpointName] = endpoint
 			continue
 		}
-		// 7.2.8 We are fine with NSE connection and could continue.
+		// 7.2.8 If we requesting existing NSE on Remote NSM, we need to wait for Update event
+		if existingConnection != nil && endpoint == existingConnection.Endpoint {
+			// We need to wait for update event to be recieved
+			if !srv.isLocalEndpoint(clientConnection.Endpoint) {
+				srv.waitRemoteUpdateEvent(existingConnection)
+			}
+		}
+
+		// 7.2.9 We are fine with NSE connection and could continue.
 		return clientConnection, nil
 	}
 }
@@ -288,10 +310,10 @@ func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMC
 
 func (srv *networkServiceManager) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool) error {
 	logrus.Infof("Closing connection %v", clientConnection)
-	if clientConnection.IsClosing {
+	if clientConnection.ConnectionState == model.ClientConnection_Closing {
 		return nil
 	}
-	clientConnection.IsClosing = true
+	clientConnection.ConnectionState = model.ClientConnection_Closing
 	var nseClientError error
 	var nseCloseError error
 
@@ -321,6 +343,7 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 		// TODO: We need to be sure Dataplane is respond well so we could delete connection.
 		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 	}
+	clientConnection.ConnectionState = model.ClientConnection_Closed
 
 	if nseClientError != nil || nseCloseError != nil || dpCloseError != nil {
 		return fmt.Errorf("Close error: %v", []error{nseClientError, nseCloseError, dpCloseError})

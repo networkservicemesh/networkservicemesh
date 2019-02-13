@@ -49,9 +49,10 @@ type NetworkServiceClient interface {
 type HealState int32
 
 const (
-	HealState_DstDown       HealState = 1
-	HealState_SrcDown       HealState = 2
-	HealState_DataplaneDown HealState = 3
+	HealState_DstDown       HealState = 1	// Destination is down, we need to restore it and re-program local Datplane.
+	HealState_SrcDown       HealState = 2	// Source is down, most probable will not happen yet.
+	HealState_DataplaneDown HealState = 3	// In case local Dataplane is down, we need to heal NSE/Remote NSM and Dataplane.
+	HealState_DstUpdate		HealState = 4	// Destination is updated, most probable because of Remote Dataplane is down, we need to re-program local dataplane.
 )
 
 type NetworkServiceManager interface {

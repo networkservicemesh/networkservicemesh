@@ -104,8 +104,10 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 }
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: %v", clientConnection)
-	//if clientConnection.
-	//client.ClientConnectionUpdated(clientConnection)
+
+	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
+		client.connectionMonitor.Update(conn)
+	}
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
@@ -113,9 +115,6 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnec
 
 	client.crossConnectMonitor.Delete(clientConnection.Xcon)
 	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
-		client.connectionMonitor.Delete(conn)
-	}
-	if conn := clientConnection.Xcon.GetRemoteDestination(); conn != nil {
 		client.connectionMonitor.Delete(conn)
 	}
 
@@ -233,6 +232,9 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 					continue
 				}
 				switch event.GetType() {
+				case connection.ConnectionEventType_UPDATE:
+					// DST connection is updated, we most probable need to re-programm our data plane.
+					client.xconManager.UpdateClientConnectionDstUpdated(clientConnection, remoteConnection)
 				case connection.ConnectionEventType_DELETE:
 					client.xconManager.UpdateClientConnectionDstStateDown(clientConnection)
 					//TODO: Local Connection should be informed about SRC connection is also down.

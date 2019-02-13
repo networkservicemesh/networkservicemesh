@@ -61,7 +61,7 @@ func TestHealRemoteNSE(t *testing.T) {
 		},
 	}
 
-	timeout := time.Second * 1000
+	timeout := time.Second * 10
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	Expect(err).To(BeNil())
