@@ -34,7 +34,7 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 				},
 			},
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "vppagent-dataplane",
 					Image:           "networkservicemesh/vppagent-dataplane:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -82,7 +82,7 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 						PeriodSeconds:       10,
 						TimeoutSeconds:      3,
 					},
-				},
+				}),
 			},
 		},
 	}

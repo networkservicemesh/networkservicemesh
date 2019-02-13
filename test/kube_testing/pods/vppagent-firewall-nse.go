@@ -28,7 +28,7 @@ func VppAgentFirewallNSEPod(name string, node *v1.Node, env map[string]string) *
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "firewall-nse",
 					Image:           "networkservicemesh/vppagent-firewall-nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -39,7 +39,7 @@ func VppAgentFirewallNSEPod(name string, node *v1.Node, env map[string]string) *
 						Requests: nil,
 					},
 					Env: envVars,
-				},
+				}),
 			},
 		},
 	}
