@@ -4,104 +4,85 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/cache"
 )
 
 type NetworkServiceEndpointCache struct {
+	cache                   abstractResourceCache
 	nseByNs                 map[string][]*v1.NetworkServiceEndpoint
 	networkServiceEndpoints map[string]*v1.NetworkServiceEndpoint
-	addCh                   chan *v1.NetworkServiceEndpoint
-	deleteCh                chan string
 }
 
 func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
-	return &NetworkServiceEndpointCache{
+	rv := &NetworkServiceEndpointCache{
 		nseByNs:                 make(map[string][]*v1.NetworkServiceEndpoint),
 		networkServiceEndpoints: make(map[string]*v1.NetworkServiceEndpoint),
-		addCh:                   make(chan *v1.NetworkServiceEndpoint, 10),
-		deleteCh:                make(chan string, 10),
 	}
+	config := cacheConfig{
+		keyFunc:             getNseKey,
+		resourceAddedFunc:   rv.resourceAdded,
+		resourceDeletedFunc: rv.resourceDeleted,
+		resourceType:        NseResource,
+	}
+	rv.cache = newAbstractResourceCache(config)
+	return rv
 }
 
-func (nseCache *NetworkServiceEndpointCache) Add(nse *v1.NetworkServiceEndpoint) {
+func (c *NetworkServiceEndpointCache) Get(networkServiceName string) []*v1.NetworkServiceEndpoint {
+	return c.nseByNs[networkServiceName]
+}
+
+func (c *NetworkServiceEndpointCache) Add(nse *v1.NetworkServiceEndpoint) {
 	logrus.Infof("Adding NSE to cache: %v", *nse)
-	nseCache.addCh <- nse
+	c.cache.add(nse)
 }
 
-func (nseCache *NetworkServiceEndpointCache) Get(networkServiceName string) []*v1.NetworkServiceEndpoint {
-	return nseCache.nseByNs[networkServiceName]
+func (c *NetworkServiceEndpointCache) Delete(key string) {
+	c.cache.delete(key)
 }
 
-func (nseCache *NetworkServiceEndpointCache) Delete(name string) {
-	logrus.Infof("Deleting NSE from cache: %v", name)
-	nseCache.deleteCh <- name
+func (c *NetworkServiceEndpointCache) Start(informerFactory externalversions.SharedInformerFactory) (func(), error) {
+	return c.cache.start(informerFactory)
 }
 
-func (nseCache *NetworkServiceEndpointCache) GetResourceType() string {
-	return NseResource
-}
-
-func (nseCache *NetworkServiceEndpointCache) Run(informerFactory externalversions.SharedInformerFactory) error {
-	if err := nseCache.startInformer(informerFactory); err != nil {
-		return err
-	}
-
-	go func() {
-		for {
-			select {
-			case newNse := <-nseCache.addCh:
-				endpoints := nseCache.nseByNs[newNse.Spec.NetworkServiceName]
-				if _, exist := nseCache.networkServiceEndpoints[newNse.Name]; !exist {
-					nseCache.nseByNs[newNse.Spec.NetworkServiceName] = append(endpoints, newNse)
-				} else {
-					for i, e := range endpoints {
-						if e.Name == newNse.Name {
-							endpoints[i] = newNse
-							break
-						}
-					}
-				}
-				nseCache.networkServiceEndpoints[newNse.Name] = newNse
-			case deleteNseName := <-nseCache.deleteCh:
-				nse, exist := nseCache.networkServiceEndpoints[deleteNseName]
-				if !exist {
-					continue
-				}
-
-				endpoints := nseCache.nseByNs[nse.Spec.NetworkServiceName]
-				logrus.Info("endpoints: %v", endpoints)
-				var index int
-				for i, e := range endpoints {
-					if nse.Name == e.Name {
-						index = i
-						break
-					}
-				}
-				endpoints = append(endpoints[:index], endpoints[index+1:]...)
-				if len(endpoints) == 0 {
-					delete(nseCache.nseByNs, nse.Spec.NetworkServiceName)
-				} else {
-					nseCache.nseByNs[nse.Spec.NetworkServiceName] = endpoints
-				}
-				delete(nseCache.networkServiceEndpoints, deleteNseName)
+func (c *NetworkServiceEndpointCache) resourceAdded(obj interface{}) {
+	nse := obj.(*v1.NetworkServiceEndpoint)
+	endpoints := c.nseByNs[nse.Spec.NetworkServiceName]
+	if _, exist := c.networkServiceEndpoints[getNseKey(nse)]; !exist {
+		c.nseByNs[nse.Spec.NetworkServiceName] = append(endpoints, nse)
+	} else {
+		for i, e := range endpoints {
+			if getNseKey(nse) == getNseKey(e) {
+				endpoints[i] = nse
+				break
 			}
 		}
-	}()
-
-	return nil
+	}
+	c.networkServiceEndpoints[getNseKey(nse)] = nse
 }
 
-func (nseCache *NetworkServiceEndpointCache) startInformer(informerFactory externalversions.SharedInformerFactory) error {
-	genericInformer, err := informerFactory.ForResource(v1.SchemeGroupVersion.WithResource(NseResource))
-	if err != nil {
-		return err
+func (c *NetworkServiceEndpointCache) resourceDeleted(key string) {
+	nse, exist := c.networkServiceEndpoints[key]
+	if !exist {
+		return
 	}
-	informer := genericInformer.Informer()
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { nseCache.Add(obj.(*v1.NetworkServiceEndpoint)) },
-		DeleteFunc: func(obj interface{}) { nseCache.Delete(obj.(*v1.NetworkServiceEndpoint).Name) },
-	})
-	stopper := make(chan struct{})
-	go informer.Run(stopper)
-	return nil
+
+	endpoints := c.nseByNs[nse.Spec.NetworkServiceName]
+	var index int
+	for i, e := range endpoints {
+		if getNseKey(nse) == getNseKey(e) {
+			index = i
+			break
+		}
+	}
+	endpoints = append(endpoints[:index], endpoints[index+1:]...)
+	if len(endpoints) == 0 {
+		delete(c.nseByNs, nse.Spec.NetworkServiceName)
+	} else {
+		c.nseByNs[nse.Spec.NetworkServiceName] = endpoints
+	}
+	delete(c.networkServiceEndpoints, key)
+}
+
+func getNseKey(obj interface{}) string {
+	return obj.(*v1.NetworkServiceEndpoint).Name
 }

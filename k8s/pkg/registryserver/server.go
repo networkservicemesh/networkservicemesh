@@ -27,7 +27,7 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	registry.RegisterNetworkServiceRegistryServer(server, srv)
 	registry.RegisterNetworkServiceDiscoveryServer(server, srv)
 
-	if err := cache.Run(); err != nil {
+	if err := cache.Start(); err != nil {
 		logrus.Error(err)
 	}
 	return server

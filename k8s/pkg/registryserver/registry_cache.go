@@ -21,8 +21,8 @@ type RegistryCache interface {
 	DeleteNetworkServiceEndpoint(endpointName string) error
 	GetNetworkServiceEndpoints(networkServiceName string) []*v1.NetworkServiceEndpoint
 
-	Run() error
-	Close() error
+	Start() error
+	Stop()
 }
 
 type registryCacheImpl struct {
@@ -30,6 +30,7 @@ type registryCacheImpl struct {
 	networkServiceEndpointCache *resource_cache.NetworkServiceEndpointCache
 	networkServiceManagerCache  *resource_cache.NetworkServiceManagerCache
 	clientset                   *nsmClientset.Clientset
+	stopFuncs                   []func()
 }
 
 func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
@@ -38,20 +39,34 @@ func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
 		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(),
 		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(),
 		clientset:                   clientset,
+		stopFuncs:                   make([]func(), 0, 3),
 	}
 }
 
-func (rc *registryCacheImpl) Run() error {
+func (rc *registryCacheImpl) Start() error {
 	factory := externalversions.NewSharedInformerFactory(rc.clientset, 100*time.Millisecond)
-	if err := rc.networkServiceCache.Run(factory); err != nil {
+
+	if stopFunc, err := rc.networkServiceCache.Start(factory); err != nil {
+		rc.Stop()
 		return err
+	} else {
+		rc.stopFuncs = append(rc.stopFuncs, stopFunc)
 	}
-	if err := rc.networkServiceEndpointCache.Run(factory); err != nil {
+
+	if stopFunc, err := rc.networkServiceEndpointCache.Start(factory); err != nil {
+		rc.Stop()
 		return err
+	} else {
+		rc.stopFuncs = append(rc.stopFuncs, stopFunc)
 	}
-	if err := rc.networkServiceManagerCache.Run(factory); err != nil {
+
+	if stopFunc, err := rc.networkServiceManagerCache.Start(factory); err != nil {
+		rc.Stop()
 		return err
+	} else {
+		rc.stopFuncs = append(rc.stopFuncs, stopFunc)
 	}
+
 	return nil
 }
 
@@ -107,7 +122,8 @@ func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkS
 	}
 }
 
-func (rc *registryCacheImpl) Close() error {
-	//todo (lobkovilya): implement close
-	return nil
+func (rc *registryCacheImpl) Stop() {
+	for _, stopFunc := range rc.stopFuncs {
+		stopFunc()
+	}
 }
