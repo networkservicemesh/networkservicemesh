@@ -58,7 +58,7 @@ make k8s-infra-deploy
 A simple check should show two `nsmd`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods.
 
 ```bash
-kubect get pods
+kubectl get pods
 ```
 
 This will allow you to see your Network Service Mesh daemonset running:

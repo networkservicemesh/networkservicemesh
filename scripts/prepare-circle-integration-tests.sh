@@ -31,4 +31,8 @@ kubectl label --overwrite --all=true nodes app=nsmd-ds
 kubectl apply -f k8s/conf/cluster-role-admin.yaml
 kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
+kubectl apply -f k8s/conf/crd-networkservices.yaml
+kubectl apply -f k8s/conf/crd-networkserviceendpoints.yaml
+kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
+
 # vim: sw=4 ts=4 et si

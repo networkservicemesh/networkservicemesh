@@ -26,7 +26,9 @@ DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
 DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
-CLUSTER_CONFIGS = cluster-role-admin cluster-role-binding cluster-role-view
+CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
+CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
+CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD)
 
 # All of the rules that use vagrant are intentionally written in such a way
 # That you could set the CLUSTER_RULES_PREFIX different and introduce

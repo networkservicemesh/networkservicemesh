@@ -18,6 +18,9 @@ k8s-integration-config:
 	@kubectl label --overwrite --all=true nodes app=nsmd-ds
 	@kubectl apply -f k8s/conf/cluster-role-admin.yaml
 	@kubectl apply -f k8s/conf/cluster-role-binding.yaml
+	@kubectl apply -f k8s/conf/crd-networkservices.yaml
+	@kubectl apply -f k8s/conf/crd-networkserviceendpoints.yaml
+	@kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
 
 .PHONY: k8s-integration-tests
 k8s-integration-tests: k8s-integration-config

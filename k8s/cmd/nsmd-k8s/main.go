@@ -4,22 +4,14 @@ import (
 	"flag"
 	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"reflect"
 	"strings"
-	"syscall"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -58,14 +50,6 @@ func main() {
 		}
 	}
 
-	// Initialize clientset
-	clientset, e := clientset.NewForConfig(config)
-	if e != nil {
-		logrus.Fatalln("Unable to initialize nsmd-k8s", e)
-	}
-
-	err = installCRDs(clientset)
-
 	nsmClientSet, err := versioned.NewForConfig(config)
 
 	listener, err := net.Listen("tcp", address)
@@ -75,70 +59,7 @@ func main() {
 
 	server := registryserver.New(nsmClientSet, nsmName)
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-c
-		removeCRDs(clientset)
-	}()
-
 	logrus.Print("nsmd-k8s intialized and waiting for connection")
 	err = server.Serve(listener)
 	logrus.Fatalln(err)
-}
-
-var nsmCRDNames = [...]v1beta1.CustomResourceDefinitionNames{
-	{
-		Plural:     "networkservices",
-		Singular:   "networkservice",
-		ShortNames: []string{"netsvc", "netsvcs"},
-		Kind:       reflect.TypeOf(v1.NetworkService{}).Name(),
-	},
-	{
-		Plural:     "networkserviceendpoints",
-		Singular:   "networkserviceendpoint",
-		ShortNames: []string{"nse", "nses"},
-		Kind:       reflect.TypeOf(v1.NetworkServiceEndpoint{}).Name(),
-	},
-	{
-		Plural:     "networkservicemanagers",
-		Singular:   "networkservicemanager",
-		ShortNames: []string{"nsm", "nsms"},
-		Kind:       reflect.TypeOf(v1.NetworkServiceManager{}).Name(),
-	},
-}
-
-const nsmGroup = "networkservicemesh.io"
-
-func installCRDs(clientset *clientset.Clientset) error {
-	// Install NSM CRDs
-	for _, crdName := range nsmCRDNames {
-		crd := &v1beta1.CustomResourceDefinition{
-			ObjectMeta: v12.ObjectMeta{Name: crdName.Plural + "." + nsmGroup},
-			Spec: v1beta1.CustomResourceDefinitionSpec{
-				Group:   nsmGroup,
-				Version: "v1",
-				Scope:   v1beta1.ClusterScoped,
-				Names:   crdName,
-			},
-		}
-
-		logrus.Printf("Registering %s", crd.ObjectMeta.Name)
-		_, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-		if err != nil && !apierrors.IsAlreadyExists(err) {
-			logrus.Fatalln(err)
-		}
-	}
-	return nil
-}
-
-func removeCRDs(clientset *clientset.Clientset) {
-	for _, crdName := range nsmCRDNames {
-		name := crdName.Plural + "." + nsmGroup
-		logrus.Infof("Deleting resource %s", name)
-		err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(name, &v12.DeleteOptions{})
-		if err != nil {
-			logrus.Errorf("Error %v", err)
-		}
-	}
 }
