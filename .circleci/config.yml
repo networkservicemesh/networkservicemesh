@@ -23,7 +23,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="circle-${COMMIT}"
+            export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
             gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
       - store_test_results:
@@ -45,7 +45,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             go install ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
             make verify docker-build docker-push
       - run:
@@ -118,7 +118,7 @@ jobs:
           command: |
             ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="circle-${COMMIT}"
+            export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
             gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
@@ -179,7 +179,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-nsmd-build
             make docker-nsmd-push
   build-nsmd-k8s:
@@ -193,7 +193,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-nsmd-k8s-build
             make docker-nsmd-k8s-push
   build-nsmdp:
@@ -207,7 +207,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-nsmdp-build
             make docker-nsmdp-push
   build-crossconnect-monitor:
@@ -221,7 +221,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-crossconnect-monitor-build
             make docker-crossconnect-monitor-push
   build-icmp-responder-nse:
@@ -235,7 +235,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-icmp-responder-nse-build
             make docker-icmp-responder-nse-push
 
@@ -250,7 +250,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-vppagent-icmp-responder-nse-build
             make docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
@@ -264,7 +264,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-vppagent-nsc-build
             make docker-vppagent-nsc-push
   build-nsc:
@@ -278,7 +278,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-nsc-build
             make docker-nsc-push
   build-vppagent-dataplane:
@@ -292,7 +292,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
   build-vppagent-firewall-nse:
@@ -306,7 +306,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="circle-${COMMIT}"
+            export TAG="${COMMIT}"
             make docker-vppagent-firewall-nse-build
             make docker-vppagent-firewall-nse-push
   docker-push-latest:
@@ -320,10 +320,11 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export PULL_TAG="circle-${COMMIT}"
+            export PULL_TAG="${COMMIT}"
             export TAG="latest"
             export REPO="networkservicemesh"
             export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane)
+            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}
               docker tag ${REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
