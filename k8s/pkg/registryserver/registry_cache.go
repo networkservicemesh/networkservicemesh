@@ -72,11 +72,10 @@ func (rc *registryCacheImpl) Start() error {
 
 func (rc *registryCacheImpl) AddNetworkService(ns *v1.NetworkService) (*v1.NetworkService, error) {
 	nsResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServices("default").Create(ns)
-	if err != nil {
-		return nil, err
+	if nsResponse != nil {
+		rc.networkServiceCache.Add(nsResponse)
 	}
-	rc.networkServiceCache.Add(nsResponse)
-	return nsResponse, nil
+	return nsResponse, err
 }
 
 func (rc *registryCacheImpl) GetNetworkService(name string) (*v1.NetworkService, error) {
@@ -89,11 +88,10 @@ func (rc *registryCacheImpl) GetNetworkService(name string) (*v1.NetworkService,
 
 func (rc *registryCacheImpl) AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error) {
 	nseResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints("default").Create(nse)
-	if err != nil {
-		return nil, err
+	if nseResponse != nil {
+		rc.networkServiceEndpointCache.Add(nseResponse)
 	}
-	rc.networkServiceEndpointCache.Add(nseResponse)
-	return nseResponse, nil
+	return nseResponse, err
 }
 
 func (rc *registryCacheImpl) DeleteNetworkServiceEndpoint(endpointName string) error {
@@ -107,11 +105,10 @@ func (rc *registryCacheImpl) GetNetworkServiceEndpoints(networkServiceName strin
 
 func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
 	nsmResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Create(nsm)
-	if err != nil {
-		return nil, err
+	if nsmResponse != nil {
+		rc.networkServiceManagerCache.Add(nsmResponse)
 	}
-	rc.networkServiceManagerCache.Add(nsmResponse)
-	return nsmResponse, nil
+	return nsmResponse, err
 }
 
 func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error) {
