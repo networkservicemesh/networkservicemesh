@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -15,9 +16,12 @@ import (
 )
 
 func main() {
+	start := time.Now()
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
+
+	go nsmd.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -28,25 +32,28 @@ func main() {
 
 	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
-		os.Exit(1)
+		nsmd.SetDPServerFailed()
 	}
 
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, nsmd.GetExcludedPrefixes())
 
 	if err := nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd service: %+v", err)
-		os.Exit(1)
+		nsmd.SetNSMServerFailed()
 	}
 
 	if err := nsmd.StartAPIServer(model, manager, apiRegistry, serviceRegistry); err != nil {
 		logrus.Fatalf("Error starting nsmd api service: %+v", err)
-		os.Exit(1)
+		nsmd.SetAPIServerFailed()
 	}
 
+	elapsed := time.Since(start)
+	logrus.Debugf("Starting NSMD took: %s", elapsed)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		<-c
 		wg.Done()
