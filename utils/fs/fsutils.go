@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"syscall"
 	"unicode"
 )
@@ -52,7 +53,9 @@ func FindFileInProc(inode uint64, suffix string) (string, error) {
 				continue
 			}
 			if tryInode == inode {
-				return filename, nil
+				if cmdline, err := GetCmdline(name); err == nil && strings.Contains(cmdline, "pause") {
+					return filename, nil
+				}
 			}
 		}
 	}
@@ -78,4 +81,12 @@ func GetAllNetNs() ([]uint64, error) {
 		}
 	}
 	return inodes, nil
+}
+
+func GetCmdline(pid string) (string, error) {
+	data, err := ioutil.ReadFile(path.Join("/proc/", pid, "cmdline"))
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
