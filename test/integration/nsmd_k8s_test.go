@@ -3,16 +3,15 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 )
 
 func TestNSMDDRegistryNSE(t *testing.T) {
@@ -65,11 +64,8 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	registryClient, err := serviceRegistry.RegistryClient()
 	Expect(err).To(BeNil())
 
-	versionedClientSet, err := versioned.NewForConfig(k8s.GetConfig())
-	Expect(err).To(BeNil())
-
 	// Cleanup all registered stuff
-	cleanupCRDs(versionedClientSet)
+	k8s.CleanupCRDs()
 
 	nses := []string{}
 	nme := "my-network-service"
@@ -128,22 +124,4 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	logs, err = k8s.GetLogs(nsmd, "nsmd-k8s")
 	logrus.Printf("%s", logs)
 
-}
-
-func cleanupCRDs(versionedClientSet *versioned.Clientset) {
-	managers, err := versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").List(v1.ListOptions{})
-	Expect(err).To(BeNil())
-	for _, mgr := range managers.Items {
-		_ = versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").Delete(mgr.Name, &v1.DeleteOptions{})
-	}
-	endpoints, err := versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").List(v1.ListOptions{})
-	Expect(err).To(BeNil())
-	for _, ep := range endpoints.Items {
-		_ = versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Delete(ep.Name, &v1.DeleteOptions{})
-	}
-	services, err := versionedClientSet.Networkservicemesh().NetworkServices("default").List(v1.ListOptions{})
-	Expect(err).To(BeNil())
-	for _, service := range services.Items {
-		_ = versionedClientSet.Networkservicemesh().NetworkServices("default").Delete(service.Name, &v1.DeleteOptions{})
-	}
 }

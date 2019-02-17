@@ -4,17 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -191,9 +193,10 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 }
 
 type K8s struct {
-	clientset kubernetes.Interface
-	pods      []*v1.Pod
-	config    *rest.Config
+	clientset          kubernetes.Interface
+	versionedClientSet *versioned.Clientset
+	pods               []*v1.Pod
+	config             *rest.Config
 }
 
 func NewK8s() (*K8s, error) {
@@ -212,6 +215,9 @@ func NewK8s() (*K8s, error) {
 	client.config = config
 	client.clientset, err = kubernetes.NewForConfig(config)
 
+	Expect(err).To(BeNil())
+
+	client.versionedClientSet, err = versioned.NewForConfig(config)
 	Expect(err).To(BeNil())
 
 	return &client, nil
@@ -256,11 +262,30 @@ func (o *K8s) ListPods() []v1.Pod {
 	return podList.Items
 }
 
+func (o *K8s) CleanupCRDs() {
+	managers, err := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").List(metaV1.ListOptions{})
+	Expect(err).To(BeNil())
+	for _, mgr := range managers.Items {
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").Delete(mgr.Name, &metaV1.DeleteOptions{})
+	}
+	endpoints, err := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").List(metaV1.ListOptions{})
+	Expect(err).To(BeNil())
+	for _, ep := range endpoints.Items {
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Delete(ep.Name, &metaV1.DeleteOptions{})
+	}
+	services, err := o.versionedClientSet.Networkservicemesh().NetworkServices("default").List(metaV1.ListOptions{})
+	Expect(err).To(BeNil())
+	for _, service := range services.Items {
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServices("default").Delete(service.Name, &metaV1.DeleteOptions{})
+	}
+}
+
 func (l *K8s) Cleanup() {
 	for _, result := range l.pods {
 		err := l.deletePods(result)
 		Expect(err).To(BeNil())
 	}
+	l.CleanupCRDs()
 }
 
 func (l *K8s) Prepare(noPods ...string) {
