@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
-	"strings"
 	"testing"
 	"time"
 
@@ -67,9 +66,12 @@ func testDataplaneHeal(t *testing.T, nodesCount int) {
 	logrus.Infof("Delete Selected dataplane")
 	k8s.DeletePods(nodes_setup[nodesCount-1].Dataplane)
 
+	logrus.Infof("Wait NSMD is waiting for dataplane recovery")
 	k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", 60*time.Second)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
-	dpName := fmt.Sprintf("dataplane-recovered-%d", nodesCount-1)
+	dpName := fmt.Sprintf("nsmd-dataplane-recovered-%d", nodesCount-1)
+
+	logrus.Infof("Starting recovered dataplane...")
 	startTime := time.Now()
 	nodes_setup[nodesCount-1].Dataplane = k8s.CreatePod(pods.VPPDataplanePod(dpName, nodes_setup[nodesCount-1].Node))
 	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), nodes_setup[nodesCount-1].Node.Name)
@@ -77,21 +79,13 @@ func testDataplaneHeal(t *testing.T, nodesCount int) {
 	// Check NSMd goint into HEAL state.
 
 	logrus.Infof("Waiting for connection recovery...")
-	k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
-	l1, err := k8s.GetLogs(nodes_setup[nodesCount-1].Nsmd, "nsmd")
-
-	Expect(err).To(BeNil())
-	if strings.Contains(l1, "Dataplane0 request failed:") {
-		logrus.Infof("Dataplane first attempt was failed: %v", l1)
+	if nodesCount > 1 {
+		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Healing will be continued on source side...", 60*time.Second)
+		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+	} else {
+		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
 	}
-
-	if len(nodes_setup) > 1 {
-		l2, err := k8s.GetLogs(nodes_setup[1].Nsmd, "nsmd")
-		Expect(err).To(BeNil())
-		if strings.Contains(l2, "Dataplane1 request failed:") {
-			logrus.Infof("Dataplane first attempt was failed: %v", l2)
-		}
-	}
+	logrus.Infof("Waiting for connection recovery Done...")
 
 	failures = InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)

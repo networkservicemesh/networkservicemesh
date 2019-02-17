@@ -20,6 +20,8 @@ import (
 const (
 	podStartTimeout  = 5 * time.Minute
 	podDeleteTimeout = 5 * time.Minute
+	podExecTimeout	 = 3 * time.Minute
+	podGetLogTimeout = 3 * time.Minute
 )
 
 type PodDeployResult struct {
@@ -27,7 +29,22 @@ type PodDeployResult struct {
 	err error
 }
 
-func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
+func waitTimeout(logPrefix string, wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return true
+	case <-time.After(timeout):
+		logrus.Errorf("%v Timeout in waitTimeout", logPrefix)
+		return false
+	}
+}
+
+func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
 
 	var wg sync.WaitGroup
 
@@ -67,7 +84,31 @@ func createAndBlock(client kubernetes.Interface, config *rest.Config, namespace 
 		}(pod)
 	}
 
-	wg.Wait()
+	if !waitTimeout(fmt.Sprintf("createAndBlock with pods: %v", pods ), &wg, timeout) {
+		logrus.Errorf("Failed to deploy pod, trying to get any information")
+		results := []*PodDeployResult{}
+		for _, p := range pods {
+			pod, err := client.CoreV1().Pods(namespace).Get(p.Name, metaV1.GetOptions{})
+			if err != nil {
+				logrus.Errorf("Failed to get pod information: %v", err)
+			}
+			if pod != nil {
+				logrus.Infof("Pod information: %v", pod)
+				for _, cs := range pod.Status.ContainerStatuses {
+					if !cs.Ready {
+						logs, _ := l.GetLogs(pod, cs.Name)
+						logrus.Infof("Pod %v container not started: %v Logs: %v", pod.Name, cs.Name, logs)
+					}
+				}
+			}
+			results = append(results, &PodDeployResult{
+				err: fmt.Errorf("Failed to deploy pod"),
+				pod: pod,
+			})
+			return results
+		}
+		return nil
+	}
 
 	results := make([]*PodDeployResult, len(pods))
 	named := map[string]*PodDeployResult{}
@@ -101,6 +142,10 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 			break
 		}
 
+		if time.Since(st) > timeout / 2 {
+			logrus.Infof("Pod deploy half time passed: %v", pod)
+		}
+
 		time.Sleep(time.Millisecond * time.Duration(50))
 
 		if time.Since(st) > timeout {
@@ -129,10 +174,8 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 					return pod, nil
 				}
 			}
-		case <-time.Tick(time.Second):
-			if time.Since(st) > timeout {
-				return sourcePod, podTimeout(sourcePod)
-			}
+		case <-time.After(timeout):
+			return sourcePod, podTimeout(sourcePod)
 		}
 
 	}
@@ -144,12 +187,13 @@ func podTimeout(pod *v1.Pod) error {
 
 func isPodReady(pod *v1.Pod) bool {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if containerStatus.Ready {
-			return true
+		if !containerStatus.Ready {
+			// If one of containers is not yet ready, return false
+			return false
 		}
 	}
 
-	return false
+	return true
 }
 
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
@@ -281,7 +325,7 @@ func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
 	return pods
 }
 func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
-	results := createAndBlock(l.clientset, l.config, "default", timeout, templates...)
+	results := l.createAndBlock(l.clientset, l.config, "default", timeout, templates...)
 	pods := []*v1.Pod{}
 
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
@@ -330,10 +374,21 @@ func (k8s *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
 	if len(container) > 0 {
 		getLogsOpt.Container = container
 	}
-	response := k8s.clientset.CoreV1().Pods("default").GetLogs(pod.Name, getLogsOpt)
-	result, error := response.DoRaw()
-	if error != nil {
-		return "", error
+	var wg sync.WaitGroup
+	var result []byte
+	var err error
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		response := k8s.clientset.CoreV1().Pods("default").GetLogs(pod.Name, getLogsOpt)
+		result, err = response.DoRaw()
+	}()
+	if !waitTimeout(fmt.Sprintf("GetLogs %v:%v", pod.Name, container), &wg, podGetLogTimeout) {
+		logrus.Errorf("Failed to get logs from: %v.%v", pod.Name, container)
+	}
+
+	if err != nil {
+		return "", err
 	}
 	return fmt.Sprintf("%s", result), nil
 }
@@ -346,12 +401,13 @@ func (o *K8s) WaitLogsContains(pod *v1.Pod, container string, pattern string, ti
 			logrus.Printf("Error on get logs: %v retrying", error)
 		}
 		if !strings.Contains(logs, pattern) {
-			time.Sleep(10 * time.Millisecond)
+			<- time.Tick(100 * time.Millisecond)
 		} else {
 			break
 		}
 		if time.Since(st) > timeout {
 			logrus.Errorf("Timeout waiting for logs pattern %s in pod %s. Last logs: %s", pattern, pod.Name, logs)
+			Expect(strings.Contains(logs, pattern)).To(Equal(true))
 			return
 		}
 	}
@@ -419,4 +475,8 @@ func (o *K8s) CreateService(service *v1.Service) {
 		logrus.Errorf("Error creating service: %v %v", s, err)
 	}
 	logrus.Infof("Service is created: %v", s)
+}
+
+func (o *K8s) IsPodReady(pod *v1.Pod) bool {
+	return isPodReady(pod)
 }

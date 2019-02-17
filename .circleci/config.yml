@@ -121,7 +121,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
-            gotestsum --junitfile ~/junit/integration-tests.xml ./test/...
+            gotestsum --junitfile -timeout 30m ~/junit/integration-tests.xml ./test/...
           no_output_timeout: 30m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig

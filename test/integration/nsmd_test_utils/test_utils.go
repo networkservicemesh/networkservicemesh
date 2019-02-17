@@ -27,7 +27,8 @@ func SetupNodes(k8s *kube_testing.K8s, nodesCount int) []*NodeConf {
 
 	confs := []*NodeConf{}
 	for i := 0; i < nodesCount; i++ {
-		nsmd, dataplane := deployNsmdAndDataplane(k8s, &nodes[i])
+		nsmd, dataplane, err := deployNsmdAndDataplane(k8s, &nodes[i])
+		Expect(err).To(BeNil())
 		confs = append(confs, &NodeConf{
 			Nsmd:      nsmd,
 			Dataplane: dataplane,
@@ -37,12 +38,17 @@ func SetupNodes(k8s *kube_testing.K8s, nodesCount int) []*NodeConf {
 	return confs
 }
 
-func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node) (nsmd *v1.Pod, dataplane *v1.Pod) {
+func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
 	startTime := time.Now()
 
 	nsmdName := fmt.Sprintf("nsmd-%s", node.Name)
 	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
 	corePods := k8s.CreatePods(pods.NSMDPod(nsmdName, node), pods.VPPDataplanePod(dataplaneName, node))
+	for _, pod := range corePods {
+		if !k8s.IsPodReady(pod) {
+			return nil, nil, fmt.Errorf("Pod %v is not ready...", pod.Name)
+		}
+	}
 	logrus.Printf("Started NSMD/Dataplane: %v on node %s", time.Since(startTime), node.Name)
 	nsmd = corePods[0]
 	dataplane = corePods[1]
@@ -53,7 +59,7 @@ func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node) (nsmd *v1.Pod,
 	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", defaultTimeout)
 	k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
 	k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", defaultTimeout)
-
+	err = nil
 	return
 }
 
