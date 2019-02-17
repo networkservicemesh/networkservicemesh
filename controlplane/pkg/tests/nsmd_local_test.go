@@ -12,6 +12,7 @@ import (
 	context2 "golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -134,7 +135,7 @@ func TestNSENoSrc(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
-	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = Failed to find NSE for NetworkService golden_network. Checked: 1 of total NSEs: 0. Last NSE Error: failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil: dst_ip_addr:\"169083137/30\" "))
+	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())
 }
 

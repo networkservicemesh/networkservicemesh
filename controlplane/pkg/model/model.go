@@ -39,8 +39,6 @@ type ClientConnection struct {
 	Dataplane    *Dataplane
 	ConnectionState ClientConnectionState
 	Request      nsm.NSMRequest
-
-	UpdateRecieved    bool
 }
 
 func (cc *ClientConnection) GetId() string {

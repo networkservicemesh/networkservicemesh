@@ -122,10 +122,14 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnec
 		return
 	}
 	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
-	remotePeer.xconCounter--
-	if remotePeer.xconCounter == 0 {
-		remotePeer.cancel()
-		delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+	if remotePeer != nil {
+		remotePeer.xconCounter--
+		if remotePeer.xconCounter == 0 {
+			remotePeer.cancel()
+			delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+		}
+	} else {
+		logrus.Errorf("Remote peer for NSM is already closed: %v", clientConnection)
 	}
 }
 
@@ -148,14 +152,13 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 		logrus.Error(err)
 		return
 	}
-
+	logrus.Infof("Monitoring %v CrossConnections...", dataplane.RegisteredName)
 	for {
 		select {
 		case <-ctx.Done():
 			logrus.Info("Context timeout exceeded...")
 			return
 		default:
-			logrus.Info("Recv CrossConnect event...")
 			event, err := stream.Recv()
 			if err != nil {
 				logrus.Error(err)

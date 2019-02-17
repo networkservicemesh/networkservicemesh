@@ -42,7 +42,6 @@ func (m *ClientConnectionManager) UpdateClientConnectionDataplaneStateDown(clien
 	logrus.Info("ClientConnection src state is down because of Dataplane down.")
 	for _, clientConnection := range clientConnections {
 		m.markSourceConnectionDown(clientConnection)
-		m.model.UpdateClientConnection(clientConnection)
 	}
 	for _, clientConnection := range clientConnections {
 		m.manager.Heal(clientConnection, nsm.HealState_DataplaneDown)
@@ -60,12 +59,12 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConne
 	m.manager.Heal(clientConnection, nsm.HealState_DstDown)
 }
 func (m *ClientConnectionManager) UpdateClientConnectionDstUpdated(clientConnection *model.ClientConnection, remoteConnection *remote_connection.Connection) {
-	if clientConnection.ConnectionState == model.ClientConnection_Healing || clientConnection.ConnectionState == model.ClientConnection_Requesting {
-		// Do not need to process but we need to put update event is recieved.
-		clientConnection.UpdateRecieved = true
+	if clientConnection.ConnectionState != model.ClientConnection_Ready {
 		return
 	}
-	if clientConnection.ConnectionState != model.ClientConnection_Ready {
+
+	if remoteConnection.State == remote_connection.State_UP {
+		// We do not need to heal in case DST state is UP, remote NSM will try to recover and only when will send Update, Delete of connection.
 		return
 	}
 
@@ -74,15 +73,9 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstUpdated(clientConnect
 		// Since they are same, we do not need to do anything.
 		return
 	}
-	/*
-		Lets treat source as down, since we are do know if connection is alive at this moment.
-	 	Example Remote Dataplane die, could lead to new Remote dataplane with different Ip, so Remote connection is in restore state.
-	*/
-	m.markSourceConnectionDown(clientConnection)
 	clientConnection.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
 		RemoteDestination: remoteConnection,
 	}
-	m.model.UpdateClientConnection(clientConnection)
 	m.manager.Heal(clientConnection, nsm.HealState_DstUpdate)
 }
 
