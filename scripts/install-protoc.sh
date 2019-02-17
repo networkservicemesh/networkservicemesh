@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 pushd ~/
-wget https://github.com/google/protobuf/releases/download/v3.5.1/protoc-3.5.1-linux-x86_64.zip
-unzip protoc-3.5.1-linux-x86_64.zip
+PROTOC_VER=3.6.1
+PROTOC_ZIP=protoc-$PROTOC_VER-linux-x86_64.zip
+curl -OL https://github.com/google/protobuf/releases/download/v$PROTOC_VER/$PROTOC_ZIP
+sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+rm -f $PROTOC_ZIP
 popd
