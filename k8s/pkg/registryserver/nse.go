@@ -121,7 +121,7 @@ func (rs registryService) RemoveNSE(ctx context.Context, request *registry.Remov
 	if err := rs.cache.DeleteNetworkServiceEndpoint(request.EndpointName); err != nil {
 		return nil, err
 	}
-	logrus.Printf("RemoveNSE done: time %v", time.Since(st))
+	logrus.Infof("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
 }
 
@@ -135,7 +135,7 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 
 	t1 := time.Now()
 	endpointList := rs.cache.GetNetworkServiceEndpoints(request.NetworkServiceName)
-	logrus.Printf("NSE found %d, retrieve time: %v", len(endpointList), time.Since(t1))
+	logrus.Infof("NSE found %d, retrieve time: %v", len(endpointList), time.Since(t1))
 	NSEs := make([]*registry.NetworkServiceEndpoint, len(endpointList))
 
 	NSMs := make(map[string]*registry.NetworkServiceManager)
@@ -196,6 +196,6 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 		NetworkServiceManagers:  NSMs,
 		NetworkServiceEndpoints: NSEs,
 	}
-	logrus.Printf("FindNetworkService done: time %v", time.Since(st))
+	logrus.Infof("FindNetworkService done: time %v", time.Since(st))
 	return response, nil
 }
