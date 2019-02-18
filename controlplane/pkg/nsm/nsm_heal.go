@@ -39,16 +39,16 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		} else {
 			// We are client NSMd, we need to try recover our connection.
 			//srv.
-			err := srv.close(ctx, clientConnection, false)
+			logrus.Infof("NSM_Heal(2.2-%v) Closing local connection: %v", healId, connection.GetConnectionSource())
+			// Since Dataplane could work unproperly if we do not close existing one, we do so.
+			err := srv.close(ctx, clientConnection, true)
 			if err != nil {
-				logrus.Warnf("NSM_Heal(2.2-%v) Ignored error during connection healing: %v", healId, err)
+				logrus.Warnf("NSM_Heal(2.2.1-%v) Ignored error during connection healing: %v", healId, err)
 			}
 			recoveredConnection, err := srv.request(ctx, clientConnection.Request, clientConnection)
 			logrus.Infof("NSM_Heal(2.3-%v) Recovered: %v", healId, recoveredConnection)
 			if err != nil {
 				logrus.Errorf("NSM_Heal(2.3.1-%v) Failed to heal connection: %v", healId, err)
-				// We just need to close dataplane, since connection is already closed
-				err = srv.closeDataplane(clientConnection)
 				// We need to delete connection, since we are not able to Heal it
 				srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 				if err != nil {

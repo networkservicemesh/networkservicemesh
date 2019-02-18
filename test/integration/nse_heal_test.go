@@ -67,12 +67,11 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	k8s.DeletePods(nse1)
 
 	logrus.Infof("Waiting for connection recovery...")
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
-	l1, err := k8s.GetLogs(nodes_setup[0].Nsmd, "nsmd")
-
-	Expect(err).To(BeNil())
-	if strings.Contains(l1, "Dataplane0 request failed:") {
-		logrus.Infof("Dataplane first attempt was failed: %v", l1)
+	failures = InterceptGomegaFailures(func() {
+		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+	})
+	if len(failures) > 0 {
+		printErrors(failures, k8s, nodes_setup, nscInfo, t)
 	}
 
 	if len(nodes_setup) > 1 {
