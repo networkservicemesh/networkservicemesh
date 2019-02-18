@@ -21,6 +21,9 @@ k8s-integration-config:
 	@kubectl apply -f k8s/conf/crd-networkservices.yaml
 	@kubectl apply -f k8s/conf/crd-networkserviceendpoints.yaml
 	@kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
+	@./scripts/webhook-create-cert.sh
+	@kubectl apply -f k8s/conf/admission-webhook.yaml
+	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl apply -f -
 
 .PHONY: k8s-integration-tests
 k8s-integration-tests: k8s-integration-config

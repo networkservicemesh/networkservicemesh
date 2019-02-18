@@ -35,4 +35,8 @@ kubectl apply -f k8s/conf/crd-networkservices.yaml
 kubectl apply -f k8s/conf/crd-networkserviceendpoints.yaml
 kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
 
+./scripts/webhook-create-cert.sh
+kubectl apply -f k8s/conf/admission-webhook.yaml
+./scripts/webhook-patch-ca-bundle.sh < ./k8s/conf/admission-webhook-cfg.yaml | kubectl apply -f -
+
 # vim: sw=4 ts=4 et si
