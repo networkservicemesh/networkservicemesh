@@ -57,12 +57,11 @@ func create_logid() (uuid string) {
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		logrus.Errorf("Error: ", err)
 		return
 	}
 
 	uuid = fmt.Sprintf("%X", b[0:4])
-
 	return
 }
 
@@ -585,7 +584,7 @@ check if we need to do a NSE/Remote NSM request in case of our connection Upgrad
 func (srv *networkServiceManager) checkNeedNSERequest(requestId string, nsmConnection nsm.NSMConnection, existingConnection *model.ClientConnection, dp *model.Dataplane) bool {
 	// 4.2.x
 	// 4.2.1 Check if context is changed, if changed we need to
-	if !proto.Equal(nsmConnection.GetContext(), existingConnection.GetSourceConnection().GetContext()) {
+	if !proto.Equal(nsmConnection.GetContext(), existingConnection.GetConnectionSource().GetContext()) {
 		return true
 	}
 	// We need to check, dp has mechanism changes in our Remote connection selected mechanism.

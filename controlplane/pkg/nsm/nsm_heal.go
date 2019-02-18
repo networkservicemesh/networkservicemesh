@@ -85,7 +85,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		// We have Dataplane now, let's try request all again.
 		// Update request to contain a proper connection object from previous attempt.
 		request := clientConnection.Request.Clone()
-		request.SetConnection(clientConnection.GetSourceConnection())
+		request.SetConnection(clientConnection.GetConnectionSource())
 		srv.requestOrClose(fmt.Sprintf("NSM_Heal(3.4-%v) ", healId) ,ctx, request, clientConnection)
 		return
 	case nsm.HealState_DstUpdate:
@@ -94,7 +94,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		logrus.Infof("NSM_Heal(4.1-%v) Healing DST Update/Remote Dataplane... %v", healId, clientConnection)
 		if clientConnection.Request != nil {
 			request := clientConnection.Request.Clone()
-			request.SetConnection(clientConnection.GetSourceConnection())
+			request.SetConnection(clientConnection.GetConnectionSource())
 
 			srv.requestOrClose(fmt.Sprintf("NSM_Heal(4.2-%v) ", healId), ctx, request, clientConnection)
 			return

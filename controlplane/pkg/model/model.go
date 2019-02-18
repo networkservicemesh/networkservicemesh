@@ -55,7 +55,7 @@ func (cc *ClientConnection) GetNetworkService() string {
 	return cc.Endpoint.GetNetworkService().GetName()
 }
 
-func (cc *ClientConnection) GetSourceConnection() nsm.NSMConnection {
+func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
 	if cc.Xcon.GetLocalSource() != nil {
 		return cc.Xcon.GetLocalSource()
 	} else {

@@ -2,7 +2,6 @@ package nsmd_integration_tests
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"strings"
 	"testing"
 	"time"
@@ -48,8 +47,6 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
-	jaeger := k8s.CreatePod(pods.Jaeger())
-	k8s.CreateService(pods.JaegerService(jaeger))
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount )
 
 	// Run ICMP on latest node
