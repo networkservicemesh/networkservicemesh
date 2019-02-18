@@ -95,7 +95,7 @@ func (m *Mechanism) NetNsFileName() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", NetNsInodeKey, m.Parameters[NetNsInodeKey], m)
 	}
-	filename, err := fs.FindFileInProc(inodeNum, "/ns/net")
+	filename, err := fs.ResolvePodNsByInode(inodeNum)
 	if err != nil {
 		return "", fmt.Errorf("No file found in /proc/*/ns/net with inode %d: %v", inodeNum, err)
 	}
