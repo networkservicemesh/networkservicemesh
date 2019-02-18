@@ -33,10 +33,9 @@ func GetInode(file string) (uint64, error) {
 	return stat.Ino, nil
 }
 
-// FindFileInProc Traverse /proc/<pid>/<suffix> files,
+// ResolvePodNsByInode Traverse /proc/<pid>/<suffix> files,
 // compare their inodes with inode parameter and returns file if inode matches
-// use FindProcInode(xxx, "/ns/net") for example
-func FindFileInProc(inode uint64, suffix string) (string, error) {
+func ResolvePodNsByInode(inode uint64) (string, error) {
 	files, err := ioutil.ReadDir("/proc")
 	if err != nil {
 		return "", fmt.Errorf("can't read /proc directory: %+v", err)
@@ -45,7 +44,7 @@ func FindFileInProc(inode uint64, suffix string) (string, error) {
 	for _, f := range files {
 		name := f.Name()
 		if isDigits(name) {
-			filename := "/proc/" + name + suffix
+			filename := path.Join("/proc", name, "/ns/net")
 			tryInode, err := GetInode(filename)
 			if err != nil {
 				// Just report into log, do not exit
