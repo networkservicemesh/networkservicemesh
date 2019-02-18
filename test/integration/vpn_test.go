@@ -104,7 +104,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	s1 := time.Now()
 	k8s.Prepare("nsmd", "nsmd-dataplane", "vppagent-firewall-nse", "vpn-gateway-nse", "vpn-gateway-nsc")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
-	nodes := k8s.GetNodesWait(nodesCount, time.Second*60)
+	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 	if len(nodes) < nodesCount {
 		logrus.Printf("At least one kubernetes node are required for this test")
 		Expect(len(nodes)).To(Equal(nodesCount))
@@ -159,7 +159,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	))
 	Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse1"))
 
-	k8s.WaitLogsContains(vppagentFirewallNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", time.Second)
+	k8s.WaitLogsContains(vppagentFirewallNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
 
 	logrus.Printf("VPN Gateway started done: %v", time.Since(s1))
 
@@ -175,7 +175,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	))
 	Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse1"))
 
-	k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", time.Second)
+	k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
 
 	logrus.Printf("VPN Gateway started done: %v", time.Since(s1))
 

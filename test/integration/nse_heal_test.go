@@ -1,10 +1,11 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
@@ -47,12 +48,12 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount )
+	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	// Run ICMP on latest node
-	nse1 := nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1")
+	nse1 := nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1")
+	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
@@ -61,7 +62,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse2")
+	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse2", defaultTimeout)
 
 	logrus.Infof("Delete first NSE")
 	k8s.DeletePods(nse1)
@@ -91,7 +92,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 func printErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*nsmd_test_utils.NodeConf, nscInfo *nsmd_test_utils.NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		nsmd_test_utils.PrintLogs(k8s, nodes_setup);
+		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
 		nscInfo.PrintLogs()
 
 		t.Fail()

@@ -1,11 +1,11 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -28,7 +28,7 @@ func TestNSMDDdataplabeDeploy(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	k8s.Prepare("nsmd")
-	nodes := k8s.GetNodesWait(2, time.Second*60)
+	nodes := k8s.GetNodesWait(2, defaultTimeout)
 
 	if len(nodes) < 2 {
 		logrus.Printf("At least two kubernetes nodes are required for this test")

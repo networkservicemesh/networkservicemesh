@@ -37,7 +37,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	// We need to wait unti it is started
 
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "Registering networkservicemanagers.networkservicemesh.io", 10*time.Second)
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "Registering networkservicemanagers.networkservicemesh.io", fastTimeout)
 	logs, err := k8s.GetLogs(nsmd, "nsmd-k8s")
 	logrus.Printf("%s", logs)
 

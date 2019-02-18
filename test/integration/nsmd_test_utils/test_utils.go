@@ -2,17 +2,16 @@ package nsmd_test_utils
 
 import (
 	"fmt"
+	"strings"
+	"testing"
 	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"strings"
-	"testing"
+	v1 "k8s.io/api/core/v1"
 )
-
-const defaultTimeout = 60 * time.Second
 
 type NodeConf struct {
 	Nsmd      *v1.Pod
@@ -20,14 +19,14 @@ type NodeConf struct {
 	Node      *v1.Node
 }
 
-func SetupNodes(k8s *kube_testing.K8s, nodesCount int) []*NodeConf {
-	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
+func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
+	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one kubernetes node are required for this test")
 
 	confs := []*NodeConf{}
 	for i := 0; i < nodesCount; i++ {
-		nsmd, dataplane, err := deployNsmdAndDataplane(k8s, &nodes[i])
+		nsmd, dataplane, err := deployNsmdAndDataplane(k8s, &nodes[i], timeout)
 		Expect(err).To(BeNil())
 		confs = append(confs, &NodeConf{
 			Nsmd:      nsmd,
@@ -38,7 +37,7 @@ func SetupNodes(k8s *kube_testing.K8s, nodesCount int) []*NodeConf {
 	return confs
 }
 
-func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
+func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
 	startTime := time.Now()
 
 	nsmdName := fmt.Sprintf("nsmd-%s", node.Name)
@@ -56,14 +55,14 @@ func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node) (nsmd *v1.Pod,
 	Expect(nsmd.Name).To(Equal(nsmdName))
 	Expect(dataplane.Name).To(Equal(dataplaneName))
 
-	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", defaultTimeout)
-	k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
-	k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", defaultTimeout)
+	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
+	k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
+	k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
 	err = nil
 	return
 }
 
-func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string) (icmp *v1.Pod) {
+func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) (icmp *v1.Pod) {
 	startTime := time.Now()
 
 	logrus.Infof("Starting ICMP Responder NSE on node: %s", node.Name)
@@ -76,13 +75,13 @@ func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string) (icmp *v1.Pod
 	))
 	Expect(icmp.Name).To(Equal(name))
 
-	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", defaultTimeout)
+	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
 
 	logrus.Printf("ICMP Responder %v started done: %v", name, time.Since(startTime))
 	return icmp
 }
 
-func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string) (nsc *v1.Pod) {
+func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) (nsc *v1.Pod) {
 	startTime := time.Now()
 
 	logrus.Infof("Starting NSC %s on node: %s", name, node.Name)
@@ -94,7 +93,7 @@ func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string) (nsc *v1.Pod) 
 	))
 	Expect(nsc.Name).To(Equal(name))
 
-	k8s.WaitLogsContains(nsc, "nsc", "nsm client: initialization is completed successfully", defaultTimeout)
+	k8s.WaitLogsContains(nsc, "nsc", "nsm client: initialization is completed successfully", timeout)
 	logrus.Printf("NSC started done: %v", time.Since(startTime))
 	return nsc
 }
@@ -117,10 +116,10 @@ func PrintLogs(k8s *kube_testing.K8s, nodesSetup []*NodeConf) {
 }
 
 type NSCCheckInfo struct {
-	ipResponse string
+	ipResponse    string
 	routeResponse string
-	pingResponse string
-	errOut string
+	pingResponse  string
+	errOut        string
 }
 
 func (info *NSCCheckInfo) PrintLogs() {
