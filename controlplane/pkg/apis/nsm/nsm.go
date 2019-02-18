@@ -17,7 +17,7 @@ type NSMRequest interface {
 }
 
 /*
-	Unitifed Connection interface, handles common part of local/Remote connections.
+	Unified Connection interface, handles common part of local/Remote connections.
 */
 type NSMConnection interface {
 	IsValid() error
@@ -35,7 +35,7 @@ type NSMConnection interface {
 
 type NSMClientConnection interface {
 	GetId() string
-	GetSourceConnection() NSMConnection
+	GetConnectionSource() NSMConnection
 	GetNetworkService() string
 }
 

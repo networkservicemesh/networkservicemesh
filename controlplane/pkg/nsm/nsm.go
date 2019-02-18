@@ -57,7 +57,7 @@ func create_logid() (uuid string) {
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	if err != nil {
-		logrus.Errorf("Error: ", err)
+		logrus.Errorf("Error: %v", err)
 		return
 	}
 
