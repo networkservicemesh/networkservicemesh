@@ -17,11 +17,13 @@
 
 set -xe
 
-KUBECTL_VERSION=v1.11.3
+KUBECTL_VERSION=v1.13.3
 
 # Install kubectl
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
- 	chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+if ! command -v kubectl > /dev/null 2>&1; then
+	curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl && \
+		chmod +x "kubectl" && sudo mv "kubectl" /usr/local/bin/
+fi
 
 kubectl get nodes -o wide
 kubectl version
