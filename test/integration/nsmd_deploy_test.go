@@ -1,6 +1,7 @@
 package nsmd_integration_tests
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,7 +13,15 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func TestNSMDDdataplabeDeploy(t *testing.T) {
+func TestNSMDDdataplaneDeploy(t *testing.T) {
+	testNSMDDdataplaneDeploy(t, pods.NSMDPod, pods.VPPDataplanePod)
+}
+
+func TestNSMDDdataplaneDeployLiveCheck(t *testing.T) {
+	testNSMDDdataplaneDeploy(t, pods.NSMDPodLiveCheck, pods.VPPDataplanePodLiveCheck)
+}
+
+func testNSMDDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node) *v1.Pod, dataplanePodFactory func(string, *v1.Node) *v1.Pod) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -36,18 +45,20 @@ func TestNSMDDdataplabeDeploy(t *testing.T) {
 		return
 	}
 
-	nsmdPodNode1 := k8s.CreatePods(pods.NSMDPod("nsmd1", &nodes[0]))
-	nsmdPodNode2 := k8s.CreatePods(pods.NSMDPod("nsmd2", &nodes[1]))
+	var pods []*v1.Pod
 
-	for _, lpod := range k8s.ListPods() {
-		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)
-		if strings.Contains(lpod.Name, "nsmd") {
-			Expect(lpod.Status.Phase).To(Equal(v1.PodRunning))
-		}
+	for i, node := range nodes {
+		nsmdPodName := fmt.Sprintf("nsmd%d", i+1)
+		dataPlanePodName := fmt.Sprintf("nsmd-dataplane%d", i+1)
+		podsNode := k8s.CreatePods(nsmdPodFactory(nsmdPodName, &node), dataplanePodFactory(dataPlanePodName, &node))
+
+		k8s.WaitLogsContains(podsNode[0], "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
+		k8s.WaitLogsContains(podsNode[0], "nsmdp", "ListAndWatch was called with", defaultTimeout)
+		k8s.WaitLogsContains(podsNode[1], "", "Sending MonitorMechanisms update", defaultTimeout)
+		pods = append(pods, podsNode...)
 	}
 
-	k8s.DeletePods(nsmdPodNode1...)
-	k8s.DeletePods(nsmdPodNode2...)
+	k8s.DeletePods(pods...)
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)
