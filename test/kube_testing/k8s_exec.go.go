@@ -1,10 +1,11 @@
 package kube_testing
 
 import (
-	"k8s.io/api/core/v1"
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
-	"strings"
 )
 
 type Writer struct {

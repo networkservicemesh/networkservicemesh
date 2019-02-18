@@ -1,8 +1,9 @@
 package pods
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
@@ -33,7 +34,7 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 				},
 			},
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "vppagent-dataplane",
 					Image:           "networkservicemesh/vppagent-dataplane:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -57,7 +58,31 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &priv,
 					},
-				},
+					LivenessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							HTTPGet: &v1.HTTPGetAction{
+								Path:   "/liveness",
+								Port:   intstr.IntOrString{Type: 0, IntVal: 5555, StrVal: ""},
+								Scheme: "HTTP",
+							},
+						},
+						InitialDelaySeconds: 10,
+						PeriodSeconds:       10,
+						TimeoutSeconds:      3,
+					},
+					ReadinessProbe: &v1.Probe{
+						Handler: v1.Handler{
+							HTTPGet: &v1.HTTPGetAction{
+								Path:   "/readiness",
+								Port:   intstr.IntOrString{Type: 0, IntVal: 5555, StrVal: ""},
+								Scheme: "HTTP",
+							},
+						},
+						InitialDelaySeconds: 10,
+						PeriodSeconds:       10,
+						TimeoutSeconds:      3,
+					},
+				}),
 			},
 		},
 	}

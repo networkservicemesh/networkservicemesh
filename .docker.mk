@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_CONTAINERS=nsc nsmd nsmdp nsmd-k8s icmp-responder-nse vppagent-dataplane devenv crossconnect-monitor
+BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane
+BUILD_CONTAINERS+=devenv crossconnect-monitor
+BUILD_CONTAINERS+=nsc icmp-responder-nse
+BUILD_CONTAINERS+=vppagent-firewall-nse
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
@@ -86,8 +89,7 @@ docker-%-debug:
 .PHONY: docker-push-%
 docker-%-push: docker-login docker-%-build
 	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
-	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${BUILD_TAG}
-	docker push ${ORG}/$*
+	docker push ${ORG}/$*:${TAG}
 
 PHONY: docker-push
 docker-push: $(addsuffix -push,$(addprefix docker-,$(BUILD_CONTAINERS)))
