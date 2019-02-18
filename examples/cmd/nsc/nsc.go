@@ -27,12 +27,12 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	client, err := client.NewNSMClient(nil, nil)
+	client, err := client.NewNSMClientList(nil, nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	if _, err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
+	if err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
 		logrus.Fatalf("Client connect failed with error: %v", err)
 	}
 	logrus.Info("nsm client: initialization is completed successfully")

@@ -31,4 +31,8 @@ kubectl label --overwrite --all=true nodes app=nsmd-ds
 kubectl apply -f k8s/conf/cluster-role-admin.yaml
 kubectl apply -f k8s/conf/cluster-role-binding.yaml
 
+./scripts/webhook-create-cert.sh
+kubectl apply -f k8s/conf/admission-webhook.yaml
+./scripts/webhook-patch-ca-bundle.sh < ./k8s/conf/admission-webhook-cfg.yaml | kubectl apply -f -
+
 # vim: sw=4 ts=4 et si
