@@ -119,7 +119,7 @@ jobs:
             ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            export CONTAINER_FORCE_PULL="true"
+            # export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
             echo "Downloading go deps"
             go mod download
