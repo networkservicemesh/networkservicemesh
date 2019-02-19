@@ -2,12 +2,12 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/crds"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
@@ -34,8 +34,8 @@ func TestVPNLocal(t *testing.T) {
 func TestVPNFirewallRemote(t *testing.T) {
 	RegisterTestingT(t)
 
-	if !isVPNRemoteEnabled() {
-		t.Skip("VPN_REMOTE_ENABLED not defined.")
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Marked as broken.")
 	}
 
 	if testing.Short() {
@@ -53,8 +53,8 @@ func TestVPNFirewallRemote(t *testing.T) {
 func TestVPNNSERemote(t *testing.T) {
 	RegisterTestingT(t)
 
-	if !isVPNRemoteEnabled() {
-		t.Skip("VPN_REMOTE_ENABLED not defined.")
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Marked as broken.")
 	}
 
 	if testing.Short() {
@@ -72,8 +72,8 @@ func TestVPNNSERemote(t *testing.T) {
 func TestVPNNSCRemote(t *testing.T) {
 	RegisterTestingT(t)
 
-	if !isVPNRemoteEnabled() {
-		t.Skip("VPN_REMOTE_ENABLED not defined.")
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Marked as broken.")
 	}
 
 	if testing.Short() {
@@ -86,11 +86,6 @@ func TestVPNNSCRemote(t *testing.T) {
 		"vpn-gateway-nse1":       0,
 		"vpn-gateway-nsc1":       1,
 	}, false)
-}
-
-func isVPNRemoteEnabled() bool {
-	_, ok := os.LookupEnv("VPN_REMOTE_ENABLED")
-	return ok
 }
 
 func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool) {

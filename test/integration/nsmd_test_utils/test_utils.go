@@ -2,6 +2,7 @@ package nsmd_test_utils
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -153,4 +154,9 @@ func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheck
 	Expect(strings.Contains(info.pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
 	logrus.Printf("NSC Ping is success:%s", info.pingResponse)
 	return info
+}
+
+func IsBrokeTestsEnabled() bool {
+	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
+	return ok
 }

@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
 
 func createNscPod(node *v1.Node) *v1.Pod {
@@ -47,6 +46,10 @@ func TestNSCAndICMPRemote(t *testing.T) {
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
 	RegisterTestingT(t)
 
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Marked as broken.")
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -59,6 +62,10 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
 	RegisterTestingT(t)
+
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Marked as broken.")
+	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
