@@ -307,20 +307,23 @@ func (o *K8s) ListPods() []v1.Pod {
 }
 
 func (o *K8s) CleanupCRDs() {
-	managers, err := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").List(metaV1.ListOptions{})
-	Expect(err).To(BeNil())
-	for _, mgr := range managers.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").Delete(mgr.Name, &metaV1.DeleteOptions{})
+
+	// Clean up Network Services
+	services, _ := o.versionedClientSet.Networkservicemesh().NetworkServices("default").List(metaV1.ListOptions{})
+	for _, service := range services.Items {
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServices("default").Delete(service.Name, &metaV1.DeleteOptions{})
 	}
-	endpoints, err := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").List(metaV1.ListOptions{})
-	Expect(err).To(BeNil())
+
+	// Clean up Network Service Endpoints
+	endpoints, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").List(metaV1.ListOptions{})
 	for _, ep := range endpoints.Items {
 		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Delete(ep.Name, &metaV1.DeleteOptions{})
 	}
-	services, err := o.versionedClientSet.Networkservicemesh().NetworkServices("default").List(metaV1.ListOptions{})
-	Expect(err).To(BeNil())
-	for _, service := range services.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServices("default").Delete(service.Name, &metaV1.DeleteOptions{})
+
+	// Clean up Network Service Managers
+	managers, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").List(metaV1.ListOptions{})
+	for _, mgr := range managers.Items {
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").Delete(mgr.Name, &metaV1.DeleteOptions{})
 	}
 }
 
