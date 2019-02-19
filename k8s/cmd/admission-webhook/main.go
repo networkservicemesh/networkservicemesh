@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/kubernetes/pkg/apis/core/v1"
+	v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 const (
@@ -76,7 +76,15 @@ func init() {
 	_ = v1.AddToScheme(runtimeScheme)
 }
 
-func getAnnotationValue(ignoredList []string, metadata *metav1.ObjectMeta) (string, bool) {
+func getAnnotationValue(ignoredList []string, metadata *metav1.ObjectMeta, spec *corev1.PodSpec) (string, bool) {
+
+	// check if InitContainer already injected
+	for _, c := range spec.InitContainers {
+		if c.Name == "nsc" {
+			return "", false
+		}
+	}
+
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
 		if metadata.Namespace == namespace {
@@ -138,6 +146,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 
 	var meta *metav1.ObjectMeta
+	var spec *corev1.PodSpec
 	var path string
 
 	switch req.Kind.Kind {
@@ -152,6 +161,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 			}
 		}
 		meta = &deployment.ObjectMeta
+		spec = &deployment.Spec.Template.Spec
 		path = "/spec/template/spec/initContainers"
 	case "Pod":
 		var pod corev1.Pod
@@ -164,6 +174,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 			}
 		}
 		meta = &pod.ObjectMeta
+		spec = &pod.Spec
 		path = "/spec/initContainers"
 	default:
 		return &v1beta1.AdmissionResponse{
@@ -171,7 +182,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		}
 	}
 
-	value, ok := getAnnotationValue(ignoredNamespaces, meta)
+	value, ok := getAnnotationValue(ignoredNamespaces, meta, spec)
 
 	if !ok {
 		logrus.Infof("Skipping validation for %s/%s due to policy check", meta.Namespace, meta.Name)
