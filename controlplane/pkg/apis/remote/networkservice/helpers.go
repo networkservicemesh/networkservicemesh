@@ -1,6 +1,11 @@
 package networkservice
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+)
 
 func (ns *NetworkServiceRequest) IsValid() error {
 	if ns == nil {
@@ -26,4 +31,13 @@ func (ns *NetworkServiceRequest) IsValid() error {
 
 func (ns *NetworkServiceRequest) IsRemote() bool {
 	return true
+}
+func (ns *NetworkServiceRequest) GetConnectionId() string {
+	return ns.GetConnection().GetId()
+}
+func (ns *NetworkServiceRequest) Clone() nsm.NSMRequest {
+	return proto.Clone(ns).(*NetworkServiceRequest)
+}
+func (ns *NetworkServiceRequest) SetConnection(conn nsm.NSMConnection) {
+	ns.Connection = conn.(*connection.Connection)
 }

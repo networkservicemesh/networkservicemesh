@@ -37,6 +37,6 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 	nsmdPodNode1, err := k8s.CreatePodsRaw(10*time.Second, false, pods.NSCPod("nsc1", &nodes[0], map[string]string{}))
 	Expect(len(nsmdPodNode1)).To(Equal(1))
 
-	k8s.DeletePods("default", nsmdPodNode1...)
+	k8s.DeletePods(nsmdPodNode1...)
 
 }

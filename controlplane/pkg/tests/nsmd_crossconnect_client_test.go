@@ -18,10 +18,10 @@ import (
 	"testing"
 )
 
-func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor) {
+func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor, net.Listener) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
 	if err != nil {
-		return err, nil, nil
+		return err, nil, nil, sock
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -44,7 +44,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
 
-	return nil, grpcServer, monitor
+	return nil, grpcServer, monitor, sock
 }
 
 func TestCCServerEmpty(t *testing.T) {
@@ -52,10 +52,12 @@ func TestCCServerEmpty(t *testing.T) {
 
 	myModel := model.NewModel()
 
-	crossConnectAddress := "127.0.0.1:5007"
+	crossConnectAddress := "127.0.0.1:0"
 
-	err, grpcServer, monitor := startAPIServer(myModel, crossConnectAddress)
+	err, grpcServer, monitor, sock := startAPIServer(myModel, crossConnectAddress)
 	defer grpcServer.Stop()
+
+	crossConnectAddress = sock.Addr().String()
 
 	Expect(err).To(BeNil())
 

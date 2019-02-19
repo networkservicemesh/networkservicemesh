@@ -2,6 +2,8 @@ package nsmd
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -10,7 +12,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"time"
 )
 
 const (
@@ -37,17 +38,25 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, manager ns
 
 func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
-	// This parameters will go into selected mechanism
-	params := map[string]string{}
-	params[connection.Workspace] = srv.workspace.Name()
+	srv.updateMechanisms(request)
 
-	conn, err := srv.manager.Request(ctx, request, params)
+	conn, err := srv.manager.Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 	result := conn.(*connection.Connection)
 	srv.workspace.MonitorConnectionServer().Update(result)
 	return result, nil
+}
+
+func (srv *networkServiceServer) updateMechanisms(request *networkservice.NetworkServiceRequest) {
+	// Update passed local mechanism paramaters to contains a workspace name
+	for _, mechanism := range request.MechanismPreferences {
+		if mechanism.Parameters == nil {
+			mechanism.Parameters = map[string]string{}
+		}
+		mechanism.Parameters[connection.Workspace] = srv.workspace.Name()
+	}
 }
 
 func (srv *networkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {

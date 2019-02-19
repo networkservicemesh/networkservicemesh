@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"strconv"
 	"sync"
 
@@ -21,6 +22,14 @@ type Dataplane struct {
 	LocalMechanisms  []*local.Mechanism
 	RemoteMechanisms []*remote.Mechanism
 }
+type ClientConnectionState int8
+const (
+	ClientConnection_Ready = 0
+	ClientConnection_Requesting = 1
+	ClientConnection_Healing	= 2
+	ClientConnection_Closing	= 3
+	ClientConnection_Closed	= 4
+)
 
 type ClientConnection struct {
 	ConnectionId string
@@ -28,7 +37,30 @@ type ClientConnection struct {
 	RemoteNsm    *registry.NetworkServiceManager
 	Endpoint     *registry.NSERegistration
 	Dataplane    *Dataplane
-	IsClosing    bool
+	ConnectionState ClientConnectionState
+	Request      nsm.NSMRequest
+}
+
+func (cc *ClientConnection) GetId() string {
+	if cc == nil {
+		return ""
+	}
+	return cc.ConnectionId
+}
+
+func (cc *ClientConnection) GetNetworkService() string {
+	if cc == nil {
+		return ""
+	}
+	return cc.Endpoint.GetNetworkService().GetName()
+}
+
+func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
+	if cc.Xcon.GetLocalSource() != nil {
+		return cc.Xcon.GetLocalSource()
+	} else {
+		return cc.Xcon.GetRemoteSource()
+	}
 }
 
 // Model change listener
@@ -146,9 +178,13 @@ func (i *impl) DeleteClientConnection(connectionId string) {
 	clientConnection := i.clientConnections[connectionId]
 	if clientConnection == nil {
 		i.Unlock()
+		return
 	}
 	delete(i.clientConnections, connectionId)
 	i.Unlock()
+
+	i.RLock()
+	defer i.RUnlock()
 
 	for _, listener := range i.listeners {
 		listener.ClientConnectionDeleted(clientConnection)

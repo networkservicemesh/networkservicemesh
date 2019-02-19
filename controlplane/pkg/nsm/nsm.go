@@ -14,6 +14,7 @@
 package nsm
 
 import (
+	"crypto/rand"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
@@ -29,6 +30,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"time"
 )
 
 ///// Network service manager to manage both local/remote NSE connections.
@@ -46,32 +48,85 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 	}
 }
 
-func (srv *networkServiceManager) Request(ctx context.Context, request nsm.NSMRequest, extra_parameters map[string]string) (nsm.NSMConnection, error) {
-	// Make sure its a valid request
+func (srv *networkServiceManager) Request(ctx context.Context, request nsm.NSMRequest) (nsm.NSMConnection, error) {
+	// Check if we are recovering connection, by checking passed connection Id is known to us.
+	return srv.request(ctx, request, srv.model.GetClientConnection(request.GetConnectionId()))
+}
+
+func create_logid() (uuid string) {
+	b := make([]byte, 4)
+	_, err := rand.Read(b)
+	if err != nil {
+		logrus.Errorf("Error: %v", err)
+		return
+	}
+
+	uuid = fmt.Sprintf("%X", b[0:4])
+	return
+}
+
+func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRequest, existingConnection *model.ClientConnection) (nsm.NSMConnection, error) {
+	requestId := create_logid()
+	logrus.Infof("NSM:(%v) request: %v", requestId, request )
+
+	// 0. Make sure its a valid request
 	err := request.IsValid()
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 
-	var nsmConnection nsm.NSMConnection = nil
-	nsmConnection = srv.cloneConnection(request, nsmConnection)
+	// 1. Create a new connection object.
+	nsmConnection := srv.newConnection(request)
 
-	// Create a ConnectId for the request.GetConnection(), since connections are managed per NSM
-	nsmConnection.SetId(srv.createConnectionId())
+	// 2. Set connection id for new connections.
+	// Every NSMD manage it's connections.
+	if existingConnection == nil {
+		nsmConnection.SetId(srv.createConnectionId())
+	} else {
+		// 2.1 we have connection updata/heal no need for new connection id
+		nsmConnection.SetId(existingConnection.GetId())
+	}
 
-	// get dataplane
+	// 3. get dataplane
 	dp, err := srv.model.SelectDataplane()
 	if err != nil {
 		return nil, err
 	}
 
-	err = srv.updateMechanism(nsmConnection, request, dp, extra_parameters)
+	// A flag if we heal to close Dataplane in case of no NSE is found or failed to establish new connection.
+	closeDataplaneOnNSEFailed := false
+
+	// 4. Check if Heal/Update if we need to ask remote NSM or it is a just local mechanism change requested.
+	// true if we detect we need to request NSE to upgrade/update connection.
+	requestNSEOnUpdate := false
+	if existingConnection != nil {
+		// 4.1 New Network service is requested, we need to close current connection and do re-request of NSE.
+		if nsmConnection.GetNetworkService() != existingConnection.GetNetworkService() {
+			requestNSEOnUpdate = true
+			closeDataplaneOnNSEFailed = true
+			// Network service is closing, we need to close remote NSM and re-programm local one.
+			if err := srv.close(ctx, existingConnection, false); err != nil {
+				logrus.Errorf("NSM:(4.1-%v) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", requestId, request, existingConnection, err)
+			}
+		} else {
+			// 4.2 Check if NSE is still required, if some more context requests are different.
+			requestNSEOnUpdate = srv.checkNeedNSERequest(requestId, nsmConnection, existingConnection, dp)
+		}
+	}
+
+	// 5. Select a local dataplane and put it into nsmConnection object
+	err = srv.updateMechanism(requestId, nsmConnection, request, dp)
 	if err != nil {
+		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
+		if closeDataplaneOnNSEFailed {
+			srv.closeDataplaneLog(fmt.Sprintf("NSM:(5.1-%v) ", requestId), existingConnection)
+		}
 		return nil, err
 	}
 
-	logrus.Infof("Preparing to program dataplane: %v...", dp)
+	// 6. Prepare dataplane connection is fine.
+	logrus.Infof("NSM:(6-%v) Preparing to program dataplane: %v...", requestId, dp)
 	dataplaneClient, dataplaneConn, err := srv.serviceRegistry.DataplaneConnection(dp)
 	if err != nil {
 		return nil, err
@@ -80,83 +135,179 @@ func (srv *networkServiceManager) Request(ctx context.Context, request nsm.NSMRe
 		defer func() {
 			err := dataplaneConn.Close()
 			if err != nil {
-				logrus.Errorf("Error during close Dataplane connection: %v", err)
+				logrus.Errorf("NSM:(6.1-%v) Error during close Dataplane connection: %v", requestId, err)
 			}
 		}()
 	}
 
 	ignore_endpoints := map[string]*registry.NSERegistration{}
 
-	var clientConnection *model.ClientConnection
-	var last_error error
-	var endpoint *registry.NSERegistration
-	for {
-		// Clone Connection to support iteration via EndPoints
-		nseConnection := srv.cloneConnection(request, nsmConnection)
+	var clientConnection *model.ClientConnection = existingConnection
 
-		endpoint, err = srv.getEndpoint(ctx, nseConnection, ignore_endpoints)
+	// 7. do a Request() on NSE and select it.
+	if existingConnection == nil || requestNSEOnUpdate {
+		//7.1 try find NSE and do a Request to it.
+		clientConnection, err = srv.findConnectNSE(requestId, ctx, ignore_endpoints, request, nsmConnection, existingConnection, dp)
 		if err != nil {
-			if last_error != nil {
-				return nil, fmt.Errorf("%v. Last NSE Error: %v", err, last_error)
+			if closeDataplaneOnNSEFailed {
+				// 7.1.x We are failed to find NSE, and we need to close local dataplane in case of recovery.
+				srv.closeDataplaneLog(fmt.Sprintf("NSM:(7.1-%v) ", requestId), existingConnection)
 			}
 			return nil, err
 		}
-		// Update Request with exclude_prefixes
-		srv.updateExcludePrefixes(nseConnection)
-		clientConnection, err = srv.performNSERequest(request, endpoint, ctx, nseConnection, dp)
-
-		if err != nil {
-			logrus.Errorf("NSE respond with error: %v ", err)
-			last_error = err
-			ignore_endpoints[endpoint.NetworkserviceEndpoint.EndpointName] = endpoint
-			continue
+	} else if existingConnection != nil {
+		// 7.2 We do not need to access NSE, since all parameters are same.
+		if request.IsRemote() {
+			// 7.2.1 We are called from remote NSM so just copy.
+			rs := clientConnection.Xcon.GetRemoteSource()
+			rs.Mechanism = nsmConnection.(*remote_connection.Connection).Mechanism
+			rs.State = remote_connection.State_UP
+		} else {
+			// 7.2.2 It is local connection from NSC, so just copy values.
+			ls := clientConnection.Xcon.GetLocalSource()
+			ls.Mechanism = nsmConnection.(*connection.Connection).Mechanism
+			ls.State = connection.State_UP
 		}
-		break
 	}
 
-	srv.model.AddClientConnection(clientConnection)
+	// 8. Remember original Request for Heal cases.
+	clientConnection.Request = request
 
-	logrus.Infof("Sending request to dataplane: %v", clientConnection.Xcon)
+	// 9. We need Add connection to model, or update it in case of Healing.
+	if existingConnection == nil {
+		srv.model.AddClientConnection(clientConnection)
+	}
+
+	// 10. We need to programm dataplane with our values.
+	// 10.1 TODO: Close current dataplane local configuration, since currently Dataplane doesn't support upgrade.
+	if existingConnection != nil {
+		if _, err := dataplaneClient.Close(ctx, existingConnection.Xcon); err != nil {
+			logrus.Errorf("NSM:(10.1-%v) Closing Dataplane error for local connection: %v", requestId, err)
+		}
+	}
+	// 10.2 Sending updated request to dataplane.
+	logrus.Infof("NSM:(10.2-%v) Sending request to dataplane: %v", requestId, clientConnection.Xcon)
 	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 	if err != nil {
-		logrus.Errorf("Dataplane request failed: %s", err)
-		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
-		return nil, err
+		logrus.Errorf("NSM:(10.2.1-%v) Dataplane request failed: %s", requestId, err)
+		// Let's try again with a short delay
+		<-time.Tick(500)
+		logrus.Errorf("NSM:(10.2.2-%v) Dataplane request retry: %v", requestId, clientConnection.Xcon)
+		clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
+
+		if err != nil {
+			logrus.Errorf("NSM:(10.2.3-%v) Dataplane request retry failed: %s", requestId, err)
+			// 10.3 If datplane configuration are failed, we need to close remore NSE actually.
+			if dp_err := srv.close(context.Background(), clientConnection, true); dp_err != nil {
+				logrus.Errorf("NSM:(10.2.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestId, dp_err)
+			}
+			// 10.4 We need to remove local connection we just added already.
+			srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+			return nil, err
+		}
+	}
+	logrus.Infof("NSM:(10.3-%v) Dataplane configuration sucessfull %v", requestId, clientConnection.Xcon)
+
+	// 11. Send update for client connection
+	clientConnection.ConnectionState = model.ClientConnection_Ready
+	if existingConnection != nil {
+		srv.model.UpdateClientConnection(clientConnection)
 	}
 
+	// 11. We are done with configuration here.
 	if request.IsRemote() {
 		nsmConnection = clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
 	} else {
 		nsmConnection = clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_LocalSource).LocalSource
 	}
-	logrus.Info("Dataplane configuration done...")
+	logrus.Infof("NSM:(11-%v) Request done...", requestId)
 	return nsmConnection, nil
+}
+
+func (srv *networkServiceManager) closeDataplaneLog(prefix string, existingConnection *model.ClientConnection) {
+	if dp_err := srv.closeDataplane(existingConnection); dp_err != nil {
+		logrus.Errorf("%v Failed to close local Dataplane for connection %v", prefix, existingConnection)
+	}
+}
+
+func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.Context, ignore_endpoints map[string]*registry.NSERegistration, request nsm.NSMRequest, nsmConnection nsm.NSMConnection, existingConnection *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
+	// 7.x
+	var endpoint *registry.NSERegistration
+	var err error
+	var last_error error
+	var clientConnection *model.ClientConnection
+	for {
+		endpoint = nil
+		// 7.1.1 Clone Connection to support iteration via EndPoints
+		nseConnection := srv.cloneConnection(request, nsmConnection)
+
+		if existingConnection != nil {
+			// 7.2.1 Check previous endpoint, and it we will be able to contact it, it should be fine.
+			if ignore_endpoints[existingConnection.Endpoint.NetworkserviceEndpoint.EndpointName] == nil {
+				endpoint = existingConnection.Endpoint
+			}
+		}
+		// 7.2.2 Check if endpoint is not ignored yet
+
+		if endpoint == nil {
+			// 7.2.3 Choose a new endpoint
+			endpoint, err = srv.getEndpoint(ctx, nseConnection, ignore_endpoints)
+		}
+		if err != nil {
+			// 7.2.4 No endpoints found, we need to return error, including last error for previous NSE
+			if last_error != nil {
+				return nil, fmt.Errorf("NSM:(7.2.4-%v) %v. Last NSE Error: %v", requestId, err, last_error)
+			} else {
+				return nil, err
+			}
+		}
+		// 7.2.5 Update Request with exclude_prefixes, etc
+		srv.updateExcludePrefixes(nseConnection)
+
+		// 7.2.6 perform request to NSE/remote NSMD/NSE
+		clientConnection, err = srv.performNSERequest(requestId, ctx, endpoint, nseConnection, request, dp, existingConnection)
+
+		// 7.2.7 in case of error we put NSE into ignored list to check another one.
+		if err != nil {
+			logrus.Errorf("NSM:(7.2.7-%v) NSE respond with error: %v ", requestId, err)
+			last_error = err
+			ignore_endpoints[endpoint.NetworkserviceEndpoint.EndpointName] = endpoint
+			continue
+		}
+		// 7.2.8 We are fine with NSE connection and could continue.
+		return clientConnection, nil
+	}
 }
 
 func (srv *networkServiceManager) cloneConnection(request nsm.NSMRequest, response nsm.NSMConnection) nsm.NSMConnection {
 	var requestConnection nsm.NSMConnection
 	if request.IsRemote() {
-		if response == nil {
-			requestConnection = proto.Clone(request.(*remote_networkservice.NetworkServiceRequest).Connection).(*remote_connection.Connection)
-		} else {
-			requestConnection = proto.Clone(response.(*remote_connection.Connection)).(*remote_connection.Connection)
-		}
+		requestConnection = proto.Clone(response.(*remote_connection.Connection)).(*remote_connection.Connection)
 	} else {
-		if response == nil {
-			requestConnection = proto.Clone(request.(*networkservice.NetworkServiceRequest).Connection).(*connection.Connection)
-		} else {
-			requestConnection = proto.Clone(response.(*connection.Connection)).(*connection.Connection)
-		}
+		requestConnection = proto.Clone(response.(*connection.Connection)).(*connection.Connection)
+	}
+	return requestConnection
+}
+func (srv *networkServiceManager) newConnection(request nsm.NSMRequest) nsm.NSMConnection {
+	var requestConnection nsm.NSMConnection
+	if request.IsRemote() {
+		requestConnection = proto.Clone(request.(*remote_networkservice.NetworkServiceRequest).Connection).(*remote_connection.Connection)
+	} else {
+		requestConnection = proto.Clone(request.(*networkservice.NetworkServiceRequest).Connection).(*connection.Connection)
 	}
 	return requestConnection
 }
 
-func (srv *networkServiceManager) Close(ctx context.Context, clientConnection *model.ClientConnection) error {
+func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMClientConnection) error {
+	return srv.close(ctx, connection.(*model.ClientConnection), true)
+}
+
+func (srv *networkServiceManager) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool) error {
 	logrus.Infof("Closing connection %v", clientConnection)
-	if clientConnection.IsClosing {
+	if clientConnection.ConnectionState == model.ClientConnection_Closing {
 		return nil
 	}
-	clientConnection.IsClosing = true
+	clientConnection.ConnectionState = model.ClientConnection_Closing
 	var nseClientError error
 	var nseCloseError error
 
@@ -180,23 +331,18 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection *m
 	} else {
 		logrus.Errorf("Failed to create NSE Client %v", nseClientError)
 	}
-
-	dpCloseError := srv.closeDataplane(clientConnection)
-	// TODO: We need to be sure Dataplane is respond well so we could delete connection.
-	srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+	var dpCloseError error = nil
+	if closeDataplane {
+		dpCloseError = srv.closeDataplane(clientConnection)
+		// TODO: We need to be sure Dataplane is respond well so we could delete connection.
+		srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+	}
+	clientConnection.ConnectionState = model.ClientConnection_Closed
 
 	if nseClientError != nil || nseCloseError != nil || dpCloseError != nil {
-		return fmt.Errorf("Close error: %v", []error{ nseClientError, nseCloseError, dpCloseError})
+		return fmt.Errorf("Close error: %v", []error{nseClientError, nseCloseError, dpCloseError})
 	}
 	return nil
-}
-
-func (srv *networkServiceManager) CreateNSERequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, dataplane *model.Dataplane) nsm.NSMRequest {
-	if srv.isLocalEndpoint(endpoint) {
-		return srv.createLocalNSERequest(endpoint, requestConnection)
-	} else {
-		return srv.createRemoteNSMRequest(endpoint, requestConnection, dataplane)
-	}
 }
 
 func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
@@ -219,45 +365,59 @@ func (srv *networkServiceManager) createNSEClient(endpoint *registry.NSERegistra
 	}
 }
 
-func (srv *networkServiceManager) performNSERequest(request nsm.NSMRequest, endpoint *registry.NSERegistration, ctx context.Context, requestConnection nsm.NSMConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
+func (srv *networkServiceManager) performNSERequest(requestId string, ctx context.Context, endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, request nsm.NSMRequest, dp *model.Dataplane, existingConnection *model.ClientConnection) (*model.ClientConnection, error) {
+	// 7.2.6.x
 	client, err := srv.createNSEClient(endpoint)
 	if err != nil {
-		return nil, err
+		// 7.2.6.1
+		return nil, fmt.Errorf("NSM:(7.2.6.1-%v) Failed to create NSE Client", err)
 	}
 	defer func() {
 		err := client.Cleanup()
 		if err != nil {
-			logrus.Errorf("Error during Cleanup: %v", err)
+			logrus.Errorf("NSM:(7.2.6.2-%v) Error during Cleanup: %v", requestId, err)
 		}
 	}()
 
-	message := srv.CreateNSERequest(endpoint, requestConnection, dp)
+	var message nsm.NSMRequest
+	if srv.isLocalEndpoint(endpoint) {
+		message = srv.createLocalNSERequest(endpoint, requestConnection)
+	} else {
+		message = srv.createRemoteNSMRequest(endpoint, requestConnection, dp, existingConnection)
+	}
+	logrus.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestId, message)
 	nseConnection, e := client.Request(ctx, message)
 
 	if e != nil {
-		logrus.Errorf("error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		logrus.Errorf("NSM:(7.2.6.2.1-%v) error requesting networkservice from %+v with message %#v error: %s", requestId, endpoint, message, e)
 		return nil, e
 	}
 
-	err = srv.validateNSEConnection(nseConnection)
+	// 7.2.6.2.2
+	err = srv.validateNSEConnection(requestId, nseConnection)
 	if err != nil {
 		return nil, err
 	}
 
+	// 7.2.6.2.3
 	err = requestConnection.UpdateContext(nseConnection.GetContext())
 	if err != nil {
-		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
+		err = fmt.Errorf("NSM:(7.2.6.2.3-%v) failure Validating NSE Connection: %s", requestId, err)
 		return nil, err
 	}
-	srv.updateConnectionParameters(nseConnection, endpoint)
+	// 7.2.6.2.4 update connection parameters, add workspace if local nse
+	srv.updateConnectionParameters(requestId, nseConnection, endpoint)
 
+	// 7.2.6.2.5 create cross connection
 	dpApiConnection := srv.createCrossConnect(requestConnection, endpoint, request, nseConnection)
 	clientConnection := &model.ClientConnection{
 		ConnectionId: requestConnection.GetId(),
 		Xcon:         dpApiConnection,
 		Endpoint:     endpoint,
 		Dataplane:    dp,
+		ConnectionState: model.ClientConnection_Requesting,
 	}
+	// 7.2.6.2.6 - It not a local NSE put remote NSM name in request
 	if !srv.isLocalEndpoint(endpoint) {
 		clientConnection.RemoteNsm = endpoint.GetNetworkServiceManager()
 	}
@@ -294,10 +454,10 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 	}
 	return dpApiConnection
 }
-func (srv *networkServiceManager) validateNSEConnection(nseConnection nsm.NSMConnection) error {
+func (srv *networkServiceManager) validateNSEConnection(requestId string, nseConnection nsm.NSMConnection) error {
 	err := nseConnection.IsComplete()
 	if err != nil {
-		err = fmt.Errorf("failure Validating NSE Connection: %s", err)
+		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
 		return err
 	}
 	return nil
@@ -329,13 +489,13 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
-func (srv *networkServiceManager) updateConnectionParameters(nseConnection nsm.NSMConnection, endpoint *registry.NSERegistration) {
+func (srv *networkServiceManager) updateConnectionParameters(requestId string, nseConnection nsm.NSMConnection, endpoint *registry.NSERegistration) {
 	if srv.isLocalEndpoint(endpoint) {
 		workspace := nsmd.WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
 		if workspace != nil { // In case of tests this could be empty
 			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = workspace.Name()
 		}
-		logrus.Infof("Update Local NSE connection parameters: %v", nseConnection.(*connection.Connection).GetMechanism())
+		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*connection.Connection).GetMechanism())
 	}
 }
 
@@ -416,4 +576,39 @@ func (srv *networkServiceManager) filterRegEndpoints(endpoints []*registry.NSERe
 		}
 	}
 	return result
+}
+
+/**
+check if we need to do a NSE/Remote NSM request in case of our connection Upgrade/Healing procedure.
+*/
+func (srv *networkServiceManager) checkNeedNSERequest(requestId string, nsmConnection nsm.NSMConnection, existingConnection *model.ClientConnection, dp *model.Dataplane) bool {
+	// 4.2.x
+	// 4.2.1 Check if context is changed, if changed we need to
+	if !proto.Equal(nsmConnection.GetContext(), existingConnection.GetConnectionSource().GetContext()) {
+		return true
+	}
+	// We need to check, dp has mechanism changes in our Remote connection selected mechanism.
+
+	if remoteDestination := existingConnection.Xcon.GetRemoteDestination(); remoteDestination != nil {
+		// 4.2.2 Let's check if remote destination is matchs our dataplane destination.
+		if dpM := findRemoteMechanism(dp.RemoteMechanisms, remoteDestination.GetMechanism().GetType()); dpM != nil {
+			// 4.2.3 We need to check if source mechanism type and source parameters are different
+			for k, v := range dpM.Parameters {
+				rmV := remoteDestination.Mechanism.Parameters[k]
+				if v != rmV {
+					logrus.Infof("NSM:(4.2.3-%v) Remote mechanism parameter %s was different with previous one : %v  %v", requestId, k, rmV, v)
+					return true
+				}
+			}
+			if !proto.Equal(dpM, remoteDestination.Mechanism) {
+				logrus.Infof("NSM:(4.2.4-%v)  Remote mechanism was different with previous selected one : %v  %v", requestId, remoteDestination.Mechanism, dpM)
+				return true
+			}
+		} else {
+			logrus.Infof("NSM:(4.2.5-%v) Remote mechanism previously selected was not found: %v  in dataplane %v", requestId, remoteDestination.Mechanism, dp.RemoteMechanisms)
+			return true
+		}
+	}
+
+	return false
 }
