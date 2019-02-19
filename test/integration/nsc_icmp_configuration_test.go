@@ -44,7 +44,20 @@ func TestNSCAndICMPRemote(t *testing.T) {
 	testNSCAndICMP(t, 2, createNscPod)
 }
 
-func TestNSCAndICMPWebhook(t *testing.T) {
+func TestNSCAndICMPWebhookLocal(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 1, func(node *v1.Node) *v1.Pod {
+		return pods.NSCPodWebhook("nsc1", node)
+	})
+}
+
+func TestNSCAndICMPWebhookRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
