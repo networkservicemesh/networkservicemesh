@@ -21,7 +21,7 @@ spec:
               value: "icmp-responder"
           resources:
             limits:
-              nsm.ligato.io/socket: 1
+              networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-nsc
   namespace: default
