@@ -2,14 +2,23 @@ package nsm
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"golang.org/x/net/context"
 )
 
+/*
+	Unified request, handles common part of local/Remote network requests.
+*/
 type NSMRequest interface {
 	IsValid() error
 	IsRemote() bool
+	GetConnectionId() string
+	Clone() NSMRequest
+	SetConnection(connection NSMConnection)
 }
+
+/*
+	Unified Connection interface, handles common part of local/Remote connections.
+*/
 type NSMConnection interface {
 	IsValid() error
 	SetId(id string)
@@ -24,6 +33,12 @@ type NSMConnection interface {
 	SetNetworkServiceName(service string)
 }
 
+type NSMClientConnection interface {
+	GetId() string
+	GetConnectionSource() NSMConnection
+	GetNetworkService() string
+}
+
 type NetworkServiceClient interface {
 	Request(ctx context.Context, request NSMRequest) (NSMConnection, error)
 	Close(ctx context.Context, connection NSMConnection) error
@@ -34,13 +49,14 @@ type NetworkServiceClient interface {
 type HealState int32
 
 const (
-	HealState_DstDown       HealState = 1
-	HealState_SrcDown       HealState = 2
-	HealState_DataplaneDown HealState = 3
+	HealState_DstDown       HealState = 1	// Destination is down, we need to restore it and re-program local Datplane.
+	HealState_SrcDown       HealState = 2	// Source is down, most probable will not happen yet.
+	HealState_DataplaneDown HealState = 3	// In case local Dataplane is down, we need to heal NSE/Remote NSM and Dataplane.
+	HealState_DstUpdate		HealState = 4	// Destination is updated, most probable because of Remote Dataplane is down, we need to re-program local dataplane.
 )
 
 type NetworkServiceManager interface {
-	Request(ctx context.Context, request NSMRequest, extra_parameters map[string]string) (NSMConnection, error)
-	Close(ctx context.Context, clientConnection *model.ClientConnection) error
-	Heal(connection *model.ClientConnection, healState HealState)
+	Request(ctx context.Context, request NSMRequest) (NSMConnection, error)
+	Close(ctx context.Context, clientConnection NSMClientConnection) error
+	Heal(connection NSMClientConnection, healState HealState)
 }

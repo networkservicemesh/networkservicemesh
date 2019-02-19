@@ -66,7 +66,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
 
-	icmp := nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node)
+	icmp := nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1")
 	nsc := nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
 
 	failures := InterceptGomegaFailures(func() {
@@ -95,7 +95,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 			podToCheck = nsc
 		}
 
-		k8s.DeletePods("default", podToKill)
+		k8s.DeletePods(podToKill)
 		success := false
 		for attempt := 0; attempt < 20; <-time.Tick(300 * time.Millisecond) {
 			attempt++

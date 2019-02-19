@@ -2,6 +2,7 @@ package serviceregistry
 
 import (
 	"net"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
@@ -34,7 +35,7 @@ type ServiceRegistry interface {
 	EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 	RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 
-	WaitForDataplaneAvailable(model model.Model)
+	WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error
 
 	WorkspaceName(endpoint *registry.NSERegistration) string
 

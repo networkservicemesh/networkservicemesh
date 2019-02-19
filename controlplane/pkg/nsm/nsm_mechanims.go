@@ -9,27 +9,26 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-func (srv *networkServiceManager) updateMechanism(nsmConnection nsm.NSMConnection, request nsm.NSMRequest, dataplane *model.Dataplane, extra_parameters map[string]string) error {
+func (srv *networkServiceManager) updateMechanism(requestId string, nsmConnection nsm.NSMConnection, request nsm.NSMRequest, dataplane *model.Dataplane) error {
+	// 5.x
 	if request.IsRemote() {
-		mechanism, err := srv.selectRemoteMechanism(request.(*remote_networkservice.NetworkServiceRequest), dataplane)
+		//5.1 Select appropriate remote mechanism
+		mechanism, err := srv.selectRemoteMechanism(requestId, request.(*remote_networkservice.NetworkServiceRequest), dataplane)
 		if err != nil {
 			return err
 		}
 		c := nsmConnection.(*remote_connection.Connection)
-		c.Mechanism = proto.Clone(mechanism).(*remote_connection.Mechanism)
-
+		newMechanism := proto.Clone(mechanism).(*remote_connection.Mechanism)
+		c.Mechanism = newMechanism
 		if c.Mechanism == nil {
 			return fmt.Errorf("Required mechanism are not found... %v ", dataplane.RemoteMechanisms)
 		}
 		if c.Mechanism.Parameters == nil {
 			c.Mechanism.Parameters = map[string]string{}
-		}
-
-		for k, v := range extra_parameters {
-			c.Mechanism.Parameters[k] = v
 		}
 	} else {
 		c := nsmConnection.(*connection.Connection)
@@ -48,19 +47,14 @@ func (srv *networkServiceManager) updateMechanism(nsmConnection nsm.NSMConnectio
 		if c.Mechanism.Parameters == nil {
 			c.Mechanism.Parameters = map[string]string{}
 		}
-
-		for k, v := range extra_parameters {
-			c.Mechanism.Parameters[k] = v
-		}
-
 	}
 
 	return nil
 }
 
-func (srv *networkServiceManager) selectRemoteMechanism(request *remote_networkservice.NetworkServiceRequest, dataplane *model.Dataplane) (*remote_connection.Mechanism, error) {
+func (srv *networkServiceManager) selectRemoteMechanism(requestId string, request *remote_networkservice.NetworkServiceRequest, dp *model.Dataplane) (*remote_connection.Mechanism, error) {
 	for _, mechanism := range request.MechanismPreferences {
-		dp_mechanism := findRemoteMechanism(dataplane.RemoteMechanisms, remote_connection.MechanismType_VXLAN)
+		dp_mechanism := findRemoteMechanism(dp.RemoteMechanisms, remote_connection.MechanismType_VXLAN)
 		if dp_mechanism == nil {
 			continue
 		}
@@ -72,9 +66,10 @@ func (srv *networkServiceManager) selectRemoteMechanism(request *remote_networks
 			mechanism.Parameters[remote_connection.VXLANDstIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
 			mechanism.Parameters[remote_connection.VXLANVNI] = strconv.FormatUint(srv.serviceRegistry.VniAllocator().Vni(dp_mechanism.Parameters[remote_connection.VXLANSrcIP], remoteSrc), 10)
 		}
+		logrus.Infof("NSM:(4.1-%v) Remote mechanism selected %v", requestId, mechanism)
 		return mechanism, nil
 	}
-	return nil, fmt.Errorf("Failed to select mechanism. No matched mechanisms found...")
+	return nil, fmt.Errorf("NSM:(5.1-%v) Failed to select mechanism. No matched mechanisms found...", requestId)
 }
 
 func findRemoteMechanism(MechanismPreferences []*remote_connection.Mechanism, mechanismType remote_connection.MechanismType) *remote_connection.Mechanism {

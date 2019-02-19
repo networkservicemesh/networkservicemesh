@@ -3,9 +3,10 @@ package network_service_server
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
-	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -39,9 +40,7 @@ func NewRemoteNetworkServiceServer(model model.Model, manager nsm.NetworkService
 
 func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
 	logrus.Infof("RemoteNSMD: Received request from client to connect to NetworkService: %v", request)
-	params := map[string]string{}
-
-	conn, err := srv.manager.Request(ctx, request, params)
+	conn, err := srv.manager.Request(ctx, request)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

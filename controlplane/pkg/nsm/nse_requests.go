@@ -10,24 +10,41 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, dataplane *model.Dataplane) *remote_networkservice.NetworkServiceRequest {
+func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, dataplane *model.Dataplane, existingConnection *model.ClientConnection) *remote_networkservice.NetworkServiceRequest {
 	// We need to obtain parameters for remote mechanism
 	remoteM := []*remote_connection.Mechanism{}
 	for _, mechanism := range dataplane.RemoteMechanisms {
 		remoteM = append(remoteM, mechanism)
 	}
-	message := &remote_networkservice.NetworkServiceRequest{
-		Connection: &remote_connection.Connection{
-			// TODO track connection ids
-			Id:                                   srv.createConnectionId(),
-			NetworkService:                       requestConnection.GetNetworkService(),
-			Context:                              requestConnection.GetContext(),
-			Labels:                               requestConnection.GetLabels(),
-			DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
-			SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
-			NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
-		},
-		MechanismPreferences: remoteM,
+	var message *remote_networkservice.NetworkServiceRequest
+	if existingConnection != nil {
+		remoteDst := existingConnection.Xcon.GetRemoteDestination()
+		message = &remote_networkservice.NetworkServiceRequest{
+
+			Connection: &remote_connection.Connection{
+				Id:                                   remoteDst.GetId(),
+				NetworkService:                       remoteDst.NetworkService,
+				Context:                              remoteDst.GetContext(),
+				Labels:                               remoteDst.GetLabels(),
+				DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
+				SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
+				NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
+			},
+			MechanismPreferences: remoteM,
+		}
+	} else {
+		message = &remote_networkservice.NetworkServiceRequest{
+			Connection: &remote_connection.Connection{
+				Id:                                   "-",
+				NetworkService:                       requestConnection.GetNetworkService(),
+				Context:                              requestConnection.GetContext(),
+				Labels:                               requestConnection.GetLabels(),
+				DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
+				SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
+				NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
+			},
+			MechanismPreferences: remoteM,
+		}
 	}
 	return message
 }

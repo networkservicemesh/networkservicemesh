@@ -2,6 +2,7 @@ package nsm
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
@@ -26,7 +27,7 @@ func (c *nsmClient) Close(ctx context.Context, conn nsm.NSMConnection) error {
 		return fmt.Errorf("Remote NSM Connection is not initialized...")
 	}
 	_, err := c.client.Close(ctx, conn.(*connection.Connection))
-	_= c.Cleanup()
+	_ = c.Cleanup()
 	return err
 }
 

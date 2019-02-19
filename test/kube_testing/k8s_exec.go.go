@@ -1,11 +1,13 @@
 package kube_testing
 
 import (
-	"strings"
-
-	v1 "k8s.io/api/core/v1"
+	"fmt"
+	"github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
+	"strings"
+	"sync"
 )
 
 type Writer struct {
@@ -21,6 +23,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 }
 
 func (o *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, string, error) {
+	logrus.Infof("Executing: %v in pod %v:%v", command, pod.Name, container)
 	execRequest := o.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(pod.Name).
@@ -54,7 +57,15 @@ func (o *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, st
 		Stderr: stdErr,
 		Tty:    false,
 	}
-	err = exec.Stream(options)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = exec.Stream(options)
+	}()
+	if !waitTimeout(fmt.Sprintf("Exec %v:%v cmdline: %v", pod.Name, container, command), &wg, podExecTimeout) {
+		logrus.Errorf("Failed to do exec. Timeout")
+	}
 
 	return stdOut.Str, stdErr.Str, err
 }

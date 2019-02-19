@@ -15,11 +15,12 @@
 package nsmd
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"net"
 	"os"
 	"sync"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"

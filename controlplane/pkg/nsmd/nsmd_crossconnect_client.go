@@ -16,10 +16,12 @@ package nsmd
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"net"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
+	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -30,7 +32,6 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -101,6 +102,13 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{cancel: cancel, xconCounter: 1}
 	go client.remotePeerConnectionMonitor(clientConnection.RemoteNsm, ctx)
 }
+func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
+	logrus.Infof("ClientConnectionUpdated: %v", clientConnection)
+
+	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
+		client.connectionMonitor.Update(conn)
+	}
+}
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
 	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
@@ -109,18 +117,19 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnec
 	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
 		client.connectionMonitor.Delete(conn)
 	}
-	if conn := clientConnection.Xcon.GetRemoteDestination(); conn != nil {
-		client.connectionMonitor.Delete(conn)
-	}
 
 	if clientConnection.RemoteNsm == nil {
 		return
 	}
 	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
-	remotePeer.xconCounter--
-	if remotePeer.xconCounter == 0 {
-		remotePeer.cancel()
-		delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+	if remotePeer != nil {
+		remotePeer.xconCounter--
+		if remotePeer.xconCounter == 0 {
+			remotePeer.cancel()
+			delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+		}
+	} else {
+		logrus.Errorf("Remote peer for NSM is already closed: %v", clientConnection)
 	}
 }
 
@@ -143,14 +152,13 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 		logrus.Error(err)
 		return
 	}
-
+	logrus.Infof("Monitoring %v CrossConnections...", dataplane.RegisteredName)
 	for {
 		select {
 		case <-ctx.Done():
 			logrus.Info("Context timeout exceeded...")
 			return
 		default:
-			logrus.Info("Recv CrossConnect event...")
 			event, err := stream.Recv()
 			if err != nil {
 				logrus.Error(err)
@@ -194,6 +202,10 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 	}
 	defer conn.Close()
 
+	defer func() {
+		logrus.Infof("Remote monitor closed... %v", remotePeer)
+	}()
+
 	monitorClient := remote_connection.NewMonitorConnectionClient(conn)
 	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: remotePeer.Name}
 	stream, err := monitorClient.MonitorConnections(context.Background(), selector)
@@ -223,6 +235,9 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 					continue
 				}
 				switch event.GetType() {
+				case connection.ConnectionEventType_UPDATE:
+					// DST connection is updated, we most probable need to re-programm our data plane.
+					client.xconManager.UpdateClientConnectionDstUpdated(clientConnection, remoteConnection)
 				case connection.ConnectionEventType_DELETE:
 					client.xconManager.UpdateClientConnectionDstStateDown(clientConnection)
 					//TODO: Local Connection should be informed about SRC connection is also down.
