@@ -24,7 +24,7 @@ func NSMDPod(name string, node *v1.Node) *v1.Pod {
 }
 
 func NSMDPodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return createdNSMDPod(name, node, createProbe("/liveness"), createProbe("/readines"))
+	return createdNSMDPod(name, node, createProbe("/liveness"), createProbe("/readiness"))
 }
 
 func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *v1.Pod {

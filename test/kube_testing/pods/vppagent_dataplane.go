@@ -10,7 +10,7 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 }
 
 func VPPDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readines"))
+	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"))
 }
 
 func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe) *v1.Pod {
