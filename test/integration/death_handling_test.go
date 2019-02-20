@@ -1,14 +1,15 @@
 package nsmd_integration_tests
 
 import (
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"strings"
-	"testing"
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestNscDiesSingleNode(t *testing.T) {
@@ -64,10 +65,10 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
-	icmp := nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1")
-	nsc := nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+	icmp := nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nsc := nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
 	failures := InterceptGomegaFailures(func() {
 		ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")

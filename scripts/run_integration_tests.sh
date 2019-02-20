@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Copyright 2019 VMware, Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -13,14 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: k8s-integration-config
-k8s-integration-config:
-	@./scripts/prepare-circle-integration-tests.sh
+all_tests=${1:-$(GO111MODULE=on go test ./test/... -list Test | grep Test | xargs)}
 
-.PHONY: k8s-integration-tests
-k8s-integration-tests: k8s-integration-config
-	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m
-
-.PHONY: k8s-integration-%-test
-k8s-integration-%-test: k8s-integration-config
-	@GO111MODULE=on BROKEN_TESTS_ENABLED=on go test -v ./test/... -failfast -run $*
+for t in $all_tests
+do
+    GO111MODULE=on go test -v ./test/... -timeout 5m -run "$t"
+done

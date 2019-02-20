@@ -3,10 +3,17 @@ package pods
 import (
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
+	return createVPPDataplanePod(name, node, nil, nil)
+}
+
+func VPPDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
+	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"))
+}
+
+func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -58,30 +65,8 @@ func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &priv,
 					},
-					LivenessProbe: &v1.Probe{
-						Handler: v1.Handler{
-							HTTPGet: &v1.HTTPGetAction{
-								Path:   "/liveness",
-								Port:   intstr.IntOrString{Type: 0, IntVal: 5555, StrVal: ""},
-								Scheme: "HTTP",
-							},
-						},
-						InitialDelaySeconds: 10,
-						PeriodSeconds:       10,
-						TimeoutSeconds:      3,
-					},
-					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
-							HTTPGet: &v1.HTTPGetAction{
-								Path:   "/readiness",
-								Port:   intstr.IntOrString{Type: 0, IntVal: 5555, StrVal: ""},
-								Scheme: "HTTP",
-							},
-						},
-						InitialDelaySeconds: 10,
-						PeriodSeconds:       10,
-						TimeoutSeconds:      3,
-					},
+					LivenessProbe:  liveness,
+					ReadinessProbe: readiness,
 				}),
 			},
 		},
