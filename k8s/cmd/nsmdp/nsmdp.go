@@ -21,7 +21,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"sync"
 	"syscall"
 	"time"
 
@@ -233,6 +232,14 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 }
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
 	tracer, closer := tools.InitJaeger("nsmdp")
 	defer closer.Close()
 	opentracing.SetGlobalTracer(tracer)
@@ -245,13 +252,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+	<-c
 }
