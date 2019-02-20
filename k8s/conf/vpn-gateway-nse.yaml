@@ -34,7 +34,7 @@ spec:
               value: "10.60.1.0/24"
           resources:
             limits:
-              nsm.ligato.io/socket: 1
+              networkservicemesh.io/socket: 1
         - name: nginx
           image: networkservicemesh/nginx
 metadata:

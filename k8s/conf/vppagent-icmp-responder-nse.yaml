@@ -38,7 +38,7 @@ spec:
               value: "10.30.1.1"
           resources:
             limits:
-              nsm.ligato.io/socket: 1
+              networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-icmp-responder-nse
   namespace: default

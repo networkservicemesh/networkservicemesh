@@ -16,7 +16,7 @@ func ICMPResponderPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 		ImagePullPolicy: v1.PullIfNotPresent,
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
-				"nsm.ligato.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 			},
 			Requests: nil,
 		},

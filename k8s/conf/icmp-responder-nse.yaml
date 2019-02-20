@@ -38,7 +38,7 @@ spec:
               value: "10.20.1.0/24"
           resources:
             limits:
-              nsm.ligato.io/socket: 1
+              networkservicemesh.io/socket: 1
 metadata:
   name: icmp-responder-nse
   namespace: default
