@@ -33,9 +33,9 @@ func TestSingleCrossConnect(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
-	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1")
-	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -56,9 +56,9 @@ func TestSingleCrossConnect(t *testing.T) {
 	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
 	defer close2()
 
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, 50*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, fastTimeout)
 	Expect(err).To(BeNil())
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, 50*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, fastTimeout)
 	Expect(err).To(BeNil())
 }
 
@@ -80,7 +80,7 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -101,12 +101,12 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
 	defer close2()
 
-	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1")
-	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, 50*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, fastTimeout)
 	Expect(err).To(BeNil())
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, 50*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, fastTimeout)
 	Expect(err).To(BeNil())
 }
 
@@ -128,10 +128,10 @@ func TestSeveralCrossConnects(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
-	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node,"icmp-responder-nse1")
-	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
-	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc2")
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc2", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -153,9 +153,9 @@ func TestSeveralCrossConnects(t *testing.T) {
 	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
 	defer close2()
 
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 2, 5*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 2, fastTimeout)
 	Expect(err).To(BeNil())
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 2, 5*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 2, fastTimeout)
 	Expect(err).To(BeNil())
 }
 func TestCrossConnectMonitorRestart(t *testing.T) {
@@ -176,10 +176,10 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount)
-	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1")
-	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1")
-	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc2")
+	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc2", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -189,14 +189,14 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	nsmdMonitor, closeFunc, cancel := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, 5*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, fastTimeout)
 	Expect(err).To(BeNil())
 	closeFunc()
 
 	logrus.Info("Restarting monitor")
 	nsmdMonitor, closeFunc, cancel = createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 	defer closeFunc()
-	_, err = getCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, 5*time.Second)
+	_, err = getCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, fastTimeout)
 	Expect(err).To(BeNil())
 }
 

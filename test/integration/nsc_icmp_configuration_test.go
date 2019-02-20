@@ -1,18 +1,16 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
-	"k8s.io/api/core/v1"
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
-
-const defaultTimeout = 60 * time.Second
 
 func createNscPod(node *v1.Node) *v1.Pod {
 	return pods.NSCPod("nsc1", node,
@@ -45,7 +43,20 @@ func TestNSCAndICMPRemote(t *testing.T) {
 	testNSCAndICMP(t, 2, createNscPod)
 }
 
-func TestNSCAndICMPWebhook(t *testing.T) {
+func TestNSCAndICMPWebhookLocal(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 1, func(node *v1.Node) *v1.Pod {
+		return pods.NSCPodWebhook("nsc1", node)
+	})
+}
+
+func TestNSCAndICMPWebhookRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -71,12 +82,12 @@ func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount )
+	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	// Run ICMP on latest node
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1")
+	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1")
+	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout)
 
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 
@@ -86,7 +97,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
 		logrus.Errorf("Failues: %v", failures)
-		nsmd_test_utils.PrintLogs(k8s, nodes_setup);
+		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
 		nscInfo.PrintLogs()
 
 		t.Fail()
