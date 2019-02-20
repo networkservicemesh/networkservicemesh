@@ -19,7 +19,7 @@ k8s-integration-config:
 
 .PHONY: k8s-integration-tests
 k8s-integration-tests: k8s-integration-config
-	@GO111MODULE=on BROKEN_TESTS_ENABLED=on go test -v ./test/... -failfast
+	@GO111MODULE=on go test -v ./test/... -failfast
 
 .PHONY: k8s-integration-%-test
 k8s-integration-%-test: k8s-integration-config
