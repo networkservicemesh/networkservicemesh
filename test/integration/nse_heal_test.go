@@ -69,7 +69,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 
 	logrus.Infof("Waiting for connection recovery...")
 	failures = InterceptGomegaFailures(func() {
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	})
 	if len(failures) > 0 {
 		printErrors(failures, k8s, nodes_setup, nscInfo, t)

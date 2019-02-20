@@ -66,7 +66,7 @@ func testDataplaneHeal(t *testing.T, nodesCount int) {
 	k8s.DeletePods(nodes_setup[nodesCount-1].Dataplane)
 
 	logrus.Infof("Wait NSMD is waiting for dataplane recovery")
-	k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", 60*time.Second)
+	k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", defaultTimeout)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	dpName := fmt.Sprintf("nsmd-dataplane-recovered-%d", nodesCount-1)
 
@@ -79,10 +79,10 @@ func testDataplaneHeal(t *testing.T, nodesCount int) {
 
 	logrus.Infof("Waiting for connection recovery...")
 	if nodesCount > 1 {
-		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Healing will be continued on source side...", 60*time.Second)
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Healing will be continued on source side...", defaultTimeout)
+		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	} else {
-		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	}
 	logrus.Infof("Waiting for connection recovery Done...")
 
