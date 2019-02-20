@@ -115,18 +115,130 @@ jobs:
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
+          name: Prep K8s cluster
           command: |
-            ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
+            ./scripts/prepare-circle-integration-tests.sh
             mkdir -p ~/junit/
-            echo "Downloading go deps"
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: Go Mod Download
+          command: |
             go mod download
-            echo "Running integration tests"
-            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout 20m
-            echo "Finish running integration tests"
-          no_output_timeout: 30m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: Death Handling Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/death_handling_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: Exec Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/exec_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: Kube Version Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/kube_version_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: MonitorCross Connect Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/monitor_cross_connect_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: NSC Deploy Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/nsc_deploy_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: NSC ICMP Configuration Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/nsc_icmp_configuration_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: NSE Dataplane Heal Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/nse_dataplane_heal_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: NSE Heal Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/nse_heal_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: NSMD Deploy Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/nsmd_deploy_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: NSMD K8s Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/nsmd_k8s_test.go -timeout 20m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            GO111MODULE: 'on'
+      - run:
+          name: VPN Tests
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_FORCE_PULL="true"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/vpn_test.go -timeout 20m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: 'on'
