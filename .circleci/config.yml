@@ -121,7 +121,11 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
-            gotestsum --junitfile ~/junit/integration-tests.xml ./test/... -timeout 30m
+            echo "Downloading go deps"
+            go mod download
+            echo "Running integration tests"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout 20m
+            echo "Finish running integration tests"
           no_output_timeout: 30m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
