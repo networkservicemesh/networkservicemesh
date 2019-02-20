@@ -46,10 +46,6 @@ func TestNSCAndICMPRemote(t *testing.T) {
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
 	RegisterTestingT(t)
 
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("Marked as broken.")
-	}
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -62,10 +58,6 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
 	RegisterTestingT(t)
-
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("Marked as broken.")
-	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
