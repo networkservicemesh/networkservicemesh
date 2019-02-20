@@ -66,6 +66,9 @@ const (
 	repoDefault          = "networkservicemesh"
 	initContainerDefault = "nsc"
 	tagDefault           = "latest"
+
+	pathDeploymentInitContainers = "/spec/template/spec/initContainers"
+	pathPodInitContainers        = "/spec/initContainers"
 )
 
 func init() {
@@ -162,7 +165,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		}
 		meta = &deployment.ObjectMeta
 		spec = &deployment.Spec.Template.Spec
-		path = "/spec/template/spec/initContainers"
+		path = pathDeploymentInitContainers
 	case "Pod":
 		var pod corev1.Pod
 		if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -175,7 +178,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		}
 		meta = &pod.ObjectMeta
 		spec = &pod.Spec
-		path = "/spec/initContainers"
+		path = pathPodInitContainers
 	default:
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
