@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -17,6 +16,15 @@ import (
 
 func main() {
 	start := time.Now()
+
+	// Capture signals to cleanup before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -49,14 +57,6 @@ func main() {
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting NSMD took: %s", elapsed)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+	<-c
 }
