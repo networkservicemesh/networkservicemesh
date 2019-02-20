@@ -26,7 +26,7 @@ spec:
               value: "true"
           resources:
             limits:
-              nsm.ligato.io/socket: 1
+              networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-firewall-nse
   namespace: default
