@@ -8,12 +8,12 @@ import (
 func JaegerService(pod *v1.Pod) *v1.Service {
 	return &v1.Service{
 		ObjectMeta: v12.ObjectMeta{
-			Name: pod.Name,
+			Name:   pod.Name,
 			Labels: map[string]string{"run": pod.Name},
 		},
-		Spec: v1.ServiceSpec {
+		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
-				{Name:"http", Port: 16686, Protocol: "TCP"},
+				{Name: "http", Port: 16686, Protocol: "TCP"},
 				{Name: "jaeger", Port: 6831, Protocol: "UDP"},
 			},
 			Selector: map[string]string{"run": "jaeger"},
@@ -37,14 +37,13 @@ func Jaeger() *v1.Pod {
 					Name:            "jaeger",
 					Image:           "jaegertracing/all-in-one:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Ports: []v1.ContainerPort {
-						{Name: "http", ContainerPort: 16686, Protocol:"TCP"},
-						{Name: "jaeger", ContainerPort: 6831, Protocol:"UDP"},
+					Ports: []v1.ContainerPort{
+						{Name: "http", ContainerPort: 16686, Protocol: "TCP"},
+						{Name: "jaeger", ContainerPort: 6831, Protocol: "UDP"},
 					},
 				},
 			},
 		},
-
 	}
 	return pod
 }

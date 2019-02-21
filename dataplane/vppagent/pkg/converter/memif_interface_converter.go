@@ -20,9 +20,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
 type MemifInterfaceConverter struct {
