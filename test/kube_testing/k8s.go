@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -248,6 +249,7 @@ type K8s struct {
 	pods               []*v1.Pod
 	config             *rest.Config
 	roles              []nsmrbac.Role
+	namespace          string
 }
 
 func NewK8s() (*K8s, error) {
@@ -272,8 +274,9 @@ func NewK8sWithoutRoles() (*K8s, error) {
 	}
 	client.config = config
 	client.clientset, err = kubernetes.NewForConfig(config)
-
 	Expect(err).To(BeNil())
+
+	client.initNamespace()
 
 	client.versionedClientSet, err = versioned.NewForConfig(config)
 	Expect(err).To(BeNil())
@@ -299,6 +302,13 @@ func (o *K8s) deletePodForce(pod *v1.Pod) error {
 		return err
 	}
 	return nil
+}
+
+func (o *K8s) initNamespace() {
+	var err error
+	nsmNamespace := namespace.GetNamespace()
+	o.namespace, err = o.CreateTestNamespace(nsmNamespace)
+	Expect(err).To(BeNil())
 }
 
 // Delete POD with completion check
@@ -343,7 +353,7 @@ func (o *K8s) GetNodes() []v1.Node {
 }
 
 func (o *K8s) ListPods() []v1.Pod {
-	podList, err := o.clientset.CoreV1().Pods("default").List(metaV1.ListOptions{})
+	podList, err := o.clientset.CoreV1().Pods(o.namespace).List(metaV1.ListOptions{})
 	Expect(err).To(BeNil())
 	return podList.Items
 }
@@ -351,21 +361,21 @@ func (o *K8s) ListPods() []v1.Pod {
 func (o *K8s) CleanupCRDs() {
 
 	// Clean up Network Services
-	services, _ := o.versionedClientSet.Networkservicemesh().NetworkServices("default").List(metaV1.ListOptions{})
+	services, _ := o.versionedClientSet.Networkservicemesh().NetworkServices(o.namespace).List(metaV1.ListOptions{})
 	for _, service := range services.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServices("default").Delete(service.Name, &metaV1.DeleteOptions{})
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServices(o.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
 	}
 
 	// Clean up Network Service Endpoints
-	endpoints, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").List(metaV1.ListOptions{})
+	endpoints, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints(o.namespace).List(metaV1.ListOptions{})
 	for _, ep := range endpoints.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints("default").Delete(ep.Name, &metaV1.DeleteOptions{})
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints(o.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
 	}
 
 	// Clean up Network Service Managers
-	managers, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").List(metaV1.ListOptions{})
+	managers, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers(o.namespace).List(metaV1.ListOptions{})
 	for _, mgr := range managers.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers("default").Delete(mgr.Name, &metaV1.DeleteOptions{})
+		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers(o.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
 	}
 }
 
@@ -376,6 +386,7 @@ func (l *K8s) Cleanup() {
 	l.CleanupCRDs()
 	l.CleanupConfigMaps()
 	l.DeleteRoles(l.roles)
+	l.DeleteTestNamespace(l.namespace)
 }
 
 func (l *K8s) PrepareDefault() {
@@ -400,18 +411,22 @@ func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
 	return pods
 }
 func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
-	results := l.createAndBlock(l.clientset, l.config, "default", timeout, templates...)
+	results := l.createAndBlock(l.clientset, l.config, l.namespace, timeout, templates...)
 	pods := []*v1.Pod{}
 
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
 	errs := []error{}
 	for _, podResult := range results {
-		if podResult.pod != nil {
-			pods = append(pods, podResult.pod)
-		}
-		if podResult.err != nil {
-			logrus.Errorf("Error Creating Pod: %s %v", podResult.pod.Name, podResult.err)
-			errs = append(errs, podResult.err)
+		if podResult == nil {
+			logrus.Errorf("Error - Pod should have been created, but is nil: %v", podResult)
+		} else {
+			if podResult.pod != nil {
+				pods = append(pods, podResult.pod)
+			}
+			if podResult.err != nil {
+				logrus.Errorf("Error Creating Pod: %s %v", podResult.pod.Name, podResult.err)
+				errs = append(errs, podResult.err)
+			}
 		}
 	}
 	l.pods = append(l.pods, pods...)
@@ -429,8 +444,12 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 }
 
 func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
-	results, _ := l.CreatePodsRaw(podStartTimeout, true, template)
-	return results[0]
+	results, err := l.CreatePodsRaw(podStartTimeout, true, template)
+	if err != nil || len(results) == 0 {
+		return nil
+	} else {
+		return results[0]
+	}
 }
 
 func (l *K8s) DeletePods(pods ...*v1.Pod) {
@@ -457,7 +476,7 @@ func (k8s *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		response := k8s.clientset.CoreV1().Pods("default").GetLogs(pod.Name, getLogsOpt)
+		response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, getLogsOpt)
 		result, err = response.DoRaw()
 	}()
 	if !waitTimeout(fmt.Sprintf("GetLogs %v:%v", pod.Name, container), &wg, podGetLogTimeout) {
@@ -608,16 +627,67 @@ func (o *K8s) CreateConfigMap(cm *v1.ConfigMap) (*v1.ConfigMap, error) {
 
 func (o *K8s) CleanupConfigMaps() {
 	// Clean up Network Service Endpoints
-	configMaps, _ := o.clientset.CoreV1().ConfigMaps("default").List(metaV1.ListOptions{})
+	configMaps, _ := o.clientset.CoreV1().ConfigMaps(o.namespace).List(metaV1.ListOptions{})
 	for _, cm := range configMaps.Items {
-		_ = o.clientset.CoreV1().ConfigMaps("default").Delete(cm.Name, &metaV1.DeleteOptions{})
+		_ = o.clientset.CoreV1().ConfigMaps(o.namespace).Delete(cm.Name, &metaV1.DeleteOptions{})
 	}
+}
+
+func (o *K8s) CreateTestNamespace(namespace string) (string, error) {
+	if len(namespace) == 0 || namespace == "default" {
+		return "default", nil
+	}
+	nsTemplate := &v1.Namespace{
+		ObjectMeta: metaV1.ObjectMeta{
+			GenerateName: namespace + "-",
+		},
+	}
+	nsNamespace, err := o.clientset.CoreV1().Namespaces().Create(nsTemplate)
+	if err != nil {
+		nsRes := ""
+		if strings.Contains(err.Error(), "already exists") {
+			nsRes = namespace
+		}
+		return nsRes, fmt.Errorf("failed to create a namespace (error: %v)", err)
+	}
+
+	logrus.Printf("namespace %v is created", nsNamespace.GetName())
+
+	return nsNamespace.GetName(), nil
+}
+
+func (o *K8s) DeleteTestNamespace(namespace string) error {
+	if namespace == "default" {
+		return nil
+	}
+
+	var immediate int64
+	err := o.clientset.CoreV1().Namespaces().Delete(namespace, &metaV1.DeleteOptions{GracePeriodSeconds: &immediate})
+	if err != nil {
+		return fmt.Errorf("failed to delete namespace %q (error: %v)", namespace, err)
+	}
+
+	logrus.Printf("namespace %v is deleted", namespace)
+
+	return nil
+}
+
+func (o *K8s) GetNamespace(namespace string) (*v1.Namespace, error) {
+	ns, err := o.clientset.CoreV1().Namespaces().Get(namespace, metaV1.GetOptions{})
+	if err != nil {
+		err = fmt.Errorf("failed to get namespace %q (error: %v)", namespace, err)
+	}
+	return ns, err
+}
+
+func (o *K8s) GetK8sNamespace() string {
+	return o.namespace
 }
 
 func (o *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 	createdRoles := []nsmrbac.Role{}
 	for _, kind := range rolesList {
-		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind])
+		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind], o.GetK8sNamespace())
 		err := role.Create(o.clientset)
 		if err != nil {
 			logrus.Errorf("failed creating role: %v %v", role, err)
