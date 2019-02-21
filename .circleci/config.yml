@@ -13,6 +13,11 @@ jobs:
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
       - run: go version
       - run: "! go fmt ./... 2>&1 | read"
+      - run:
+          name: golint
+          command: |
+            go get -u github.com/golang/lint/golint
+            golint ./...
       - run: make vet check
       - run: go install k8s.io/code-generator/cmd/deepcopy-gen
       - run: go install github.com/golang/protobuf/protoc-gen-go
