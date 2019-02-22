@@ -39,7 +39,7 @@ See our full documentation at the [docs](/docs/README.md) folder.
 * Channels
   * [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
 
-* Mail
+* Mailing list
   * [![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
 
 ## References
