@@ -35,7 +35,6 @@ See our full documentation at the [docs](/docs/README.md) folder.
   * [Meeting minutes - Documentation](https://docs.google.com/document/d/1113nzdL-DcDAWT3963IsS9LeekgXLTgGebxPO7ZnJaA/edit?usp=sharing)
   * [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
   * [Recordings](https://www.youtube.com/playlist?list=PLj6h78yzYM2Ob01WuF-mqMxd8a_wAuppb)
-  * [Google Drive Folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) - where most of the NSM docs are located. Keep in mind that some of them are still Work in Progress.
 
 * Channels
   * [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
@@ -57,6 +56,7 @@ See our full documentation at the [docs](/docs/README.md) folder.
 * [Network Service Mesh: VPN Gateway](https://docs.google.com/presentation/d/1BnouS8d_Aesq9IPRPWRxTcZR1ZtmULcyh6l0gAK204Q/edit#slide=id.p)
 * [Network Service Mesh: Presentation to Kubernetes SIG Networking 2018-05-31](https://docs.google.com/presentation/d/1vmN5EevNccel6Wt8KgmkXhAfnjIli4IbjskezQjyfUE/edit#slide=id.p)
 * [Use Case Working Document](https://drive.google.com/open?id=1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk)
+* [Network Service Mesh: Google Drive Folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) - where most of the NSM docs are located. Keep in mind that some of them are still Work in Progress.
 
 ## Dependencies
 
