@@ -24,7 +24,7 @@ git clone https://github.com/networkservicemesh/networkservicemesh
 cd networkservicemesh
 ```
 
-## Build
+## Build the Network Service Mesh images
 
 First, let's build the Docker images of the various components:
 
@@ -32,7 +32,7 @@ First, let's build the Docker images of the various components:
 make k8s-save
 ```
 
-## Local Vagrant setup
+## Setup the local Vagrant environment
 
 Then we'll configure a Kubernetes cluster. A master and a worker node will be launched in two separate Vagrant machines. The Network Service Mesh components will then be deployed to the cluster.
 
@@ -74,31 +74,31 @@ NAME   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
 nsmd   2         2         2       2            2           <none>          19m
 ```
 
-## Running the Networking Service Mesh examples
+## Deploy the Network Service Mesh examples
 
-Now that we have the NSM infrastructure deployed, we can proceed with some of the examples.
+Now that we have the NSM infrastructure deployed, we can proceed with deploying some of the examples.
 
-The basic ICMP example is deployed like this:
+* The basic ICMP example is deployed like this:
 
 ```bash
 make k8s-icmp-deploy
 ```
 
-The VPN service composition example is deployed with:
+* The VPN service composition example is deployed with:
 
 ```bash
 make k8s-vpn-deploy
 ```
 
-## Test
+## Verify deploying the examples
 
-Both of the examples can be verified with running a simple check:
+Both of the examples can be verified by running a simple check:
 
 ```bash
 make k8s-check
 ```
 
-For ICMP you should see ping succeeding as below:
+* For ICMP you should see ping succeeding as below:
 
 ```bash
 ./scripts/nsc_ping_all.sh
@@ -136,7 +136,7 @@ round-trip min/avg/max = 6.070/6.070/6.070 ms
 NSC nsc-84799b768f-wvxwt with IP 10.30.1.1/30 pinging vppagent-icmp-responder-nse TargetIP: 10.30.1.2 successful
 ```
 
-Validating the VPN example will output the following:
+* Validating the VPN example will output the following:
 
 ```bash
 ===== >>>>> PROCESSING vpn-gateway-nsc-5458d48c86-zh4xf  <<<<< ===========

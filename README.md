@@ -20,7 +20,7 @@ For more information, have a look at our detailed overview of NSM - [What is NSM
 
 To get started, follow our [Quick Start](/docs/guide-quickstart.md) guide.
 
-If you want a more extensive look, you can go follow the slightly more detailed [Build](/docs/guide-build.md) page.
+If you want a more extensive look, you can follow the slightly more detailed [Build](/docs/guide-build.md) page.
 
 ## Docs
 
