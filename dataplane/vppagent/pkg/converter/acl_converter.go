@@ -17,9 +17,9 @@ package converter
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/acl"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"net"
 	"strconv"

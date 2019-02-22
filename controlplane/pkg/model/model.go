@@ -23,22 +23,23 @@ type Dataplane struct {
 	RemoteMechanisms []*remote.Mechanism
 }
 type ClientConnectionState int8
+
 const (
-	ClientConnection_Ready = 0
+	ClientConnection_Ready      = 0
 	ClientConnection_Requesting = 1
-	ClientConnection_Healing	= 2
-	ClientConnection_Closing	= 3
-	ClientConnection_Closed	= 4
+	ClientConnection_Healing    = 2
+	ClientConnection_Closing    = 3
+	ClientConnection_Closed     = 4
 )
 
 type ClientConnection struct {
-	ConnectionId string
-	Xcon         *crossconnect.CrossConnect
-	RemoteNsm    *registry.NetworkServiceManager
-	Endpoint     *registry.NSERegistration
-	Dataplane    *Dataplane
+	ConnectionId    string
+	Xcon            *crossconnect.CrossConnect
+	RemoteNsm       *registry.NetworkServiceManager
+	Endpoint        *registry.NSERegistration
+	Dataplane       *Dataplane
 	ConnectionState ClientConnectionState
-	Request      nsm.NSMRequest
+	Request         nsm.NSMRequest
 }
 
 func (cc *ClientConnection) GetId() string {

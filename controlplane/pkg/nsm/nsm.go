@@ -67,7 +67,7 @@ func create_logid() (uuid string) {
 
 func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRequest, existingConnection *model.ClientConnection) (nsm.NSMConnection, error) {
 	requestId := create_logid()
-	logrus.Infof("NSM:(%v) request: %v", requestId, request )
+	logrus.Infof("NSM:(%v) request: %v", requestId, request)
 
 	// 0. Make sure its a valid request
 	err := request.IsValid()
@@ -411,10 +411,10 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 	// 7.2.6.2.5 create cross connection
 	dpApiConnection := srv.createCrossConnect(requestConnection, endpoint, request, nseConnection)
 	clientConnection := &model.ClientConnection{
-		ConnectionId: requestConnection.GetId(),
-		Xcon:         dpApiConnection,
-		Endpoint:     endpoint,
-		Dataplane:    dp,
+		ConnectionId:    requestConnection.GetId(),
+		Xcon:            dpApiConnection,
+		Endpoint:        endpoint,
+		Dataplane:       dp,
 		ConnectionState: model.ClientConnection_Requesting,
 	}
 	// 7.2.6.2.6 - It not a local NSE put remote NSM name in request
