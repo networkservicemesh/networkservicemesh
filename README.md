@@ -45,18 +45,16 @@ See our full documentation at the [docs](/docs/README.md) folder.
 ## References
 
 * [Official Website](https://www.networkservicemesh.io/)
-* [Network Service Mesh: A Narrative Introduction](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.p) <- Start Here
-  * [Sarah and the secure-intranet-connectivity](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_7)
-     * [Presented to Kubernetes Resource Management Working Group](https://www.youtube.com/watch?v=pToCYxp5Kgs)
-  * [Hannah and the Hardware NICs](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_16)
-* [Network Service Mesh: Intro slides](https://docs.google.com/presentation/d/1C3r91ev0tWnFFUjiV4W84Hp965YGR1D9lChZo73Jwq0/edit#slide=id.g375263091c_1_0)
-* [Network Service Mesh: Intro slides presented](https://www.youtube.com/watch?v=f2FV6C_dSk4)
-* [Network Service Mesh: HW Interfaces](https://drive.google.com/open?id=1_nwt1tTy-RWYHDj70-2g6g7OvBuuyGpCbyEREjdZkNU)
-* [Network Service Mesh: Distributed CNFs(Distributed Bridges)](https://drive.google.com/open?id=1j78oj_5bJ23dydFT-FTrMwlSrMkHPGC70qmjQzQRPJ4)
-* [Network Service Mesh: VPN Gateway](https://docs.google.com/presentation/d/1BnouS8d_Aesq9IPRPWRxTcZR1ZtmULcyh6l0gAK204Q/edit#slide=id.p)
-* [Network Service Mesh: Presentation to Kubernetes SIG Networking 2018-05-31](https://docs.google.com/presentation/d/1vmN5EevNccel6Wt8KgmkXhAfnjIli4IbjskezQjyfUE/edit#slide=id.p)
+* [Narrative Introduction](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.p) <- Start Here
+  * [Presented to Kubernetes Resource Management Working Group](https://www.youtube.com/watch?v=pToCYxp5Kgs)
+* [Intro slides](https://docs.google.com/presentation/d/1C3r91ev0tWnFFUjiV4W84Hp965YGR1D9lChZo73Jwq0/edit#slide=id.g375263091c_1_0)
+* [Intro slides presented](https://www.youtube.com/watch?v=f2FV6C_dSk4)
+* [HW Interfaces](https://drive.google.com/open?id=1_nwt1tTy-RWYHDj70-2g6g7OvBuuyGpCbyEREjdZkNU)
+* [Distributed CNFs (Distributed Bridges)](https://drive.google.com/open?id=1j78oj_5bJ23dydFT-FTrMwlSrMkHPGC70qmjQzQRPJ4)
+* [VPN Gateway](https://docs.google.com/presentation/d/1BnouS8d_Aesq9IPRPWRxTcZR1ZtmULcyh6l0gAK204Q/edit#slide=id.p)
+* [Presentation to Kubernetes SIG Networking 2018-05-31](https://docs.google.com/presentation/d/1vmN5EevNccel6Wt8KgmkXhAfnjIli4IbjskezQjyfUE/edit#slide=id.p)
 * [Use Case Working Document](https://drive.google.com/open?id=1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk)
-* [Network Service Mesh: Google Drive Folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) - where most of the NSM docs are located. Keep in mind that some of them are still Work in Progress.
+* [Google Drive Folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) - where most of the NSM docs are located. Keep in mind that some of them are still Work in Progress.
 
 ## Dependencies
 
