@@ -58,7 +58,7 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 		RequiredNumber:  1,
 		RequestedNumber: 1,
 		PrefixLen:       uint32(prefixLen),
-		AddrFamily:        &connectioncontext.IpFamily{Family: family},
+		AddrFamily:      &connectioncontext.IpFamily{Family: family},
 	})
 	if err != nil {
 		return nil, nil, nil, err
@@ -92,7 +92,7 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 		ipNet:    ipNet,
 		prefixes: requested,
 	}
-	return &net.IPNet{ IP: src, Mask: ipNet.Mask }, &net.IPNet{ IP: dst, Mask: ipNet.Mask }, requested, nil
+	return &net.IPNet{IP: src, Mask: ipNet.Mask}, &net.IPNet{IP: dst, Mask: ipNet.Mask}, requested, nil
 }
 func (impl *prefixPool) Release(connectionId string) error {
 	impl.Lock()
@@ -118,7 +118,7 @@ func (impl *prefixPool) Release(connectionId string) error {
 	return nil
 }
 
-func (impl* prefixPool) GetConnectionInformation(connectionId string) (string, []string, error) {
+func (impl *prefixPool) GetConnectionInformation(connectionId string) (string, []string, error) {
 	impl.RLock()
 	defer impl.RUnlock()
 	conn := impl.connections[connectionId]

@@ -18,7 +18,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		return
 	}
 
-	defer func(){
+	defer func() {
 		logrus.Infof("NSM_Heal(1.1-%v) Connection %v healing state is finished...", healId, clientConnection.GetId())
 		clientConnection.ConnectionState = model.ClientConnection_Ready
 	}()
@@ -86,7 +86,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		// Update request to contain a proper connection object from previous attempt.
 		request := clientConnection.Request.Clone()
 		request.SetConnection(clientConnection.GetConnectionSource())
-		srv.requestOrClose(fmt.Sprintf("NSM_Heal(3.4-%v) ", healId) ,ctx, request, clientConnection)
+		srv.requestOrClose(fmt.Sprintf("NSM_Heal(3.4-%v) ", healId), ctx, request, clientConnection)
 		return
 	case nsm.HealState_DstUpdate:
 		// Remote DST is updated.
@@ -110,7 +110,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 }
 
 func (srv *networkServiceManager) requestOrClose(logPrefix string, ctx context.Context, request nsm.NSMRequest, clientConnection *model.ClientConnection) {
-	logrus.Infof("%v delegate to Request %v", logPrefix, request )
+	logrus.Infof("%v delegate to Request %v", logPrefix, request)
 	connection, err := srv.request(ctx, request, clientConnection)
 	if err != nil {
 		logrus.Errorf("%v Failed to heal connection: %v", logPrefix, err)
