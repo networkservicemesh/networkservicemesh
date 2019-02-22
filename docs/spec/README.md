@@ -10,4 +10,4 @@ For example, a single specification file consolidates all the content from:
 * Configurations
 * References to PRs and related issues.
 
-When needed, the developer will copy and populate the provided `template.md` file based on his context.
+When needed, the developer will copy and populate the provided [template.md](template.md) file based on his context.
