@@ -10,12 +10,12 @@ You can find instructions for your operation systems in the links below:
 * [OSX](prereq-osx.md)
 * [Ubuntu](prereq-ubuntu.md)
 
-> If you have another Linux distribution or prefer to go with the upstream, please install the following dependencies:
->
-> * [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-> * [Vagrant](https://www.vagrantup.com/docs/installation/)
-> * [Docker](https://docs.docker.com/install/)
-> * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+If you have another Linux distribution or prefer to go with the upstream, make sure you have the following dependencies installed:
+
+* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+* [Vagrant](https://www.vagrantup.com/docs/installation/)
+* [Docker](https://docs.docker.com/install/)
+* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ### Getting the Network Service Mesh project
 

@@ -16,17 +16,11 @@ Network Service Mesh (NSM) is a novel approach solving complicated L2/L3 use cas
 
 For more information, have a look at our detailed overview of NSM - [What is NSM?](/docs/what-is-nsm.md)
 
-## How to build it
-
-You can view our detailed [BUILD](/docs/guide-build.md) page.
-
-Note: The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
-Dependabot pushes out dependency updates to ensure our dependencies remain current and we're not stuck
-with code with known vulnerabilities.
-
 ## Getting started
 
-To get started, follow our [QUICK-START](/docs/guide-quickstart.md) guide.
+To get started, follow our [Quick Start](/docs/guide-quickstart.md) guide.
+
+If you want a more extensive look, you can go follow the slightly more detailed [Build](/docs/guide-build.md) page.
 
 ## Docs
 
@@ -63,6 +57,12 @@ See our full documentation at the [docs](/docs/README.md) folder.
 * [Network Service Mesh: VPN Gateway](https://docs.google.com/presentation/d/1BnouS8d_Aesq9IPRPWRxTcZR1ZtmULcyh6l0gAK204Q/edit#slide=id.p)
 * [Network Service Mesh: Presentation to Kubernetes SIG Networking 2018-05-31](https://docs.google.com/presentation/d/1vmN5EevNccel6Wt8KgmkXhAfnjIli4IbjskezQjyfUE/edit#slide=id.p)
 * [Use Case Working Document](https://drive.google.com/open?id=1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk)
+
+## Dependencies
+
+The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
+Dependabot pushes out dependency updates to ensure our dependencies remain current and we're not stuck
+with code with known vulnerabilities.
 
 ## FAQ
 
