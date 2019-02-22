@@ -1,53 +1,56 @@
-# Quick Start Network Service Mesh
+# Network Service Mesh - Quick Start Guide
 
 This document will help you configure two Vagrant boxes in a Kubernetes cluster with a master and a worker node. You will also deploy the Network Service Mesh components in the cluster.
 
-## Pre-requisites
+## Prerequisites
 
 You can find instructions for your operation systems in the links below:
-* [CentOS](CentOS.md)
-* [OSX](OSX.md)
-* [Ubuntu](Ubuntu.md)
 
-If you have another Linux distribution or prefer to go with the upstream, here 
+* [CentOS](prereq-centos.md)
+* [OSX](prereq-osx.md)
+* [Ubuntu](prereq-ubuntu.md)
 
-* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-* [Vagrant](https://www.vagrantup.com/docs/installation/)
-* [Docker](https://docs.docker.com/install/)
-* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+> If you have another Linux distribution or prefer to go with the upstream, please install the following dependencies:
+>
+> * [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+> * [Vagrant](https://www.vagrantup.com/docs/installation/)
+> * [Docker](https://docs.docker.com/install/)
+> * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ### Getting the Network Service Mesh project
 
 ```bash
-git clone https://github.com/networkservicemesh/networkservicemesh 
+git clone https://github.com/networkservicemesh/networkservicemesh
 cd networkservicemesh
 ```
 
-### Build
+## Build
 
-First let's build the Docker images of the various components
+First, let's build the Docker images of the various components:
 
 ```bash
 make k8s-save
 ```
 
-### Local Vagrant setup
+## Local Vagrant setup
 
 Then we'll configure a Kubernetes cluster. A master and a worker node will be launched in two separate Vagrant machines. The Network Service Mesh components will then be deployed to the cluster.
+
+Start the Vagrant machines:
 
 ```bash
 make vagrant-start
 ```
 
-Ensure your `kubectl` is configured to point to Vagrant's Kubernetes cluster.
+Ensure your `kubectl` is configured to point to Vagrant's Kubernetes cluster:
 
 ```bash
 source scripts/vagrant/env.sh
 ```
 
-### Deploy the core Network Service Mesh components
+## Deploy the core Network Service Mesh components
 
-The core Network Service Mesh infrastructure is deployed with the following command.
+The core Network Service Mesh infrastructure is deployed with the following command:
 
 ```bash
 make k8s-infra-deploy
@@ -55,7 +58,7 @@ make k8s-infra-deploy
 
 ### Verify the services are up and running
 
-A simple check should show two `nsmd`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods.
+The following check should show two `nsmd`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
 
 ```bash
 kubectl get pods
@@ -71,7 +74,9 @@ NAME   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
 nsmd   2         2         2       2            2           <none>          19m
 ```
 
-### Running the Networking Service Mesh examples
+## Running the Networking Service Mesh examples
+
+Now that we have the NSM infrastructure deployed, we can proceed with some of the examples.
 
 The basic ICMP example is deployed like this:
 
@@ -85,7 +90,7 @@ The VPN service composition example is deployed with:
 make k8s-vpn-deploy
 ```
 
-### Test
+## Test
 
 Both of the examples can be verified with running a simple check:
 

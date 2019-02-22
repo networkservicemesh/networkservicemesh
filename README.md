@@ -14,11 +14,11 @@
 
 Network Service Mesh (NSM) is a novel approach solving complicated L2/L3 use cases in Kubernetes that are tricky to address with the existing Kubernetes Network Model. Inspired by Istio, Network Service Mesh maps the concept of a Service Mesh to L2/L3 payloads as part of an attempt to re-imagine NFV in a Cloud-native way!
 
-For more information, have a look at our detailed overview of NSM - [What is NSM?](/docs/What-is-nsm.md)
+For more information, have a look at our detailed overview of NSM - [What is NSM?](/docs/what-is-nsm.md)
 
 ## How to build it
 
-You can view our detailed [BUILD](/docs/BUILD.md) page.
+You can view our detailed [BUILD](/docs/guide-build.md) page.
 
 Note: The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
 Dependabot pushes out dependency updates to ensure our dependencies remain current and we're not stuck
@@ -26,7 +26,7 @@ with code with known vulnerabilities.
 
 ## Getting started
 
-To get started, follow our [QUICK-START](/docs/QUICK-START.md) guide.
+To get started, follow our [QUICK-START](/docs/guide-quickstart.md) guide.
 
 ## Docs
 
