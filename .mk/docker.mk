@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane
+BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane vppagent-dataplane-dev
 BUILD_CONTAINERS+=devenv crossconnect-monitor
 BUILD_CONTAINERS+=nsc icmp-responder-nse
 BUILD_CONTAINERS+=vppagent-firewall-nse

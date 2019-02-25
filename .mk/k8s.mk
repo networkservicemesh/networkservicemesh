@@ -168,7 +168,7 @@ k8s-nsmd-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_
 .PHONY: k8s-nsmd-load-images
 k8s-nsmd-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMD_CONTAINERS)))
 
-VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane
+VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane vppagent-dataplane-dev
 .PHONY: k8s-vppagent-dataplane-build
 k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
  .PHONY: k8s-vppagent-dataplane-save
