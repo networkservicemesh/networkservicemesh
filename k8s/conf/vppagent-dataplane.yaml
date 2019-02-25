@@ -24,6 +24,8 @@ spec:
             - name: workspace
               mountPath: /var/lib/networkservicemesh/
               mountPropagation: Bidirectional
+            - name: postmortem
+              mountPath: /var/tmp/nsm-postmortem/
           livenessProbe:
             httpGet:
               path: /liveness
@@ -43,6 +45,10 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: workspace
+        - hostPath:
+            path: /var/tmp/nsm-postmortem/
+            type: DirectoryOrCreate
+          name: postmortem
 metadata:
   name: nsm-vppagent-dataplane
   namespace: default
