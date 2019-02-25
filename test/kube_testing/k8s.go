@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -247,7 +248,7 @@ func NewK8s() (*K8s, error) {
 
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
-		path = os.Getenv("HOME") + "/.kube/config"
+		path = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", path)

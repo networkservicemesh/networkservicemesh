@@ -39,16 +39,30 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 						},
 					},
 				},
+				{
+					Name: "postmortem",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Type: ht,
+							Path: "/var/tmp/nsm-postmortem/",
+						},
+					},
+				},
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "vppagent-dataplane",
-					Image:           "networkservicemesh/vppagent-dataplane:latest",
+					Image:           "networkservicemesh/vppagent-dataplane-dev:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts: []v1.VolumeMount{
 						v1.VolumeMount{
 							Name:             "workspace",
 							MountPath:        "/var/lib/networkservicemesh/",
+							MountPropagation: &mode,
+						},
+						v1.VolumeMount{
+							Name:             "postmortem",
+							MountPath:        "/var/tmp/nsm-postmortem/",
 							MountPropagation: &mode,
 						},
 					},
