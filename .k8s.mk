@@ -41,7 +41,7 @@ include .vagrant.mk
 include .packet.mk
 
 # .null.mk allows you to skip the vagrant machinery with:
-# export CLUSTER_RULES_PREFIX=null
+ export CLUSTER_RULES_PREFIX=null
 # before running make
 include .null.mk
 
