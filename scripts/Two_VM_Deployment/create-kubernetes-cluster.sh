@@ -10,7 +10,7 @@ echo "IPADDR_Master" $IPADDR_Master
 # Install docker
 #On the master
 scp ${SSH_OPTS} install_docker.sh : root@${IPADDR_Master}:
-#On the worker nodes
+#On the worker node
 scp ${SSH_OPTS} install_docker.sh : root@${IPADDR_Worker}:
 
 
@@ -33,15 +33,14 @@ wait
 
 # transfert of configure scripts
 #On the master
-scp ${SSH_OPTS} configurek8smaster.sh root@${IPADDR_Master}:
-
+scp ${SSH_OPTS} setupk8smaster.sh root@${IPADDR_Master}:
 
 #Configure the master
-ssh ${SSH_OPTS} root@${IPADDR_Master} ./configurek8smaster.sh &
+ssh ${SSH_OPTS} root@${IPADDR_Master} ./setupk8smaster.sh &
 wait
 
 #transfert configure script to the worker node
-scp ${SSH_OPTS} configurek8sworker.sh root@${IPADDR_Worker}:
+scp ${SSH_OPTS} setupk8sworker.sh root@${IPADDR_Worker}:
 
 #download worker images
 scp ${SSH_OPTS} download-worker-images.sh root@${IPADDR_Worker}:
@@ -50,8 +49,7 @@ scp ${SSH_OPTS} download-worker-images.sh root@${IPADDR_Worker}:
 ssh ${SSH_OPTS} root@${IPADDR_Worker} ./download-worker-images.sh &
 wait
 
-
 ## configure the worker node, to join the master
-ssh ${SSH_OPTS} root@${IPADDR_Worker} ./configurek8sworker.sh &
+ssh ${SSH_OPTS} root@${IPADDR_Worker} ./setupk8sworker.sh &
 
 wait
