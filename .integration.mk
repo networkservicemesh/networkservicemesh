@@ -19,7 +19,7 @@ k8s-integration-config:
 
 .PHONY: k8s-integration-tests
 k8s-integration-tests: k8s-integration-config
-	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m
+	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m -tags="basic recover usecase"
 
 .PHONY: k8s-integration-%-test
 k8s-integration-%-test: k8s-integration-config

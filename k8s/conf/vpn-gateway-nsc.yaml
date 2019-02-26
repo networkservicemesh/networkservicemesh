@@ -16,16 +16,8 @@ spec:
           image: alpine:latest
           imagePullPolicy: IfNotPresent
           command: ['tail', '-f', '/dev/null']
-      initContainers:
-        - name: nsc
-          image: networkservicemesh/nsc:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: OUTGOING_NSC_NAME
-              value: "secure-intranet-connectivity"
-          resources:
-            limits:
-              networkservicemesh.io/socket: 1
 metadata:
   name: vpn-gateway-nsc
   namespace: default
+  annotations:
+    ns.networkservicemesh.io: secure-intranet-connectivity

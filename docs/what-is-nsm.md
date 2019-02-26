@@ -34,7 +34,7 @@ Network service mesh (NSM) adds the following properties to networking in Kubern
 * Networking context as a first-class citizen
 * Policy-driven service function chaining (SFC)
 
-A significant important feature of NSM is that it minimizes the need for changes to kubernetes.
+A significant important feature of NSM is that it minimizes the need for changes to Kubernetes.
 
 These goals are accomplished using a simple set of APIs designed to facilitate connectivity between containers which are running services or with an external endpoint. New connections negotiate their connection properties. These properties include but are not limited to:
 
@@ -64,7 +64,7 @@ spec:
 When the pod starts, kubernetes injects an environment variable into the pod. In this scenario, it is sriov_$(DEVICE_ID). When the pod connects, the connection claims sriov_$(DEVICE_ID). On success, NSM injects the DPAPI-managed SR-IOV interface into the container.
 
 In both examples, NSM uses DPAPI to ensure device availability while injecting an interface into the pod.
- 
+
 ### Example 2 - Connecting two services
 
 Consider an endpoint which requests a tunnel to a network service through an SDN. The network service, SDN, and client negotiate with each other the parameters of the tunnel. Suppose the client is only capable of communicating over a VXLAN tunnel while the network service provides VXLAN and GRE. The negotiation results in a VXLAN tunnel.
@@ -75,15 +75,15 @@ Highlighting the dynamic properties of this negotiation is essential. For exampl
 
 ### Example 3 - External Device
 
-Hooking up an external device is similar to hooking up two network services. The eNSM exposes the device as a network service and is responsible for synchronizing and configuring the device. The eNSM negotiates the connection properties on behalf of the external device and configures the device with the resolved properties once the negotiation is complete. 
+Hooking up an external device is similar to hooking up two network services. The eNSM exposes the device as a network service and is responsible for synchronizing and configuring the device. The eNSM negotiates the connection properties on behalf of the external device and configures the device with the resolved properties once the negotiation is complete.
 
 ![Connecting an external device using an eNSM](images/external-device.png)
 
 ### Example 4 - L2 Bridge Service
 
-NSM exposes the briding CNF through a bridge service. The bridge service handles requests to connect to the bridge using the standard NSM patterns as demonstrated in the previous examples.
+NSM exposes the bridging CNF through a bridge service. The bridge service handles requests to connect to the bridge using the standard NSM patterns as demonstrated in the previous examples.
 
-In this scenario, the Bridge Service is a network service which runs in a pod. The Bridge Service receives the connection requests and configures the data plane to connect the pod to the bridging CNF. 
+In this scenario, the Bridge Service is a network service which runs in a pod. The Bridge Service receives the connection requests and configures the data plane to connect the pod to the bridging CNF.
 
 ![Connecting pods to a bridge](images/bridge.png)
 
@@ -91,7 +91,7 @@ In this scenario, the Bridge Service is a network service which runs in a pod. T
 
 The distributed bridge domain example is similar to the bridge service shown in Example 4. However, instead of connecting pods to a single bridge, they are connected to multiple bridges.
 
-The SDN(s) manage and provide the pod-to-pod, and bridge-to-bridge interconnects. NSM considers the interconnection data path out of the scope of its responsibilities. 
+The SDN(s) manage and provide the pod-to-pod, and bridge-to-bridge interconnects. NSM considers the interconnection data path out of the scope of its responsibilities.
 
 One thing to note is pods still receive their Kubernetes networking interface from CNI. This approach is designed to interoperate with existing Kubernetes patterns while providing additional capabilities when necessary.
 

@@ -1,3 +1,5 @@
+// +build basic
+
 package nsmd_integration_tests
 
 import (
@@ -57,7 +59,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	Expect(response).To(BeNil())
 	logrus.Print(err.Error())
 
-	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = networkservices.networkservicemesh.io \"my_service\" not found"))
+	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = no NetworkService with name: my_service"))
 
 	// Lets register few hundred NSEs and check how it works.
 
