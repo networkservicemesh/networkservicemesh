@@ -1,7 +1,7 @@
 #!/bin/bash -x
 # shellcheck disable=SC2086
 
-#IP addresses of master and worker VMs should be passed as arugments
+#IP addresses of both master and worker VMs should be passed as arugments
 
 IPADDR_Master=$1
 IPADDR_Worker=$2
