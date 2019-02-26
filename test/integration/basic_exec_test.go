@@ -1,11 +1,14 @@
+// +build basic
+
 package nsmd_integration_tests
 
 import (
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"testing"
 )
 
 func TestExec(t *testing.T) {
