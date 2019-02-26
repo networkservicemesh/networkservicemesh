@@ -190,7 +190,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.SocketOperationCheck(listenEndpoint)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(listenEndpoint))
 	if err != nil {
 		return err
 	}

@@ -62,7 +62,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		logrus.Errorf("Dataplane object store does not have registered plugin %s", dataplaneName)
 		return
 	}
-	conn, err := tools.SocketOperationCheck(dataplane.SocketLocation)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(dataplane.SocketLocation))
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplane.SocketLocation, err)
 		model.DeleteDataplane(dataplaneName)
@@ -166,7 +166,7 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 		}
 	}()
 
-	conn, err := tools.SocketOperationCheck(dataplaneRegistrar)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(dataplaneRegistrar))
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, err)
 		return err

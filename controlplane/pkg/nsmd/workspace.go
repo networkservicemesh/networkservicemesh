@@ -106,7 +106,7 @@ func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
 			return
 		}
 	}()
-	conn, err := tools.SocketOperationCheck(socket)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(socket))
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
 		return nil, err
