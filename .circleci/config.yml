@@ -132,26 +132,25 @@ jobs:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
       - run:
+          name: Running integration tests - basic
           command: |
-            echo "Running integration tests - basic"
             gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=basic
           no_output_timeout: 40m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
       - run:
+          name: Running integration tests - recover
           command: |
-            echo "Running integration tests - basic"
             gotestsum --junitfile ~/junit/integration-tests-recover.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=recover
           no_output_timeout: 40m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
       - run:
+          name: Running integration tests - usecase
           command: |
-            echo "Running integration tests - basic"
             gotestsum --junitfile ~/junit/integration-tests-usecase.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=usecase
-            echo "Finish running integration tests"
           no_output_timeout: 40m
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
