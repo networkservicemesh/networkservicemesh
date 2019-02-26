@@ -1,5 +1,6 @@
 #!/bin/bash
-# Get the IP address that VirtualBox has given this VM, assuming that interface is ens160
+
+# Get the IP address assigned to this VM
 IPADDR=$(ifconfig $(netstat -nr | tail -1 | awk '{print $NF}') | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
 echo This Master has IP address "$IPADDR"
 
