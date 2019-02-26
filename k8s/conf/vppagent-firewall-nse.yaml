@@ -12,6 +12,8 @@ spec:
       containers:
         - name: firewall-nse
           image: networkservicemesh/vppagent-firewall-nse:latest
+          command: ["tail"]
+          args: ["-f","/dev/null"]
           imagePullPolicy: IfNotPresent
           env:
             - name: ADVERTISE_NSE_NAME
