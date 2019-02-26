@@ -112,20 +112,20 @@ jobs:
             ./.circleci/set-nameserver.sh sudo
             sudo apt-get install gettext-base
       - run:
+          name: Cache Prep
           command: |
             sudo mkdir -p /cncf/data
             sudo chown -R circleci:circleci /cncf/
-          name: Cache Prep
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
+          name: Downloading go deps
           command: |
             ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             # export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
-            echo "Downloading go deps"
             go mod download
           no_output_timeout: 40m
           environment:
