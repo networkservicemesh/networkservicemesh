@@ -1,6 +1,8 @@
 #!/bin/bash -x
 # shellcheck disable=SC2086
 
+#IP addresses of master and worker VMs should be passed as arugments
+
 IPADDR_Master=$1
 IPADDR_Worker=$2
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
