@@ -1,47 +1,71 @@
 # Network Service Mesh
 
 [![CircleCI Build Status](https://circleci.com/gh/networkservicemesh/networkservicemesh/tree/master.svg?style=svg)](https://circleci.com/gh/networkservicemesh/networkservicemesh/tree/master)
+[![Weekly minutes](https://img.shields.io/badge/Weekly%20Meeting%20Minutes-Tue%208am%20PT-blue.svg?style=plastic")](ttps://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
+[![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20license%202.0-blue.svg)](https://github.com/networkservicemesh/networkservicemesh/blob/master/LICENSE)
 [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
 
-A Network Service Mesh is an extension of the Service Mesh concept common in applications to Network Services.  It is part of an attempt to reimagine NFV in a Cloud-native way.
+<p align="center">
+  <a href="https://www.networkservicemesh.io/"><img src="https://networkservicemesh.io/img/logo.png"></a>
+</p>
 
-- [Network Service Mesh Project Landing Page](https://www.networkservicemesh.io/)
+## What is Network Service Mesh
 
-- [Network Service Mesh: A Narrative Introduction](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.p) <- Start Here
-  - [Sarah and the secure-intranet-connectivity](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_7)
-     - [Presented to Kubernetes Resource Management Working Group](https://www.youtube.com/watch?v=pToCYxp5Kgs)
-  - [Hannah and the Hardware NICs](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.g4042dbe7c0_11_16)
-- [Network Service Mesh Intro slides](https://docs.google.com/presentation/d/1C3r91ev0tWnFFUjiV4W84Hp965YGR1D9lChZo73Jwq0/edit#slide=id.g375263091c_1_0)
-- [Network Service Mesh Intro slides presented](https://www.youtube.com/watch?v=f2FV6C_dSk4)
-- [Network Service Mesh: HW Interfaces](https://drive.google.com/open?id=1_nwt1tTy-RWYHDj70-2g6g7OvBuuyGpCbyEREjdZkNU)
-- [Network Service Mesh: Distibuted CNFs(Distributed Bridges)](https://drive.google.com/open?id=1j78oj_5bJ23dydFT-FTrMwlSrMkHPGC70qmjQzQRPJ4)
-- [Network Service Mesh: VPN Gateway](https://docs.google.com/presentation/d/1BnouS8d_Aesq9IPRPWRxTcZR1ZtmULcyh6l0gAK204Q/edit#slide=id.p)
-- [Network Service Mesh: Presentation to Kubernetes SIG Networking 2018-05-31](https://docs.google.com/presentation/d/1vmN5EevNccel6Wt8KgmkXhAfnjIli4IbjskezQjyfUE/edit#slide=id.p)
-- [Use Case Working Document](https://drive.google.com/open?id=1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk)
-- [All NSM Docs/Decks are in this public Google Drive folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) Note: Some of them are Works in Progress
+Network Service Mesh (NSM) is a novel approach solving complicated L2/L3 use cases in Kubernetes that are tricky to address with the existing Kubernetes Network Model. Inspired by Istio, Network Service Mesh maps the concept of a Service Mesh to L2/L3 payloads as part of an attempt to re-imagine NFV in a Cloud-native way!
 
-## Build
+For more information, have a look at our detailed overview of NSM - [What is NSM?](/docs/what-is-nsm.md)
 
-See [/docs/BUILD.md](/docs/BUILD.md) for build instructions.
+## Getting started
 
-Note: The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
+To get started, follow our [Quick Start](/docs/guide-quickstart.md) guide.
+
+If you want a more extensive look, you can follow the slightly more detailed [Build](/docs/guide-build.md) page.
+
+## Docs
+
+See our full documentation at the [docs](/docs/README.md) folder.
+
+## Get involved
+
+* Weekly meetings
+  * [Zoom meeting - General](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 8:00 - 9:00 AM PT
+  * [Zoom meeting - Documentation](https://zoom.us/my/networkservicemeshwg) - every Wednesday at 8:00 - 9:00 AM PT
+  * [Meeting minutes - General](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
+  * [Meeting minutes - Documentation](https://docs.google.com/document/d/1113nzdL-DcDAWT3963IsS9LeekgXLTgGebxPO7ZnJaA/edit?usp=sharing)
+  * [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
+  * [Recordings](https://www.youtube.com/playlist?list=PLj6h78yzYM2Ob01WuF-mqMxd8a_wAuppb)
+
+* Channels
+  * [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
+
+* Mailing list
+  * [![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
+
+## References
+
+* [Official Website](https://www.networkservicemesh.io/)
+* [Narrative Introduction](https://docs.google.com/presentation/d/1IC2kLnQGDz1hbeO0rD7Y82O_4NwzgIoGgm0oOXyaQ9Y/edit#slide=id.p) <- Start Here
+  * [Presented to Kubernetes Resource Management Working Group](https://www.youtube.com/watch?v=pToCYxp5Kgs)
+* [Intro slides](https://docs.google.com/presentation/d/1C3r91ev0tWnFFUjiV4W84Hp965YGR1D9lChZo73Jwq0/edit#slide=id.g375263091c_1_0)
+* [Intro slides presented](https://www.youtube.com/watch?v=f2FV6C_dSk4)
+* [HW Interfaces](https://drive.google.com/open?id=1_nwt1tTy-RWYHDj70-2g6g7OvBuuyGpCbyEREjdZkNU)
+* [Distributed CNFs (Distributed Bridges)](https://drive.google.com/open?id=1j78oj_5bJ23dydFT-FTrMwlSrMkHPGC70qmjQzQRPJ4)
+* [VPN Gateway](https://docs.google.com/presentation/d/1BnouS8d_Aesq9IPRPWRxTcZR1ZtmULcyh6l0gAK204Q/edit#slide=id.p)
+* [Presentation to Kubernetes SIG Networking 2018-05-31](https://docs.google.com/presentation/d/1vmN5EevNccel6Wt8KgmkXhAfnjIli4IbjskezQjyfUE/edit#slide=id.p)
+* [Use Case Working Document](https://drive.google.com/open?id=1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk)
+* [Google Drive Folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) - where most of the NSM docs are located. Keep in mind that some of them are still Work in Progress.
+
+## Dependencies
+
+The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
 Dependabot pushes out dependency updates to ensure our dependencies remain current and we're not stuck
 with code with known vulnerabilities.
 
-## Getting Involved
+## FAQ
 
-We encourage discussion on our mailing list and IRC channel and accept pull requests.
+If you run into problems, check the [docs](/docs/README.md) and feel free to post issues in the [Network Service Mesh](https://github.com/networkservicemesh/networkservicemesh/issues) repository.
 
-### Weekly Meetings
-* [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
-* [Weekly Meeting Minutes](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
+## Licence
 
-### Communication Channels
-* [Email List](https://groups.google.com/forum/#!forum/networkservicemesh)
-* IRC Channel - #networkservicemesh on freenode
-
-### Documentation
-- [What is Network Service Mesh](/docs/What-is-nsm.md)
-* [Documentation](/docs/README.md)
-
+This project is released under the Apache 2.0 License. Please review the [License file](LICENSE) for more details.

@@ -6,6 +6,7 @@ Overview
 
 Use Cases
 ---------
+
 Please review our use case document, use cases will migrate here as they solidify.
 
 https://docs.google.com/document/d/1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk/edit#heading=h.qex63c29z2to
@@ -14,7 +15,8 @@ If you wish to add use cases to the document, please reach out to us.
 
 Architecture
 ------------
-* [High Level Overview](/docs/What-is-nsm.md)
+
+* [High Level Overview](/docs/what-is-nsm.md)
 * TODO - High Level Concepts
 * TODO - Detailed dives into individual topics
 
@@ -26,11 +28,13 @@ Technical Details
 
 Technical Demonstrations
 ------------------------
+
 * TODO - Adding a new interface
 * TODO - VPN Gateway
 
-How tos
+Guides
 -------
-* [Quick Start: Run Network Service Mesh](/docs/QUICK-START.md)
-* [Building Network Service Mesh](/docs/BUILD.md)
-* [Debugging](/docs/Debug.md)
+
+* [Quick Start guide to deploy Network Service Mesh on your machine with Vagrant](/docs/guide-quickstart.md)
+* [Detailed guide to build and deploy Network Service Mesh](/docs/guide-build.md)
+* [Debugging](/docs/guide-debug.md)

@@ -1,4 +1,6 @@
-# Preparing an Ubuntu host to run Network Service Mesh
+# Network Service Mesh - Prerequisites for Ubuntu
+
+## Preparing an Ubuntu host to run Network Service Mesh
 
 The following instructions assume Ubuntu 18.04.
 
