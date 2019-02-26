@@ -1,10 +1,13 @@
+// +build basic
+
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	. "github.com/onsi/gomega"
 	"strings"
 	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	. "github.com/onsi/gomega"
 )
 
 func TestKubernetesAreOk(t *testing.T) {
