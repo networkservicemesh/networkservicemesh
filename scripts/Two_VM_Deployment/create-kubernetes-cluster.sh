@@ -48,7 +48,7 @@ scp ${SSH_OPTS} setupk8sworker.sh root@${IPADDR_Worker}:
 scp ${SSH_OPTS} download-worker-images.sh root@${IPADDR_Worker}:
 
 # launch the downolad images on the worker node
-ssh ${SSH_OPTS} root@${IPADDR_Worker} ./download-worker-images.sh &
+ssh ${SSH_OPTS} root@${IPADDR_Worker} ./download-worker-images.sh ${IPADDR_Master} &
 wait
 
 ## configure the worker node, to join the master
