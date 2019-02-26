@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# The master IP address is passed as argument
 IPADDR_Master=$1
 
 IPADDR=$(ifconfig $(netstat -nr | tail -1 | awk '{print $NF}') | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
