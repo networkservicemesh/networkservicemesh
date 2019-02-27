@@ -24,3 +24,5 @@ COPY dataplane/vppagent/scripts/vpp_monitor_handlers.py /usr/bin/vpp_monitor_han
 ENV COLLECT_POSTMORTEM_DATA=true
 ENV SAVE_COREDUMP=false
 ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
+
+RUN sed -ri 's/reply-timeout: [0-9]+/reply-timeout: 10000000000/' /opt/vpp-agent/dev/govpp.conf
