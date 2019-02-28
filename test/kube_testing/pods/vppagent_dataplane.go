@@ -1,8 +1,15 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	PostMortemDataLocation    = "/var/tmp/nsm-postmortem"
+	VppPostmortemDataLocation = "/var/tmp/nsm-postmortem/vpp-dataplane"
+	VppBacktracePattern       = "*.vpp_backtrace"
+	BacktracePattern          = "*backtrace"
 )
 
 func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
@@ -39,15 +46,6 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 						},
 					},
 				},
-				{
-					Name: "postmortem",
-					VolumeSource: v1.VolumeSource{
-						HostPath: &v1.HostPathVolumeSource{
-							Type: ht,
-							Path: "/var/tmp/nsm-postmortem/",
-						},
-					},
-				},
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
@@ -60,11 +58,6 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 							MountPath:        "/var/lib/networkservicemesh/",
 							MountPropagation: &mode,
 						},
-						v1.VolumeMount{
-							Name:             "postmortem",
-							MountPath:        "/var/tmp/nsm-postmortem/",
-							MountPropagation: &mode,
-						},
 					},
 					Env: []v1.EnvVar{
 						v1.EnvVar{
@@ -74,6 +67,10 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 									FieldPath: "status.podIP",
 								},
 							},
+						},
+						v1.EnvVar{
+							Name:  "EXIT_ON_CRASH",
+							Value: "false",
 						},
 					},
 					SecurityContext: &v1.SecurityContext{

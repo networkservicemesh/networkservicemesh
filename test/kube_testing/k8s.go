@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +17,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -25,6 +29,8 @@ const (
 	podDeleteTimeout = 1 * time.Minute
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
+
+	postmortemDataLocationKey = "POSTMORTEM_DATA_LOCATION"
 )
 
 type PodDeployResult struct {
@@ -329,6 +335,13 @@ func (o *K8s) CleanupCRDs() {
 }
 
 func (l *K8s) Cleanup() {
+	postmortemDestination, shouldCollectPostmortem := os.LookupEnv(postmortemDataLocationKey)
+	if shouldCollectPostmortem {
+		_ = l.CollectPostMortemData(postmortemDestination)
+	}
+
+	_ = l.PrintBacktraces()
+
 	for _, result := range l.pods {
 		err := l.deletePods(result)
 		Expect(err).To(BeNil())
@@ -508,4 +521,121 @@ func (o *K8s) CreateService(service *v1.Service) {
 
 func (o *K8s) IsPodReady(pod *v1.Pod) bool {
 	return isPodReady(pod)
+}
+
+// Copy files from pod to the local file system
+func (o *K8s) CopyFromPod(pod *v1.Pod, container, source, destination string) error {
+	parentDir := filepath.Dir(source)
+	fileName := filepath.Base(source)
+	reader, writer := io.Pipe()
+
+	// prepare command to tar files remotely
+	tar := &Command{
+		Stdout: writer,
+		Parts:  []string{"tar", "-C", parentDir, "-cf", "-", fileName},
+	}
+
+	// prepare command to untar files locally
+	untar := exec.Command("tar", "-C", destination, "-xv")
+	untar.Stdin = reader
+
+	// begin extracting to local file system
+	err := untar.Start()
+	if err != nil {
+		return err
+	}
+
+	// begin retrieving files from pod
+	err = o.ExecCommand(pod, container, tar)
+	if err != nil {
+		return err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	// wait until operation is finished
+	return untar.Wait()
+}
+
+func (o *K8s) ReadFile(pod *v1.Pod, container, filePath string, writer io.Writer) error {
+	// prepare command to cat remote file
+	cat := &Command{
+		Stdout: writer,
+		Parts:  []string{"cat", filePath},
+	}
+
+	return o.ExecCommand(pod, container, cat)
+}
+
+func (o *K8s) ReadFileContent(pod *v1.Pod, container, filePath string) (string, error) {
+	content := new(Writer)
+	err := o.ReadFile(pod, container, filePath, content)
+	return content.Str, err
+}
+
+func (o *K8s) FindFiles(pod *v1.Pod, container, directory, pattern string) []string {
+	stdout, stderr, err := o.Exec(pod, container, "find", directory, "-name", pattern)
+	Expect(err).To(BeNil())
+	Expect(stderr).To(BeEmpty())
+
+	stdout = strings.Trim(stdout, " \t\n")
+	if len(stdout) == 0 {
+		return []string{}
+	}
+
+	whiteSpace, err := regexp.Compile("[\\s\\n]+")
+	Expect(err).To(BeNil())
+
+	return whiteSpace.Split(stdout, -1)
+}
+
+func (o *K8s) FileExists(pod *v1.Pod, container, path string) bool {
+	_, _, err := o.Exec(pod, container, "test", "-e", path)
+	return err == nil
+}
+
+func (o *K8s) CollectPostMortemData(destination string) error {
+	logrus.Infof("Collecting postmortem data to %s", destination)
+
+	// ensure destination directory exists
+	if _, err := os.Stat(destination); os.IsNotExist(err) {
+		err := os.MkdirAll(destination, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	// loop over all containers
+	for _, pod := range o.ListPods() {
+		for _, container := range pod.Spec.Containers {
+			if o.FileExists(&pod, container.Name, pods.PostMortemDataLocation) {
+				err := o.CopyFromPod(&pod, container.Name, pods.PostMortemDataLocation, destination)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (o *K8s) PrintBacktraces() error {
+	// loop over all containers
+	for _, pod := range o.ListPods() {
+		for _, container := range pod.Spec.Containers {
+			if o.FileExists(&pod, container.Name, pods.PostMortemDataLocation) {
+				for _, backtraceFile := range o.FindFiles(&pod, container.Name, pods.PostMortemDataLocation, pods.BacktracePattern) {
+					backtrace, err := o.ReadFileContent(&pod, container.Name, backtraceFile)
+					if err != nil {
+						return err
+					}
+					logrus.Infof("Backtrace %s:\n%s", backtraceFile, backtrace)
+				}
+			}
+		}
+	}
+	return nil
 }
