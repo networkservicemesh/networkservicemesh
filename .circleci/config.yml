@@ -121,13 +121,14 @@ jobs:
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
-          name: Downloading go deps
+          name: Prepare integration tests
           command: |
             ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             # export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
+            mkdir -p ~/postmortem
             go mod download
           no_output_timeout: 40m
           environment:
@@ -143,6 +144,7 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
+            POSTMORTEM_DATA_LOCATION: ~/postmortem
       - run:
           name: Running integration tests - recover
           command: |
@@ -153,6 +155,7 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
+            POSTMORTEM_DATA_LOCATION: ~/postmortem
       - run:
           name: Running integration tests - usecase
           command: |
@@ -163,10 +166,13 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
+            POSTMORTEM_DATA_LOCATION: ~/postmortem
       - store_test_results:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
+      - store_artifacts:
+          path: ~/postmortem
       - run:
           when: always
           name: Dump K8s state
