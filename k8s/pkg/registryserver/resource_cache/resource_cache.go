@@ -3,6 +3,7 @@ package resource_cache
 import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -93,8 +94,16 @@ func (c *abstractResourceCache) startInformer(informerFactory externalversions.S
 
 	informer := genericInformer.Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.add,
-		UpdateFunc: func(old interface{}, new interface{}) { c.update(new) },
+		AddFunc: c.add,
+		UpdateFunc: func(old interface{}, new interface{}) {
+			if _, ok := old.(*v1.NetworkServiceManager); !ok {
+				return
+			}
+			logrus.Info("Update from k8s-registry: ")
+			logrus.Infof("Old NSM: %v", old.(*v1.NetworkServiceManager))
+			logrus.Infof("New NSM: %v", new.(*v1.NetworkServiceManager))
+			c.update(new)
+		},
 		DeleteFunc: func(obj interface{}) { c.delete(c.config.keyFunc(obj)) },
 	})
 
