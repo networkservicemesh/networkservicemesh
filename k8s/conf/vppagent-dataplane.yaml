@@ -8,6 +8,7 @@ spec:
         app: nsm-vpp-dataplane
     spec:
       hostPID: true
+      hostNetwork: true
       containers:
         - name: vppagent-dataplane
           securityContext:

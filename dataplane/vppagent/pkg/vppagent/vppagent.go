@@ -16,12 +16,14 @@ package vppagent
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"net"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/ligato/vpp-agent/plugins/vpp/model/acl"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -49,10 +51,11 @@ type VPPAgent struct {
 	srcIP                net.IP
 	srcIPNet             net.IPNet
 	mgmtIfaceName        string
+	mgmtHWAddress        net.HardwareAddr
 	directMemifConnector *memif.DirectMemifConnector
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string, mgmtHwAddress net.HardwareAddr) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
@@ -61,6 +64,7 @@ func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossCon
 		srcIP:            srcIP,
 		srcIPNet:         srcIPNet,
 		mgmtIfaceName:    mgmtIfaceName,
+		mgmtHWAddress:    mgmtHwAddress,
 		monitor:          monitor,
 		mechanisms: &Mechanisms{
 			localMechanisms: []*local.Mechanism{
@@ -220,8 +224,34 @@ func (v *VPPAgent) programMgmtInterface() error {
 				Type:        interfaces.InterfaceType_AF_PACKET_INTERFACE,
 				Enabled:     true,
 				IpAddresses: []string{v.srcIPNet.String()},
+				PhysAddress: v.mgmtHWAddress.String(),
 				Afpacket: &interfaces.Interfaces_Interface_Afpacket{
 					HostIfName: v.mgmtIfaceName,
+				},
+			},
+		},
+	}
+
+	dataRequest.AccessLists = []*acl.AccessLists_Acl{
+		&acl.AccessLists_Acl{
+			AclName: "NSMmgmtInterfaceACL",
+			Interfaces: &acl.AccessLists_Acl_Interfaces{
+				Ingress: []string{dataRequest.Interfaces[0].Name},
+			},
+			Rules: []*acl.AccessLists_Acl_Rule{
+				&acl.AccessLists_Acl_Rule{
+					RuleName:  "NSMmgmtInterfaceACL permit VXLAN dst",
+					AclAction: acl.AclAction_PERMIT,
+					Match: &acl.AccessLists_Acl_Rule_Match{
+						IpRule: &acl.AccessLists_Acl_Rule_Match_IpRule{
+							Udp: &acl.AccessLists_Acl_Rule_Match_IpRule_Udp{
+								DestinationPortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+									LowerPort: 4789,
+									UpperPort: 4789,
+								},
+							},
+						},
+					},
 				},
 			},
 		},

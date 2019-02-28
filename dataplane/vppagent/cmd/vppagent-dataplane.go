@@ -107,7 +107,7 @@ func main() {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIpEnvKey, srcIpStr)
 		vppagent.SetValidIPFailed()
 	}
-	ifaceName, srcIpNet, err := MgmtIface(srcIp)
+	ifaceName, srcIpNet, hwAddr, err := MgmtIface(srcIp)
 	if err != nil {
 		logrus.Fatalf("Unable to extract interface name for SrcIP: %s", srcIp)
 		vppagent.SetExtractIFNameFailed()
@@ -128,7 +128,7 @@ func main() {
 	}
 
 	logrus.Info("Creating vppagent server")
-	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp, *srcIpNet, ifaceName)
+	server := vppagent.NewServer(vppAgentEndpoint, nsmBaseDir, srcIp, *srcIpNet, ifaceName, hwAddr)
 	go server.Serve(ln)
 	logrus.Info("vppagent server serving")
 
@@ -147,26 +147,26 @@ func main() {
 	}
 }
 
-func MgmtIface(srcIp net.IP) (string, *net.IPNet, error) {
+func MgmtIface(srcIp net.IP) (string, *net.IPNet, net.HardwareAddr, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 	for _, iface := range ifaces {
 		addrs, err := iface.Addrs()
 		if err != nil {
-			return "", nil, err
+			return "", nil, nil, err
 		}
 		for _, addr := range addrs {
 			switch v := addr.(type) {
 			case *net.IPNet:
 				if v.IP.Equal(srcIp) {
-					return iface.Name, v, nil
+					return iface.Name, v, iface.HardwareAddr, nil
 				}
 			default:
-				return "", nil, fmt.Errorf("Type of addr not net.IPNET")
+				return "", nil, nil, fmt.Errorf("Type of addr not net.IPNET")
 			}
 		}
 	}
-	return "", nil, nil
+	return "", nil, nil, nil
 }

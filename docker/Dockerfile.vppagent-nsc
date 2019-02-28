@@ -11,7 +11,7 @@ RUN go mod download
 ADD [".","/root/networkservicemesh"]
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-nsc ./examples/cmd/vppagent-nsc
 
-FROM ligato/vpp-agent:v1.8 as runtime
+FROM edwarnicke/vpp-agent:v1.8-743 as runtime
 COPY --from=build /go/bin/vppagent-nsc /bin/vppagent-nsc
 RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "0.0.0.0:9113"' > /opt/vpp-agent/dev/grpc.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
