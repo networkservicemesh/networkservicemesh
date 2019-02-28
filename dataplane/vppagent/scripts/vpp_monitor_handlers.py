@@ -9,6 +9,10 @@ def core_dump_location():
     return os.environ.get('POSTMORTEM_DATA_LOCATION', '/var/tmp/nsm-postmortem/vpp-dataplane')
 
 
+def should_quit():
+    return os.environ.get('QUIT_GDB_ON_CRASH') == 'true'
+
+
 def save_stacktrace():
     gdb.execute("cd /tmp")
     gdb.execute("set logging file vpp_backtrace")
@@ -28,7 +32,11 @@ def stop_handler(event):
             save_stacktrace()
             if should_save_core_dump():
                 save_core_dump()
-            gdb.execute("quit")
+            # if should_quit() evaluates to False
+            # the process will hang until integration-testing
+            # framework will explicitly shut-down container
+            if should_quit():
+                gdb.execute("quit")
         else:
             gdb.execute("cont")
 

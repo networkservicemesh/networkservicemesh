@@ -23,6 +23,7 @@ mkdir -p "$POSTMORTEM_DATA_LOCATION"
     echo "handle SIGINT pass nostop"
     echo "source /usr/bin/vpp_monitor_handlers.py"
     echo "attach $(supervisorctl -c /etc/supervisord/supervisord.conf pid vpp)"
+    echo 'echo GDB Monitor attached successfully\n'
     echo "cont"
 } > "$GDB_COMMANDS_FILE"
 

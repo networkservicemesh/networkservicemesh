@@ -12,6 +12,10 @@ POSTMORTEM_DATA_LOCATION = os.environ.get('POSTMORTEM_DATA_LOCATION', '/var/tmp/
 COLLECT_POSTMORTEM_DATA = os.environ.get('COLLECT_POSTMORTEM_DATA')
 
 
+def should_kill_supervisord():
+    return os.environ.get('EXIT_ON_CRASH') == 'true'
+
+
 def write_stdout(msg):
     # only eventlistener protocol messages may be sent to stdout
     sys.stdout.write(msg)
@@ -104,7 +108,8 @@ def collect_postmortem_data():
 
 def handle_vpp_exit(event_data):
     collect_postmortem_data()
-    kill_supervisord()
+    if should_kill_supervisord():
+        kill_supervisord()
 
 
 # event loop
