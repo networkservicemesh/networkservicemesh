@@ -15,6 +15,7 @@ type RegistryCache interface {
 	GetNetworkService(name string) (*v1.NetworkService, error)
 
 	AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error)
+	UpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error)
 	GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error)
 
 	AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
@@ -100,7 +101,7 @@ func (rc *registryCacheImpl) DeleteNetworkServiceEndpoint(endpointName string) e
 }
 
 func (rc *registryCacheImpl) GetNetworkServiceEndpoints(networkServiceName string) []*v1.NetworkServiceEndpoint {
-	return rc.networkServiceEndpointCache.Get(networkServiceName)
+	return rc.networkServiceEndpointCache.GetByNetworkService(networkServiceName)
 }
 
 func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
@@ -109,6 +110,11 @@ func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceMana
 		rc.networkServiceManagerCache.Add(nsmResponse)
 	}
 	return nsmResponse, err
+}
+
+func (rc *registryCacheImpl) UpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
+	rc.networkServiceManagerCache.Update(nsm)
+	return rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Update(nsm)
 }
 
 func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error) {

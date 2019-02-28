@@ -15,6 +15,7 @@ const (
 type cacheConfig struct {
 	keyFunc             func(obj interface{}) string
 	resourceAddedFunc   func(obj interface{})
+	resourceUpdatedFunc func(obj interface{})
 	resourceDeletedFunc func(key string)
 	resourceType        string
 }
@@ -22,13 +23,17 @@ type cacheConfig struct {
 type abstractResourceCache struct {
 	addCh    chan interface{}
 	deleteCh chan string
+	updateCh chan interface{}
 	config   cacheConfig
 }
 
+const defaultChannelSize = 10
+
 func newAbstractResourceCache(config cacheConfig) abstractResourceCache {
 	return abstractResourceCache{
-		addCh:    make(chan interface{}, 10),
-		deleteCh: make(chan string, 10),
+		addCh:    make(chan interface{}, defaultChannelSize),
+		deleteCh: make(chan string, defaultChannelSize),
+		updateCh: make(chan interface{}, defaultChannelSize),
 		config:   config,
 	}
 }
@@ -51,6 +56,10 @@ func (c *abstractResourceCache) add(obj interface{}) {
 	c.addCh <- obj
 }
 
+func (c *abstractResourceCache) update(obj interface{}) {
+	c.updateCh <- obj
+}
+
 func (c *abstractResourceCache) delete(key string) {
 	c.deleteCh <- key
 }
@@ -59,9 +68,17 @@ func (c *abstractResourceCache) run(stopCh chan struct{}) {
 	for {
 		select {
 		case newResource := <-c.addCh:
-			c.config.resourceAddedFunc(newResource)
+			if c.config.resourceAddedFunc != nil {
+				c.config.resourceAddedFunc(newResource)
+			}
+		case upd := <-c.updateCh:
+			if c.config.resourceUpdatedFunc != nil {
+				c.config.resourceUpdatedFunc(upd)
+			}
 		case deleteResourceKey := <-c.deleteCh:
-			c.config.resourceDeletedFunc(deleteResourceKey)
+			if c.config.resourceDeletedFunc != nil {
+				c.config.resourceDeletedFunc(deleteResourceKey)
+			}
 		case <-stopCh:
 			return
 		}
@@ -77,6 +94,7 @@ func (c *abstractResourceCache) startInformer(informerFactory externalversions.S
 	informer := genericInformer.Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.add,
+		UpdateFunc: func(old interface{}, new interface{}) { c.update(new) },
 		DeleteFunc: func(obj interface{}) { c.delete(c.config.keyFunc(obj)) },
 	})
 

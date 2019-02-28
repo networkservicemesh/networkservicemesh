@@ -1,13 +1,11 @@
 package registryserver
 
 import (
+	"fmt"
 	"time"
-
-	"github.com/golang/protobuf/ptypes"
 
 	"github.com/go-errors/errors"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/sirupsen/logrus"
@@ -30,38 +28,19 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 	st := time.Now()
 
 	logrus.Infof("Received RegisterNSE(%v)", request)
-	// get network service
+
 	if request.GetNetworkServiceManager().GetUrl() == "" {
 		return nil, errors.New("NSERegistration.NetworkServiceManager.Url must be defined")
 	}
 
-	nsm := &v1.NetworkServiceManager{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: rs.nsmName,
-		},
-		Spec: v1.NetworkServiceManagerSpec{},
-		Status: v1.NetworkServiceManagerStatus{
-			LastSeen: metav1.Time{Time: time.Now()},
-			URL:      request.GetNetworkServiceManager().GetUrl(),
-			State:    v1.RUNNING,
-		},
-	}
-
-	_, err := rs.cache.AddNetworkServiceManager(nsm)
+	nsmCdr := mapNsmToCustomResource(request.NetworkServiceManager)
+	nsmCdr.SetName(rs.nsmName)
+	nsmCdr, err := rs.cache.AddNetworkServiceManager(nsmCdr)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		logrus.Errorf("Failed to register nsm: %s", err)
 		return nil, err
 	}
-	lastSeen, err := ptypes.TimestampProto(nsm.Status.LastSeen.Time)
-	if err != nil {
-		logrus.Errorf("Failed time conversion of %v", nsm.Status.LastSeen)
-	}
-	request.NetworkServiceManager = &registry.NetworkServiceManager{
-		Name:     nsm.GetName(),
-		Url:      nsm.Status.URL,
-		State:    string(nsm.Status.State),
-		LastSeen: lastSeen,
-	}
+	request.NetworkServiceManager = mapNsmFromCustomResource(nsmCdr)
 
 	labels := request.GetNetworkserviceEndpoint().GetLabels()
 	if labels == nil {
@@ -102,7 +81,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 		request.NetworkserviceEndpoint = &registry.NetworkServiceEndpoint{
 			NetworkServiceName:        nseResponse.Spec.NetworkServiceName,
 			Payload:                   networkService.Spec.Payload,
-			NetworkServiceManagerName: nsm.GetObjectMeta().GetName(),
+			NetworkServiceManagerName: nsmCdr.GetObjectMeta().GetName(),
 			EndpointName:              nseResponse.GetObjectMeta().GetName(),
 			Labels:                    nseResponse.GetObjectMeta().GetLabels(),
 			State:                     string(nseResponse.Status.State),
@@ -123,6 +102,33 @@ func (rs registryService) RemoveNSE(ctx context.Context, request *registry.Remov
 	}
 	logrus.Infof("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
+}
+
+func (rs registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
+	st := time.Now()
+
+	logrus.Infof("Received UpdateNSM(%v)", nsm)
+
+	if nsm.GetName() != rs.nsmName {
+		return nil, fmt.Errorf("wrong nsm name %v, expected - %v", nsm.GetName(), rs.nsmName)
+	}
+
+	oldNsm, err := rs.cache.GetNetworkServiceManager(nsm.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	nsmCdr := mapNsmToCustomResource(nsm)
+	nsmCdr.ObjectMeta = oldNsm.ObjectMeta
+
+	nsmCdr, err = rs.cache.UpdateNetworkServiceManager(nsmCdr)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		logrus.Errorf("Failed to register nsm: %s", err)
+		return nil, err
+	}
+
+	logrus.Infof("UpdateNSE done: time %v", time.Since(st))
+	return mapNsmFromCustomResource(nsmCdr), nil
 }
 
 func (rs registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
@@ -156,14 +162,16 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 			}
 			NSMsREG[endpoint.Spec.NsmName] = manager
 		}
-		NSMs[endpoint.Spec.NsmName] = &registry.NetworkServiceManager{
-			Name: manager.ObjectMeta.Name,
-			Url:  manager.Status.URL,
-			LastSeen: &timestamp.Timestamp{
-				Seconds: manager.Status.LastSeen.ProtoTime().Seconds,
-				Nanos:   manager.Status.LastSeen.ProtoTime().Nanos,
-			},
-		}
+		//NSMs[endpoint.Spec.NsmName] = &registry.NetworkServiceManager{
+		//	Name:     manager.ObjectMeta.Name,
+		//	Url:      manager.Status.URL,
+		//	LastSeen: &timestamp.Timestamp{
+		//		Seconds: manager.Status.LastSeen.ProtoTime().Seconds,
+		//		Nanos:   manager.Status.LastSeen.ProtoTime().Nanos,
+		//	},
+		//}
+		NSMs[endpoint.Spec.NsmName] = mapNsmFromCustomResource(manager)
+
 	}
 
 	var matches []*registry.Match
