@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,7 +27,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 	st := time.Now()
 
 	logrus.Infof("Received RegisterNSE(%v)", request)
-
+	// get network service
 	if request.GetNetworkServiceManager().GetUrl() == "" {
 		return nil, errors.New("NSERegistration.NetworkServiceManager.Url must be defined")
 	}
@@ -36,10 +35,11 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 	nsmCdr := mapNsmToCustomResource(request.NetworkServiceManager)
 	nsmCdr.SetName(rs.nsmName)
 	nsmCdr, err := rs.cache.AddNetworkServiceManager(nsmCdr)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err != nil {
 		logrus.Errorf("Failed to register nsm: %s", err)
 		return nil, err
 	}
+
 	request.NetworkServiceManager = mapNsmFromCustomResource(nsmCdr)
 
 	labels := request.GetNetworkserviceEndpoint().GetLabels()
@@ -57,7 +57,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 			},
 			Status: v1.NetworkServiceStatus{},
 		})
-		if err != nil && !apierrors.IsAlreadyExists(err) {
+		if err != nil {
 			logrus.Errorf("Failed to register nsm: %s", err)
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func (rs registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkSe
 	nsmCdr.ObjectMeta = oldNsm.ObjectMeta
 
 	nsmCdr, err = rs.cache.UpdateNetworkServiceManager(nsmCdr)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err != nil {
 		logrus.Errorf("Failed to register nsm: %s", err)
 		return nil, err
 	}
@@ -162,16 +162,7 @@ func (rs registryService) FindNetworkService(ctx context.Context, request *regis
 			}
 			NSMsREG[endpoint.Spec.NsmName] = manager
 		}
-		//NSMs[endpoint.Spec.NsmName] = &registry.NetworkServiceManager{
-		//	Name:     manager.ObjectMeta.Name,
-		//	Url:      manager.Status.URL,
-		//	LastSeen: &timestamp.Timestamp{
-		//		Seconds: manager.Status.LastSeen.ProtoTime().Seconds,
-		//		Nanos:   manager.Status.LastSeen.ProtoTime().Nanos,
-		//	},
-		//}
 		NSMs[endpoint.Spec.NsmName] = mapNsmFromCustomResource(manager)
-
 	}
 
 	var matches []*registry.Match

@@ -27,6 +27,10 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 	return rv
 }
 
+func (c *NetworkServiceEndpointCache) Get(key string) *v1.NetworkServiceEndpoint {
+	return c.networkServiceEndpoints[key]
+}
+
 func (c *NetworkServiceEndpointCache) GetByNetworkService(networkServiceName string) []*v1.NetworkServiceEndpoint {
 	return c.nseByNs[networkServiceName]
 }
