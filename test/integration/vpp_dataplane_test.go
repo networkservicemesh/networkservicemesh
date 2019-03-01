@@ -1,3 +1,5 @@
+// +build basic
+
 package nsmd_integration_tests
 
 import (
@@ -19,7 +21,16 @@ const (
 func TestVppPostmortemDataCollection(t *testing.T) {
 	RegisterTestingT(t)
 
-	k8s, dataplane := deployVppDataplane(defaultTimeout)
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testCollectPostmortemData(defaultTimeout)
+}
+
+func testCollectPostmortemData(timeout time.Duration) {
+	k8s, dataplane := deployVppDataplane(timeout)
 
 	defer k8s.Cleanup()
 	defer clearPostmortemData(k8s, dataplane) // prevent false alarms
@@ -27,9 +38,9 @@ func TestVppPostmortemDataCollection(t *testing.T) {
 	vpp := getVppPID(k8s, dataplane)
 	sendSignal(k8s, dataplane, vpp, "SIGSEGV")
 
-	k8s.WaitLogsContains(dataplane, vppContainer, "Postmortem data collection finished", defaultTimeout)
+	k8s.WaitLogsContains(dataplane, vppContainer, "Postmortem data collection finished", timeout)
 
-	backtraces := postmortemFiles(k8s, dataplane)
+	backtraces := backtraceFiles(k8s, dataplane)
 	Expect(backtraces).NotTo(BeEmpty())
 }
 
@@ -73,8 +84,10 @@ func sendSignal(k8s *kube_testing.K8s, pod *v1.Pod, pid, signal string) {
 	Expect(stderr).To(BeEmpty())
 }
 
-func postmortemFiles(k8s *kube_testing.K8s, dataplane *v1.Pod) []string {
-	return k8s.FindFiles(dataplane, vppContainer, pods.VppPostmortemDataLocation, pods.VppBacktracePattern)
+func backtraceFiles(k8s *kube_testing.K8s, dataplane *v1.Pod) []string {
+	files, err := k8s.FindFiles(dataplane, vppContainer, pods.VppPostmortemDataLocation, pods.VppBacktracePattern)
+	Expect(err).To(BeNil())
+	return files
 }
 
 func clearPostmortemData(k8s *kube_testing.K8s, dataplane *v1.Pod) {

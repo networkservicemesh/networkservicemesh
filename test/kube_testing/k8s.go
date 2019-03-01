@@ -337,10 +337,16 @@ func (o *K8s) CleanupCRDs() {
 func (l *K8s) Cleanup() {
 	postmortemDestination, shouldCollectPostmortem := os.LookupEnv(postmortemDataLocationKey)
 	if shouldCollectPostmortem {
-		_ = l.CollectPostMortemData(postmortemDestination)
+		err := l.CollectPostMortemData(postmortemDestination)
+		if err != nil {
+			logrus.Errorf("Postmortem data collection failed: %v", err)
+		}
 	}
 
-	_ = l.PrintBacktraces()
+	err := l.PrintBacktraces()
+	if err != nil {
+		logrus.Errorf("Printing backtraces failed: %v", err)
+	}
 
 	for _, result := range l.pods {
 		err := l.deletePods(result)
@@ -576,20 +582,23 @@ func (o *K8s) ReadFileContent(pod *v1.Pod, container, filePath string) (string, 
 	return content.Str, err
 }
 
-func (o *K8s) FindFiles(pod *v1.Pod, container, directory, pattern string) []string {
-	stdout, stderr, err := o.Exec(pod, container, "find", directory, "-name", pattern)
-	Expect(err).To(BeNil())
-	Expect(stderr).To(BeEmpty())
+func (o *K8s) FindFiles(pod *v1.Pod, container, directory, pattern string) ([]string, error) {
+	stdout, _, err := o.Exec(pod, container, "find", directory, "-name", pattern)
+	if err != nil {
+		return []string{}, err
+	}
 
 	stdout = strings.Trim(stdout, " \t\n")
 	if len(stdout) == 0 {
-		return []string{}
+		return []string{}, nil
 	}
 
 	whiteSpace, err := regexp.Compile("[\\s\\n]+")
-	Expect(err).To(BeNil())
+	if err != nil {
+		return []string{}, nil
+	}
 
-	return whiteSpace.Split(stdout, -1)
+	return whiteSpace.Split(stdout, -1), nil
 }
 
 func (o *K8s) FileExists(pod *v1.Pod, container, path string) bool {
@@ -611,11 +620,12 @@ func (o *K8s) CollectPostMortemData(destination string) error {
 	// loop over all containers
 	for _, pod := range o.ListPods() {
 		for _, container := range pod.Spec.Containers {
-			if o.FileExists(&pod, container.Name, pods.PostMortemDataLocation) {
-				err := o.CopyFromPod(&pod, container.Name, pods.PostMortemDataLocation, destination)
-				if err != nil {
-					return err
-				}
+			if !o.FileExists(&pod, container.Name, pods.PostMortemDataLocation) {
+				continue
+			}
+			err := o.CopyFromPod(&pod, container.Name, pods.PostMortemDataLocation, destination)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -626,14 +636,19 @@ func (o *K8s) PrintBacktraces() error {
 	// loop over all containers
 	for _, pod := range o.ListPods() {
 		for _, container := range pod.Spec.Containers {
-			if o.FileExists(&pod, container.Name, pods.PostMortemDataLocation) {
-				for _, backtraceFile := range o.FindFiles(&pod, container.Name, pods.PostMortemDataLocation, pods.BacktracePattern) {
-					backtrace, err := o.ReadFileContent(&pod, container.Name, backtraceFile)
-					if err != nil {
-						return err
-					}
-					logrus.Infof("Backtrace %s:\n%s", backtraceFile, backtrace)
+			if !o.FileExists(&pod, container.Name, pods.PostMortemDataLocation) {
+				continue
+			}
+			backtraceFiles, err := o.FindFiles(&pod, container.Name, pods.PostMortemDataLocation, pods.BacktracePattern)
+			if err != nil {
+				return err
+			}
+			for _, backtraceFile := range backtraceFiles {
+				backtrace, err := o.ReadFileContent(&pod, container.Name, backtraceFile)
+				if err != nil {
+					return err
 				}
+				logrus.Infof("Backtrace %s:\n%s", backtraceFile, backtrace)
 			}
 		}
 	}
