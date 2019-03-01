@@ -190,6 +190,7 @@ func TestUpdateNsm(t *testing.T) {
 		Name: nsmName,
 		Url:  url2,
 	})
+	Expect(err).To(BeNil())
 	Expect(updNsm.Url).To(Equal(url2))
 	Expect(getNsmUrl(discovery)).To(Equal(url2))
 
