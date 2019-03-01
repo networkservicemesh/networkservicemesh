@@ -35,7 +35,7 @@ func (c *NetworkServiceManagerCache) Add(nsm *v1.NetworkServiceManager) {
 }
 
 func (c *NetworkServiceManagerCache) Update(nsm *v1.NetworkServiceManager) {
-	logrus.Info("NetworkServiceManagerCache.Update(%v)", nsm)
+	logrus.Infof("NetworkServiceManagerCache.Update(%v)", nsm)
 	c.cache.update(nsm)
 }
 
@@ -54,7 +54,7 @@ func (c *NetworkServiceManagerCache) resourceAdded(obj interface{}) {
 
 func (c *NetworkServiceManagerCache) resourceUpdated(obj interface{}) {
 	nsm := obj.(*v1.NetworkServiceManager)
-	logrus.Info("NetworkServiceManagerCache.resourceUpdated(%v)", nsm)
+	logrus.Infof("NetworkServiceManagerCache.resourceUpdated(%v)", nsm)
 	c.networkServiceManagers[getNsmKey(nsm)] = nsm
 }
 
