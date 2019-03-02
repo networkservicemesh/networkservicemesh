@@ -231,7 +231,14 @@ func (v *VPPAgent) programMgmtInterface() error {
 			},
 		},
 	}
-
+	// When using AF_PACKET, both the kernel, and vpp receive the packets.
+	// Since both vpp and the kernel have the same IP and hw address,
+	// vpp will send icmp port unreachable messages out for anything
+	// that is sent to that IP/mac address ... which screws up lots of things.
+	// This causes vpp to have an ACL on the management interface such that
+	// it drops anything that isn't destined for VXLAN (port 4789).
+	// This way it avoids sending icmp port unreachable messages out.
+	// This bug wasn't really obvious till we tried to switch to hostNetwork:true
 	dataRequest.AccessLists = []*acl.AccessLists_Acl{
 		&acl.AccessLists_Acl{
 			AclName: "NSMmgmtInterfaceACL",
