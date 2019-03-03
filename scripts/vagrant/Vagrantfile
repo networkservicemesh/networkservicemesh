@@ -45,10 +45,12 @@ Vagrant.configure("2") do |config|
   config.vm.define "master" do |master|
     master.vm.hostname = "kube-master"
     master.vm.provision "shell", path: "scripts/configureK8smaster.sh"
+    master.vm.provision "shell", path: "scripts/coredump.sh"
   end
   config.vm.define "worker" do |worker|
     worker.vm.hostname = "kube-worker"
     worker.vm.provision "shell", path: "scripts/configureK8sworker.sh"
+    worker.vm.provision "shell", path: "scripts/coredump.sh"
   end
 
 end
