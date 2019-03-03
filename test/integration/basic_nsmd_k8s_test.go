@@ -159,8 +159,10 @@ func TestUpdateNsm(t *testing.T) {
 
 	discovery, err := serviceRegistry.NetworkServiceDiscovery()
 	Expect(err).To(BeNil())
+	networkService := "icmp-responder"
+
 	req := &registry.FindNetworkServiceRequest{
-		NetworkServiceName: "my_service",
+		NetworkServiceName: networkService,
 	}
 	response, err := discovery.FindNetworkService(context.Background(), req)
 	Expect(response).To(BeNil())
@@ -169,7 +171,6 @@ func TestUpdateNsm(t *testing.T) {
 	registryClient, err := serviceRegistry.RegistryClient()
 	Expect(err).To(BeNil())
 
-	networkService := "icmp-responder"
 	nsmName := "master"
 	url1 := "1.1.1.1:1"
 
