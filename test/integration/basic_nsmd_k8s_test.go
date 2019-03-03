@@ -180,23 +180,41 @@ func TestUpdateNsm(t *testing.T) {
 			Name: nsmName,
 		},
 	}
-	_, err = registryClient.RegisterNSE(context.Background(), reg)
-	Expect(err).To(BeNil())
-	Expect(getNsmUrl(discovery)).To(Equal(url1))
 
-	url2 := "2.2.2.2:2"
+	failures := InterceptGomegaFailures(func() {
+		_, err = registryClient.RegisterNSE(context.Background(), reg)
+		Expect(err).To(BeNil())
+		Expect(getNsmUrl(discovery)).To(Equal(url1))
 
-	updNsm, err := discovery.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
-		Name: nsmName,
-		Url:  url2,
+		url2 := "2.2.2.2:2"
+
+		updNsm, err := discovery.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
+			Name: nsmName,
+			Url:  url2,
+		})
+		Expect(err).To(BeNil())
+		Expect(updNsm.GetUrl()).To(Equal(url2))
+		Expect(getNsmUrl(discovery)).To(Equal(url2))
 	})
-	Expect(err).To(BeNil())
-	Expect(updNsm.Url).To(Equal(url2))
-	Expect(getNsmUrl(discovery)).To(Equal(url2))
 
+	if len(failures) > 0 {
+		logrus.Errorf("Failues: %v", failures)
+
+		nsmdLogs, _ := k8s.GetLogs(nsmd, "nsmd")
+		logrus.Errorf("===================== NSMD output since test is failing %v\n=====================", nsmdLogs)
+
+		nsmdk8sLogs, _ := k8s.GetLogs(nsmd, "nsmd-k8s")
+		logrus.Errorf("===================== NSMD K8S output since test is failing %v\n=====================", nsmdk8sLogs)
+
+		nsmdpLogs, _ := k8s.GetLogs(nsmd, "nsmdp")
+		logrus.Errorf("===================== NSMD K8S output since test is failing %v\n=====================", nsmdpLogs)
+
+		t.Fail()
+	}
 }
 
 func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
+	logrus.Infof("Finding NSE...")
 	response, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
 		NetworkServiceName: "icmp-responder",
 	})
@@ -204,5 +222,6 @@ func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
 	Expect(len(response.NetworkServiceEndpoints)).To(Equal(1))
 
 	endpoint := response.NetworkServiceEndpoints[0]
-	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].Url
+	logrus.Infof("Endpoint: %v", endpoint)
+	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].GetUrl()
 }
