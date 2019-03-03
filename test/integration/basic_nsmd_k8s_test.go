@@ -5,7 +5,6 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -187,11 +186,6 @@ func TestUpdateNsm(t *testing.T) {
 			Url:  url1,
 			Name: nsmName,
 		},
-	}
-
-	discoveryServerType := reflect.TypeOf((*registry.NetworkServiceDiscoveryServer)(nil)).Elem()
-	for i := 0; i < discoveryServerType.NumMethod(); i++ {
-		logrus.Infof("Method %d: %s", i, discoveryServerType.Method(i).Name)
 	}
 
 	failures := InterceptGomegaFailures(func() {

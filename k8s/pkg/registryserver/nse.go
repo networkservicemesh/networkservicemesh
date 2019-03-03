@@ -23,7 +23,7 @@ type registryService struct {
 	cache   RegistryCache
 }
 
-func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
+func (rs *registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	st := time.Now()
 
 	logrus.Infof("Received RegisterNSE(%v)", request)
@@ -92,7 +92,7 @@ func (rs registryService) RegisterNSE(ctx context.Context, request *registry.NSE
 
 }
 
-func (rs registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
+func (rs *registryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	st := time.Now()
 
 	logrus.Infof("Received RemoveNSE(%v)", request)
@@ -104,7 +104,7 @@ func (rs registryService) RemoveNSE(ctx context.Context, request *registry.Remov
 	return &empty.Empty{}, nil
 }
 
-func (rs registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
+func (rs *registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
 	st := time.Now()
 
 	logrus.Infof("Received UpdateNSM(%v)", nsm)
@@ -131,7 +131,7 @@ func (rs registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkSe
 	return mapNsmFromCustomResource(nsmCdr), nil
 }
 
-func (rs registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
+func (rs *registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
 	st := time.Now()
 	service, err := rs.cache.GetNetworkService(request.NetworkServiceName)
 	if err != nil {
