@@ -16,7 +16,6 @@ package vppagent
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
@@ -48,23 +47,17 @@ type VPPAgent struct {
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
 	baseDir              string
-	srcIP                net.IP
-	srcIPNet             net.IPNet
-	mgmtIfaceName        string
-	mgmtHWAddress        net.HardwareAddr
+	egressInterface      *EgressInterface
 	directMemifConnector *memif.DirectMemifConnector
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string, mgmtHwAddress net.HardwareAddr) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, egressInterface *EgressInterface) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
 		vppAgentEndpoint: vppAgentEndpoint,
 		baseDir:          baseDir,
-		srcIP:            srcIP,
-		srcIPNet:         srcIPNet,
-		mgmtIfaceName:    mgmtIfaceName,
-		mgmtHWAddress:    mgmtHwAddress,
+		egressInterface:  egressInterface,
 		monitor:          monitor,
 		mechanisms: &Mechanisms{
 			localMechanisms: []*local.Mechanism{
@@ -79,7 +72,7 @@ func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossCon
 				{
 					Type: remote.MechanismType_VXLAN,
 					Parameters: map[string]string{
-						remote.VXLANSrcIP: srcIP.String(),
+						remote.VXLANSrcIP: egressInterface.SrcIPNet().IP.String(),
 					},
 				},
 			},
@@ -223,10 +216,10 @@ func (v *VPPAgent) programMgmtInterface() error {
 				Name:        "mgmt",
 				Type:        interfaces.InterfaceType_AF_PACKET_INTERFACE,
 				Enabled:     true,
-				IpAddresses: []string{v.srcIPNet.String()},
-				PhysAddress: v.mgmtHWAddress.String(),
+				IpAddresses: []string{v.egressInterface.SrcIPNet().String()},
+				PhysAddress: v.egressInterface.HardwareAddr.String(),
 				Afpacket: &interfaces.Interfaces_Interface_Afpacket{
-					HostIfName: v.mgmtIfaceName,
+					HostIfName: v.egressInterface.Name,
 				},
 			},
 		},
@@ -252,7 +245,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 					Match: &acl.AccessLists_Acl_Rule_Match{
 						IpRule: &acl.AccessLists_Acl_Rule_Match_IpRule{
 							Ip: &acl.AccessLists_Acl_Rule_Match_IpRule_Ip{
-								DestinationNetwork: v.srcIP.String() + "/32",
+								DestinationNetwork: v.egressInterface.SrcIPNet().IP.String() + "/32",
 								SourceNetwork:      "0.0.0.0/0",
 							},
 							Udp: &acl.AccessLists_Acl_Rule_Match_IpRule_Udp{

@@ -15,8 +15,6 @@
 package vppagent
 
 import (
-	"net"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -27,7 +25,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet net.IPNet, mgmtIfaceName string, mgmtHWAddress net.HardwareAddr) *grpc.Server {
+func NewServer(vppAgentEndpoint string, baseDir string, egressInterface *EgressInterface) *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -38,7 +36,7 @@ func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet n
 	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
 
-	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName, mgmtHWAddress)
+	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, egressInterface)
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor)
 	dataplane.RegisterDataplaneServer(server, vppagent)
 	return server
