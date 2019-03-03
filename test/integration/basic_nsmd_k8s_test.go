@@ -159,6 +159,12 @@ func TestUpdateNsm(t *testing.T) {
 
 	discovery, err := serviceRegistry.NetworkServiceDiscovery()
 	Expect(err).To(BeNil())
+	req := &registry.FindNetworkServiceRequest{
+		NetworkServiceName: "my_service",
+	}
+	response, err := discovery.FindNetworkService(context.Background(), req)
+	Expect(response).To(BeNil())
+	logrus.Print(err.Error())
 
 	registryClient, err := serviceRegistry.RegistryClient()
 	Expect(err).To(BeNil())
