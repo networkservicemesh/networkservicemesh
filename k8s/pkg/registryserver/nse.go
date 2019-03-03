@@ -109,7 +109,7 @@ func (rs *registryService) RemoveNSE(ctx context.Context, request *registry.Remo
 	return &empty.Empty{}, nil
 }
 
-func (rs *discoveryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
+func (rs *registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
 	st := time.Now()
 
 	logrus.Infof("Received UpdateNSM(%v)", nsm)

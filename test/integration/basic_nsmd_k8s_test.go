@@ -199,7 +199,7 @@ func TestUpdateNsm(t *testing.T) {
 
 		url2 := "2.2.2.2:2"
 
-		updNsm, err := discovery.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
+		updNsm, err := registryClient.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
 			Name: nsmName,
 			Url:  url2,
 		})
