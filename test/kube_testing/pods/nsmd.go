@@ -2,7 +2,7 @@ package pods
 
 import (
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 )
@@ -87,8 +87,8 @@ func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
-					Image:           "networkservicemesh/nsmd-k8s:" + commit,
-					ImagePullPolicy: v1.PullAlways,
+					Image:           "networkservicemesh/nsmd-k8s",
+					ImagePullPolicy: v1.PullIfNotPresent,
 					Env: []v1.EnvVar{
 						v1.EnvVar{
 							Name:  "NODE_NAME",
