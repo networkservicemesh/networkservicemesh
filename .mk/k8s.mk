@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane
+BUILD_CONTAINERS+=devenv crossconnect-monitor
+BUILD_CONTAINERS+=nsc icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc
+BUILD_CONTAINERS+=vppagent-firewall-nse
+BUILD_CONTAINERS+=admission-webhook
+
 K8S_CONF_DIR = k8s/conf
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
@@ -37,17 +43,32 @@ CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD)
 ifeq ($(CLUSTER_RULES_PREFIX),)
 CLUSTER_RULES_PREFIX := vagrant
 endif
+
 include .mk/vagrant.mk
 include .mk/packet.mk
+include .mk/gke.mk
 
 # .null.mk allows you to skip the vagrant machinery with:
 # export CLUSTER_RULES_PREFIX=null
 # before running make
 include .mk/null.mk
 
-# Pull in docker targets
-CONTAINER_BUILD_PREFIX = docker
 include .mk/docker.mk
+include .mk/gcb.mk
+
+# Pull in docker targets
+ifeq ($(CONTAINER_BUILD_PREFIX),)
+CONTAINER_BUILD_PREFIX = docker
+
+endif
+ifeq ($(CONTAINER_BUILD_PREFIX),gcb)
+CONTAINER_REPO=gcr.io/$(shell gcloud config get-value project)
+endif
+ifeq ($(CONTAINER_REPO),)
+CONTAINER_REPO=networkservicemesh
+endif
+
+ORG=$(CONTAINER_REPO)
 
 .PHONY: k8s-deploy
 k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
@@ -70,25 +91,30 @@ k8s-deployonly: $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-jaeger-deploy
 k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
 	@until ! $$(kubectl get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | kubectl apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | kubectl apply -f -
 
 .PHONY: k8s-admission-webhook-deploy
 k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete k8s-admission-webhook-load-images k8s-admission-webhook-create-cert
 	@until ! $$(kubectl get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml | kubectl apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml | kubectl apply -f -
 	@echo "Installing webhook..."
 	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl apply -f -
+
+.PHONY: k8s-vpn-gateway-nse-deploy
+k8s-vpn-gateway-nse-deploy: k8s-start k8s-config k8s-%-delete k8s-%-load-images
+	@until ! $$(kubectl get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/icmp-responder-nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | kubectl apply -f -
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
 	@until ! $$(kubectl get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
 
 .PHONY: k8s-%-deployonly
 k8s-%-deployonly:
 	@until ! $$(kubectl get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
 .PHONY: k8s-delete
 k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
@@ -143,7 +169,10 @@ k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 k8s-jaeger-build:
 
 .PHONY: k8s-jaeger-save
-k8s-jaeger-save:
+k8s-jaeger-build: 
+
+.PHONY: k8s-jaeger-save
+k8s-jaeger-save: 
 
 .PHONY: k8s-jaeger-load-images
 k8s-jaeger-load-images:
@@ -183,9 +212,7 @@ k8s-secure-intranet-connectivity-build:
 k8s-secure-intranet-connectivity-save:
 
 .PHONY: k8s-secure-intranet-connectivity-load-images
-k8s-secure-intranet-connectivity-load-images:
-	@echo "Wait for nsmd to register the resources"
-	@sleep 10
+k8s-secure-intranet-connectivity-load-images: ;
 
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
