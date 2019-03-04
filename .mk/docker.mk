@@ -26,7 +26,7 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
 docker-%-build:
-	${DOCKERBUILD} -t ${ORG}/$* -f docker/Dockerfile.$* .; \
+	${DOCKERBUILD} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
