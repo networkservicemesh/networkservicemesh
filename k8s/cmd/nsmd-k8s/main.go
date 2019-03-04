@@ -41,6 +41,7 @@ func main() {
 		logrus.Fatalf("You must set env variable NODE_NAME to match the name of your Node.  See https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/")
 	}
 	logrus.Println("Starting NSMD Kubernetes on " + address + " with NsmName " + nsmName)
+	logrus.Info("Logs that should be printed on CI")
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
