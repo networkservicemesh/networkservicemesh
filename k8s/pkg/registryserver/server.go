@@ -20,23 +20,12 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	cache := NewRegistryCache(clientset)
 	logrus.Info("RegistryCache started")
 
-	rs := &registryService{
+	srv := &registryService{
 		nsmName: nsmName,
 		cache:   cache,
 	}
-
-	ds := &discoveryService{
-		nsmName: nsmName,
-		cache:   cache,
-	}
-
-	registry.RegisterNetworkServiceRegistryServer(server, rs)
-	registry.RegisterNetworkServiceDiscoveryServer(server, ds)
-
-	logrus.Info("Printing Service Info: ")
-	for k, v := range server.GetServiceInfo() {
-		logrus.Infof("key: %v, value %v", k, v)
-	}
+	registry.RegisterNetworkServiceRegistryServer(server, srv)
+	registry.RegisterNetworkServiceDiscoveryServer(server, srv)
 
 	if err := cache.Start(); err != nil {
 		logrus.Error(err)

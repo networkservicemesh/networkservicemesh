@@ -102,10 +102,6 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	return &empty.Empty{}, nil
 }
 
-func (es *registryServer) UpdateNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
-	panic("implement me")
-}
-
 func (es *registryServer) Close() {
 
 }

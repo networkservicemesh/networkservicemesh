@@ -157,18 +157,18 @@ func TestUpdateNsm(t *testing.T) {
 
 	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
-	//discovery, err := serviceRegistry.NetworkServiceDiscovery()
-	//Expect(err).To(BeNil())
-	//networkService := "icmp-responder"
+	discovery, err := serviceRegistry.NetworkServiceDiscovery()
+	Expect(err).To(BeNil())
+	networkService := "icmp-responder"
 
-	//req := &registry.FindNetworkServiceRequest{
-	//	NetworkServiceName: networkService,
-	//}
+	req := &registry.FindNetworkServiceRequest{
+		NetworkServiceName: networkService,
+	}
 
-	//time.Sleep(4 * time.Second)
-	//response, err := discovery.FindNetworkService(context.Background(), req)
-	//Expect(response).To(BeNil())
-	//logrus.Print(err.Error())
+	time.Sleep(4 * time.Second)
+	response, err := discovery.FindNetworkService(context.Background(), req)
+	Expect(response).To(BeNil())
+	logrus.Print(err.Error())
 
 	registryClient, err := serviceRegistry.RegistryClient()
 	Expect(err).To(BeNil())
@@ -176,36 +176,36 @@ func TestUpdateNsm(t *testing.T) {
 	k8s.CleanupCRDs()
 
 	nsmName := "master"
-	//url1 := "1.1.1.1:1"
-	//
-	//reg := &registry.NSERegistration{
-	//	NetworkService: &registry.NetworkService{
-	//		Name:    networkService,
-	//		Payload: "tcp",
-	//	},
-	//	NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-	//		NetworkServiceName: networkService,
-	//	},
-	//	NetworkServiceManager: &registry.NetworkServiceManager{
-	//		Url:  url1,
-	//		Name: nsmName,
-	//	},
-	//}
+	url1 := "1.1.1.1:1"
+
+	reg := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkService,
+			Payload: "tcp",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: networkService,
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Url:  url1,
+			Name: nsmName,
+		},
+	}
 
 	failures := InterceptGomegaFailures(func() {
-		//_, err = registryClient.RegisterNSE(context.Background(), reg)
-		//Expect(err).To(BeNil())
-		//Expect(getNsmUrl(discovery)).To(Equal(url1))
+		_, err = registryClient.RegisterNSE(context.Background(), reg)
+		Expect(err).To(BeNil())
+		Expect(getNsmUrl(discovery)).To(Equal(url1))
 
 		url2 := "2.2.2.2:2"
 
-		_, err := registryClient.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
+		updNsm, err := discovery.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
 			Name: nsmName,
 			Url:  url2,
 		})
-		Expect(err.Error()).To(ContainSubstring("no NetworkServiceManager with name: master"))
-		//Expect(updNsm.GetUrl()).To(Equal(url2))
-		//Expect(getNsmUrl(discovery)).To(Equal(url2))
+		Expect(err).To(BeNil())
+		Expect(updNsm.GetUrl()).To(Equal(url2))
+		Expect(getNsmUrl(discovery)).To(Equal(url2))
 	})
 
 	if len(failures) > 0 {

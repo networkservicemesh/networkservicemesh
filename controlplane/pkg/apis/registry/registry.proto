@@ -60,9 +60,9 @@ message NSERegistration {
 service NetworkServiceRegistry {
     rpc RegisterNSE (NSERegistration) returns (NSERegistration);
     rpc RemoveNSE (RemoveNSERequest) returns (google.protobuf.Empty);
-    rpc UpdateNSM (NetworkServiceManager) returns (NetworkServiceManager);
 }
 
 service NetworkServiceDiscovery {
     rpc FindNetworkService (FindNetworkServiceRequest) returns (FindNetworkServiceResponse);
+    rpc UpdateNSM (NetworkServiceManager) returns (NetworkServiceManager);
 }

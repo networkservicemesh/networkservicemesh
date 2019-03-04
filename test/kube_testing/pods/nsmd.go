@@ -1,10 +1,8 @@
 package pods
 
 import (
-	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
 
 func newNSMMount() v1.VolumeMount {
@@ -37,9 +35,6 @@ func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *
 	if node != nil {
 		nodeName = node.Name
 	}
-
-	commit, _ := os.LookupEnv("COMMIT")
-	logrus.Infof("COMMIT: %v", commit)
 
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{

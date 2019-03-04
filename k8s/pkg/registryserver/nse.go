@@ -23,11 +23,6 @@ type registryService struct {
 	cache   RegistryCache
 }
 
-type discoveryService struct {
-	nsmName string
-	cache   RegistryCache
-}
-
 func (rs *registryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	st := time.Now()
 
@@ -136,7 +131,7 @@ func (rs *registryService) UpdateNSM(ctx context.Context, nsm *registry.NetworkS
 	return mapNsmFromCustomResource(nsmCdr), nil
 }
 
-func (rs *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
+func (rs *registryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
 	st := time.Now()
 	service, err := rs.cache.GetNetworkService(request.NetworkServiceName)
 	if err != nil {
