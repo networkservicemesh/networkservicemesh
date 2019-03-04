@@ -215,8 +215,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-nsmd-build
-            make docker-nsmd-push
+            make docker-nsmd-build docker-nsmd-push
   build-nsmd-k8s:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -229,8 +228,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-nsmd-k8s-build
-            make docker-nsmd-k8s-push
+            make docker-nsmd-k8s-build docker-nsmd-k8s-push
   build-nsmdp:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -243,8 +241,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-nsmdp-build
-            make docker-nsmdp-push
+            make docker-nsmdp-build docker-nsmdp-push
   build-admission-webhook:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -258,8 +255,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
             export TAG="$BUILD_TAG"
-            make docker-admission-webhook-build
-            make docker-admission-webhook-push
+            make docker-admission-webhook-build docker-admission-webhook-push
   build-crossconnect-monitor:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -272,8 +268,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-crossconnect-monitor-build
-            make docker-crossconnect-monitor-push
+            make docker-crossconnect-monitor-build docker-crossconnect-monitor-push
   build-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -286,8 +281,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-icmp-responder-nse-build
-            make docker-icmp-responder-nse-push
+            make docker-icmp-responder-nse-build docker-icmp-responder-nse-push
 
   build-vppagent-icmp-responder-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
@@ -301,8 +295,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-vppagent-icmp-responder-nse-build
-            make docker-vppagent-icmp-responder-nse-push
+            make docker-vppagent-icmp-responder-nse-build docker-vppagent-icmp-responder-nse-push
   build-vppagent-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -315,8 +308,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-vppagent-nsc-build
-            make docker-vppagent-nsc-push
+            make docker-vppagent-nsc-build docker-vppagent-nsc-push
   build-nsc:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -329,8 +321,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-nsc-build
-            make docker-nsc-push
+            make docker-nsc-build docker-nsc-push
   build-vppagent-dataplane:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -343,8 +334,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-vppagent-dataplane-build
-            make docker-vppagent-dataplane-push
+            make docker-vppagent-dataplane-build docker-vppagent-dataplane-push
   build-vppagent-firewall-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -357,8 +347,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-vppagent-firewall-nse-build
-            make docker-vppagent-firewall-nse-push
+            make docker-vppagent-firewall-nse-build docker-vppagent-firewall-nse-push
   docker-push-latest:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
