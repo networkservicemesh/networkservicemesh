@@ -37,17 +37,17 @@ CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD)
 ifeq ($(CLUSTER_RULES_PREFIX),)
 CLUSTER_RULES_PREFIX := vagrant
 endif
-include .vagrant.mk
-include .packet.mk
+include .mk/vagrant.mk
+include .mk/packet.mk
 
 # .null.mk allows you to skip the vagrant machinery with:
 # export CLUSTER_RULES_PREFIX=null
 # before running make
-include .null.mk
+include .mk/null.mk
 
 # Pull in docker targets
 CONTAINER_BUILD_PREFIX = docker
-include .docker.mk
+include .mk/docker.mk
 
 .PHONY: k8s-deploy
 k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
