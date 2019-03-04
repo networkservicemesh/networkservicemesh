@@ -33,6 +33,11 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	registry.RegisterNetworkServiceRegistryServer(server, rs)
 	registry.RegisterNetworkServiceDiscoveryServer(server, ds)
 
+	logrus.Info("Printing Service Info: ")
+	for k, v := range server.GetServiceInfo() {
+		logrus.Infof("key: %v, value %v", k, v)
+	}
+
 	if err := cache.Start(); err != nil {
 		logrus.Error(err)
 	}
