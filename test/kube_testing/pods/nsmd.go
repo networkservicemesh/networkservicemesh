@@ -3,6 +3,7 @@ package pods
 import (
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 func newNSMMount() v1.VolumeMount {
@@ -35,6 +36,8 @@ func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *
 	if node != nil {
 		nodeName = node.Name
 	}
+
+	commit, _ := os.LookupEnv("COMMIT")
 
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
@@ -82,7 +85,7 @@ func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
-					Image:           "networkservicemesh/nsmd-k8s",
+					Image:           "networkservicemesh/nsmd-k8s:" + commit,
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Env: []v1.EnvVar{
 						v1.EnvVar{
