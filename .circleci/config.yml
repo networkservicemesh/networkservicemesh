@@ -24,6 +24,7 @@ jobs:
       - run: go get golang.org/x/tools/cmd/stringer
       - run: ./scripts/install-protoc.sh
       # - run: go generate ./...
+      - run: until go mod download;do echo "Trying again";done
       - run: go build ./...
       - run: mkdir -p ~/junit/
       - run:
