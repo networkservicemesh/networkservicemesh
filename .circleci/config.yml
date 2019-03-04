@@ -134,6 +134,8 @@ jobs:
       - run:
           name: Running integration tests - basic
           command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
             gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=basic
           no_output_timeout: 40m
           environment:
@@ -142,6 +144,8 @@ jobs:
       - run:
           name: Running integration tests - recover
           command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
             gotestsum --junitfile ~/junit/integration-tests-recover.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=recover
           no_output_timeout: 40m
           environment:
@@ -150,6 +154,8 @@ jobs:
       - run:
           name: Running integration tests - usecase
           command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
             gotestsum --junitfile ~/junit/integration-tests-usecase.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=usecase
           no_output_timeout: 40m
           environment:
