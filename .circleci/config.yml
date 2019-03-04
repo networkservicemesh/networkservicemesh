@@ -335,6 +335,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             make docker-vppagent-dataplane-build docker-vppagent-dataplane-push
+            echo "Exit code: $?"
   build-vppagent-firewall-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
