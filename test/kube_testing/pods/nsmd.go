@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
@@ -38,6 +39,7 @@ func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *
 	}
 
 	commit, _ := os.LookupEnv("COMMIT")
+	logrus.Infof("COMMIT: %v", commit)
 
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
@@ -86,7 +88,7 @@ func createdNSMDPod(name string, node *v1.Node, liveness, readiness *v1.Probe) *
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
 					Image:           "networkservicemesh/nsmd-k8s:" + commit,
-					ImagePullPolicy: v1.PullIfNotPresent,
+					ImagePullPolicy: v1.PullAlways,
 					Env: []v1.EnvVar{
 						v1.EnvVar{
 							Name:  "NODE_NAME",
