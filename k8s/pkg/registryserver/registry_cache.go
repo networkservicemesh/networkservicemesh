@@ -16,11 +16,12 @@ type RegistryCache interface {
 
 	AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error)
 	UpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error)
-	GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error)
+	GetNetworkServiceManager(name string) *v1.NetworkServiceManager
 
 	AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
 	DeleteNetworkServiceEndpoint(endpointName string) error
-	GetNetworkServiceEndpoints(networkServiceName string) []*v1.NetworkServiceEndpoint
+	GetEndpointsByNs(networkServiceName string) []*v1.NetworkServiceEndpoint
+	GetEndpointsByNsm(nsmName string) []*v1.NetworkServiceEndpoint
 
 	Start() error
 	Stop()
@@ -120,8 +121,12 @@ func (rc *registryCacheImpl) DeleteNetworkServiceEndpoint(endpointName string) e
 	return rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints("default").Delete(endpointName, &metav1.DeleteOptions{})
 }
 
-func (rc *registryCacheImpl) GetNetworkServiceEndpoints(networkServiceName string) []*v1.NetworkServiceEndpoint {
+func (rc *registryCacheImpl) GetEndpointsByNs(networkServiceName string) []*v1.NetworkServiceEndpoint {
 	return rc.networkServiceEndpointCache.GetByNetworkService(networkServiceName)
+}
+
+func (rc *registryCacheImpl) GetEndpointsByNsm(nsmName string) []*v1.NetworkServiceEndpoint {
+	return rc.networkServiceEndpointCache.GetByNetworkServiceManager(nsmName)
 }
 
 func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
@@ -147,12 +152,8 @@ func (rc *registryCacheImpl) UpdateNetworkServiceManager(nsm *v1.NetworkServiceM
 	return rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Update(nsm)
 }
 
-func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error) {
-	if nsm := rc.networkServiceManagerCache.Get(name); nsm == nil {
-		return nil, fmt.Errorf("no NetworkServiceManager with name: %v", name)
-	} else {
-		return nsm, nil
-	}
+func (rc *registryCacheImpl) GetNetworkServiceManager(name string) *v1.NetworkServiceManager {
+	return rc.networkServiceManagerCache.Get(name)
 }
 
 func (rc *registryCacheImpl) Stop() {

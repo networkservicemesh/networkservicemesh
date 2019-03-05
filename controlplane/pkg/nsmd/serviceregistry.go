@@ -140,11 +140,11 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 
-func (impl *nsmdServiceRegistry) RegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
-	logrus.Info("Requesting RegistryClient...")
+	logrus.Info("Requesting NseRegistryClient...")
 
 	impl.initRegistryClient()
 	if impl.registryClientConnection != nil {
@@ -153,11 +153,23 @@ func (impl *nsmdServiceRegistry) RegistryClient() (registry.NetworkServiceRegist
 	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
 }
 
+func (impl *nsmdServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+	impl.RWMutex.Lock()
+	defer impl.RWMutex.Unlock()
+
+	logrus.Info("Requesting NsmRegistryClient...")
+	impl.initRegistryClient()
+	if impl.registryClientConnection != nil {
+		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
+	}
+	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+}
+
 func (impl *nsmdServiceRegistry) GetPublicAPI() string {
 	return GetLocalIPAddress() + ":5001"
 }
 
-func (impl *nsmdServiceRegistry) NetworkServiceDiscovery() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 

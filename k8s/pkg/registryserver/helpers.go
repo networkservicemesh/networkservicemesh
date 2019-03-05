@@ -36,3 +36,14 @@ func mapNsmFromCustomResource(cdr *v1.NetworkServiceManager) *registry.NetworkSe
 		LastSeen: lastSeen,
 	}
 }
+
+func mapNseFromCustomResource(cdr *v1.NetworkServiceEndpoint, payload string) *registry.NetworkServiceEndpoint {
+	return &registry.NetworkServiceEndpoint{
+		EndpointName:              cdr.Name,
+		NetworkServiceName:        cdr.Spec.NetworkServiceName,
+		NetworkServiceManagerName: cdr.Spec.NsmName,
+		Payload:                   payload,
+		Labels:                    cdr.ObjectMeta.Labels,
+		State:                     string(cdr.Status.State),
+	}
+}

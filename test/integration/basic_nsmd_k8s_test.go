@@ -5,6 +5,7 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/empty"
 	"testing"
 	"time"
 
@@ -50,7 +51,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
-	discovery, err := serviceRegistry.NetworkServiceDiscovery()
+	discovery, err := serviceRegistry.DiscoveryClient()
 	Expect(err).To(BeNil())
 	req := &registry.FindNetworkServiceRequest{
 		NetworkServiceName: "my_service",
@@ -63,7 +64,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	// Lets register few hundred NSEs and check how it works.
 
-	registryClient, err := serviceRegistry.RegistryClient()
+	registryClient, err := serviceRegistry.NseRegistryClient()
 	Expect(err).To(BeNil())
 
 	// Cleanup all registered stuff
@@ -82,9 +83,6 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceName: nme,
-		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Url: fmt.Sprintf("%s:%d", nsmd.Status.PodIP, 5001),
 		},
 	}
 	resp, err := registryClient.RegisterNSE(context.Background(), reg)
@@ -157,49 +155,44 @@ func TestUpdateNsm(t *testing.T) {
 
 	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
-	discovery, err := serviceRegistry.NetworkServiceDiscovery()
+	discovery, err := serviceRegistry.DiscoveryClient()
 	Expect(err).To(BeNil())
-	networkService := "icmp-responder"
 
-	req := &registry.FindNetworkServiceRequest{
-		NetworkServiceName: networkService,
-	}
+	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
+	Expect(err).To(BeNil())
 
-	time.Sleep(4 * time.Second)
-	response, err := discovery.FindNetworkService(context.Background(), req)
-	Expect(response).To(BeNil())
-	logrus.Print(err.Error())
-
-	registryClient, err := serviceRegistry.RegistryClient()
+	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
 	Expect(err).To(BeNil())
 
 	k8s.CleanupCRDs()
 
+	networkService := "icmp-responder"
 	nsmName := "master"
 	url1 := "1.1.1.1:1"
-
-	reg := &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name:    networkService,
-			Payload: "tcp",
-		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceName: networkService,
-		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Url:  url1,
-			Name: nsmName,
-		},
-	}
+	url2 := "2.2.2.2:2"
 
 	failures := InterceptGomegaFailures(func() {
-		_, err = registryClient.RegisterNSE(context.Background(), reg)
+		response, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+			Name: nsmName,
+			Url:  url1,
+		})
+		logrus.Info(response)
 		Expect(err).To(BeNil())
+
+		nseResp, err := nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+			NetworkService: &registry.NetworkService{
+				Name:    networkService,
+				Payload: "tcp",
+			},
+			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+				NetworkServiceName: networkService,
+			},
+		})
+		Expect(err).To(BeNil())
+		logrus.Info(nseResp)
 		Expect(getNsmUrl(discovery)).To(Equal(url1))
 
-		url2 := "2.2.2.2:2"
-
-		updNsm, err := discovery.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
+		updNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
 			Name: nsmName,
 			Url:  url2,
 		})
@@ -224,15 +217,79 @@ func TestUpdateNsm(t *testing.T) {
 	}
 }
 
+func TestGetEndpoints(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	k8s.Prepare("nsmd")
+	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd1", nil))
+
+	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	// We need to wait unti it is started
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+
+	e := fwd.Start()
+	if e != nil {
+		logrus.Printf("Error on forward: %v retrying", e)
+	}
+
+	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+
+	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
+	Expect(err).To(BeNil())
+
+	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
+	Expect(err).To(BeNil())
+
+	k8s.CleanupCRDs()
+	url := "1.1.1.1:1"
+
+	responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+		Url: url,
+	})
+	Expect(err).To(BeNil())
+	Expect(responseNsm.Url).To(Equal(url))
+	letters := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"}
+
+	for i := 0; i < len(letters); i++ {
+		nsName := "icmp-responder-" + letters[i]
+		_, err := nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+			NetworkService: &registry.NetworkService{
+				Name:    nsName,
+				Payload: "IP",
+			},
+			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+				NetworkServiceName: nsName,
+			},
+		})
+		Expect(err).To(BeNil())
+	}
+
+	nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
+	Expect(err).To(BeNil())
+	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(len(letters)))
+}
+
 func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
 	logrus.Infof("Finding NSE...")
 	response, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
 		NetworkServiceName: "icmp-responder",
 	})
 	Expect(err).To(BeNil())
-	Expect(len(response.NetworkServiceEndpoints)).To(Equal(1))
+	Expect(len(response.GetNetworkServiceEndpoints())).To(Equal(1))
 
-	endpoint := response.NetworkServiceEndpoints[0]
+	endpoint := response.GetNetworkServiceEndpoints()[0]
 	logrus.Infof("Endpoint: %v", endpoint)
 	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].GetUrl()
 }

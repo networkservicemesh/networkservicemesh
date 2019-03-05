@@ -92,7 +92,7 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 	}, nil
 }
 
-func (impl *nsmdTestServiceDiscovery) UpdateNSM(ctx context.Context, in *registry.NetworkServiceManager, opts ...grpc.CallOption) (*registry.NetworkServiceManager, error) {
+func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *registry.NetworkServiceManager, opts ...grpc.CallOption) (*registry.NetworkServiceManager, error) {
 	return nil, nil
 }
 
@@ -234,12 +234,16 @@ func (impl *nsmdTestServiceRegistry) GetPublicAPI() string {
 	return fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPublicPort)
 }
 
-func (impl *nsmdTestServiceRegistry) NetworkServiceDiscovery() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdTestServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) RegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
 	return impl.nseRegistry, nil
+}
+
+func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+	panic("implement me")
 }
 
 func (impl *nsmdTestServiceRegistry) Stop() {
@@ -328,10 +332,6 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 		NetworkService: &registry.NetworkService{
 			Name:    networkServiceName,
 			Payload: payload,
-		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: nse_address,
-			Url:  nse_address,
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceManagerName: nse_address,
