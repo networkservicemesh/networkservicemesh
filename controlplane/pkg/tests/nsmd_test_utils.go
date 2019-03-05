@@ -96,6 +96,10 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *regis
 	return nil, nil
 }
 
+func (iml *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
+	panic("implement me")
+}
+
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
@@ -243,7 +247,8 @@ func (impl *nsmdTestServiceRegistry) NseRegistryClient() (registry.NetworkServic
 }
 
 func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
-	panic("implement me")
+	return impl.nseRegistry, nil
+
 }
 
 func (impl *nsmdTestServiceRegistry) Stop() {
