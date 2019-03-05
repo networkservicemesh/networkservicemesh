@@ -31,7 +31,7 @@ func (n *nsmRegistryService) RegisterNSM(ctx context.Context, nsm *registry.Netw
 }
 
 func (n *nsmRegistryService) GetEndpoints(context.Context, *empty.Empty) (*registry.NetworkServiceEndpointList, error) {
-	logrus.Infof("Received GetEndpoints(%v)")
+	logrus.Info("Received GetEndpoints")
 
 	endpoints := n.cache.GetEndpointsByNsm(n.nsmName)
 	var response []*registry.NetworkServiceEndpoint
