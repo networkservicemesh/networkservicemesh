@@ -128,7 +128,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             # export CONTAINER_FORCE_PULL="true"
             mkdir -p ~/junit/
-            mkdir -p ~/postmortem
+            mkdir -p /home/circleci/postmortem
             go mod download
           no_output_timeout: 40m
           environment:
@@ -144,7 +144,7 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
-            POSTMORTEM_DATA_LOCATION: ~/postmortem
+            POSTMORTEM_DATA_LOCATION: /home/circleci/postmortem
       - run:
           name: Running integration tests - recover
           command: |
@@ -155,7 +155,7 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
-            POSTMORTEM_DATA_LOCATION: ~/postmortem
+            POSTMORTEM_DATA_LOCATION: /home/circleci/postmortem
       - run:
           name: Running integration tests - usecase
           command: |
@@ -166,13 +166,13 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
-            POSTMORTEM_DATA_LOCATION: ~/postmortem
+            POSTMORTEM_DATA_LOCATION: /home/circleci/postmortem
       - store_test_results:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
       - store_artifacts:
-          path: ~/postmortem
+          path: /home/circleci/postmortem
       - run:
           when: always
           name: Dump K8s state
