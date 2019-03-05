@@ -1,6 +1,7 @@
 version: 2
 jobs:
   sanity-check:
+    resource_class: medium+
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.11
