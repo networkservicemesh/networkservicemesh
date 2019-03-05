@@ -1,8 +1,10 @@
 package monitor
 
 import (
+	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"strings"
 )
 
 const (
@@ -12,6 +14,11 @@ const (
 	INITIAL_STATE_TRANSFER = "INITIAL_STATE_TRANSFER"
 )
 
+const (
+	src_prefix = "SRC-"
+	dst_prefix = "DST-"
+)
+
 type Entity interface {
 	GetId() string
 }
@@ -19,6 +26,11 @@ type Entity interface {
 type Event struct {
 	EventType string
 	Entities  map[string]Entity
+}
+
+type Stat struct {
+	name       string
+	statistics *interfaces.InterfacesState_Interface_Statistics
 }
 
 type EventConverter interface {
@@ -33,6 +45,8 @@ type MonitorServer interface {
 	Update(entity Entity)
 	Delete(entity Entity)
 
+	UpdateStat(name string, statistics *interfaces.InterfacesState_Interface_Statistics)
+
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
 	MonitorEntities(stream grpc.ServerStream) error
@@ -43,20 +57,26 @@ type MonitorServer interface {
 type monitorServerImpl struct {
 	eventConverter           EventConverter
 	eventCh                  chan Event
+	statsCh                  chan Stat
 	newMonitorRecipientCh    chan Recipient
 	closedMonitorRecipientCh chan Recipient
 	entities                 map[string]Entity
 	recipients               []Recipient
+	srcStats                 map[string]*interfaces.InterfacesState_Interface_Statistics
+	dstStats                 map[string]*interfaces.InterfacesState_Interface_Statistics
 }
 
 func NewMonitorServer(eventConverter EventConverter) MonitorServer {
 	return &monitorServerImpl{
 		eventConverter:           eventConverter,
 		eventCh:                  make(chan Event, defaultSize),
+		statsCh:                  make(chan Stat, defaultSize),
 		newMonitorRecipientCh:    make(chan Recipient, defaultSize),
 		closedMonitorRecipientCh: make(chan Recipient, defaultSize),
 		entities:                 make(map[string]Entity),
 		recipients:               make([]Recipient, 0, defaultSize),
+		srcStats:                 make(map[string]*interfaces.InterfacesState_Interface_Statistics),
+		dstStats:                 make(map[string]*interfaces.InterfacesState_Interface_Statistics),
 	}
 }
 
@@ -64,6 +84,13 @@ func (m *monitorServerImpl) Update(entity Entity) {
 	m.eventCh <- Event{
 		EventType: UPDATE,
 		Entities:  map[string]Entity{entity.GetId(): entity},
+	}
+}
+
+func (m *monitorServerImpl) UpdateStat(name string, statistics *interfaces.InterfacesState_Interface_Statistics) {
+	m.statsCh <- Stat{
+		name:       name,
+		statistics: statistics,
 	}
 }
 
@@ -126,6 +153,15 @@ func (m *monitorServerImpl) Serve() {
 				}
 			}
 			m.send(event, m.recipients...)
+		case stat := <-m.statsCh:
+			logrus.Infof("New statistics: %v", stat)
+			if strings.HasPrefix(stat.name, src_prefix) {
+				id := stat.name[len(src_prefix): len(stat.name)]
+				m.srcStats[id] = stat.statistics
+			} else if strings.HasPrefix(stat.name, dst_prefix) {
+				id := stat.name[len(dst_prefix): len(stat.name)]
+				m.dstStats[id] = stat.statistics
+			}
 		}
 	}
 }

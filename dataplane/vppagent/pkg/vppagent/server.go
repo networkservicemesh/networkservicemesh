@@ -39,6 +39,7 @@ func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet n
 
 	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName)
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor)
+	startMetricsCollector(monitor, vppAgentEndpoint)
 	dataplane.RegisterDataplaneServer(server, vppagent)
 	return server
 }
