@@ -122,7 +122,7 @@ func getEndpoints(nseCache *resource_cache.NetworkServiceEndpointCache,
 	var endpointList []*v1.NetworkServiceEndpoint
 	for attempt := 0; attempt < 10; <-time.Tick(300 * time.Millisecond) {
 		attempt++
-		endpointList = nseCache.Get(networkServiceName)
+		endpointList = nseCache.GetByNetworkService(networkServiceName)
 		if len(endpointList) == expectedLength {
 			logrus.Infof("Attempt: %v", attempt)
 			break
