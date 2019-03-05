@@ -92,6 +92,10 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 	}, nil
 }
 
+func (impl *nsmdTestServiceDiscovery) UpdateNSM(ctx context.Context, in *registry.NetworkServiceManager, opts ...grpc.CallOption) (*registry.NetworkServiceManager, error) {
+	return nil, nil
+}
+
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry

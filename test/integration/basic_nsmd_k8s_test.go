@@ -127,3 +127,112 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	logrus.Printf("%s", logs)
 
 }
+
+func TestUpdateNsm(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	k8s.Prepare("nsmd")
+	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd1", nil))
+
+	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	// We need to wait unti it is started
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+
+	e := fwd.Start()
+	if e != nil {
+		logrus.Printf("Error on forward: %v retrying", e)
+	}
+
+	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+
+	discovery, err := serviceRegistry.NetworkServiceDiscovery()
+	Expect(err).To(BeNil())
+	networkService := "icmp-responder"
+
+	req := &registry.FindNetworkServiceRequest{
+		NetworkServiceName: networkService,
+	}
+
+	time.Sleep(4 * time.Second)
+	response, err := discovery.FindNetworkService(context.Background(), req)
+	Expect(response).To(BeNil())
+	logrus.Print(err.Error())
+
+	registryClient, err := serviceRegistry.RegistryClient()
+	Expect(err).To(BeNil())
+
+	k8s.CleanupCRDs()
+
+	nsmName := "master"
+	url1 := "1.1.1.1:1"
+
+	reg := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkService,
+			Payload: "tcp",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: networkService,
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Url:  url1,
+			Name: nsmName,
+		},
+	}
+
+	failures := InterceptGomegaFailures(func() {
+		_, err = registryClient.RegisterNSE(context.Background(), reg)
+		Expect(err).To(BeNil())
+		Expect(getNsmUrl(discovery)).To(Equal(url1))
+
+		url2 := "2.2.2.2:2"
+
+		updNsm, err := discovery.UpdateNSM(context.Background(), &registry.NetworkServiceManager{
+			Name: nsmName,
+			Url:  url2,
+		})
+		Expect(err).To(BeNil())
+		Expect(updNsm.GetUrl()).To(Equal(url2))
+		Expect(getNsmUrl(discovery)).To(Equal(url2))
+	})
+
+	if len(failures) > 0 {
+		logrus.Errorf("Failues: %v", failures)
+
+		nsmdLogs, _ := k8s.GetLogs(nsmd, "nsmd")
+		logrus.Errorf("===================== NSMD output since test is failing %v\n=====================", nsmdLogs)
+
+		nsmdk8sLogs, _ := k8s.GetLogs(nsmd, "nsmd-k8s")
+		logrus.Errorf("===================== NSMD K8S output since test is failing %v\n=====================", nsmdk8sLogs)
+
+		nsmdpLogs, _ := k8s.GetLogs(nsmd, "nsmdp")
+		logrus.Errorf("===================== NSMDP output since test is failing %v\n=====================", nsmdpLogs)
+
+		t.Fail()
+	}
+}
+
+func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
+	logrus.Infof("Finding NSE...")
+	response, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
+		NetworkServiceName: "icmp-responder",
+	})
+	Expect(err).To(BeNil())
+	Expect(len(response.NetworkServiceEndpoints)).To(Equal(1))
+
+	endpoint := response.NetworkServiceEndpoints[0]
+	logrus.Infof("Endpoint: %v", endpoint)
+	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].GetUrl()
+}
