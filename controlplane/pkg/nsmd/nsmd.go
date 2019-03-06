@@ -12,7 +12,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -153,22 +153,23 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 }
 
 func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) error {
-	client, err := serviceRegistry.RegistryClient()
+	client, err := serviceRegistry.NsmRegistryClient()
 	if err != nil {
 		err = fmt.Errorf("Failed to get RegistryClient: %s", err)
 		return err
 	}
-	nsm, err := client.RegisterNSE(context.Background(), &registry.NSERegistration{
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Url: serviceRegistry.GetPublicAPI(),
-		},
+
+	nsm, err := client.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+		Url: serviceRegistry.GetPublicAPI(),
 	})
 	if err != nil {
 		err = fmt.Errorf("Failed to get my own NetworkServiceManager: %s", err)
 		return err
 	}
-	logrus.Infof("Setting local NSM %v", nsm.GetNetworkServiceManager())
-	model.SetNsm(nsm.GetNetworkServiceManager())
+
+	logrus.Infof("Setting local NSM %v", nsm)
+	model.SetNsm(nsm)
+
 	return nil
 }
 

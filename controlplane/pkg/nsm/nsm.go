@@ -525,7 +525,7 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, requestConnec
 	}
 
 	// Get endpoints, do it every time since we do not know if list are changed or not.
-	discoveryClient, err := srv.serviceRegistry.NetworkServiceDiscovery()
+	discoveryClient, err := srv.serviceRegistry.DiscoveryClient()
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

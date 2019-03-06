@@ -15,8 +15,9 @@ import (
 func TestHealLocalDataplane(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv := newNSMDFullServer()
-	srv2 := newNSMDFullServer()
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 
@@ -24,7 +25,7 @@ func TestHealLocalDataplane(t *testing.T) {
 	srv2.testModel.AddDataplane(testDataplane2)
 
 	// Register in both
-	nseReg := srv.registerFakeEndpointWithName("golden_network", "test", srv2.serviceRegistry.GetPublicAPI(), "ep1")
+	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
 
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
