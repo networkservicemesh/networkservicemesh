@@ -50,16 +50,16 @@ func (n *nsmRegistryService) GetEndpoints(context.Context, *empty.Empty) (*regis
 }
 
 func (n *nsmRegistryService) create(nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
-	nsmCdr := mapNsmToCustomResource(nsm)
-	nsmCdr.SetName(n.nsmName)
+	nsmCr := mapNsmToCustomResource(nsm)
+	nsmCr.SetName(n.nsmName)
 
-	nsmCdr, err := n.cache.AddNetworkServiceManager(nsmCdr)
+	nsmCr, err := n.cache.AddNetworkServiceManager(nsmCr)
 	if err != nil {
 		logrus.Errorf("Failed to create nsm: %s", err)
 		return nil, err
 	}
 
-	return mapNsmFromCustomResource(nsmCdr), nil
+	return mapNsmFromCustomResource(nsmCr), nil
 }
 
 func (n *nsmRegistryService) update(nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
@@ -72,14 +72,14 @@ func (n *nsmRegistryService) update(nsm *registry.NetworkServiceManager) (*regis
 		return nil, fmt.Errorf("no nsm with name %v", nsm.Name)
 	}
 
-	nsmCdr := mapNsmToCustomResource(nsm)
-	nsmCdr.ObjectMeta = oldNsm.ObjectMeta
+	nsmCr := mapNsmToCustomResource(nsm)
+	nsmCr.ObjectMeta = oldNsm.ObjectMeta
 
-	nsmCdr, err := n.cache.UpdateNetworkServiceManager(nsmCdr)
+	nsmCr, err := n.cache.UpdateNetworkServiceManager(nsmCr)
 	if err != nil {
 		logrus.Errorf("Failed to update nsm: %s", err)
 		return nil, err
 	}
 
-	return mapNsmFromCustomResource(nsmCdr), nil
+	return mapNsmFromCustomResource(nsmCr), nil
 }
