@@ -31,42 +31,59 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	Master = "master"
+	Worker = "worker"
+)
+
+type sharedStorage struct {
+	services  map[string]*registry.NetworkService
+	managers  map[string]*registry.NetworkServiceManager
+	endpoints map[string]*registry.NetworkServiceEndpoint
+}
+
+func newSharedStorage() *sharedStorage {
+	return &sharedStorage{
+		services:  make(map[string]*registry.NetworkService),
+		endpoints: make(map[string]*registry.NetworkServiceEndpoint),
+		managers:  make(map[string]*registry.NetworkServiceManager),
+	}
+}
+
 type nsmdTestServiceDiscovery struct {
 	apiRegistry *testApiRegistry
-
-	services   map[string]*registry.NetworkService
-	managers   map[string]*registry.NetworkServiceManager
-	endpoints  map[string]*registry.NetworkServiceEndpoint
-	nsmCounter int
+	storage     *sharedStorage
+	nsmCounter  int
+	nsmName     string
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
+	logrus.Infof("Register NSE: %v", in)
+
 	if in.GetNetworkService() != nil {
-		impl.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
-	}
-	if in.GetNetworkServiceManager() != nil {
-		in.NetworkServiceManager.Name = in.GetNetworkServiceManager().Url
-		impl.nsmCounter++
-		impl.managers[in.GetNetworkServiceManager().Name] = in.GetNetworkServiceManager()
+		impl.storage.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
 	}
 	if in.GetNetworkserviceEndpoint() != nil {
-		impl.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
+		impl.storage.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
 	}
+	in.NetworkServiceManager = impl.storage.managers[impl.nsmName]
 	return in, nil
 }
 
 func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registry.RemoveNSERequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	delete(impl.endpoints, in.EndpointName)
+	delete(impl.storage.endpoints, in.EndpointName)
 	return nil, nil
 }
 
-func newNSMDTestServiceDiscovery(testApi *testApiRegistry) *nsmdTestServiceDiscovery {
+func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmName string, storage *sharedStorage) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
-		services:    make(map[string]*registry.NetworkService),
-		endpoints:   make(map[string]*registry.NetworkServiceEndpoint),
-		managers:    make(map[string]*registry.NetworkServiceManager),
+		storage: storage,
+		//services:    make(map[string]*registry.NetworkService),
+		//endpoints:   make(map[string]*registry.NetworkServiceEndpoint),
+		//managers:    make(map[string]*registry.NetworkServiceManager),
 		apiRegistry: testApi,
 		nsmCounter:  0,
+		nsmName:     nsmName,
 	}
 }
 
@@ -74,11 +91,11 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 	endpoints := []*registry.NetworkServiceEndpoint{}
 
 	managers := map[string]*registry.NetworkServiceManager{}
-	for _, ep := range impl.endpoints {
+	for _, ep := range impl.storage.endpoints {
 		if ep.NetworkServiceName == in.NetworkServiceName {
 			endpoints = append(endpoints, ep)
 
-			mgr := impl.managers[ep.NetworkServiceManagerName]
+			mgr := impl.storage.managers[ep.NetworkServiceManagerName]
 			if mgr != nil {
 				managers[mgr.Name] = mgr
 			}
@@ -86,14 +103,18 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 	}
 
 	return &registry.FindNetworkServiceResponse{
-		NetworkService:          impl.services[in.NetworkServiceName],
+		NetworkService:          impl.storage.services[in.NetworkServiceName],
 		NetworkServiceEndpoints: endpoints,
 		NetworkServiceManagers:  managers,
 	}, nil
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *registry.NetworkServiceManager, opts ...grpc.CallOption) (*registry.NetworkServiceManager, error) {
-	return nil, nil
+	logrus.Infof("Register NSM: %v", in)
+	in.Name = impl.nsmName
+	impl.nsmCounter++
+	impl.storage.managers[impl.nsmName] = in
+	return in, nil
 }
 
 func (iml *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
@@ -332,14 +353,14 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *registry.NSERegistration {
 	return srv.registerFakeEndpointWithName(networkServiceName, payload, nse_address, networkServiceName+"provider")
 }
-func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nse_address string, endpointname string) *registry.NSERegistration {
+func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nsmName string, endpointname string) *registry.NSERegistration {
 	reg := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name:    networkServiceName,
 			Payload: payload,
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceManagerName: nse_address,
+			NetworkServiceManagerName: nsmName,
 			Payload:                   payload,
 			NetworkServiceName:        networkServiceName,
 			EndpointName:              endpointname,
@@ -372,10 +393,10 @@ func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networks
 	return nsmClient, conn
 }
 
-func newNSMDFullServer() *nsmdFullServerImpl {
+func newNSMDFullServer(nsmName string, storage *sharedStorage) *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry)
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmName, storage)
 
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
