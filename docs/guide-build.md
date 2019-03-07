@@ -82,9 +82,9 @@ As in the case with `save` and `build`, you can always do this for a particular 
 
 The described quick start method works for fast deployments and quick tests. However, the build infrastructure provides a fine-grained control over the deployments.
 
-### Working with the vagrant setup
+### Working with the Vagrant setup
 
-To spin the default 2 node vagrant setup with Kubernetes on top, type:
+To spin the default 2 node Vagrant setup with Kubernetes on top, type:
 
 ```bash
 make vagrant-start
@@ -115,6 +115,41 @@ The commands to deploy and delete it are ```make k8s-icmp-deploy``` and ```make 
 One of the big advantages on Network Service Mesh is NS composition, i.e. forming a complex service out of a number of simple NSEs. The project comes with an example that implements the "secure-intranet-connectivity" Network Service which connects together a simple ACL based packet filtering firewall and a simulated VPN gateway NSEs.
 
 Deploying it is done through ```make k8s-vpn-deploy``` and to uninstall it - run ```make k8s-vpn-delete```. Checking VPN's operability is done with ```make k8s-check```.
+
+## Trigger the integration tests on your host
+
+You can verify your changes by triggering the integration tests on your host. To do so, execute the following:
+
+If you haven't already, prepare the Vagrant environment:
+
+```bash
+make vagrant-start
+source scripts/vagrant/env.sh
+```
+
+Build the images:
+
+```bash
+make k8s-build
+```
+
+Load the images:
+
+```bash
+make k8s-load-images
+```
+
+Trigger all integration tests:
+
+```bash
+make k8s-integration-tests
+```
+
+or one by one using the test name. For example, to trigger `TestExec`, run:
+
+```bash
+make k8s-integration-TestExec-test
+```
 
 ## Helpful Logging tools
 
