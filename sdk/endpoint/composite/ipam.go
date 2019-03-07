@@ -79,7 +79,7 @@ func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networks
 			}
 			for _, a := range adrs {
 				addr, _, _ := net.ParseCIDR(a.String())
-				if addr.String() != "127.0.0.1" {
+				if !addr.IsLoopback() {
 					newConnection.Context.IpNeighbors = append(newConnection.Context.IpNeighbors,
 						&connectioncontext.IpNeighbor{
 							Ip:              addr.String(),

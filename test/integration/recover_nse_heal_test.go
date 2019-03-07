@@ -60,7 +60,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	// Do dumping of container state to dig into what is happened.
+	// Do dumping of container state to dig into what is happened.Heal: Connection recovered
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.

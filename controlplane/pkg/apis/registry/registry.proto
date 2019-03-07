@@ -64,5 +64,13 @@ service NetworkServiceRegistry {
 
 service NetworkServiceDiscovery {
     rpc FindNetworkService (FindNetworkServiceRequest) returns (FindNetworkServiceResponse);
-    rpc UpdateNSM (NetworkServiceManager) returns (NetworkServiceManager);
+}
+
+message NetworkServiceEndpointList {
+    repeated NetworkServiceEndpoint network_service_endpoints = 1;
+}
+
+service NsmRegistry {
+    rpc RegisterNSM (NetworkServiceManager) returns (NetworkServiceManager);
+    rpc GetEndpoints (google.protobuf.Empty) returns (NetworkServiceEndpointList);
 }

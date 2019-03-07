@@ -2,6 +2,8 @@ package tests
 
 import (
 	"context"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -9,7 +11,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"testing"
 )
 
 // Below only tests
@@ -17,8 +18,9 @@ import (
 func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv := newNSMDFullServer()
-	srv2 := newNSMDFullServer()
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 
@@ -27,7 +29,7 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	srv2.testModel.AddDataplane(testDataplane2)
 
 	// Register in both
-	nseReg := srv.registerFakeEndpoint("golden_network", "test", srv2.serviceRegistry.GetPublicAPI())
+	nseReg := srv2.registerFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
 
@@ -68,8 +70,9 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 func TestNSMDCloseCrossConnection(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv := newNSMDFullServer()
-	srv2 := newNSMDFullServer()
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 	srv.testModel.AddDataplane(&model.Dataplane{
@@ -85,7 +88,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 				Type: connection2.MechanismType_VXLAN,
 				Parameters: map[string]string{
 					connection2.VXLANVNI:   "1",
-					connection2.VXLANSrcIP: "127.0.0.1",
+					connection2.VXLANSrcIP: "10.1.1.1",
 				},
 			},
 		},
@@ -99,14 +102,14 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 				Type: connection2.MechanismType_VXLAN,
 				Parameters: map[string]string{
 					connection2.VXLANVNI:   "3",
-					connection2.VXLANSrcIP: "127.0.0.2",
+					connection2.VXLANSrcIP: "10.1.1.2",
 				},
 			},
 		},
 	})
 
 	// Register in both
-	nseReg := srv.registerFakeEndpoint("golden_network", "test", srv2.serviceRegistry.GetPublicAPI())
+	nseReg := srv2.registerFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
 

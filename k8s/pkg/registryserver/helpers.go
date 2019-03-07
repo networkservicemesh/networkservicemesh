@@ -23,16 +23,27 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 	}
 }
 
-func mapNsmFromCustomResource(cdr *v1.NetworkServiceManager) *registry.NetworkServiceManager {
-	lastSeen, err := ptypes.TimestampProto(cdr.Status.LastSeen.Time)
+func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkServiceManager {
+	lastSeen, err := ptypes.TimestampProto(cr.Status.LastSeen.Time)
 	if err != nil {
-		logrus.Errorf("Failed time conversion of %v", cdr.Status.LastSeen)
+		logrus.Errorf("Failed time conversion of %v", cr.Status.LastSeen)
 	}
 
 	return &registry.NetworkServiceManager{
-		Name:     cdr.GetName(),
-		Url:      cdr.Status.URL,
-		State:    string(cdr.Status.State),
+		Name:     cr.GetName(),
+		Url:      cr.Status.URL,
+		State:    string(cr.Status.State),
 		LastSeen: lastSeen,
+	}
+}
+
+func mapNseFromCustomResource(cr *v1.NetworkServiceEndpoint, payload string) *registry.NetworkServiceEndpoint {
+	return &registry.NetworkServiceEndpoint{
+		EndpointName:              cr.Name,
+		NetworkServiceName:        cr.Spec.NetworkServiceName,
+		NetworkServiceManagerName: cr.Spec.NsmName,
+		Payload:                   payload,
+		Labels:                    cr.ObjectMeta.Labels,
+		State:                     string(cr.Status.State),
 	}
 }
