@@ -83,7 +83,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool) {
 	})
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
 		nscInfo.PrintLogs()
 
