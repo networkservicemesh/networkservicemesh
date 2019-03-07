@@ -165,6 +165,7 @@ If you haven't already, prepare the Vagrant environment:
 
 ```bash
 make vagrant-start
+source scripts/vagrant/env.sh
 ```
 
 Build the images:
