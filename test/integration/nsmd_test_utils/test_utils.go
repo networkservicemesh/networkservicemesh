@@ -82,16 +82,21 @@ func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 	return icmp
 }
 
-func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) (nsc *v1.Pod) {
+func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) (nsc *v1.Pod) {
 	startTime := time.Now()
 
 	logrus.Infof("Starting NSC %s on node: %s", name, node.Name)
-	nsc = k8s.CreatePod(pods.NSCPod(name, node,
-		map[string]string{
-			"OUTGOING_NSC_LABELS": "app=icmp",
-			"OUTGOING_NSC_NAME":   "icmp-responder",
-		},
-	))
+	if useWebhook {
+		nsc = k8s.CreatePod(pods.NSCPodWebhook(name, node))
+	} else {
+		nsc = k8s.CreatePod(pods.NSCPod(name, node,
+			map[string]string{
+				"OUTGOING_NSC_LABELS": "app=icmp",
+				"OUTGOING_NSC_NAME":   "icmp-responder",
+			},
+		))
+	}
+
 	Expect(nsc.Name).To(Equal(name))
 
 	k8s.WaitLogsContains(nsc, "nsc", "nsm client: initialization is completed successfully", timeout)
