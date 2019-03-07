@@ -123,10 +123,10 @@ jobs:
       - run:
           name: Downloading go deps
           command: |
-            ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             # export CONTAINER_FORCE_PULL="true"
+            ./scripts/prepare-circle-integration-tests.sh
             mkdir -p ~/junit/
             go mod download
           no_output_timeout: 40m
@@ -258,8 +258,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="$COMMIT"
             make docker-admission-webhook-build
             make docker-admission-webhook-push
   build-crossconnect-monitor:
@@ -375,7 +374,7 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="latest"
             export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane)
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane admission-webhook)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}

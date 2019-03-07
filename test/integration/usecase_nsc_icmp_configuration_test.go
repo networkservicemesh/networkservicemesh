@@ -8,20 +8,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 )
-
-func createNscPod(node *v1.Node) *v1.Pod {
-	return pods.NSCPod("nsc1", node,
-		map[string]string{
-			"OUTGOING_NSC_LABELS": "app=icmp",
-			"OUTGOING_NSC_NAME":   "icmp-responder",
-		},
-	)
-}
 
 func TestNSCAndICMPLocal(t *testing.T) {
 	RegisterTestingT(t)
@@ -31,7 +20,7 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, createNscPod)
+	testNSCAndICMP(t, 1, false)
 }
 
 func TestNSCAndICMPRemote(t *testing.T) {
@@ -42,7 +31,7 @@ func TestNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, createNscPod)
+	testNSCAndICMP(t, 2, false)
 }
 
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
@@ -53,9 +42,7 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, func(node *v1.Node) *v1.Pod {
-		return pods.NSCPodWebhook("nsc1", node)
-	})
+	testNSCAndICMP(t, 1, true)
 }
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
@@ -66,15 +53,13 @@ func TestNSCAndICMPWebhookRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, func(node *v1.Node) *v1.Pod {
-		return pods.NSCPodWebhook("nsc1", node)
-	})
+	testNSCAndICMP(t, 2, true)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *v1.Pod) {
+func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -89,7 +74,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *
 	// Run ICMP on latest node
 	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout)
+	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout, useWebhook)
 
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 
@@ -98,7 +83,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *
 	})
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
 		nscInfo.PrintLogs()
 
