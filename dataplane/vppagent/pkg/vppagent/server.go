@@ -21,11 +21,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
 
-func NewServer(vppAgentEndpoint string, baseDir string, egressInterface *EgressInterface) *grpc.Server {
+func NewServer(vppAgentEndpoint string, baseDir string, egressInterface *common.EgressInterface) *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(

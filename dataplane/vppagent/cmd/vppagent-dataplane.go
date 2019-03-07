@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/impl/dataplaneregistrarclient"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -106,7 +106,7 @@ func main() {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIpEnvKey, srcIpStr)
 		vppagent.SetValidIPFailed()
 	}
-	egressInterface, err := vppagent.NewEgressInterface(srcIp)
+	egressInterface, err := common.NewEgressInterface(srcIp)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 	}
@@ -138,7 +138,7 @@ func main() {
 	logrus.Debugf("Starting VPP Agent server took: %s", elapsed)
 
 	logrus.Info("Dataplane Registrar Client")
-	registrar := dataplaneregistrarclient.NewDataplaneRegistrarClient(dataplaneRegistrarSocket)
+	registrar := common.NewDataplaneRegistrarClient(dataplaneRegistrarSocket)
 	registration := registrar.Register(context.Background(), dataplaneName, dataplaneSocket, nil, nil)
 	logrus.Info("Registered Dataplane Registrar Client")
 
