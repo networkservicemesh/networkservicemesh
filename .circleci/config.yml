@@ -123,10 +123,10 @@ jobs:
       - run:
           name: Downloading go deps
           command: |
-            ./scripts/prepare-circle-integration-tests.sh
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             # export CONTAINER_FORCE_PULL="true"
+            ./scripts/prepare-circle-integration-tests.sh
             mkdir -p ~/junit/
             go mod download
           no_output_timeout: 40m
