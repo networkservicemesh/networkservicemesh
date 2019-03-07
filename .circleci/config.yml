@@ -258,8 +258,7 @@ jobs:
       - run:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
-            export BUILD_TAG="circle-${CIRCLE_BUILD_NUM}"
-            export TAG="$BUILD_TAG"
+            export TAG="$COMMIT"
             make docker-admission-webhook-build
             make docker-admission-webhook-push
   build-crossconnect-monitor:
