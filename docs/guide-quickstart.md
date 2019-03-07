@@ -156,3 +156,37 @@ command terminated with exit code 1
 NSC vpn-gateway-nsc-5458d48c86-zh4xf with IP 10.60.1.1/30 blocked vpn-gateway-nse TargetIP: 10.60.1.2 TargetPort:8080
 All check OK. NSC vpn-gateway-nsc-5458d48c86-zh4xf behaving as expected.
 ```
+
+## Trigger the integration tests on your host
+
+You can verify your changes by triggering the integration tests on your host. To do so, execute the following:
+
+If you haven't already, prepare the Vagrant environment:
+
+```bash
+make vagrant-start
+```
+
+Build the images:
+
+```bash
+make k8s-build
+```
+
+Load the images:
+
+```bash
+make k8s-load-images
+```
+
+Trigger all integration tests:
+
+```bash
+make k8s-integration-tests
+```
+
+or one by one using the test name. For example, to trigger `TestExec`, run:
+
+```bash
+make k8s-integration-TestExec-test
+```
