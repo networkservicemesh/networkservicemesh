@@ -488,7 +488,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			Expect(len(nodes)).To(Equal(requiredNumber))
 		}
 		if since > timeout/10 && !warnPrinted {
-			logrus.Warnf("Waiting for %d nodes to arrive, currenctly have: %d", len(nodes), requiredNumber)
+			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", len(nodes), requiredNumber)
 			warnPrinted = true
 		}
 		time.Sleep(50 * time.Millisecond)

@@ -42,7 +42,7 @@ func testNSMDDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	nodes := k8s.GetNodesWait(2, defaultTimeout)
 
 	if len(nodes) < 2 {
-		logrus.Printf("At least two kubernetes nodes are required for this test")
+		logrus.Printf("At least two Kubernetes nodes are required for this test")
 		Expect(len(nodes)).To(Equal(2))
 		return
 	}
@@ -50,8 +50,8 @@ func testNSMDDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	var pods []*v1.Pod
 
 	for i, node := range nodes {
-		nsmdPodName := fmt.Sprintf("nsmd%d", i+1)
-		dataPlanePodName := fmt.Sprintf("nsmd-dataplane%d", i+1)
+		nsmdPodName := fmt.Sprintf("nsmd-%d", i+1)
+		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", i+1)
 		podsNode := k8s.CreatePods(nsmdPodFactory(nsmdPodName, &node), dataplanePodFactory(dataPlanePodName, &node))
 
 		k8s.WaitLogsContains(podsNode[0], "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)

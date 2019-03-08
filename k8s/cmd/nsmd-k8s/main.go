@@ -69,7 +69,7 @@ func main() {
 
 	server := registryserver.New(nsmClientSet, nsmName)
 
-	logrus.Print("nsmd-k8s intialized and waiting for connection")
+	logrus.Print("nsmd-k8s initialized and waiting for connection")
 	err = server.Serve(listener)
 	logrus.Fatalln(err)
 	<-c
