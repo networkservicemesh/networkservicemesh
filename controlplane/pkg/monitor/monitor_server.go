@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"strings"
@@ -14,11 +15,6 @@ const (
 	INITIAL_STATE_TRANSFER = "INITIAL_STATE_TRANSFER"
 )
 
-const (
-	src_prefix = "SRC-"
-	dst_prefix = "DST-"
-)
-
 type Entity interface {
 	GetId() string
 }
@@ -28,7 +24,7 @@ type Event struct {
 	Entities  map[string]Entity
 }
 
-type Stat struct {
+type statistics struct {
 	name       string
 	statistics *interfaces.InterfacesState_Interface_Statistics
 }
@@ -45,7 +41,7 @@ type MonitorServer interface {
 	Update(entity Entity)
 	Delete(entity Entity)
 
-	UpdateStat(name string, statistics *interfaces.InterfacesState_Interface_Statistics)
+	UpdateStatistics(name string, statistics *interfaces.InterfacesState_Interface_Statistics)
 
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
@@ -57,7 +53,7 @@ type MonitorServer interface {
 type monitorServerImpl struct {
 	eventConverter           EventConverter
 	eventCh                  chan Event
-	statsCh                  chan Stat
+	statsCh                  chan statistics
 	newMonitorRecipientCh    chan Recipient
 	closedMonitorRecipientCh chan Recipient
 	entities                 map[string]Entity
@@ -70,7 +66,7 @@ func NewMonitorServer(eventConverter EventConverter) MonitorServer {
 	return &monitorServerImpl{
 		eventConverter:           eventConverter,
 		eventCh:                  make(chan Event, defaultSize),
-		statsCh:                  make(chan Stat, defaultSize),
+		statsCh:                  make(chan statistics, defaultSize),
 		newMonitorRecipientCh:    make(chan Recipient, defaultSize),
 		closedMonitorRecipientCh: make(chan Recipient, defaultSize),
 		entities:                 make(map[string]Entity),
@@ -87,10 +83,10 @@ func (m *monitorServerImpl) Update(entity Entity) {
 	}
 }
 
-func (m *monitorServerImpl) UpdateStat(name string, statistics *interfaces.InterfacesState_Interface_Statistics) {
-	m.statsCh <- Stat{
+func (m *monitorServerImpl) UpdateStatistics(name string, metrics *interfaces.InterfacesState_Interface_Statistics) {
+	m.statsCh <- statistics{
 		name:       name,
-		statistics: statistics,
+		statistics: metrics,
 	}
 }
 
@@ -155,11 +151,11 @@ func (m *monitorServerImpl) Serve() {
 			m.send(event, m.recipients...)
 		case stat := <-m.statsCh:
 			logrus.Infof("New statistics: %v", stat)
-			if strings.HasPrefix(stat.name, src_prefix) {
-				id := stat.name[len(src_prefix): len(stat.name)]
+			if strings.HasPrefix(stat.name, converter.SRC_PREFIX) {
+				id := stat.name[len(converter.SRC_PREFIX): len(stat.name)]
 				m.srcStats[id] = stat.statistics
-			} else if strings.HasPrefix(stat.name, dst_prefix) {
-				id := stat.name[len(dst_prefix): len(stat.name)]
+			} else if strings.HasPrefix(stat.name, converter.DST_PREFIX) {
+				id := stat.name[len(converter.DST_PREFIX): len(stat.name)]
 				m.dstStats[id] = stat.statistics
 			}
 		}

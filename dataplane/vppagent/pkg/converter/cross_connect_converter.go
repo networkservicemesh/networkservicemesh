@@ -35,7 +35,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 	if c.GetLocalSource() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
-			Name:      "SRC-" + c.GetId(),
+			Name:      SRC_PREFIX + c.GetId(),
 			Terminate: false,
 			Side:      SOURCE,
 			BaseDir:   baseDir,
@@ -47,7 +47,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 	}
 
 	if c.GetRemoteSource() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), "SRC-"+c.GetId(), SOURCE).ToDataRequest(rv, connect)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), SRC_PREFIX+c.GetId(), SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -56,7 +56,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 	if c.GetLocalDestination() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
-			Name:      "DST-" + c.GetId(),
+			Name:      DST_PREFIX + c.GetId(),
 			Terminate: false,
 			Side:      DESTINATION,
 			BaseDir:   baseDir,
@@ -68,7 +68,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 	}
 
 	if c.GetRemoteDestination() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), DST_PREFIX+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}

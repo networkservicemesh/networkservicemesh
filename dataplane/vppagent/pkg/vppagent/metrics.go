@@ -44,7 +44,7 @@ func startMetricsCollector(crossConnectServer  *crossconnect_monitor.CrossConnec
 				}
 				name := msg.GetNIf().GetState().Name
 				stat := msg.GetNIf().GetState().Statistics
-				crossConnectServer.UpdateStat(name, stat)
+				crossConnectServer.UpdateStatistics(name, stat)
 
 				//logrus.Infof("Monitor msg: %v", msg)
 			}

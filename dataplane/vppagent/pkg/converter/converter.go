@@ -18,6 +18,11 @@ const (
 	DESTINATION
 )
 
+const (
+	SRC_PREFIX = "SRC-"
+	DST_PREFIX = "DST-"
+)
+
 type ConnectionConversionParameters struct {
 	Terminate bool
 	Side      ConnectionContextSide
