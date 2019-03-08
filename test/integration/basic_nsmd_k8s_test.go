@@ -127,7 +127,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 }
 
-func TestUpdateNsm(t *testing.T) {
+func TestUpdateNSM(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -147,7 +147,7 @@ func TestUpdateNsm(t *testing.T) {
 	defer fwd.Stop()
 
 	// We need to wait until it is started
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 
 	e := fwd.Start()
 	if e != nil {
