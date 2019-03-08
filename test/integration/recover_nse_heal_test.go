@@ -80,7 +80,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	if len(nodes_setup) > 1 {
 		l2, err := k8s.GetLogs(nodes_setup[1].Nsmd, "nsmd")
 		Expect(err).To(BeNil())
-		if strings.Contains(l2, "Dataplane1 request failed:") {
+		if strings.Contains(l2, "Dataplane request failed:") {
 			logrus.Infof("Dataplane first attempt was failed: %v", l2)
 		}
 	}
