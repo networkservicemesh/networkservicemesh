@@ -23,7 +23,7 @@ type NodeConf struct {
 func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
-		"At least one kubernetes node are required for this test")
+		"At least one kubernetes node is required for this test")
 
 	confs := []*NodeConf{}
 	for i := 0; i < nodesCount; i++ {

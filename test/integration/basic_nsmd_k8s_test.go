@@ -41,7 +41,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	// We need to wait unti it is started
 
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 	logs, err := k8s.GetLogs(nsmd, "nsmd-k8s")
 	logrus.Printf("%s", logs)
 
