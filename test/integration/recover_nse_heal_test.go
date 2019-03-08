@@ -53,9 +53,9 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	// Run ICMP on latest node
-	nse1 := nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nse1 := nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout, false)
+	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
@@ -64,7 +64,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse2", defaultTimeout)
+	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-2", defaultTimeout)
 
 	logrus.Infof("Delete first NSE")
 	k8s.DeletePods(nse1)

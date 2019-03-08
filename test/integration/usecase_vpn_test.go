@@ -26,9 +26,9 @@ func TestVPNLocal(t *testing.T) {
 	}
 
 	testVPN(t, 1, map[string]int{
-		"vppagent-firewall-nse1": 0,
-		"vpn-gateway-nse1":       0,
-		"vpn-gateway-nsc1":       0,
+		"vppagent-firewall-nse-1": 0,
+		"vpn-gateway-nse-1":       0,
+		"vpn-gateway-nsc-1":       0,
 	}, false)
 }
 
@@ -41,9 +41,9 @@ func TestVPNFirewallRemote(t *testing.T) {
 	}
 
 	testVPN(t, 2, map[string]int{
-		"vppagent-firewall-nse1": 1,
-		"vpn-gateway-nse1":       0,
-		"vpn-gateway-nsc1":       0,
+		"vppagent-firewall-nse-1": 1,
+		"vpn-gateway-nse-1":       0,
+		"vpn-gateway-nsc-1":       0,
 	}, false)
 }
 
@@ -56,9 +56,9 @@ func TestVPNNSERemote(t *testing.T) {
 	}
 
 	testVPN(t, 2, map[string]int{
-		"vppagent-firewall-nse1": 0,
-		"vpn-gateway-nse1":       1,
-		"vpn-gateway-nsc1":       0,
+		"vppagent-firewall-nse-1": 0,
+		"vpn-gateway-nse-1":       1,
+		"vpn-gateway-nsc-1":       0,
 	}, false)
 }
 
@@ -71,9 +71,9 @@ func TestVPNNSCRemote(t *testing.T) {
 	}
 
 	testVPN(t, 2, map[string]int{
-		"vppagent-firewall-nse1": 0,
-		"vpn-gateway-nse1":       0,
-		"vpn-gateway-nsc1":       1,
+		"vppagent-firewall-nse-1": 0,
+		"vpn-gateway-nse-1":       0,
+		"vpn-gateway-nsc-1":       1,
 	}, false)
 }
 
@@ -90,7 +90,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 	if len(nodes) < nodesCount {
-		logrus.Printf("At least one kubernetes node are required for this test")
+		logrus.Printf("At least one Kubernetes node is required for this test")
 		Expect(len(nodes)).To(Equal(nodesCount))
 		return
 	}
@@ -99,8 +99,8 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 
 	s1 = time.Now()
 	for k := 0; k < nodesCount; k++ {
-		corePodName := fmt.Sprintf("nsmd%d", k)
-		dataPlanePodName := fmt.Sprintf("nsmd-dataplane%d", k)
+		corePodName := fmt.Sprintf("nsmd-%d", k)
+		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", k)
 		corePods := k8s.CreatePods(pods.NSMDPod(corePodName, &nodes[k]), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
 		logrus.Printf("Started NSMD/Dataplane: %v on node %d", time.Since(s1), k)
 		nsmdPodNode = append(nsmdPodNode, corePods[0])
@@ -111,7 +111,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 
 		k8s.WaitLogsContains(nsmdDataplanePodNode[k], "", "Sending MonitorMechanisms update", defaultTimeout)
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd", "Dataplane added", defaultTimeout)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", defaultTimeout)
+		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "ListAndWatch was called with", defaultTimeout)
 	}
 
@@ -119,7 +119,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 		nscrd, err := crds.NewNSCRD()
 		Expect(err).To(BeNil())
 
-		nsSecureIntranetConnectivity := crds.SecureIntranetConnetivity()
+		nsSecureIntranetConnectivity := crds.SecureIntranetConnectivity()
 		logrus.Printf("About to insert: %v", nsSecureIntranetConnectivity)
 		var result *nsapiv1.NetworkService
 		result, err = nscrd.Create(nsSecureIntranetConnectivity)
@@ -131,9 +131,9 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	}
 
 	s1 = time.Now()
-	node := affinity["vppagent-firewall-nse1"]
+	node := affinity["vppagent-firewall-nse-1"]
 	logrus.Infof("Starting VppAgent Firewall NSE on node: %d", node)
-	vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-firewall-nse1", &nodes[node],
+	vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-firewall-nse-1", &nodes[node],
 		map[string]string{
 			"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
 			"ADVERTISE_NSE_LABELS": "app=firewall",
@@ -141,36 +141,36 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 			"OUTGOING_NSC_LABELS":  "app=firewall",
 		},
 	))
-	Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse1"))
+	Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse-1"))
 
 	k8s.WaitLogsContains(vppagentFirewallNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
 
 	logrus.Printf("VPN Gateway started done: %v", time.Since(s1))
 
 	s1 = time.Now()
-	node = affinity["vpn-gateway-nse1"]
+	node = affinity["vpn-gateway-nse-1"]
 	logrus.Infof("Starting VPN Gateway NSE on node: %d", node)
-	vpnGatewayPodNode := k8s.CreatePod(pods.VPNGatewayNSEPod("vpn-gateway-nse1", &nodes[node],
+	vpnGatewayPodNode := k8s.CreatePod(pods.VPNGatewayNSEPod("vpn-gateway-nse-1", &nodes[node],
 		map[string]string{
 			"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
 			"ADVERTISE_NSE_LABELS": "app=vpn-gateway",
 			"IP_ADDRESS":           "10.60.1.0/24",
 		},
 	))
-	Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse1"))
+	Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse-1"))
 
 	k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
 
 	logrus.Printf("VPN Gateway started done: %v", time.Since(s1))
 
 	s1 = time.Now()
-	node = affinity["vpn-gateway-nsc1"]
-	nscPodNode := k8s.CreatePod(pods.NSCPod("vpn-gateway-nsc1", &nodes[node],
+	node = affinity["vpn-gateway-nsc-1"]
+	nscPodNode := k8s.CreatePod(pods.NSCPod("vpn-gateway-nsc-1", &nodes[node],
 		map[string]string{
 			"OUTGOING_NSC_NAME": "secure-intranet-connectivity",
 		},
 	))
-	Expect(nscPodNode.Name).To(Equal("vpn-gateway-nsc1"))
+	Expect(nscPodNode.Name).To(Equal("vpn-gateway-nsc-1"))
 
 	k8s.WaitLogsContains(nscPodNode, "nsc", "nsm client: initialization is completed successfully", defaultTimeout)
 	logrus.Printf("VPN Gateway NSC started done: %v", time.Since(s1))
@@ -218,7 +218,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 
 		if verbose {
 			for k := 0; k < nodesCount; k++ {

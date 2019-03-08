@@ -87,7 +87,7 @@ func NewNSCRD() (*NSCRD, error) {
 	return &client, nil
 }
 
-func SecureIntranetConnetivity() *nsapiv1.NetworkService {
+func SecureIntranetConnectivity() *nsapiv1.NetworkService {
 	return &nsapiv1.NetworkService{
 		TypeMeta: v12.TypeMeta{
 			APIVersion: "networkservicemesh.io/v1",

@@ -27,7 +27,7 @@ func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []
 
 	confs := []*NodeConf{}
 	for i := 0; i < nodesCount; i++ {
-		nsmd, dataplane, err := deployNsmdAndDataplane(k8s, &nodes[i], timeout)
+		nsmd, dataplane, err := deployNSMDAndDataplane(k8s, &nodes[i], timeout)
 		Expect(err).To(BeNil())
 		confs = append(confs, &NodeConf{
 			Nsmd:      nsmd,
@@ -38,7 +38,7 @@ func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []
 	return confs
 }
 
-func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
+func deployNSMDAndDataplane(k8s *kube_testing.K8s, node *v1.Node, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
 	startTime := time.Now()
 
 	nsmdName := fmt.Sprintf("nsmd-%s", node.Name)
@@ -63,7 +63,7 @@ func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, timeout time.D
 	return
 }
 
-func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) (icmp *v1.Pod) {
+func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) (icmp *v1.Pod) {
 	startTime := time.Now()
 
 	logrus.Infof("Starting ICMP Responder NSE on node: %s", node.Name)
@@ -82,7 +82,7 @@ func DeployIcmp(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 	return icmp
 }
 
-func DeployNsc(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) (nsc *v1.Pod) {
+func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) (nsc *v1.Pod) {
 	startTime := time.Now()
 
 	logrus.Infof("Starting NSC %s on node: %s", name, node.Name)
