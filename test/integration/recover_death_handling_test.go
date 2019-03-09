@@ -14,7 +14,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func TestNscDiesSingleNode(t *testing.T) {
+func TestNSCDiesSingleNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -25,7 +25,7 @@ func TestNscDiesSingleNode(t *testing.T) {
 	testDie(t, true, 1)
 }
 
-func TestNseDiesSingleNode(t *testing.T) {
+func TestNSEDiesSingleNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -36,7 +36,7 @@ func TestNseDiesSingleNode(t *testing.T) {
 	testDie(t, false, 1)
 }
 
-func TestNscDiesMultiNode(t *testing.T) {
+func TestNSCDiesMultiNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -47,7 +47,7 @@ func TestNscDiesMultiNode(t *testing.T) {
 	testDie(t, true, 2)
 }
 
-func TestNseDiesMultiNode(t *testing.T) {
+func TestNSEDiesMultiNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -69,8 +69,8 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
-	icmp := nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
-	nsc := nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout, false)
+	icmp := nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout, false)
 
 	failures := InterceptGomegaFailures(func() {
 		ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")
@@ -112,7 +112,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	})
 
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 		for k := 0; k < nodesCount; k++ {
 			nsmdLogs, _ := k8s.GetLogs(nodes[k].Nsmd, "nsmd")
 			logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)

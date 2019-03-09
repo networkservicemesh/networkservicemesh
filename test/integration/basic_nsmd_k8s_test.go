@@ -5,9 +5,10 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -32,7 +33,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	k8s.Prepare("nsmd")
 
-	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd1", nil))
+	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
@@ -40,7 +41,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	// We need to wait unti it is started
 
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 	logs, err := k8s.GetLogs(nsmd, "nsmd-k8s")
 	logrus.Printf("%s", logs)
 
@@ -126,7 +127,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 }
 
-func TestUpdateNsm(t *testing.T) {
+func TestUpdateNSM(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -139,14 +140,14 @@ func TestUpdateNsm(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	k8s.Prepare("nsmd")
-	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd1", nil))
+	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
 	defer fwd.Stop()
 
-	// We need to wait unti it is started
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+	// We need to wait until it is started
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 
 	e := fwd.Start()
 	if e != nil {
@@ -202,7 +203,7 @@ func TestUpdateNsm(t *testing.T) {
 	})
 
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 
 		nsmdLogs, _ := k8s.GetLogs(nsmd, "nsmd")
 		logrus.Errorf("===================== NSMD output since test is failing %v\n=====================", nsmdLogs)
@@ -230,14 +231,14 @@ func TestGetEndpoints(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	k8s.Prepare("nsmd")
-	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd1", nil))
+	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
 	defer fwd.Stop()
 
-	// We need to wait unti it is started
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s intialized and waiting for connection", fastTimeout)
+	// We need to wait until it is started
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 
 	e := fwd.Start()
 	if e != nil {
