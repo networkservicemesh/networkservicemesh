@@ -18,7 +18,7 @@ resource "packet_device" "master" {
   hostname         = "${var.master_hostname}"
   facilities       = ["sjc1"]
   plan             = "t1.small.x86"
-  operating_system = "ubuntu_18_04"
+  operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
@@ -28,7 +28,7 @@ resource "packet_device" "worker1" {
   hostname         = "${var.worker1_hostname}"
   facilities       = ["sjc1"]
   plan             = "t1.small.x86"
-  operating_system = "ubuntu_18_04"
+  operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
