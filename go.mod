@@ -54,7 +54,7 @@ require (
 	k8s.io/code-generator v0.0.0-20190215220509-095ce2f23e83 // indirect
 	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20181114233023-0317810137be // indirect
-	k8s.io/kubernetes v1.13.2
+	k8s.io/kubernetes v1.13.4
 	k8s.io/utils v0.0.0-20190204185745-a326ccf4f02b // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
