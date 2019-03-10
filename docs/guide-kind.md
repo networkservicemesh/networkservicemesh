@@ -36,7 +36,7 @@ Deleting the cluster is as easy as:
 ```shell
 $ make kind-stop
 Deleting cluster "nsm" ...
-$KUBECONFIG is still set to use /Users/nnikolay/.kube/kind-config-nsm even though that file has been deleted, remember to unset it
+$KUBECONFIG is still set to use $HOME/.kube/kind-config-nsm even though that file has been deleted, remember to unset it
 ```
 
 ## `kind` as a cluster provide in Network Service Mesh
