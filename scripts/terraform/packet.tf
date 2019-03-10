@@ -22,11 +22,6 @@ resource "packet_device" "master" {
   billing_cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
-
-  timeouts {
-    create = "5m"
-    delete = "5m"
-  }
 }
 
 resource "packet_device" "worker1" {
@@ -37,11 +32,6 @@ resource "packet_device" "worker1" {
   billing_cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
-
-  timeouts {
-    create = "5m"
-    delete = "5m"
-  }
 }
 
 output "master.public_ip" {
