@@ -21,13 +21,44 @@ type NodeConf struct {
 }
 
 func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
+	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMDPodConfig{})
+}
+func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMDPodConfig) []*NodeConf {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 
 	confs := []*NodeConf{}
 	for i := 0; i < nodesCount; i++ {
-		nsmd, dataplane, err := deployNSMDAndDataplane(k8s, &nodes[i], timeout)
+		startTime := time.Now()
+		node := &nodes[i]
+		nsmdName := fmt.Sprintf("nsmd-%s", node.Name)
+		dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
+		var corePod *v1.Pod
+		debug := false
+		if i >= len(conf) {
+			corePod = pods.NSMDPod(nsmdName, node)
+		} else {
+			if conf[i].Nsmd == pods.NSMDPodDebug || conf[i].NsmdK8s == pods.NSMDPodDebug || conf[i].NsmdP == pods.NSMDPodDebug {
+				debug = true
+			}
+			corePod = pods.NSMDPodWithConfig(nsmdName, node, conf[i])
+		}
+ 		corePods := k8s.CreatePods(corePod, pods.VPPDataplanePod(dataplaneName, node))
+ 		if debug {
+ 			podContainer := "nsmd"
+			if conf[i].Nsmd == pods.NSMDPodDebug {
+				podContainer = "nsmd"
+			} else if conf[i].NsmdP == pods.NSMDPodDebug {
+				podContainer = "nsmdp"
+			}
+
+			k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
+			logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
+		}
+		nsmd, dataplane, err := deployNsmdAndDataplane(k8s, &nodes[i], corePods, timeout)
+
+		logrus.Printf("Started NSMD/Dataplane: %v on node %s", time.Since(startTime), node.Name)
 		Expect(err).To(BeNil())
 		confs = append(confs, &NodeConf{
 			Nsmd:      nsmd,
@@ -38,23 +69,18 @@ func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []
 	return confs
 }
 
-func deployNSMDAndDataplane(k8s *kube_testing.K8s, node *v1.Node, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
-	startTime := time.Now()
 
-	nsmdName := fmt.Sprintf("nsmd-%s", node.Name)
-	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
-	corePods := k8s.CreatePods(pods.NSMDPod(nsmdName, node), pods.VPPDataplanePod(dataplaneName, node))
+func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1.Pod, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
 			return nil, nil, fmt.Errorf("Pod %v is not ready...", pod.Name)
 		}
 	}
-	logrus.Printf("Started NSMD/Dataplane: %v on node %s", time.Since(startTime), node.Name)
 	nsmd = corePods[0]
 	dataplane = corePods[1]
 
-	Expect(nsmd.Name).To(Equal(nsmdName))
-	Expect(dataplane.Name).To(Equal(dataplaneName))
+	Expect(nsmd.Name).To(Equal(corePods[0].Name))
+	Expect(dataplane.Name).To(Equal(corePods[1].Name))
 
 	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
 	k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
@@ -136,6 +162,9 @@ func (info *NSCCheckInfo) PrintLogs() {
 }
 
 func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
+	return CheckNSCConfig(k8s, t, nscPodNode, "10.20.1.1", "10.20.1.2")
+}
+func CheckNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string, pingIP string) *NSCCheckInfo {
 	var err error
 	info := &NSCCheckInfo{}
 	info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
@@ -143,7 +172,7 @@ func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheck
 	Expect(info.errOut).To(Equal(""))
 	logrus.Printf("NSC IP status Ok")
 
-	Expect(strings.Contains(info.ipResponse, "10.20.1.1")).To(Equal(true))
+	Expect(strings.Contains(info.ipResponse, checkIP)).To(Equal(true))
 	Expect(strings.Contains(info.ipResponse, "nsm")).To(Equal(true))
 
 	info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
@@ -154,7 +183,7 @@ func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheck
 	Expect(strings.Contains(info.routeResponse, "8.8.8.8")).To(Equal(true))
 	Expect(strings.Contains(info.routeResponse, "nsm")).To(Equal(true))
 
-	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "10.20.1.2", "-c", "5")
+	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", pingIP, "-c", "5")
 	Expect(err).To(BeNil())
 	Expect(strings.Contains(info.pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
 	logrus.Printf("NSC Ping is success:%s", info.pingResponse)
