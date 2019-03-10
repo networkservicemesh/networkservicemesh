@@ -141,7 +141,7 @@ func main() {
 		logrus.Fatalf("Error cleaning up socket %s: %s", dataplaneSocket, err)
 		vppagent.SetSocketCleanFailed()
 	}
-	ln, err := net.Listen("unix", dataplaneSocket)
+	ln, err := net.Listen(dataplaneSocketType, dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 		vppagent.SetSocketListenFailed()
