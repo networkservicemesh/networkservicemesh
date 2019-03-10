@@ -98,14 +98,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	// Second update is update
 	l1.WaitUpdate(2, timeout, t)
 
-	// Choose a epName not first one.
-	newEpName := "ep1"
-	if epName == newEpName {
-		newEpName = "ep2"
-	}
-
 	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
 	Expect(clientConnection1_1.GetId()).To(Equal("1"))
 	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("4"))
-	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetNetworkServiceEndpointName()).To(Equal(newEpName))
 }

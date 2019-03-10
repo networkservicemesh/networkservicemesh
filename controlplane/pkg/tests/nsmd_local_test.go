@@ -20,22 +20,20 @@ type nseWithOptions struct {
 	netns             string
 	srcIp             string
 	dstIp             string
-	needMechanism     bool
 	need_ip_neighbors bool
 	connection        *connection.Connection
 }
 
 func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
 	var mechanism *connection.Mechanism
-	if impl.needMechanism {
-		mechanism = &connection.Mechanism{
-			Type: connection.MechanismType_KERNEL_INTERFACE,
-			Parameters: map[string]string{
-				connection.NetNsInodeKey: impl.netns,
-				// TODO: Fix this terrible hack using xid for getting a unique interface name
-				connection.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
-			},
-		}
+
+	mechanism = &connection.Mechanism{
+		Type: in.MechanismPreferences[0].Type,
+		Parameters: map[string]string{
+			connection.NetNsInodeKey: impl.netns,
+			// TODO: Fix this terrible hack using xid for getting a unique interface name
+			connection.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
+		},
 	}
 
 	conn := &connection.Connection{
@@ -101,7 +99,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.registerFakeEndpoint("golden_network", "test", Master)
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
@@ -128,7 +126,7 @@ func TestNSENoSrc(t *testing.T) {
 	}
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.registerFakeEndpoint("golden_network", "test", Master)
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
@@ -150,7 +148,7 @@ func TestNSEExcludePrefixes(t *testing.T) {
 	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.registerFakeEndpoint("golden_network", "test", Master)
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
@@ -174,7 +172,7 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.registerFakeEndpoint("golden_network", "test", Master)
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
 	err := os.Setenv(nsmd.ExcludedPrefixesEnv, "127.0.0.1/24, abc")
 
@@ -207,7 +205,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	}
 
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.registerFakeEndpoint("golden_network", "test", Master)
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()

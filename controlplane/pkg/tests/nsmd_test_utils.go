@@ -63,6 +63,10 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 	if in.GetNetworkService() != nil {
 		impl.storage.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
 	}
+	if in.GetNetworkServiceManager() != nil {
+		in.NetworkServiceManager.Name = impl.nsmgrName
+		impl.nsmCounter++
+	}
 	if in.GetNetworkserviceEndpoint() != nil {
 		impl.storage.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
 	}
@@ -115,7 +119,14 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *regis
 }
 
 func (iml *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
-	panic("implement me")
+	return &registry.NetworkServiceEndpointList{
+		NetworkServiceEndpoints:[]*registry.NetworkServiceEndpoint{
+			&registry.NetworkServiceEndpoint {
+				NetworkServiceManagerName:"nsm1",
+				EndpointName: "ep1",
+			},
+		},
+	}, nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -144,7 +155,7 @@ func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistr
 	return ""
 }
 
-func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 1*time.Second)
 	if err != nil {
 		return nil, nil, err
@@ -208,7 +219,7 @@ func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *con
 	return nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	return impl.localTestNSE, nil, nil
 }
 
@@ -346,10 +357,10 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 	})
 }
 
-func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *registry.NSERegistration {
+func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *model.Endpoint {
 	return srv.registerFakeEndpointWithName(networkServiceName, payload, nse_address, networkServiceName+"provider")
 }
-func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nsmgrName string, endpointname string) *registry.NSERegistration {
+func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nsmgrName string, endpointname string) *model.Endpoint {
 	reg := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name:    networkServiceName,
@@ -365,7 +376,12 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), reg)
 	Expect(err).To(BeNil())
 	Expect(regResp.NetworkService.Name).To(Equal(networkServiceName))
-	return reg
+
+	return &model.Endpoint{
+		Endpoint:       reg,
+		Workspace:      "nsm-1",
+		SocketLocation: "nsm-1/client",
+	}
 }
 
 func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networkservice.NetworkServiceClient, *grpc.ClientConn) {

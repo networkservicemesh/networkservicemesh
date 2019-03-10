@@ -16,27 +16,27 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
+type NSERegistryServer interface {
+	registry.NetworkServiceRegistryServer
+	RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error)
+}
 type registryServer struct {
-	model           model.Model
-	workspace       *Workspace
-	serviceRegistry serviceregistry.ServiceRegistry
+	nsm *nsmServer
+	workspace         *Workspace
 }
 
-func NewRegistryServer(model model.Model, workspace *Workspace, serviceRegistry serviceregistry.ServiceRegistry) registry.NetworkServiceRegistryServer {
+func NewRegistryServer(nsm *nsmServer, workspace *Workspace) NSERegistryServer {
 	return &registryServer{
-		model:           model,
+		nsm:           nsm,
 		workspace:       workspace,
-		serviceRegistry: serviceRegistry,
 	}
 }
 
@@ -45,11 +45,27 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	client, err := es.serviceRegistry.NseRegistryClient()
+	client, err := es.nsm.serviceRegistry.NseRegistryClient()
 	if err != nil {
 		err = fmt.Errorf("attempt to connect to upstream registry failed with: %v", err)
 		logrus.Error(err)
 		return nil, err
+	}
+
+	reg, err := es.RegisterNSEWithClient(ctx, request, client)
+	if err != nil {
+		return reg,err
+	}
+	return reg, nil
+}
+func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error) {
+	// Some notes here:
+	// 1)  Yes, we are overwriting anything we get for NetworkServiceManager
+	//     from the NSE.  NSE's shouldn't specify NetworkServiceManager
+	// 2)  We are not specifying Name or LastSeen, the nsmd-k8s will fill those
+	//     in
+	request.NetworkServiceManager = &registry.NetworkServiceManager{
+		Url: es.nsm.serviceRegistry.GetPublicAPI(),
 	}
 
 	registration, err := client.RegisterNSE(context.Background(), request)
@@ -59,12 +75,15 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 		return nil, err
 	}
 
-	ep := es.model.GetEndpoint(registration.GetNetworkserviceEndpoint().GetEndpointName())
-	if ep == nil {
-		es.model.AddEndpoint(registration)
-		WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, registration.GetNetworkserviceEndpoint())
+	ep := es.nsm.model.GetEndpoint(registration.GetNetworkserviceEndpoint().GetEndpointName())
+	modelEndpoint := &model.Endpoint {
+		SocketLocation: es.workspace.NsmClientSocket(),
+		Endpoint: registration,
+		Workspace: es.workspace.Name(),
 	}
-	WorkSpaceRegistry().AddEndpointToWorkspace(es.workspace, ep.GetNetworkserviceEndpoint())
+	if ep == nil {
+		es.nsm.model.AddEndpoint(modelEndpoint)
+	}
 	logrus.Infof("Received upstream NSERegitration: %v", registration)
 
 	return registration, nil
@@ -74,7 +93,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	// TODO make sure we track which registry server we got the RegisterNSE from so we can only allow a deletion
 	// of what you advertised
 	logrus.Infof("Received Endpoint Remove request: %+v", request)
-	client, err := es.serviceRegistry.NseRegistryClient()
+	client, err := es.nsm.serviceRegistry.NseRegistryClient()
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)
@@ -86,8 +105,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 		logrus.Error(err)
 		return nil, err
 	}
-	WorkSpaceRegistry().DeleteEndpointToWorkspace(request.EndpointName)
-	if err := es.model.DeleteEndpoint(request.EndpointName); err != nil {
+	if err := es.nsm.model.DeleteEndpoint(request.EndpointName); err != nil {
 		return &empty.Empty{}, err
 	}
 	return &empty.Empty{}, nil

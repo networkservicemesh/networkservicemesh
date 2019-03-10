@@ -69,15 +69,15 @@ func (impl *nsmdServiceRegistry) NewWorkspaceProvider() serviceregistry.Workspac
 	return NewDefaultWorkspaceProvider()
 }
 
-func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.GetUrl(), 1*time.Second)
+func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+	err := tools.WaitForPortAvailable(ctx, "tcp", nsm.GetUrl(), 1*time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	logrus.Infof("Remote Network Service %s is available at %s, attempting to connect...", nsm.GetName(), nsm.GetUrl())
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure(),
+	conn, err := grpc.DialContext(ctx, nsm.Url, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
@@ -90,14 +90,8 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.Networ
 	return client, conn, nil
 }
 
-func (impl *nsmdServiceRegistry) EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
-	if workspace == nil {
-		err := fmt.Errorf("cannot find workspace for endpoint %v", endpoint)
-		logrus.Error(err)
-		return nil, nil, err
-	}
-	nseConn, err := tools.SocketOperationCheck(workspace.NsmClientSocket())
+func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+	nseConn, err := tools.SocketOperationCheck(endpoint.SocketLocation)
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
@@ -105,15 +99,6 @@ func (impl *nsmdServiceRegistry) EndpointConnection(endpoint *registry.NSERegist
 	client := networkservice.NewNetworkServiceClient(nseConn)
 
 	return client, nseConn, nil
-}
-
-func (impl *nsmdServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
-	// TODO - this is terribly dirty and needs to be fixed
-	workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
-	if workspace != nil { // In case of tests this could be empty
-		return workspace.Name()
-	}
-	return ""
 }
 
 func (impl *nsmdServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {

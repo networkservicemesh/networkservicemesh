@@ -22,14 +22,28 @@ type Dataplane struct {
 	LocalMechanisms  []*local.Mechanism
 	RemoteMechanisms []*remote.Mechanism
 }
+
+type Endpoint struct {
+	Endpoint       *registry.NSERegistration
+	SocketLocation string
+	Workspace      string
+}
+
 type ClientConnectionState int8
 
 const (
-	ClientConnection_Ready      = 0
-	ClientConnection_Requesting = 1
-	ClientConnection_Healing    = 2
-	ClientConnection_Closing    = 3
-	ClientConnection_Closed     = 4
+	ClientConnection_Ready      ClientConnectionState   = 0
+	ClientConnection_Requesting ClientConnectionState   = 1
+	ClientConnection_Healing    ClientConnectionState   = 2
+	ClientConnection_Closing    ClientConnectionState   = 3
+	ClientConnection_Closed     ClientConnectionState = 4
+)
+
+type DataplaneState int8
+
+const (
+	DataplaneState_None  = 0 // In case dataplane is not yet configured for connection
+	DataplaneState_Ready = 1 // In case dataplane is configured for connection.
 )
 
 type ClientConnection struct {
@@ -40,6 +54,15 @@ type ClientConnection struct {
 	Dataplane       *Dataplane
 	ConnectionState ClientConnectionState
 	Request         nsm.NSMRequest
+	DataplaneState  DataplaneState
+}
+
+func (ep *Endpoint) EndpointName() string {
+	return ep.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
+}
+
+func (ep *Endpoint) NetworkServiceName() string {
+	return ep.Endpoint.GetNetworkService().GetName()
 }
 
 func (cc *ClientConnection) GetId() string {
@@ -66,8 +89,8 @@ func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
 
 // Model change listener
 type ModelListener interface {
-	EndpointAdded(endpoint *registry.NetworkServiceEndpoint)
-	EndpointDeleted(endpoint *registry.NetworkServiceEndpoint)
+	EndpointAdded(endpoint *Endpoint)
+	EndpointDeleted(endpoint *Endpoint)
 
 	DataplaneAdded(dataplane *Dataplane)
 	DataplaneDeleted(dataplane *Dataplane)
@@ -79,9 +102,9 @@ type ModelListener interface {
 
 type ModelListenerImpl struct{}
 
-func (ModelListenerImpl) EndpointAdded(endpoint *registry.NetworkServiceEndpoint) {}
+func (ModelListenerImpl) EndpointAdded(endpoint *Endpoint) {}
 
-func (ModelListenerImpl) EndpointDeleted(endpoint *registry.NetworkServiceEndpoint) {}
+func (ModelListenerImpl) EndpointDeleted(endpoint *Endpoint) {}
 
 func (ModelListenerImpl) DataplaneAdded(dataplane *Dataplane) {}
 
@@ -94,10 +117,10 @@ func (ModelListenerImpl) ClientConnectionDeleted(clientConnection *ClientConnect
 func (ModelListenerImpl) ClientConnectionUpdated(clientConnection *ClientConnection) {}
 
 type Model interface {
-	GetNetworkServiceEndpoints(name string) []*registry.NSERegistration
+	GetNetworkServiceEndpoints(name string) []*Endpoint
 
-	GetEndpoint(name string) *registry.NSERegistration
-	AddEndpoint(endpoint *registry.NSERegistration)
+	GetEndpoint(name string) *Endpoint
+	AddEndpoint(endpoint *Endpoint)
 	DeleteEndpoint(name string) error
 
 	GetDataplane(name string) *Dataplane
@@ -125,8 +148,8 @@ type Model interface {
 
 type impl struct {
 	sync.RWMutex
-	endpoints         map[string]*registry.NSERegistration
-	networkServices   map[string][]*registry.NSERegistration
+	endpoints         map[string]*Endpoint
+	networkServices   map[string][]*Endpoint
 	dataplanes        map[string]*Dataplane
 	lastConnnectionId uint64
 	nsm               *registry.NetworkServiceManager
@@ -206,7 +229,7 @@ func (i *impl) AddListener(listener ModelListener) {
 	}
 
 	for _, ep := range i.endpoints {
-		listener.EndpointAdded(ep.NetworkserviceEndpoint)
+		listener.EndpointAdded(ep)
 	}
 }
 
@@ -221,30 +244,30 @@ func (i *impl) RemoveListener(listener ModelListener) {
 	}
 }
 
-func (i *impl) GetNetworkServiceEndpoints(name string) []*registry.NSERegistration {
+func (i *impl) GetNetworkServiceEndpoints(name string) []*Endpoint {
 	i.RLock()
 	defer i.RUnlock()
 	var endpoints = i.networkServices[name]
 	if endpoints == nil {
-		endpoints = []*registry.NSERegistration{}
+		endpoints = []*Endpoint{}
 	}
 	return endpoints
 }
 
-func (i *impl) GetEndpoint(name string) *registry.NSERegistration {
+func (i *impl) GetEndpoint(name string) *Endpoint {
 	i.RLock()
 	defer i.RUnlock()
 	return i.endpoints[name]
 }
 
-func (i *impl) AddEndpoint(endpoint *registry.NSERegistration) {
+func (i *impl) AddEndpoint(endpoint *Endpoint) {
 	i.Lock()
 	defer i.Unlock()
-	i.endpoints[endpoint.GetNetworkserviceEndpoint().GetEndpointName()] = endpoint
-	serviceName := endpoint.GetNetworkService().GetName()
+	i.endpoints[endpoint.EndpointName()] = endpoint
+	serviceName := endpoint.NetworkServiceName()
 	services := i.networkServices[serviceName]
 	if services == nil {
-		services = []*registry.NSERegistration{endpoint}
+		services = []*Endpoint{endpoint}
 	} else {
 		services = append(services, endpoint)
 	}
@@ -253,7 +276,7 @@ func (i *impl) AddEndpoint(endpoint *registry.NSERegistration) {
 	logrus.Infof("Endpoint added: %v", endpoint)
 
 	for _, l := range i.listeners {
-		l.EndpointAdded(endpoint.GetNetworkserviceEndpoint())
+		l.EndpointAdded(endpoint)
 	}
 }
 
@@ -263,7 +286,7 @@ func (i *impl) DeleteEndpoint(name string) error {
 
 	endpoint := i.endpoints[name]
 	if endpoint != nil {
-		services := i.networkServices[endpoint.GetNetworkService().GetName()]
+		services := i.networkServices[endpoint.NetworkServiceName()]
 		if len(services) > 1 {
 			for idx, e := range services {
 				if e == endpoint {
@@ -272,14 +295,14 @@ func (i *impl) DeleteEndpoint(name string) error {
 				}
 			}
 			// Update services with removed item.
-			i.networkServices[endpoint.GetNetworkService().GetName()] = services
+			i.networkServices[endpoint.NetworkServiceName()] = services
 		} else {
-			delete(i.networkServices, endpoint.GetNetworkService().GetName())
+			delete(i.networkServices, endpoint.NetworkServiceName())
 		}
 		delete(i.endpoints, name)
 
 		for _, l := range i.listeners {
-			l.EndpointDeleted(endpoint.GetNetworkserviceEndpoint())
+			l.EndpointDeleted(endpoint)
 		}
 		return nil
 	}
@@ -309,9 +332,10 @@ func (i *impl) SelectDataplane() (*Dataplane, error) {
 
 func (i *impl) AddDataplane(dataplane *Dataplane) {
 	i.Lock()
-	defer i.Unlock()
+
 	i.dataplanes[dataplane.RegisteredName] = dataplane
 	logrus.Infof("Dataplane added: %v", dataplane)
+	i.Unlock()
 
 	for _, l := range i.listeners {
 		l.DataplaneAdded(dataplane)
@@ -344,8 +368,8 @@ func (i *impl) SetNsm(nsm *registry.NetworkServiceManager) {
 func NewModel() Model {
 	return &impl{
 		dataplanes:        make(map[string]*Dataplane),
-		networkServices:   make(map[string][]*registry.NSERegistration),
-		endpoints:         make(map[string]*registry.NSERegistration),
+		networkServices:   make(map[string][]*Endpoint),
+		endpoints:         make(map[string]*Endpoint),
 		listeners:         []ModelListener{},
 		selector:          selector.NewMatchSelector(),
 		clientConnections: make(map[string]*ClientConnection),

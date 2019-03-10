@@ -1,6 +1,7 @@
 package serviceregistry
 
 import (
+	"golang.org/x/net/context"
 	"net"
 	"time"
 
@@ -33,12 +34,10 @@ type ServiceRegistry interface {
 	NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error)
 	DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error)
 
-	EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
-	RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
+	EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
+	RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 
 	WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error
-
-	WorkspaceName(endpoint *registry.NSERegistration) string
 
 	VniAllocator() vni.VniAllocator
 
