@@ -25,8 +25,10 @@ kind-config:
 kind-start: kind-config
 	@kind get clusters | grep nsm  >/dev/null 2>&1 || \
 		( kind create cluster --name="$(KIND_CLUSTER_NAME)" --config ./scripts/kind.yaml && \
-		KUBECONFIG="$$(kind get kubeconfig-path --name="$(KIND_CLUSTER_NAME)")" \
-		kubectl taint node $(KIND_CLUSTER_NAME)-control-plane node-role.kubernetes.io/master:NoSchedule- )
+		until \
+			KUBECONFIG="$$(kind get kubeconfig-path --name="$(KIND_CLUSTER_NAME)")" \
+			kubectl taint node $(KIND_CLUSTER_NAME)-control-plane node-role.kubernetes.io/master:NoSchedule- ; \
+		do echo "Waiting for the cluster to come up" && sleep 3; done )
 
 .PHONY: kind-stop
 kind-stop:
