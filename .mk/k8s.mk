@@ -40,6 +40,11 @@ endif
 include .mk/vagrant.mk
 include .mk/packet.mk
 
+# .kind.mk enables the kind.sigs.k8s.io docker based K8s install:
+# export CLUSTER_RULES_PREFIX=kind
+# before running make
+include .mk/kind.mk
+
 # .null.mk allows you to skip the vagrant machinery with:
 # export CLUSTER_RULES_PREFIX=null
 # before running make
