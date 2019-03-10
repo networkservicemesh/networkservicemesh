@@ -3,6 +3,12 @@ package pods
 import (
 	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+)
+
+const (
+	NSMDHostSystemPath = "/go/src"
+	NSMDHostRootEnv = "NSMD_HOST_ROOT"	// A host path for all sources.
 )
 
 var DefaultNSMD = map[string]string{
@@ -166,13 +172,21 @@ func NSMDPodWithConfig(name string, node *v1.Node, config *NSMDPodConfig) *v1.Po
 			VolumeSource: v1.VolumeSource{
 				HostPath: &v1.HostPathVolumeSource{
 					Type: ht,
-					Path: "/go/src",
+					Path: getNSMDLocalHostSourcePath(),
 				},
 			},
 		}, )
 	}
 
 	return pod
+}
+
+func getNSMDLocalHostSourcePath() string {
+	root := os.Getenv(NSMDHostRootEnv)
+	if root != "" {
+		return root
+	}
+	return NSMDHostSystemPath;
 }
 
 func updateSpec(pod *v1.Pod, index int, app string, mode NSMDPodMode ) {
