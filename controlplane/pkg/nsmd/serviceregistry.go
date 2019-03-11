@@ -91,7 +91,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 }
 
 func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	nseConn, err := tools.SocketOperationCheck(endpoint.SocketLocation)
+	nseConn, err := tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation))
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
@@ -102,7 +102,7 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 }
 
 func (impl *nsmdServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {
-	dataplaneConn, err := tools.SocketOperationCheck(dataplane.SocketLocation)
+	dataplaneConn, err := tools.SocketOperationCheck(tools.SocketPath(dataplane.SocketLocation))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -116,7 +116,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 		return nil, nil, err
 	}
 
-	conn, err := tools.SocketOperationCheck(ServerSock)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(ServerSock))
 	if err != nil {
 		return nil, nil, err
 	}

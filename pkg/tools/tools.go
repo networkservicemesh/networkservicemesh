@@ -28,9 +28,9 @@ import (
 
 	"github.com/go-errors/errors"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	jaeger "github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
 	"google.golang.org/grpc"
 )
@@ -72,11 +72,22 @@ func SocketCleanup(listenEndpoint string) error {
 	return nil
 }
 
+// Unix socket file path.
+type SocketPath string
+
+func (socket SocketPath) Network() string {
+	return "unix"
+}
+
+func (socket SocketPath) String() string {
+	return string(socket)
+}
+
 // SocketOperationCheck checks for liveness of a gRPC server socket.
-func SocketOperationCheck(listenEndpoint string) (*grpc.ClientConn, error) {
+func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	conn, err := dial(ctx, listenEndpoint)
+	conn, err := dial(ctx, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +95,11 @@ func SocketOperationCheck(listenEndpoint string) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) {
+func dial(ctx context.Context, endpoint net.Addr) (*grpc.ClientConn, error) {
 	tracer := opentracing.GlobalTracer()
-	c, err := grpc.DialContext(ctx, unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
+	c, err := grpc.DialContext(ctx, endpoint.String(), grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
+			return net.DialTimeout(endpoint.Network(), addr, timeout)
 		}),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
@@ -97,6 +108,7 @@ func dial(ctx context.Context, unixSocketPath string) (*grpc.ClientConn, error) 
 
 	return c, err
 }
+
 func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string, interval time.Duration) error {
 	if interval < 0 {
 		return errors.New("interval must be positive")

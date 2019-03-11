@@ -25,7 +25,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/impl/dataplaneregistrarclient"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,15 +33,19 @@ const (
 	NsmBaseDirKey     = "NSM_BASEDIR"
 	DefaultNsmBaseDir = "/var/lib/networkservicemesh/"
 	// TODO Convert all the defaults to properly use NsmBaseDir
-	DataplaneRegistrarSocketKey     = "DATAPLANE_REGISTRAR_SOCKET"
-	DefaultDataplaneRegistrarSocket = "/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock"
-	DataplaneSocketKey              = "DATAPLANE_SOCKET"
-	DefaultDataplaneSocket          = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
-	DataplaneNameKey                = "DATAPLANE_NAME"
-	DefaultDataplaneName            = "vppagent"
-	DataplaneVPPAgentEndpointKey    = "VPPAGENT_ENDPOINT"
-	DefaultVPPAgentEndpoint         = "localhost:9111"
-	SrcIpEnvKey                     = "NSM_DATAPLANE_SRC_IP"
+	DataplaneRegistrarSocketKey         = "DATAPLANE_REGISTRAR_SOCKET"
+	DefaultDataplaneRegistrarSocket     = "/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock"
+	DataplaneRegistrarSocketTypeKey     = "DATAPLANE_REGISTRAR_SOCKET_TYPE"
+	DefaultDataplaneRegistrarSocketType = "unix"
+	DataplaneSocketKey                  = "DATAPLANE_SOCKET"
+	DefaultDataplaneSocket              = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketTypeKey              = "DATAPLANE_SOCKET_TYPE"
+	DefaultDataplaneSocketType          = "unix"
+	DataplaneNameKey                    = "DATAPLANE_NAME"
+	DefaultDataplaneName                = "vppagent"
+	DataplaneVPPAgentEndpointKey        = "VPPAGENT_ENDPOINT"
+	DefaultVPPAgentEndpoint             = "localhost:9111"
+	SrcIpEnvKey                         = "NSM_DATAPLANE_SRC_IP"
 )
 
 func main() {
@@ -76,12 +80,26 @@ func main() {
 	}
 	logrus.Infof("dataplaneRegistrarSocket: %s", dataplaneRegistrarSocket)
 
+	dataplaneRegistrarSocketType, ok := os.LookupEnv(DataplaneRegistrarSocketTypeKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketTypeKey, DefaultDataplaneRegistrarSocketType)
+		dataplaneRegistrarSocketType = DefaultDataplaneRegistrarSocketType
+	}
+	logrus.Infof("dataplaneRegistrarSocket: %s", dataplaneRegistrarSocketType)
+
 	dataplaneSocket, ok := os.LookupEnv(DataplaneSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DefaultDataplaneSocket)
 		dataplaneSocket = DefaultDataplaneSocket
 	}
 	logrus.Infof("dataplaneSocket: %s", dataplaneSocket)
+
+	dataplaneSocketType, ok := os.LookupEnv(DataplaneSocketTypeKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DefaultDataplaneSocketType)
+		dataplaneSocketType = DefaultDataplaneSocketType
+	}
+	logrus.Infof("dataplaneSocketType: %s", dataplaneSocketType)
 
 	vppAgentEndpoint, ok := os.LookupEnv(DataplaneVPPAgentEndpointKey)
 	if !ok {
@@ -123,7 +141,7 @@ func main() {
 		logrus.Fatalf("Error cleaning up socket %s: %s", dataplaneSocket, err)
 		vppagent.SetSocketCleanFailed()
 	}
-	ln, err := net.Listen("unix", dataplaneSocket)
+	ln, err := net.Listen(dataplaneSocketType, dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 		vppagent.SetSocketListenFailed()
@@ -138,7 +156,7 @@ func main() {
 	logrus.Debugf("Starting VPP Agent server took: %s", elapsed)
 
 	logrus.Info("Dataplane Registrar Client")
-	registrar := dataplaneregistrarclient.NewDataplaneRegistrarClient(dataplaneRegistrarSocket)
+	registrar := dataplaneregistrarclient.NewDataplaneRegistrarClient(dataplaneRegistrarSocketType, dataplaneRegistrarSocket)
 	registration := registrar.Register(context.Background(), dataplaneName, dataplaneSocket, nil, nil)
 	logrus.Info("Registered Dataplane Registrar Client")
 

@@ -16,6 +16,7 @@ package dataplaneregistrarclient
 
 import (
 	"context"
+	"net"
 	"os"
 	"time"
 
@@ -32,7 +33,7 @@ var (
 
 type DataplaneRegistrarClient struct {
 	registrationRetryInterval time.Duration
-	registrarSocket           string
+	registrarSocket           net.Addr
 }
 
 type dataplaneRegistration struct {
@@ -53,7 +54,7 @@ func (dr *dataplaneRegistration) register(ctx context.Context) {
 	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
 
 	// Wait fo NSMD to be ready to register dataplane.
-	_ = tools.WaitForPortAvailable(context.Background(), "unix", dr.registrar.registrarSocket, 100* time.Millisecond)
+	_ = tools.WaitForPortAvailable(context.Background(), dr.registrar.registrarSocket.Network(), dr.registrar.registrarSocket.String(), 100* time.Millisecond)
 	ticker := time.NewTicker(dr.registrar.registrationRetryInterval)
 	for ; true; <-ticker.C {
 		select {
@@ -69,17 +70,19 @@ func (dr *dataplaneRegistration) register(ctx context.Context) {
 }
 
 func (dr *dataplaneRegistration) tryRegistration(ctx context.Context) error {
-	logrus.Infof("Trying to register %s on socket %s", dr.dataplaneName, dr.registrar.registrarSocket)
-	if _, err := os.Stat(dr.registrar.registrarSocket); err != nil {
-		logrus.Errorf("%s: failure to access nsm socket at \"%s\" with error: %+v, exiting...", dr.dataplaneName, dr.registrar.registrarSocket, err)
-		return err
+	logrus.Infof("Trying to register %s on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
+	if dr.registrar.registrarSocket.Network() == "unix" {
+		if _, err := os.Stat(dr.registrar.registrarSocket.String()); err != nil {
+			logrus.Errorf("%s: failure to access nsm socket at \"%v\" with error: %+v, exiting...", dr.dataplaneName, dr.registrar.registrarSocket, err)
+			return err
+		}
 	}
 	conn, err := tools.SocketOperationCheck(dr.registrar.registrarSocket)
 	if err != nil {
-		logrus.Errorf("%s: failure to communicate with the socket \"%s\" with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
+		logrus.Errorf("%s: failure to communicate with the socket \"%v\" with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
 		return err
 	}
-	logrus.Infof("%s: connection to dataplane registrar socket \"%s\" succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
+	logrus.Infof("%s: connection to dataplane registrar socket \"%v\" succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
 
 	dr.client = dataplaneregistrar.NewDataplaneRegistrationClient(conn)
 	req := &dataplaneregistrar.DataplaneRegistrationRequest{
@@ -89,7 +92,7 @@ func (dr *dataplaneRegistration) tryRegistration(ctx context.Context) error {
 	_, err = dr.client.RequestDataplaneRegistration(ctx, req)
 	logrus.Infof("%s: send request to Dataplane Registrar: %+v", dr.dataplaneName, req)
 	if err != nil {
-		logrus.Infof("%s: failure to create grpc client for RequestDataplaneRegistration on socket %s", dr.dataplaneName, dr.registrar.registrarSocket)
+		logrus.Infof("%s: failure to create grpc client for RequestDataplaneRegistration on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
 		return err
 	}
 	if dr.onConnect != nil {
@@ -135,20 +138,23 @@ func (dr *dataplaneRegistration) Close() {
 	dr.cancelFunc()
 	conn, err := tools.SocketOperationCheck(dr.registrar.registrarSocket)
 	if err != nil {
-		logrus.Errorf("%s: failure to communicate with the socket %s with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
+		logrus.Errorf("%s: failure to communicate with the socket %v with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
 		return
 	}
-	logrus.Infof("%s: connection to dataplane registrar socket %s succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
+	logrus.Infof("%s: connection to dataplane registrar socket %v succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
 	client := dataplaneregistrar.NewDataplaneUnRegistrationClient(conn)
 	client.RequestDataplaneUnRegistration(context.Background(), &dataplaneregistrar.DataplaneUnRegistrationRequest{
 		DataplaneName: dr.dataplaneName,
 	})
 }
 
-func NewDataplaneRegistrarClient(registrarSocket string) *DataplaneRegistrarClient {
+func NewDataplaneRegistrarClient(network, registrarSocket string) *DataplaneRegistrarClient {
 	return &DataplaneRegistrarClient{
 		registrationRetryInterval: registrationRetryInterval,
-		registrarSocket:           registrarSocket,
+		registrarSocket: &net.UnixAddr{
+			Name: registrarSocket,
+			Net:  network,
+		},
 	}
 }
 

@@ -320,7 +320,7 @@ func newNetworkServiceClient(nsmServerSocket string) (networkservice.NetworkServ
 		return nil, nil, err
 	}
 
-	conn, err := tools.SocketOperationCheck(nsmServerSocket)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(nsmServerSocket))
 
 	if err != nil {
 		return nil, nil, err
