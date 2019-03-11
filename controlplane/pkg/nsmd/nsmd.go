@@ -32,6 +32,7 @@ import (
 const (
 	NsmdDeleteLocalRegistry = "NSMD_LOCAL_REGISTRY_DELETE"
 	DataplaneTimeout = 1 * time.Hour
+	NSEAliveTimeout	= 1 * time.Second
 )
 
 type NSMServer interface {
@@ -212,7 +213,7 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 		for endpointId, nse := range nses {
 			if ws, ok := nsm.workspaces[nse.Workspace]; ok {
 				logrus.Infof("Checking NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
-				ctx, cancelCtx := context.WithTimeout(context.Background(), 1 * time.Second)
+				ctx, cancelCtx := context.WithTimeout(context.Background(), NSEAliveTimeout)
 				defer cancelCtx()
 				nseConn, err := tools.SocketOperationCheckContext(ctx, ws.NsmClientSocket())
 				if err != nil {

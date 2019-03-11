@@ -50,7 +50,7 @@ func main() {
 	defer server.Stop()
 
 	// Starting dataplene
-	logrus.Info("Staring Dataplane registration server...")
+	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
 		nsmd.SetDPServerFailed()
