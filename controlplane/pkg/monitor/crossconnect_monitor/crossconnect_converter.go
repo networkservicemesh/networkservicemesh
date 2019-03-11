@@ -22,6 +22,7 @@ func (c *CrossConnectEventConverter) Convert(event monitor.Event) (interface{}, 
 	return &crossconnect.CrossConnectEvent{
 		Type:          eventType,
 		CrossConnects: xcons,
+		Metrics:       make(map[string]*crossconnect.Metrics),
 	}, nil
 }
 
