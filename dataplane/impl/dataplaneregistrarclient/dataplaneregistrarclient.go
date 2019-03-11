@@ -53,7 +53,7 @@ func (dr *dataplaneRegistration) register(ctx context.Context) {
 	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
 
 	// Wait fo NSMD to be ready to register dataplane.
-	_ = tools.WaitForPortAvailable(context.Background(), "unix", dr.registrar.registrarSocket, dr.registrar.registrationRetryInterval)
+	_ = tools.WaitForPortAvailable(context.Background(), "unix", dr.registrar.registrarSocket, 100* time.Millisecond)
 	ticker := time.NewTicker(dr.registrar.registrationRetryInterval)
 	for ; true; <-ticker.C {
 		select {
