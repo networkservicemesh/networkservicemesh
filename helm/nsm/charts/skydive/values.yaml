@@ -2,5 +2,5 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-registry: registry-1.docker.io
+registry: docker.io
 tag: latest
