@@ -43,8 +43,11 @@ const (
 	// ServerSock defines the name of NSM client socket
 	ServerSock = "networkservicemesh.io.sock"
 
-	// A number of devices we have in buffer for use.
+	// A number of devices we have in buffer for use, so we hold extra DeviceBuffer count of deviceids send to kubelet.
 	DeviceBuffer = 30
+
+	// Send device ids to kubelet every N seconds.
+	KubeletNotifyDelay = 30 * time.Second
 )
 
 type nsmClientEndpoints struct {
@@ -154,11 +157,11 @@ func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 
 	// Restore state from NSMD
 	for {
-		n.reciveWorkspaces()
+		n.receiveWorkspaces()
 		n.sendDeviceUpdate()
 
-		//
-		time.Sleep(30 * time.Second)
+		// Sleep before next notification.
+		time.Sleep(KubeletNotifyDelay)
 	}
 }
 
@@ -262,7 +265,7 @@ func (n *nsmClientEndpoints) sendDeviceUpdate() {
 	}
 }
 
-func (n *nsmClientEndpoints) reciveWorkspaces() {
+func (n *nsmClientEndpoints) receiveWorkspaces() {
 	for {
 		reply, err := enumWorkspaces(n.serviceRegistry)
 		if err != nil {
