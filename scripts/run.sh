@@ -2,17 +2,14 @@
 
 if [ $# -eq 0 ] ; then
     echo ""
-    echo "Please use ./scripts/debug.sh and one of application names nsmd/nsc/vppagent/icmp-responder-nse"
+    echo "Please use ./scripts/run.sh and one of application names nsmd/nsc/vppagent/icmp-responder-nse to compile and run application inside dev container."
     echo ""
     exit
 fi
 
 cd /go/src/github.com/networkservicemesh/networkservicemesh/ || exit 101
 
-echo "Starting debug for $1"
-
 go_file=""
-port=40000
 mkdir -p /bin
 output=/bin/debug
 if [ "$1" = "nsmd" ]; then
@@ -54,8 +51,9 @@ fi
 # Debug entry point
 mkdir -p ./bin
 pkill -f "$output"
-echo "Compile and start debug of ${go_file} at port ${port}"
+echo "Compile and start of ${go_file}"
 
 # Prepare environment for NSMD
 export NSM_SERVER_SOCKET=/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock
-dlv debug --headless --listen=:${port} --api-version=2 --build-flags "-i"  "${go_file}" --output "${output}"
+CGO_ENABLED=0 GOOS=linux go build -i -ldflags '-extldflags "-static"' -o "${output}" "${go_file}"
+"${output}"

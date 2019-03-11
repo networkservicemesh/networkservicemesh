@@ -12,7 +12,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -128,7 +128,7 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 
 func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
 	st := time.Now()
-
+	infoPrinted := false
 	for {
 		pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
 
@@ -144,8 +144,9 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 			break
 		}
 
-		if time.Since(st) > timeout/2 {
+		if time.Since(st) > timeout/2 && !infoPrinted {
 			logrus.Infof("Pod deploy half time passed: %v", pod)
+			infoPrinted = true
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(50))
