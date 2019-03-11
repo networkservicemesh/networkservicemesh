@@ -390,7 +390,7 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 	client, err := srv.createNSEClient(ctx, endpoint)
 	if err != nil {
 		// 7.2.6.1
-		return nil, fmt.Errorf("NSM:(7.2.6.1-%v) Failed to create NSE Client", err)
+		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
 	}
 	defer func() {
 		err := client.Cleanup()
@@ -664,37 +664,63 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 		if existing == nil {
 			logrus.Infof("Restoring state of active connection %v", xcon)
 
-			endpoint := &registry.NSERegistration{
-				NetworkService: &registry.NetworkService{
-				},
-				NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-
-				},
-			}
-
+			endpointName := ""
+			networkServiceName := ""
+			var endpoint *registry.NSERegistration
 			connectionState := model.ClientConnection_Ready
 
 			dp := srv.model.GetDataplane(dataplane)
+
+			discovery, err := srv.serviceRegistry.DiscoveryClient()
+			if err != nil {
+				logrus.Errorf("Failed to find NSE to recovery: %v", err)
+			}
 			if src := xcon.GetRemoteSource(); src != nil {
 				// Since source is remote, connection need to be healed.
 				connectionState = model.ClientConnection_Healing
 
-				endpoint.NetworkService.Name = src.GetNetworkService()
-				endpoint.NetworkserviceEndpoint.EndpointName = src.GetNetworkServiceEndpointName()
+				networkServiceName = src.GetNetworkService()
+				endpointName = src.GetNetworkServiceEndpointName()
 			}
 			if dst := xcon.GetLocalDestination(); dst != nil {
 				// Local NSE, connection is Ready
 				connectionState = model.ClientConnection_Ready
 
-				endpoint.NetworkService.Name = dst.GetNetworkService()
+				networkServiceName = dst.GetNetworkService()
 				//TODO: Endpoint name is not defined for local case, seems we need to add it to local connection.
 				//endpoint.NetworkserviceEndpoint.EndpointName = xcon.GetLocalDestination().GetNetworkServiceEndpointName()
 			}
 			if dst := xcon.GetRemoteDestination(); dst != nil {
 				// NSE is remote one, and source is local one, we are ready.
 				connectionState = model.ClientConnection_Ready
-				endpoint.NetworkService.Name = xcon.GetRemoteDestination().GetNetworkService()
-				endpoint.NetworkserviceEndpoint.EndpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
+
+				networkServiceName = xcon.GetRemoteDestination().GetNetworkService()
+				endpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
+			}
+
+			if endpointName != "" {
+				logrus.Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
+				endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
+					NetworkServiceName: networkServiceName,
+				})
+				if err != nil {
+					logrus.Errorf("Failed to find NSE to recovery: %v", err)
+				}
+				for _, ep := range endpoints.NetworkServiceEndpoints {
+					if ep.EndpointName == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
+						endpoint = &registry.NSERegistration{
+							NetworkServiceManager: endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
+							NetworkserviceEndpoint: ep,
+							NetworkService: endpoints.NetworkService,
+						}
+						break
+					}
+				}
+				if endpoint == nil {
+					logrus.Errorf("Failed to find Endpoint %s", endpointName)
+				} else {
+					logrus.Infof("Endpoint found: %v", endpoint)
+				}
 			}
 
 			clientConnection := &model.ClientConnection{
@@ -709,24 +735,19 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 
 			// Add healing timer, for connection to be headled from source side.
 			if src := xcon.GetRemoteSource(); src != nil {
-				go func() {
-					<-time.Tick(srv.properties.HealTimeout)
-					if clientConnection.ConnectionState == model.ClientConnection_Healing {
-						logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)
-						// Nobody was healed connection from Remote side.
-						if err := srv.Close(context.Background(), clientConnection); err != nil {
-							logrus.Errorf("NSM: Error cloding conneciton %v", err)
-						}
-					}
-				}()
-			}
-			if dst := xcon.GetRemoteDestination(); dst != nil {
-				if dst.State == remote_connection.State_DOWN {
+				srv.RemoteConnectionLost(clientConnection)
+			} else if src := xcon.GetLocalSource(); src != nil {
+				// Update request to match source connection
+				request := &networkservice.NetworkServiceRequest{
+					Connection: src,
+					MechanismPreferences: []*connection.Mechanism{src.GetMechanism()},
+				}
+				clientConnection.Request = request
+
+				if dst := xcon.GetRemoteDestination(); dst != nil {
 					srv.Heal(clientConnection, nsm.HealState_DstDown)
 				}
-			}
-			if dst := xcon.GetLocalDestination(); dst != nil {
-				if dst.State == connection.State_DOWN {
+				if dst := xcon.GetLocalDestination(); dst != nil {
 					srv.Heal(clientConnection, nsm.HealState_DstDown)
 				}
 			}
@@ -742,4 +763,21 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 	logrus.Infof("All connections are recovered...")
 	// Notify state is restored
 	srv.stateRestored <- true
+}
+
+func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMClientConnection) {
+	connection := clientConnection.(*model.ClientConnection)
+	connection.ConnectionState = model.ClientConnection_Healing
+	logrus.Infof("NSM: Remote opened connection is not monitored and put into Healing state %v", clientConnection)
+	go func() {
+		<-time.Tick(srv.properties.HealTimeout)
+
+		if connection.ConnectionState == model.ClientConnection_Healing {
+			logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)
+			// Nobody was healed connection from Remote side.
+			if err := srv.Close(context.Background(), clientConnection); err != nil {
+				logrus.Errorf("NSM: Error closing connection %v", err)
+			}
+		}
+	}()
 }

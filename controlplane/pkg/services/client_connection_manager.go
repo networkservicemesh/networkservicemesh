@@ -164,13 +164,9 @@ func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceName
 
 func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerName string) {
 	// We need to be sure there is no active connections from selected Remote NSM.
-	//TODO: Need to not immideatly close but to wait for possible source NSM resolver and Healing of connection happened.
 	for _, conn := range m.GetClientConnectionBySource(networkServiceManagerName) {
 		// Since remote monitor is done, and if connection is not closed we need to close them.
-		logrus.Infof("Remote NSM monitor is done but connections is still alive, Closing: %v", conn)
-		if err := m.manager.Close(context.Background(), conn); err != nil {
-			logrus.Infof("Error during close of connection: %v", err)
-		}
+		m.manager.RemoteConnectionLost(conn)
 	}
 }
 

@@ -64,4 +64,5 @@ type NetworkServiceManager interface {
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
 	GetHealProperties() *HealTimeouts
 	WaitForDataplane(duration time.Duration) error
+	RemoteConnectionLost(clientConnection NSMClientConnection)
 }
