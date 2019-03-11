@@ -1,0 +1,21 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  replicas: 4
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "icmp-responder-nsc"
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      containers:
+        - name: alpine-img
+          image: alpine:latest
+          command: ['tail', '-f', '/dev/null']
+metadata:
+  name: nsc-vpp
+  namespace: default
+  annotations:
+    ns.networkservicemesh.io: icmp-responder?app=icmp

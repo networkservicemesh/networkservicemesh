@@ -1,0 +1,20 @@
+---
+apiVersion: networkservicemesh.io/v1
+kind: NetworkService
+metadata:
+  name: secure-intranet-connectivity
+spec:
+  payload: IP
+  matches:
+    - match:
+      sourceSelector:
+        app: firewall
+      route:
+        - destination:
+          destinationSelector:
+            app: vpn-gateway
+    - match:
+      route:
+        - destination:
+          destinationSelector:
+            app: firewall
