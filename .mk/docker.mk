@@ -25,7 +25,7 @@ ifeq (${ARCH}, x86_64)
   VPP_AGENT=ligato/vpp-agent:v1.8.1
 endif
 ifeq (${ARCH}, aarch64)
-  VPP_AGENT=ligato/vpp-agent-arm64:dev
+  VPP_AGENT=ligato/vpp-agent-arm64:v1.8.1
 endif
 
 .PHONY: docker-build
