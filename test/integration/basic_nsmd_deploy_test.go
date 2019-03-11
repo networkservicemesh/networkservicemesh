@@ -47,7 +47,7 @@ func testNSMDDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 		return
 	}
 
-	var pods []*v1.Pod
+	var podsVal []*v1.Pod
 
 	for i, node := range nodes {
 		nsmdPodName := fmt.Sprintf("nsmd-%d", i+1)
@@ -57,10 +57,10 @@ func testNSMDDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 		k8s.WaitLogsContains(podsNode[0], "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
 		k8s.WaitLogsContains(podsNode[0], "nsmdp", "ListAndWatch was called with", defaultTimeout)
 		k8s.WaitLogsContains(podsNode[1], "", "Sending MonitorMechanisms update", defaultTimeout)
-		pods = append(pods, podsNode...)
+		podsVal = append(podsVal, podsNode...)
 	}
 
-	k8s.DeletePods(pods...)
+	k8s.DeletePods(podsVal...)
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)

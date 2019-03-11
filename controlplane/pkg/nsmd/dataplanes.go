@@ -27,7 +27,7 @@ import (
 	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	dataplaneregistrarapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -47,7 +47,7 @@ type dataplaneRegistrarServer struct {
 	model                        model.Model
 	grpcServer                   *grpc.Server
 	dataplaneRegistrarSocketPath string
-	stopChannel                  chan bool
+	sock                         net.Listener
 }
 
 // dataplaneMonitor is per registered dataplane monitoring routine. It creates a grpc client
@@ -141,14 +141,15 @@ func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Co
 
 // startDataplaneServer starts for a server listening for local NSEs advertise/remove
 // dataplane registrar calls
-func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarServer) error {
+func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistrarServer() error {
 	dataplaneRegistrar := dataplaneRegistrarServer.dataplaneRegistrarSocketPath
 	if err := tools.SocketCleanup(dataplaneRegistrar); err != nil {
 		return err
 	}
 
 	unix.Umask(socketMask)
-	sock, err := net.Listen("unix", dataplaneRegistrar)
+	var err error
+	dataplaneRegistrarServer.sock, err = net.Listen("unix", dataplaneRegistrar)
 	if err != nil {
 		logrus.Errorf("failure to listen on socket %s with error: %+v", dataplaneRegistrar, err)
 		return err
@@ -161,7 +162,7 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 
 	logrus.Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", dataplaneRegistrar)
 	go func() {
-		if err := dataplaneRegistrarServer.grpcServer.Serve(sock); err != nil {
+		if err := dataplaneRegistrarServer.grpcServer.Serve(dataplaneRegistrarServer.sock); err != nil {
 			logrus.Fatalln("unable to start dataplane registrar grpc server: ", dataplaneRegistrar, err)
 		}
 	}()
@@ -171,40 +172,36 @@ func startDataplaneRegistrarServer(dataplaneRegistrarServer *dataplaneRegistrarS
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, err)
 		return err
 	}
-	conn.Close()
+	_ = conn.Close()
 	logrus.Infof("dataplane registrar Server socket: %s is operational", dataplaneRegistrar)
-
-	// Wait for shutdown
-	select {
-	case <-dataplaneRegistrarServer.stopChannel:
-		logrus.Infof("Server for socket %s received shutdown request", dataplaneRegistrar)
-	}
-	dataplaneRegistrarServer.stopChannel <- true
 
 	return nil
 }
 
+func (dataplaneRegistrarServer *dataplaneRegistrarServer) Stop() {
+	dataplaneRegistrarServer.grpcServer.GracefulStop()
+	_= dataplaneRegistrarServer.sock.Close()
+}
+
 // StartDataplaneRegistrarServer registers and starts gRPC server which is listening for
 // Network Service Dataplane Registrar requests.
-func StartDataplaneRegistrarServer(model model.Model) error {
+func StartDataplaneRegistrarServer(model model.Model) (*dataplaneRegistrarServer, error) {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+
 	dataplaneRegistrarServer := &dataplaneRegistrarServer{
 		grpcServer:                   server,
 		dataplaneRegistrarSocketPath: path.Join(DataplaneRegistrarSocketBaseDir, DataplaneRegistrarSocket),
-		stopChannel:                  make(chan bool),
 		model:                        model,
 	}
 
 	var err error
 	// Starting dataplane registrar server, if it fails to start, inform Plugin by returning error
-	go func() {
-		err = startDataplaneRegistrarServer(dataplaneRegistrarServer)
-	}()
+	err = dataplaneRegistrarServer.startDataplaneRegistrarServer()
 
-	return err
+	return dataplaneRegistrarServer, err
 }

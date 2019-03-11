@@ -5,6 +5,7 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"testing"
 	"time"
 
@@ -35,6 +36,8 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
 
+	k8s.WaitLogsContains(nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
+	
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
 	defer fwd.Stop()
@@ -231,14 +234,17 @@ func TestGetEndpoints(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	k8s.Prepare("nsmd")
-	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
+	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
-	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
+	// We need to wait unti it is started
+	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
+
+	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
+
+	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
 	Expect(err).To(BeNil())
 	defer fwd.Stop()
 
-	// We need to wait until it is started
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 
 	e := fwd.Start()
 	if e != nil {

@@ -32,18 +32,18 @@ type Endpoint struct {
 type ClientConnectionState int8
 
 const (
-	ClientConnection_Ready      ClientConnectionState   = 0
-	ClientConnection_Requesting ClientConnectionState   = 1
-	ClientConnection_Healing    ClientConnectionState   = 2
-	ClientConnection_Closing    ClientConnectionState   = 3
+	ClientConnection_Ready      ClientConnectionState = 0
+	ClientConnection_Requesting ClientConnectionState = 1
+	ClientConnection_Healing    ClientConnectionState = 2
+	ClientConnection_Closing    ClientConnectionState = 3
 	ClientConnection_Closed     ClientConnectionState = 4
 )
 
 type DataplaneState int8
 
 const (
-	DataplaneState_None  = 0 // In case dataplane is not yet configured for connection
-	DataplaneState_Ready = 1 // In case dataplane is configured for connection.
+	DataplaneState_None  DataplaneState = 0 // In case dataplane is not yet configured for connection
+	DataplaneState_Ready DataplaneState = 1 // In case dataplane is configured for connection.
 )
 
 type ClientConnection struct {

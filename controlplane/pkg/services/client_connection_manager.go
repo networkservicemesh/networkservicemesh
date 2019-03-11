@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"github.com/gogo/protobuf/proto"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
@@ -118,6 +119,16 @@ func (m *ClientConnectionManager) GetClientConnectionByDst(dstId string) *model.
 
 	return nil
 }
+func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.NetworkServiceManager) []*model.ClientConnection {
+	clientConnections := m.model.GetAllClientConnections()
+	var result []*model.ClientConnection
+	for _, clientConnection := range clientConnections {
+		if clientConnection.RemoteNsm == nsm {
+			result = append(result, clientConnection)
+		}
+	}
+	return result
+}
 
 func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) []*model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
@@ -134,4 +145,35 @@ func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) [
 
 func (m *ClientConnectionManager) DeleteClientConnection(clientConnection *model.ClientConnection) {
 	m.model.DeleteClientConnection(clientConnection.ConnectionId)
+}
+
+func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceName string) []*model.ClientConnection {
+	clientConnections := m.model.GetAllClientConnections()
+
+	var rv []*model.ClientConnection
+	for _, clientConnection := range clientConnections {
+		if clientConnection.Request.IsRemote() {
+			nsmConnection := clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
+			if nsmConnection.SourceNetworkServiceManagerName == networkServiceName {
+				rv = append(rv, clientConnection)
+			}
+		}
+	}
+	return rv
+}
+
+func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerName string) {
+	// We need to be sure there is no active connections from selected Remote NSM.
+	//TODO: Need to not immideatly close but to wait for possible source NSM resolver and Healing of connection happened.
+	for _, conn := range m.GetClientConnectionBySource(networkServiceManagerName) {
+		// Since remote monitor is done, and if connection is not closed we need to close them.
+		logrus.Infof("Remote NSM monitor is done but connections is still alive, Closing: %v", conn)
+		if err := m.manager.Close(context.Background(), conn); err != nil {
+			logrus.Infof("Error during close of connection: %v", err)
+		}
+	}
+}
+
+func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane) {
+	m.manager.RestoreConnections(xcons, dataplane.RegisteredName)
 }

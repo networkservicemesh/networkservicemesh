@@ -248,6 +248,7 @@ type defaultWorkspaceProvider struct {
 	clientBaseDir   string
 	nsmServerSocket string
 	nsmClientSocket string
+	nseRegistryFile string
 }
 
 func NewDefaultWorkspaceProvider() serviceregistry.WorkspaceLocationProvider {
@@ -264,6 +265,7 @@ func NewWorkspaceProvider(rootDir string) serviceregistry.WorkspaceLocationProvi
 		clientBaseDir:   rootDir,
 		nsmServerSocket: "nsm.server.io.sock",
 		nsmClientSocket: "nsm.client.io.sock",
+		nseRegistryFile: "nse.registry",
 	}
 }
 
@@ -273,6 +275,10 @@ func (w *defaultWorkspaceProvider) HostBaseDir() string {
 
 func (w *defaultWorkspaceProvider) NsmBaseDir() string {
 	return w.nsmBaseDir
+}
+
+func (w *defaultWorkspaceProvider) NsmNSERegistryFile() string {
+	return w.nsmBaseDir + w.nseRegistryFile
 }
 
 func (w *defaultWorkspaceProvider) ClientBaseDir() string {
