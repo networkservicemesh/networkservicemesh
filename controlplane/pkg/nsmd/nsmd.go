@@ -34,6 +34,7 @@ type nsmServer struct {
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
 	manager         nsm.NetworkServiceManager
+	locationProvider serviceregistry.WorkspaceLocationProvider
 }
 
 func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
@@ -54,7 +55,7 @@ func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
 	logrus.Infof("Requested client connection to nsmd : %+v", request)
 
-	workspace, err := NewWorkSpace(nsm.model, nsm.manager, nsm.serviceRegistry, request.Workspace)
+	workspace, err := NewWorkSpace(nsm, request.Workspace)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -95,9 +96,11 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 func (nsm *nsmServer) EnumConnection(context context.Context, request *nsmdapi.EnumConnectionRequest) (*nsmdapi.EnumConnectionReply, error) {
 	nsm.Lock()
 	defer nsm.Unlock()
-	workspaces := make([]string, len(nsm.workspaces), len(nsm.workspaces))
+	workspaces := []string{}
 	for w := range nsm.workspaces {
-		workspaces = append(workspaces, w)
+		if len(w) > 0 {
+			workspaces = append(workspaces, w)
+		}
 	}
 	return &nsmdapi.EnumConnectionReply{Workspace: workspaces}, nil
 }
@@ -111,6 +114,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 	}
 
 	tracer := opentracing.GlobalTracer()
+	locationProvider := serviceRegistry.NewWorkspaceProvider()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
@@ -122,6 +126,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 		model:           model,
 		serviceRegistry: serviceRegistry,
 		manager:         manager,
+		locationProvider: locationProvider,
 	}
 	nsmdapi.RegisterNSMDServer(grpcServer, &nsm)
 

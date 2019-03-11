@@ -51,7 +51,9 @@ type OnDisConnectFunc func() error
 func (dr *dataplaneRegistration) register(ctx context.Context) {
 	logrus.Info("Registering with NetworkServiceManager")
 	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
-	tools.WaitForPortAvailable(context.Background(), "unix", dr.registrar.registrarSocket, 100*time.Millisecond)
+
+	// Wait fo NSMD to be ready to register dataplane.
+	_ = tools.WaitForPortAvailable(context.Background(), "unix", dr.registrar.registrarSocket, dr.registrar.registrationRetryInterval)
 	ticker := time.NewTicker(dr.registrar.registrationRetryInterval)
 	for ; true; <-ticker.C {
 		select {

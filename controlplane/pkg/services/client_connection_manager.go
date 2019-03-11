@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"github.com/gogo/protobuf/proto"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
@@ -25,6 +24,10 @@ func NewClientConnectionManager(model model.Model, manager nsm.NetworkServiceMan
 		serviceRegistry: serviceRegistry,
 		manager:         manager,
 	}
+}
+
+func (m *ClientConnectionManager) GetNsmName() string {
+	return m.model.GetNsm().Name
 }
 
 func (m *ClientConnectionManager) UpdateClientConnection(clientConnection *model.ClientConnection) {

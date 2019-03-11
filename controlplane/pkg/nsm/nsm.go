@@ -26,7 +26,6 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -120,7 +119,9 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	if err != nil {
 		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
 		if closeDataplaneOnNSEFailed {
-			srv.closeDataplaneLog(fmt.Sprintf("NSM:(5.1-%v) ", requestId), existingConnection)
+			if dp_err := srv.closeDataplane(existingConnection); dp_err != nil {
+				logrus.Errorf("NSM:(5.1-%v) Failed to close local Dataplane for connection %v", requestId, existingConnection)
+			}
 		}
 		return nil, err
 	}
@@ -151,7 +152,9 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		if err != nil {
 			if closeDataplaneOnNSEFailed {
 				// 7.1.x We are failed to find NSE, and we need to close local dataplane in case of recovery.
-				srv.closeDataplaneLog(fmt.Sprintf("NSM:(7.1-%v) ", requestId), existingConnection)
+				if dp_err := srv.closeDataplane(existingConnection); dp_err != nil {
+					logrus.Errorf("NSM:(7.1-%v) Failed to close local Dataplane for connection %v", requestId, existingConnection)
+				}
 			}
 			return nil, err
 		}
@@ -181,7 +184,8 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	// 10. We need to programm dataplane with our values.
 	// 10.1 TODO: Close current dataplane local configuration, since currently Dataplane doesn't support upgrade.
 	if existingConnection != nil {
-		if _, err := dataplaneClient.Close(ctx, existingConnection.Xcon); err != nil {
+		logrus.Errorf("NSM:(10.0-%v) Closing Dataplane because of existing connection passed...", requestId)
+		if err := srv.closeDataplane(existingConnection); err != nil {
 			logrus.Errorf("NSM:(10.1-%v) Closing Dataplane error for local connection: %v", requestId, err)
 		}
 	}
@@ -210,6 +214,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 
 	// 11. Send update for client connection
 	clientConnection.ConnectionState = model.ClientConnection_Ready
+	clientConnection.DataplaneState = model.DataplaneState_Ready
 	if existingConnection != nil {
 		srv.model.UpdateClientConnection(clientConnection)
 	}
@@ -222,12 +227,6 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 	logrus.Infof("NSM:(11-%v) Request done...", requestId)
 	return nsmConnection, nil
-}
-
-func (srv *networkServiceManager) closeDataplaneLog(prefix string, existingConnection *model.ClientConnection) {
-	if dp_err := srv.closeDataplane(existingConnection); dp_err != nil {
-		logrus.Errorf("%v Failed to close local Dataplane for connection %v", prefix, existingConnection)
-	}
 }
 
 func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.Context, ignore_endpoints map[string]*registry.NSERegistration, request nsm.NSMRequest, nsmConnection nsm.NSMConnection, existingConnection *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
@@ -311,7 +310,7 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 	var nseClientError error
 	var nseCloseError error
 
-	client, nseClientError := srv.createNSEClient(clientConnection.Endpoint)
+	client, nseClientError := srv.createNSEClient(ctx, clientConnection.Endpoint)
 
 	if client != nil {
 		defer func() {
@@ -346,18 +345,23 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 }
 
 func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
-	return srv.getNetworkServiceManagerName() == endpoint.GetNetworkServiceManager().GetName()
+	return srv.getNetworkServiceManagerName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
 }
 
-func (srv *networkServiceManager) createNSEClient(endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 	if srv.isLocalEndpoint(endpoint) {
-		client, conn, err := srv.serviceRegistry.EndpointConnection(endpoint)
+		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+		if modelEp == nil {
+			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
+		}
+		client, conn, err := srv.serviceRegistry.EndpointConnection(ctx, modelEp)
 		if err != nil {
 			return nil, err
 		}
 		return &endpointClient{connection: conn, client: client}, nil
 	} else {
-		client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(endpoint.GetNetworkServiceManager())
+		connectCtx, _ := context.WithTimeout(ctx, 5*time.Second)
+		client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(connectCtx, endpoint.GetNetworkServiceManager())
 		if err != nil {
 			return nil, err
 		}
@@ -367,7 +371,7 @@ func (srv *networkServiceManager) createNSEClient(endpoint *registry.NSERegistra
 
 func (srv *networkServiceManager) performNSERequest(requestId string, ctx context.Context, endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, request nsm.NSMRequest, dp *model.Dataplane, existingConnection *model.ClientConnection) (*model.ClientConnection, error) {
 	// 7.2.6.x
-	client, err := srv.createNSEClient(endpoint)
+	client, err := srv.createNSEClient(ctx, endpoint)
 	if err != nil {
 		// 7.2.6.1
 		return nil, fmt.Errorf("NSM:(7.2.6.1-%v) Failed to create NSE Client", err)
@@ -468,7 +472,11 @@ func (srv *networkServiceManager) createConnectionId() string {
 }
 
 func (srv *networkServiceManager) closeDataplane(clientConnection *model.ClientConnection) error {
-	logrus.Info("Closing cross connection on dataplane...")
+	if clientConnection.DataplaneState == model.DataplaneState_None {
+		// Do not need to close
+		return nil
+	}
+	logrus.Info("NSM.Dataplane: Closing cross connection on dataplane...")
 	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(clientConnection.Dataplane)
 	if err != nil {
 		logrus.Error(err)
@@ -481,7 +489,8 @@ func (srv *networkServiceManager) closeDataplane(clientConnection *model.ClientC
 		logrus.Error(err)
 		return err
 	}
-	logrus.Info("Cross connection successfully closed on dataplane")
+	logrus.Info("NSM.Dataplane: Cross connection successfully closed on dataplane")
+	clientConnection.DataplaneState = model.DataplaneState_None
 	return nil
 }
 
@@ -491,9 +500,9 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 
 func (srv *networkServiceManager) updateConnectionParameters(requestId string, nseConnection nsm.NSMConnection, endpoint *registry.NSERegistration) {
 	if srv.isLocalEndpoint(endpoint) {
-		workspace := nsmd.WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
-		if workspace != nil { // In case of tests this could be empty
-			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = workspace.Name()
+		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+		if modelEp != nil { // In case of tests this could be empty
+			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = modelEp.Workspace
 		}
 		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*connection.Connection).GetMechanism())
 	}
@@ -517,8 +526,8 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, requestConnec
 	targetEndpoint := requestConnection.GetNetworkServiceEndpointName()
 	if len(targetEndpoint) > 0 {
 		endpoint := srv.model.GetEndpoint(targetEndpoint)
-		if endpoint != nil && ignore_endpoints[endpoint.NetworkserviceEndpoint.EndpointName] == nil {
-			return endpoint, nil
+		if endpoint != nil && ignore_endpoints[endpoint.EndpointName()] == nil {
+			return endpoint.Endpoint, nil
 		} else {
 			return nil, fmt.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
 		}
