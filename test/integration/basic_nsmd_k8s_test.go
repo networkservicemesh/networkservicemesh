@@ -151,6 +151,8 @@ func TestUpdateNSM(t *testing.T) {
 
 	// We need to wait until it is started
 	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
+	// To be sure NSMD is already called for register.
+	k8s.WaitLogsContains(nsmd, "nsmd", "Waiting for dataplane available...", defaultTimeout)
 
 	e := fwd.Start()
 	if e != nil {
