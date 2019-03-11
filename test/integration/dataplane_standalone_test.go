@@ -50,6 +50,65 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 	fixture.verifyKernelConnection(conn)
 }
 
+func TestDataplaneCrossConnectMultiple(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := createFixture(defaultTimeout)
+	defer fixture.cleanup()
+
+	first := fixture.requestKernelConnection("id-1", "if1", "10.30.1.1/30", "10.30.1.2/30")
+	second := fixture.requestKernelConnection("id-2", "if2", "10.30.2.1/30", "10.30.2.2/30")
+	fixture.verifyKernelConnection(first)
+	fixture.verifyKernelConnection(second)
+}
+
+func TestDataplaneCrossConnectUpdate(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := createFixture(defaultTimeout)
+	defer fixture.cleanup()
+
+	const someId = "some-id"
+
+	orig := fixture.requestKernelConnection(someId, "if1", "10.30.1.1/30", "10.30.1.2/30")
+	fixture.verifyKernelConnection(orig)
+
+	updated := fixture.requestKernelConnection(someId, "if2", "10.30.2.1/30", "10.30.2.2/30")
+	fixture.verifyKernelConnection(updated)
+	fixture.verifyKernelConnectionClosed(orig)
+}
+
+func TestDataplaneCrossConnectReconnect(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := createFixture(defaultTimeout)
+	defer fixture.cleanup()
+
+	conn := fixture.requestDefaultKernelConnection()
+	fixture.verifyKernelConnection(conn)
+
+	fixture.closeConnection(conn)
+	fixture.verifyKernelConnectionClosed(conn)
+
+	conn = fixture.request(conn) // request the same connection
+	fixture.verifyKernelConnection(conn)
+}
+
 // A standaloneDataplaneFixture represents minimalist test configuration
 // with just a dataplane pod and two peer pods (source and destination)
 // deployed on a single node.
@@ -87,7 +146,7 @@ func createFixture(timeout time.Duration) *standaloneDataplaneFixture {
 
 	fixture.k8s = k8s
 	fixture.node = &nodes[0]
-	fixture.dataplanePod = fixture.k8s.CreatePod(DataplanePodTemplate(fixture.node))
+	fixture.dataplanePod = fixture.k8s.CreatePod(dataplanePodTemplate(fixture.node))
 
 	// deploy source and destination pods
 	fixture.sourcePod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("source-pod-%s", fixture.node.Name), fixture.node))
@@ -177,8 +236,12 @@ func (fixture *standaloneDataplaneFixture) getNetNS(pod *v1.Pod) string {
 	return matches[1]
 }
 
+func (fixture *standaloneDataplaneFixture) requestKernelConnection(id, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
+	return fixture.requestCrossConnect(id, "kernel", "kernel", iface, srcIp, dstIp)
+}
+
 func (fixture *standaloneDataplaneFixture) requestDefaultKernelConnection() *crossconnect.CrossConnect {
-	return fixture.requestCrossConnect("some-id", "kernel", "kernel", "iface", srcIpMasked, dstIpMasked)
+	return fixture.requestKernelConnection("some-id", "iface", srcIpMasked, dstIpMasked)
 }
 
 func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
@@ -202,6 +265,23 @@ func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crosscon
 	out, _, err = fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
 	Expect(err).To(BeNil())
 	Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
+}
+
+func (fixture *standaloneDataplaneFixture) verifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
+	srcIface := getIface(xcon.GetLocalSource())
+	dstIface := getIface(xcon.GetLocalDestination())
+
+	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ip", "a")
+	Expect(err).To(BeNil())
+	Expect(strings.Contains(out, srcIface)).To(BeFalse())
+
+	logrus.Infof("Source interfaces:\n%s", out)
+
+	out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ip", "a")
+	Expect(err).To(BeNil())
+	Expect(strings.Contains(out, dstIface)).To(BeFalse())
+
+	logrus.Infof("Destination interfaces:\n%s", out)
 }
 
 func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.CrossConnect) {
@@ -229,7 +309,7 @@ func localPort(network string, port int) net.Addr {
 	}
 }
 
-func DataplanePodTemplate(node *v1.Node) *v1.Pod {
+func dataplanePodTemplate(node *v1.Node) *v1.Pod {
 	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
 	dataplane := pods.VPPDataplanePod(dataplaneName, node)
 	setupEnvVariables(dataplane, map[string]string{
