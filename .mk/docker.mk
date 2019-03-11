@@ -20,13 +20,20 @@ RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 ORG=networkservicemesh
+ARCH ?= $(shell uname -m)
+ifeq (${ARCH}, x86_64)
+  VPP_AGENT=ligato/vpp-agent:v1.8.1
+endif
+ifeq (${ARCH}, aarch64)
+  VPP_AGENT=ligato/vpp-agent-arm64:v1.8.1
+endif
 
 .PHONY: docker-build
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
 docker-%-build:
-	@${DOCKERBUILD} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
+	@${DOCKERBUILD} --build-arg VPP_AGENT=${VPP_AGENT} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
