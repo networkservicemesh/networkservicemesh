@@ -29,13 +29,13 @@ const (
 	dataplanePortName   = "dataplane"
 	dataplaneProtocol   = "TCP"
 
-	srcIp     = "10.30.1.1"
-	dstIp     = "10.30.1.2"
-	srcIpMask = srcIp + "/30"
-	dstIpMask = dstIp + "/30"
+	srcIp       = "10.30.1.1"
+	dstIp       = "10.30.1.2"
+	srcIpMasked = srcIp + "/30"
+	dstIpMasked = dstIp + "/30"
 )
 
-func TestDataplaneCrossConnectMemMem(t *testing.T) {
+func TestDataplaneCrossConnectBasic(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -43,161 +43,37 @@ func TestDataplaneCrossConnectMemMem(t *testing.T) {
 		return
 	}
 
-	testDataplaneCrossConnect("mem", "mem", defaultTimeout)
+	fixture := createFixture(defaultTimeout)
+	defer fixture.cleanup()
+
+	conn := fixture.requestDefaultKernelConnection()
+	fixture.verifyKernelConnection(conn)
 }
 
-func TestDataplaneCrossConnectKernelKernel(t *testing.T) {
-	RegisterTestingT(t)
+// A standaloneDataplaneFixture represents minimalist test configuration
+// with just a dataplane pod and two peer pods (source and destination)
+// deployed on a single node.
+type standaloneDataplaneFixture struct {
+	timeout         time.Duration
+	k8s             *kube_testing.K8s
+	node            *v1.Node
+	dataplanePod    *v1.Pod
+	sourcePod       *v1.Pod
+	destPod         *v1.Pod
+	forwarding      *kube_testing.PortForward
+	dataplaneClient dataplaneapi.DataplaneClient
+}
 
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
+func (fixture *standaloneDataplaneFixture) cleanup() {
+	fixture.forwarding.Stop()
+	fixture.k8s.Cleanup()
+}
+
+func createFixture(timeout time.Duration) *standaloneDataplaneFixture {
+	fixture := &standaloneDataplaneFixture{
+		timeout: timeout,
 	}
 
-	testDataplaneCrossConnect("kernel", "kernel", defaultTimeout)
-}
-
-func TestDataplaneCrossConnectKernelMem(t *testing.T) {
-	RegisterTestingT(t)
-
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testDataplaneCrossConnect("kernel", "mem", defaultTimeout)
-}
-
-func testDataplaneCrossConnect(sourceMech, destMech string, timeout time.Duration) {
-	// deploy dataplane
-	k8s, dataplane, node := deployVppDataplane(timeout)
-	defer k8s.Cleanup()
-
-	// deploy source and destination pods
-	source := k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("source-pod-%s", node.Name), node))
-	dest := k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("dest-pod-%s", node.Name), node))
-
-	// bind dataplane to local port
-	forwarding := forwardPort(k8s, dataplane, dataplanePort)
-	defer forwarding.Stop()
-
-	// connect to dataplane
-	dataplaneClient := connectToDataplane(forwarding.ListenPort)
-
-	// create cross-connection
-	connect := newCrossConnectRequest(k8s, source, dest, sourceMech, destMech)
-
-	// request cross-connection
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
-	connect, err := dataplaneClient.Request(ctx, connect)
-	Expect(err).To(BeNil())
-
-	// verify connection is established
-	verifyConnectionEstablished(k8s, source, dest, connect)
-}
-
-func verifyConnectionEstablished(k8s *kube_testing.K8s, source, destination *v1.Pod, xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	out, _, err := k8s.Exec(source, source.Spec.Containers[0].Name, "ifconfig", srcIface)
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", srcIp))).To(BeTrue())
-
-	logrus.Infof("Source interface:\n%s", out)
-
-	dstIface := getIface(xcon.GetLocalDestination())
-	out, _, err = k8s.Exec(destination, destination.Spec.Containers[0].Name, "ifconfig", dstIface)
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", dstIp))).To(BeTrue())
-
-	logrus.Infof("Destination interface:\n%s", out)
-
-	out, _, err = k8s.Exec(source, source.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
-}
-
-func getIface(conn *connection.Connection) string {
-	return conn.Mechanism.Parameters[connection.InterfaceNameKey]
-}
-
-func forwardPort(k8s *kube_testing.K8s, pod *v1.Pod, port int) *kube_testing.PortForward {
-	forwarding, err := k8s.NewPortForwarder(pod, port)
-	Expect(err).To(BeNil())
-
-	err = forwarding.Start()
-	Expect(err).To(BeNil())
-	logrus.Infof("Forwarded port: pod=%s, remote port=%d local port=%d\n", pod.Name, port, forwarding.ListenPort)
-	return forwarding
-}
-
-func newCrossConnectRequest(k8s *kube_testing.K8s, source, dest *v1.Pod, sourceMechanism, destMechanism string) *crossconnect.CrossConnect {
-	conn := &crossconnect.CrossConnect{
-		Id:      "some-id",
-		Payload: "IP",
-	}
-
-	conn.Source = &crossconnect.CrossConnect_LocalSource{
-		LocalSource: newConnection(k8s, "conn-id-1", "ns-service-1", destMechanism, "iface_src", source),
-	}
-
-	conn.GetLocalSource().Context.SrcIpAddr = srcIpMask
-	conn.GetLocalSource().Context.DstIpAddr = dstIpMask
-
-	conn.Destination = &crossconnect.CrossConnect_LocalDestination{
-		LocalDestination: newConnection(k8s, "conn-id-2", "ns-service-2", destMechanism, "iface_dst", dest),
-	}
-
-	conn.GetLocalDestination().Context.SrcIpAddr = srcIpMask
-	conn.GetLocalDestination().Context.DstIpAddr = dstIpMask
-
-	return conn
-}
-
-func newConnection(k8s *kube_testing.K8s, id, netService, mech, iface string, pod *v1.Pod) *connection.Connection {
-	mechanismType := common.MechanismFromString(mech)
-	mechanism, err := connection.NewMechanism(mechanismType, iface, "Primary interface")
-	Expect(err).To(BeNil())
-
-	mechanism.Parameters[connection.NetNsInodeKey] = getNetworkNamespace(k8s, pod)
-
-	return &connection.Connection{
-		Id:             id,
-		NetworkService: netService,
-		Mechanism:      mechanism,
-
-		Context: &connectioncontext.ConnectionContext{},
-	}
-
-}
-
-func getNetworkNamespace(k8s *kube_testing.K8s, pod *v1.Pod) string {
-	container := pod.Spec.Containers[0].Name
-	link, _, err := k8s.Exec(pod, container, "readlink", "/proc/self/ns/net")
-	Expect(err).To(BeNil())
-
-	pattern := regexp.MustCompile("net:\\[(.*)\\]")
-	matches := pattern.FindStringSubmatch(link)
-	Expect(len(matches) >= 1).To(BeTrue())
-
-	return matches[1]
-}
-
-func connectToDataplane(port int) dataplaneapi.DataplaneClient {
-	dataplaneConn, err := tools.SocketOperationCheck(localPort(dataplaneSocketType, port))
-	Expect(err).To(BeNil())
-
-	dataplaneClient := dataplaneapi.NewDataplaneClient(dataplaneConn)
-	return dataplaneClient
-}
-
-func localPort(network string, port int) net.Addr {
-	return &net.UnixAddr{
-		Net:  network,
-		Name: fmt.Sprintf("localhost:%d", port),
-	}
-}
-
-func deployVppDataplane(timeout time.Duration) (*kube_testing.K8s, *v1.Pod, *v1.Node) {
 	k8s, err := kube_testing.NewK8s()
 	Expect(err).To(BeNil())
 
@@ -208,12 +84,149 @@ func deployVppDataplane(timeout time.Duration) (*kube_testing.K8s, *v1.Pod, *v1.
 	// prepare node
 	nodes := k8s.GetNodesWait(1, timeout)
 	Expect(len(nodes) >= 1).To(Equal(true), "At least one kubernetes node is required for this test")
-	node := &nodes[0]
 
-	// deploy dataplane pod
-	dataplane := k8s.CreatePod(DataplanePodTemplate(node))
+	fixture.k8s = k8s
+	fixture.node = &nodes[0]
+	fixture.dataplanePod = fixture.k8s.CreatePod(DataplanePodTemplate(fixture.node))
 
-	return k8s, dataplane, node
+	// deploy source and destination pods
+	fixture.sourcePod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("source-pod-%s", fixture.node.Name), fixture.node))
+	fixture.destPod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("dest-pod-%s", fixture.node.Name), fixture.node))
+
+	// forward dataplane port
+	fixture.forwardDataplanePort(dataplanePort)
+
+	// connect to dataplane
+	fixture.connectDataplane()
+
+	return fixture
+}
+
+func (fixture *standaloneDataplaneFixture) forwardDataplanePort(port int) {
+	fwd, err := fixture.k8s.NewPortForwarder(fixture.dataplanePod, port)
+	Expect(err).To(BeNil())
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+	logrus.Infof("Forwarded port: pod=%s, remote=%d local=%d\n", fixture.dataplanePod.Name, port, fwd.ListenPort)
+	fixture.forwarding = fwd
+}
+
+func (fixture *standaloneDataplaneFixture) connectDataplane() {
+	dataplaneConn, err := tools.SocketOperationCheck(localPort(dataplaneSocketType, fixture.forwarding.ListenPort))
+	Expect(err).To(BeNil())
+	fixture.dataplaneClient = dataplaneapi.NewDataplaneClient(dataplaneConn)
+}
+
+func (fixture *standaloneDataplaneFixture) requestCrossConnect(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
+	req := fixture.createCrossConnectRequest(id, srcMech, dstMech, iface, srcIp, dstIp)
+	return fixture.request(req)
+}
+
+func (fixture *standaloneDataplaneFixture) request(req *crossconnect.CrossConnect) *crossconnect.CrossConnect {
+	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
+	conn, err := fixture.dataplaneClient.Request(ctx, req)
+	Expect(err).To(BeNil())
+	return conn
+}
+
+func (fixture *standaloneDataplaneFixture) createCrossConnectRequest(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
+	conn := &crossconnect.CrossConnect{
+		Id:      id,
+		Payload: "IP",
+	}
+
+	conn.Source = &crossconnect.CrossConnect_LocalSource{
+		LocalSource: fixture.createConnection(id+"-src", srcMech, iface+"_src", srcIp, dstIp, fixture.sourcePod),
+	}
+
+	conn.Destination = &crossconnect.CrossConnect_LocalDestination{
+		LocalDestination: fixture.createConnection(id+"-dst", dstMech, iface+"_dst", srcIp, dstIp, fixture.destPod),
+	}
+
+	return conn
+}
+
+func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
+	mechanismType := common.MechanismFromString(mech)
+	mechanism, err := connection.NewMechanism(mechanismType, iface, "")
+	Expect(err).To(BeNil())
+
+	mechanism.Parameters[connection.NetNsInodeKey] = fixture.getNetNS(pod)
+
+	return &connection.Connection{
+		Id:             id,
+		NetworkService: "some-network-service",
+		Mechanism:      mechanism,
+		Context: &connectioncontext.ConnectionContext{
+			SrcIpAddr: srcIp,
+			DstIpAddr: dstIp,
+		},
+	}
+}
+
+func (fixture *standaloneDataplaneFixture) getNetNS(pod *v1.Pod) string {
+	container := pod.Spec.Containers[0].Name
+	link, _, err := fixture.k8s.Exec(pod, container, "readlink", "/proc/self/ns/net")
+	Expect(err).To(BeNil())
+
+	pattern := regexp.MustCompile("net:\\[(.*)\\]")
+	matches := pattern.FindStringSubmatch(link)
+	Expect(len(matches) >= 1).To(BeTrue())
+
+	return matches[1]
+}
+
+func (fixture *standaloneDataplaneFixture) requestDefaultKernelConnection() *crossconnect.CrossConnect {
+	return fixture.requestCrossConnect("some-id", "kernel", "kernel", "iface", srcIpMasked, dstIpMasked)
+}
+
+func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
+	srcIface := getIface(xcon.GetLocalSource())
+	dstIface := getIface(xcon.GetLocalDestination())
+	srcIp := unmaskIp(xcon.GetLocalSource().Context.SrcIpAddr)
+	dstIp := unmaskIp(xcon.GetLocalDestination().Context.DstIpAddr)
+
+	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
+	Expect(err).To(BeNil())
+	Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", srcIp))).To(BeTrue())
+
+	logrus.Infof("Source interface:\n%s", out)
+
+	out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ifconfig", dstIface)
+	Expect(err).To(BeNil())
+	Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", dstIp))).To(BeTrue())
+
+	logrus.Infof("Destination interface:\n%s", out)
+
+	out, _, err = fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
+	Expect(err).To(BeNil())
+	Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
+}
+
+func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.CrossConnect) {
+	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
+	_, err := fixture.dataplaneClient.Close(ctx, conn)
+	Expect(err).To(BeNil())
+}
+
+func unmaskIp(maskedIp string) string {
+	return strings.Split(maskedIp, "/")[0]
+}
+
+func maskIp(ip, mask string) string {
+	return fmt.Sprintf("%s/%s", ip, mask)
+}
+
+func getIface(conn *connection.Connection) string {
+	return conn.Mechanism.Parameters[connection.InterfaceNameKey]
+}
+
+func localPort(network string, port int) net.Addr {
+	return &net.UnixAddr{
+		Net:  network,
+		Name: fmt.Sprintf("localhost:%d", port),
+	}
 }
 
 func DataplanePodTemplate(node *v1.Node) *v1.Pod {
