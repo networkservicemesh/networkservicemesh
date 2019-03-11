@@ -20,10 +20,11 @@ RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 ORG=networkservicemesh
-ifeq ($(shell uname -m), x86_64)
+ARCH ?= $(shell uname -m)
+ifeq (${ARCH}, x86_64)
   VPP_AGENT=ligato/vpp-agent:v1.8.1
 endif
-ifeq ($(shell uname -m), aarch64)
+ifeq (${ARCH}, aarch64)
   VPP_AGENT=ligato/vpp-agent-arm64:dev
 endif
 
