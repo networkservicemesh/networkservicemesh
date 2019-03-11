@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package dataplaneregistrar;
 
-import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+import "google/protobuf/empty.proto";
 
 // DataplaneRegistrationRequest is sent by the dataplane to NSM
 // to advertise itself and inform NSM about the location of the dataplane socket
