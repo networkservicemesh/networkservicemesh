@@ -210,7 +210,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		//TODO: Remove when VPP Agent Dataplane will be stable.
 
 		logrus.Infof("NSM:(10.2-%v) Sending request to dataplane: %v retry: %v", requestId, clientConnection.Xcon, dpRetry)
-		clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
+		newXcon, err := dataplaneClient.Request(ctx, clientConnection.Xcon)
 		if err != nil {
 			logrus.Errorf("NSM:(10.2.1-%v) Dataplane request failed: %v retry: %v", requestId, err, dpRetry)
 
@@ -232,6 +232,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 			srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 			return nil, err
 		}
+		clientConnection.Xcon = newXcon
 		logrus.Infof("NSM:(10.3-%v) Dataplane configuration sucessfull %v", requestId, clientConnection.Xcon)
 		break
 	}
