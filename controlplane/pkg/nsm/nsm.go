@@ -32,6 +32,11 @@ import (
 	"time"
 )
 
+const(
+	DataplaneRetryCount = 10 // A number of times to call Dataplane Request, TODO: Remove after DP will be stable.
+	DataplaneRetryDelay = 500 * time.Millisecond
+)
+
 ///// Network service manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
 	serviceRegistry   serviceregistry.ServiceRegistry
@@ -201,17 +206,24 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		}
 	}
 	// 10.2 Sending updated request to dataplane.
-	logrus.Infof("NSM:(10.2-%v) Sending request to dataplane: %v", requestId, clientConnection.Xcon)
-	clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
-	if err != nil {
-		logrus.Errorf("NSM:(10.2.1-%v) Dataplane request failed: %v", requestId, err)
-		// Let's try again with a short delay
-		<-time.Tick(500)
-		logrus.Errorf("NSM:(10.2.2-%v) Dataplane request retry: %v", requestId, clientConnection.Xcon)
-		clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
+	for dpRetry := 0; dpRetry < DataplaneRetryCount; dpRetry++ {
+		//TODO: Remove when VPP Agent Dataplane will be stable.
 
+		logrus.Infof("NSM:(10.2-%v) Sending request to dataplane: %v retry: %v", requestId, clientConnection.Xcon, dpRetry)
+		clientConnection.Xcon, err = dataplaneClient.Request(ctx, clientConnection.Xcon)
 		if err != nil {
-			logrus.Errorf("NSM:(10.2.3-%v) Dataplane request retry failed: %v", requestId, err)
+			logrus.Errorf("NSM:(10.2.1-%v) Dataplane request failed: %v retry: %v", requestId, err, dpRetry)
+
+			// Let's try again with a short delay
+			if dpRetry < DataplaneRetryCount-1 {
+				<-time.Tick(DataplaneRetryDelay)
+
+				if dp_err := srv.closeDataplane(clientConnection); dp_err != nil {
+					logrus.Errorf("NSM:(10.2.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestId, dp_err)
+				}
+				continue
+			}
+			logrus.Errorf("NSM:(10.2.2-%v) Dataplane request  all retry attempts failed: %v", requestId, clientConnection.Xcon)
 			// 10.3 If datplane configuration are failed, we need to close remore NSE actually.
 			if dp_err := srv.close(context.Background(), clientConnection, false, false); dp_err != nil {
 				logrus.Errorf("NSM:(10.2.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestId, dp_err)
@@ -220,8 +232,9 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 			srv.model.DeleteClientConnection(clientConnection.ConnectionId)
 			return nil, err
 		}
+		logrus.Infof("NSM:(10.3-%v) Dataplane configuration sucessfull %v", requestId, clientConnection.Xcon)
+		break
 	}
-	logrus.Infof("NSM:(10.3-%v) Dataplane configuration sucessfull %v", requestId, clientConnection.Xcon)
 
 	// 11. Send update for client connection
 	clientConnection.ConnectionState = model.ClientConnection_Ready

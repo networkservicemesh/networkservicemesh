@@ -156,7 +156,7 @@ func printNSMDLogs(k8s *kube_testing.K8s, nsmdPod *v1.Pod, k int) {
 	nsmdk8sLogs, _ := k8s.GetLogs(nsmdPod, "nsmd-k8s")
 	logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdk8sLogs)
 	nsmdpLogs, _ := k8s.GetLogs(nsmdPod, "nsmdp")
-	logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdpLogs)
+	logrus.Errorf("===================== NSMD K8P %d output since test is failing %v\n=====================", k, nsmdpLogs)
 }
 
 type NSCCheckInfo struct {
