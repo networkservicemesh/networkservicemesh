@@ -132,10 +132,19 @@ jobs:
           environment:
             KUBECONFIG: /home/circleci/project/data/kubeconfig
             GO111MODULE: "on"
+      - run:
+          when: always
+          name: Save postmortem data
+          command: |
+            make packet-download-postmortem
+          environment:
+            KUBECONFIG: /home/circleci/project/data/kubeconfig
       - store_test_results:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
+      - store_artifacts:
+          path: ~/postmortem
       - run:
           when: always
           name: Dump K8s state
@@ -315,6 +324,20 @@ jobs:
             export TAG="${COMMIT}"
             make docker-vppagent-dataplane-build
             make docker-vppagent-dataplane-push
+  build-vppagent-dataplane-dev:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export TAG="${COMMIT}"
+            make docker-vppagent-dataplane-dev-build
+            make docker-vppagent-dataplane-dev-push
   build-vppagent-firewall-nse:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -343,7 +366,7 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="latest"
             export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane admission-webhook)
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}
@@ -384,6 +407,9 @@ workflows:
           requires:
             - sanity-check
       - build-vppagent-dataplane:
+          requires:
+            - sanity-check
+      - build-vppagent-dataplane-dev:
           requires:
             - sanity-check
       - build-vppagent-firewall-nse:

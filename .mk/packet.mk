@@ -56,3 +56,11 @@ packet-get-kubeconfig:
 	@pushd scripts/terraform
 	@scp ${SSH_OPTS} root@`terraform output master.public_ip`:.kube/config ../../kubeconfig
 	@popd
+
+.ONESHELL:
+.PHONY: packet-download-postmortem
+packet-download-postmortem:
+	@pushd scripts/terraform
+	@terraform apply ${TF_PACKET_VARS}
+	@./download-postmortem-data.sh
+	@popd
