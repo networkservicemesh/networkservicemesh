@@ -215,7 +215,7 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 				logrus.Infof("Checking NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
 				ctx, cancelCtx := context.WithTimeout(context.Background(), NSEAliveTimeout)
 				defer cancelCtx()
-				nseConn, err := tools.SocketOperationCheckContext(ctx, ws.NsmClientSocket())
+				nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(ws.NsmClientSocket()))
 				if err != nil {
 					logrus.Errorf("Unable to connect to local nse %v. Skipping", nse.NseReg)
 
