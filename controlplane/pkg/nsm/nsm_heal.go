@@ -160,7 +160,6 @@ func (srv *networkServiceManager) waitAnyNSE(clientConnection *model.ClientConne
 	for {
 		logrus.Infof("Waiting for NSE with network service %s. Since elapsed: %v", clientConnection.Endpoint.NetworkService.Name, time.Since(st))
 		ignored := map[string]*registry.NSERegistration{}
-		ignored[clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName] = clientConnection.Endpoint
 		nsmConnection := srv.newConnection(clientConnection.Request)
 		ep, err := srv.getEndpoint(context.Background(), nsmConnection, ignored)
 		if err == nil && ep != nil {

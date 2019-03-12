@@ -368,6 +368,7 @@ func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint 
 		if modelEp == nil {
 			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
 		}
+		logrus.Infof("Create local NSE connection to endpoint: %v", modelEp)
 		client, conn, err := srv.serviceRegistry.EndpointConnection(ctx, modelEp)
 		if err != nil {
 			// We failed to connect to local NSE.
@@ -376,6 +377,7 @@ func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint 
 		}
 		return &endpointClient{connection: conn, client: client}, nil
 	} else {
+		logrus.Infof("Create remote NSE connection to endpoint: %v", endpoint)
 		connectCtx, _ := context.WithTimeout(ctx, 5*time.Second)
 		client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(connectCtx, endpoint.GetNetworkServiceManager())
 		if err != nil {
@@ -519,6 +521,7 @@ func (srv *networkServiceManager) updateConnectionParameters(requestId string, n
 		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
 		if modelEp != nil { // In case of tests this could be empty
 			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = modelEp.Workspace
+			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.WorkspaceNSEName] = modelEp.Endpoint.NetworkserviceEndpoint.EndpointName
 		}
 		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*connection.Connection).GetMechanism())
 	}
@@ -687,8 +690,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				connectionState = model.ClientConnection_Ready
 
 				networkServiceName = dst.GetNetworkService()
-				//TODO: Endpoint name is not defined for local case, seems we need to add it to local connection.
-				//endpoint.NetworkserviceEndpoint.EndpointName = xcon.GetLocalDestination().GetNetworkServiceEndpointName()
+				endpointName = dst.GetMechanism().GetParameters()[connection.WorkspaceNSEName]
 			}
 			if dst := xcon.GetRemoteDestination(); dst != nil {
 				// NSE is remote one, and source is local one, we are ready.
@@ -700,20 +702,27 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 
 			if endpointName != "" {
 				logrus.Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
-				endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
-					NetworkServiceName: networkServiceName,
-				})
-				if err != nil {
-					logrus.Errorf("Failed to find NSE to recovery: %v", err)
-				}
-				for _, ep := range endpoints.NetworkServiceEndpoints {
-					if ep.EndpointName == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
-						endpoint = &registry.NSERegistration{
-							NetworkServiceManager: endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
-							NetworkserviceEndpoint: ep,
-							NetworkService: endpoints.NetworkService,
+
+				localEndpoint := srv.model.GetEndpoint(endpointName)
+				if localEndpoint != nil {
+					logrus.Infof("Local endpoint selected: %v", localEndpoint)
+					endpoint = localEndpoint.Endpoint
+				} else {
+					endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
+						NetworkServiceName: networkServiceName,
+					})
+					if err != nil {
+						logrus.Errorf("Failed to find NSE to recovery: %v", err)
+					}
+					for _, ep := range endpoints.NetworkServiceEndpoints {
+						if ep.EndpointName == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
+							endpoint = &registry.NSERegistration{
+								NetworkServiceManager:  endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
+								NetworkserviceEndpoint: ep,
+								NetworkService:         endpoints.NetworkService,
+							}
+							break
 						}
-						break
 					}
 				}
 				if endpoint == nil {

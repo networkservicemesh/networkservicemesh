@@ -245,6 +245,12 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 					}
 				} else {
 					nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
+					nse.NseReg.NetworkserviceEndpoint.NetworkServiceManagerName = nse.NseReg.NetworkServiceManager.Name
+					nsm.model.AddEndpoint(&model.Endpoint{
+						Endpoint: nse.NseReg,
+						Workspace: nse.Workspace,
+						SocketLocation: ws.NsmClientSocket(),
+					})
 					updatedNSEs[endpointId] = nse
 				}
 			}
