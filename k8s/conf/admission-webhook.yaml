@@ -22,6 +22,9 @@ spec:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
               readOnly: true
+          env:
+            - name: INITCONTAINER
+              value: vppagent-nsc
       volumes:
         - name: webhook-certs
           secret:

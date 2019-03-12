@@ -98,3 +98,7 @@ func (nsmc *NsmClientList) Connect(name, mechanism, description string) error {
 	}
 	return nil
 }
+
+func (nsmc *NsmClientList) GetConnections() []*connection.Connection {
+	return nsmc.connections
+}

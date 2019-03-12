@@ -70,7 +70,7 @@ func main() {
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
 
-	client, err := client.NewNSMClient(nil, nil)
+	clientList, err := client.NewNSMClientList(nil, nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
@@ -80,15 +80,16 @@ func main() {
 		logrus.Fatalf("Unable to create the backend %v", err)
 	}
 
-	var outgoingConnection *connection.Connection
-	outgoingConnection, err = client.Connect("if1", "mem", "Primary interface")
+	err = clientList.Connect("if1", "mem", "Primary interface")
 	if err != nil {
 		logrus.Fatalf("Unable to connect %v", err)
 	}
 
-	err = backend.Connect(outgoingConnection)
-	if err != nil {
-		logrus.Fatalf("Unable to connect %v", err)
+	for _, conn := range clientList.GetConnections() {
+		err = backend.Connect(conn)
+		if err != nil {
+			logrus.Fatalf("Unable to connect %v", err)
+		}
 	}
 
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
