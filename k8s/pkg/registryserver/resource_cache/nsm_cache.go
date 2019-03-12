@@ -40,6 +40,7 @@ func (c *NetworkServiceManagerCache) Update(nsm *v1.NetworkServiceManager) {
 }
 
 func (c *NetworkServiceManagerCache) Delete(key string) {
+	logrus.Infof("NetworkServiceManagerCache.Delete(%v)", key)
 	c.cache.delete(key)
 }
 
@@ -49,6 +50,7 @@ func (c *NetworkServiceManagerCache) Start(informerFactory externalversions.Shar
 
 func (c *NetworkServiceManagerCache) resourceAdded(obj interface{}) {
 	nsm := obj.(*v1.NetworkServiceManager)
+	logrus.Infof("NetworkServiceManagerCache.Added(%v)", nsm)
 	c.networkServiceManagers[getNsmKey(nsm)] = nsm
 }
 
@@ -59,6 +61,7 @@ func (c *NetworkServiceManagerCache) resourceUpdated(obj interface{}) {
 }
 
 func (c *NetworkServiceManagerCache) resourceDeleted(key string) {
+	logrus.Infof("NetworkServiceManagerCache.Deleted(%v=%v)", key, c.networkServiceManagers[key])
 	delete(c.networkServiceManagers, key)
 }
 
