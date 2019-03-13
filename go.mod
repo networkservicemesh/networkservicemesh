@@ -22,7 +22,7 @@ require (
 	github.com/ligato/vpp-agent v0.0.0-20181004120253-d2ae51e30bb3
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
-	github.com/onsi/gomega v1.4.3
+	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
