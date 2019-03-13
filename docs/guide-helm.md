@@ -2,15 +2,15 @@
 
 This document will show you how to use `Helm` for `NSM` installation. 
 
-##Helm installation
+## Helm installation
 [Helm Installation Guide](https://helm.sh/docs/using_helm/#quickstart-guide)
 
-##Useful Helm commands
+## Useful Helm commands
 * `$ helm install PATH_TO_CHART` - install specified chart on cluster
 * `$ helm ls` - list of deployed releases and their states
 * `$ helm delete RELEASE_NAME` - delete release
 
-##Using Helm for NSM installation
+## Using Helm for NSM installation
 ```bash
 $ helm install helm/nsm
 ```
@@ -22,7 +22,7 @@ $ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-ad
 $ kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 ```
 
-##Using Helm to install examples
+## Using Helm to install examples
 After installation of NSM on cluster you can install examples to check correctness of cluster configuration.
 
 Install simple NSC and icmp-responder:
@@ -40,7 +40,7 @@ Install vpn-gateway-nsc, vpp-gateway-nse and vppagent-firewall-nse:
 helm install helm/vpn
 ```
 
-##Values specification
+## Values specification
 Every chart has file `values.yaml`. Now there is a possibility to specify docker registry and tag for images in this file:
 
 ```yaml
