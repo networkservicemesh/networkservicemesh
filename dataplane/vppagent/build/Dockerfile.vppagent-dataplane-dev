@@ -1,0 +1,21 @@
+ARG VPP_AGENT_DEV
+
+FROM ${VPP_AGENT_DEV} as devimg
+FROM networkservicemesh/vppagent-dataplane:latest
+
+ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
+
+COPY dataplane/vppagent/conf/supervisord/supervisord-dev.conf /etc/supervisord/supervisord.conf
+COPY dataplane/vppagent/scripts/prepare_postmortem.sh /usr/bin/prepare_postmortem.sh
+COPY dataplane/vppagent/scripts/vpp_listener.py /usr/bin/vpp_listener.py
+
+COPY --from=devimg \
+    /opt/vpp-agent/dev/vpp/build-root/vpp-dev_*.deb \
+    /opt/vpp-agent/dev/vpp/build-root/vpp-dbg_*.deb \
+    /opt/vpp-agent/dev/vpp/build-root/vpp-api-python_*.deb \
+ /opt/vpp/
+
+RUN apt-get update && apt-get install -y zip python python-cffi python-enum34 \
+  && cd /opt/vpp/ \
+  && dpkg -i vpp-dev_*.deb vpp-dbg_*.deb vpp-api-python_*.deb \
+  && rm vpp*.deb
