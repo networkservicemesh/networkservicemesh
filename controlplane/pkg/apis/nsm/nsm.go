@@ -2,7 +2,9 @@ package nsm
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"golang.org/x/net/context"
+	"time"
 )
 
 /*
@@ -59,4 +61,8 @@ type NetworkServiceManager interface {
 	Request(ctx context.Context, request NSMRequest) (NSMConnection, error)
 	Close(ctx context.Context, clientConnection NSMClientConnection) error
 	Heal(connection NSMClientConnection, healState HealState)
+	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
+	GetHealProperties() *HealTimeouts
+	WaitForDataplane(duration time.Duration) error
+	RemoteConnectionLost(clientConnection NSMClientConnection)
 }

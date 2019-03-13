@@ -82,9 +82,15 @@ func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1
 	Expect(nsmd.Name).To(Equal(corePods[0].Name))
 	Expect(dataplane.Name).To(Equal(corePods[1].Name))
 
-	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
-	k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
-	k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
+	failures := InterceptGomegaFailures(func() {
+		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
+		k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
+		k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
+	})
+	if len(failures) > 0 {
+		printNSMDLogs(k8s, nsmd, 0 )
+		printDataplaneLogs(k8s, dataplane, 0)
+	}
 	err = nil
 	return
 }
@@ -133,18 +139,24 @@ func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.D
 func PrintLogs(k8s *kube_testing.K8s, nodesSetup []*NodeConf) {
 	for k := 0; k < len(nodesSetup); k++ {
 		nsmdPod := nodesSetup[k].Nsmd
-		nsmdLogs, _ := k8s.GetLogs(nsmdPod, "nsmd")
-		logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)
+		printNSMDLogs(k8s, nsmdPod, k)
 
-		nsmdk8sLogs, _ := k8s.GetLogs(nsmdPod, "nsmd-k8s")
-		logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdk8sLogs)
-
-		nsmdpLogs, _ := k8s.GetLogs(nsmdPod, "nsmdp")
-		logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdpLogs)
-
-		dataplaneLogs, _ := k8s.GetLogs(nodesSetup[k].Dataplane, "")
-		logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
+		printDataplaneLogs(k8s, nodesSetup[k].Dataplane, k)
 	}
+}
+
+func printDataplaneLogs(k8s *kube_testing.K8s, dataplane *v1.Pod, k int) {
+	dataplaneLogs, _ := k8s.GetLogs(dataplane, "")
+	logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
+}
+
+func printNSMDLogs(k8s *kube_testing.K8s, nsmdPod *v1.Pod, k int) {
+	nsmdLogs, _ := k8s.GetLogs(nsmdPod, "nsmd")
+	logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)
+	nsmdk8sLogs, _ := k8s.GetLogs(nsmdPod, "nsmd-k8s")
+	logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdk8sLogs)
+	nsmdpLogs, _ := k8s.GetLogs(nsmdPod, "nsmdp")
+	logrus.Errorf("===================== NSMD K8P %d output since test is failing %v\n=====================", k, nsmdpLogs)
 }
 
 type NSCCheckInfo struct {

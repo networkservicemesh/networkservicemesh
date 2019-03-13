@@ -87,7 +87,10 @@ func (socket SocketPath) String() string {
 func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	conn, err := dial(ctx, endpoint)
+	return SocketOperationCheckContext(ctx, endpoint )
+}
+func SocketOperationCheckContext(ctx context.Context, listenEndpoint net.Addr) (*grpc.ClientConn, error) {
+	conn, err := dial(ctx, listenEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +112,7 @@ func dial(ctx context.Context, endpoint net.Addr) (*grpc.ClientConn, error) {
 	return c, err
 }
 
+//TODO: We need to change this method, having ctx and interval have not give good understanding of how it works.
 func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string, interval time.Duration) error {
 	if interval < 0 {
 		return errors.New("interval must be positive")

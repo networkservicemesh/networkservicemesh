@@ -9,6 +9,7 @@ const (
 	Master                  = "master"
 	Slave                   = "slave"
 	Workspace               = "workspace"
+	WorkspaceNSEName        = "workspaceNseName"
 	MemifSocket             = "memif.sock"
 	NsmBaseDirEnv           = "NSM_BASE_DIR"
 )

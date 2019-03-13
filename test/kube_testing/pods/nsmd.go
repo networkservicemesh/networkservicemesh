@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
@@ -12,6 +13,7 @@ const (
 )
 
 var DefaultNSMD = map[string]string{
+	nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 }
 
 func newNSMMount() v1.VolumeMount {

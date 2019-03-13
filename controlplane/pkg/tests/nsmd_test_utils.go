@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"strconv"
+	"path"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -290,24 +290,21 @@ type testApiRegistry struct {
 }
 
 func (impl *testApiRegistry) NewNSMServerListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(impl.nsmdPort))
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	impl.nsmdPort = listener.Addr().(*net.TCPAddr).Port
 	return listener, err
 }
 
 func (impl *testApiRegistry) NewPublicListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(impl.nsmdPublicPort))
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	impl.nsmdPublicPort = listener.Addr().(*net.TCPAddr).Port
 	return listener, err
 }
 
-var apiPortIterator = 5001
-
 func newTestApiRegistry() *testApiRegistry {
-	nsmdPort := apiPortIterator
-	nsmdPublicPort := apiPortIterator + 1
-	apiPortIterator += 2
 	return &testApiRegistry{
-		nsmdPort:       nsmdPort,
-		nsmdPublicPort: nsmdPublicPort,
+		nsmdPort:       0,
+		nsmdPublicPort: 0,
 	}
 }
 
@@ -339,10 +336,26 @@ type nsmdFullServerImpl struct {
 	serviceRegistry *nsmdTestServiceRegistry
 	testModel       model.Model
 	manager         nsm2.NetworkServiceManager
+	nsmServer       nsmd.NSMServer
+	rootDir         string
 }
 
 func (srv *nsmdFullServerImpl) Stop() {
 	srv.serviceRegistry.Stop()
+	if srv.nsmServer != nil {
+		srv.nsmServer.Stop()
+	}
+
+	dir, _ := ioutil.ReadDir(srv.rootDir)
+	for _, d := range dir {
+		_ = os.RemoveAll(path.Join([]string{srv.rootDir, d.Name()}...))
+	}
+}
+
+func (srv *nsmdFullServerImpl) StopNoClean() {
+	if srv.nsmServer != nil {
+		srv.nsmServer.Stop()
+	}
 }
 
 func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string) {
@@ -385,6 +398,15 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 }
 
 func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networkservice.NetworkServiceClient, *grpc.ClientConn) {
+	response, conn := srv.requestNSM(clientName)
+
+	// Now we could try to connect via Client API
+	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
+	Expect(err).To(BeNil())
+	return nsmClient, conn
+}
+
+func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientConnectionReply, *grpc.ClientConn) {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()
 	Expect(err).To(BeNil())
 	defer con.Close()
@@ -398,22 +420,23 @@ func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networks
 	logrus.Printf("workspace %s", response.Workspace)
 
 	Expect(response.Workspace).To(Equal(clientName))
-
-	// Now we could try to connect via Client API
-	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
-	Expect(err).To(BeNil())
-	return nsmClient, conn
+	return response, con
 }
 
 func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
-	srv := &nsmdFullServerImpl{}
-	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
-
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	return newNSMDFullServerAt(nsmgrName, storage, rootDir)
+}
+
+func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
+	srv := &nsmdFullServerImpl{}
+	srv.apiRegistry = newTestApiRegistry()
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
+	srv.rootDir = rootDir
+
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
 	if err != nil {
 		logrus.Fatal(err)
@@ -432,11 +455,21 @@ func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServer
 	srv.testModel = model.NewModel()
 	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, nsmd.GetExcludedPrefixes())
 
+	// Choose a public API listener
+	sock, err := srv.apiRegistry.NewPublicListener()
+	if err != nil {
+		logrus.Errorf("Failed to start Public API server...")
+		return nil
+	}
 	// Lets start NSMD NSE registry service
-	err = nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	srv.nsmServer = nsmServer
 	Expect(err).To(BeNil())
-	err = nsmd.StartAPIServer(srv.testModel, srv.manager, srv.apiRegistry, srv.serviceRegistry)
+
+	// Start API Server
+	err = nsmd.StartAPIServerAt(nsmServer, sock)
 	Expect(err).To(BeNil())
+
 
 	return srv
 }

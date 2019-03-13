@@ -50,4 +50,7 @@ type WorkspaceLocationProvider interface {
 	ClientBaseDir() string
 	NsmServerSocket() string
 	NsmClientSocket() string
+
+	// A persistent file based NSE <-> Workspace registry.
+	NsmNSERegistryFile() string
 }

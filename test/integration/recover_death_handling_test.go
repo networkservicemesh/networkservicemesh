@@ -3,6 +3,9 @@
 package nsmd_integration_tests
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +14,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 func TestNSCDiesSingleNode(t *testing.T) {
@@ -58,6 +61,14 @@ func TestNSEDiesMultiNode(t *testing.T) {
 	testDie(t, false, 2)
 }
 
+var NSENoHeal = &pods.NSMDPodConfig {
+	Variables: map[string]string{
+		nsmd.NsmdDeleteLocalRegistry : "true", // Do not use local registry restore for clients/NSEs
+		nsm.NsmdHealDSTWaitTimeout: "1", // 1 second
+		nsm.NsmdHealEnabled: "true",
+	},
+}
+
 func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
@@ -67,12 +78,12 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
-
-	icmp := nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout, false)
+	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMDPodConfig{NSENoHeal, NSENoHeal})
 
 	failures := InterceptGomegaFailures(func() {
+		icmp := nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+		nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout, false)
+
 		ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")
 		Expect(err).To(BeNil())
 		Expect(errOut).To(Equal(""))

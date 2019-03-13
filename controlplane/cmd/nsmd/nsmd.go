@@ -38,19 +38,37 @@ func main() {
 
 	defer serviceRegistry.Stop()
 
-	if err := nsmd.StartDataplaneRegistrarServer(model); err != nil {
+	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, nsmd.GetExcludedPrefixes())
+
+	var server nsmd.NSMServer
+	var err error
+	// Start NSMD server first, laod local NSE/client registry and only then start dataplane/wait for it and recover active connections.
+	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
+		logrus.Fatalf("Error starting nsmd service: %+v", err)
+		nsmd.SetNSMServerFailed()
+	}
+	defer server.Stop()
+
+	// Starting dataplene
+	logrus.Info("Starting Dataplane registration server...")
+	if err := server.StartDataplaneRegistratorServer(); err != nil {
 		logrus.Fatalf("Error starting dataplane service: %+v", err)
 		nsmd.SetDPServerFailed()
 	}
 
-	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, nsmd.GetExcludedPrefixes())
-
-	if err := nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
-		logrus.Fatalf("Error starting nsmd service: %+v", err)
-		nsmd.SetNSMServerFailed()
+	// Wait for dataplane to be connecting to us.
+	if err := manager.WaitForDataplane(nsmd.DataplaneTimeout); err != nil {
+		logrus.Errorf("Error waiting for dataplane")
 	}
 
-	if err := nsmd.StartAPIServer(model, manager, apiRegistry, serviceRegistry); err != nil {
+	// Choose a public API listener
+	sock, err := apiRegistry.NewPublicListener()
+	if err != nil {
+		logrus.Errorf("Failed to start Public API server...")
+		nsmd.SetAPIServerFailed()
+	}
+
+	if err := nsmd.StartAPIServerAt(server, sock); err != nil {
 		logrus.Fatalf("Error starting nsmd api service: %+v", err)
 		nsmd.SetAPIServerFailed()
 	}

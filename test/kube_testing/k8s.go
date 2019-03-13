@@ -334,6 +334,7 @@ func (l *K8s) Cleanup() {
 		Expect(err).To(BeNil())
 	}
 	l.CleanupCRDs()
+	l.pods = nil
 }
 
 func (l *K8s) Prepare(noPods ...string) {

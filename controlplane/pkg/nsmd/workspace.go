@@ -15,6 +15,7 @@
 package nsmd
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"net"
 	"os"
 	"sync"
@@ -50,6 +51,7 @@ type Workspace struct {
 	sync.Mutex
 	state            WorkspaceState
 	locationProvider serviceregistry.WorkspaceLocationProvider
+	localRegistry    *nseregistry.NSERegistry
 }
 
 func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
@@ -58,6 +60,7 @@ func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
 		locationProvider: nsm.locationProvider,
 		name: name,
 		state: NEW,
+		localRegistry: nsm.localRegistry,
 	}
 
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
@@ -170,3 +173,4 @@ func (w *Workspace) cleanup() {
 		}
 	}
 }
+
