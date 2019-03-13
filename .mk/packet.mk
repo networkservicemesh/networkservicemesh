@@ -61,6 +61,5 @@ packet-get-kubeconfig:
 .PHONY: packet-download-postmortem
 packet-download-postmortem:
 	@pushd scripts/terraform
-	@terraform apply ${TF_PACKET_VARS}
 	@./download-postmortem-data.sh
 	@popd
