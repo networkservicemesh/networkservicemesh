@@ -111,6 +111,47 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 	fixture.verifyKernelConnection(conn)
 }
 
+func TestDataplaneCrossConnectRepeat(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := createFixture(defaultTimeout)
+	defer fixture.cleanup()
+
+	conn := fixture.requestDefaultKernelConnection()
+	fixture.verifyKernelConnection(conn)
+
+	conn = fixture.request(conn) // request the same connection
+	fixture.verifyKernelConnection(conn)
+}
+
+func TestDataplaneCrossConnectUpdateIp(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := createFixture(defaultTimeout)
+	defer fixture.cleanup()
+
+	const (
+		someId = "some-id"
+		iface  = "iface"
+	)
+
+	orig := fixture.requestKernelConnection(someId, iface, "10.30.1.1/30", "10.30.1.2/30")
+	fixture.verifyKernelConnection(orig)
+
+	updated := fixture.requestKernelConnection(someId, iface, "10.30.2.1/30", "10.30.2.2/30")
+	fixture.verifyKernelConnection(updated)
+}
+
 // A standaloneDataplaneFixture represents minimalist test configuration
 // with just a dataplane pod and two peer pods (source and destination)
 // deployed on a single node.
@@ -328,10 +369,6 @@ func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.Cr
 
 func unmaskIp(maskedIp string) string {
 	return strings.Split(maskedIp, "/")[0]
-}
-
-func maskIp(ip, mask string) string {
-	return fmt.Sprintf("%s/%s", ip, mask)
 }
 
 func getIface(conn *connection.Connection) string {
