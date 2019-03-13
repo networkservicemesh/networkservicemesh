@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"net"
+	"path"
 	"regexp"
 	"strings"
 	"testing"
@@ -207,11 +208,17 @@ func (fixture *standaloneDataplaneFixture) createCrossConnectRequest(id, srcMech
 }
 
 func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
-	mechanismType := common.MechanismFromString(mech)
-	mechanism, err := connection.NewMechanism(mechanismType, iface, "")
+	mechanism := &connection.Mechanism{
+		Type: common.MechanismFromString(mech),
+		Parameters: map[string]string{
+			connection.InterfaceNameKey:        iface,
+			connection.InterfaceDescriptionKey: "Some description",
+			connection.SocketFilename:          path.Join(iface, connection.MemifSocket),
+			connection.NetNsInodeKey:           fixture.getNetNS(pod),
+		},
+	}
+	err := mechanism.IsValid()
 	Expect(err).To(BeNil())
-
-	mechanism.Parameters[connection.NetNsInodeKey] = fixture.getNetNS(pod)
 
 	return &connection.Connection{
 		Id:             id,
