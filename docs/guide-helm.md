@@ -12,7 +12,7 @@ This document will show you how to use `Helm` for `NSM` installation.
 
 ## Using Helm for NSM installation
 ```bash
-$ helm install helm/nsm
+$ helm install deployments/helm/nsm
 ```
 
 *Note: in case of `Error: no available release name found` do (according to [issue](https://github.com/helm/helm/issues/4412)):*
@@ -27,17 +27,22 @@ After installation of NSM on cluster you can install examples to check correctne
 
 Install simple NSC and icmp-responder:
 ```
-helm install helm/icmp-responder
+helm install deployments/helm/icmp-responder
 ```
 
 Install vppagent-nsc and vppagent-icmp-responder:
 ```
-helm install helm/vpp-icmp-responder
+helm install deployments/helm/vpp-icmp-responder
 ```
 
 Install vpn-gateway-nsc, vpp-gateway-nse and vppagent-firewall-nse:
 ```
-helm install helm/vpn
+helm install deployments/helm/vpn
+```
+
+Install skydive, crossconnect-monitor and jaeger:
+```
+helm install deployments/helm/nsmd-monitoring
 ```
 
 ## Values specification
