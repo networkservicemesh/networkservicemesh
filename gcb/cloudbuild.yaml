@@ -35,6 +35,8 @@ steps:
     id: build-image
     args: [
       'build',
+      '--build-arg',
+      'VPP_AGENT=ligato/vpp-agent:v1.8.1',
       '-t',
       '${_REPO}/${_NAME}:${_TAG}',
       '--cache-from',

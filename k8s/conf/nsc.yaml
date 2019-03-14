@@ -11,8 +11,6 @@ spec:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
       containers:
         - name: alpine-img
           image: alpine:latest
