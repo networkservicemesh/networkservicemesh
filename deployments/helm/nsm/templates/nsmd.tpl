@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: nsmd
+  name: nsmgr
 spec:
   template:
     metadata:
