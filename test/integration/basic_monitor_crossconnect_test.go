@@ -30,7 +30,7 @@ func TestSingleCrossConnect(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
@@ -77,7 +77,7 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
@@ -125,7 +125,7 @@ func TestSeveralCrossConnects(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
@@ -173,7 +173,7 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2

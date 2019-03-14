@@ -25,14 +25,14 @@ func TestNSMDDP(t *testing.T) {
 
 	k8s.Prepare("nsmd", "icmp")
 
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMDPodConfig{})
+	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nsmdName := nodes[0].Nsmd.Name
 	k8s.DeletePods(nodes[0].Nsmd)
 	k8s.DeletePods(icmpPod)
 
-	nodes[0].Nsmd = k8s.CreatePod(pods.NSMDPodWithConfig(nsmdName, nodes[0].Node, &pods.NSMDPodConfig{})) // Recovery NSEs
+	nodes[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes[0].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
 	icmpPod = nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-2", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 }
@@ -52,14 +52,14 @@ func TestNSMDRecoverNSE(t *testing.T) {
 
 	k8s.Prepare("nsmd", "icmp")
 
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMDPodConfig{})
+	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nsmdName := nodes[0].Nsmd.Name
 	k8s.DeletePods(nodes[0].Nsmd)
 	k8s.DeletePods(icmpPod)
 
-	nodes[0].Nsmd = k8s.CreatePod(pods.NSMDPodWithConfig(nsmdName, nodes[0].Node, &pods.NSMDPodConfig{})) // Recovery NSEs
+	nodes[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes[0].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
 	icmpPod = nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-2", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 }

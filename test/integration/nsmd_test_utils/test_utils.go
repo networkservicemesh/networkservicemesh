@@ -11,7 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 type NodeConf struct {
@@ -21,9 +21,9 @@ type NodeConf struct {
 }
 
 func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
-	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMDPodConfig{})
+	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{})
 }
-func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMDPodConfig) []*NodeConf {
+func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig) []*NodeConf {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
@@ -32,33 +32,33 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 	for i := 0; i < nodesCount; i++ {
 		startTime := time.Now()
 		node := &nodes[i]
-		nsmdName := fmt.Sprintf("nsmd-%s", node.Name)
+		nsmdName := fmt.Sprintf("nsmgr-%s", node.Name)
 		dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
 		var corePod *v1.Pod
 		debug := false
 		if i >= len(conf) {
-			corePod = pods.NSMDPod(nsmdName, node)
+			corePod = pods.NSMgrPod(nsmdName, node)
 		} else {
-			if conf[i].Nsmd == pods.NSMDPodDebug || conf[i].NsmdK8s == pods.NSMDPodDebug || conf[i].NsmdP == pods.NSMDPodDebug {
+			if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 				debug = true
 			}
-			corePod = pods.NSMDPodWithConfig(nsmdName, node, conf[i])
+			corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 		}
- 		corePods := k8s.CreatePods(corePod, pods.VPPDataplanePod(dataplaneName, node))
- 		if debug {
- 			podContainer := "nsmd"
-			if conf[i].Nsmd == pods.NSMDPodDebug {
+		corePods := k8s.CreatePods(corePod, pods.VPPDataplanePod(dataplaneName, node))
+		if debug {
+			podContainer := "nsmd"
+			if conf[i].Nsmd == pods.NSMgrContainerDebug {
 				podContainer = "nsmd"
-			} else if conf[i].NsmdP == pods.NSMDPodDebug {
+			} else if conf[i].NsmdP == pods.NSMgrContainerDebug {
 				podContainer = "nsmdp"
 			}
 
 			k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
 			logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
 		}
-		nsmd, dataplane, err := deployNsmdAndDataplane(k8s, &nodes[i], corePods, timeout)
+		nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, &nodes[i], corePods, timeout)
 
-		logrus.Printf("Started NSMD/Dataplane: %v on node %s", time.Since(startTime), node.Name)
+		logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
 		Expect(err).To(BeNil())
 		confs = append(confs, &NodeConf{
 			Nsmd:      nsmd,
@@ -69,8 +69,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 	return confs
 }
 
-
-func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1.Pod, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
+func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1.Pod, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
 			return nil, nil, fmt.Errorf("Pod %v is not ready...", pod.Name)
@@ -88,7 +87,7 @@ func deployNsmdAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1
 		k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
 	})
 	if len(failures) > 0 {
-		printNSMDLogs(k8s, nsmd, 0 )
+		printNSMDLogs(k8s, nsmd, 0)
 		printDataplaneLogs(k8s, dataplane, 0)
 	}
 	err = nil
