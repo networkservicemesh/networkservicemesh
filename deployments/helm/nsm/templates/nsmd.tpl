@@ -6,7 +6,7 @@ spec:
   template:
     metadata:
       labels:
-        app: nsmd-ds
+        app: nsmmgr-daemonset
     spec:
       containers:
         - name: nsmdp
