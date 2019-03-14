@@ -40,6 +40,11 @@ Install vpn-gateway-nsc, vpp-gateway-nse and vppagent-firewall-nse:
 helm install helm/vpn
 ```
 
+Install skydive, crossconnect-monitor and jaeger:
+```
+helm install helm/nsmd-monitoring
+```
+
 ## Values specification
 Every chart has file `values.yaml`. Now there is a possibility to specify docker registry and tag for images in this file:
 
