@@ -21,8 +21,8 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: vpn-gateway
-          image: {{ .Values.registry }}/networkservicemesh/icmp-responder-nse:{{ .Values.tag }}/
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.registry }}/networkservicemesh/icmp-responder-nse:{{ .Values.tag }}
+          imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
@@ -36,7 +36,7 @@ spec:
             limits:
               networkservicemesh.io/socket: 1
         - name: nginx
-          image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}/
+          image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}
 metadata:
   name: vpn-gateway-nse
   namespace: default

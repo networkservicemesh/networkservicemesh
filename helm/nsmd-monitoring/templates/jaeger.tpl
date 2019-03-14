@@ -15,7 +15,7 @@ spec:
       containers:
         - name: jaeger
           image: jaegertracing/all-in-one:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           ports:
             - name: http
               containerPort: 16686

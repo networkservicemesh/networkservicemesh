@@ -11,7 +11,7 @@ spec:
       containers:
         - name: nsmdp
           image: {{ .Values.registry }}/networkservicemesh/nsmdp:{{ .Values.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
             - name: kubelet-socket
               mountPath: /var/lib/kubelet/device-plugins
@@ -19,7 +19,7 @@ spec:
               mountPath: /var/lib/networkservicemesh
         - name: nsmd
           image: {{ .Values.registry }}/networkservicemesh/nsmd:{{ .Values.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
@@ -39,7 +39,7 @@ spec:
             timeoutSeconds: 3
         - name: nsmd-k8s
           image: {{ .Values.registry }}/networkservicemesh/nsmd-k8s:{{ .Values.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: NODE_NAME
               valueFrom:

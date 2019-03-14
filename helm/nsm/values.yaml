@@ -4,3 +4,4 @@
 
 registry: docker.io
 tag: latest
+pullPolicy: IfNotPresent

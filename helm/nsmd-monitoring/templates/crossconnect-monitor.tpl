@@ -10,7 +10,7 @@ spec:
       containers:
         - name: crossconnect-monitor
           image: {{ .Values.registry }}/networkservicemesh/crossconnect-monitor:{{ .Values.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
 metadata:
   name: crossconnect-monitor
   namespace: default

@@ -26,7 +26,7 @@ spec:
       containers:
         - name: icmp-responder-nse
           image: {{ .Values.registry }}/networkservicemesh/icmp-responder-nse:{{ .Values.tag}}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: ADVERTISE_NSE_NAME
               value: "icmp-responder"

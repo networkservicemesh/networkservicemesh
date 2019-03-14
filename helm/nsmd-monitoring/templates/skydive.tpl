@@ -76,7 +76,7 @@ spec:
       containers:
         - name: skydive-analyzer
           image: matrohon/skydive
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - analyzer
           ports:
@@ -117,7 +117,7 @@ spec:
       containers:
         - name: skydive-agent
           image: matrohon/skydive
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - agent
           ports:

@@ -11,8 +11,8 @@ spec:
     spec:
       containers:
         - name: firewall-nse
-          image: {{ .Values.registry }}/networkservicemesh/vppagent-firewall-nse:{{ .Values.tag }}/
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.registry }}/networkservicemesh/vppagent-firewall-nse:{{ .Values.tag }}
+          imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"

@@ -13,7 +13,7 @@ spec:
       containers:
         - name: vppagent-nsc
           image: {{ .Values.registry }}/networkservicemesh/vppagent-nsc:{{ .Values.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: OUTGOING_NSC_LABELS
               value: "app=icmp"

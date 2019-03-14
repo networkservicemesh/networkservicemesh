@@ -31,8 +31,8 @@ spec:
     spec:
       containers:
         - name: nsm-admission-webhook
-          image: networkservicemesh/admission-webhook
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.registry }}/networkservicemesh/admission-webhook:{{ .Values.tag }}
+          imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

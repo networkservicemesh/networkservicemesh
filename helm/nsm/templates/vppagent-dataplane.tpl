@@ -14,7 +14,7 @@ spec:
           securityContext:
             privileged: true
           image: {{ .Values.registry }}/networkservicemesh/vppagent-dataplane:{{ .Values.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: NSM_DATAPLANE_SRC_IP
               valueFrom:
