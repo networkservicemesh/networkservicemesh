@@ -68,6 +68,9 @@ CONTAINER_BUILD_PREFIX = docker
 endif
 ifeq ($(CONTAINER_BUILD_PREFIX),gcb)
 CONTAINER_REPO=gcr.io/$(shell gcloud config get-value project)
+
+CLUSTER_CONFIGS+=cpu-defaults
+
 endif
 ifeq ($(CONTAINER_REPO),)
 CONTAINER_REPO=networkservicemesh
