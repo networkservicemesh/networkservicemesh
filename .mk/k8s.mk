@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane
-BUILD_CONTAINERS+=devenv crossconnect-monitor
-BUILD_CONTAINERS+=nsc icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc
-BUILD_CONTAINERS+=vppagent-firewall-nse
-BUILD_CONTAINERS+=admission-webhook
-
 K8S_CONF_DIR = k8s/conf
 
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
@@ -43,7 +37,6 @@ CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD)
 ifeq ($(CLUSTER_RULES_PREFIX),)
 CLUSTER_RULES_PREFIX := vagrant
 endif
-
 include .mk/vagrant.mk
 include .mk/packet.mk
 include .mk/gke.mk
@@ -59,18 +52,16 @@ include .mk/kind.mk
 include .mk/null.mk
 
 include .mk/docker.mk
-include .mk/gcb.mk
 
 # Pull in docker targets
 ifeq ($(CONTAINER_BUILD_PREFIX),)
 CONTAINER_BUILD_PREFIX = docker
-
 endif
+
 ifeq ($(CONTAINER_BUILD_PREFIX),gcb)
+include .mk/gcb.mk
 CONTAINER_REPO=gcr.io/$(shell gcloud config get-value project)
-
 CLUSTER_CONFIGS+=cpu-defaults
-
 endif
 ifeq ($(CONTAINER_REPO),)
 CONTAINER_REPO=networkservicemesh
@@ -177,10 +168,7 @@ k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 k8s-jaeger-build:
 
 .PHONY: k8s-jaeger-save
-k8s-jaeger-build: 
-
-.PHONY: k8s-jaeger-save
-k8s-jaeger-save: 
+k8s-jaeger-save:
 
 .PHONY: k8s-jaeger-load-images
 k8s-jaeger-load-images:
@@ -222,6 +210,7 @@ k8s-secure-intranet-connectivity-save:
 .PHONY: k8s-secure-intranet-connectivity-load-images
 
 k8s-secure-intranet-connectivity-load-images: 
+
 
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
