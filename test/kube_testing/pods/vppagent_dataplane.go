@@ -85,6 +85,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 					},
 					LivenessProbe:  liveness,
 					ReadinessProbe: readiness,
+					Resources: createDefaultDataplaneResources(),
 				}),
 			},
 		},
