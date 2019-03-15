@@ -18,6 +18,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -47,11 +49,11 @@ type VPPAgent struct {
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
 	baseDir              string
-	egressInterface      *EgressInterface
+	egressInterface      *common.EgressInterface
 	directMemifConnector *memif.DirectMemifConnector
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, egressInterface *EgressInterface) *VPPAgent {
+func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, egressInterface *common.EgressInterface) *VPPAgent {
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),

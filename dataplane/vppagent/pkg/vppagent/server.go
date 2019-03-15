@@ -15,17 +15,21 @@
 package vppagent
 
 import (
+	"os"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/sirupsen/logrus"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
 
-func NewServer(vppAgentEndpoint string, baseDir string, egressInterface *EgressInterface) *grpc.Server {
+func NewServer(baseDir string, egressInterface *common.EgressInterface) *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -35,6 +39,13 @@ func NewServer(vppAgentEndpoint string, baseDir string, egressInterface *EgressI
 
 	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
+
+	vppAgentEndpoint, ok := os.LookupEnv(common.DataplaneVPPAgentEndpointKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", common.DataplaneVPPAgentEndpointKey, common.DefaultVPPAgentEndpoint)
+		vppAgentEndpoint = common.DefaultVPPAgentEndpoint
+	}
+	logrus.Infof("vppAgentEndpoint: %s", vppAgentEndpoint)
 
 	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, egressInterface)
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor)
