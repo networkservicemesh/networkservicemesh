@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	NsmBaseDirKey     = "NSM_BASEDIR"
-	DefaultNsmBaseDir = "/var/lib/networkservicemesh/"
+	NSMBaseDirKey     = "NSM_BASEDIR"
+	DefaultNSMBaseDir = "/var/lib/networkservicemesh/"
 	// TODO Convert all the defaults to properly use NsmBaseDir
 	DataplaneRegistrarSocketKey         = "DATAPLANE_REGISTRAR_SOCKET"
 	DefaultDataplaneRegistrarSocket     = "/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock"
@@ -42,17 +42,24 @@ const (
 	DefaultDataplaneName                = "vppagent"
 	DataplaneVPPAgentEndpointKey        = "VPPAGENT_ENDPOINT"
 	DefaultVPPAgentEndpoint             = "localhost:9111"
-	SrcIpEnvKey                         = "NSM_DATAPLANE_SRC_IP"
+	SrcIPEnvKey                         = "NSM_DATAPLANE_SRC_IP"
 )
 
 func DataplaneMain(createServer func(string, *EgressInterface) *grpc.Server) *dataplaneRegistration {
 	start := time.Now()
-	logrus.Info("Starting dataplane")
 
-	nsmBaseDir, ok := os.LookupEnv(NsmBaseDirKey)
+	dataplaneName, ok := os.LookupEnv(DataplaneNameKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", NsmBaseDirKey, DefaultNsmBaseDir)
-		nsmBaseDir = DefaultNsmBaseDir
+		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DefaultDataplaneName)
+		dataplaneName = DefaultDataplaneName
+	}
+
+	logrus.Infof("Starting dataplane - %s", dataplaneName)
+
+	nsmBaseDir, ok := os.LookupEnv(NSMBaseDirKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", NSMBaseDirKey, DefaultNSMBaseDir)
+		nsmBaseDir = DefaultNSMBaseDir
 	}
 	logrus.Infof("nsmBaseDir: %s", nsmBaseDir)
 
@@ -84,55 +91,48 @@ func DataplaneMain(createServer func(string, *EgressInterface) *grpc.Server) *da
 	}
 	logrus.Infof("dataplaneSocketType: %s", dataplaneSocketType)
 
-	dataplaneName, ok := os.LookupEnv(DataplaneNameKey)
+	srcIPStr, ok := os.LookupEnv(SrcIPEnvKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DefaultDataplaneName)
-		dataplaneName = DefaultDataplaneName
-	}
-
-	srcIpStr, ok := os.LookupEnv(SrcIpEnvKey)
-	if !ok {
-		logrus.Fatalf("Env variable %s must be set to valid srcIp for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIpEnvKey)
+		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIPEnvKey)
 		SetSrcIPFailed()
 	}
-	srcIp := net.ParseIP(srcIpStr)
-	if srcIp == nil {
-		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIpEnvKey, srcIpStr)
+	srcIP := net.ParseIP(srcIPStr)
+	if srcIP == nil {
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIPEnvKey, srcIPStr)
 		SetValidIPFailed()
 	}
 
-	egressInterface, err := NewEgressInterface(srcIp)
+	egressInterface, err := NewEgressInterface(srcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 	}
 	if err != nil {
-		logrus.Fatalf("Unable to extract interface name for SrcIP: %s", srcIp)
+		logrus.Fatalf("Unable to extract interface name for SrcIP: %s", srcIP)
 		SetExtractIFNameFailed()
 	}
-	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", srcIp, egressInterface.Name, egressInterface.SrcIPNet())
-
-	logrus.Infof("dataplaneName: %s", dataplaneName)
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", srcIP, egressInterface.Name, egressInterface.SrcIPNet())
 
 	err = tools.SocketCleanup(dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", dataplaneSocket, err)
 		SetSocketCleanFailed()
 	}
+
 	ln, err := net.Listen(dataplaneSocketType, dataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
 		SetSocketListenFailed()
 	}
 
-	logrus.Info("Creating vppagent server")
+	logrus.Infof("Creating %s server...", dataplaneName)
 	server := createServer(nsmBaseDir, egressInterface)
 	go server.Serve(ln)
-	logrus.Info("vppagent server serving")
+	logrus.Infof("%s server serving", dataplaneName)
 
 	elapsed := time.Since(start)
-	logrus.Debugf("Starting VPP Agent server took: %s", elapsed)
+	logrus.Debugf("Starting the %s dataplane server took: %s", dataplaneName, elapsed)
 
-	logrus.Info("Dataplane Registrar Client")
+	logrus.Info("Creating Dataplane Registrar Client...")
 	registrar := NewDataplaneRegistrarClient(dataplaneRegistrarSocketType, dataplaneRegistrarSocket)
 	registration := registrar.Register(context.Background(), dataplaneName, dataplaneSocket, nil, nil)
 	logrus.Info("Registered Dataplane Registrar Client")
