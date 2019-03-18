@@ -44,7 +44,7 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 		return
 	}
 
-	fixture := createFixture(defaultTimeout)
+	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
 
 	conn := fixture.requestDefaultKernelConnection()
@@ -59,7 +59,7 @@ func TestDataplaneCrossConnectMultiple(t *testing.T) {
 		return
 	}
 
-	fixture := createFixture(defaultTimeout)
+	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
 
 	first := fixture.requestKernelConnection("id-1", "if1", "10.30.1.1/30", "10.30.1.2/30")
@@ -76,7 +76,7 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 		return
 	}
 
-	fixture := createFixture(defaultTimeout)
+	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
 
 	const someId = "some-id"
@@ -97,7 +97,7 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 		return
 	}
 
-	fixture := createFixture(defaultTimeout)
+	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
 
 	conn := fixture.requestDefaultKernelConnection()
@@ -122,6 +122,7 @@ type standaloneDataplaneFixture struct {
 	destPod         *v1.Pod
 	forwarding      *kube_testing.PortForward
 	dataplaneClient dataplaneapi.DataplaneClient
+	test            *testing.T
 }
 
 func (fixture *standaloneDataplaneFixture) cleanup() {
@@ -129,16 +130,17 @@ func (fixture *standaloneDataplaneFixture) cleanup() {
 	fixture.k8s.Cleanup()
 }
 
-func createFixture(timeout time.Duration) *standaloneDataplaneFixture {
+func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneFixture {
 	fixture := &standaloneDataplaneFixture{
 		timeout: timeout,
+		test:    test,
 	}
 
 	k8s, err := kube_testing.NewK8s()
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.Prepare("nsmd", "nsc", "dataplane", "icmp-responder-nse", "jaeger", "source", "dest")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// prepare node
@@ -148,6 +150,7 @@ func createFixture(timeout time.Duration) *standaloneDataplaneFixture {
 	fixture.k8s = k8s
 	fixture.node = &nodes[0]
 	fixture.dataplanePod = fixture.k8s.CreatePod(dataplanePodTemplate(fixture.node))
+	fixture.k8s.WaitLogsContains(fixture.dataplanePod, fixture.dataplanePod.Spec.Containers[0].Name, "Serve starting...", timeout)
 
 	// deploy source and destination pods
 	fixture.sourcePod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("source-pod-%s", fixture.node.Name), fixture.node))
@@ -252,43 +255,68 @@ func (fixture *standaloneDataplaneFixture) requestDefaultKernelConnection() *cro
 }
 
 func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	dstIface := getIface(xcon.GetLocalDestination())
-	srcIp := unmaskIp(xcon.GetLocalSource().Context.SrcIpAddr)
-	dstIp := unmaskIp(xcon.GetLocalDestination().Context.DstIpAddr)
+	failures := InterceptGomegaFailures(func() {
+		srcIface := getIface(xcon.GetLocalSource())
+		dstIface := getIface(xcon.GetLocalDestination())
+		srcIp := unmaskIp(xcon.GetLocalSource().Context.SrcIpAddr)
+		dstIp := unmaskIp(xcon.GetLocalDestination().Context.DstIpAddr)
 
-	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", srcIp))).To(BeTrue())
+		out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
+		Expect(err).To(BeNil())
+		Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", srcIp))).To(BeTrue())
 
-	logrus.Infof("Source interface:\n%s", out)
+		logrus.Infof("Source interface:\n%s", out)
 
-	out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ifconfig", dstIface)
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", dstIp))).To(BeTrue())
+		out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ifconfig", dstIface)
+		Expect(err).To(BeNil())
+		Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", dstIp))).To(BeTrue())
 
-	logrus.Infof("Destination interface:\n%s", out)
+		logrus.Infof("Destination interface:\n%s", out)
 
-	out, _, err = fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
+		out, _, err = fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
+		Expect(err).To(BeNil())
+		Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
+	})
+
+	fixture.handleFailures(failures)
+}
+
+func (fixture *standaloneDataplaneFixture) handleFailures(failures []string) {
+	if len(failures) > 0 {
+		for _, failure := range failures {
+			logrus.Errorf("test failure: %s\n", failure)
+		}
+		fixture.printLogs(fixture.dataplanePod)
+		fixture.printLogs(fixture.sourcePod)
+		fixture.printLogs(fixture.destPod)
+		fixture.test.Fail()
+	}
+}
+
+func (fixture *standaloneDataplaneFixture) printLogs(pod *v1.Pod) {
+	logs, _ := fixture.k8s.GetLogs(pod, firstContainer(pod))
+	logrus.Errorf("=================================\nLogs of '%s' pod:\n%s\n", pod.Name, logs)
 }
 
 func (fixture *standaloneDataplaneFixture) verifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	dstIface := getIface(xcon.GetLocalDestination())
+	failures := InterceptGomegaFailures(func() {
+		srcIface := getIface(xcon.GetLocalSource())
+		dstIface := getIface(xcon.GetLocalDestination())
 
-	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ip", "a")
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, srcIface)).To(BeFalse())
+		out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ip", "a")
+		Expect(err).To(BeNil())
+		Expect(strings.Contains(out, srcIface)).To(BeFalse())
 
-	logrus.Infof("Source interfaces:\n%s", out)
+		logrus.Infof("Source interfaces:\n%s", out)
 
-	out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ip", "a")
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(out, dstIface)).To(BeFalse())
+		out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ip", "a")
+		Expect(err).To(BeNil())
+		Expect(strings.Contains(out, dstIface)).To(BeFalse())
 
-	logrus.Infof("Destination interfaces:\n%s", out)
+		logrus.Infof("Destination interfaces:\n%s", out)
+	})
+
+	fixture.handleFailures(failures)
 }
 
 func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.CrossConnect) {
@@ -355,4 +383,8 @@ func setupEnvVariables(dataplane *v1.Pod, env map[string]string) {
 func exposePorts(dataplane *v1.Pod, ports ...v1.ContainerPort) {
 	vpp := &dataplane.Spec.Containers[0]
 	vpp.Ports = append(vpp.Ports, ports...)
+}
+
+func firstContainer(pod *v1.Pod) string {
+	return pod.Spec.Containers[0].Name
 }
