@@ -123,3 +123,88 @@ func TestDataplaneCrossConnectUpdateIp(t *testing.T) {
 	updated := fixture.RequestKernelConnection(someId, iface, "10.30.2.1/30", "10.30.2.2/30")
 	fixture.VerifyKernelConnection(updated)
 }
+
+func TestDataplaneRemoteCrossConnectBasic(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	defer fixture.Cleanup()
+
+	connSrc, connDst := fixture.RequestDefaultKernelConnection()
+	fixture.VerifyKernelConnection(connSrc, connDst)
+}
+
+func TestDataplaneRemoteCrossConnectRepeatSource(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	defer fixture.Cleanup()
+
+	connSrc, connDst := fixture.RequestDefaultKernelConnection()
+	fixture.SourceDataplane().Request(connSrc) // request the same connection
+
+	fixture.VerifyKernelConnection(connSrc, connDst)
+}
+
+func TestDataplaneRemoteCrossConnectRepeatDst(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	defer fixture.Cleanup()
+
+	connSrc, connDst := fixture.RequestDefaultKernelConnection()
+	fixture.DestDataplane().Request(connDst) // request the same connection
+
+	fixture.VerifyKernelConnection(connSrc, connDst)
+}
+
+func TestDataplaneRemoteCrossConnectRecoverSrc(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	defer fixture.Cleanup()
+
+	connSrc, connDst := fixture.RequestDefaultKernelConnection()
+	fixture.SourceDataplane().KillVppAndHeal()
+	fixture.HealConnectionSrc(connSrc)
+
+	fixture.VerifyKernelConnection(connSrc, connDst)
+}
+
+func TestDataplaneRemoteCrossConnectRecoverDst(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	defer fixture.Cleanup()
+
+	connSrc, connDst := fixture.RequestDefaultKernelConnection()
+	fixture.DestDataplane().KillVppAndHeal()
+	fixture.HealConnectionDst(connDst)
+
+	fixture.VerifyKernelConnection(connSrc, connDst)
+}
