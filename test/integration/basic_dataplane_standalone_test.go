@@ -5,6 +5,13 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"net"
+	"path"
+	"regexp"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -15,13 +22,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"net"
-	"path"
-	"regexp"
-	"strings"
-	"testing"
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -140,7 +141,7 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "dataplane", "icmp-responder-nse", "jaeger", "source", "dest")
+	k8s.Prepare("nsmgr", "nsc", "dataplane", "icmp-responder-nse", "jaeger", "source", "dest")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// prepare node

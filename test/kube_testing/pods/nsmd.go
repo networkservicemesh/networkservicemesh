@@ -1,15 +1,16 @@
 package pods
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	v1 "k8s.io/api/core/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	NSMDHostSystemPath = "/go/src"
-	NSMDHostRootEnv = "NSMD_HOST_ROOT"	// A host path for all sources.
+	NSMDHostRootEnv    = "NSMD_HOST_ROOT" // A host path for all sources.
 )
 
 var DefaultNSMD = map[string]string{
@@ -37,43 +38,42 @@ func newDevSrcMount() v1.VolumeMount {
 	}
 }
 
-type NSMDPodMode int8
+type NSMgrContainerMode int8
 
 const (
-	NSMDPodNormal = 0
-	NSMDPodRun = 1
-	NSMDPodDebug = 2
+	NSMgrContainerNormal = 0
+	NSMgrContainerRun    = 1
+	NSMgrContainerDebug  = 2
 )
 
-type NSMDPodConfig struct {
-	Nsmd                NSMDPodMode // nsmd launch options - debug - for debug.sh, run - for run.sh
-	NsmdK8s             NSMDPodMode // nsmd-k8s launch options - debug - for debug.sh, run - for run.sh
-	NsmdP               NSMDPodMode // nsmdp launch options - debug - for debug.sh, run - for run.sh
+type NSMgrPodConfig struct {
+	Nsmd                NSMgrContainerMode // nsmd launch options - debug - for debug.sh, run - for run.sh
+	NsmdK8s             NSMgrContainerMode // nsmd-k8s launch options - debug - for debug.sh, run - for run.sh
+	NsmdP               NSMgrContainerMode // nsmdp launch options - debug - for debug.sh, run - for run.sh
 	Variables           map[string]string
 	liveness, readiness *v1.Probe
 }
 
-func NSMDDevConfig(nsmd NSMDPodMode, nsmdp NSMDPodMode, nsmdk8s NSMDPodMode) *NSMDPodConfig {
-	return &NSMDPodConfig{
-		Nsmd:         nsmd,
-		NsmdK8s:      nsmdk8s,
-		NsmdP:        nsmdp,
+func NSMgrDevConfig(nsmd NSMgrContainerMode, nsmdp NSMgrContainerMode, nsmdk8s NSMgrContainerMode) *NSMgrPodConfig {
+	return &NSMgrPodConfig{
+		Nsmd:    nsmd,
+		NsmdK8s: nsmdk8s,
+		NsmdP:   nsmdp,
 	}
 }
 
-
-func NSMDPod(name string, node *v1.Node) *v1.Pod {
-	return NSMDPodWithConfig(name, node, &NSMDPodConfig{
+func NSMgrPod(name string, node *v1.Node) *v1.Pod {
+	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
 		Variables: DefaultNSMD,
 	})
 }
-func NSMDPodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return NSMDPodWithConfig(name, node, &NSMDPodConfig{
+func NSMgrPodLiveCheck(name string, node *v1.Node) *v1.Pod {
+	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
 		liveness:  createProbe("/liveness"),
 		readiness: createProbe("/readiness")})
 }
 
-func NSMDPodWithConfig(name string, node *v1.Node, config *NSMDPodConfig) *v1.Pod {
+func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -141,7 +141,7 @@ func NSMDPodWithConfig(name string, node *v1.Node, config *NSMDPodConfig) *v1.Po
 		},
 	}
 	if len(config.Variables) > 0 {
-		for k, v := range (config.Variables) {
+		for k, v := range config.Variables {
 			pod.Spec.Containers[1].Env = append(pod.Spec.Containers[1].Env, v1.EnvVar{
 				Name:  k,
 				Value: v,
@@ -155,15 +155,15 @@ func NSMDPodWithConfig(name string, node *v1.Node, config *NSMDPodConfig) *v1.Po
 	}
 
 	updates := 0
-	if config.NsmdP != NSMDPodNormal {
+	if config.NsmdP != NSMgrContainerNormal {
 		updateSpec(pod, 0, "nsmdp", config.NsmdP)
 		updates++
 	}
-	if config.Nsmd != NSMDPodNormal {
+	if config.Nsmd != NSMgrContainerNormal {
 		updateSpec(pod, 1, "nsmd", config.Nsmd)
 		updates++
 	}
-	if config.NsmdK8s != NSMDPodNormal {
+	if config.NsmdK8s != NSMgrContainerNormal {
 		updateSpec(pod, 2, "nsmd-k8s", config.NsmdK8s)
 		updates++
 	}
@@ -177,7 +177,7 @@ func NSMDPodWithConfig(name string, node *v1.Node, config *NSMDPodConfig) *v1.Po
 					Path: getNSMDLocalHostSourcePath(),
 				},
 			},
-		}, )
+		})
 	}
 
 	return pod
@@ -188,16 +188,16 @@ func getNSMDLocalHostSourcePath() string {
 	if root != "" {
 		return root
 	}
-	return NSMDHostSystemPath;
+	return NSMDHostSystemPath
 }
 
-func updateSpec(pod *v1.Pod, index int, app string, mode NSMDPodMode ) {
+func updateSpec(pod *v1.Pod, index int, app string, mode NSMgrContainerMode) {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
 	pod.Spec.Containers[index].VolumeMounts = append(pod.Spec.Containers[index].VolumeMounts, newDevSrcMount())
 	pod.Spec.Containers[index].Command = []string{"bash"}
-	if mode == NSMDPodDebug {
+	if mode == NSMgrContainerDebug {
 		pod.Spec.Containers[index].Args = []string{"/go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh", app}
 	} else {
 		pod.Spec.Containers[index].Args = []string{"/go/src/github.com/networkservicemesh/networkservicemesh/scripts/run.sh", app}

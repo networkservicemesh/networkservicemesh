@@ -33,12 +33,12 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMDPodConfig{
-		&pods.NSMDPodConfig{
+	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
 			Variables: map[string]string {
 				nsm.NsmdHealDSTWaitTimeout: "10", // 10 second delay, since we know NSE is new one.
 			},
-		}, &pods.NSMDPodConfig{},
+		}, &pods.NSMgrPodConfig{},
 	} )
 
 	// Run ICMP on latest node
@@ -64,7 +64,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMDPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMDPodConfig{})) // Recovery NSEs
+	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
@@ -122,7 +122,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMDPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMDPodConfig{})) // Recovery NSEs
+	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
@@ -177,7 +177,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMDPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMDPodConfig{})) // Recovery NSEs
+	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[0].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
@@ -230,7 +230,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMDPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMDPodConfig{
+	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{
 	})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[0].Node.Name)
 

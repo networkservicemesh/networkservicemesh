@@ -2,12 +2,12 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: nsmd
+  name: nsmgr
 spec:
   template:
     metadata:
       labels:
-        app: nsmd-ds
+        app: nsmgr-daemonset
     spec:
       containers:
         - name: nsmdp
