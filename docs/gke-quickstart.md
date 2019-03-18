@@ -41,11 +41,19 @@ gcloud config set project myProject
 * list zones/regions - 
 `shell
 gcloud compute regions list
+gcloud compute zones list
 `
 * select default zone - 
 `shell
-gcloud config set compute/zone asia-east2-a
+gcloud config set compute/zone europe-west1-c
 `
+
+* select default region - 
+`shell
+gcloud config set compute/zone europe-west1
+`
+
+(!) Be sure to specify zone, not region, since it will create more nodes.
 
 So at this moment we are ready to use google cloud platform. 
 

@@ -41,6 +41,11 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 1
+            requests:
+              cpu: 1m
       volumes:
         - hostPath:
             path: /var/lib/networkservicemesh

@@ -25,9 +25,11 @@ func createDefaultResources() v1.ResourceRequirements {
 	return v1.ResourceRequirements{
 		Requests: v1.ResourceList{
 			v1.ResourceCPU: resource.NewScaledQuantity(1, -3).DeepCopy(),
+			v1.ResourceMemory: resource.NewScaledQuantity(10*1024*1024, 1).DeepCopy(),
 		},
 		Limits: v1.ResourceList{
-			v1.ResourceCPU: resource.NewScaledQuantity(1, -3).DeepCopy(),
+			v1.ResourceCPU: resource.NewScaledQuantity(1, -1).DeepCopy(),
+			v1.ResourceMemory: resource.NewScaledQuantity(300*1024*1024, 1).DeepCopy(),
 		},
 	}
 }
@@ -36,11 +38,11 @@ func createDefaultDataplaneResources() v1.ResourceRequirements {
 	return v1.ResourceRequirements{
 		Requests: v1.ResourceList{
 			v1.ResourceCPU: resource.NewScaledQuantity(1, -3).DeepCopy(),
-			v1.ResourceMemory: resource.NewScaledQuantity(100*1024*1024, 1).DeepCopy(),
+			v1.ResourceMemory: resource.NewScaledQuantity(10*1024*1024, 1).DeepCopy(),
 		},
 		Limits: v1.ResourceList{
-			v1.ResourceCPU: resource.NewScaledQuantity(1, -3).DeepCopy(),
-			v1.ResourceMemory: resource.NewScaledQuantity(200*1024*1024, 1).DeepCopy(),
+			v1.ResourceCPU: resource.NewScaledQuantity(1, -1).DeepCopy(),
+			v1.ResourceMemory: resource.NewScaledQuantity(300*1024*1024, 1).DeepCopy(),
 		},
 	}
 }
