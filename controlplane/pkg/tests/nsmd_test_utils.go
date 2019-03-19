@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -229,6 +230,18 @@ type testDataplaneConnection struct {
 
 func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
 	impl.connections = append(impl.connections, in)
+
+	if source := in.GetLocalSource(); source != nil && source.Labels != nil {
+		if source.Labels != nil {
+			if val, ok := source.Labels["dataplane_sleep"]; ok {
+				delay, err := strconv.Atoi(val)
+				if err == nil {
+					logrus.Infof("Delaying Dataplane Request: %v", delay)
+					<- time.Tick( time.Duration(delay) * time.Second)
+				}
+			}
+		}
+	}
 	return in, nil
 }
 

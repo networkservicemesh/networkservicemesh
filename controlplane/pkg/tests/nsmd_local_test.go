@@ -12,8 +12,10 @@ import (
 	context2 "golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 type nseWithOptions struct {
@@ -27,6 +29,15 @@ type nseWithOptions struct {
 func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
 	var mechanism *connection.Mechanism
 
+	if in.Connection.Labels != nil {
+		if val, ok := in.Connection.Labels["nse_sleep"]; ok {
+			delay, err := strconv.Atoi(val)
+			if err == nil {
+				logrus.Infof("Delaying NSE init: %v", delay)
+				<- time.Tick( time.Duration(delay) * time.Second)
+			}
+		}
+	}
 	mechanism = &connection.Mechanism{
 		Type: in.MechanismPreferences[0].Type,
 		Parameters: map[string]string{
@@ -223,4 +234,70 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	Expect(len(originl.connection.Context.IpNeighbors)).To(Equal(1))
 	Expect(originl.connection.Context.IpNeighbors[0].Ip).To(Equal("127.0.0.1"))
 	Expect(originl.connection.Context.IpNeighbors[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
+}
+
+func TestSlowNSE(t *testing.T) {
+	RegisterTestingT(t)
+
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	defer srv.Stop()
+
+	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+		netns: "12",
+		srcIp: "169083138/30",
+		dstIp: "169083137/30",
+	}
+	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := createRequest(false)
+
+	request.Connection.Labels = map[string]string{}
+	request.Connection.Labels["nse_sleep"] = "1"
+
+	ctx, canceOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer canceOp()
+	nsmResponse, err := nsmClient.Request(ctx, request)
+	<- time.Tick(1* time.Second)
+	println(err.Error())
+	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
+	Expect(nsmResponse).To(BeNil())
+}
+
+func TestSlowDP(t *testing.T) {
+	RegisterTestingT(t)
+
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	defer srv.Stop()
+
+	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+		netns: "12",
+		srcIp: "169083138/30",
+		dstIp: "169083137/30",
+	}
+	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := createRequest(false)
+
+	request.Connection.Labels = map[string]string{}
+	request.Connection.Labels["dataplane_sleep"] = "1"
+
+	ctx, cancelOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancelOp()
+	nsmResponse, err := nsmClient.Request(ctx, request)
+	<- time.Tick(1* time.Second)
+	println(err.Error())
+	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
+	Expect(nsmResponse).To(BeNil())
 }

@@ -277,7 +277,7 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 			logrus.Errorf("Store updated NSE local registry...")
 		}
 	}
-	logrus.Errorf("NSMD: Restore of NSE/Clients Complete...")
+	logrus.Infof("NSMD: Restore of NSE/Clients Complete...")
 }
 
 func (nsm *nsmServer) Stop() {
