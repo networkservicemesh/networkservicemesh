@@ -313,7 +313,7 @@ func TestClusterInfo(t *testing.T) {
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("nsmd")
+	k8s.Prepare("nsmgr")
 	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
 	// We need to wait unti it is started
