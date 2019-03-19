@@ -35,6 +35,7 @@ import (
 const(
 	DataplaneRetryCount = 10 // A number of times to call Dataplane Request, TODO: Remove after DP will be stable.
 	DataplaneRetryDelay = 500 * time.Millisecond
+	DataplaneTimeout = 15* time.Second
 )
 
 ///// Network service manager to manage both local/remote NSE connections.
@@ -172,6 +173,9 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 					logrus.Errorf("NSM:(7.1-%v) Failed to close local Dataplane for connection %v", requestId, existingConnection)
 				}
 			}
+			if existingConnection != nil {
+				srv.model.DeleteClientConnection(existingConnection.ConnectionId)
+			}
 			return nil, err
 		}
 	} else if existingConnection != nil {
@@ -207,10 +211,15 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 	// 10.2 Sending updated request to dataplane.
 	for dpRetry := 0; dpRetry < DataplaneRetryCount; dpRetry++ {
-		//TODO: Remove when VPP Agent Dataplane will be stable.
+		if err := ctx.Err(); err != nil {
+			srv.handleDataplaneContextTimeout(requestId, err, clientConnection)
+			return nil, ctx.Err()
+		}
 
 		logrus.Infof("NSM:(10.2-%v) Sending request to dataplane: %v retry: %v", requestId, clientConnection.Xcon, dpRetry)
-		newXcon, err := dataplaneClient.Request(ctx, clientConnection.Xcon)
+		dpCtx, cancel := context.WithTimeout(context.Background(), DataplaneTimeout)
+		defer cancel()
+		newXcon, err := dataplaneClient.Request(dpCtx, clientConnection.Xcon)
 		if err != nil {
 			logrus.Errorf("NSM:(10.2.1-%v) Dataplane request failed: %v retry: %v", requestId, err, dpRetry)
 
@@ -233,7 +242,14 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 			return nil, err
 		}
 		clientConnection.Xcon = newXcon
-		logrus.Infof("NSM:(10.3-%v) Dataplane configuration sucessfull %v", requestId, clientConnection.Xcon)
+
+		// In case of context deadline, we need to close NSE and dataplane.
+		if err := ctx.Err(); err != nil {
+			srv.handleDataplaneContextTimeout(requestId, err, clientConnection)
+			return nil, ctx.Err()
+		}
+
+		logrus.Infof("NSM:(10.3-%v) Dataplane configuration successful %v", requestId, clientConnection.Xcon)
 		break
 	}
 
@@ -254,6 +270,15 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	return nsmConnection, nil
 }
 
+func (srv *networkServiceManager) handleDataplaneContextTimeout(requestId string, err error, clientConnection *model.ClientConnection) {
+	logrus.Errorf("NSM:(10.2.0-%v) Context timeout, during programming Dataplane... %v", requestId, err)
+	// If context is exceed
+	if ep_err := srv.closeEndpoint(context.Background(), clientConnection, ); ep_err != nil {
+		logrus.Errorf("NSM:(10.2.0-%v) Context timeout, closing NSE: %v", requestId, ep_err)
+	}
+	srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+}
+
 func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.Context, ignore_endpoints map[string]*registry.NSERegistration, request nsm.NSMRequest, nsmConnection nsm.NSMConnection, existingConnection *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
 	// 7.x
 	var endpoint *registry.NSERegistration
@@ -261,6 +286,10 @@ func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.C
 	var last_error error
 	var clientConnection *model.ClientConnection
 	for {
+		if err := ctx.Err(); err != nil {
+			logrus.Errorf("NSM:(7.1.0-%v) Context timeout, during find/call NSE... %v", requestId, err)
+			return nil, err
+		}
 		endpoint = nil
 		// 7.1.1 Clone Connection to support iteration via EndPoints
 		nseConnection := srv.cloneConnection(request, nsmConnection)
@@ -335,26 +364,8 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 	var nseClientError error
 	var nseCloseError error
 
-	client, nseClientError := srv.createNSEClient(ctx, clientConnection.Endpoint)
+	srv.closeEndpoint(ctx, clientConnection)
 
-	if client != nil {
-		defer func() {
-			err := client.Cleanup()
-			if err != nil {
-				logrus.Errorf("NSM: Error during Cleanup: %v", err)
-			}
-		}()
-		ld := clientConnection.Xcon.GetLocalDestination()
-		if ld != nil {
-			nseCloseError = client.Close(ctx, ld)
-		}
-		rd := clientConnection.Xcon.GetRemoteDestination()
-		if rd != nil {
-			nseCloseError = client.Close(ctx, rd)
-		}
-	} else {
-		logrus.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
-	}
 	var dpCloseError error = nil
 	if closeDataplane {
 		dpCloseError = srv.closeDataplane(clientConnection)
@@ -803,4 +814,25 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 			}
 		}
 	}()
+}
+
+func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConnection *model.ClientConnection) error {
+
+	client, nseClientError := srv.createNSEClient(ctx, clientConnection.Endpoint)
+
+	if client != nil {
+		if ld := clientConnection.Xcon.GetLocalDestination(); ld != nil {
+			return client.Close(ctx, ld)
+		}
+		if rd := clientConnection.Xcon.GetRemoteDestination(); rd != nil {
+			return client.Close(ctx, rd)
+		}
+		err := client.Cleanup()
+		if err != nil {
+			logrus.Errorf("NSM: Error during Cleanup: %v", err)
+		}
+	} else {
+		logrus.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
+	}
+	return nseClientError
 }
