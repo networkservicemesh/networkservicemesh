@@ -61,11 +61,15 @@ data:
         default_filter: "nsm-filter"
         default_highlight: "nsm-edges"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: skydive-analyzer
 spec:
+  selector:
+    matchLabels:
+      app: skydive
+      tier: analyzer
   replicas: 1
   template:
     metadata:
@@ -101,11 +105,15 @@ spec:
           configMap:
             name: skydive-analyzer-config-file
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: skydive-agent
 spec:
+  selector:
+    matchLabels:
+      app: skydive
+      tier: agent
   template:
     metadata:
       labels:

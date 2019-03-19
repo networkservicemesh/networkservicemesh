@@ -39,11 +39,15 @@ metadata:
     app: skydive-agent
   name: skydive-agent-config
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: skydive-analyzer
 spec:
+  selector:
+    matchLabels:
+      app: skydive
+      tier: analyzer
   replicas: 1
   template:
     metadata:
@@ -74,11 +78,15 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: skydive-agent
 spec:
+  selector:
+    matchLabels:
+      app: skydive
+      tier: agent
   template:
     metadata:
       labels:

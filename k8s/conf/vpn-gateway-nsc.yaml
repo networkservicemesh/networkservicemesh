@@ -1,7 +1,11 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 spec:
+  selector:
+    matchLabels:
+      networkservicemesh.io/app: "vpn-gateway-nsc"
+      networkservicemesh.io/impl: "secure-intranet-connectivity"
   replicas: 1
   template:
     metadata:
