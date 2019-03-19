@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"testing"
 	"time"
 
@@ -20,7 +21,7 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, false)
+	testNSCAndICMP(t, 1, false, false)
 }
 
 func TestNSCAndICMPRemote(t *testing.T) {
@@ -31,7 +32,7 @@ func TestNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, false)
+	testNSCAndICMP(t, 2, false, false)
 }
 
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
@@ -42,7 +43,7 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, true)
+	testNSCAndICMP(t, 1, true, false)
 }
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
@@ -53,13 +54,35 @@ func TestNSCAndICMPWebhookRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, true)
+	testNSCAndICMP(t, 2, true, false)
+}
+
+func TestNSCAndICMPLocalVeth(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 1, false, true)
+}
+
+func TestNSCAndICMPRemoteVeth(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 2, false, true)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool) {
+func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -69,7 +92,16 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool) {
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	config := []*pods.NSMDPodConfig{}
+	for i := 0; i< nodesCount;i++ {
+		cfg := &pods.NSMDPodConfig{}
+		if disableVHost {
+			cfg.DataplaneVariables = map[string]string{}
+			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
+		}
+		config = append(config, cfg)
+	}
+	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config)
 
 	// Run ICMP on latest node
 	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
