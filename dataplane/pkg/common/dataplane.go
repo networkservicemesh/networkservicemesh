@@ -54,6 +54,7 @@ type dataplaneConfig struct {
 	dataplaneSocketType string
 	srcIP               []byte
 	egressInterface     *EgressInterface
+	listener            net.Listener
 }
 
 func getDataplaneConfig() *dataplaneConfig {
@@ -122,29 +123,31 @@ func getDataplaneConfig() *dataplaneConfig {
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", dpCfg.srcIP, dpCfg.egressInterface.Name, dpCfg.egressInterface.SrcIPNet())
 
+	err = tools.SocketCleanup(dpCfg.dataplaneSocket)
+	if err != nil {
+		logrus.Fatalf("Error cleaning up socket %s: %s", dpCfg.dataplaneSocket, err)
+		SetSocketCleanFailed()
+	}
+
+	dpCfg.listener, err = net.Listen(dpCfg.dataplaneSocketType, dpCfg.dataplaneSocket)
+	if err != nil {
+		logrus.Fatalf("Error listening on socket %s: %s ", dpCfg.dataplaneSocket, err)
+		SetSocketListenFailed()
+	}
+
 	return dpCfg
 }
 
-func DataplaneMain(createServer func(string, *EgressInterface) *grpc.Server) *dataplaneRegistration {
+func CreateDataplane(createServer func(string, *EgressInterface) *grpc.Server) *dataplaneRegistration {
 	start := time.Now()
 
 	dataplaneCfg := getDataplaneConfig()
 
-	err := tools.SocketCleanup(dataplaneCfg.dataplaneSocket)
-	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", dataplaneCfg.dataplaneSocket, err)
-		SetSocketCleanFailed()
-	}
-
-	ln, err := net.Listen(dataplaneCfg.dataplaneSocketType, dataplaneCfg.dataplaneSocket)
-	if err != nil {
-		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneCfg.dataplaneSocket, err)
-		SetSocketListenFailed()
-	}
-
 	logrus.Infof("Creating %s server...", dataplaneCfg.name)
+
 	server := createServer(dataplaneCfg.nsmBaseDir, dataplaneCfg.egressInterface)
-	go server.Serve(ln)
+	go server.Serve(dataplaneCfg.listener)
+
 	logrus.Infof("%s server serving", dataplaneCfg.name)
 
 	elapsed := time.Since(start)

@@ -42,7 +42,7 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	registration := common.DataplaneMain(vppagent.NewServer)
+	registration := common.CreateDataplane(vppagent.NewServer)
 
 	select {
 	case <-c:
