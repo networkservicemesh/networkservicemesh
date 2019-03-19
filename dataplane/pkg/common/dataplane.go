@@ -118,10 +118,7 @@ func getDataplaneConfig() *dataplaneConfig {
 	dpCfg.egressInterface, err = NewEgressInterface(dpCfg.srcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
-	}
-	if err != nil {
-		logrus.Fatalf("Unable to extract interface name for SrcIP: %s", dpCfg.srcIP)
-		SetExtractIFNameFailed()
+		SetNewEgressIFFailed()
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", dpCfg.srcIP, dpCfg.egressInterface.Name, dpCfg.egressInterface.SrcIPNet())
 

@@ -29,7 +29,7 @@ const (
 var (
 	srcIPOK        = true
 	validIPOK      = true
-	ifNameOK       = true
+	egressOK       = true
 	socketCleanOK  = true
 	socketListenOK = true
 )
@@ -42,8 +42,8 @@ func SetValidIPFailed() {
 	validIPOK = false
 }
 
-func SetExtractIFNameFailed() {
-	ifNameOK = false
+func SetNewEgressIFFailed() {
+	egressOK = false
 }
 
 func SetSocketCleanFailed() {
@@ -55,8 +55,8 @@ func SetSocketListenFailed() {
 }
 
 func readiness(w http.ResponseWriter, r *http.Request) {
-	if !srcIPOK || !validIPOK || !ifNameOK || !socketCleanOK || !socketListenOK {
-		errMsg := fmt.Sprintf("VPP Agent not ready. srcIPOK - %t, validIPOK - %t, ifNameOK - %t, socketCleanOK - %t, socketListenOK - %t", srcIPOK, validIPOK, ifNameOK, socketCleanOK, socketListenOK)
+	if !srcIPOK || !validIPOK || !egressOK || !socketCleanOK || !socketListenOK {
+		errMsg := fmt.Sprintf("VPP Agent not ready. srcIPOK - %t, validIPOK - %t, egressOK - %t, socketCleanOK - %t, socketListenOK - %t", srcIPOK, validIPOK, egressOK, socketCleanOK, socketListenOK)
 		http.Error(w, errMsg, http.StatusServiceUnavailable)
 	} else {
 		w.Write([]byte("OK"))
