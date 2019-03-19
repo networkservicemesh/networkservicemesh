@@ -5,9 +5,10 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -34,10 +35,10 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	k8s.Prepare("nsmd")
 
-	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
+	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
 
 	k8s.WaitLogsContains(nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
-	
+
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
 	defer fwd.Stop()
@@ -143,7 +144,7 @@ func TestUpdateNSM(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	k8s.Prepare("nsmd")
-	nsmd := k8s.CreatePod(pods.NSMDPod("nsmd-1", nil))
+	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
@@ -246,7 +247,6 @@ func TestGetEndpoints(t *testing.T) {
 	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
 	Expect(err).To(BeNil())
 	defer fwd.Stop()
-
 
 	e := fwd.Start()
 	if e != nil {

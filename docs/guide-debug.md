@@ -120,13 +120,13 @@ or do not pass this env variable to use vagrant mapped default value in case of 
 In integration test please create NSMD with following options:
 
 ```go
-nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMDPodConfig{
-    &pods.NSMDPodConfig{Nsmd:pods.NSMDPodRun},
+nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+    &pods.NSMgrPodConfig{Nsmd:pods.NSMgrContainerRun},
 })
 ```
 
-* NSMDPodRun - execute run.sh for nsmd/etc.
-* NSMDPodDebug - execute debug.sh for nsmd/etc.
+* NSMgrContainerRun - execute run.sh for nsmd/etc.
+* NSMgrContainerDebug - execute debug.sh for nsmd/etc.
 
 ### IDEs
 

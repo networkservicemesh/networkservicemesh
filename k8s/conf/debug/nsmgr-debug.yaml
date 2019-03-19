@@ -1,45 +1,34 @@
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: nsmd
+  name: nsmgr
 spec:
   template:
     metadata:
       labels:
-        app: nsmd-ds
+        app: nsmgr-daemonset
     spec:
       containers:
         - name: nsmdp
-          image: {{ .Values.registry }}/networkservicemesh/nsmdp:{{ .Values.tag }}
-          imagePullPolicy: {{ .Values.pullPolicy }}
+          image: networkservicemesh/nsmdp
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: kubelet-socket
               mountPath: /var/lib/kubelet/device-plugins
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
         - name: nsmd
-          image: {{ .Values.registry }}/networkservicemesh/nsmd:{{ .Values.tag }}
-          imagePullPolicy: {{ .Values.pullPolicy }}
+          image: networkservicemesh/devenv:latest
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
-          livenessProbe:
-            httpGet:
-              path: /liveness
-              port: 5555
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 3
-          readinessProbe:
-            httpGet:
-              path: /readiness
-              port: 5555
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 3
+            - name: sources
+              mountPath: /go/src
         - name: nsmd-k8s
-          image: {{ .Values.registry }}/networkservicemesh/nsmd-k8s:{{ .Values.tag }}
-          imagePullPolicy: {{ .Values.pullPolicy }}
+          image: networkservicemesh/nsmd-k8s
+          imagePullPolicy: IfNotPresent
           env:
             - name: NODE_NAME
               valueFrom:
@@ -54,3 +43,7 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: nsm-socket
+        - hostPath:
+            path: /go/src
+            type: DirectoryOrCreate
+          name: sources

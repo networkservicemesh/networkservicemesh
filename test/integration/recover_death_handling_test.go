@@ -61,7 +61,7 @@ func TestNSEDiesMultiNode(t *testing.T) {
 	testDie(t, false, 2)
 }
 
-var NSENoHeal = &pods.NSMDPodConfig {
+var NSENoHeal = &pods.NSMgrPodConfig {
 	Variables: map[string]string{
 		nsmd.NsmdDeleteLocalRegistry : "true", // Do not use local registry restore for clients/NSEs
 		nsm.NsmdHealDSTWaitTimeout: "1", // 1 second
@@ -78,7 +78,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMDPodConfig{NSENoHeal, NSENoHeal})
+	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{NSENoHeal, NSENoHeal})
 
 	failures := InterceptGomegaFailures(func() {
 		icmp := nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

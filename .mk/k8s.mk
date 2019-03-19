@@ -17,7 +17,7 @@ K8S_CONF_DIR = k8s/conf
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_TRACING = jaeger
 DEPLOY_WEBHOOK = admission-webhook
-DEPLOY_NSM = nsmd vppagent-dataplane
+DEPLOY_NSM = nsmgr vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
@@ -163,15 +163,15 @@ k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)
 k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
 	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
 
-NSMD_CONTAINERS = nsmd nsmdp nsmd-k8s
-.PHONY: k8s-nsmd-build
-k8s-nsmd-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_CONTAINERS)))
+NSMGR_CONTAINERS = nsmd nsmdp nsmd-k8s
+.PHONY: k8s-nsmgr-build
+k8s-nsmgr-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMGR_CONTAINERS)))
 
-.PHONY: k8s-nsmd-save
-k8s-nsmd-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMD_CONTAINERS)))
+.PHONY: k8s-nsmgr-save
+k8s-nsmgr-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMGR_CONTAINERS)))
 
-.PHONY: k8s-nsmd-load-images
-k8s-nsmd-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMD_CONTAINERS)))
+.PHONY: k8s-nsmgr-load-images
+k8s-nsmgr-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMGR_CONTAINERS)))
 
 VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane vppagent-dataplane-dev
 .PHONY: k8s-vppagent-dataplane-build
@@ -189,7 +189,7 @@ k8s-secure-intranet-connectivity-save:
 
 .PHONY: k8s-secure-intranet-connectivity-load-images
 k8s-secure-intranet-connectivity-load-images:
-	@echo "Wait for nsmd to register the resources"
+	@echo "Wait for NSMgr to register the resources"
 	@sleep 10
 
 .PHONY: k8s-skydive-build
@@ -331,11 +331,11 @@ k8s-%-logs:
 		fi; \
 	done
 
-.PHONY: k8s-nsmd-logs
-k8s-nsmd-logs:
+.PHONY: k8s-nsmgr-logs
+k8s-nsmgr-logs:
 	@echo "K8s logs for nsmds"
 	@echo '******************************************'
-	@for pod in $$(kubectl get pods --all-namespaces | grep nsmd | awk '{print $$2}'); do \
+	@for pod in $$(kubectl get pods --all-namespaces | grep nsmgr | awk '{print $$2}'); do \
 		for container in nsmd nsmdp nsmd-k8s; do \
 			echo '------------------------------------------'; \
 			echo "K8s logs for $${pod} container $${container}"; \
@@ -352,8 +352,8 @@ k8s-%-debug:
 	@echo "Debugging $*"
 	@kubectl exec -ti $$(kubectl get pods | grep $*- | cut -d \  -f1) /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh $*
 
-.PHONY: k8s-nsmd-debug
-k8s-nsmd-debug:
+.PHONY: k8s-nsmgr-debug
+k8s-nsmgr-debug:
 	@kubectl exec -ti $(pod) -c nsmd /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh nsmd
 
 .PHONY: k8s-forward
@@ -377,13 +377,13 @@ k8s-kublet-restart: vagrant-kublet-restart
 k8s-pods:
 	@kubectl get pods -o wide
 
-.PHONY: k8s-nsmd-master-tlogs
-k8s-nsmd-master-tlogs:
-	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-master | grep nsmd | cut -d\  -f1) -c nsmd
+.PHONY: k8s-nsmgr-master-tlogs
+k8s-nsmgr-master-tlogs:
+	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-master | grep nsmgr | cut -d\  -f1) -c nsmd
 
-.PHONY: k8s-nsmd-worker-tlogs
-k8s-nsmd-worker-tlogs:
-	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-worker | grep nsmd | cut -d\  -f1) -c nsmd
+.PHONY: k8s-nsmgr-worker-tlogs
+k8s-nsmgr-worker-tlogs:
+	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-worker | grep nsmgr | cut -d\  -f1) -c nsmd
 
 
 

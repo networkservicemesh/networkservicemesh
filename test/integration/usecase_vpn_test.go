@@ -99,9 +99,9 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 
 	s1 = time.Now()
 	for k := 0; k < nodesCount; k++ {
-		corePodName := fmt.Sprintf("nsmd-%d", k)
+		corePodName := fmt.Sprintf("nsmgr-%d", k)
 		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", k)
-		corePods := k8s.CreatePods(pods.NSMDPod(corePodName, &nodes[k]), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
+		corePods := k8s.CreatePods(pods.NSMgrPod(corePodName, &nodes[k]), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
 		logrus.Printf("Started NSMD/Dataplane: %v on node %d", time.Since(s1), k)
 		nsmdPodNode = append(nsmdPodNode, corePods[0])
 		nsmdDataplanePodNode = append(nsmdDataplanePodNode, corePods[1])

@@ -28,7 +28,7 @@ fi
 kubectl get nodes -o wide
 kubectl version
 kubectl api-versions
-kubectl label --overwrite --all=true nodes app=nsmd-ds
+kubectl label --overwrite --all=true nodes app=nsmgr-daemonset
 
 kubectl apply -f k8s/conf/cluster-role-admin.yaml
 kubectl apply -f k8s/conf/cluster-role-binding.yaml

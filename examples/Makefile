@@ -111,7 +111,7 @@ docker-logs: $(addsuffix -logs,$(addprefix docker-,$(LOG_CONTAINERS)))
 
 .PHONY: docker-%-logs
 docker-%-logs:
-	@echo "Showing nsmd logs..."
+	@echo "Showing NSMgr logs..."
 	@xargs docker logs < /tmp/container.$*
 
 

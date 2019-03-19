@@ -58,7 +58,7 @@ make k8s-infra-deploy
 
 ### Verify the services are up and running
 
-The following check should show two `nsmd`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
+The following check should show two `nsmgr`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
 
 ```bash
 kubectl get pods
@@ -67,11 +67,11 @@ kubectl get pods
 This will allow you to see your Network Service Mesh daemonset running:
 
 ```bash
-kubectl get daemonset nsmd
+kubectl get daemonset nsmgr
 
 
 NAME   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-nsmd   2         2         2       2            2           <none>          19m
+nsmgr   2         2         2       2            2           <none>          19m
 ```
 
 ## Deploy the Network Service Mesh examples

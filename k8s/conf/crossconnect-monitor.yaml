@@ -5,7 +5,7 @@ spec:
   template:
     metadata:
       labels:
-        app: nsmd-ds
+        app: nsmgr-daemonset
     spec:
       containers:
         - name: crossconnect-monitor
