@@ -200,10 +200,7 @@ func newVppAgentAclComposite(configuration *common.NSConfiguration) *vppAgentAcl
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
 
-	newVppAgentAclComposite.aclRules = map[string]string{
-		"Allow ICMP":   "action=reflect,icmptype=8",
-		"Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80",
-	}
+	newVppAgentAclComposite.aclRules = getAclRulesConfig()
 
 	newVppAgentAclComposite.SetSelf(newVppAgentAclComposite)
 

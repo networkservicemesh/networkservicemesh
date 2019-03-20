@@ -6,6 +6,7 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/gogo/protobuf v1.2.0
@@ -29,7 +30,7 @@ require (
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.0
-	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/spf13/viper v1.3.2
 	github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c
 	github.com/uber-go/atomic v1.3.2 // indirect
 	github.com/uber/jaeger-client-go v2.15.0+incompatible
@@ -45,7 +46,6 @@ require (
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
 	google.golang.org/grpc v1.19.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 	k8s.io/api v0.0.0-20181213150558-05914d821849
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
 	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93

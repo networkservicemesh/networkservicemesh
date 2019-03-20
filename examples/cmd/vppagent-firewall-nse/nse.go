@@ -32,6 +32,8 @@ func main() {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
 
+	initConfig()
+
 	configuration := &common.NSConfiguration{
 		MechanismType: "mem",
 	}
