@@ -35,6 +35,5 @@ func initConfig() {
 }
 
 func getAclRulesConfig() map[string]string {
-	logrus.Infof("ACL Rules: \n %v", viper.GetStringMapString(aclRules))
 	return viper.GetStringMapString(aclRules)
 }
