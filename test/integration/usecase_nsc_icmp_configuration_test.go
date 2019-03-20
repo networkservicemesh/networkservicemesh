@@ -92,9 +92,9 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	config := []*pods.NSMDPodConfig{}
+	config := []*pods.NSMgrPodConfig{}
 	for i := 0; i< nodesCount;i++ {
-		cfg := &pods.NSMDPodConfig{}
+		cfg := &pods.NSMgrPodConfig{}
 		if disableVHost {
 			cfg.DataplaneVariables = map[string]string{}
 			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
