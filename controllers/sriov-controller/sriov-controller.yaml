@@ -26,9 +26,12 @@ roleRef:
   name: sriov-controller
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 spec:
+  selector:
+    matchLabels:
+      app: sriov-controller
   template:
     metadata:
       labels:
