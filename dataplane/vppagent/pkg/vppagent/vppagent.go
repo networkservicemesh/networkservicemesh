@@ -16,6 +16,7 @@ package vppagent
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
@@ -53,7 +54,15 @@ type VPPAgent struct {
 	directMemifConnector *memif.DirectMemifConnector
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, egressInterface *common.EgressInterface) *VPPAgent {
+func NewVPPAgent(monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, egressInterface *common.EgressInterface) *VPPAgent {
+
+	vppAgentEndpoint, ok := os.LookupEnv(common.DataplaneVPPAgentEndpointKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", common.DataplaneVPPAgentEndpointKey, common.DefaultVPPAgentEndpoint)
+		vppAgentEndpoint = common.DefaultVPPAgentEndpoint
+	}
+	logrus.Infof("vppAgentEndpoint: %s", vppAgentEndpoint)
+
 	// TODO provide some validations here for inputs
 	rv := &VPPAgent{
 		updateCh:         make(chan *Mechanisms, 1),
