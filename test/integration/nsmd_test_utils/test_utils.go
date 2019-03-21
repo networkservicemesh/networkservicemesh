@@ -35,16 +35,19 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 		nsmdName := fmt.Sprintf("nsmgr-%s", node.Name)
 		dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
 		var corePod *v1.Pod
+		var dataplanePod *v1.Pod
 		debug := false
 		if i >= len(conf) {
 			corePod = pods.NSMgrPod(nsmdName, node)
+			dataplanePod = pods.VPPDataplanePod(dataplaneName, node)
 		} else {
 			if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 				debug = true
 			}
 			corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
+			dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, conf[i].DataplaneVariables)
 		}
-		corePods := k8s.CreatePods(corePod, pods.VPPDataplanePod(dataplaneName, node))
+		corePods := k8s.CreatePods(corePod, dataplanePod)
 		if debug {
 			podContainer := "nsmd"
 			if conf[i].Nsmd == pods.NSMgrContainerDebug {

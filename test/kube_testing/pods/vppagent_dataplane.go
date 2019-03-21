@@ -1,19 +1,23 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, nil, nil)
+	return createVPPDataplanePod(name, node, nil, nil, nil)
+}
+
+func VPPDataplanePodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
+	return createVPPDataplanePod(name, node, nil, nil, variables)
 }
 
 func VPPDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"))
+	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
 }
 
-func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe) *v1.Pod {
+func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -84,6 +88,14 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 				}),
 			},
 		},
+	}
+	if len(variables) > 0 {
+		for k, v := range (variables) {
+			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
 	}
 	if node != nil {
 		pod.Spec.NodeSelector = map[string]string{
