@@ -1,5 +1,15 @@
 #!/bin/sh
-kubeadm init --pod-network-cidr=192.168.0.0/16 --skip-token-print
+cat <<EOF > "$HOME"/cluster-config.yaml
+apiVersion: kubeadm.k8s.io/v1alpha3
+kind: ClusterConfiguration
+etcd:
+  local:
+    image: gcr.io/etcd-development/etcd:v3.3.12
+networking:
+  podSubnet: 192.168.0.0/16
+EOF
+
+kubeadm init --config "$HOME"/cluster-config.yaml --skip-token-print
 
 mkdir -p "$HOME"/.kube
 sudo cp -f /etc/kubernetes/admin.conf "$HOME"/.kube/config
