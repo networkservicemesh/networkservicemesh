@@ -26,33 +26,33 @@ NSM SDK configuration is common for both Client and Endpoint APIs. It is done by
 
 ```go
 type NSConfiguration struct {
-    NsmServerSocket    string
-    NsmClientSocket    string
-    Workspace          string
-    AdvertiseNseName   string // ADVERTISE_NSE_NAME
-    OutgoingNscName    string // OUTGOING_NSC_NAME
-    AdvertiseNseLabels string // ADVERTISE_NSE_LABELS
-    OutgoingNscLabels  string // OUTGOING_NSC_LABELS
-    TracerEnabled      bool   // TRACER_ENABLED
-    MechanismType      string // MECHANISM_TYPE
-    IPAddress          string // IP_ADDRESS
-    Routes             []string // ROUTES
+	NsmServerSocket    string
+	NsmClientSocket    string
+	Workspace          string
+	AdvertiseNseName   string // ENDPOINT_NETWORK_SERVICE
+	OutgoingNscName    string // CLIENT_NETWORK_SERVICE
+	AdvertiseNseLabels string // ENDPOINT_LABELS
+	OutgoingNscLabels  string // CLIENT_LABELS
+	TracerEnabled      bool   // TRACER_ENABLED
+	MechanismType      string // MECHANISM_TYPE
+	IPAddress          string // IP_ADDRESS
+        Routes             []string // ROUTES
 }
 ```
 
 Note that some of the members of this structure can be initialized through the environment variables shown as comments above. A detailed explanation of each configuration option follows:
 
-* `NsmServerSocket` - [ *system* ], NS manager communication socket
-* `NsmClientSocket` - [ *system* ], NS manager communication socket
-* `Workspace` - [ *system* ], Kubernetes Pod namespace
-* `AdvertiseNseName` - [ `ADVERTISE_NSE_NAME` ], the *endpoint* name, as advertised to the NS registry
-* `OutgoingNscName` - [ `OUTGOING_NSC_NAME` ], the *endpoint* name, as the *client* looks up in the NS registry
-* `AdvertiseNseLabels` - [ `ADVERTISE_NSE_LABELS` ], the *endpoint* labels, as advertised to the NS registry. Used in NSM's selector to match the DestinationSelector. The format is `label1=value1,label2=value2`
-* `OutgoingNscLabels` - [ `OUTGOING_NSC_LABELS` ], the *endpoint* labels, as send by the *client* . Used in NSM's selector to match the SourceSelector. The format is the same as `AdvertiseNseLabels`
-* `TracerEnabled` - [ `TRACER_ENABLED` ], enable the Jaeger tracing for an *endpoint*
-* `MechanismType` - [ `MECHANISM_TYPE` ], enforce a particular Mechanism type. Currently `kernel` or `mem`. Defaults to `kernel`
-* `IPAddress` - [ `IP_ADDRESS` ], the IP network to initialize a prefix pool in the IPAM composite
-* `Routes` - [ `ROUTES` ], list of routes that will be set into connection's context by *Client*
+ * `NsmServerSocket` - [ *system* ], NS manager communication socket
+ * `NsmClientSocket` - [ *system* ], NS manager communication socket
+ * `Workspace` - [ *system* ], Kubernetes Pod namespace
+ * `AdvertiseNseName` - [ `ENDPOINT_NETWORK_SERVICE` ], the *endpoint* name, as advertised to the NS registry
+ * `OutgoingNscName` - [ `CLIENT_NETWORK_SERVICE` ], the *endpoint* name, as the *client* looks up in the NS registry
+ * `AdvertiseNseLabels` - [ `ENDPOINT_LABELS` ], the *endpoint* labels, as advertised to the NS registry. Used in NSM's selector to match the DestinationSelector. The format is `label1=value1,label2=value2`
+ * `OutgoingNscLabels` - [ `CLIENT_LABELS` ], the *endpoint* labels, as send by the *client* . Used in NSM's slector to match the SourceSelector. The format is the same as `AdvertiseNseLabels`
+ * `TracerEnabled` - [ `TRACER_ENABLED` ], enable the Jager tracing for an *endpoint*
+ * `MechanismType` - [ `MECHANISM_TYPE` ], enforce a particular Mechanism type. Currently `kernel` or `mem`. Defaults to `kernel`
+ * `IPAddress` - [ `IP_ADDRESS` ], the IP network to initalize a prefix pool in the IPAM composite
+ * `Routes` - [ `ROUTES` ], list of routes that will be set into connection's context by *Client*
 
 ## Implementing a Client
 

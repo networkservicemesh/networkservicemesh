@@ -34,9 +34,9 @@ spec:
           env:
             - name: TEST_APPLICATION
               value: "vppagent-icmp-responder-nse"
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "icmp-responder"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=icmp-responder"
             - name: TRACER_ENABLED
               value: "true"

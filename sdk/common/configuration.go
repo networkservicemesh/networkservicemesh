@@ -24,10 +24,10 @@ import (
 )
 
 const (
-	advertiseNseNameEnv   = "ADVERTISE_NSE_NAME"
-	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
-	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
-	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
+	advertiseNseNameEnv   = "ENDPOINT_NETWORK_SERVICE"
+	advertiseNseLabelsEnv = "ENDPOINT_LABELS"
+	outgoingNscNameEnv    = "CLIENT_NETWORK_SERVICE"
+	outgoingNscLabelsEnv  = "CLIENT_LABELS"
 	tracerEnabled         = "TRACER_ENABLED"
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
