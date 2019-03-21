@@ -31,6 +31,24 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
+          volumeMounts:
+            - mountPath: /etc/vppagent-firewall/config.yaml
+              subPath: config.yaml
+              name: vppagent-firewall-config-volume
+      volumes:
+        - name: vppagent-firewall-config-volume
+          configMap:
+            name: vppagent-firewall-config-file
 metadata:
   name: vppagent-firewall-nse
   namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vppagent-firewall-config-file
+data:
+  config.yaml: |
+    aclRules:
+      "Allow ICMP": "action=reflect,icmptype=8"
+      "Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80"
