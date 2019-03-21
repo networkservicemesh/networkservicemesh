@@ -51,6 +51,7 @@ type NSMgrPodConfig struct {
 	NsmdK8s             NSMgrContainerMode // nsmd-k8s launch options - debug - for debug.sh, run - for run.sh
 	NsmdP               NSMgrContainerMode // nsmdp launch options - debug - for debug.sh, run - for run.sh
 	Variables           map[string]string
+	DataplaneVariables  map[string]string
 	liveness, readiness *v1.Probe
 }
 
