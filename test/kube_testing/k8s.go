@@ -24,7 +24,7 @@ import (
 
 const (
 	podStartTimeout  = 1 * time.Minute
-	podDeleteTimeout = 1 * time.Minute
+	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
 )
@@ -271,9 +271,29 @@ func NewK8s() (*K8s, error) {
 	return &client, nil
 }
 
+// Immediate deletion does not wait for confirmation that the running resource has been terminated.
+// The resource may continue to run on the cluster indefinitely
+func (o *K8s) deletePodForce(pod *v1.Pod) error {
+	graceTimeout := int64(0)
+	delOpt := &metaV1.DeleteOptions{
+		GracePeriodSeconds: &graceTimeout,
+	}
+	err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+	defer cancel()
+	err = blockUntilPodWorking(o.clientset, ctx, pod)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Delete POD with completion check
 // Make force delete on timeout
-func (o *K8s) deletePodsSafe(timeout int, pods ...*v1.Pod) error {
+func (o *K8s) deletePods(pods ...*v1.Pod) error {
 	for _, pod := range pods {
 		delOpt := &metaV1.DeleteOptions{}
 		err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
@@ -281,38 +301,15 @@ func (o *K8s) deletePodsSafe(timeout int, pods ...*v1.Pod) error {
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout) * time.Second)
-		defer cancel()
-		err = blockUntilPodWorking(o.clientset, ctx, pod)
-		if err != nil {
-			err = o.deletePods(pod)
-			logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-	}
-
-	return nil
-}
-
-// Immediate deletion does not wait for confirmation that the running resource has been terminated.
-// The resource may continue to run on the cluster indefinitely
-func (o *K8s) deletePods(pods ...*v1.Pod) error {
-	for _, pod := range pods {
-		graceTimeout := int64(0)
-		delOpt := &metaV1.DeleteOptions{
-			GracePeriodSeconds: &graceTimeout,
-		}
-		err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
-		if err != nil {
-			return err
-		}
 		ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
 		defer cancel()
 		err = blockUntilPodWorking(o.clientset, ctx, pod)
 		if err != nil {
-			return err
+			err = o.deletePodForce(pod)
+			logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
+			if err != nil {
+				logrus.Error(err)
+			}
 		}
 	}
 
@@ -423,21 +420,6 @@ func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 	return results[0]
 }
 
-func (l *K8s) DeletePodsSafe(timeout int, pods ...*v1.Pod) {
-	err := l.deletePodsSafe(timeout, pods...)
-	Expect(err).To(BeNil())
-
-	for _, pod := range pods {
-		for idx, pod0 := range l.pods {
-			if pod.Name == pod0.Name {
-				l.pods = append(l.pods[:idx], l.pods[idx+1:]...)
-			}
-		}
-	}
-}
-
-// Immediate deletion does not wait for confirmation that the running resource has been terminated.
-// The resource may continue to run on the cluster indefinitely
 func (l *K8s) DeletePods(pods ...*v1.Pod) {
 	err := l.deletePods(pods...)
 	Expect(err).To(BeNil())
