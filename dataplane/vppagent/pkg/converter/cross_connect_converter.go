@@ -2,12 +2,12 @@ package converter
 
 import (
 	"fmt"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	"github.com/ligato/vpp-agent/api/models/vpp/l2"
 	"path"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-
-	"github.com/ligato/vpp-agent/plugins/vpp/model/l2"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 )
 
 type CrossConnectConverter struct {
@@ -22,7 +22,7 @@ func NewCrossConnectConverter(c *crossconnect.CrossConnect, conversionParameters
 	}
 }
 
-func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
 		return rv, fmt.Errorf("CrossConnectConverter cannot be nil")
 	}
@@ -30,7 +30,10 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 		return rv, err
 	}
 	if rv == nil {
-		rv = &rpc.DataRequest{}
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
 	}
 	if c.GetLocalSource() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
@@ -74,15 +77,15 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 		}
 	}
 
-	if len(rv.Interfaces) < 2 {
-		return nil, fmt.Errorf("Did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.Interfaces))
+	if len(rv.VppConfig.Interfaces) < 2 {
+		return nil, fmt.Errorf("Did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.VppConfig.Interfaces))
 	}
-	ifaces := rv.Interfaces[len(rv.Interfaces)-2:]
-	rv.XCons = append(rv.XCons, &l2.XConnectPairs_XConnectPair{
+	ifaces := rv.VppConfig.Interfaces[len(rv.VppConfig.Interfaces)-2:]
+	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
 		ReceiveInterface:  ifaces[0].Name,
 		TransmitInterface: ifaces[1].Name,
 	})
-	rv.XCons = append(rv.XCons, &l2.XConnectPairs_XConnectPair{
+	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
 		ReceiveInterface:  ifaces[1].Name,
 		TransmitInterface: ifaces[0].Name,
 	})

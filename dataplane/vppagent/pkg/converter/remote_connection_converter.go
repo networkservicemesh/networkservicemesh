@@ -17,8 +17,9 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +41,7 @@ func NewRemoteConnectionConverter(c *connection.Connection, name string, side Co
 }
 
 // ToDataRequest handles the data request
-func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
 		return rv, fmt.Errorf("RemoteConnectionConverter cannot be nil")
 	}
@@ -51,7 +52,10 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		return rv, fmt.Errorf("RemoteConnectionConverter supports only VXLAN. Attempt to use Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
-		rv = &rpc.DataRequest{}
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
 	}
 
 	m := c.GetMechanism()
@@ -70,14 +74,16 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANDstIP, dstip)
 	logrus.Infof("m.GetParameters()[%s]: %d", connection.VXLANVNI, vni)
 
-	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
+	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:    c.name,
-		Type:    interfaces.InterfaceType_VXLAN_TUNNEL,
+		Type:    vpp_interfaces.Interface_VXLAN_TUNNEL,
 		Enabled: true,
-		Vxlan: &interfaces.Interfaces_Interface_Vxlan{
-			SrcAddress: srcip,
-			DstAddress: dstip,
-			Vni:        vni,
+		Link: &vpp_interfaces.Interface_Vxlan{
+			Vxlan: &vpp_interfaces.VxlanLink{
+				SrcAddress: srcip,
+				DstAddress: dstip,
+				Vni: vni,
+			},
 		},
 	})
 

@@ -2,10 +2,13 @@ package converter
 
 import (
 	"fmt"
-	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/linux"
+	linux_interfaces "github.com/ligato/vpp-agent/api/models/linux/interfaces"
+	"github.com/ligato/vpp-agent/api/models/linux/l3"
+	"github.com/ligato/vpp-agent/api/models/linux/namespace"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -25,7 +28,7 @@ func NewKernelConnectionConverter(c *connection.Connection, conversionParameters
 	}
 }
 
-func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
 		return rv, fmt.Errorf("LocalConnectionConverter cannot be nil")
 	}
@@ -36,7 +39,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		return rv, fmt.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
-		rv = &rpc.DataRequest{}
+		rv = &configurator.Config{
+			LinuxConfig: &linux.ConfigData{},
+		}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
+	}
+	if rv.LinuxConfig == nil {
+		rv.LinuxConfig = &linux.ConfigData{}
 	}
 
 	m := c.GetMechanism()
@@ -71,13 +82,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		//          LinuxInterfaces can only be applied if vppagent finds the
 		//          interface in vppagent's netns.  So leave it there in the Interfaces
 		//          The interface name may be no longer than 15 chars (Linux limitation)
-		rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
+		rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp_interfaces.Interface{
 			Name:    c.conversionParameters.Name,
-			Type:    interfaces.InterfaceType_TAP_INTERFACE,
+			Type:    vpp_interfaces.Interface_TAP,
 			Enabled: true,
-			Tap: &interfaces.Interfaces_Interface_Tap{
-				Version:    2,
-				HostIfName: tmpIface,
+			Link: &vpp_interfaces.Interface_Tap{
+				Tap: &vpp_interfaces.TapLink{
+					Version: 2,
+					HostIfName:tmpIface,
+				},
 			},
 		})
 		logrus.Info("Found /dev/vhost-net - using tapv2")
@@ -86,55 +99,63 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 		//    - If you have created a TAP, LinuxInterfaces.Tap.TempIfName must match
 		//      Interfaces.Tap.HostIfName from above
 		//    - LinuxInterfaces.HostIfName - must be no longer than 15 chars (linux limitation)
-		rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
+		rv.LinuxConfig.Interfaces = append(rv.LinuxConfig.Interfaces, &linux.Interface{
 			Name:        c.conversionParameters.Name,
-			Type:        linux_interfaces.LinuxInterfaces_AUTO_TAP,
+			Type:        linux_interfaces.Interface_TAP_TO_VPP,
 			Enabled:     true,
-			Description: m.GetParameters()[connection.InterfaceDescriptionKey],
+			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
-			Namespace: &linux_interfaces.LinuxInterfaces_Interface_Namespace{
-				Type:     linux_interfaces.LinuxInterfaces_Interface_Namespace_FILE_REF_NS,
-				Filepath: filepath,
+			Namespace: &linux_namespace.NetNamespace {
+				Type:     linux_namespace.NetNamespace_FD,
+				Reference: filepath,
 			},
-			Tap: &linux_interfaces.LinuxInterfaces_Interface_Tap{
-				TempIfName: tmpIface,
+			Link: &linux_interfaces.Interface_Tap {
+				Tap: &linux_interfaces.TapLink{
+					VppTapIfName: tmpIface,
+				},
 			},
 		})
 	} else {
 		logrus.Info("Did Not Find /dev/vhost-net - using veth pairs")
-		rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
+		rv.LinuxConfig.Interfaces = append(rv.LinuxConfig.Interfaces, &linux_interfaces.Interface{
 			Name:        tmpIface,
-			Type:        linux_interfaces.LinuxInterfaces_VETH,
+			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
-			Description: m.GetParameters()[connection.InterfaceDescriptionKey],
+			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
 			HostIfName:  tmpIface,
-			Veth: &linux_interfaces.LinuxInterfaces_Interface_Veth{
-				PeerIfName: c.conversionParameters.Name,
+			Link: &linux_interfaces.Interface_Veth{
+				Veth: &linux_interfaces.VethLink{
+					PeerIfName: c.conversionParameters.Name,
+				},
 			},
 		})
-		rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
+		rv.LinuxConfig.Interfaces = append(rv.LinuxConfig.Interfaces, &linux_interfaces.Interface{
 			Name:        c.conversionParameters.Name,
-			Type:        linux_interfaces.LinuxInterfaces_VETH,
+			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
-			Description: m.GetParameters()[connection.InterfaceDescriptionKey],
+			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
-			Namespace: &linux_interfaces.LinuxInterfaces_Interface_Namespace{
-				Type:     linux_interfaces.LinuxInterfaces_Interface_Namespace_FILE_REF_NS,
-				Filepath: filepath,
+			Namespace: &linux_namespace.NetNamespace {
+				Type:     linux_namespace.NetNamespace_FD,
+				Reference: filepath,
 			},
-			Veth: &linux_interfaces.LinuxInterfaces_Interface_Veth{
-				PeerIfName: tmpIface,
+			Link: &linux_interfaces.Interface_Veth{
+				Veth: &linux_interfaces.VethLink{
+					PeerIfName:	tmpIface,
+				},
 			},
 		})
-		rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
+		rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp_interfaces.Interface{
 			Name:    c.conversionParameters.Name,
-			Type:    interfaces.InterfaceType_AF_PACKET_INTERFACE,
+			Type:    vpp_interfaces.Interface_AF_PACKET,
 			Enabled: true,
-			Afpacket: &interfaces.Interfaces_Interface_Afpacket{
-				HostIfName: tmpIface,
+			Link: &vpp_interfaces.Interface_Afpacket {
+				Afpacket: &vpp_interfaces.AfpacketLink{
+					HostIfName: tmpIface,
+				},
 			},
 		})
 
@@ -142,16 +163,12 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 
 	// Process static routes
 	if c.conversionParameters.Side == SOURCE {
-		for idx, route := range c.Connection.GetContext().GetRoutes() {
-			rv.LinuxRoutes = append(rv.LinuxRoutes, &l3.LinuxStaticRoutes_Route{
-				Name:        fmt.Sprintf("%s_route_%d", c.conversionParameters.Name, idx),
-				DstIpAddr:   route.Prefix,
-				Description: "Route to " + route.Prefix,
-				Interface:   c.conversionParameters.Name,
-				Namespace: &l3.LinuxStaticRoutes_Route_Namespace{
-					Type:     l3.LinuxStaticRoutes_Route_Namespace_FILE_REF_NS,
-					Filepath: filepath,
-				},
+		for _, route := range c.Connection.GetContext().GetRoutes() {
+			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
+				DstNetwork:   route.Prefix,
+				//Description: "Route to " + route.Prefix,
+				OutgoingInterface:   c.conversionParameters.Name,
+				Scope: linux_l3.Route_HOST,
 				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 			})
 		}
@@ -159,19 +176,12 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 
 	// Process IP Neighbor entries
 	if c.conversionParameters.Side == SOURCE {
-		for idx, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
-			rv.LinuxArpEntries = append(rv.LinuxArpEntries, &l3.LinuxStaticArpEntries_ArpEntry{
-				Name:      fmt.Sprintf("%s_arp_%d", c.conversionParameters.Name, idx),
-				IpAddr:    neightbour.Ip,
+		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
+			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
+				//Name:      fmt.Sprintf("%s_arp_%d", c.conversionParameters.Name, idx),
+				IpAddress:    neightbour.Ip,
 				Interface: c.conversionParameters.Name,
 				HwAddress: neightbour.HardwareAddress,
-				Namespace: &l3.LinuxStaticArpEntries_ArpEntry_Namespace{
-					Type:     l3.LinuxStaticArpEntries_ArpEntry_Namespace_FILE_REF_NS,
-					Filepath: filepath,
-				},
-				State: &l3.LinuxStaticArpEntries_ArpEntry_NudState{
-					Type: l3.LinuxStaticArpEntries_ArpEntry_NudState_PERMANENT, // or NOARP, REACHABLE, STALE
-				},
 			})
 		}
 	}
