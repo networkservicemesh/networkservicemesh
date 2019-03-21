@@ -16,24 +16,27 @@ var defaultAclRules = map[string]string{
 	"Allow All": "action=reflect",
 }
 
+var viperConfig *viper.Viper
+
 func initConfig() {
-	viper.SetConfigName("config")                  // name of config file (without extension)
-	viper.AddConfigPath("/etc/vppagent-firewall/") // path to look for the config file in
+	viperConfig = viper.New()
+	viperConfig.SetConfigName("config")
+	viperConfig.AddConfigPath("/etc/vppagent-firewall/")
 
-	viper.SetDefault(aclRules, defaultAclRules)
+	viperConfig.SetDefault(aclRules, defaultAclRules)
 
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		logrus.Errorf("Error config file: %s \n", err)
+	err := viperConfig.ReadInConfig()
+	if err != nil {
+		logrus.Errorf("Error reading the config file: %s \n", err)
 	}
 
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
+	viperConfig.WatchConfig()
+	viperConfig.OnConfigChange(func(e fsnotify.Event) {
 		fmt.Println("Config file changed:", e.Name)
 	})
 	logrus.Infof("Firewall config finished")
 }
 
 func getAclRulesConfig() map[string]string {
-	return viper.GetStringMapString(aclRules)
+	return viperConfig.GetStringMapString(aclRules)
 }
