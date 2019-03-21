@@ -29,7 +29,6 @@ apiServerCertSANs:
 networking:
   podSubnet: 10.32.0.0/12
 EOF
-cat /vagrant/cluster-config.yaml
 
 kubeadm init --config /vagrant/cluster-config.yaml
 
