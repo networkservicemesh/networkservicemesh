@@ -16,12 +16,11 @@ package vppagent
 
 import (
 	"context"
+	"net"
 	"os"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -41,58 +40,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type VPPAgent struct {
-	// Parameters set in constructor
-	vppAgentEndpoint string
-	monitor          *crossconnect_monitor.CrossConnectMonitor
+// VPPAgent related constants
+const (
+	DataplaneNameKey           = "DATAPLANE_NAME"
+	DataplaneNameDefault       = "vppagent"
+	DataplaneSocketKey         = "DATAPLANE_SOCKET"
+	DataplaneSocketDefault     = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketTypeKey     = "DATAPLANE_SOCKET_TYPE"
+	DataplaneSocketTypeDefault = "unix"
+	DataplaneEndpointKey       = "VPPAGENT_ENDPOINT"
+	DataplaneEndpointDefault   = "localhost:9111"
+	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
+)
 
-	// Internal state from here on
+type VPPAgent struct {
+	vppAgentEndpoint     string
+	dpCfg                *common.DataplaneConfig
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
-	baseDir              string
-	egressInterface      *common.EgressInterface
 	directMemifConnector *memif.DirectMemifConnector
+	srcIP                []byte
+	egressInterface      *common.EgressInterface
 }
 
-func NewVPPAgent(monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, egressInterface *common.EgressInterface) *VPPAgent {
-
-	vppAgentEndpoint, ok := os.LookupEnv(common.DataplaneVPPAgentEndpointKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", common.DataplaneVPPAgentEndpointKey, common.DefaultVPPAgentEndpoint)
-		vppAgentEndpoint = common.DefaultVPPAgentEndpoint
-	}
-	logrus.Infof("vppAgentEndpoint: %s", vppAgentEndpoint)
-
-	// TODO provide some validations here for inputs
-	rv := &VPPAgent{
-		updateCh:         make(chan *Mechanisms, 1),
-		vppAgentEndpoint: vppAgentEndpoint,
-		baseDir:          baseDir,
-		egressInterface:  egressInterface,
-		monitor:          monitor,
-		mechanisms: &Mechanisms{
-			localMechanisms: []*local.Mechanism{
-				{
-					Type: local.MechanismType_KERNEL_INTERFACE,
-				},
-				{
-					Type: local.MechanismType_MEM_INTERFACE,
-				},
-			},
-			remoteMechanisms: []*remote.Mechanism{
-				{
-					Type: remote.MechanismType_VXLAN,
-					Parameters: map[string]string{
-						remote.VXLANSrcIP: egressInterface.SrcIPNet().IP.String(),
-					},
-				},
-			},
-		},
-		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
-	}
-	rv.reset()
-	rv.programMgmtInterface()
-	return rv
+func CreateVPPAgent() *VPPAgent {
+	return &VPPAgent{}
 }
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
@@ -133,7 +105,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
-	v.monitor.Update(xcon)
+	v.dpCfg.Monitor.Update(xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -158,7 +130,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 	conversionParameters := &converter.CrossConnectConversionParameters{
-		BaseDir: v.baseDir,
+		BaseDir: v.dpCfg.BaseCfg.NSMBaseDir,
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 	if err != nil {
@@ -290,6 +262,104 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.monitor.Delete(xcon)
+	v.dpCfg.Monitor.Delete(xcon)
 	return &empty.Empty{}, nil
+}
+
+func (v *VPPAgent) Init(dpCfg *common.DataplaneConfig) error {
+	v.dpCfg = dpCfg
+
+	v.setDataplaneConfigBase()
+	v.setDataplaneConfigVPPAgent()
+	v.reset()
+	v.programMgmtInterface()
+
+	return nil
+}
+
+func (v *VPPAgent) setDataplaneConfigBase() {
+	var ok bool
+
+	v.dpCfg.BaseCfg.Name, ok = os.LookupEnv(DataplaneNameKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
+		v.dpCfg.BaseCfg.Name = DataplaneNameDefault
+	}
+
+	logrus.Infof("Starting dataplane - %s", v.dpCfg.BaseCfg.Name)
+	v.dpCfg.BaseCfg.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
+		v.dpCfg.BaseCfg.DataplaneSocket = DataplaneSocketDefault
+	}
+	logrus.Infof("DataplaneSocket: %s", v.dpCfg.BaseCfg.DataplaneSocket)
+
+	v.dpCfg.BaseCfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
+		v.dpCfg.BaseCfg.DataplaneSocketType = DataplaneSocketTypeDefault
+	}
+	logrus.Infof("DataplaneSocketType: %s", v.dpCfg.BaseCfg.DataplaneSocketType)
+}
+
+func (v *VPPAgent) setDataplaneConfigVPPAgent() {
+	var err error
+
+	srcIPStr, ok := os.LookupEnv(SrcIPEnvKey)
+	if !ok {
+		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIPEnvKey)
+		common.SetSrcIPFailed()
+	}
+	v.srcIP = net.ParseIP(srcIPStr)
+	if v.srcIP == nil {
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIPEnvKey, srcIPStr)
+		common.SetValidIPFailed()
+	}
+
+	v.egressInterface, err = common.NewEgressInterface(v.srcIP)
+	if err != nil {
+		logrus.Fatalf("Unable to find egress Interface: %s", err)
+		common.SetNewEgressIFFailed()
+	}
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name, v.egressInterface.SrcIPNet())
+
+	err = tools.SocketCleanup(v.dpCfg.BaseCfg.DataplaneSocket)
+	if err != nil {
+		logrus.Fatalf("Error cleaning up socket %s: %s", v.dpCfg.BaseCfg.DataplaneSocket, err)
+		common.SetSocketCleanFailed()
+	}
+
+	v.dpCfg.Listener, err = net.Listen(v.dpCfg.BaseCfg.DataplaneSocketType, v.dpCfg.BaseCfg.DataplaneSocket)
+	if err != nil {
+		logrus.Fatalf("Error listening on socket %s: %s ", v.dpCfg.BaseCfg.DataplaneSocket, err)
+		common.SetSocketListenFailed()
+	}
+
+	v.vppAgentEndpoint, ok = os.LookupEnv(DataplaneEndpointKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneEndpointKey, DataplaneEndpointDefault)
+		v.vppAgentEndpoint = DataplaneEndpointDefault
+	}
+	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
+
+	v.updateCh = make(chan *Mechanisms, 1)
+	v.mechanisms = &Mechanisms{
+		localMechanisms: []*local.Mechanism{
+			{
+				Type: local.MechanismType_KERNEL_INTERFACE,
+			},
+			{
+				Type: local.MechanismType_MEM_INTERFACE,
+			},
+		},
+		remoteMechanisms: []*remote.Mechanism{
+			{
+				Type: remote.MechanismType_VXLAN,
+				Parameters: map[string]string{
+					remote.VXLANSrcIP: v.egressInterface.SrcIPNet().IP.String(),
+				},
+			},
+		},
+	}
+	v.directMemifConnector = memif.NewDirectMemifConnector(v.dpCfg.BaseCfg.NSMBaseDir)
 }
