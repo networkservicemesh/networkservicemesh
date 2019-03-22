@@ -115,8 +115,7 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 		logrus.Fatalf("Dataplane initialization failed: %s ", err)
 	}
 
-	err = sanityCheckConfig(config.common)
-	if err != nil {
+	if !sanityCheckConfig(config.common) {
 		logrus.Fatalf("Dataplane configuration sanity check failed: %s ", err)
 	}
 
@@ -143,6 +142,11 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 	return registration
 }
 
-func sanityCheckConfig(dataplaneConfig *DataplaneConfigBase) error {
-	return nil
+func sanityCheckConfig(dataplaneConfig *DataplaneConfigBase) bool {
+	return len(dataplaneConfig.Name) > 0 &&
+		len(dataplaneConfig.NSMBaseDir) > 0 &&
+		len(dataplaneConfig.RegistrarSocket) > 0 &&
+		len(dataplaneConfig.RegistrarSocketType) > 0 &&
+		len(dataplaneConfig.DataplaneSocket) > 0 &&
+		len(dataplaneConfig.DataplaneSocketType) > 0
 }
