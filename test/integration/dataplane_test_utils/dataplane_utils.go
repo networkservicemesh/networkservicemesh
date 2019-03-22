@@ -60,14 +60,18 @@ func (instance *StandaloneDataplaneInstance) Cleanup() {
 }
 
 func (instance *StandaloneDataplaneInstance) Request(req *crossconnect.CrossConnect) *crossconnect.CrossConnect {
-	ctx, _ := context.WithTimeout(context.Background(), instance.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), instance.timeout)
+	defer cancel()
+
 	conn, err := instance.dataplaneClient.Request(ctx, req)
 	Expect(err).To(BeNil())
 	return conn
 }
 
 func (instance *StandaloneDataplaneInstance) CloseConnection(conn *crossconnect.CrossConnect) {
-	ctx, _ := context.WithTimeout(context.Background(), instance.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), instance.timeout)
+	defer cancel()
+
 	_, err := instance.dataplaneClient.Close(ctx, conn)
 	Expect(err).To(BeNil())
 }
