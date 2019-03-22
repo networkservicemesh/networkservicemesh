@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
+	"testing"
 	"time"
 )
 
@@ -20,11 +21,13 @@ type StandaloneDataplaneLocalFixture struct {
 	Dataplane *StandaloneDataplaneInstance
 	sourcePod *v1.Pod
 	destPod   *v1.Pod
+	test      *testing.T
 }
 
-func CreateLocalFixture(timeout time.Duration) *StandaloneDataplaneLocalFixture {
+func CreateLocalFixture(test *testing.T, timeout time.Duration) *StandaloneDataplaneLocalFixture {
 	fixture := &StandaloneDataplaneLocalFixture{
 		timeout: timeout,
+		test:    test,
 	}
 
 	k8s, err := kube_testing.NewK8s()
@@ -75,17 +78,37 @@ func (fixture *StandaloneDataplaneLocalFixture) CloseConnection(xcon *crossconne
 }
 
 func (fixture *StandaloneDataplaneLocalFixture) VerifyKernelConnection(xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	dstIface := getIface(xcon.GetLocalDestination())
-	srcIp := unmaskIp(xcon.GetLocalSource().Context.SrcIpAddr)
-	dstIp := unmaskIp(xcon.GetLocalSource().Context.DstIpAddr)
-	VerifyKernelConnectionEstablished(fixture.k8s, fixture.sourcePod, srcIface, srcIp, dstIp)
-	VerifyKernelConnectionEstablished(fixture.k8s, fixture.destPod, dstIface, dstIp, srcIp)
+	failures := InterceptGomegaFailures(func() {
+		srcIface := getIface(xcon.GetLocalSource())
+		dstIface := getIface(xcon.GetLocalDestination())
+		srcIp := unmaskIp(xcon.GetLocalSource().Context.SrcIpAddr)
+		dstIp := unmaskIp(xcon.GetLocalSource().Context.DstIpAddr)
+		VerifyKernelConnectionEstablished(fixture.k8s, fixture.sourcePod, srcIface, srcIp, dstIp)
+		VerifyKernelConnectionEstablished(fixture.k8s, fixture.destPod, dstIface, dstIp, srcIp)
+	})
+
+	fixture.handleFailures(failures)
 }
 
 func (fixture *StandaloneDataplaneLocalFixture) VerifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	dstIface := getIface(xcon.GetLocalDestination())
-	VerifyKernelConnectionClosed(fixture.k8s, fixture.sourcePod, srcIface)
-	VerifyKernelConnectionClosed(fixture.k8s, fixture.destPod, dstIface)
+	failures := InterceptGomegaFailures(func() {
+		srcIface := getIface(xcon.GetLocalSource())
+		dstIface := getIface(xcon.GetLocalDestination())
+		VerifyKernelConnectionClosed(fixture.k8s, fixture.sourcePod, srcIface)
+		VerifyKernelConnectionClosed(fixture.k8s, fixture.destPod, dstIface)
+	})
+
+	fixture.handleFailures(failures)
+}
+
+func (fixture *StandaloneDataplaneLocalFixture) handleFailures(failures []string) {
+	if len(failures) > 0 {
+		for _, failure := range failures {
+			logrus.Errorf("test failure: %s\n", failure)
+		}
+		dataplane := fixture.Dataplane.Pod()
+		logs, _ := fixture.k8s.GetLogs(dataplane, firstContainer(dataplane))
+		logrus.Errorf("Dataplane logs:\n%s\n", logs)
+		fixture.test.Fail()
+	}
 }

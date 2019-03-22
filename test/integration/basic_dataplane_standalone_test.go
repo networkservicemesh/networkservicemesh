@@ -16,7 +16,7 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateLocalFixture(defaultTimeout)
+	fixture := utils.CreateLocalFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	conn := fixture.RequestDefaultKernelConnection()
@@ -31,7 +31,7 @@ func TestDataplaneCrossConnectMultiple(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateLocalFixture(defaultTimeout)
+	fixture := utils.CreateLocalFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	first := fixture.RequestKernelConnection("id-1", "if1", "10.30.1.1/30", "10.30.1.2/30")
@@ -48,7 +48,7 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateLocalFixture(defaultTimeout)
+	fixture := utils.CreateLocalFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	const someId = "some-id"
@@ -69,7 +69,7 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateLocalFixture(defaultTimeout)
+	fixture := utils.CreateLocalFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	conn := fixture.RequestDefaultKernelConnection()
@@ -90,7 +90,7 @@ func TestDataplaneCrossConnectRepeat(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateLocalFixture(defaultTimeout)
+	fixture := utils.CreateLocalFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	conn := fixture.RequestDefaultKernelConnection()
@@ -108,7 +108,7 @@ func TestDataplaneCrossConnectUpdateIp(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateLocalFixture(defaultTimeout)
+	fixture := utils.CreateLocalFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	const (
@@ -131,7 +131,7 @@ func TestDataplaneRemoteCrossConnectBasic(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	fixture := utils.CreateRemoteFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()
@@ -146,7 +146,7 @@ func TestDataplaneRemoteCrossConnectRepeatSource(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	fixture := utils.CreateRemoteFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()
@@ -163,7 +163,7 @@ func TestDataplaneRemoteCrossConnectRepeatDst(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	fixture := utils.CreateRemoteFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()
@@ -180,7 +180,7 @@ func TestDataplaneRemoteCrossConnectRecoverSrc(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	fixture := utils.CreateRemoteFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()
@@ -198,7 +198,7 @@ func TestDataplaneRemoteCrossConnectRecoverDst(t *testing.T) {
 		return
 	}
 
-	fixture := utils.CreateRemoteFixture(defaultTimeout)
+	fixture := utils.CreateRemoteFixture(t, defaultTimeout)
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()

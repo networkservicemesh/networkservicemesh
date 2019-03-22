@@ -48,6 +48,7 @@ func CreateDataplaneInstance(k8s *kube_testing.K8s, node *v1.Node, timeout time.
 	}
 
 	instance.dataplanePod = k8s.CreatePod(dataplanePodTemplate(node))
+	k8s.WaitLogsContains(instance.dataplanePod, firstContainer(instance.dataplanePod), "Serve starting...", timeout)
 	instance.forwarding = forwardPort(k8s, instance.dataplanePod, dataplanePort)
 	instance.dataplaneClient = connectDataplane(instance.forwarding.ListenPort)
 
@@ -292,4 +293,8 @@ func setupEnvVariables(dataplane *v1.Pod, env map[string]string) {
 func exposePorts(dataplane *v1.Pod, ports ...v1.ContainerPort) {
 	vpp := &dataplane.Spec.Containers[0]
 	vpp.Ports = append(vpp.Ports, ports...)
+}
+
+func firstContainer(pod *v1.Pod) string {
+	return pod.Spec.Containers[0].Name
 }

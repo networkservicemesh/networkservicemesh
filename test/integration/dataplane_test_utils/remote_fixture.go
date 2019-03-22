@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"strconv"
+	"testing"
 	"time"
 )
 
@@ -24,12 +25,14 @@ type StandaloneDataplaneRemoteFixture struct {
 	sourceDataplane *StandaloneDataplaneInstance
 	destDataplane   *StandaloneDataplaneInstance
 	vni             int
+	test            *testing.T
 }
 
-func CreateRemoteFixture(timeout time.Duration) *StandaloneDataplaneRemoteFixture {
+func CreateRemoteFixture(test *testing.T, timeout time.Duration) *StandaloneDataplaneRemoteFixture {
 	fixture := &StandaloneDataplaneRemoteFixture{
 		timeout: timeout,
 		vni:     1,
+		test:    test,
 	}
 
 	k8s, err := kube_testing.NewK8s()
@@ -93,17 +96,25 @@ func (fixture *StandaloneDataplaneRemoteFixture) RequestDefaultKernelConnection(
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnectionSrc(conn *crossconnect.CrossConnect) {
-	srcIface := getIface(conn.GetLocalSource())
-	srcIp := unmaskIp(conn.GetLocalSource().Context.SrcIpAddr)
-	dstIp := unmaskIp(conn.GetLocalSource().Context.DstIpAddr)
-	VerifyKernelConnectionEstablished(fixture.k8s, fixture.sourcePod, srcIface, srcIp, dstIp)
+	failures := InterceptGomegaFailures(func() {
+		srcIface := getIface(conn.GetLocalSource())
+		srcIp := unmaskIp(conn.GetLocalSource().Context.SrcIpAddr)
+		dstIp := unmaskIp(conn.GetLocalSource().Context.DstIpAddr)
+		VerifyKernelConnectionEstablished(fixture.k8s, fixture.sourcePod, srcIface, srcIp, dstIp)
+	})
+
+	fixture.handleFailures(failures)
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnectionDst(conn *crossconnect.CrossConnect) {
-	dstIface := getIface(conn.GetLocalDestination())
-	srcIp := unmaskIp(conn.GetLocalDestination().Context.SrcIpAddr)
-	dstIp := unmaskIp(conn.GetLocalDestination().Context.DstIpAddr)
-	VerifyKernelConnectionEstablished(fixture.k8s, fixture.destPod, dstIface, dstIp, srcIp)
+	failures := InterceptGomegaFailures(func() {
+		dstIface := getIface(conn.GetLocalDestination())
+		srcIp := unmaskIp(conn.GetLocalDestination().Context.SrcIpAddr)
+		dstIp := unmaskIp(conn.GetLocalDestination().Context.DstIpAddr)
+		VerifyKernelConnectionEstablished(fixture.k8s, fixture.destPod, dstIface, dstIp, srcIp)
+	})
+
+	fixture.handleFailures(failures)
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnection(connSrc, connDst *crossconnect.CrossConnect) {
@@ -112,13 +123,21 @@ func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnection(connSrc,
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnectionClosedSrc(conn *crossconnect.CrossConnect) {
-	srcIface := getIface(conn.GetLocalSource())
-	VerifyKernelConnectionClosed(fixture.k8s, fixture.sourcePod, srcIface)
+	failures := InterceptGomegaFailures(func() {
+		srcIface := getIface(conn.GetLocalSource())
+		VerifyKernelConnectionClosed(fixture.k8s, fixture.sourcePod, srcIface)
+	})
+
+	fixture.handleFailures(failures)
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnectionClosedDst(conn *crossconnect.CrossConnect) {
-	dstIface := getIface(conn.GetLocalDestination())
-	VerifyKernelConnectionClosed(fixture.k8s, fixture.destPod, dstIface)
+	failures := InterceptGomegaFailures(func() {
+		dstIface := getIface(conn.GetLocalDestination())
+		VerifyKernelConnectionClosed(fixture.k8s, fixture.destPod, dstIface)
+	})
+
+	fixture.handleFailures(failures)
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnectionClosed(connSrc, connDst *crossconnect.CrossConnect) {
@@ -162,4 +181,22 @@ func (fixture *StandaloneDataplaneRemoteFixture) HealConnectionDst(connDst *cros
 
 func (fixture *StandaloneDataplaneRemoteFixture) HealConnection(connSrc, connDst *crossconnect.CrossConnect) (*crossconnect.CrossConnect, *crossconnect.CrossConnect) {
 	return fixture.HealConnectionSrc(connSrc), fixture.HealConnectionDst(connDst)
+}
+
+func (fixture *StandaloneDataplaneRemoteFixture) handleFailures(failures []string) {
+	if len(failures) > 0 {
+		for _, failure := range failures {
+			logrus.Errorf("test failure: %s\n", failure)
+		}
+		dataplaneSrc := fixture.sourceDataplane.dataplanePod
+		dataplaneDst := fixture.destDataplane.dataplanePod
+
+		logs, _ := fixture.k8s.GetLogs(dataplaneSrc, firstContainer(dataplaneSrc))
+		logrus.Errorf("Source Dataplane logs:\n%s\n", logs)
+
+		logs, _ = fixture.k8s.GetLogs(dataplaneDst, firstContainer(dataplaneDst))
+		logrus.Errorf("Dest Dataplane logs:\n%s\n", logs)
+
+		fixture.test.Fail()
+	}
 }
