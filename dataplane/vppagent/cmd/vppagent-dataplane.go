@@ -21,17 +21,10 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-
-	tracer, closer := tools.InitJaeger("vppagent-dataplane")
-	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
-
 	go common.BeginHealthCheck()
 
 	// Capture signals to cleanup before exiting

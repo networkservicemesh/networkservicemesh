@@ -30,6 +30,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
@@ -55,12 +56,13 @@ const (
 
 type VPPAgent struct {
 	vppAgentEndpoint     string
-	dpCfg                *common.DataplaneConfig
+	common               *common.DataplaneConfigBase
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
 	directMemifConnector *memif.DirectMemifConnector
-	srcIP                []byte
+	srcIP                net.IP
 	egressInterface      *common.EgressInterface
+	monitor              *crossconnect_monitor.CrossConnectMonitor
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -95,7 +97,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 				RemoteMechanisms: update.remoteMechanisms,
 				LocalMechanisms:  update.localMechanisms,
 			}); err != nil {
-				logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+				logrus.Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
 			}
 		}
@@ -105,7 +107,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
-	v.dpCfg.Monitor.Update(xcon)
+	v.monitor.Update(xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -130,7 +132,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 	conversionParameters := &converter.CrossConnectConversionParameters{
-		BaseDir: v.dpCfg.BaseCfg.NSMBaseDir,
+		BaseDir: v.common.NSMBaseDir,
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 	if err != nil {
@@ -262,15 +264,18 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.dpCfg.Monitor.Delete(xcon)
+	v.monitor.Delete(xcon)
 	return &empty.Empty{}, nil
 }
 
-func (v *VPPAgent) Init(dpCfg *common.DataplaneConfig) error {
-	v.dpCfg = dpCfg
+func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnect_monitor.CrossConnectMonitor) error {
+	tracer, closer := tools.InitJaeger("vppagent-dataplane")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
+	v.common = common
 	v.setDataplaneConfigBase()
-	v.setDataplaneConfigVPPAgent()
+	v.setDataplaneConfigVPPAgent(monitor)
 	v.reset()
 	v.programMgmtInterface()
 
@@ -280,30 +285,32 @@ func (v *VPPAgent) Init(dpCfg *common.DataplaneConfig) error {
 func (v *VPPAgent) setDataplaneConfigBase() {
 	var ok bool
 
-	v.dpCfg.BaseCfg.Name, ok = os.LookupEnv(DataplaneNameKey)
+	v.common.Name, ok = os.LookupEnv(DataplaneNameKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
-		v.dpCfg.BaseCfg.Name = DataplaneNameDefault
+		v.common.Name = DataplaneNameDefault
 	}
 
-	logrus.Infof("Starting dataplane - %s", v.dpCfg.BaseCfg.Name)
-	v.dpCfg.BaseCfg.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	logrus.Infof("Starting dataplane - %s", v.common.Name)
+	v.common.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
-		v.dpCfg.BaseCfg.DataplaneSocket = DataplaneSocketDefault
+		v.common.DataplaneSocket = DataplaneSocketDefault
 	}
-	logrus.Infof("DataplaneSocket: %s", v.dpCfg.BaseCfg.DataplaneSocket)
+	logrus.Infof("DataplaneSocket: %s", v.common.DataplaneSocket)
 
-	v.dpCfg.BaseCfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	v.common.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
-		v.dpCfg.BaseCfg.DataplaneSocketType = DataplaneSocketTypeDefault
+		v.common.DataplaneSocketType = DataplaneSocketTypeDefault
 	}
-	logrus.Infof("DataplaneSocketType: %s", v.dpCfg.BaseCfg.DataplaneSocketType)
+	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent() {
+func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.CrossConnectMonitor) {
 	var err error
+
+	v.monitor = monitor
 
 	srcIPStr, ok := os.LookupEnv(SrcIPEnvKey)
 	if !ok {
@@ -323,16 +330,10 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent() {
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name, v.egressInterface.SrcIPNet())
 
-	err = tools.SocketCleanup(v.dpCfg.BaseCfg.DataplaneSocket)
+	err = tools.SocketCleanup(v.common.DataplaneSocket)
 	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", v.dpCfg.BaseCfg.DataplaneSocket, err)
+		logrus.Fatalf("Error cleaning up socket %s: %s", v.common.DataplaneSocket, err)
 		common.SetSocketCleanFailed()
-	}
-
-	v.dpCfg.Listener, err = net.Listen(v.dpCfg.BaseCfg.DataplaneSocketType, v.dpCfg.BaseCfg.DataplaneSocket)
-	if err != nil {
-		logrus.Fatalf("Error listening on socket %s: %s ", v.dpCfg.BaseCfg.DataplaneSocket, err)
-		common.SetSocketListenFailed()
 	}
 
 	v.vppAgentEndpoint, ok = os.LookupEnv(DataplaneEndpointKey)
@@ -361,5 +362,5 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent() {
 			},
 		},
 	}
-	v.directMemifConnector = memif.NewDirectMemifConnector(v.dpCfg.BaseCfg.NSMBaseDir)
+	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
 }
