@@ -75,7 +75,7 @@ func (n *nsmRegistryService) update(nsm *registry.NetworkServiceManager) (*regis
 	}
 
 	nsmCr := mapNsmToCustomResource(nsm)
-	nsmCr.ResourceVersion = oldNsm.ResourceVersion
+	nsmCr.ObjectMeta = oldNsm.ObjectMeta
 
 	nsmCr, err := n.cache.UpdateNetworkServiceManager(nsmCr)
 	if err != nil {

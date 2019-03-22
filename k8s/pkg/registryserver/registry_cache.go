@@ -8,7 +8,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 type RegistryCache interface {
@@ -47,7 +46,7 @@ func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
 }
 
 func (rc *registryCacheImpl) Start() error {
-	factory := externalversions.NewSharedInformerFactory(rc.clientset, 3*time.Second)
+	factory := externalversions.NewSharedInformerFactory(rc.clientset, 0)
 
 	if stopFunc, err := rc.networkServiceCache.Start(factory); err != nil {
 		rc.Stop()
@@ -149,8 +148,11 @@ func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceMana
 }
 
 func (rc *registryCacheImpl) UpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
-	rc.networkServiceManagerCache.Update(nsm)
-	return rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Update(nsm)
+	updNsm, err := rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Update(nsm)
+	if err == nil {
+		rc.networkServiceManagerCache.Update(updNsm)
+	}
+	return updNsm, err
 }
 
 func (rc *registryCacheImpl) GetNetworkServiceManager(name string) *v1.NetworkServiceManager {

@@ -142,6 +142,7 @@ func TestUpdateNSM(t *testing.T) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
+	k8s.CleanupCRDs()
 
 	k8s.Prepare("nsmd")
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
@@ -171,13 +172,10 @@ func TestUpdateNSM(t *testing.T) {
 	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
 	Expect(err).To(BeNil())
 
-	k8s.CleanupCRDs()
-
 	networkService := "icmp-responder"
 	nsmName := "master"
 	url1 := "1.1.1.1:1"
 	url2 := "2.2.2.2:2"
-
 	failures := InterceptGomegaFailures(func() {
 		response, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
 			Name: nsmName,
