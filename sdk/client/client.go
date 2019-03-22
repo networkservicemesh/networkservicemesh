@@ -145,7 +145,6 @@ func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkSer
 func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*NsmClient, error) {
 	// ensure the env variables are processed
 	configuration = common.NewNSConfiguration(configuration)
-	configuration.CompleteNSConfiguration()
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
 	if err != nil {

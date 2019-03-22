@@ -116,7 +116,6 @@ func (ice *IpamEndpoint) Name() string {
 func NewIpamEndpoint(configuration *common.NSConfiguration) *IpamEndpoint {
 	// ensure the env variables are processed
 	configuration = common.NewNSConfiguration(configuration)
-	configuration.CompleteNSConfiguration()
 
 	pool, err := prefix_pool.NewPrefixPool(configuration.IPAddress)
 	if err != nil {

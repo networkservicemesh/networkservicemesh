@@ -16,11 +16,13 @@
 package common
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -49,45 +51,59 @@ type NSConfiguration struct {
 	Routes             []string
 }
 
+func (nsc *NSConfiguration)  getEnv(key, description string, mandatory bool) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		if mandatory {
+			logrus.Fatalf("Error getting %v: %v", key, ok)
+		} else {
+			logrus.Infof("%v not found.", key)
+			return ""
+		}
+	}
+	logrus.Infof("%s: %s", description, value)
+	return value
+}
+
 // CompleteNSConfiguration fills all unset options from the env variables
-func (nsc *NSConfiguration) CompleteNSConfiguration() {
+func (nsc *NSConfiguration) completeNSConfiguration() {
 
 	if nsc.NsmServerSocket == "" {
-		nsc.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
+		nsc.NsmServerSocket = nsc.getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
 	}
 
 	if nsc.NsmClientSocket == "" {
-		nsc.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
+		nsc.NsmClientSocket = nsc.getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
 	}
 
 	if nsc.Workspace == "" {
-		nsc.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
+		nsc.Workspace = nsc.getEnv(nsmd.WorkspaceEnv, "workspace", true)
 	}
 
 	if nsc.EndpointNetworkService == "" {
-		nsc.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
+		nsc.EndpointNetworkService = nsc.getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
 	if nsc.ClientNetworkService == "" {
-		nsc.ClientNetworkService = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
+		nsc.ClientNetworkService = nsc.getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
 	}
 
 	if nsc.EndpointLabels == "" {
-		nsc.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
+		nsc.EndpointLabels = nsc.getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
 	if nsc.ClientLabels == "" {
-		nsc.ClientLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
+		nsc.ClientLabels = nsc.getEnv(clientLabelsEnv, "Outgoing labels", false)
 	}
 
-	nsc.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabledEnv, "Tracer enabled", false))
+	nsc.TracerEnabled, _ = strconv.ParseBool(nsc.getEnv(tracerEnabledEnv, "Tracer enabled", false))
 
 	if configuration.MechanismType == "" {
-		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
+		configuration.MechanismType = nsc.getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
 	}
 
 	if len(nsc.IPAddress) == 0 {
-		nsc.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
+		nsc.IPAddress = nsc.getEnv(ipAddressEnv, "IP Address", false)
 	}
 
 	if len(configuration.Routes) == 0 {
@@ -144,6 +160,7 @@ func NewNSConfiguration(nsc *NSConfiguration) *NSConfiguration {
 	if nsc == nil {
 		nsc = &NSConfiguration{}
 	}
+		nsc.completeNSConfiguration()
 
 	return nsc
 }

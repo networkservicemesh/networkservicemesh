@@ -86,7 +86,6 @@ func (mce *MonitorEndpoint) GetOpaque(incoming interface{}) interface{} {
 func NewMonitorEndpoint(configuration *common.NSConfiguration) *MonitorEndpoint {
 	// ensure the env variables are processed
 	configuration = common.NewNSConfiguration(configuration)
-	configuration.CompleteNSConfiguration()
 
 	self := &MonitorEndpoint{
 		monitorConnectionServer: local.NewMonitorServer(),

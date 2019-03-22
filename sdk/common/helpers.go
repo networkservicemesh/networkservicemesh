@@ -18,27 +18,12 @@ package common
 import (
 	"encoding/binary"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
-
-func getEnv(key, description string, mandatory bool) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		if mandatory {
-			logrus.Fatalf("Error getting %v: %v", key, ok)
-		} else {
-			logrus.Infof("%v not found.", key)
-			return ""
-		}
-	}
-	logrus.Infof("%s: %s", description, value)
-	return value
-}
 
 // Ip2int converts and IP address to 32-bit unsignet integer
 func Ip2int(ip net.IP) uint32 {

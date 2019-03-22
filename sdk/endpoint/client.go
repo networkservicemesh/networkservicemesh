@@ -94,7 +94,6 @@ func (cce *ClientEndpoint) GetOpaque(incoming interface{}) interface{} {
 func NewClientEndpoint(configuration *common.NSConfiguration) *ClientEndpoint {
 	// ensure the env variables are processed
 	configuration = common.NewNSConfiguration(configuration)
-	configuration.CompleteNSConfiguration()
 
 	nsmClient, err := client.NewNSMClient(context.Background(), configuration)
 	if err != nil {
