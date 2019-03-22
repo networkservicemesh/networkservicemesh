@@ -163,9 +163,7 @@ func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connecti
 
 // NewNSMEndpoint creates a new NSM endpoint
 func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service *CompositeEndpoint) (*nsmEndpoint, error) {
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
+	configuration = common.NewNSConfiguration(configuration)
 	configuration.CompleteNSConfiguration()
 
 	if service == nil {

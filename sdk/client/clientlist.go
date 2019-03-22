@@ -26,6 +26,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/sirupsen/logrus"
 )
 
 type nsmClientListEntry struct {

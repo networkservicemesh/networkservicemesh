@@ -37,9 +37,9 @@ const (
 // NsmClient is the NSM client struct
 type NsmClient struct {
 	*common.NsmConnection
-	ClientNetworkService     string
-	ClientLabels   map[string]string
-	OutgoingConnections []*connection.Connection
+	ClientNetworkService string
+	ClientLabels         map[string]string
+	OutgoingConnections  []*connection.Connection
 }
 
 // Connect implements the business logic
@@ -143,9 +143,8 @@ func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkSer
 
 // NewNSMClient creates the NsmClient
 func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*NsmClient, error) {
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
+	// ensure the env variables are processed
+	configuration = common.NewNSConfiguration(configuration)
 	configuration.CompleteNSConfiguration()
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
@@ -155,9 +154,9 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 	}
 
 	client := &NsmClient{
-		NsmConnection:     nsmConnection,
-		ClientNetworkService:   configuration.ClientNetworkService,
-		ClientLabels: tools.ParseKVStringToMap(configuration.ClientLabels, ",", "="),
+		NsmConnection:        nsmConnection,
+		ClientNetworkService: configuration.ClientNetworkService,
+		ClientLabels:         tools.ParseKVStringToMap(configuration.ClientLabels, ",", "="),
 	}
 
 	return client, nil

@@ -104,9 +104,7 @@ func (cce *ConnectionEndpoint) generateIfName() string {
 // NewConnectionEndpoint creates a ConnectionEndpoint
 func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEndpoint {
 	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
+	configuration = common.NewNSConfiguration(configuration)
 	configuration.CompleteNSConfiguration()
 
 	rand.Seed(time.Now().UTC().UnixNano())

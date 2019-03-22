@@ -32,9 +32,9 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	configuration := &common.NSConfiguration{
+	configuration := common.NewNSConfiguration(&common.NSConfiguration{
 		MechanismType: "mem",
-	}
+	})
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),

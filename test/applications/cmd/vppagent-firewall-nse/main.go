@@ -37,11 +37,11 @@ func main() {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
 
-	initConfig()
+        initConfig()
 
-	configuration := &common.NSConfiguration{
+	configuration := common.NewNSConfiguration(&common.NSConfiguration{
 		MechanismType: "mem",
-	}
+	})
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),

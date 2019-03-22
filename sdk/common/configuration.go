@@ -50,44 +50,44 @@ type NSConfiguration struct {
 }
 
 // CompleteNSConfiguration fills all unset options from the env variables
-func (configuration *NSConfiguration) CompleteNSConfiguration() {
+func (nsc *NSConfiguration) CompleteNSConfiguration() {
 
-	if configuration.NsmServerSocket == "" {
-		configuration.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
+	if nsc.NsmServerSocket == "" {
+		nsc.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
 	}
 
-	if configuration.NsmClientSocket == "" {
-		configuration.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
+	if nsc.NsmClientSocket == "" {
+		nsc.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
 	}
 
-	if configuration.Workspace == "" {
-		configuration.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
+	if nsc.Workspace == "" {
+		nsc.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
 	}
 
-	if configuration.EndpointNetworkService == "" {
-		configuration.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
+	if nsc.EndpointNetworkService == "" {
+		nsc.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
-	if configuration.ClientNetworkService == "" {
-		configuration.ClientNetworkService = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
+	if nsc.ClientNetworkService == "" {
+		nsc.ClientNetworkService = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
 	}
 
-	if configuration.EndpointLabels == "" {
-		configuration.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
+	if nsc.EndpointLabels == "" {
+		nsc.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
-	if configuration.ClientLabels == "" {
-		configuration.ClientLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
+	if nsc.ClientLabels == "" {
+		nsc.ClientLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
 	}
 
-	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabledEnv, "Tracer enabled", false))
+	nsc.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabledEnv, "Tracer enabled", false))
 
 	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
 	}
 
-	if len(configuration.IPAddress) == 0 {
-		configuration.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
+	if len(nsc.IPAddress) == 0 {
+		nsc.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
 	}
 
 	if len(configuration.Routes) == 0 {
@@ -118,4 +118,32 @@ func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *N
 	}
 	conf.ClientLabels = labels.String()
 	return &conf
+}
+
+func NewNSConfigurationWithUrl(nsc *NSConfiguration, url *tools.NsUrl) *NSConfiguration {
+
+	nsc = NewNSConfiguration(nsc)
+	nsc.ClientNetworkService = url.NsName
+	var labels strings.Builder
+	separator := false
+	for k, v := range url.Params {
+		if separator {
+			labels.WriteRune(',')
+		} else {
+			separator = true
+		}
+		labels.WriteString(k)
+		labels.WriteRune('=')
+		labels.WriteString(v[0])
+	}
+	nsc.ClientLabels = labels.String()
+	return nsc
+}
+
+func NewNSConfiguration(nsc *NSConfiguration) *NSConfiguration {
+	if nsc == nil {
+		nsc = &NSConfiguration{}
+	}
+
+	return nsc
 }
