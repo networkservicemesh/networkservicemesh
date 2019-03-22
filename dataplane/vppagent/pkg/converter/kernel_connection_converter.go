@@ -2,15 +2,16 @@ package converter
 
 import (
 	"fmt"
-	"os"
-
 	linux_interfaces "github.com/ligato/vpp-agent/plugins/linux/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/linux/model/l3"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
 	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/sirupsen/logrus"
+	"os"
 )
+
+const DataplaneAllowVHost = "DATAPLANE_ALLOW_VHOST"	// To disallow VHOST please pass "false" into this env variable.
 
 type KernelConnectionConverter struct {
 	*connection.Connection
@@ -57,7 +58,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 
 	// If we have access to /dev/vhost-net, we can use tapv2.  Otherwise fall back to
 	// veth pairs
-	if _, err := os.Stat("/dev/vhost-net"); err == nil {
+	if useVHostNet() {
 		// We append an Interfaces.  Interfaces creates the vpp side of an interface.
 		//   In this case, a Tapv2 interface that has one side in vpp, and the other
 		//   as a Linux kernel interface
@@ -110,7 +111,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 			IpAddresses: ipAddresses,
 			HostIfName:  tmpIface,
 			Veth: &linux_interfaces.LinuxInterfaces_Interface_Veth{
-				PeerIfName: m.GetParameters()[connection.InterfaceNameKey],
+				PeerIfName: c.conversionParameters.Name,
 			},
 		})
 		rv.LinuxInterfaces = append(rv.LinuxInterfaces, &linux_interfaces.LinuxInterfaces_Interface{
@@ -176,4 +177,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	}
 
 	return rv, nil
+}
+
+func useVHostNet() bool {
+	vhostAllowed := os.Getenv(DataplaneAllowVHost)
+	if "false" == vhostAllowed {
+		return false
+	}
+	if _, err := os.Stat("/dev/vhost-net"); err == nil {
+		return true
+	}
+	return false
 }

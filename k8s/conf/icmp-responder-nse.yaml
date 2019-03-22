@@ -1,7 +1,11 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 spec:
+  selector:
+    matchLabels:
+      networkservicemesh.io/app: "icmp-responder"
+      networkservicemesh.io/impl: "icmp-responder"
   replicas: 2
   template:
     metadata:

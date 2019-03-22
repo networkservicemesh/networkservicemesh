@@ -6,12 +6,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/sirupsen/logrus"
-	"time"
-)
-
-const (
-	attempts = 10
-	attemptDelay = 100 * time.Millisecond
 )
 
 type nsmRegistryService struct {
@@ -81,25 +75,12 @@ func (n *nsmRegistryService) update(nsm *registry.NetworkServiceManager) (*regis
 	}
 
 	nsmCr := mapNsmToCustomResource(nsm)
-
 	nsmCr.ObjectMeta = oldNsm.ObjectMeta
-	logrus.Infof("Performing update: %v", nsmCr)
-	var err error
 
-	//TODO: Workaround for issue: https://github.com/kubernetes/kubernetes/issues/71139
-	for i := 0; i < attempts; i++ {
-		nsmCr, err = n.cache.UpdateNetworkServiceManager(nsmCr)
-		if err != nil {
-			logrus.Errorf("Failed to update nsm: %s retrying...", err)
-			if i == attempts-1 {
-				return nil, err
-			} else {
-				logrus.Errorf("Waiting for Kubernetes to be consistent..")
-				<- time.Tick(attemptDelay)
-				continue
-			}
-		}
-		break
+	nsmCr, err := n.cache.UpdateNetworkServiceManager(nsmCr)
+	if err != nil {
+		logrus.Errorf("Failed to update nsm: %s", err)
+		return nil, err
 	}
 
 	return mapNsmFromCustomResource(nsmCr), nil

@@ -1,7 +1,10 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 spec:
+  selector:
+    matchLabels:
+      app: nsmgr-daemonset
   template:
     metadata:
       labels:

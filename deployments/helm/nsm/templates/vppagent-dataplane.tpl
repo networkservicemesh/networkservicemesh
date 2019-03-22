@@ -1,7 +1,10 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 spec:
+  selector:
+    matchLabels:
+      app: nsm-vpp-dataplane
   template:
     metadata:
       labels:
