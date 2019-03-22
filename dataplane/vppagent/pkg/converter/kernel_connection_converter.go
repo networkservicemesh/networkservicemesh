@@ -44,7 +44,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *rpc.DataRequest, connect b
 	if err != nil && connect {
 		return nil, err
 	}
-	tmpIface := TempIfName()
+	tmpIface := c.conversionParameters.IfaceNameProvider.GetIfaceName(c.conversionParameters.Name)
 
 	var ipAddresses []string
 	if c.conversionParameters.Side == DESTINATION {

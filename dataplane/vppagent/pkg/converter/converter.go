@@ -6,8 +6,13 @@ type Converter interface {
 	ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error)
 }
 
+type IfaceNameProvider interface {
+	GetIfaceName(id string) string
+}
+
 type CrossConnectConversionParameters struct {
-	BaseDir string
+	BaseDir           string
+	IfaceNameProvider IfaceNameProvider
 }
 
 type ConnectionContextSide int
@@ -19,8 +24,9 @@ const (
 )
 
 type ConnectionConversionParameters struct {
-	Terminate bool
-	Side      ConnectionContextSide
-	Name      string
-	BaseDir   string
+	Terminate         bool
+	Side              ConnectionContextSide
+	Name              string
+	BaseDir           string
+	IfaceNameProvider IfaceNameProvider
 }

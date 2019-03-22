@@ -35,7 +35,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -63,6 +62,7 @@ type VPPAgent struct {
 	srcIP                net.IP
 	egressInterface      *common.EgressInterface
 	monitor              *crossconnect_monitor.CrossConnectMonitor
+	tapIfaceIndex        *ifaceIndex
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -132,7 +132,8 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	defer conn.Close()
 	client := rpc.NewDataChangeServiceClient(conn)
 	conversionParameters := &converter.CrossConnectConversionParameters{
-		BaseDir: v.common.NSMBaseDir,
+		BaseDir:           v.common.NSMBaseDir,
+		IfaceNameProvider: v.tapIfaceIndex,
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 	if err != nil {
@@ -151,6 +152,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		// TODO handle teardown of any partial config that happened
 		return crossConnect, err
 	}
+	v.handleRequestSuccess(connect, dataChange)
 	return crossConnect, nil
 }
 
@@ -363,4 +365,19 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.Cros
 		},
 	}
 	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
+	v.tapIfaceIndex = newIfaceIndex()
+}
+
+func (v *VPPAgent) handleRequestSuccess(connect bool, req *rpc.DataRequest) {
+	if !connect {
+		v.clearIfaceIndexEntries(req)
+	}
+}
+
+func (v *VPPAgent) clearIfaceIndexEntries(req *rpc.DataRequest) {
+	for _, iface := range req.Interfaces {
+		if iface.Type == interfaces.InterfaceType_TAP_INTERFACE {
+			v.tapIfaceIndex.delete(iface.Name)
+		}
+	}
 }

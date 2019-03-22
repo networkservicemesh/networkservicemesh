@@ -35,10 +35,11 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 	if c.GetLocalSource() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
-			Name:      "SRC-" + c.GetId(),
-			Terminate: false,
-			Side:      SOURCE,
-			BaseDir:   baseDir,
+			Name:              "SRC-" + c.GetId(),
+			Terminate:         false,
+			Side:              SOURCE,
+			BaseDir:           baseDir,
+			IfaceNameProvider: c.conversionParameters.IfaceNameProvider,
 		}
 		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
@@ -56,10 +57,11 @@ func (c *CrossConnectConverter) ToDataRequest(rv *rpc.DataRequest, connect bool)
 	if c.GetLocalDestination() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
-			Name:      "DST-" + c.GetId(),
-			Terminate: false,
-			Side:      DESTINATION,
-			BaseDir:   baseDir,
+			Name:              "DST-" + c.GetId(),
+			Terminate:         false,
+			Side:              DESTINATION,
+			BaseDir:           baseDir,
+			IfaceNameProvider: c.conversionParameters.IfaceNameProvider,
 		}
 		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
