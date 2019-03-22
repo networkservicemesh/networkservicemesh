@@ -24,14 +24,14 @@ import (
 )
 
 const (
-	advertiseNseNameEnv   = "ENDPOINT_NETWORK_SERVICE"
-	advertiseNseLabelsEnv = "ENDPOINT_LABELS"
-	outgoingNscNameEnv    = "CLIENT_NETWORK_SERVICE"
-	outgoingNscLabelsEnv  = "CLIENT_LABELS"
-	tracerEnabled         = "TRACER_ENABLED"
-	mechanismTypeEnv      = "MECHANISM_TYPE"
-	ipAddressEnv          = "IP_ADDRESS"
-	routesEnv             = "ROUTES"
+	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
+	endpointLabelsEnv         = "ENDPOINT_LABELS"
+	clientNetworkServiceEnv   = "CLIENT_NETWORK_SERVICE"
+	clientLabelsEnv           = "CLIENT_LABELS"
+	tracerEnabledEnv          = "TRACER_ENABLED"
+	mechanismTypeEnv          = "MECHANISM_TYPE"
+	ipAddressEnv              = "IP_ADDRESS"
+	routesEnv                 = "ROUTES"
 )
 
 // NSConfiguration contains the full configuration used in the SDK
@@ -65,22 +65,22 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 	}
 
 	if configuration.AdvertiseNseName == "" {
-		configuration.AdvertiseNseName = getEnv(advertiseNseNameEnv, "Advertise Network Service Name", false)
+		configuration.AdvertiseNseName = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
 	if configuration.OutgoingNscName == "" {
-		configuration.OutgoingNscName = getEnv(outgoingNscNameEnv, "Outgoing Network Service Name", false)
+		configuration.OutgoingNscName = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
 	}
 
 	if configuration.AdvertiseNseLabels == "" {
-		configuration.AdvertiseNseLabels = getEnv(advertiseNseLabelsEnv, "Advertise labels", false)
+		configuration.AdvertiseNseLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
 	if configuration.OutgoingNscLabels == "" {
-		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
+		configuration.OutgoingNscLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
 	}
 
-	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabled, "Tracer enabled", false))
+	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabledEnv, "Tracer enabled", false))
 
 	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
