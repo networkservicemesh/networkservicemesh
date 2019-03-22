@@ -76,55 +76,13 @@ func (instance *StandaloneDataplaneInstance) stop() {
 	instance.k8s.DeletePods(instance.dataplanePod)
 }
 
-func (instance *StandaloneDataplaneInstance) kill() {
-
-}
-
-func (instance *StandaloneDataplaneInstance) heal() {
-	instance.forwarding = forwardPort(instance.k8s, instance.dataplanePod, dataplanePort)
-	instance.dataplaneClient = connectDataplane(instance.forwarding.ListenPort)
-}
-
-func (instance *StandaloneDataplaneInstance) KillVppAndHeal() {
-	instance.forwarding.Stop()
-	initialRestartCount := instance.dataplanePod.Status.ContainerStatuses[0].RestartCount
-
-	// get vpp PID
-	vppContainer := instance.dataplanePod.Spec.Containers[0].Name
-	vppPid, _, err := instance.k8s.Exec(instance.dataplanePod, vppContainer, "pgrep", "-f", "vpp -c")
-	Expect(err).To(BeNil())
-
-	// hard kill vpp
-	vppPid = strings.Trim(vppPid, " \t\n")
-	_, _, err = instance.k8s.Exec(instance.dataplanePod, vppContainer, "kill", "-s", "SIGKILL", vppPid)
-	Expect(err).To(BeNil())
-
-	// wait restart
-	start := time.Now()
-	for {
-		instance.dataplanePod = instance.k8s.UpdatePod(instance.dataplanePod)
-		restartCount := instance.dataplanePod.Status.ContainerStatuses[0].RestartCount
-		dataplaneStatus := instance.dataplanePod.Status.Phase
-		if restartCount > initialRestartCount && dataplaneStatus == v1.PodRunning {
-			break
-		}
-
-		if time.Since(start) > instance.timeout {
-			logrus.Errorf("Timeout waiting for %s restart", instance.dataplanePod.Name)
-			Expect(restartCount > initialRestartCount).To(BeTrue())
-			break
-		}
-	}
-
-	instance.forwarding = forwardPort(instance.k8s, instance.dataplanePod, dataplanePort)
-	instance.dataplaneClient = connectDataplane(instance.forwarding.ListenPort)
-}
-
-func (instance *StandaloneDataplaneInstance) KillPodAndHeal() {
-	//dsf
+func (instance *StandaloneDataplaneInstance) KillAndHeal() {
 	instance.forwarding.Stop()
 	instance.k8s.DeletePods(instance.dataplanePod)
 
+	instance.dataplanePod = instance.k8s.CreatePod(dataplanePodTemplate(instance.node))
+	instance.forwarding = forwardPort(instance.k8s, instance.dataplanePod, dataplanePort)
+	instance.dataplaneClient = connectDataplane(instance.forwarding.ListenPort)
 }
 
 func (instance *StandaloneDataplaneInstance) Pod() *v1.Pod {
@@ -137,11 +95,11 @@ func CreateLocalCrossConnectRequest(id, srcMech, dstMech, iface, srcIp, dstIp, s
 		Payload: "IP",
 
 		Source: &crossconnect.CrossConnect_LocalSource{
-			LocalSource: createLocalConnection(id+"-src", srcMech, iface, srcIp, dstIp, srcNetNsInode, neighbors),
+			LocalSource: createLocalConnection(id+"-src", srcMech, iface+"_src", srcIp, dstIp, srcNetNsInode, neighbors),
 		},
 
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			LocalDestination: createLocalConnection(id+"-dst", dstMech, iface, srcIp, dstIp, dstNetNsInode, neighbors),
+			LocalDestination: createLocalConnection(id+"-dst", dstMech, iface+"_dst", srcIp, dstIp, dstNetNsInode, neighbors),
 		},
 	}
 }
@@ -152,7 +110,7 @@ func CreateRemoteXConnectRequestSrc(id, srcMech string, dstMech *remote.Mechanis
 		Payload: "IP",
 
 		Source: &crossconnect.CrossConnect_LocalSource{
-			LocalSource: createLocalConnection(id+"-src", srcMech, iface, srcIp, dstIp, srcNetNsInode, neighbors),
+			LocalSource: createLocalConnection(id+"-src", srcMech, iface+"_src", srcIp, dstIp, srcNetNsInode, neighbors),
 		},
 
 		Destination: &crossconnect.CrossConnect_RemoteDestination{
@@ -171,7 +129,7 @@ func CreateRemoteXConnectRequestDst(id string, srcMech *remote.Mechanism, dstMec
 		},
 
 		Destination: &crossconnect.CrossConnect_LocalDestination{
-			LocalDestination: createLocalConnection(id+"-dst", dstMech, iface, srcIp, dstIp, dstNetNsInode, neighbors),
+			LocalDestination: createLocalConnection(id+"-dst", dstMech, iface+"_dst", srcIp, dstIp, dstNetNsInode, neighbors),
 		},
 	}
 }
@@ -306,6 +264,11 @@ func dataplanePodTemplate(node *v1.Node) *v1.Pod {
 		v1.ContainerPort{
 			ContainerPort: 40000,
 			Name:          "debug",
+			Protocol:      dataplaneProtocol,
+		},
+		v1.ContainerPort{
+			ContainerPort: 40001,
+			Name:          "debug-agent",
 			Protocol:      dataplaneProtocol,
 		})
 	dataplane.ObjectMeta.Labels = map[string]string{"run": "dataplane"}

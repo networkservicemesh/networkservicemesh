@@ -3,7 +3,6 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	utils "github.com/networkservicemesh/networkservicemesh/test/integration/dataplane_test_utils"
 	. "github.com/onsi/gomega"
 	"testing"
@@ -185,7 +184,7 @@ func TestDataplaneRemoteCrossConnectRecoverSrc(t *testing.T) {
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()
-	fixture.SourceDataplane().KillVppAndHeal()
+	fixture.SourceDataplane().KillAndHeal()
 	fixture.HealConnectionSrc(connSrc)
 
 	fixture.VerifyKernelConnection(connSrc, connDst)
@@ -203,7 +202,7 @@ func TestDataplaneRemoteCrossConnectRecoverDst(t *testing.T) {
 	defer fixture.Cleanup()
 
 	connSrc, connDst := fixture.RequestDefaultKernelConnection()
-	fixture.DestDataplane().KillVppAndHeal()
+	fixture.DestDataplane().KillAndHeal()
 	fixture.HealConnectionDst(connDst)
 
 	fixture.VerifyKernelConnection(connSrc, connDst)
