@@ -85,16 +85,11 @@ func (fixture *StandaloneDataplaneRemoteFixture) RequestKernelConnectionArp(id, 
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) RequestKernelConnection(id, iface, srcIp, dstIp string) (*crossconnect.CrossConnect, *crossconnect.CrossConnect) {
-	fixture.RequestKernelConnectionArp(id, iface, srcIp, dstIp, []*connectioncontext.IpNeighbor{})
+	return fixture.RequestKernelConnectionArp(id, iface, srcIp, dstIp, []*connectioncontext.IpNeighbor{})
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) RequestDefaultKernelConnection() (*crossconnect.CrossConnect, *crossconnect.CrossConnect) {
-	return fixture.RequestKernelConnectionArp("some-id", "iface", "10.30.1.1/29", "10.30.1.2/29", []*connectioncontext.IpNeighbor{
-		{
-			Ip:              "10.30.1.3",
-			HardwareAddress: "aa:ff:aa:ff:aa:01",
-		},
-	})
+	return fixture.RequestKernelConnection("some-id", "iface", "10.30.1.1/30", "10.30.1.2/30")
 }
 
 func (fixture *StandaloneDataplaneRemoteFixture) VerifyKernelConnectionSrc(conn *crossconnect.CrossConnect) {
