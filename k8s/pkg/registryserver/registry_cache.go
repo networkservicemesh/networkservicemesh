@@ -148,8 +148,11 @@ func (rc *registryCacheImpl) AddNetworkServiceManager(nsm *v1.NetworkServiceMana
 }
 
 func (rc *registryCacheImpl) UpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
-	rc.networkServiceManagerCache.Update(nsm)
-	return rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Update(nsm)
+	updNsm, err := rc.clientset.NetworkservicemeshV1().NetworkServiceManagers("default").Update(nsm)
+	if err == nil {
+		rc.networkServiceManagerCache.Update(updNsm)
+	}
+	return updNsm, err
 }
 
 func (rc *registryCacheImpl) GetNetworkServiceManager(name string) *v1.NetworkServiceManager {
