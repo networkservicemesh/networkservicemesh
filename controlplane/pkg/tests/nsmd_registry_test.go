@@ -25,7 +25,7 @@ func TestNSMDRestart1(t *testing.T) {
 		Workspace:        reply.Workspace,
 		NsmServerSocket:  reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmServerSocket,
 		NsmClientSocket:  reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmClientSocket,
-		AdvertiseNseName: "test_nse",
+		EndpointNetworkService: "test_nse",
 	}
 
 	composite := endpoint.NewCompositeEndpoint(

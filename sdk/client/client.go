@@ -37,8 +37,8 @@ const (
 // NsmClient is the NSM client struct
 type NsmClient struct {
 	*common.NsmConnection
-	OutgoingNscName     string
-	OutgoingNscLabels   map[string]string
+	ClientNetworkService     string
+	ClientLabels   map[string]string
 	OutgoingConnections []*connection.Connection
 }
 
@@ -63,7 +63,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: nsmc.Configuration.OutgoingNscName,
+			NetworkService: nsmc.Configuration.ClientNetworkService,
 			Context: &connectioncontext.ConnectionContext{
 				IpContext: &connectioncontext.IPContext{
 					SrcIpRequired: true,
@@ -71,7 +71,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 					SrcRoutes:     routes,
 				},
 			},
-			Labels: nsmc.OutgoingNscLabels,
+			Labels: nsmc.ClientLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			outgoingMechanism,
@@ -156,8 +156,8 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 
 	client := &NsmClient{
 		NsmConnection:     nsmConnection,
-		OutgoingNscName:   configuration.OutgoingNscName,
-		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
+		ClientNetworkService:   configuration.ClientNetworkService,
+		ClientLabels: tools.ParseKVStringToMap(configuration.ClientLabels, ",", "="),
 	}
 
 	return client, nil

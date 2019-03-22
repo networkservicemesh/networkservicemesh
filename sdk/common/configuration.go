@@ -36,16 +36,16 @@ const (
 
 // NSConfiguration contains the full configuration used in the SDK
 type NSConfiguration struct {
-	NsmServerSocket    string
-	NsmClientSocket    string
-	Workspace          string
-	AdvertiseNseName   string
-	OutgoingNscName    string
-	AdvertiseNseLabels string
-	OutgoingNscLabels  string
-	TracerEnabled      bool
-	MechanismType      string
-	IPAddress          string
+	NsmServerSocket        string
+	NsmClientSocket        string
+	Workspace              string
+	EndpointNetworkService string
+	ClientNetworkService   string
+	EndpointLabels         string
+	ClientLabels           string
+	TracerEnabled          bool
+	MechanismType          string
+	IPAddress              string
 	Routes             []string
 }
 
@@ -64,20 +64,20 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 		configuration.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
 	}
 
-	if configuration.AdvertiseNseName == "" {
-		configuration.AdvertiseNseName = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
+	if configuration.EndpointNetworkService == "" {
+		configuration.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
-	if configuration.OutgoingNscName == "" {
-		configuration.OutgoingNscName = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
+	if configuration.ClientNetworkService == "" {
+		configuration.ClientNetworkService = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
 	}
 
-	if configuration.AdvertiseNseLabels == "" {
-		configuration.AdvertiseNseLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
+	if configuration.EndpointLabels == "" {
+		configuration.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
-	if configuration.OutgoingNscLabels == "" {
-		configuration.OutgoingNscLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
+	if configuration.ClientLabels == "" {
+		configuration.ClientLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
 	}
 
 	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabledEnv, "Tracer enabled", false))
@@ -103,7 +103,7 @@ func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *N
 	if configuration != nil {
 		conf = *configuration
 	}
-	conf.OutgoingNscName = url.NsName
+	conf.ClientNetworkService = url.NsName
 	var labels strings.Builder
 	separator := false
 	for k, v := range url.Params {
@@ -116,6 +116,6 @@ func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *N
 		labels.WriteRune('=')
 		labels.WriteString(v[0])
 	}
-	conf.OutgoingNscLabels = labels.String()
+	conf.ClientLabels = labels.String()
 	return &conf
 }

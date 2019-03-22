@@ -68,7 +68,7 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 func (nsme *nsmEndpoint) Start() error {
 
 	if nsme.Configuration.TracerEnabled {
-		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
+		tracer, closer := tools.InitJaeger(nsme.Configuration.EndpointNetworkService)
 		opentracing.SetGlobalTracer(tracer)
 		nsme.tracerCloser = closer
 	}
@@ -100,13 +100,13 @@ func (nsme *nsmEndpoint) Start() error {
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: nsme.Configuration.AdvertiseNseName,
+		NetworkServiceName: nsme.Configuration.EndpointNetworkService,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nsme.Configuration.AdvertiseNseLabels, ",", "="),
+		Labels:             tools.ParseKVStringToMap(nsme.Configuration.EndpointLabels, ",", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    nsme.Configuration.AdvertiseNseName,
+			Name:    nsme.Configuration.EndpointNetworkService,
 			Payload: "IP",
 		},
 		NetworkServiceEndpoint: nse,
