@@ -8,10 +8,8 @@ etcd:
 networking:
   podSubnet: 192.168.0.0/16
 EOF
-cat "$HOME"/cluster-config.yaml
 
 kubeadm init --config "$HOME"/cluster-config.yaml --skip-token-print
-cat /etc/kubernetes/manifests/etcd.yaml
 
 mkdir -p "$HOME"/.kube
 sudo cp -f /etc/kubernetes/admin.conf "$HOME"/.kube/config

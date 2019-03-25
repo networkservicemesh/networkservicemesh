@@ -41,6 +41,4 @@ kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
 sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1${COMMIT/${COMMIT}/:${COMMIT}};" ./k8s/conf/admission-webhook.yaml | kubectl apply -f -
 ./scripts/webhook-patch-ca-bundle.sh < ./k8s/conf/admission-webhook-cfg.yaml | kubectl apply -f -
 
-# etcd version check
-kubectl logs "$(kubectl get pods --namespace=kube-system |  awk '/etcd/ {print $1}')" --namespace=kube-system | grep version
 # vim: sw=4 ts=4 et si
