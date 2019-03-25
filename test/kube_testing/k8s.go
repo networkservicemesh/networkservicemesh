@@ -333,8 +333,9 @@ func (l *K8s) Cleanup() {
 		err := l.deletePods(result)
 		Expect(err).To(BeNil())
 	}
-	l.CleanupCRDs()
 	l.pods = nil
+	l.CleanupCRDs()
+	l.CleanupConfigMaps()
 }
 
 func (l* K8s) PrepareDefault() {
@@ -513,4 +514,16 @@ func (o *K8s) CreateService(service *v1.Service) {
 
 func (o *K8s) IsPodReady(pod *v1.Pod) bool {
 	return isPodReady(pod)
+}
+
+func (o *K8s) CreateConfigMap(cm *v1.ConfigMap) (*v1.ConfigMap, error) {
+	return o.clientset.CoreV1().ConfigMaps(cm.Namespace).Create(cm)
+}
+
+func (o *K8s) CleanupConfigMaps() {
+	// Clean up Network Service Endpoints
+	configMaps, _ := o.clientset.CoreV1().ConfigMaps("default").List(metaV1.ListOptions{})
+	for _, cm := range configMaps.Items {
+		_ = o.clientset.CoreV1().ConfigMaps("default").Delete(cm.Name, &metaV1.DeleteOptions{})
+	}
 }

@@ -147,6 +147,7 @@ func newVppAgentXConnComposite(configuration *common.NSConfiguration) *vppAgentX
 type vppAgentAclComposite struct {
 	endpoint.BaseCompositeEndpoint
 	vppAgentEndpoint string
+	aclRules         map[string]string
 }
 
 func (vac *vppAgentAclComposite) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -169,12 +170,7 @@ func (vac *vppAgentAclComposite) Request(ctx context.Context, request *networkse
 	}
 	ingressIfName := opaque.(string)
 
-	aclRules := map[string]string{
-		"Allow ICMP":   "action=reflect,icmptype=8",
-		"Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80",
-	}
-
-	err = vac.applyAclOnVppInterface(ctx, "IngressACL", ingressIfName, aclRules)
+	err = vac.applyAclOnVppInterface(ctx, "IngressACL", ingressIfName, vac.aclRules)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -203,6 +199,9 @@ func newVppAgentAclComposite(configuration *common.NSConfiguration) *vppAgentAcl
 	newVppAgentAclComposite := &vppAgentAclComposite{
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
+
+	newVppAgentAclComposite.aclRules = getAclRulesConfig()
+
 	newVppAgentAclComposite.SetSelf(newVppAgentAclComposite)
 
 	return newVppAgentAclComposite
