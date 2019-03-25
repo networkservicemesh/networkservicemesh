@@ -46,7 +46,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.

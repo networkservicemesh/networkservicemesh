@@ -27,7 +27,7 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("nsmgr", "nsc") // Be sure where is no NSMD
+	k8s.PrepareDefault() // Be sure where is no NSMD
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
 	if len(nodes) < 1 {

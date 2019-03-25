@@ -86,7 +86,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsmd-dataplane", "vppagent-firewall-nse", "vpn-gateway-nse", "vpn-gateway-nsc")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 	if len(nodes) < nodesCount {

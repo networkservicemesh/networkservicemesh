@@ -24,7 +24,7 @@ func TestNSMDDP(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("dataplane", "icmp", "nsmgr")
+	k8s.PrepareDefault()
 
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
@@ -51,7 +51,7 @@ func TestNSMDRecoverNSE(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("nsmd", "icmp")
+	k8s.PrepareDefault()
 
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
