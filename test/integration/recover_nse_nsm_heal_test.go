@@ -29,7 +29,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
@@ -94,7 +94,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
@@ -149,7 +149,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
@@ -204,7 +204,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.

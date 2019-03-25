@@ -141,7 +141,7 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsc", "dataplane", "icmp-responder-nse", "jaeger", "source", "dest")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// prepare node
