@@ -39,7 +39,7 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("nsmgr")
+	k8s.PrepareDefault()
 	nodes := k8s.GetNodesWait(2, defaultTimeout)
 
 	if len(nodes) < 2 {

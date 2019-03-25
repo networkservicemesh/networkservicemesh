@@ -33,7 +33,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("nsmd")
+	k8s.PrepareDefault()
 
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
 
@@ -144,7 +144,7 @@ func TestUpdateNSM(t *testing.T) {
 	Expect(err).To(BeNil())
 	k8s.CleanupCRDs()
 
-	k8s.Prepare("nsmd")
+	k8s.PrepareDefault()
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
@@ -234,7 +234,7 @@ func TestGetEndpoints(t *testing.T) {
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	k8s.Prepare("nsmd")
+	k8s.PrepareDefault()
 	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
 	// We need to wait unti it is started
