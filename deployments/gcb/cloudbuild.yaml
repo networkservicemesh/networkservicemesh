@@ -35,10 +35,9 @@ steps:
     id: build-image
     args: [
       'build',
-      '--build-arg',
-      'VPP_AGENT=${_VPP_AGENT}',
-      '--build-arg',
-      'VPP_DEV=${_VPP_AGENT_DEV}',
+      '--build-arg', 'VPP_AGENT=${_VPP_AGENT}',
+      '--build-arg', 'VPP_DEV=${_VPP_AGENT_DEV}',
+      '--build-arg', 'REPO=${_REPO}',
       '-t',
       '${_REPO}/${_NAME}:${_TAG}',
       '--cache-from',

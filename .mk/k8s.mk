@@ -67,7 +67,7 @@ ifeq ($(CONTAINER_REPO),)
 CONTAINER_REPO=networkservicemesh
 endif
 
-ORG=$(CONTAINER_REPO)
+export ORG=$(CONTAINER_REPO)
 
 .PHONY: k8s-deploy
 k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))

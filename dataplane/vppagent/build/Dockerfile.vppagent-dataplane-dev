@@ -1,8 +1,10 @@
 ARG VPP_AGENT
 ARG VPP_DEV
+ARG REPO
 
 FROM golang:alpine as build
 FROM ${VPP_DEV} as vpp_dev
+from ${REPO}/vppagent-dataplane:latest as vppagent_dataplane
 FROM ${VPP_AGENT}
 
 ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
@@ -22,7 +24,7 @@ RUN apt-get update && apt-get install -y zip python python-cffi python-enum34 \
   && dpkg -i vpp-dev_*.deb vpp-dbg_*.deb vpp-api-python_*.deb \
   && rm vpp*.deb
 
-COPY --from=networkservicemesh/vppagent-dataplane:latest /bin/vppagent-dataplane /bin/vppagent-dataplane
+COPY --from=vppagent_dataplane /bin/vppagent-dataplane /bin/vppagent-dataplane
 RUN rm /opt/vpp-agent/dev/etcd.conf /opt/vpp-agent/dev/kafka.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
