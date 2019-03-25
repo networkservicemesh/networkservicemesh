@@ -115,16 +115,17 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 		logrus.Fatalf("Dataplane initialization failed: %s ", err)
 	}
 
+	// Verify the configuration is populated
 	if !sanityCheckConfig(config.common) {
 		logrus.Fatalf("Dataplane configuration sanity check failed: %s ", err)
 	}
 
+	// Prepare the gRPC server
 	config.listener, err = net.Listen(config.common.DataplaneSocketType, config.common.DataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", config.common.DataplaneSocket, err)
 		SetSocketListenFailed()
 	}
-	// Register the gRPC server
 	dataplane.RegisterDataplaneServer(config.gRPCserver, dp)
 
 	// Start the server
