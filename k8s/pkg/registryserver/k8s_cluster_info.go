@@ -39,7 +39,7 @@ func (k *k8sClusterInfo) GetClusterConfiguration(ctx context.Context, in *empty.
 	}
 
 	clusterConfiguration := &v1alpha3.ClusterConfiguration{}
-	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(kubeadmConfig.Data["ClusterConfiguration"]), 1000).
+	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(kubeadmConfig.Data["ClusterConfiguration"]), 4096).
 		Decode(clusterConfiguration)
 	if err != nil {
 		logrus.Error(err)
