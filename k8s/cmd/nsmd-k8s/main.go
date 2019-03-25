@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"net"
 	"os"
 	"os/signal"
@@ -68,6 +69,13 @@ func main() {
 	}
 
 	server := registryserver.New(nsmClientSet, nsmName)
+
+	clusterInfoService, err := registryserver.NewK8sClusterInfoService(config)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+
+	registry.RegisterClusterInfoServer(server, clusterInfoService)
 
 	logrus.Print("nsmd-k8s initialized and waiting for connection")
 	err = server.Serve(listener)

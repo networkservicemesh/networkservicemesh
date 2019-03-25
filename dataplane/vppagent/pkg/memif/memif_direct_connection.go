@@ -3,6 +3,7 @@ package memif
 import (
 	"os"
 	"path"
+	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/memifproxy"
@@ -10,13 +11,13 @@ import (
 )
 
 type DirectMemifConnector struct {
-	proxyMap map[string]*memifproxy.Proxy
+	proxyMap *sync.Map
 	baseDir  string
 }
 
 func NewDirectMemifConnector(baseDir string) *DirectMemifConnector {
 	return &DirectMemifConnector{
-		proxyMap: make(map[string]*memifproxy.Proxy),
+		proxyMap: &sync.Map{},
 		baseDir:  baseDir,
 	}
 }
@@ -32,38 +33,42 @@ func (d *DirectMemifConnector) ConnectOrDisConnect(crossConnect *crossconnect.Cr
 func (d *DirectMemifConnector) connect(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Direct memif cross connect request: %v", crossConnect)
 
-	if _, exist := d.proxyMap[crossConnect.Id]; exist {
-		logrus.Warnf("Proxy for cross connect with id=%s already exists", crossConnect.Id)
-		return crossConnect, nil
-	}
-
 	src := crossConnect.GetLocalSource().GetMechanism()
 	dst := crossConnect.GetLocalDestination().GetMechanism()
 
 	fullyQualifiedDstSocketFilename := path.Join(d.baseDir, dst.GetWorkspace(), dst.GetSocketFilename())
 	fullyQualifiedSrcSocketFilename := path.Join(d.baseDir, src.GetWorkspace(), src.GetSocketFilename())
 
+	value, exist := d.proxyMap.LoadOrStore(crossConnect.Id, memifproxy.NewProxy(fullyQualifiedSrcSocketFilename, fullyQualifiedDstSocketFilename))
+	proxy := value.(*memifproxy.Proxy)
+
+	if exist {
+		logrus.Warnf("Proxy for cross connect with id=%s already exists", crossConnect.Id)
+		return crossConnect, nil
+	}
+
 	if err := os.MkdirAll(path.Dir(fullyQualifiedSrcSocketFilename), 0777); err != nil {
 		return nil, err
 	}
 	logrus.Infof("Successfully created directory: %v", path.Dir(fullyQualifiedSrcSocketFilename))
 
-	proxy := memifproxy.NewProxy(fullyQualifiedSrcSocketFilename, fullyQualifiedDstSocketFilename)
 	if err := proxy.Start(); err != nil {
 		return nil, err
 	}
 
-	d.proxyMap[crossConnect.Id] = proxy
 	logrus.Infof("Add new proxy for cross connect with id=%s", crossConnect.Id)
 	return crossConnect, nil
 }
 
 func (d *DirectMemifConnector) disconnect(crossConnect *crossconnect.CrossConnect) {
-	proxy, exist := d.proxyMap[crossConnect.GetId()]
+	value, exist := d.proxyMap.Load(crossConnect.GetId())
 	if !exist {
 		logrus.Warnf("Proxy for cross connect with id=%s doesn't exist. Nothing to stop", crossConnect.GetId())
 		return
 	}
+
+	proxy := value.(*memifproxy.Proxy)
 	proxy.Stop()
-	delete(d.proxyMap, crossConnect.Id)
+
+	d.proxyMap.Delete(crossConnect.Id)
 }

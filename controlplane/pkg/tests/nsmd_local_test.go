@@ -6,12 +6,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	context2 "golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -153,10 +151,8 @@ func TestNSENoSrc(t *testing.T) {
 func TestNSEExcludePrefixes(t *testing.T) {
 	RegisterTestingT(t)
 
-	err := os.Setenv(nsmd.ExcludedPrefixesEnv, "127.0.0.1/24, abc")
-
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, "127.0.0.1/24", "abc")
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -180,12 +176,10 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, "127.0.0.1/24", "abc")
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
-
-	err := os.Setenv(nsmd.ExcludedPrefixesEnv, "127.0.0.1/24, abc")
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()

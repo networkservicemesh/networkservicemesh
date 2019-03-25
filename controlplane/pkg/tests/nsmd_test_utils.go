@@ -52,10 +52,11 @@ func newSharedStorage() *sharedStorage {
 }
 
 type nsmdTestServiceDiscovery struct {
-	apiRegistry *testApiRegistry
-	storage     *sharedStorage
-	nsmCounter  int
-	nsmgrName   string
+	apiRegistry          *testApiRegistry
+	storage              *sharedStorage
+	nsmCounter           int
+	nsmgrName            string
+	clusterConfiguration *registry.ClusterConfiguration
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
@@ -80,12 +81,13 @@ func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registr
 	return nil, nil
 }
 
-func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage) *nsmdTestServiceDiscovery {
+func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage, clusterConfiguration *registry.ClusterConfiguration) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
-		storage:     storage,
-		apiRegistry: testApi,
-		nsmCounter:  0,
-		nsmgrName:   nsmgrName,
+		storage:              storage,
+		apiRegistry:          testApi,
+		nsmCounter:           0,
+		nsmgrName:            nsmgrName,
+		clusterConfiguration: clusterConfiguration,
 	}
 }
 
@@ -119,15 +121,19 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *regis
 	return in, nil
 }
 
-func (iml *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
+func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
 	return &registry.NetworkServiceEndpointList{
-		NetworkServiceEndpoints:[]*registry.NetworkServiceEndpoint{
-			&registry.NetworkServiceEndpoint {
-				NetworkServiceManagerName:"nsm1",
-				EndpointName: "ep1",
+		NetworkServiceEndpoints: []*registry.NetworkServiceEndpoint{
+			&registry.NetworkServiceEndpoint{
+				NetworkServiceManagerName: "nsm1",
+				EndpointName:              "ep1",
 			},
 		},
 	}, nil
+}
+
+func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.ClusterConfiguration, error) {
+	return impl.clusterConfiguration, nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -292,6 +298,10 @@ func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryCl
 	return impl.nseRegistry, nil
 }
 
+func (impl *nsmdTestServiceRegistry) ClusterInfoClient() (registry.ClusterInfoClient, error) {
+	return impl.nseRegistry, nil
+}
+
 func (impl *nsmdTestServiceRegistry) Stop() {
 	logrus.Printf("Delete temporary workspace root: %s", impl.rootDir)
 	os.RemoveAll(impl.rootDir)
@@ -436,18 +446,26 @@ func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientCon
 	return response, con
 }
 
-func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
+func newNSMDFullServer(nsmgrName string, storage *sharedStorage, excludedPrefixes ...string) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	return newNSMDFullServerAt(nsmgrName, storage, rootDir)
+
+	return newNSMDFullServerAt(nsmgrName, storage, rootDir, excludedPrefixes...)
 }
 
-func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
+func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, excludedPrefixes ...string) *nsmdFullServerImpl {
+	var clusterConfiguration registry.ClusterConfiguration
+	if len(excludedPrefixes) == 2 {
+		clusterConfiguration = registry.ClusterConfiguration{
+			PodSubnet:     excludedPrefixes[0],
+			ServiceSubnet: excludedPrefixes[1],
+		}
+	}
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, &clusterConfiguration)
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -466,7 +484,11 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, nsmd.GetExcludedPrefixes())
+	srv.manager = nsm.NewNetworkServiceManager(
+		srv.testModel,
+		srv.serviceRegistry,
+		[]string{clusterConfiguration.PodSubnet, clusterConfiguration.ServiceSubnet},
+	)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()
@@ -482,7 +504,6 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	// Start API Server
 	err = nsmd.StartAPIServerAt(nsmServer, sock)
 	Expect(err).To(BeNil())
-
 
 	return srv
 }

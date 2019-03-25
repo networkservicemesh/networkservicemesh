@@ -5,10 +5,10 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"net"
 	"testing"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -299,4 +299,49 @@ func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
 	endpoint := response.GetNetworkServiceEndpoints()[0]
 	logrus.Infof("Endpoint: %v", endpoint)
 	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].GetUrl()
+}
+
+func TestClusterInfo(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	k8s.Prepare("nsmgr")
+	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+
+	// We need to wait unti it is started
+	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
+
+	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
+
+	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	e := fwd.Start()
+	if e != nil {
+		logrus.Printf("Error on forward: %v retrying", e)
+	}
+
+	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	clusterInfo, err := serviceRegistry.ClusterInfoClient()
+	Expect(err).To(BeNil())
+
+	config, err := clusterInfo.GetClusterConfiguration(context.Background(), &empty.Empty{})
+	Expect(err).To(BeNil())
+	Expect(config.PodSubnet).ToNot(BeNil())
+	Expect(config.ServiceSubnet).ToNot(BeNil())
+
+	_, _, err = net.ParseCIDR(config.PodSubnet)
+	Expect(err).To(BeNil())
+
+	_, _, err = net.ParseCIDR(config.ServiceSubnet)
+	Expect(err).To(BeNil())
 }
