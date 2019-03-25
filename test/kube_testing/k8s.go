@@ -337,6 +337,10 @@ func (l *K8s) Cleanup() {
 	l.pods = nil
 }
 
+func (l* K8s) PrepareDefault() {
+	l.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
+}
+
 func (l *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
 		for _, lpod := range l.ListPods() {

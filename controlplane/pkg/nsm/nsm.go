@@ -32,7 +32,7 @@ import (
 	"time"
 )
 
-const(
+const (
 	DataplaneRetryCount = 10 // A number of times to call Dataplane Request, TODO: Remove after DP will be stable.
 	DataplaneRetryDelay = 500 * time.Millisecond
 	DataplaneTimeout = 15* time.Second
@@ -40,24 +40,24 @@ const(
 
 ///// Network service manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
-	serviceRegistry   serviceregistry.ServiceRegistry
-	model             model.Model
-	excluded_prefixes []string
-	properties        *nsm.HealTimeouts
-	stateRestored     chan bool
+	serviceRegistry  serviceregistry.ServiceRegistry
+	model            model.Model
+	excludedPrefixes []string
+	properties       *nsm.HealTimeouts
+	stateRestored    chan bool
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.HealTimeouts {
 	return srv.properties
 }
 
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excluded_prefixes []string) nsm.NetworkServiceManager {
+func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes []string) nsm.NetworkServiceManager {
 	return &networkServiceManager{
-		serviceRegistry:   serviceRegistry,
-		model:             model,
-		excluded_prefixes: excluded_prefixes,
-		properties:        nsm.NewHealProperties(),
-		stateRestored:     make(chan bool, 1),
+		serviceRegistry:  serviceRegistry,
+		model:            model,
+		excludedPrefixes: excludedPrefixes,
+		properties:       nsm.NewHealProperties(),
+		stateRestored:    make(chan bool, 1),
 	}
 }
 
@@ -557,7 +557,7 @@ func (srv *networkServiceManager) updateExcludePrefixes(requestConnection nsm.NS
 	if c == nil {
 		c = &connectioncontext.ConnectionContext{}
 	}
-	for _, ep := range srv.excluded_prefixes {
+	for _, ep := range srv.excludedPrefixes {
 		c.ExcludedPrefixes = append(c.ExcludedPrefixes, ep)
 	}
 	// Since we do not worry about validation, just
@@ -763,7 +763,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				Endpoint:        endpoint, // We do not have endpoint here.
 				Dataplane:       dp,
 				ConnectionState: connectionState,
-				DataplaneState: model.DataplaneState_Ready, // It is configured already.
+				DataplaneState:  model.DataplaneState_Ready, // It is configured already.
 			}
 			srv.model.AddClientConnection(clientConnection)
 
@@ -773,7 +773,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 			} else if src := xcon.GetLocalSource(); src != nil {
 				// Update request to match source connection
 				request := &networkservice.NetworkServiceRequest{
-					Connection: src,
+					Connection:           src,
 					MechanismPreferences: []*connection.Mechanism{src.GetMechanism()},
 				}
 				clientConnection.Request = request

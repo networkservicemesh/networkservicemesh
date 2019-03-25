@@ -29,17 +29,17 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		&pods.NSMgrPodConfig{
-			Variables: map[string]string {
-				nsm.NsmdHealDSTWaitTimeout: "10", // 10 second delay, since we know NSE is new one.
+			Variables: map[string]string{
+				nsm.NsmdHealDSTWaitTimeout: "30", // 10 second delay, since we know NSE is new one.
 			},
 		}, &pods.NSMgrPodConfig{},
-	} )
+	})
 
 	// Run ICMP on latest node
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
@@ -56,11 +56,11 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	k8s.DeletePods(nodes_setup[1].Nsmd)
 
 	k8s.DeletePods(icmpPod)
-
 	logrus.Infof("Waiting for NSE with network service")
 	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder. Since elapsed:", 60*time.Second)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
+	time.Sleep(10 * time.Second)
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
@@ -94,7 +94,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
@@ -149,7 +149,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
@@ -204,7 +204,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
@@ -230,8 +230,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{
-	})) // Recovery NSEs
+	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[0].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
