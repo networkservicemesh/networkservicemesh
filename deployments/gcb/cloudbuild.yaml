@@ -36,7 +36,9 @@ steps:
     args: [
       'build',
       '--build-arg',
-      'VPP_AGENT=ligato/vpp-agent:v1.8.1',
+      'VPP_AGENT=${_VPP_AGENT}',
+      '--build-arg',
+      'VPP_DEV=${_VPP_AGENT_DEV}',
       '-t',
       '${_REPO}/${_NAME}:${_TAG}',
       '--cache-from',
@@ -62,3 +64,5 @@ substitutions:
   _REPO: gcr.io/PROJECT
   _NAME: nsmd
   _TARGET: build
+  _VPP_AGENT: vpp_agent
+  _VPP_AGENT_DEV: vpp_agent_dev
