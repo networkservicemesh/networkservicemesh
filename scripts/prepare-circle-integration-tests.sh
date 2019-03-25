@@ -37,8 +37,4 @@ kubectl apply -f k8s/conf/crd-networkservices.yaml
 kubectl apply -f k8s/conf/crd-networkserviceendpoints.yaml
 kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
 
-./scripts/webhook-create-cert.sh
-sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1${COMMIT/${COMMIT}/:${COMMIT}};" ./k8s/conf/admission-webhook.yaml | kubectl apply -f -
-./scripts/webhook-patch-ca-bundle.sh < ./k8s/conf/admission-webhook-cfg.yaml | kubectl apply -f -
-
 # vim: sw=4 ts=4 et si

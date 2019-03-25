@@ -1,17 +1,26 @@
 package nsmd_test_utils
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"k8s.io/client-go/util/cert"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type NodeConf struct {
@@ -134,8 +143,227 @@ func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.D
 	Expect(nsc.Name).To(Equal(name))
 
 	k8s.WaitLogsContains(nsc, "nsc", "nsm client: initialization is completed successfully", timeout)
+
 	logrus.Printf("NSC started done: %v", time.Since(startTime))
 	return nsc
+}
+
+func DeployAdmissionWebhook(k8s *kube_testing.K8s, name string, image string, namespace string) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
+	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
+	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
+
+	awDeployment := CreateAdmissionWebhookDeployment(k8s, name, image, namespace)
+	awService := CreateAdmissionWebhookService(k8s, name, namespace)
+
+	return awc, awDeployment, awService
+}
+
+func DeleteAdmissionWebhook(k8s *kube_testing.K8s, secretName string,
+	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
+
+	err := k8s.DeleteService(awService, namespace)
+	Expect(err).To(BeNil())
+
+	err = k8s.DeleteDeployment(awDeployment, namespace)
+	Expect(err).To(BeNil())
+
+	err = k8s.DeleteMutatingWebhookConfiguration(awc)
+	Expect(err).To(BeNil())
+
+	err = k8s.DeleteSecret(secretName, namespace)
+	Expect(err).To(BeNil())
+}
+
+func CreateAdmissionWebhookSecret(k8s *kube_testing.K8s, name string, namespace string) (*v1.Secret, []byte) {
+
+	caCertSpec := &cert.Config{
+		CommonName: "admission-controller-ca",
+		Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+	}
+	caCert, caKey, err := pkiutil.NewCertificateAuthority(caCertSpec)
+	Expect(err).To(BeNil())
+
+	certSpec := &cert.Config{
+		CommonName: name + "-svc",
+		AltNames: cert.AltNames{
+			DNSNames: []string{
+				name + "-svc." + namespace,
+				name + "-svc." + namespace + ".svc",
+			},
+		},
+		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+	}
+	cer, key, err := pkiutil.NewCertAndKey(caCert, caKey, certSpec)
+	Expect(err).To(BeNil())
+
+	block := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}
+	keyPem := pem.EncodeToMemory(block)
+
+	block = &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cer.Raw,
+	}
+	certPem := pem.EncodeToMemory(block)
+
+	secret := &v1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-certs",
+			Namespace: namespace,
+		},
+		Type: v1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"key.pem":  keyPem,
+			"cert.pem": certPem,
+		},
+	}
+
+	awSecret, err := k8s.CreateSecret(secret, namespace)
+	Expect(err).To(BeNil())
+
+	block = &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caCert.Raw,
+	}
+	caCertPem := pem.EncodeToMemory(block)
+
+	return awSecret, caCertPem
+}
+
+func CreateMutatingWebhookConfiguration(k8s *kube_testing.K8s, certPem []byte, name string, namespace string) *arv1beta1.MutatingWebhookConfiguration {
+	servicePath := "/mutate"
+
+	mutatingWebhookConf := &arv1beta1.MutatingWebhookConfiguration{
+
+		TypeMeta: metav1.TypeMeta{
+			Kind: "MutatingWebhookConfiguration",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name + "-cfg",
+			Labels: map[string]string{
+				"app": "nsm-admission-webhook",
+			},
+		},
+		Webhooks: []arv1beta1.Webhook{
+			{
+				Name: "admission-webhook.networkservicemesh.io",
+				ClientConfig: arv1beta1.WebhookClientConfig{
+					Service: &arv1beta1.ServiceReference{
+						Namespace: namespace,
+						Name:      name + "-svc",
+						Path:      &servicePath,
+					},
+					CABundle: certPem,
+				},
+				Rules: []arv1beta1.RuleWithOperations{
+					{
+						Operations: []arv1beta1.OperationType{
+							arv1beta1.Create,
+						},
+						Rule: arv1beta1.Rule{
+							APIGroups:   []string{"apps", "extensions", ""},
+							APIVersions: []string{"v1", "v1beta1"},
+							Resources:   []string{"deployments", "services", "pods"},
+						},
+					},
+				},
+			},
+		},
+	}
+	awc, err := k8s.CreateMutatingWebhookConfiguration(mutatingWebhookConf)
+	Expect(err).To(BeNil())
+
+	return awc
+}
+
+func CreateAdmissionWebhookDeployment(k8s *kube_testing.K8s, name string, image string, namespace string) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"app": "nsm-admission-webhook",
+			},
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Deployment",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "nsm-admission-webhook"},
+			},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "nsm-admission-webhook",
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name:            name,
+							Image:           image,
+							ImagePullPolicy: v1.PullIfNotPresent,
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "webhook-certs",
+									MountPath: "/etc/webhook/certs",
+									ReadOnly:  true,
+								},
+							},
+						},
+					},
+					Volumes: []v1.Volume{
+						{
+							Name: "webhook-certs",
+							VolumeSource: v1.VolumeSource{
+								Secret: &v1.SecretVolumeSource{
+									SecretName: "nsm-admission-webhook-certs",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	awDeployment, err := k8s.CreateDeployment(deployment, namespace)
+	Expect(err).To(BeNil())
+
+	return awDeployment
+}
+
+func CreateAdmissionWebhookService(k8s *kube_testing.K8s, name string, namespace string) *v1.Service {
+	service := &v1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name + "-svc",
+			Labels: map[string]string{
+				"app": "nsm-admission-webhook",
+			},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{
+				{
+					Port:       443,
+					TargetPort: intstr.FromInt(443),
+				},
+			},
+			Selector: map[string]string{
+				"app": "nsm-admission-webhook",
+			},
+		},
+	}
+	awService, err := k8s.CreateService(service, namespace)
+	Expect(err).To(BeNil())
+
+	return awService
 }
 
 func PrintLogs(k8s *kube_testing.K8s, nodesSetup []*NodeConf) {

@@ -12,6 +12,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -506,13 +508,57 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 
 }
 
-func (o *K8s) CreateService(service *v1.Service) {
-	_ = o.clientset.CoreV1().Services("default").Delete(service.Name, &metaV1.DeleteOptions{})
-	s, err := o.clientset.CoreV1().Services("default").Create(service)
+func (o *K8s) CreateService(service *v1.Service, namespace string) (*v1.Service, error) {
+	_ = o.clientset.CoreV1().Services(namespace).Delete(service.Name, &metaV1.DeleteOptions{})
+	s, err := o.clientset.CoreV1().Services(namespace).Create(service)
 	if err != nil {
 		logrus.Errorf("Error creating service: %v %v", s, err)
 	}
 	logrus.Infof("Service is created: %v", s)
+	return s, err
+}
+
+func (o *K8s) DeleteService(service *v1.Service, namespace string) error {
+	return o.clientset.CoreV1().Services(namespace).Delete(service.GetName(), &metaV1.DeleteOptions{})
+}
+
+func (o *K8s) CreateDeployment(deployment *appsv1.Deployment, namespace string) (*appsv1.Deployment, error) {
+	d, err := o.clientset.AppsV1().Deployments(namespace).Create(deployment)
+	if err != nil {
+		logrus.Errorf("Error creating deployment: %v %v", d, err)
+	}
+	logrus.Infof("Deployment is created: %v", d)
+	return d, err
+}
+
+func (o *K8s) DeleteDeployment(deployment *appsv1.Deployment, namespace string) error {
+	return o.clientset.AppsV1().Deployments(namespace).Delete(deployment.GetName(), &metaV1.DeleteOptions{})
+}
+
+func (o *K8s) CreateMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta1.MutatingWebhookConfiguration) (*arv1beta1.MutatingWebhookConfiguration, error) {
+	awc, err := o.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(mutatingWebhookConf)
+	if err != nil {
+		logrus.Errorf("Error creating MutatingWebhookConfiguration: %v %v", awc, err)
+	}
+	logrus.Infof("MutatingWebhookConfiguration is created: %v", awc)
+	return awc, err
+}
+
+func (o *K8s) DeleteMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta1.MutatingWebhookConfiguration) error {
+	return o.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(mutatingWebhookConf.GetName(), &metaV1.DeleteOptions{})
+}
+
+func (o *K8s) CreateSecret(secret *v1.Secret, namespace string) (*v1.Secret, error) {
+	s, err := o.clientset.CoreV1().Secrets(namespace).Create(secret)
+	if err != nil {
+		logrus.Errorf("Error creating secret: %v %v", s, err)
+	}
+	logrus.Infof("secret is created: %v", s)
+	return s, err
+}
+
+func (o *K8s) DeleteSecret(name string, namespace string) error {
+	return o.clientset.CoreV1().Secrets(namespace).Delete(name, &metaV1.DeleteOptions{})
 }
 
 func (o *K8s) IsPodReady(pod *v1.Pod) bool {
