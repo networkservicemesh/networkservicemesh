@@ -24,15 +24,14 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
 
 const (
 	NsmdDeleteLocalRegistry = "NSMD_LOCAL_REGISTRY_DELETE"
-	DataplaneTimeout = 1 * time.Hour
-	NSEAliveTimeout	= 1 * time.Second
+	DataplaneTimeout        = 1 * time.Hour
+	NSEAliveTimeout         = 1 * time.Second
 )
 
 type NSMServer interface {
@@ -48,10 +47,10 @@ type NSMServer interface {
 
 type nsmServer struct {
 	sync.Mutex
-	workspaces      map[string]*Workspace
-	model           model.Model
-	serviceRegistry serviceregistry.ServiceRegistry
-	manager         nsm.NetworkServiceManager
+	workspaces       map[string]*Workspace
+	model            model.Model
+	serviceRegistry  serviceregistry.ServiceRegistry
+	manager          nsm.NetworkServiceManager
 	locationProvider serviceregistry.WorkspaceLocationProvider
 	localRegistry    *nseregistry.NSERegistry
 	registerServer   *grpc.Server
@@ -182,7 +181,7 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 		logrus.Infof("NSMServer: Creating workspaces for existing clients...")
 		nsm.Lock()
 		defer nsm.Unlock()
-		for _, client := range (clients) {
+		for _, client := range clients {
 			if len(client) == 0 {
 				continue
 			}
@@ -197,10 +196,9 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 	}
 
 	existingEndpoints := map[string]*registry.NetworkServiceEndpoint{}
-	for _, ep := range (registeredEndpoints.NetworkServiceEndpoints) {
+	for _, ep := range registeredEndpoints.NetworkServiceEndpoints {
 		existingEndpoints[ep.EndpointName] = ep
 	}
-
 
 	if len(nses) > 0 {
 		// Restore NSEs
@@ -224,10 +222,10 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 						if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
 							EndpointName: endpointId,
 						}); err != nil {
-							logrus.Errorf("Remove NSE: NSE %v", err);
+							logrus.Errorf("Remove NSE: NSE %v", err)
 						}
 					}
-					continue;
+					continue
 				} else {
 					logrus.Infof("NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
 				}
@@ -247,8 +245,8 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 					nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
 					nse.NseReg.NetworkserviceEndpoint.NetworkServiceManagerName = nse.NseReg.NetworkServiceManager.Name
 					nsm.model.AddEndpoint(&model.Endpoint{
-						Endpoint: nse.NseReg,
-						Workspace: nse.Workspace,
+						Endpoint:       nse.NseReg,
+						Workspace:      nse.Workspace,
 						SocketLocation: ws.NsmClientSocket(),
 					})
 					updatedNSEs[endpointId] = nse
@@ -264,11 +262,11 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 			return
 		}
 
-		for _, nse := range(existingEndpoints) {
+		for _, nse := range existingEndpoints {
 			if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
 				EndpointName: nse.EndpointName,
 			}); err != nil {
-				logrus.Errorf("Remove NSE: NSE %v", err);
+				logrus.Errorf("Remove NSE: NSE %v", err)
 			}
 		}
 	}
@@ -422,14 +420,27 @@ func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 	return nil
 }
 
-func GetExcludedPrefixes() []string {
-	//TODO: Add a better way to pass this value to NSMD
-	excluded_prefixes := []string{}
-	exclude_prefixes_env, ok := os.LookupEnv(ExcludedPrefixesEnv)
-	if ok {
-		for _, s := range strings.Split(exclude_prefixes_env, ",") {
-			excluded_prefixes = append(excluded_prefixes, strings.TrimSpace(s))
-		}
+func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) ([]string, error) {
+	clusterInfoClient, err := serviceRegistry.ClusterInfoClient()
+	if err != nil {
+		return nil, fmt.Errorf("error during ClusterInfoClient creation: %v", err)
 	}
-	return excluded_prefixes
+
+	clusterConfiguration, err := clusterInfoClient.GetClusterConfiguration(context.Background(), &empty.Empty{})
+	if err != nil {
+		return nil, fmt.Errorf("error during GetClusterConfiguration request: %v", err)
+	}
+
+	if clusterConfiguration.PodSubnet == "" {
+		return nil, fmt.Errorf("clusterConfiguration.PodSubnet is empty")
+	}
+
+	if clusterConfiguration.ServiceSubnet == "" {
+		return nil, fmt.Errorf("clusterConfiguration.ServiceSubnet is empty")
+	}
+
+	return []string{
+		clusterConfiguration.PodSubnet,
+		clusterConfiguration.ServiceSubnet,
+	}, nil
 }
