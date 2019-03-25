@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dataplaneregistrarclient
+package common
 
 import (
 	"context"
@@ -54,7 +54,7 @@ func (dr *dataplaneRegistration) register(ctx context.Context) {
 	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
 
 	// Wait fo NSMD to be ready to register dataplane.
-	_ = tools.WaitForPortAvailable(context.Background(), dr.registrar.registrarSocket.Network(), dr.registrar.registrarSocket.String(), 100* time.Millisecond)
+	_ = tools.WaitForPortAvailable(context.Background(), dr.registrar.registrarSocket.Network(), dr.registrar.registrarSocket.String(), 100*time.Millisecond)
 	ticker := time.NewTicker(dr.registrar.registrationRetryInterval)
 	for ; true; <-ticker.C {
 		select {

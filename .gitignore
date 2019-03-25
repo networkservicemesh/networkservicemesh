@@ -38,5 +38,8 @@ scripts/terraform/packet.tfvars
 **/.terraform*
 **/.terraform*
 
-scripts/vagrant/.kube/
 unit-tests.xml
+
+# Vagrant
+scripts/vagrant/.kube/
+scripts/vagrant/cluster-config.yaml
