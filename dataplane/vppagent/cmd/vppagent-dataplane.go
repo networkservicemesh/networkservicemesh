@@ -25,8 +25,6 @@ import (
 )
 
 func main() {
-	go common.BeginHealthCheck()
-
 	// Capture signals to cleanup before exiting
 	c := make(chan os.Signal, 1)
 	signal.Notify(c,
@@ -34,6 +32,8 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
+
+	go common.BeginHealthCheck()
 
 	vppagent := vppagent.CreateVPPAgent()
 
