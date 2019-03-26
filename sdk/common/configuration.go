@@ -16,13 +16,13 @@
 package common
 
 import (
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -49,13 +49,15 @@ type NSConfiguration struct {
 	MechanismType          string
 	IPAddress              string
 	Routes             []string
+	viperConfig            *viper.Viper
 }
 
-func (nsc *NSConfiguration)  getEnv(key, description string, mandatory bool) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
+func (nsc *NSConfiguration) getEnv(key, description string, mandatory bool) string {
+
+	value := nsc.viperConfig.GetString(key)
+	if len(value) == 0 {
 		if mandatory {
-			logrus.Fatalf("Error getting %v: %v", key, ok)
+			logrus.Fatalf("Error getting %v", key)
 		} else {
 			logrus.Infof("%v not found.", key)
 			return ""
@@ -136,6 +138,19 @@ func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *N
 	return &conf
 }
 
+func (nsc *NSConfiguration) bindNSConfiguration() {
+	nsc.viperConfig.BindEnv(nsmd.NsmServerSocketEnv)
+	nsc.viperConfig.BindEnv(nsmd.NsmClientSocketEnv)
+	nsc.viperConfig.BindEnv(nsmd.WorkspaceEnv)
+	nsc.viperConfig.BindEnv(endpointNetworkServiceEnv)
+	nsc.viperConfig.BindEnv(clientNetworkServiceEnv)
+	nsc.viperConfig.BindEnv(endpointLabelsEnv)
+	nsc.viperConfig.BindEnv(clientLabelsEnv)
+	nsc.viperConfig.BindEnv(tracerEnabledEnv)
+	nsc.viperConfig.BindEnv(mechanismTypeEnv)
+	nsc.viperConfig.BindEnv(ipAddressEnv)
+}
+
 func NewNSConfigurationWithUrl(nsc *NSConfiguration, url *tools.NsUrl) *NSConfiguration {
 
 	nsc = NewNSConfiguration(nsc)
@@ -160,7 +175,12 @@ func NewNSConfiguration(nsc *NSConfiguration) *NSConfiguration {
 	if nsc == nil {
 		nsc = &NSConfiguration{}
 	}
+
+	if nsc.viperConfig == nil {
+		nsc.viperConfig = viper.New()
+		nsc.bindNSConfiguration()
 		nsc.completeNSConfiguration()
+	}
 
 	return nsc
 }
