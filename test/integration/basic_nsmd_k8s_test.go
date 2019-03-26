@@ -345,3 +345,109 @@ func TestClusterInfo(t *testing.T) {
 	_, _, err = net.ParseCIDR(config.ServiceSubnet)
 	Expect(err).To(BeNil())
 }
+
+func TestLostUpdate(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+	k8s.CleanupCRDs()
+
+	k8s.PrepareDefault()
+	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
+
+	// We need to wait until it is started
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
+	// To be sure NSMD is already called for register.
+	k8s.WaitLogsContains(nsmd, "nsmd", "Waiting for dataplane available...", defaultTimeout)
+
+	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
+	Expect(err).To(BeNil())
+	//defer fwd.Stop()
+
+	e := fwd.Start()
+	if e != nil {
+		logrus.Printf("Error on forward: %v retrying", e)
+	}
+
+	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
+	Expect(err).To(BeNil())
+
+	discovery, err := serviceRegistry.DiscoveryClient()
+	Expect(err).To(BeNil())
+
+	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
+	Expect(err).To(BeNil())
+
+	networkService := "icmp-responder"
+	nsmName := "master"
+	url1 := "1.1.1.1:1"
+	response, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+		Name: nsmName,
+		Url:  url1,
+	})
+	logrus.Info(response)
+	Expect(err).To(BeNil())
+
+	nseResp, err := nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkService,
+			Payload: "tcp",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: networkService,
+		},
+	})
+	Expect(err).To(BeNil())
+	logrus.Info(nseResp)
+	Expect(getNsmUrl(discovery)).To(Equal(url1))
+
+	k8s.DeletePods(nsmd)
+	fwd.Stop()
+	nsmgr2 := k8s.CreatePod(pods.NSMgrPod("nsmgr-2", nil))
+
+	fwd, err = k8s.NewPortForwarder(nsmgr2, 5000)
+	Expect(err).To(BeNil())
+	defer fwd.Stop()
+
+	e = fwd.Start()
+	if e != nil {
+		logrus.Printf("Error on forward: %v retrying", e)
+	}
+
+	serviceRegistry = nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	nsmRegistryClient, err = serviceRegistry.NsmRegistryClient()
+	Expect(err).To(BeNil())
+
+	discovery, err = serviceRegistry.DiscoveryClient()
+	Expect(err).To(BeNil())
+
+	nseRegistryClient, err = serviceRegistry.NseRegistryClient()
+	Expect(err).To(BeNil())
+
+	// We need to wait until it is started
+	k8s.WaitLogsContains(nsmgr2, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
+	// To be sure NSMD is already called for register.
+	k8s.WaitLogsContains(nsmgr2, "nsmd", "Waiting for dataplane available...", defaultTimeout)
+	Expect(err).To(BeNil())
+
+	nseResp, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkService,
+			Payload: "tcp",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: networkService,
+		},
+	})
+	Expect(err).To(BeNil())
+	logrus.Info(nseResp)
+	Expect(getNsmUrl(discovery)).ToNot(Equal(url1))
+}
