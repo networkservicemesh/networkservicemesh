@@ -16,6 +16,7 @@ package vppagent
 
 import (
 	"context"
+	"github.com/gogo/protobuf/proto"
 	"net"
 	"os"
 	"time"
@@ -137,6 +138,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		IfaceNameProvider: v.tapIfaceIndex,
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
+	logrus.Errorf("Data change: \n%s\n", proto.MarshalTextString(dataChange))
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
