@@ -369,7 +369,6 @@ func TestLostUpdate(t *testing.T) {
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
-	//defer fwd.Stop()
 
 	e := fwd.Start()
 	if e != nil {
