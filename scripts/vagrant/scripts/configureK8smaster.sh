@@ -9,28 +9,7 @@ echo This VM has IP address "$IPADDR"
 
 # Set up Kubernetes
 NODENAME=$(hostname -s)
-
-cat <<EOF > /vagrant/cluster-config.yaml
-apiVersion: kubeadm.k8s.io/v1alpha3
-kind: InitConfiguration
-apiEndpoint:
-  advertiseAddress: ${IPADDR}
-  bindPort: 6443
-nodeRegistration:
-  name: ${NODENAME}
----
-apiVersion: kubeadm.k8s.io/v1alpha3
-kind: ClusterConfiguration
-etcd:
-  local:
-    image: gcr.io/etcd-development/etcd:v3.3.12
-apiServerCertSANs:
-- ${IPADDR}
-networking:
-  podSubnet: 10.32.0.0/12
-EOF
-
-kubeadm init --config /vagrant/cluster-config.yaml
+kubeadm init --apiserver-cert-extra-sans="$IPADDR" --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME" --pod-network-cidr="10.32.0.0/12"
 
 echo "KUBELET_EXTRA_ARGS= --node-ip=${IPADDR}" > /etc/default/kubelet
 service kubelet restart
