@@ -243,7 +243,7 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 				delay, err := strconv.Atoi(val)
 				if err == nil {
 					logrus.Infof("Delaying Dataplane Request: %v", delay)
-					<- time.Tick( time.Duration(delay) * time.Second)
+					<-time.Tick(time.Duration(delay) * time.Second)
 				}
 			}
 		}
@@ -484,11 +484,11 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(
-		srv.testModel,
-		srv.serviceRegistry,
-		[]string{clusterConfiguration.PodSubnet, clusterConfiguration.ServiceSubnet},
-	)
+	pool, err := prefix_pool.NewPrefixPool(clusterConfiguration.PodSubnet, clusterConfiguration.ServiceSubnet)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, pool)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()

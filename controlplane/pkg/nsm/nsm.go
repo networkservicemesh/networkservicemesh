@@ -26,6 +26,7 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -35,14 +36,14 @@ import (
 const (
 	DataplaneRetryCount = 10 // A number of times to call Dataplane Request, TODO: Remove after DP will be stable.
 	DataplaneRetryDelay = 500 * time.Millisecond
-	DataplaneTimeout = 15* time.Second
+	DataplaneTimeout    = 15 * time.Second
 )
 
-///// Network service manager to manage both local/remote NSE connections.
+// Network service manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	model            model.Model
-	excludedPrefixes []string
+	excludedPrefixes prefix_pool.PrefixPool
 	properties       *nsm.HealTimeouts
 	stateRestored    chan bool
 }
@@ -51,7 +52,7 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.HealTimeouts {
 	return srv.properties
 }
 
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes []string) nsm.NetworkServiceManager {
+func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes prefix_pool.PrefixPool) nsm.NetworkServiceManager {
 	return &networkServiceManager{
 		serviceRegistry:  serviceRegistry,
 		model:            model,
@@ -273,7 +274,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 func (srv *networkServiceManager) handleDataplaneContextTimeout(requestId string, err error, clientConnection *model.ClientConnection) {
 	logrus.Errorf("NSM:(10.2.0-%v) Context timeout, during programming Dataplane... %v", requestId, err)
 	// If context is exceed
-	if ep_err := srv.closeEndpoint(context.Background(), clientConnection, ); ep_err != nil {
+	if ep_err := srv.closeEndpoint(context.Background(), clientConnection); ep_err != nil {
 		logrus.Errorf("NSM:(10.2.0-%v) Context timeout, closing NSE: %v", requestId, ep_err)
 	}
 	srv.model.DeleteClientConnection(clientConnection.ConnectionId)
@@ -502,11 +503,31 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 	return dpApiConnection
 }
 func (srv *networkServiceManager) validateNSEConnection(requestId string, nseConnection nsm.NSMConnection) error {
+	errorFormatter := func(err error) error {
+		return fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
+	}
+
 	err := nseConnection.IsComplete()
 	if err != nil {
-		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
-		return err
+		return errorFormatter(err)
 	}
+
+	intersect, err := srv.excludedPrefixes.Intersect(nseConnection.GetContext().GetSrcIpAddr())
+	if err != nil {
+		return errorFormatter(err)
+	}
+	if intersect {
+		return errorFormatter(fmt.Errorf("srcIp intersects excludedPrefix"))
+	}
+
+	intersect, err = srv.excludedPrefixes.Intersect(nseConnection.GetContext().GetDstIpAddr())
+	if err != nil {
+		return errorFormatter(err)
+	}
+	if intersect {
+		return errorFormatter(fmt.Errorf("dstIp intersects excludedPrefix"))
+	}
+
 	return nil
 }
 
@@ -557,9 +578,8 @@ func (srv *networkServiceManager) updateExcludePrefixes(requestConnection nsm.NS
 	if c == nil {
 		c = &connectioncontext.ConnectionContext{}
 	}
-	for _, ep := range srv.excludedPrefixes {
-		c.ExcludedPrefixes = append(c.ExcludedPrefixes, ep)
-	}
+	c.ExcludedPrefixes = append(c.ExcludedPrefixes, srv.excludedPrefixes.GetPrefixes()...)
+
 	// Since we do not worry about validation, just
 	requestConnection.SetContext(c)
 }
