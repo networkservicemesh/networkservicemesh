@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -188,15 +189,27 @@ func (fixture *StandaloneDataplaneRemoteFixture) handleFailures(failures []strin
 		for _, failure := range failures {
 			logrus.Errorf("test failure: %s\n", failure)
 		}
-		dataplaneSrc := fixture.sourceDataplane.dataplanePod
-		dataplaneDst := fixture.destDataplane.dataplanePod
-
-		logs, _ := fixture.k8s.GetLogs(dataplaneSrc, firstContainer(dataplaneSrc))
-		logrus.Errorf("Source Dataplane logs:\n%s\n", logs)
-
-		logs, _ = fixture.k8s.GetLogs(dataplaneDst, firstContainer(dataplaneDst))
-		logrus.Errorf("Dest Dataplane logs:\n%s\n", logs)
-
-		fixture.test.Fail()
+		// print logs
+		fixture.PrintLogs(fixture.SourceDataplane().Pod())
+		fixture.PrintLogs(fixture.DestDataplane().Pod())
+		// print diagnostics
+		fixture.PrintCommand(fixture.SourceDataplane().Pod(), "vppctl", "sh", "int")
+		fixture.PrintCommand(fixture.DestDataplane().Pod(), "vppctl", "sh", "int")
+		fixture.PrintCommand(fixture.SourceDataplane().Pod(), "ip", "addr")
+		fixture.PrintCommand(fixture.DestDataplane().Pod(), "ip", "addr")
+		fixture.PrintCommand(fixture.sourcePod, "ip", "addr")
+		fixture.PrintCommand(fixture.destPod, "ip", "addr")
+		// fail test
+		fixture.test.FailNow()
 	}
+}
+
+func (fixture *StandaloneDataplaneRemoteFixture) PrintLogs(pod *v1.Pod) {
+	logs, _ := fixture.k8s.GetLogs(pod, firstContainer(pod))
+	logrus.Errorf("Logs of '%s':\n%s\n", pod.Name, logs)
+}
+
+func (fixture *StandaloneDataplaneRemoteFixture) PrintCommand(pod *v1.Pod, command ...string) {
+	out, _, _ := fixture.k8s.Exec(pod, firstContainer(pod), command...)
+	logrus.Errorf("Output of '%s' on '%s':\n%s\n", strings.Join(command, " "), pod.Name, out)
 }

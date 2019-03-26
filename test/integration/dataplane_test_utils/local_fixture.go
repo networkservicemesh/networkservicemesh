@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
+	"strings"
 	"testing"
 	"time"
 )
@@ -106,9 +107,24 @@ func (fixture *StandaloneDataplaneLocalFixture) handleFailures(failures []string
 		for _, failure := range failures {
 			logrus.Errorf("test failure: %s\n", failure)
 		}
-		dataplane := fixture.Dataplane.Pod()
-		logs, _ := fixture.k8s.GetLogs(dataplane, firstContainer(dataplane))
-		logrus.Errorf("Dataplane logs:\n%s\n", logs)
-		fixture.test.Fail()
+		// print logs
+		fixture.PrintLogs(fixture.Dataplane.Pod())
+		// print diagnostics
+		fixture.PrintCommand(fixture.Dataplane.Pod(), "vppctl", "sh", "int")
+		fixture.PrintCommand(fixture.Dataplane.Pod(), "ip", "addr")
+		fixture.PrintCommand(fixture.sourcePod, "ip", "addr")
+		fixture.PrintCommand(fixture.destPod, "ip", "addr")
+		// fail test
+		fixture.test.FailNow()
 	}
+}
+
+func (fixture *StandaloneDataplaneLocalFixture) PrintLogs(pod *v1.Pod) {
+	logs, _ := fixture.k8s.GetLogs(pod, firstContainer(pod))
+	logrus.Errorf("Logs of '%s':\n%s\n", pod.Name, logs)
+}
+
+func (fixture *StandaloneDataplaneLocalFixture) PrintCommand(pod *v1.Pod, command ...string) {
+	out, _, _ := fixture.k8s.Exec(pod, firstContainer(pod), command...)
+	logrus.Errorf("Output of '%s' on '%s':\n%s\n", strings.Join(command, " "), pod.Name, out)
 }
