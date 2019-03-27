@@ -452,6 +452,13 @@ func newNSMDFullServer(nsmgrName string, storage *sharedStorage, excludedPrefixe
 		logrus.Fatal(err)
 	}
 
+	if len(excludedPrefixes) == 0 {
+		excludedPrefixes = []string{
+			"127.0.0.0/24",
+			"127.0.1.0/24",
+		}
+	}
+
 	return newNSMDFullServerAt(nsmgrName, storage, rootDir, excludedPrefixes...)
 }
 

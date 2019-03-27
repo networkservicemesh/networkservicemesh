@@ -512,20 +512,24 @@ func (srv *networkServiceManager) validateNSEConnection(requestId string, nseCon
 		return errorFormatter(err)
 	}
 
-	intersect, err := srv.excludedPrefixes.Intersect(nseConnection.GetContext().GetSrcIpAddr())
-	if err != nil {
-		return errorFormatter(err)
-	}
-	if intersect {
-		return errorFormatter(fmt.Errorf("srcIp intersects excludedPrefix"))
+	if srcIp := nseConnection.GetContext().GetSrcIpAddr(); srcIp != "" {
+		intersect, err := srv.excludedPrefixes.Intersect(srcIp)
+		if err != nil {
+			return errorFormatter(err)
+		}
+		if intersect {
+			return errorFormatter(fmt.Errorf("srcIp intersects excludedPrefix"))
+		}
 	}
 
-	intersect, err = srv.excludedPrefixes.Intersect(nseConnection.GetContext().GetDstIpAddr())
-	if err != nil {
-		return errorFormatter(err)
-	}
-	if intersect {
-		return errorFormatter(fmt.Errorf("dstIp intersects excludedPrefix"))
+	if dstIp := nseConnection.GetContext().GetDstIpAddr(); dstIp != "" {
+		intersect, err := srv.excludedPrefixes.Intersect(dstIp)
+		if err != nil {
+			return errorFormatter(err)
+		}
+		if intersect {
+			return errorFormatter(fmt.Errorf("dstIp intersects excludedPrefix"))
+		}
 	}
 
 	return nil
