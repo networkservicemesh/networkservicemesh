@@ -26,7 +26,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmgr", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 1
