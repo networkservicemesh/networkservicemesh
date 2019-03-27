@@ -19,6 +19,7 @@ type PrefixPool interface {
 	Release(connectionId string) error
 	GetConnectionInformation(connectionId string) (string, []string, error)
 	GetPrefixes() []string
+	Intersect(prefix string) (bool, error)
 }
 type prefixPool struct {
 	sync.RWMutex
@@ -126,6 +127,35 @@ func (impl *prefixPool) GetConnectionInformation(connectionId string) (string, [
 		return "", nil, fmt.Errorf("No connection with id: %s is found", connectionId)
 	}
 	return conn.ipNet.String(), conn.prefixes, nil
+}
+
+func (impl *prefixPool) Intersect(prefix string) (bool, error) {
+	_, subnet, err := net.ParseCIDR(prefix)
+	if err != nil {
+		return false, err
+	}
+
+	for _, p := range impl.prefixes {
+		_, sn, _ := net.ParseCIDR(p)
+		if intersect(sn, subnet) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func intersect(first, second *net.IPNet) bool {
+	f, _ := first.Mask.Size()
+	s, _ := second.Mask.Size()
+
+	var widerRange, narrowerRange *net.IPNet
+	if f < s {
+		widerRange, narrowerRange = first, second
+	} else {
+		widerRange, narrowerRange = second, first
+	}
+
+	return widerRange.Contains(narrowerRange.IP)
 }
 
 func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPrefixRequest) (requested []string, remaining []string, err error) {
