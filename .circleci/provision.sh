@@ -15,8 +15,10 @@
 # limitations under the License.
 
 export TF_VAR_auth_token="${PACKET_AUTH_TOKEN}"
-export TF_VAR_master_hostname="ci-${CIRCLE_BUILD_NUM}-master"
-export TF_VAR_worker1_hostname="ci-${CIRCLE_BUILD_NUM}-worker1"
+export TF_VAR_master1_hostname="ci-${CIRCLE_BUILD_NUM}-master1"
+export TF_VAR_worker1_1_hostname="ci-${CIRCLE_BUILD_NUM}-worker1-1"
+export TF_VAR_master2_hostname="ci-${CIRCLE_BUILD_NUM}-master2"
+export TF_VAR_worker2_1_hostname="ci-${CIRCLE_BUILD_NUM}-worker2-1"
 export TF_VAR_project_id="${PACKET_PROJECT_ID}"
 export TF_VAR_public_key="${PWD}/data/sshkey.pub"
 export TF_VAR_public_key_name="key-${CIRCLE_BUILD_NUM}"

@@ -31,7 +31,6 @@ packet-init:
 packet-start:
 	@pushd scripts/terraform
 	@terraform apply ${TF_PACKET_VARS}
-	@./create-kubernetes-cluster.sh
 	@popd
 
 .ONESHELL:
@@ -54,7 +53,7 @@ packet-%-load-images:
 .PHONY: packet-get-kubeconfig
 packet-get-kubeconfig:
 	@pushd scripts/terraform
-	@scp ${SSH_OPTS} root@`terraform output master.public_ip`:.kube/config ../../kubeconfig
+	@scp ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:.kube/config ../../kubeconfig${PACKET_CLUSTER_ID}
 	@popd
 
 .ONESHELL:

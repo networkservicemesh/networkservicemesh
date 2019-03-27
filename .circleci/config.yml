@@ -1,4 +1,6 @@
-version: 2
+---
+version: 2.1
+
 jobs:
   sanity-check:
     resource_class: medium+
@@ -49,15 +51,18 @@ jobs:
       - checkout
       - run: pwd
       - run: ls
-      - run: wget https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
-      - run: unzip terraform_0.11.10_linux_amd64.zip
+      - run: wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
+      - run: unzip terraform_0.11.13_linux_amd64.zip
       - run: mv terraform /go/bin/
       - run: mkdir data
       - run: ssh-keygen -t rsa -f data/sshkey -q -N ""
       - run: ssh-add data/sshkey
       - run: .circleci/provision.sh
-      - run: make packet-get-kubeconfig
-      - run: cp kubeconfig data/
+      - run: cd scripts/terraform && PACKET_CLUSTER_ID=1 ./create-kubernetes-cluster.sh && cd ../..
+      - run: cd scripts/terraform && PACKET_CLUSTER_ID=2 ./create-kubernetes-cluster.sh && cd ../..
+      - run: PACKET_CLUSTER_ID=1 make packet-get-kubeconfig
+      - run: PACKET_CLUSTER_ID=2 make packet-get-kubeconfig
+      - run: cp kubeconfig1 kubeconfig2 data/
       - run: cp -a scripts/terraform/ data/
       - run:
           when: on_fail
@@ -68,6 +73,11 @@ jobs:
             - data
 
   packet-integration-tests:
+    parameters:
+      cluster_id:
+        type: string
+      test_tags:
+        type: string
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang
@@ -100,37 +110,17 @@ jobs:
             go mod download
           no_output_timeout: 40m
           environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
             GO111MODULE: "on"
       - run:
-          name: Running integration tests - basic
+          name: Running integration tests - <<parameters.test_tags>>
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=basic
+            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="<<parameters.test_tags>>"
           no_output_timeout: 40m
           environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-            GO111MODULE: "on"
-      - run:
-          name: Running integration tests - recover
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-recover.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=recover
-          no_output_timeout: 40m
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
-            GO111MODULE: "on"
-      - run:
-          name: Running integration tests - usecase
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-usecase.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=usecase
-          no_output_timeout: 40m
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
             GO111MODULE: "on"
       - run:
           when: always
@@ -138,7 +128,7 @@ jobs:
           command: |
             make packet-download-postmortem
           environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -153,7 +143,7 @@ jobs:
             kubectl get pods -o wide
             kubectl describe pods
           environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig
+            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
       - run:
           when: on_fail
           name: Trigger packet-destroy
@@ -176,8 +166,8 @@ jobs:
           name: Cache Prep
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: wget https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
-      - run: unzip terraform_0.11.10_linux_amd64.zip
+      - run: wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
+      - run: unzip terraform_0.11.13_linux_amd64.zip
       - run: mv terraform /go/bin/
       - run: cp -a data/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
@@ -419,6 +409,24 @@ workflows:
           requires:
             - sanity-check
       - packet-integration-tests:
+          name: "test basic recover"
+          cluster_id: "1"
+          test_tags: "basic recover"
+          requires:
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-firewall-nse
+            - packet-deploy
+      - packet-integration-tests:
+          name: "test usecase"
+          cluster_id: "2"
+          test_tags: "usecase"
           requires:
             - build-nsmd
             - build-nsmd-k8s
@@ -432,7 +440,8 @@ workflows:
             - packet-deploy
       - packet-destroy:
           requires:
-            - packet-integration-tests
+            - "test basic recover"
+            - "test usecase"
       - docker-push-latest:
           requires:
             - packet-destroy
