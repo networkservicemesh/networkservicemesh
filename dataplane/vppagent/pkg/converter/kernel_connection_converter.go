@@ -112,7 +112,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			},
 			Link: &linux_interfaces.Interface_Tap {
 				Tap: &linux_interfaces.TapLink{
-					VppTapIfName: tmpIface,
+					VppTapIfName: c.conversionParameters.SideName,
 				},
 			},
 		})
@@ -168,8 +168,8 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				DstNetwork:   route.Prefix,
 				//Description: "Route to " + route.Prefix,
 				OutgoingInterface:   c.conversionParameters.Name,
-				Scope: linux_l3.Route_HOST,
-				GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
+				Scope: linux_l3.Route_LINK,
+				//GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 			})
 		}
 	}
