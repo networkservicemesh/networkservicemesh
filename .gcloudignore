@@ -1,0 +1,17 @@
+# Ignore all
+*
+
+# ... except these
+!controllers/**
+!controlplane/**
+!dataplane/**
+!docker/**
+!examples/**
+!go.mod
+!go.sum
+!k8s/**
+!pkg/**
+!sdk/**
+!utils/**
+!vendor/**
+!build/**

@@ -15,6 +15,7 @@ import (
 	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -53,7 +54,6 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 	resultChan := make(chan *PodDeployResult, len(pods))
 
 	for _, pod := range pods {
-
 		wg.Add(1)
 		go func(pod *v1.Pod) {
 			defer wg.Done()
@@ -61,10 +61,11 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 			createdPod, err := client.CoreV1().Pods(namespace).Create(pod)
 
 			// We need to have non nil pod in any case.
-			if createdPod != nil {
+			if createdPod != nil && createdPod.Name != "" {
 				pod = createdPod
 			}
 			if err != nil {
+				logrus.Errorf("Failed to create pod. Cause: %v pod: %v", err, pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -366,7 +367,9 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
 	errs := []error{}
 	for _, podResult := range results {
-		pods = append(pods, podResult.pod)
+		if podResult.pod != nil {
+			pods = append(pods, podResult.pod)
+		}
 		if podResult.err != nil {
 			logrus.Errorf("Error Creating Pod: %s %v", podResult.pod.Name, podResult.err)
 			errs = append(errs, podResult.err)

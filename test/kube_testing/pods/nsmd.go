@@ -118,6 +118,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					Image:           "networkservicemesh/nsmdp",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts:    []v1.VolumeMount{newDevMount(), newNSMMount()},
+					Resources: createDefaultResources(),
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd",
@@ -126,6 +127,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					VolumeMounts:    []v1.VolumeMount{newNSMMount()},
 					LivenessProbe:   config.liveness,
 					ReadinessProbe:  config.readiness,
+					Resources: createDefaultResources(),
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
@@ -137,6 +139,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 							Value: nodeName,
 						},
 					},
+					Resources: createDefaultResources(),
 				}),
 			},
 		},
