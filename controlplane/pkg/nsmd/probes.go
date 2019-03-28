@@ -27,9 +27,11 @@ const (
 )
 
 var (
-	dpStatusOK  = true
-	nsmStatusOK = true
-	apiStatusOK = true
+	dpStatusOK       = true
+	nsmStatusOK      = true
+	apiStatusOK      = true
+	exprefixStatusOK = true
+	listenerStatusOK = true
 )
 
 func SetDPServerFailed() {
@@ -44,9 +46,17 @@ func SetAPIServerFailed() {
 	apiStatusOK = false
 }
 
+func SetExcludedPrefixFailed() {
+	exprefixStatusOK = false
+}
+
+func SetPublicListenerFailed() {
+	listenerStatusOK = false
+}
+
 func readiness(w http.ResponseWriter, r *http.Request) {
-	if !dpStatusOK || !nsmStatusOK || !apiStatusOK {
-		errMsg := fmt.Sprintf("NSMD not ready. DPServer - %t, NSMServer - %t, APIServer - %t", dpStatusOK, nsmStatusOK, apiStatusOK)
+	if !dpStatusOK || !nsmStatusOK || !apiStatusOK || !listenerStatusOK {
+		errMsg := fmt.Sprintf("NSMD not ready. DPServer - %t, NSMServer - %t, APIServer - %t, ExcludedPrefix - %t, PublicListener - %t", dpStatusOK, nsmStatusOK, apiStatusOK, exprefixStatusOK, listenerStatusOK)
 		http.Error(w, errMsg, http.StatusServiceUnavailable)
 	} else {
 		w.Write([]byte("OK"))
