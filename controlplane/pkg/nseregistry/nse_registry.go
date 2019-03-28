@@ -11,10 +11,12 @@ import (
 	"strings"
 	"sync"
 )
-const(
+
+const (
 	ClientRegistered = "CLE"
-	NSERegistered = "NSE"
+	NSERegistered    = "NSE"
 )
+
 type NSERegistry struct {
 	lock sync.Mutex
 	file string
@@ -22,16 +24,16 @@ type NSERegistry struct {
 
 type NSEEntry struct {
 	Workspace string
-	NseReg *registry.NSERegistration
+	NseReg    *registry.NSERegistration
 }
 
 func NewNSERegistry(file string) *NSERegistry {
 	return &NSERegistry{file: file}
 }
 
-func store(values ... string) string {
+func store(values ...string) string {
 	res := ""
-	for _, s := range(values) {
+	for _, s := range values {
 		if len(res) > 0 {
 			res += "\t"
 		}
@@ -51,15 +53,15 @@ func unescape(s string) string {
 func restore(inputS string) []string {
 	ts := strings.TrimSpace(inputS)
 	segments := strings.SplitN(ts, "\t", -1)
-	for idx, sm := range(segments) {
+	for idx, sm := range segments {
 		segments[idx] = unescape(sm)
 	}
 	return segments
 }
 
 /**
-	We adding a registration for client.
- */
+We adding a registration for client.
+*/
 func (reg *NSERegistry) writeLine(op ...string) error {
 	reg.lock.Lock()
 	defer reg.lock.Unlock()
@@ -107,8 +109,8 @@ func (reg *NSERegistry) DeleteNSE(endpointid string) error {
 }
 
 /**
-	Delete client workspace and all NSEs registered.
- */
+Delete client workspace and all NSEs registered.
+*/
 func (reg *NSERegistry) DeleteClient(workspace string) error {
 	reg.lock.Lock()
 	defer reg.lock.Unlock()
@@ -116,29 +118,28 @@ func (reg *NSERegistry) DeleteClient(workspace string) error {
 	if err != nil {
 		return err
 	}
-	for idx, ws := range(clients) {
+	for idx, ws := range clients {
 		if ws == workspace {
 			clients = append(clients[:idx], clients[idx+1:]...)
 		}
 	}
 
-	for endpointId, entry := range(nses) {
+	for endpointId, entry := range nses {
 		if entry.Workspace == workspace {
 			delete(nses, endpointId)
 		}
 	}
 
-
 	return reg.Save(clients, nses)
 }
 
-func (reg *NSERegistry) LoadRegistry() (clients []string, nses map[string]NSEEntry, err error ) {
+func (reg *NSERegistry) LoadRegistry() (clients []string, nses map[string]NSEEntry, err error) {
 	reg.lock.Lock()
 	defer reg.lock.Unlock()
 	return reg.loadRegistry()
 }
 
-func (reg *NSERegistry) loadRegistry() (clients []string, nses map[string]NSEEntry, res_err error ) {
+func (reg *NSERegistry) loadRegistry() (clients []string, nses map[string]NSEEntry, res_err error) {
 	nses = map[string]NSEEntry{}
 
 	f, err := os.OpenFile(reg.file, os.O_RDONLY, 0600)
@@ -150,7 +151,7 @@ func (reg *NSERegistry) loadRegistry() (clients []string, nses map[string]NSEEnt
 
 	reader := bufio.NewReader(f)
 	for {
-		r, err := reader.ReadString('\n');
+		r, err := reader.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
 				res_err = err
@@ -191,8 +192,8 @@ func (reg *NSERegistry) loadRegistry() (clients []string, nses map[string]NSEEnt
 }
 
 /**
-	Saves memory model info file
- */
+Saves memory model info file
+*/
 func (reg *NSERegistry) Save(clients []string, nses map[string]NSEEntry) error {
 	tmpFile := reg.file + "_tmp"
 	f, err := os.OpenFile(tmpFile, os.O_APPEND|os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
@@ -222,4 +223,3 @@ func (reg *NSERegistry) Save(clients []string, nses map[string]NSEEntry) error {
 func (reg *NSERegistry) Delete() {
 	_ = os.Remove(reg.file)
 }
-

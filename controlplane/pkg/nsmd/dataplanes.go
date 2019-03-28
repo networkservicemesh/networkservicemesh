@@ -180,7 +180,7 @@ func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistra
 
 func (dataplaneRegistrarServer *dataplaneRegistrarServer) Stop() {
 	dataplaneRegistrarServer.grpcServer.GracefulStop()
-	_= dataplaneRegistrarServer.sock.Close()
+	_ = dataplaneRegistrarServer.sock.Close()
 }
 
 // StartDataplaneRegistrarServer registers and starts gRPC server which is listening for

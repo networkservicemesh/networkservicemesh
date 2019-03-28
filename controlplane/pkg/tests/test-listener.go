@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	stepTimeout = time.Millisecond *50
+	stepTimeout = time.Millisecond * 50
 )
+
 type testConnectionModelListener struct {
 	model.ModelListenerImpl
 	additions int
@@ -41,13 +42,12 @@ func (impl *testConnectionModelListener) ClientConnectionUpdated(clientConnectio
 	logrus.Infof("ClientConnectionUpdated: %s %v", clientConnection.GetId(), impl.textMarshaler.Text(clientConnection.Xcon))
 }
 
-func(impl *testConnectionModelListener) EndpointAdded(endpoint *model.Endpoint) {
+func (impl *testConnectionModelListener) EndpointAdded(endpoint *model.Endpoint) {
 	impl.endpoints++
 }
-func(impl *testConnectionModelListener) EndpointDeleted(endpoint *model.Endpoint) {
+func (impl *testConnectionModelListener) EndpointDeleted(endpoint *model.Endpoint) {
 	impl.endpoints--
 }
-
 
 func (impl *testConnectionModelListener) WaitAdd(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()

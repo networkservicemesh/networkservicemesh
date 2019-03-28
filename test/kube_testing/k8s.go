@@ -339,7 +339,7 @@ func (l *K8s) Cleanup() {
 	l.CleanupConfigMaps()
 }
 
-func (l* K8s) PrepareDefault() {
+func (l *K8s) PrepareDefault() {
 	l.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
 }
 

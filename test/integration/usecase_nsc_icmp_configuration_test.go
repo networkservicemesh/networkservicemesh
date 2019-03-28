@@ -93,7 +93,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	config := []*pods.NSMgrPodConfig{}
-	for i := 0; i< nodesCount;i++ {
+	for i := 0; i < nodesCount; i++ {
 		cfg := &pods.NSMgrPodConfig{}
 		if disableVHost {
 			cfg.DataplaneVariables = map[string]string{}

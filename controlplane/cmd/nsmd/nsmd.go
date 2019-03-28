@@ -39,27 +39,28 @@ func main() {
 
 	excludedPrefixes, err := nsmd.GetExcludedPrefixes(serviceRegistry)
 	if err != nil {
-		logrus.Fatalf("Error during getting Excluded Prefixes: %v", err)
+		logrus.Errorf("Error during getting Excluded Prefixes: %v", err)
+		nsmd.SetExcludedPrefixFailed()
 	}
 
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, excludedPrefixes)
 
 	var server nsmd.NSMServer
-	// Start NSMD server first, laod local NSE/client registry and only then start dataplane/wait for it and recover active connections.
+	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
-		logrus.Fatalf("Error starting nsmd service: %+v", err)
+		logrus.Errorf("Error starting nsmd service: %+v", err)
 		nsmd.SetNSMServerFailed()
 	}
 	defer server.Stop()
 
-	// Starting dataplene
+	// Starting dataplane
 	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(); err != nil {
-		logrus.Fatalf("Error starting dataplane service: %+v", err)
+		logrus.Errorf("Error starting dataplane service: %+v", err)
 		nsmd.SetDPServerFailed()
 	}
 
-	// Wait for dataplane to be connecting to us.
+	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(nsmd.DataplaneTimeout); err != nil {
 		logrus.Errorf("Error waiting for dataplane")
 	}
@@ -68,11 +69,11 @@ func main() {
 	sock, err := apiRegistry.NewPublicListener()
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
-		nsmd.SetAPIServerFailed()
+		nsmd.SetPublicListenerFailed()
 	}
 
 	if err := nsmd.StartAPIServerAt(server, sock); err != nil {
-		logrus.Fatalf("Error starting nsmd api service: %+v", err)
+		logrus.Errorf("Error starting NSMD API service: %+v", err)
 		nsmd.SetAPIServerFailed()
 	}
 

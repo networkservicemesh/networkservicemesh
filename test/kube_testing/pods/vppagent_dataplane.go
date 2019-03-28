@@ -95,7 +95,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 		},
 	}
 	if len(variables) > 0 {
-		for k, v := range (variables) {
+		for k, v := range variables {
 			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{
 				Name:  k,
 				Value: v,

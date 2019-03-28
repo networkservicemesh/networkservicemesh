@@ -87,7 +87,7 @@ func (socket SocketPath) String() string {
 func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return SocketOperationCheckContext(ctx, endpoint )
+	return SocketOperationCheckContext(ctx, endpoint)
 }
 func SocketOperationCheckContext(ctx context.Context, listenEndpoint net.Addr) (*grpc.ClientConn, error) {
 	conn, err := dial(ctx, listenEndpoint)

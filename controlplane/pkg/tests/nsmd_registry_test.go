@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-
 func TestNSMDRestart1(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -23,11 +22,10 @@ func TestNSMDRestart1(t *testing.T) {
 	defer conn.Close()
 
 	configuration := &common.NSConfiguration{
-		Workspace: reply.Workspace,
-		NsmServerSocket: reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmServerSocket,
-		NsmClientSocket: reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmClientSocket,
+		Workspace:        reply.Workspace,
+		NsmServerSocket:  reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmServerSocket,
+		NsmClientSocket:  reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmClientSocket,
 		AdvertiseNseName: "test_nse",
-
 	}
 
 	composite := composite.NewMonitorCompositeEndpoint(configuration).SetNext(
@@ -62,4 +60,3 @@ func TestNSMDRestart1(t *testing.T) {
 	Expect(endpoints1[0].Workspace).To(Equal(endpoints2[0].Workspace))
 	Expect(endpoints1[0].Endpoint.NetworkServiceManager.Name).ToNot(Equal(endpoints2[0].Endpoint.NetworkServiceManager.Name))
 }
-

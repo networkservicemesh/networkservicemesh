@@ -30,7 +30,7 @@ import (
 const (
 	connectRetries = 10
 	connectSleep   = 5 * time.Second
-	connectTimeout   = 10 * time.Second
+	connectTimeout = 10 * time.Second
 )
 
 // NsmClient is the NSM client struct

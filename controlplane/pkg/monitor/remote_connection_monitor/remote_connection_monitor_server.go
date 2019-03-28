@@ -14,7 +14,7 @@ type RemoteConnectionMonitor struct {
 func NewRemoteConnectionMonitor(manager *services.ClientConnectionManager) *RemoteConnectionMonitor {
 	rv := &RemoteConnectionMonitor{
 		MonitorServer: monitor.NewMonitorServer(&RemoteConnectionEventConverter{}),
-		manager: manager,
+		manager:       manager,
 	}
 	go rv.Serve()
 	return rv
