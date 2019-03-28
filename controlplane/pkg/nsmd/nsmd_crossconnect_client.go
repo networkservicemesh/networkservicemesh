@@ -233,7 +233,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 			if err != nil {
 				logrus.Errorf("NSM-PeerMonitor(%v) Uexpected error: %v", remotePeer.Name, err)
 				connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
-				for _, c := range(connections) {
+				for _, c := range connections {
 					// Same as DST down case, we need to find another NSE to connect to.
 					client.xconManager.UpdateClientConnectionDstStateDown(c)
 				}

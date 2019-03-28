@@ -134,7 +134,6 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		}
 	}
 
-
 	// Close both connection and dataplane
 	err := srv.Close(context.Background(), clientConnection)
 	if err != nil {

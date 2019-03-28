@@ -61,11 +61,11 @@ func TestNSEDiesMultiNode(t *testing.T) {
 	testDie(t, false, 2)
 }
 
-var NSENoHeal = &pods.NSMgrPodConfig {
+var NSENoHeal = &pods.NSMgrPodConfig{
 	Variables: map[string]string{
-		nsmd.NsmdDeleteLocalRegistry : "true", // Do not use local registry restore for clients/NSEs
-		nsm.NsmdHealDSTWaitTimeout: "1", // 1 second
-		nsm.NsmdHealEnabled: "true",
+		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
+		nsm.NsmdHealEnabled:          "true",
 	},
 }
 

@@ -66,7 +66,7 @@ func TestModelAddEndpoint(t *testing.T) {
 func createNSERegistration(networkServiceName string, endpointName string) *model.Endpoint {
 	return &model.Endpoint{
 		SocketLocation: "none",
-		Workspace: "nsm-1",
+		Workspace:      "nsm-1",
 		Endpoint: &registry.NSERegistration{
 			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
 				NetworkServiceName: networkServiceName,
@@ -182,7 +182,7 @@ func TestModelListenEndpoint(t *testing.T) {
 	listener := &ListenerImpl{}
 	mdl.AddListener(listener)
 
-	mdl.AddEndpoint( createNSERegistration("golden-network", "ep1"))
+	mdl.AddEndpoint(createNSERegistration("golden-network", "ep1"))
 	Expect(listener.dataplanes).To(Equal(0))
 	Expect(listener.endpoints).To(Equal(1))
 

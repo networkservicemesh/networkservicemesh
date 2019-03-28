@@ -58,9 +58,9 @@ func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{
 		locationProvider: nsm.locationProvider,
-		name: name,
-		state: NEW,
-		localRegistry: nsm.localRegistry,
+		name:             name,
+		state:            NEW,
+		localRegistry:    nsm.localRegistry,
 	}
 
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
@@ -173,4 +173,3 @@ func (w *Workspace) cleanup() {
 		}
 	}
 }
-

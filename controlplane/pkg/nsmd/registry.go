@@ -29,14 +29,14 @@ type NSERegistryServer interface {
 	RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error)
 }
 type registryServer struct {
-	nsm *nsmServer
-	workspace         *Workspace
+	nsm       *nsmServer
+	workspace *Workspace
 }
 
 func NewRegistryServer(nsm *nsmServer, workspace *Workspace) NSERegistryServer {
 	return &registryServer{
-		nsm:           nsm,
-		workspace:       workspace,
+		nsm:       nsm,
+		workspace: workspace,
 	}
 }
 
@@ -54,14 +54,14 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 
 	reg, err := es.RegisterNSEWithClient(ctx, request, client)
 	if err != nil {
-		return reg,err
+		return reg, err
 	}
 
 	// Append to workspace...
 	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
 	if err != nil {
 		logrus.Errorf("Failed to store NSE into local registry service: %v", err)
-		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{ EndpointName: reg.NetworkserviceEndpoint.EndpointName})
+		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{EndpointName: reg.NetworkserviceEndpoint.EndpointName})
 		return nil, err
 	}
 	return reg, nil
@@ -84,10 +84,10 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 	}
 
 	ep := es.nsm.model.GetEndpoint(registration.GetNetworkserviceEndpoint().GetEndpointName())
-	modelEndpoint := &model.Endpoint {
+	modelEndpoint := &model.Endpoint{
 		SocketLocation: es.workspace.NsmClientSocket(),
-		Endpoint: registration,
-		Workspace: es.workspace.Name(),
+		Endpoint:       registration,
+		Workspace:      es.workspace.Name(),
 	}
 	if ep == nil {
 		es.nsm.model.AddEndpoint(modelEndpoint)
