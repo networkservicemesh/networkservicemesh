@@ -25,5 +25,4 @@ type ConnectionConversionParameters struct {
 	Side      ConnectionContextSide
 	Name      string
 	BaseDir   string
-	SideName  string
 }

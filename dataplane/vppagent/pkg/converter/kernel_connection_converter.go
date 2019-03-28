@@ -89,7 +89,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Link: &vpp_interfaces.Interface_Tap{
 				Tap: &vpp_interfaces.TapLink{
 					Version: 2,
-					HostIfName:tmpIface,
 				},
 			},
 		})
@@ -112,7 +111,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			},
 			Link: &linux_interfaces.Interface_Tap {
 				Tap: &linux_interfaces.TapLink{
-					VppTapIfName: c.conversionParameters.SideName,
+					VppTapIfName: c.conversionParameters.Name,
 				},
 			},
 		})

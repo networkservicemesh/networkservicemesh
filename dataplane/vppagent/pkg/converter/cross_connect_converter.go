@@ -42,7 +42,6 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      srcName,
-			SideName:  dstName,
 			Terminate: false,
 			Side:      SOURCE,
 			BaseDir:   baseDir,
@@ -64,7 +63,6 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      dstName,
-			SideName:  srcName,
 			Terminate: false,
 			Side:      DESTINATION,
 			BaseDir:   baseDir,
