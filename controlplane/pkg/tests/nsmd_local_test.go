@@ -32,7 +32,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 			delay, err := strconv.Atoi(val)
 			if err == nil {
 				logrus.Infof("Delaying NSE init: %v", delay)
-				<- time.Tick( time.Duration(delay) * time.Second)
+				<-time.Tick(time.Duration(delay) * time.Second)
 			}
 		}
 	}
@@ -131,7 +131,7 @@ func TestNSENoSrc(t *testing.T) {
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns: "12",
 		//srcIp: "169083138/30",
-		dstIp: "169083137/30",
+		dstIp: "10.20.1.2/30",
 	}
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
@@ -152,7 +152,7 @@ func TestNSEExcludePrefixes(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, "127.0.0.1/24", "abc")
+	srv := newNSMDFullServer(Master, storage, "127.0.0.0/24", "127.0.1.0/24")
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -169,14 +169,14 @@ func TestNSEExcludePrefixes(t *testing.T) {
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"127.0.0.1", "127.0.0.1/24", "abc"}))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"127.0.0.1", "127.0.0.0/24", "127.0.1.0/24"}))
 }
 
 func TestNSEExcludePrefixes2(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, "127.0.0.1/24", "abc")
+	srv := newNSMDFullServer(Master, storage, "127.0.0.0/24", "127.0.1.0/24")
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -193,7 +193,7 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"127.0.0.1/24", "abc"}))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"127.0.0.0/24", "127.0.1.0/24"}))
 }
 
 func TestNSEIPNeghtbours(t *testing.T) {
@@ -204,8 +204,8 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	defer srv.Stop()
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns:             "12",
-		srcIp:             "169083138/30",
-		dstIp:             "169083137/30",
+		srcIp:             "10.20.1.1/30",
+		dstIp:             "10.20.1.2/30",
 		need_ip_neighbors: true,
 	}
 
@@ -257,7 +257,7 @@ func TestSlowNSE(t *testing.T) {
 	ctx, canceOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer canceOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<- time.Tick(1* time.Second)
+	<-time.Tick(1 * time.Second)
 	println(err.Error())
 	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())
@@ -272,8 +272,8 @@ func TestSlowDP(t *testing.T) {
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns: "12",
-		srcIp: "169083138/30",
-		dstIp: "169083137/30",
+		srcIp: "10.20.1.1/30",
+		dstIp: "10.20.1.2/30",
 	}
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
@@ -290,7 +290,7 @@ func TestSlowDP(t *testing.T) {
 	ctx, cancelOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancelOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<- time.Tick(1* time.Second)
+	<-time.Tick(1 * time.Second)
 	println(err.Error())
 	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())

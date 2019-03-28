@@ -71,13 +71,17 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 						},
 					},
 					Env: []v1.EnvVar{
-						v1.EnvVar{
+						{
 							Name: "NSM_DATAPLANE_SRC_IP",
 							ValueFrom: &v1.EnvVarSource{
 								FieldRef: &v1.ObjectFieldSelector{
 									FieldPath: "status.podIP",
 								},
 							},
+						},
+						{
+							Name:  "INITIAL_LOGLVL",
+							Value: "debug",
 						},
 					},
 					SecurityContext: &v1.SecurityContext{

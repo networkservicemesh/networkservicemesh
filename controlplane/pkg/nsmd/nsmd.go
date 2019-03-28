@@ -14,6 +14,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
@@ -24,6 +25,7 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -420,7 +422,30 @@ func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 	return nil
 }
 
-func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) ([]string, error) {
+func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) (prefix_pool.PrefixPool, error) {
+	excludedPrefixes := []string{}
+
+	excludedPrefixesEnv, ok := os.LookupEnv(ExcludedPrefixesEnv)
+	if ok {
+		logrus.Infof("Get excludedPrefixes from ENV: %v", excludedPrefixesEnv)
+		excludedPrefixes = append(excludedPrefixes, strings.Split(excludedPrefixesEnv, ",")...)
+	}
+
+	configMapPrefixes, err := getExcludedPrefixesFromConfigMap(serviceRegistry)
+	if err != nil {
+		logrus.Warnf("Cluster is not support kubeadm-config configmap, please specify PodCIDR and ServiceCIDR in %v env", ExcludedPrefixesEnv)
+	} else {
+		excludedPrefixes = append(excludedPrefixes, configMapPrefixes...)
+	}
+
+	pool, err := prefix_pool.NewPrefixPool(excludedPrefixes...)
+	if err != nil {
+		return nil, err
+	}
+	return pool, nil
+}
+
+func getExcludedPrefixesFromConfigMap(serviceRegistry serviceregistry.ServiceRegistry) ([]string, error) {
 	clusterInfoClient, err := serviceRegistry.ClusterInfoClient()
 	if err != nil {
 		return nil, fmt.Errorf("error during ClusterInfoClient creation: %v", err)

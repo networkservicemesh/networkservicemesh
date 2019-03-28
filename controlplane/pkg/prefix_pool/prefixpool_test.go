@@ -289,3 +289,34 @@ func TestRelease2(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(newPrefixes).To(Equal([]string{"10.10.1.0/24"}))
 }
+
+func TestIntersect1(t *testing.T) {
+	RegisterTestingT(t)
+
+	pp, err := NewPrefixPool("10.10.1.0/24")
+	Expect(err).To(BeNil())
+
+	Expect(pp.Intersect("10.10.1.0/28")).To(Equal(true))
+	Expect(pp.Intersect("10.10.1.10/28")).To(Equal(true))
+	Expect(pp.Intersect("10.10.1.0/10")).To(Equal(true))
+	Expect(pp.Intersect("10.10.0.0/10")).To(Equal(true))
+	Expect(pp.Intersect("10.10.0.0/24")).To(Equal(false))
+	Expect(pp.Intersect("10.10.1.0/24")).To(Equal(true))
+}
+
+func TestIntersect2(t *testing.T) {
+	RegisterTestingT(t)
+
+	pp, err := NewPrefixPool("10.10.1.0/24", "10.32.1.0/16")
+	Expect(err).To(BeNil())
+
+	Expect(pp.Intersect("10.10.1.0/28")).To(Equal(true))
+	Expect(pp.Intersect("10.10.1.10/28")).To(Equal(true))
+	Expect(pp.Intersect("10.10.1.0/10")).To(Equal(true))
+	Expect(pp.Intersect("10.10.0.0/10")).To(Equal(true))
+
+	Expect(pp.Intersect("10.32.0.0/10")).To(Equal(true))
+	Expect(pp.Intersect("10.32.0.0/24")).To(Equal(true))
+	Expect(pp.Intersect("10.2.0.0/16")).To(Equal(false))
+
+}
