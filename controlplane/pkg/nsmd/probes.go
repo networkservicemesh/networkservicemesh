@@ -55,7 +55,7 @@ func SetPublicListenerFailed() {
 }
 
 func readiness(w http.ResponseWriter, r *http.Request) {
-	if !dpStatusOK || !nsmStatusOK || !apiStatusOK || !listenerStatusOK {
+	if !dpStatusOK || !nsmStatusOK || !apiStatusOK || !exprefixStatusOK || !listenerStatusOK {
 		errMsg := fmt.Sprintf("NSMD not ready. DPServer - %t, NSMServer - %t, APIServer - %t, ExcludedPrefix - %t, PublicListener - %t", dpStatusOK, nsmStatusOK, apiStatusOK, exprefixStatusOK, listenerStatusOK)
 		http.Error(w, errMsg, http.StatusServiceUnavailable)
 	} else {
