@@ -40,6 +40,7 @@ endif
 include .mk/vagrant.mk
 include .mk/packet.mk
 include .mk/aws.mk
+include .mk/azure.mk
 
 # .kind.mk enables the kind.sigs.k8s.io docker based K8s install:
 # export CLUSTER_RULES_PREFIX=kind
@@ -160,7 +161,7 @@ k8s-config: $(addsuffix -config,$(addprefix k8s-,$(CLUSTER_CONFIGS)))
 .PHONY: k8s-start
 k8s-start: $(CLUSTER_RULES_PREFIX)-start
 
-.PHONY: k8s-start
+.PHONY: k8s-restart
 k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 
 .PHONY: k8s-build
