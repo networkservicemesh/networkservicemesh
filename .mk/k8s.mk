@@ -40,6 +40,7 @@ endif
 include .mk/vagrant.mk
 include .mk/packet.mk
 include .mk/gke.mk
+include .mk/aws.mk
 
 # .kind.mk enables the kind.sigs.k8s.io docker based K8s install:
 # export CLUSTER_RULES_PREFIX=kind
