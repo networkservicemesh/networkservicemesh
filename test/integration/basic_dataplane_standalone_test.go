@@ -80,7 +80,7 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
 
-	const someId = "some-id"
+	const someId = "0"
 
 	orig := fixture.requestKernelConnection(someId, "if1", "10.30.1.1/30", "10.30.1.2/30")
 	fixture.verifyKernelConnection(orig)
@@ -252,7 +252,7 @@ func (fixture *standaloneDataplaneFixture) requestKernelConnection(id, iface, sr
 }
 
 func (fixture *standaloneDataplaneFixture) requestDefaultKernelConnection() *crossconnect.CrossConnect {
-	return fixture.requestKernelConnection("some-id", "iface", srcIpMasked, dstIpMasked)
+	return fixture.requestKernelConnection("0", "iface", srcIpMasked, dstIpMasked)
 }
 
 func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {

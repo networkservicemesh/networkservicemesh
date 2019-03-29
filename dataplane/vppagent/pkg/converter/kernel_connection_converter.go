@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/linux"
-	linux_interfaces "github.com/ligato/vpp-agent/api/models/linux/interfaces"
+	"github.com/ligato/vpp-agent/api/models/linux/interfaces"
 	"github.com/ligato/vpp-agent/api/models/linux/l3"
 	"github.com/ligato/vpp-agent/api/models/linux/namespace"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -55,8 +55,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if err != nil && connect {
 		return nil, err
 	}
-	tmpIface := TempIfName()
-
 	var ipAddresses []string
 	if c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
@@ -118,12 +116,12 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	} else {
 		logrus.Info("Did Not Find /dev/vhost-net - using veth pairs")
 		rv.LinuxConfig.Interfaces = append(rv.LinuxConfig.Interfaces, &linux_interfaces.Interface{
-			Name:        tmpIface,
+			Name:        c.conversionParameters.Name + "-veth",
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
 			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
-			HostIfName:  tmpIface,
+			HostIfName:  c.conversionParameters.Name + "-veth",
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
 					PeerIfName: c.conversionParameters.Name,
@@ -143,7 +141,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			},
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
-					PeerIfName:	tmpIface,
+					PeerIfName:	c.conversionParameters.Name + "-veth",
 				},
 			},
 		})
@@ -153,7 +151,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Enabled: true,
 			Link: &vpp_interfaces.Interface_Afpacket {
 				Afpacket: &vpp_interfaces.AfpacketLink{
-					HostIfName: tmpIface,
+					HostIfName: c.conversionParameters.Name + "-veth",
 				},
 			},
 		})
