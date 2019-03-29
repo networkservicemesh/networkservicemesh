@@ -215,16 +215,18 @@ def create_eks_worker_nodes(nodes_stack_name, node_group_name, cluster_name, key
     return nodes_stack_outputs
 
 def main():
+    suffix = os.environ.get("NSM_AWS_SERVICE_SUFFIX", "")
+
     #### Creating Amazon EKS Role
-    eks_role_name = "nsm-role"
+    eks_role_name = "nsm-role" + suffix
     eks_role_arn = create_eks_role(eks_role_name)
 
     #### Creating Amazon EKS Cluster VPC
-    cluster_stack_name = 'nsm-srv'
+    cluster_stack_name = 'nsm-srv' + suffix
     cluster_stack_outputs = create_eks_cluster_vpc(cluster_stack_name)
 
     #### Creating Amazon EKS Cluster
-    cluster_name = "nsm"
+    cluster_name = "nsm" + suffix
     create_eks_cluster(cluster_name, eks_role_arn, cluster_stack_outputs)
 
     cmd = "aws eks update-kubeconfig --name %s" % cluster_name
@@ -232,11 +234,11 @@ def main():
     os.system(cmd)
 
     #### Creating Amazon EKS Worker Nodes
-    key_pair_name = "nsm_key_pair"
+    key_pair_name = "nsm-key-pair" + suffix
     create_eks_ec2_key_pair(key_pair_name)
 
-    nodes_stack_name = "nsm-nodes"
-    node_group_name = "nsm-node-group"
+    nodes_stack_name = "nsm-nodes" + suffix
+    node_group_name = "nsm-node-group" + suffix
     nodes_stack_outputs = create_eks_worker_nodes(nodes_stack_name, node_group_name, cluster_name, key_pair_name, cluster_stack_outputs)
 
     #### Enable worker nodes to join the cluster

@@ -139,8 +139,10 @@ def delete_eks_worker_nodes(nodes_stack_name):
     print("EKS Worker Nodes \"%s\" successfully deleted!" % nodes_stack_name)
 
 def main():
+    suffix = os.environ.get("NSM_AWS_SERVICE_SUFFIX", "")
+
     #### Deleting Amazon EKS Worker Nodes
-    nodes_stack_name = "nsm-nodes"
+    nodes_stack_name = "nsm-nodes" + suffix
     delete_eks_worker_nodes_thread = Thread(
         target = delete_eks_worker_nodes,
         args = (nodes_stack_name,)
@@ -148,7 +150,7 @@ def main():
     delete_eks_worker_nodes_thread.start()
 
     #### Deleting Amazon EKS Cluster
-    cluster_name = "nsm"
+    cluster_name = "nsm" + suffix
     delete_eks_cluster_thread = Thread(
         target = delete_eks_cluster,
         args = (cluster_name,)
@@ -156,7 +158,7 @@ def main():
     delete_eks_cluster_thread.start()
 
     #### Deleting Amazon EKS Cluster VPC
-    cluster_stack_name = 'nsm-srv'
+    cluster_stack_name = 'nsm-srv' + suffix
     delete_eks_cluster_vpc_thread = Thread(
         target = delete_eks_cluster_vpc,
         args = (cluster_stack_name,)
@@ -169,9 +171,9 @@ def main():
     delete_eks_cluster_vpc_thread.join()
 
     #### Deleting keys and roles
-    key_pair_name = "nsm_key_pair"
+    key_pair_name = "nsm-key-pair" + suffix
     delete_eks_ec2_key_pair(key_pair_name)
-    eks_role_name = "nsm-role"
+    eks_role_name = "nsm-role" + suffix
     delete_eks_role(eks_role_name)
 
 if __name__ == '__main__':

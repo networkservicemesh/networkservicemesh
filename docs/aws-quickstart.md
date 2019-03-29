@@ -24,6 +24,10 @@ Before start using of AWS, please execute the following command:
 export CLUSTER_RULES_PREFIX=gke
 ```
 
+## Specify AWS services instances names
+
+Set NSM_AWS_SERVICE_SUFFIX environment variable to specify AWS services instances names
+
 # Usage
 
 ## Create cluster and configure kubernetes
