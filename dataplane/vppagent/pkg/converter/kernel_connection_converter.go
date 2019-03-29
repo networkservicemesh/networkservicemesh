@@ -71,15 +71,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		// We append an Interfaces.  Interfaces creates the vpp side of an interface.
 		//   In this case, a Tapv2 interface that has one side in vpp, and the other
 		//   as a Linux kernel interface
-		// Important details:
-		//       Interfaces.HostIfName - This is the linux interface name given
-		//          to the Linux side of the TAP.  If you wish to apply additional
-		//          config like an Ip address, you should make this a random
-		//          tmpIface name, and it *must* match the LinuxIntefaces.Tap.TempIfName
-		//       Interfaces.Tap.Namespace - do not set this, due to a bug in vppagent
-		//          LinuxInterfaces can only be applied if vppagent finds the
-		//          interface in vppagent's netns.  So leave it there in the Interfaces
-		//          The interface name may be no longer than 15 chars (Linux limitation)
 		rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp_interfaces.Interface{
 			Name:    c.conversionParameters.Name,
 			Type:    vpp_interfaces.Interface_TAP,
@@ -93,14 +84,11 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		logrus.Info("Found /dev/vhost-net - using tapv2")
 		// We apply configuration to LinuxInterfaces
 		// Important details:
-		//    - If you have created a TAP, LinuxInterfaces.Tap.TempIfName must match
-		//      Interfaces.Tap.HostIfName from above
 		//    - LinuxInterfaces.HostIfName - must be no longer than 15 chars (linux limitation)
 		rv.LinuxConfig.Interfaces = append(rv.LinuxConfig.Interfaces, &linux.Interface{
 			Name:        c.conversionParameters.Name,
 			Type:        linux_interfaces.Interface_TAP_TO_VPP,
 			Enabled:     true,
-			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace {
@@ -119,7 +107,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Name:        c.conversionParameters.Name + "-veth",
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
-			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
 			HostIfName:  c.conversionParameters.Name + "-veth",
 			Link: &linux_interfaces.Interface_Veth{
@@ -132,7 +119,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Name:        c.conversionParameters.Name,
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
-			//Description: m.GetParameters()[connection.InterfaceDescriptionKey],
 			IpAddresses: ipAddresses,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace {
@@ -163,10 +149,8 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		for _, route := range c.Connection.GetContext().GetRoutes() {
 			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
 				DstNetwork:   route.Prefix,
-				//Description: "Route to " + route.Prefix,
 				OutgoingInterface:   c.conversionParameters.Name,
 				Scope: linux_l3.Route_LINK,
-				//GwAddr: extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 			})
 		}
 	}
@@ -175,7 +159,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if c.conversionParameters.Side == SOURCE {
 		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
 			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
-				//Name:      fmt.Sprintf("%s_arp_%d", c.conversionParameters.Name, idx),
 				IpAddress:    neightbour.Ip,
 				Interface: c.conversionParameters.Name,
 				HwAddress: neightbour.HardwareAddress,

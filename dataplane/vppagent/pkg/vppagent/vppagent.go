@@ -232,8 +232,8 @@ func (v *VPPAgent) programMgmtInterface() error {
 				Ingress: []string{dataRequest.Update.VppConfig.Interfaces[0].Name},
 			},
 			Rules: []*vpp_acl.ACL_Rule{
+				//Rule NSMmgmtInterfaceACL permit VXLAN dst
 				&vpp_acl.ACL_Rule{
-					//RuleName:  "NSMmgmtInterfaceACL permit VXLAN dst",
 					Action: vpp_acl.ACL_Rule_PERMIT,
 					IpRule: &vpp_acl.ACL_Rule_IpRule{
 						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{

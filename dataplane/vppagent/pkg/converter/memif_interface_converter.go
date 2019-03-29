@@ -92,7 +92,6 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 			route := &vpp.Route{
 				Type: vpp_l3.Route_INTER_VRF,
 				DstNetwork:         route.Prefix,
-				//Description:       "Route to " + route.Prefix,
 				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 				OutgoingInterface: c.conversionParameters.Name,
 			}
