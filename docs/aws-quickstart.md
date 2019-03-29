@@ -13,7 +13,7 @@ Put key ID and secret into environment variables:
 ## Setup AWS.
 
 ```shell
-* make aws-init
+make aws-init
 ```
 
 ## Use AWS environment.
@@ -21,7 +21,7 @@ Put key ID and secret into environment variables:
 Before start using of AWS, please execute the following command:
 
 ```shell
-export CLUSTER_RULES_PREFIX=gke
+source ./.env/aws.env
 ```
 
 ## Specify AWS services instances names
