@@ -3,9 +3,10 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
@@ -91,6 +92,11 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	s1 := time.Now()
 	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
+
+	if useWebhook {
+		awc, awDeployment, awService := nsmd_test_utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", "default")
+		defer nsmd_test_utils.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, "default")
+	}
 
 	config := []*pods.NSMgrPodConfig{}
 	for i := 0; i < nodesCount; i++ {
