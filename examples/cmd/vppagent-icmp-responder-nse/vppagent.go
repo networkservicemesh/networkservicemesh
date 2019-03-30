@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/vpp-agent/api/configurator"
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -30,7 +30,7 @@ func (ns *vppagentComposite) CreateVppInterface(ctx context.Context, nseConnecti
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 
 	conversionParameters := &converter.ConnectionConversionParameters{
 		Name:      "DST-" + nseConnection.GetId(),
@@ -45,9 +45,9 @@ func (ns *vppagentComposite) CreateVppInterface(ctx context.Context, nseConnecti
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(ctx, dataChange); err != nil {
+	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange,}); err != nil {
 		logrus.Error(err)
-		client.Del(ctx, dataChange)
+		client.Delete(ctx, &configurator.DeleteRequest{Delete:dataChange})
 		return err
 	}
 	return nil
@@ -69,9 +69,13 @@ func (ns *vppagentComposite) Reset() error {
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataResyncServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
-	_, err = client.Resync(context.Background(), &rpc.DataRequest{})
+	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
+		Update: &configurator.Config{
+		},
+		FullResync: true,
+	})
 	if err != nil {
 		logrus.Errorf("failed to reset vppagent: %s", err)
 	}

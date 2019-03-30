@@ -17,8 +17,9 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/acl"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	"github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -53,19 +54,19 @@ func NewAclConverter(name, ingress string, rules map[string]string) Converter {
 	return rv
 }
 
-func getAction(parsed map[string]string) (acl.AclAction, error) {
+func getAction(parsed map[string]string) (vpp_acl.ACL_Rule_Action, error) {
 	action_name, ok := parsed["action"]
 	if !ok {
-		return acl.AclAction(0), fmt.Errorf("Rule should have 'action' set.")
+		return vpp_acl.ACL_Rule_Action(0), fmt.Errorf("Rule should have 'action' set.")
 	}
-	action, ok := acl.AclAction_value[strings.ToUpper(action_name)]
+	action, ok := vpp_acl.ACL_Rule_Action_value[strings.ToUpper(action_name)]
 	if !ok {
-		return acl.AclAction(0), fmt.Errorf("Rule should have a valid 'action'.")
+		return vpp_acl.ACL_Rule_Action(0), fmt.Errorf("Rule should have a valid 'action'.")
 	}
-	return acl.AclAction(action), nil
+	return vpp_acl.ACL_Rule_Action(action), nil
 }
 
-func getIp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ip, error) {
+func getIp(parsed map[string]string) (*vpp_acl.ACL_Rule_IpRule_Ip, error) {
 	dstNet, dstNetOk := parsed["dstnet"]
 	srcNet, srcNetOk := parsed["srcnet"]
 	if dstNetOk {
@@ -87,7 +88,7 @@ func getIp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ip,
 	}
 
 	if dstNetOk || srcNetOk {
-		return &acl.AccessLists_Acl_Rule_Match_IpRule_Ip{
+		return &vpp_acl.ACL_Rule_IpRule_Ip{
 			DestinationNetwork: dstNet,
 			SourceNetwork:      srcNet,
 		}, nil
@@ -95,7 +96,7 @@ func getIp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ip,
 	return nil, nil
 }
 
-func getIcmp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Icmp, error) {
+func getIcmp(parsed map[string]string) (*vpp_acl.ACL_Rule_IpRule_Icmp, error) {
 	icmpType, ok := parsed["icmptype"]
 	if !ok {
 		return nil, nil
@@ -104,13 +105,13 @@ func getIcmp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_I
 	if err != nil {
 		return nil, fmt.Errorf("Failed parsing icmptype [%v] with: %v", icmpType, err)
 	}
-	return &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp{
+	return &vpp_acl.ACL_Rule_IpRule_Icmp {
 		Icmpv6: false,
-		IcmpCodeRange: &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp_Range{
+		IcmpCodeRange: &vpp_acl.ACL_Rule_IpRule_Icmp_Range{
 			First: uint32(0),
 			Last:  uint32(65535),
 		},
-		IcmpTypeRange: &acl.AccessLists_Acl_Rule_Match_IpRule_Icmp_Range{
+		IcmpTypeRange: &vpp_acl.ACL_Rule_IpRule_Icmp_Range{
 			First: uint32(icmpType8),
 			Last:  uint32(icmpType8),
 		},
@@ -130,7 +131,7 @@ func getPort(name string, parsed map[string]string) (uint16, bool, error) {
 	return uint16(port16), true, nil
 }
 
-func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tcp, error) {
+func getTcp(parsed map[string]string) (*vpp_acl.ACL_Rule_IpRule_Tcp, error) {
 	lowerPort, lpFound, lpErr := getPort("tcplowport", parsed)
 	if !lpFound {
 		return nil, nil
@@ -145,12 +146,12 @@ func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tc
 		return nil, lpErr
 	}
 
-	return &acl.AccessLists_Acl_Rule_Match_IpRule_Tcp{
-		DestinationPortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+	return &vpp_acl.ACL_Rule_IpRule_Tcp{
+		DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
 			LowerPort: uint32(lowerPort),
 			UpperPort: uint32(upperPort),
 		},
-		SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+		SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
 			LowerPort: uint32(0),
 			UpperPort: uint32(65535),
 		},
@@ -159,7 +160,7 @@ func getTcp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Tc
 	}, nil
 }
 
-func getUdp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Udp, error) {
+func getUdp(parsed map[string]string) (*vpp_acl.ACL_Rule_IpRule_Udp, error) {
 	lowerPort, lpFound, lpErr := getPort("udplowport", parsed)
 	if !lpFound {
 		return nil, nil
@@ -174,19 +175,19 @@ func getUdp(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule_Ud
 		return nil, lpErr
 	}
 
-	return &acl.AccessLists_Acl_Rule_Match_IpRule_Udp{
-		DestinationPortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+	return &vpp_acl.ACL_Rule_IpRule_Udp{
+		DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
 			LowerPort: uint32(lowerPort),
 			UpperPort: uint32(upperPort),
 		},
-		SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
+		SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
 			LowerPort: uint32(0),
 			UpperPort: uint32(65535),
 		},
 	}, nil
 }
 
-func getIpRule(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule, error) {
+func getIpRule(parsed map[string]string) (*vpp_acl.ACL_Rule_IpRule, error) {
 
 	ip, err := getIp(parsed)
 	if err != nil {
@@ -208,7 +209,7 @@ func getIpRule(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule
 		return nil, err
 	}
 
-	return &acl.AccessLists_Acl_Rule_Match_IpRule{
+	return &vpp_acl.ACL_Rule_IpRule{
 		Ip:   ip,
 		Icmp: icmp,
 		Tcp:  tcp,
@@ -216,31 +217,34 @@ func getIpRule(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match_IpRule
 	}, nil
 }
 
-func getMatch(parsed map[string]string) (*acl.AccessLists_Acl_Rule_Match, error) {
+func getMatch(parsed map[string]string) (*vpp_acl.ACL_Rule, error) {
 
 	iprule, err := getIpRule(parsed)
 	if err != nil {
 		return nil, err
 	}
 
-	return &acl.AccessLists_Acl_Rule_Match{
+	return &vpp_acl.ACL_Rule{
 		IpRule:    iprule,
 		MacipRule: nil,
 	}, nil
 }
 
-func (c *aclConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *aclConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
 		return rv, fmt.Errorf("aclConverter cannot be nil")
 	}
 	// TODO check if 'c' is complete
 	if rv == nil {
-		rv = &rpc.DataRequest{}
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
 	}
 
-	rules := []*acl.AccessLists_Acl_Rule{}
+	rules := []*vpp_acl.ACL_Rule{}
 
-	for name, rule := range c.Rules {
+	for _, rule := range c.Rules {
 		parsed := tools.ParseKVStringToMap(rule, ",", "=")
 
 		action, err := getAction(parsed)
@@ -250,21 +254,18 @@ func (c *aclConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.Da
 		}
 
 		match, err := getMatch(parsed)
+		match.Action = action
 		if err != nil {
 			logrus.Errorf("Parsing rule %s failed with %v", rule, err)
 			return nil, err
 		}
 
-		rules = append(rules, &acl.AccessLists_Acl_Rule{
-			RuleName:  name,
-			AclAction: action,
-			Match:     match,
-		})
+		rules = append(rules, match)
 
-		rv.AccessLists = append(rv.AccessLists, &acl.AccessLists_Acl{
-			AclName: c.Name,
+		rv.VppConfig.Acls = append(rv.VppConfig.Acls, &vpp_acl.ACL{
+			Name: c.Name,
 			Rules:   rules,
-			Interfaces: &acl.AccessLists_Acl_Interfaces{
+			Interfaces: &vpp_acl.ACL_Interfaces{
 				Egress: []string{},
 				Ingress: []string{
 					c.IngressInterface,

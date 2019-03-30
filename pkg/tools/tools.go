@@ -117,6 +117,8 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 	if interval < 0 {
 		return errors.New("interval must be positive")
 	}
+	logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
+	last := time.Now()
 	for ; true; <-time.After(interval) {
 		select {
 		case <-ctx.Done():
@@ -124,7 +126,10 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 		default:
 			conn, err := net.Dial(protoType, registryAddress)
 			if err != nil {
-				logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
+				if time.Since(last) > 60 * time.Second {
+					logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
+					last = time.Now()
+				}
 				time.Sleep(interval)
 				continue
 			}

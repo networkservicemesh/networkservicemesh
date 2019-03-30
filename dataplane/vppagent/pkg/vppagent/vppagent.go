@@ -18,15 +18,16 @@ import (
 	"context"
 	"net"
 	"os"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	"github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/acl"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -130,7 +131,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		return nil, err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: v.common.NSMBaseDir,
 	}
@@ -141,9 +142,9 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
-		_, err = client.Put(ctx, dataChange)
+		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
 	} else {
-		_, err = client.Del(ctx, dataChange)
+		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange,})
 	}
 	if err != nil {
 		logrus.Error(err)
@@ -169,9 +170,10 @@ func (v *VPPAgent) reset() error {
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataResyncServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
-	_, err = client.Resync(context.Background(), &rpc.DataRequest{})
+	_, err = client.Update(context.Background(), &configurator.UpdateRequest{Update: &configurator.Config{
+	}, FullResync: true})
 	if err != nil {
 		logrus.Errorf("failed to reset vppagent: %s", err)
 	}
@@ -194,17 +196,23 @@ func (v *VPPAgent) programMgmtInterface() error {
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
-	dataRequest := &rpc.DataRequest{
-		Interfaces: []*interfaces.Interfaces_Interface{
-			{
-				Name:        "mgmt",
-				Type:        interfaces.InterfaceType_AF_PACKET_INTERFACE,
-				Enabled:     true,
-				IpAddresses: []string{v.egressInterface.SrcIPNet().String()},
-				PhysAddress: v.egressInterface.HardwareAddr.String(),
-				Afpacket: &interfaces.Interfaces_Interface_Afpacket{
-					HostIfName: v.egressInterface.Name,
+	client := configurator.NewConfiguratorClient(conn)
+	dataRequest := &configurator.UpdateRequest{
+		Update: &configurator.Config{
+			VppConfig: &vpp.ConfigData{
+				Interfaces: []*vpp.Interface{
+					{
+						Name:        "mgmt",
+						Type:        vpp_interfaces.Interface_AF_PACKET,
+						Enabled:     true,
+						IpAddresses: []string{v.egressInterface.SrcIPNet().String()},
+						PhysAddress: v.egressInterface.HardwareAddr.String(),
+						Link: &vpp_interfaces.Interface_Afpacket{
+							Afpacket: &vpp_interfaces.AfpacketLink{
+								HostIfName: v.egressInterface.Name,
+							},
+						},
+					},
 				},
 			},
 		},
@@ -217,31 +225,29 @@ func (v *VPPAgent) programMgmtInterface() error {
 	// it drops anything that isn't destined for VXLAN (port 4789).
 	// This way it avoids sending icmp port unreachable messages out.
 	// This bug wasn't really obvious till we tried to switch to hostNetwork:true
-	dataRequest.AccessLists = []*acl.AccessLists_Acl{
-		&acl.AccessLists_Acl{
-			AclName: "NSMmgmtInterfaceACL",
-			Interfaces: &acl.AccessLists_Acl_Interfaces{
-				Ingress: []string{dataRequest.Interfaces[0].Name},
+	dataRequest.Update.VppConfig.Acls = []*vpp.ACL{
+		&vpp_acl.ACL{
+			Name: "NSMmgmtInterfaceACL",
+			Interfaces: &vpp_acl.ACL_Interfaces{
+				Ingress: []string{dataRequest.Update.VppConfig.Interfaces[0].Name},
 			},
-			Rules: []*acl.AccessLists_Acl_Rule{
-				&acl.AccessLists_Acl_Rule{
-					RuleName:  "NSMmgmtInterfaceACL permit VXLAN dst",
-					AclAction: acl.AclAction_PERMIT,
-					Match: &acl.AccessLists_Acl_Rule_Match{
-						IpRule: &acl.AccessLists_Acl_Rule_Match_IpRule{
-							Ip: &acl.AccessLists_Acl_Rule_Match_IpRule_Ip{
-								DestinationNetwork: v.egressInterface.SrcIPNet().IP.String() + "/32",
-								SourceNetwork:      "0.0.0.0/0",
+			Rules: []*vpp_acl.ACL_Rule{
+				//Rule NSMmgmtInterfaceACL permit VXLAN dst
+				&vpp_acl.ACL_Rule{
+					Action: vpp_acl.ACL_Rule_PERMIT,
+					IpRule: &vpp_acl.ACL_Rule_IpRule{
+						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+							DestinationNetwork: v.egressInterface.SrcIPNet().IP.String() + "/32",
+							SourceNetwork:      "0.0.0.0/0",
+						},
+						Udp: &vpp_acl.ACL_Rule_IpRule_Udp{
+							DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+								LowerPort: 4789,
+								UpperPort: 4789,
 							},
-							Udp: &acl.AccessLists_Acl_Rule_Match_IpRule_Udp{
-								DestinationPortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
-									LowerPort: 4789,
-									UpperPort: 4789,
-								},
-								SourcePortRange: &acl.AccessLists_Acl_Rule_Match_IpRule_PortRange{
-									LowerPort: 0,
-									UpperPort: 65535,
-								},
+							SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+								LowerPort: 0,
+								UpperPort: 65535,
 							},
 						},
 					},
@@ -250,7 +256,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 		},
 	}
 	logrus.Infof("Setting up Mgmt Interface %v", dataRequest)
-	_, err = client.Put(context.Background(), dataRequest)
+	_, err = client.Update(context.Background(), dataRequest)
 	if err != nil {
 		logrus.Errorf("Error Setting up Mgmt Interface: %s", err)
 		return err

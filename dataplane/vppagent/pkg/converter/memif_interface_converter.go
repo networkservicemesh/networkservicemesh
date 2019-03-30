@@ -16,12 +16,12 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/l3"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"os"
 	"path"
-
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
@@ -38,9 +38,12 @@ func NewMemifInterfaceConverter(c *connection.Connection, conversionParameters *
 	return rv
 }
 
-func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error) {
+func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if rv == nil {
-		rv = &rpc.DataRequest{}
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
 	}
 	fullyQualifiedSocketFilename := path.Join(c.conversionParameters.BaseDir, c.Connection.GetMechanism().GetSocketFilename())
 	SocketDir := path.Dir(fullyQualifiedSocketFilename)
@@ -70,27 +73,29 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *rpc.DataRequest, connect boo
 		return nil, fmt.Errorf("ConnnectionConversionParameters.Name cannot be empty")
 	}
 
-	rv.Interfaces = append(rv.Interfaces, &interfaces.Interfaces_Interface{
+	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:        c.conversionParameters.Name,
-		Type:        interfaces.InterfaceType_MEMORY_INTERFACE,
+		Type:        vpp_interfaces.Interface_MEMIF,
 		Enabled:     true,
 		IpAddresses: ipAddresses,
-		Memif: &interfaces.Interfaces_Interface_Memif{
-			Master:         isMaster,
-			SocketFilename: path.Join(fullyQualifiedSocketFilename),
+		Link: &vpp_interfaces.Interface_Memif{
+			Memif: &vpp_interfaces.MemifLink{
+				Master: isMaster,
+				SocketFilename: path.Join(fullyQualifiedSocketFilename),
+			},
 		},
 	})
 
 	// Process static routes
 	if c.conversionParameters.Side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
-			route := &l3.StaticRoutes_Route{
-				DstIpAddr:         route.Prefix,
-				Description:       "Route to " + route.Prefix,
+			route := &vpp.Route{
+				Type: vpp_l3.Route_INTER_VRF,
+				DstNetwork:         route.Prefix,
 				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 				OutgoingInterface: c.conversionParameters.Name,
 			}
-			rv.StaticRoutes = append(rv.StaticRoutes, route)
+			rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
 		}
 	}
 	return rv, nil

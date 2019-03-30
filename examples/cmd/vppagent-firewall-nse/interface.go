@@ -84,7 +84,7 @@ func (vxc *vppAgentXConnComposite) Request(ctx context.Context, request *network
 	}
 
 	// The Crossconnect converter generates and puts the Source Interface name here
-	ingressIfName := dataChange.XCons[0].ReceiveInterface
+	ingressIfName := dataChange.VppConfig.XconnectPairs[0].ReceiveInterface
 
 	// Store for cleanup
 	vxc.crossConnects[incoming.GetId()] = crossConnectStruct{
