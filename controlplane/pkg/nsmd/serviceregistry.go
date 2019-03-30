@@ -70,7 +70,7 @@ func (impl *nsmdServiceRegistry) NewWorkspaceProvider() serviceregistry.Workspac
 }
 
 func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(ctx, "tcp", nsm.GetUrl(), 1*time.Second)
+	err := tools.WaitForPortAvailable(ctx, "tcp", nsm.GetUrl(), 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -186,7 +186,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 	}
 	// TODO doing registry Address here is ugly
 	for impl.stopRedial {
-		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 1*time.Second)
+		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		logrus.Println("Registry port now available, attempting to connect...")
 		tracer := opentracing.GlobalTracer()
 		conn, err := grpc.Dial(impl.registryAddress, grpc.WithInsecure(),

@@ -163,7 +163,7 @@ func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistr
 }
 
 func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 1*time.Second)
+	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -268,7 +268,7 @@ func (impl *nsmdTestServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.
 	logrus.Infof("Connecting to nsmd on socket: %s...", addr)
 
 	// Wait to be sure it is already initialized
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", addr, 1*time.Second)
+	err := tools.WaitForPortAvailable(context.Background(), "tcp", addr, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}

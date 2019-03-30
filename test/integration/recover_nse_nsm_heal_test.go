@@ -36,7 +36,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		&pods.NSMgrPodConfig{
 			Variables: map[string]string{
-				nsm.NsmdHealDSTWaitTimeout: "30", // 10 second delay, since we know NSE is new one.
+				nsm.NsmdHealDSTWaitTimeout: "60", // 60 second delay, since we know on CI it could not fit into delay.
 			},
 		}, &pods.NSMgrPodConfig{},
 	})
