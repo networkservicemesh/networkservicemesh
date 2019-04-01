@@ -50,6 +50,7 @@ func main() {
 	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)
 		nsmd.SetNSMServerFailed()
+		return
 	}
 	defer server.Stop()
 
