@@ -173,7 +173,10 @@ jobs:
       - run: cd ./scripts/terraform && terraform init && cd ../..
       - run: .circleci/destroy-cluster.sh
 
-  build-nsmd:
+  build-container:
+    parameters:
+      container:
+        type: string
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang
@@ -185,163 +188,9 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
-            make docker-nsmd-build
-            make docker-nsmd-push
-  build-nsmd-k8s:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-nsmd-k8s-build
-            make docker-nsmd-k8s-push
-  build-nsmdp:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-nsmdp-build
-            make docker-nsmdp-push
-  build-admission-webhook:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="$COMMIT"
-            make docker-admission-webhook-build
-            make docker-admission-webhook-push
-  build-crossconnect-monitor:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-crossconnect-monitor-build
-            make docker-crossconnect-monitor-push
-  build-icmp-responder-nse:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-icmp-responder-nse-build
-            make docker-icmp-responder-nse-push
+            make docker-<< parameters.container >>-build
+            make docker-<< parameters.container >>-push
 
-  build-vppagent-icmp-responder-nse:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-vppagent-icmp-responder-nse-build
-            make docker-vppagent-icmp-responder-nse-push
-  build-vppagent-nsc:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-vppagent-nsc-build
-            make docker-vppagent-nsc-push
-  build-nsc:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-nsc-build
-            make docker-nsc-push
-  build-vppagent-dataplane:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-vppagent-dataplane-build
-            make docker-vppagent-dataplane-push
-  build-vppagent-dataplane-dev:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-vppagent-dataplane-dev-build
-            make docker-vppagent-dataplane-dev-push
-  build-vppagent-firewall-nse:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-vppagent-firewall-nse-build
-            make docker-vppagent-firewall-nse-push
   docker-push-latest:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -369,40 +218,64 @@ workflows:
   build-and-test:
     jobs:
       - sanity-check
-      - build-nsmd:
+      - build-container:
+          name: "build-nsmd"
+          container: "nsmd"
           requires:
             - sanity-check
-      - build-nsmd-k8s:
+      - build-container:
+          name: "build-nsmd-k8s"
+          container: "nsmd-k8s"
           requires:
             - sanity-check
-      - build-admission-webhook:
+      - build-container:
+          name: "build-nsmdp"
+          container: "nsmdp"
           requires:
             - sanity-check
-      - build-crossconnect-monitor:
+      - build-container:
+          name: "build-admission-webhook"
+          container: "admission-webhook"
           requires:
             - sanity-check
-      - build-nsmdp:
+      - build-container:
+          name: "build-crossconnect-monitor"
+          container: "crossconnect-monitor"
           requires:
             - sanity-check
-      - build-icmp-responder-nse:
+      - build-container:
+          name: "build-icmp-responder-nse"
+          container: "icmp-responder-nse"
           requires:
             - sanity-check
-      - build-vppagent-icmp-responder-nse:
+      - build-container:
+          name: "build-vppagent-icmp-responder-nse"
+          container: "vppagent-icmp-responder-nse"
           requires:
             - sanity-check
-      - build-vppagent-nsc:
+      - build-container:
+          name: "build-vppagent-nsc"
+          container: "vppagent-nsc"
           requires:
             - sanity-check
-      - build-nsc:
+      - build-container:
+          name: "build-nsc"
+          container: "nsc"
           requires:
             - sanity-check
-      - build-vppagent-dataplane:
+      - build-container:
+          name: "build-vppagent-dataplane"
+          container: "vppagent-dataplane"
           requires:
             - sanity-check
-      - build-vppagent-dataplane-dev:
+      - build-container:
+          name: "build-vppagent-dataplane-dev"
+          container: "vppagent-dataplane-dev"
           requires:
             - sanity-check
-      - build-vppagent-firewall-nse:
+      - build-container:
+          name: "build-vppagent-firewall-nse"
+          container: "vppagent-firewall-nse"
           requires:
             - sanity-check
       - packet-deploy:
