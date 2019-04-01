@@ -68,6 +68,10 @@ jobs:
           when: on_fail
           command: .circleci/destroy-cluster.sh
       - save_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          paths:
+            - /go/bin/terraform
+      - save_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
@@ -166,9 +170,8 @@ jobs:
           name: Cache Prep
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-      - run: unzip terraform_0.11.13_linux_amd64.zip
-      - run: mv terraform /go/bin/
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run: cp -a data/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
       - run: .circleci/destroy-cluster.sh
@@ -284,7 +287,7 @@ workflows:
       - packet-integration-tests:
           name: "test basic recover"
           cluster_id: "1"
-          test_tags: "basic recover"
+          test_tags: "basic"
           requires:
             - build-nsmd
             - build-nsmd-k8s
@@ -299,7 +302,7 @@ workflows:
       - packet-integration-tests:
           name: "test usecase"
           cluster_id: "2"
-          test_tags: "usecase"
+          test_tags: "basic"
           requires:
             - build-nsmd
             - build-nsmd-k8s
