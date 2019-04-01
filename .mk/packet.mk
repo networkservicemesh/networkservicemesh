@@ -53,7 +53,7 @@ packet-%-load-images:
 .PHONY: packet-get-kubeconfig
 packet-get-kubeconfig:
 	@pushd scripts/terraform
-	@scp ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:.kube/config ../../kubeconfig${PACKET_CLUSTER_ID}
+	@scp ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:.kube/config ../../kubeconfig
 	@popd
 
 .ONESHELL:

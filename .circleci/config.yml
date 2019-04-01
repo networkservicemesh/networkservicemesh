@@ -40,7 +40,6 @@ jobs:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
-
     environment:
       GO111MODULE: "on"
 
@@ -58,11 +57,6 @@ jobs:
       - run: ssh-keygen -t rsa -f data/sshkey -q -N ""
       - run: ssh-add data/sshkey
       - run: .circleci/provision.sh
-      - run: cd scripts/terraform && PACKET_CLUSTER_ID=1 ./create-kubernetes-cluster.sh && cd ../..
-      - run: cd scripts/terraform && PACKET_CLUSTER_ID=2 ./create-kubernetes-cluster.sh && cd ../..
-      - run: PACKET_CLUSTER_ID=1 make packet-get-kubeconfig
-      - run: PACKET_CLUSTER_ID=2 make packet-get-kubeconfig
-      - run: cp kubeconfig1 kubeconfig2 data/
       - run: cp -a scripts/terraform/ data/
       - run:
           when: on_fail
@@ -71,10 +65,37 @@ jobs:
           key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - /go/bin/terraform
+            - data
+
+  packet-deploy-k8s:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run: mkdir data
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run: ssh-add data/sshkey
+      - run: cp -a data/terraform/* ./scripts/terraform/
+      - run: cd ./scripts/terraform && terraform init && cd ../..
+      - run: cd scripts/terraform && ./create-kubernetes-cluster.sh && cd ../..
+      - run: make packet-get-kubeconfig
+      - run:
+          name: "Prepare cache data<< parameters.cluster_id >>"
+          command: |
+            cp kubeconfig data/
+      - run:
+          when: on_fail
+          command: .circleci/destroy-cluster.sh
       - save_cache:
-          key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: cncf-data<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
+    environment:
+      PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
 
   packet-integration-tests:
     parameters:
@@ -102,7 +123,7 @@ jobs:
             sudo mkdir -p /cncf/data
             sudo chown -R circleci:circleci /cncf/
       - restore_cache:
-          key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: cncf-data<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
           name: Downloading go deps
           command: |
@@ -113,9 +134,6 @@ jobs:
             mkdir -p ~/junit/
             go mod download
           no_output_timeout: 40m
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
-            GO111MODULE: "on"
       - run:
           name: Running integration tests - <<parameters.test_tags>>
           command: |
@@ -123,16 +141,11 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="<<parameters.test_tags>>"
           no_output_timeout: 40m
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
-            GO111MODULE: "on"
       - run:
           when: always
           name: Save postmortem data
           command: |
             make packet-download-postmortem
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -146,8 +159,6 @@ jobs:
             kubectl get nodes
             kubectl get pods -o wide
             kubectl describe pods
-          environment:
-            KUBECONFIG: /home/circleci/project/data/kubeconfig<< parameters.cluster_id >>
       - run:
           when: on_fail
           name: Trigger packet-destroy
@@ -157,6 +168,9 @@ jobs:
                 --data build_parameters[CIRCLE_WORKFLOW_ID]=${CIRCLE_WORKFLOW_ID} \
                 --data revision=$CIRCLE_SHA1 \
                 https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
+    environment:
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
 
   packet-destroy:
     docker:
@@ -284,40 +298,32 @@ workflows:
       - packet-deploy:
           requires:
             - sanity-check
-      - packet-integration-tests:
-          name: "test basic recover"
+      - packet-deploy-k8s:
+          name: "packet-deploy-k8s-1"
           cluster_id: "1"
-          test_tags: "basic"
           requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-firewall-nse
+            - packet-deploy
+      - packet-deploy-k8s:
+          name: "packet-deploy-k8s-2"
+          cluster_id: "2"
+          requires:
             - packet-deploy
       - packet-integration-tests:
-          name: "test usecase"
-          cluster_id: "2"
-          test_tags: "basic"
+          name: "test basic usecase"
+          cluster_id: "1"
+          test_tags: "basic usecase"
           requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-firewall-nse
-            - packet-deploy
+            - packet-deploy-k8s-1
+      - packet-integration-tests:
+          name: "test recover"
+          cluster_id: "2"
+          test_tags: "recover"
+          requires:
+            - packet-deploy-k8s-2
       - packet-destroy:
           requires:
-            - "test basic recover"
-            - "test usecase"
+            - "test basic usecase"
+            - "test recover"
       - docker-push-latest:
           requires:
             - packet-destroy
