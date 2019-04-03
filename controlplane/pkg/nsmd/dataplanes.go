@@ -89,6 +89,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		// TODO: this is not good -- direct model changes
 		dataplane.RemoteMechanisms = updates.RemoteMechanisms
 		dataplane.LocalMechanisms = updates.LocalMechanisms
+		dataplane.RemoteConfigured = true
 	}
 }
 

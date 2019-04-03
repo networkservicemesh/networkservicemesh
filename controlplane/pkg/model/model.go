@@ -21,6 +21,7 @@ type Dataplane struct {
 	SocketLocation   string
 	LocalMechanisms  []*local.Mechanism
 	RemoteMechanisms []*remote.Mechanism
+	RemoteConfigured bool
 }
 
 type Endpoint struct {
