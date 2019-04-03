@@ -29,14 +29,16 @@ type RemoteConnectionConverter struct {
 	*connection.Connection
 	name string
 	side ConnectionContextSide
+	routes *ExtraRoutesParameters
 }
 
 // NewRemoteConnectionConverter creates a new remote connection coverter
-func NewRemoteConnectionConverter(c *connection.Connection, name string, side ConnectionContextSide) *RemoteConnectionConverter {
+func NewRemoteConnectionConverter(c *connection.Connection, name string, side ConnectionContextSide, routes *ExtraRoutesParameters) *RemoteConnectionConverter {
 	return &RemoteConnectionConverter{
 		Connection: c,
 		name:       name,
 		side:       side,
+		routes: routes,
 	}
 }
 
@@ -86,6 +88,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			},
 		},
 	})
+
+	c.routes.Routes = append(c.routes.Routes, dstip + "/32" )
 
 	return rv, nil
 }

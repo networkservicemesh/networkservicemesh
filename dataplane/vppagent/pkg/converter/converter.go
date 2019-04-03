@@ -2,6 +2,7 @@ package converter
 
 import (
 	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 )
 
 type Converter interface {
@@ -10,6 +11,8 @@ type Converter interface {
 
 type CrossConnectConversionParameters struct {
 	BaseDir string
+	Routes *ExtraRoutesParameters
+	EgressInterface common.EgressInterface
 }
 
 type ConnectionContextSide int
@@ -25,4 +28,8 @@ type ConnectionConversionParameters struct {
 	Side      ConnectionContextSide
 	Name      string
 	BaseDir   string
+}
+
+type ExtraRoutesParameters struct {
+	Routes []string // Extra destination routes required
 }

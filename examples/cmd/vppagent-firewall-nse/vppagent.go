@@ -24,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -49,6 +49,7 @@ func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context,
 
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: baseDir,
+		Routes: &converter.ExtraRoutesParameters{},
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 

@@ -5,6 +5,7 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	"github.com/ligato/vpp-agent/api/models/vpp/l2"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"path"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -13,6 +14,7 @@ import (
 type CrossConnectConverter struct {
 	*crossconnect.CrossConnect
 	conversionParameters *CrossConnectConversionParameters
+	egressInterface common.EgressInterface
 }
 
 func NewCrossConnectConverter(c *crossconnect.CrossConnect, conversionParameters *CrossConnectConversionParameters) *CrossConnectConverter {
@@ -53,7 +55,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	}
 
 	if c.GetRemoteSource() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE, c.conversionParameters.Routes).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -74,7 +76,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	}
 
 	if c.GetRemoteDestination() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
+		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION, c.conversionParameters.Routes).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
