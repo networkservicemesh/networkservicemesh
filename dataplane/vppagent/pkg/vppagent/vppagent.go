@@ -16,13 +16,12 @@ package vppagent
 
 import (
 	"context"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/linux"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/acl"
+	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/ligato/vpp-agent/api/models/vpp/l3"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"net"
 	"os"
 	"time"
@@ -68,13 +67,10 @@ type VPPAgent struct {
 	srcIP                net.IP
 	egressInterface      common.EgressInterface
 	monitor              *crossconnect_monitor.CrossConnectMonitor
-	extraRoutes          map[string]int
 }
 
 func CreateVPPAgent() *VPPAgent {
-	return &VPPAgent{
-		extraRoutes: map[string]int{},
-	}
+	return &VPPAgent{}
 }
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
@@ -140,17 +136,13 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	defer conn.Close()
 	client := configurator.NewConfiguratorClient(conn)
 	conversionParameters := &converter.CrossConnectConversionParameters{
-		BaseDir:         v.common.NSMBaseDir,
-		Routes:          &converter.ExtraRoutesParameters{},
-		EgressInterface: v.egressInterface,
+		BaseDir: v.common.NSMBaseDir,
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
-
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
-
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
@@ -158,7 +150,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange,})
 	}
 
-	v.updateRequiredRoutes(ctx, client, conversionParameters, connect)
+	v.printVppAgentConfiguration(client)
 
 	if err != nil {
 		logrus.Error(err)
@@ -169,76 +161,12 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	return crossConnect, nil
 }
 
-func (v *VPPAgent) updateRequiredRoutes(ctx context.Context, client configurator.ConfiguratorClient, conversionParameters *converter.CrossConnectConversionParameters, connect bool) {
-	routesAddChanges := 0
-	routesAddChange := &configurator.UpdateRequest{
-		FullResync: false,
-		Update: &configurator.Config{
-			VppConfig:   &vpp.ConfigData{},
-			LinuxConfig: &linux.ConfigData{},
-		},
-	}
-	routesDeleteChanges := 0
-	routesDeleteChange := &configurator.DeleteRequest{
-		Delete: &configurator.Config{
-			VppConfig:   &vpp.ConfigData{},
-			LinuxConfig: &linux.ConfigData{},
-		},
-	}
-	// Update a list of extra routes
-	for _, r := range conversionParameters.Routes.Routes {
-		if vv, ok := v.extraRoutes[r]; ok {
-			if connect {
-				// Already had, just increment counter.
-				vv++
-				v.extraRoutes[r] = vv;
-			} else {
-				vv--;
-			}
-			if vv == 0 {
-				// Remove route and we need to delete it from VPP agent
-				delete(v.extraRoutes, r)
-				routesDeleteChanges++
-				routesDeleteChange.Delete.VppConfig.Routes = append(routesDeleteChange.Delete.VppConfig.Routes,
-					v.createRoute(r))
-			}
-		} else {
-			// There was no route, we need to add it.
-			routesAddChange.Update.VppConfig.Routes = append(routesDeleteChange.Delete.VppConfig.Routes,
-				v.createRoute(r))
-			routesAddChanges++
-			v.extraRoutes[r] = 1
-		}
-	}
-	if routesDeleteChanges > 0 {
-		logrus.Infof("Removing extra routes: %v", routesDeleteChange)
-		_, err := client.Delete(context.Background(), routesDeleteChange)
-		if err != nil {
-			logrus.Errorf("Failed to remove extra routes: %v", err)
-		}
-	}
-	if routesAddChanges > 0 {
-		logrus.Infof("Adding extra routes: %v", routesAddChange)
-		_, err := client.Update(context.Background(), routesAddChange)
-		if err != nil {
-			logrus.Errorf("Failed to add extra routes: %v", err)
-		}
-	}
+func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorClient) {
 	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
-		logrus.Errorf("Failed to dump %v", err)
+		logrus.Errorf("Failed to dump VPP-agent state %v", err)
 	}
-	logrus.Infof("Dump results: %v", proto.MarshalTextString(dumpResult))
-}
-
-func (v *VPPAgent) createRoute(r string) *vpp.Route {
-	return &vpp.Route{
-		Type:              vpp_l3.Route_INTER_VRF,
-		OutgoingInterface: ManagementInterface,
-		DstNetwork:  r,
-		Weight:      1,
-		NextHopAddr: v.egressInterface.DefaultGateway().String(),
-	}
+	logrus.Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
 }
 
 func (v *VPPAgent) reset() error {
@@ -298,6 +226,16 @@ func (v *VPPAgent) programMgmtInterface() error {
 								HostIfName: v.egressInterface.Name(),
 							},
 						},
+					},
+				},
+				// Add default route via default gateway
+				Routes: []*vpp.Route{
+					&vpp.Route{
+						Type:              vpp_l3.Route_INTER_VRF,
+						OutgoingInterface: ManagementInterface,
+						DstNetwork:        "0.0.0.0/0",
+						Weight:            1,
+						NextHopAddr:       v.egressInterface.DefaultGateway().String(),
 					},
 				},
 			},
