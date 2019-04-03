@@ -373,7 +373,6 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 		// TODO: We need to be sure Dataplane is respond well so we could delete connection.
 		if modelRemove {
 			srv.model.DeleteClientConnection(clientConnection.ConnectionId)
-			clientConnection.ConnectionState = model.ClientConnection_Closed
 		}
 	}
 
