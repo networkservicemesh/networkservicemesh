@@ -49,7 +49,6 @@ func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context,
 
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: baseDir,
-		Routes: &converter.ExtraRoutesParameters{},
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 
