@@ -80,8 +80,6 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 				if err != nil {
 					logrus.Errorf("NSM_Heal(2.3.2-%v) Error in Recovery Close: %v", healId, err)
 				}
-				clientConnection.ConnectionState = model.ClientConnection_Closed
-
 			} else {
 				logrus.Infof("NSM_Heal(2.4-%v) Heal: Connection recovered: %v", healId, recoveredConnection)
 				return

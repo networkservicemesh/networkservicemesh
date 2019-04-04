@@ -189,7 +189,10 @@ func (i *impl) GetAllClientConnections() []*ClientConnection {
 
 func (i *impl) UpdateClientConnection(clientConnection *ClientConnection) {
 	i.Lock()
-	i.clientConnections[clientConnection.ConnectionId] = clientConnection
+	_, ok := i.clientConnections[clientConnection.ConnectionId]
+	if ok {
+		i.clientConnections[clientConnection.ConnectionId] = clientConnection
+	}
 	i.Unlock()
 
 	for _, listener := range i.listeners {
@@ -204,6 +207,7 @@ func (i *impl) DeleteClientConnection(connectionId string) {
 		i.Unlock()
 		return
 	}
+	clientConnection.ConnectionState = ClientConnection_Closed
 	delete(i.clientConnections, connectionId)
 	i.Unlock()
 

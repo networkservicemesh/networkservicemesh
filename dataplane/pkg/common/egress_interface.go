@@ -15,20 +15,96 @@
 package common
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"io"
 	"net"
+	"os"
+	"strconv"
+	"strings"
 )
 
-type EgressInterface struct {
-	*net.Interface
-	srcNet *net.IPNet
+type EgressInterface interface {
+	SrcIPNet() *net.IPNet
+	DefaultGateway() *net.IP
+	Interface() *net.Interface
+	Name() string
+	HardwareAddr() *net.HardwareAddr
+	OutgoingInterface() string
 }
 
-func NewEgressInterface(srcIp net.IP) (*EgressInterface, error) {
+type egressInterface struct {
+	EgressInterface
+	srcNet *net.IPNet
+	iface *net.Interface
+	defaultGateway net.IP
+	outgoingInterface string
+}
+
+func findDefaultGateway4() (string, net.IP, error) {
+	f, err := os.OpenFile("/proc/net/route", os.O_RDONLY, 0600)
+	if err != nil {
+		return "", nil, err
+	}
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+	return parseProcFile(reader)
+}
+
+func parseProcFile(reader *bufio.Reader) (string, net.IP, error) {
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err != io.EOF {
+				break
+			}
+			logrus.Errorf("Failed to read routes files: %v", err)
+			break
+		}
+		if line == "" {
+			break
+		}
+		line = strings.TrimSpace(line)
+		parts := strings.Split(line, "\t")
+
+		if strings.TrimSpace(parts[1]) == "00000000" {
+			outgoingInterface := strings.TrimSpace(parts[0])
+			defaultGateway := strings.TrimSpace(parts[2])
+			ip := parseGatewayIP(defaultGateway)
+			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
+			return outgoingInterface, ip, nil
+		}
+	}
+
+	return "", nil, fmt.Errorf("Failed to locate default route...")
+}
+
+func parseGatewayIP(defaultGateway string) net.IP {
+	ip := net.IP{0, 0, 0, 0}
+	iv0, _ := strconv.ParseInt(defaultGateway[0:2], 16, 32)
+	iv1, _ := strconv.ParseInt(defaultGateway[2:4], 16, 32)
+	iv2, _ := strconv.ParseInt(defaultGateway[4:6], 16, 32)
+	iv3, _ := strconv.ParseInt(defaultGateway[6:], 16, 32)
+	ip[0] = byte(iv3)
+	ip[1] = byte(iv2)
+	ip[2] = byte(iv1)
+	ip[3] = byte(iv0)
+	return ip
+}
+
+func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
+
+	outgoingInterface, gw, err := findDefaultGateway4()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, iface := range ifaces {
 		addrs, err := iface.Addrs()
 		if err != nil {
@@ -38,9 +114,11 @@ func NewEgressInterface(srcIp net.IP) (*EgressInterface, error) {
 			switch v := addr.(type) {
 			case *net.IPNet:
 				if v.IP.Equal(srcIp) {
-					return &EgressInterface{
+					return &egressInterface{
 						srcNet:    v,
-						Interface: &iface,
+						iface: &iface,
+						defaultGateway: gw,
+						outgoingInterface: outgoingInterface,
 					}, nil
 				}
 			default:
@@ -51,9 +129,44 @@ func NewEgressInterface(srcIp net.IP) (*EgressInterface, error) {
 	return nil, fmt.Errorf("Unable to find interface with IP: %s", srcIp)
 }
 
-func (e *EgressInterface) SrcIPNet() *net.IPNet {
+func (e *egressInterface) SrcIPNet() *net.IPNet {
 	if e == nil {
 		return nil
 	}
 	return e.srcNet
+}
+
+func (e *egressInterface) Interface() *net.Interface {
+	if e == nil {
+		return nil
+	}
+	return e.iface
+}
+
+func (e *egressInterface) DefaultGateway() *net.IP {
+	if e == nil {
+		return nil
+	}
+	return &e.defaultGateway
+}
+
+func (e *egressInterface) Name () string {
+	if e == nil {
+		return ""
+	}
+	return e.Interface().Name
+}
+
+func (e *egressInterface) HardwareAddr () *net.HardwareAddr {
+	if e == nil {
+		return nil
+	}
+	return &e.Interface().HardwareAddr
+}
+
+func (e *egressInterface) OutgoingInterface() string {
+	if e == nil {
+		return ""
+	}
+	return e.outgoingInterface
 }

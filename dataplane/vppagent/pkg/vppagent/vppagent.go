@@ -16,12 +16,14 @@ package vppagent
 
 import (
 	"context"
-	"net"
-	"os"
+	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/acl"
+	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	"net"
+	"os"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
@@ -53,6 +55,7 @@ const (
 	DataplaneEndpointKey       = "VPPAGENT_ENDPOINT"
 	DataplaneEndpointDefault   = "localhost:9111"
 	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
+	ManagementInterface        = "mgmt"
 )
 
 type VPPAgent struct {
@@ -62,7 +65,7 @@ type VPPAgent struct {
 	updateCh             chan *Mechanisms
 	directMemifConnector *memif.DirectMemifConnector
 	srcIP                net.IP
-	egressInterface      *common.EgressInterface
+	egressInterface      common.EgressInterface
 	monitor              *crossconnect_monitor.CrossConnectMonitor
 }
 
@@ -146,6 +149,9 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	} else {
 		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange,})
 	}
+
+	v.printVppAgentConfiguration(client)
+
 	if err != nil {
 		logrus.Error(err)
 		// TODO handle connection tracking
@@ -153,6 +159,14 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		return crossConnect, err
 	}
 	return crossConnect, nil
+}
+
+func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorClient) {
+	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
+	if err != nil {
+		logrus.Errorf("Failed to dump VPP-agent state %v", err)
+	}
+	logrus.Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
 }
 
 func (v *VPPAgent) reset() error {
@@ -202,16 +216,26 @@ func (v *VPPAgent) programMgmtInterface() error {
 			VppConfig: &vpp.ConfigData{
 				Interfaces: []*vpp.Interface{
 					{
-						Name:        "mgmt",
+						Name:        ManagementInterface,
 						Type:        vpp_interfaces.Interface_AF_PACKET,
 						Enabled:     true,
 						IpAddresses: []string{v.egressInterface.SrcIPNet().String()},
-						PhysAddress: v.egressInterface.HardwareAddr.String(),
+						PhysAddress: v.egressInterface.HardwareAddr().String(),
 						Link: &vpp_interfaces.Interface_Afpacket{
 							Afpacket: &vpp_interfaces.AfpacketLink{
-								HostIfName: v.egressInterface.Name,
+								HostIfName: v.egressInterface.Name(),
 							},
 						},
+					},
+				},
+				// Add default route via default gateway
+				Routes: []*vpp.Route{
+					&vpp.Route{
+						Type:              vpp_l3.Route_INTER_VRF,
+						OutgoingInterface: ManagementInterface,
+						DstNetwork:        "0.0.0.0/0",
+						Weight:            1,
+						NextHopAddr:       v.egressInterface.DefaultGateway().String(),
 					},
 				},
 			},
@@ -334,7 +358,7 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.Cros
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 		common.SetNewEgressIFFailed()
 	}
-	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name, v.egressInterface.SrcIPNet())
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name(), v.egressInterface.SrcIPNet())
 
 	err = tools.SocketCleanup(v.common.DataplaneSocket)
 	if err != nil {
