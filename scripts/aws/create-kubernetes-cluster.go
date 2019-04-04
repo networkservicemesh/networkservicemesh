@@ -39,12 +39,12 @@ func checkError(err error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
-				case "EntityAlreadyExists":
-				case "AlreadyExistsException":
-				case "ResourceInUseException":
-				case "InvalidKeyPair.Duplicate":
-				default:
-					log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
+			case "EntityAlreadyExists":
+			case "AlreadyExistsException":
+			case "ResourceInUseException":
+			case "InvalidKeyPair.Duplicate":
+			default:
+				log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
 			}
 			log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
 		} else {
@@ -140,7 +140,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 }
 
 func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *string, clusterStackOutputs *OutputsMap) *eks.Cluster {
-	fmt.Printf("Creating Amazon EKS Cluster VPC \"%s\"...\n", *clusterName)
+	fmt.Printf("Creating Amazon EKS Cluster \"%s\"...\n", *clusterName)
 	subnetIdsTemp := strings.Split(*clusterStackOutputs.SubnetIds, ",")
 	var subnetIds []*string
 	for i := range subnetIdsTemp {
@@ -223,32 +223,32 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 		TemplateBody: &s,
 		Capabilities: []*string{strp("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
-			&cloudformation.Parameter{
+			{
 				ParameterKey: strp("KeyName"),
 				ParameterValue: keyPairName,
 			},
-			&cloudformation.Parameter{
+			{
 				ParameterKey: strp("NodeImageId"),
 				ParameterValue: strp("ami-0484545fe7d3da96f"),
 			},
-			&cloudformation.Parameter{
+			{
 				ParameterKey: strp("ClusterName"),
 				ParameterValue: clusterName,
 			},
-			&cloudformation.Parameter{
+			{
 				ParameterKey: strp("NodeGroupName"),
 				ParameterValue: nodeGroupName,
 			},
-			&cloudformation.Parameter{
+			{
 				ParameterKey: strp("ClusterControlPlaneSecurityGroup"),
 				ParameterValue: clusterStackOutputs.SecurityGroups,
 			},
-			&cloudformation.Parameter{
+			{
 				ParameterKey: strp("VpcId"),
 				ParameterValue: clusterStackOutputs.VpcId,
 			},
-			&cloudformation.Parameter{
-				ParameterKey: strp("Subnets"),
+			{
+				ParameterKey:   strp("Subnets"),
 				ParameterValue: clusterStackOutputs.SubnetIds,
 			},
 		},
@@ -264,7 +264,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 		switch *resp.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
 			fmt.Printf("EKS Worker Nodes \"%s\" successfully created!\n", *nodesStackName)
-			for _, output := range(resp.Stacks[0].Outputs) {
+			for _, output := range resp.Stacks[0].Outputs {
 				if *output.OutputKey == "NodeInstanceRole" {
 					return output.OutputValue
 				}
@@ -278,7 +278,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	}
 }
 
-func main() {
+func createAWSKubernetesCluster() {
 	sess := session.Must(session.NewSession())
 	iamClient := iam.New(sess)
 	eksClient := eks.New(sess)
@@ -320,7 +320,7 @@ func main() {
 	_, err = f.Write([]byte(strings.Replace(s, "<NodeInstanceRole>", *nodeInstanceRole, -1)))
 	checkError(err)
 
-	f.Close()
+	_ = f.Close()
 
 	log.Printf("> kubectl %s %s %s","apply","-f", f.Name())
 	cmd := exec.Command("kubectl","apply","-f", f.Name())
@@ -329,5 +329,5 @@ func main() {
 	err = cmd.Run()
 	checkError(err)
 	fmt.Printf(out.String())
-	os.Remove(f.Name())
+	_ = os.Remove(f.Name())
 }
