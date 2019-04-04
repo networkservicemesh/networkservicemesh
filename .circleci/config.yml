@@ -1,6 +1,15 @@
 ---
 version: 2.1
 
+commands:
+  packet-destroy:
+    steps:
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run: cp -a data/terraform/* ./scripts/terraform/ || true
+      - run: cd ./scripts/terraform && terraform init && cd ../..
+      - run: .circleci/destroy-cluster.sh
+
 jobs:
   sanity-check:
     resource_class: medium+
@@ -87,8 +96,8 @@ jobs:
           name: "Prepare cache data<< parameters.cluster_id >>"
           command: |
             cp kubeconfig data/
-      - run:
-          when: on_fail
+      - when:
+          condition: on_fail
           command: .circleci/destroy-cluster.sh
       - save_cache:
           key: cncf-data<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
@@ -159,15 +168,11 @@ jobs:
             kubectl get nodes
             kubectl get pods -o wide
             kubectl describe pods
-      - run:
-          when: on_fail
-          name: Trigger packet-destroy
-          command: |
-            curl --user ${CIRCLE_API_PROJECT_TOKEN}: \
-                --data build_parameters[CIRCLE_JOB]=packet-destroy \
-                --data build_parameters[CIRCLE_WORKFLOW_ID]=${CIRCLE_WORKFLOW_ID} \
-                --data revision=$CIRCLE_SHA1 \
-                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH
+      - when:
+          condition: on_fail
+          steps:
+            - packet-destroy
+
     environment:
       KUBECONFIG: /home/circleci/project/data/kubeconfig
       GO111MODULE: "on"
@@ -184,11 +189,7 @@ jobs:
           name: Cache Prep
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - restore_cache:
-          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp -a data/terraform/* ./scripts/terraform/
-      - run: cd ./scripts/terraform && terraform init && cd ../..
-      - run: .circleci/destroy-cluster.sh
+      - packet-destroy
 
   build-container:
     parameters:
