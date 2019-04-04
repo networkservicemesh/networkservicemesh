@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -69,7 +68,7 @@ func OutputsToMap(outputs []*cloudformation.Output) *OutputsMap {
 }
 
 func CreateEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
-	fmt.Printf("Creating EKS service role \"%s\"...\n", *eksRoleName)
+	log.Printf("Creating EKS service role \"%s\"...\n", *eksRoleName)
 	roleDescription := "Allows EKS to manage clusters on your behalf."
 
 	rpf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-role-policy.json"))
@@ -103,13 +102,13 @@ func CreateEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
 		})
 	checkError(err)
 
-	fmt.Printf("Role \"%s\"(%s) successfully created!\n" , *eksRoleName, *result.Role.Arn)
+	log.Printf("Role \"%s\"(%s) successfully created!\n" , *eksRoleName, *result.Role.Arn)
 
 	return result.Role.Arn
 }
 
 func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) *OutputsMap {
-	fmt.Printf("Creating Amazon EKS Cluster VPC \"%s\"...\n", *clusterStackName)
+	log.Printf("Creating Amazon EKS Cluster VPC \"%s\"...\n", *clusterStackName)
 
 	sf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-vpc.yaml"))
 	checkError(err)
@@ -129,7 +128,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 
 		switch *resp.Stacks[0].StackStatus {
 			case "CREATE_COMPLETE":
-				fmt.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
+				log.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
 				return OutputsToMap(resp.Stacks[0].Outputs)
 			case  "CREATE_IN_PROGRESS":
 				time.Sleep(time.Second)
@@ -140,7 +139,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 }
 
 func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *string, clusterStackOutputs *OutputsMap) *eks.Cluster {
-	fmt.Printf("Creating Amazon EKS Cluster \"%s\"...\n", *clusterName)
+	log.Printf("Creating Amazon EKS Cluster \"%s\"...\n", *clusterName)
 	subnetIdsTemp := strings.Split(*clusterStackOutputs.SubnetIds, ",")
 	var subnetIds []*string
 	for i := range subnetIdsTemp {
@@ -171,7 +170,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 
 		switch  *resp.Cluster.Status {
 			case "ACTIVE":
-				fmt.Printf("EKS Cluster \"%s\" successfully created!\n", *clusterName)
+				log.Printf("EKS Cluster \"%s\" successfully created!\n", *clusterName)
 				return resp.Cluster
 			case  "CREATING":
 				time.Sleep(time.Second)
@@ -197,21 +196,21 @@ func CreateKubeConfigFile(cluster *eks.Cluster) {
 	err = ioutil.WriteFile(kubeconfigFile, []byte(kubeconfig), 0644)
 	checkError(err)
 
-	fmt.Printf("Updated context %s in %s\n", *cluster.Arn, kubeconfigFile)
+	log.Printf("Updated context %s in %s\n", *cluster.Arn, kubeconfigFile)
 }
 
 func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
-	fmt.Printf("Creating Amazon EC2 key pair \"%s\"...\n", *keyPairName)
+	log.Printf("Creating Amazon EC2 key pair \"%s\"...\n", *keyPairName)
 	_, err := ec2Client.CreateKeyPair(&ec2.CreateKeyPairInput{
 		KeyName: keyPairName,
 	})
 	checkError(err)
 
-	fmt.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
+	log.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
 }
 
 func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string, nodeGroupName *string, clusterName *string, keyPairName *string, clusterStackOutputs *OutputsMap) *string {
-	fmt.Printf("Creating Amazon EKS Worker Nodes on cluster \"%s\"...\n", *clusterName)
+	log.Printf("Creating Amazon EKS Worker Nodes on cluster \"%s\"...\n", *clusterName)
 
 	sf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-nodegroup.yaml"))
 	checkError(err)
@@ -263,7 +262,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 
 		switch *resp.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
-			fmt.Printf("EKS Worker Nodes \"%s\" successfully created!\n", *nodesStackName)
+			log.Printf("EKS Worker Nodes \"%s\" successfully created!\n", *nodesStackName)
 			for _, output := range resp.Stacks[0].Outputs {
 				if *output.OutputKey == "NodeInstanceRole" {
 					return output.OutputValue
@@ -328,6 +327,6 @@ func createAWSKubernetesCluster() {
 	cmd.Stdout = &out
 	err = cmd.Run()
 	checkError(err)
-	fmt.Printf(out.String())
+	log.Printf(out.String())
 	_ = os.Remove(f.Name())
 }

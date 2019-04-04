@@ -21,7 +21,7 @@ aws-init:
 .PHONY: aws-start
 aws-start:
 	@pushd scripts/aws
-	@./create-kubernetes-cluster.py
+	@AWS_REGION=us-east-2 go run ./... Create
 	@popd
 
 .PHONY: aws-restart
@@ -30,7 +30,7 @@ aws-restart: aws-destroy aws-start
 .PHONY: aws-destroy
 aws-destroy:
 	@pushd scripts/aws
-	@./destroy-kubernetes-cluster.py
+	@AWS_REGION=us-east-2 go run ./... Delete
 	@popd
 
 .PHONY: aws-%-load-images
