@@ -54,7 +54,6 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 
 	logrus.Infof("Delete Remote NSMD")
 	k8s.DeletePods(nodes_setup[1].Nsmd)
-
 	k8s.DeletePods(icmpPod)
 	logrus.Infof("Waiting for NSE with network service")
 	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder. Since elapsed:", 60*time.Second)

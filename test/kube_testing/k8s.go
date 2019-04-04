@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -24,7 +24,7 @@ import (
 
 const (
 	podStartTimeout  = 1 * time.Minute
-	podDeleteTimeout = 1 * time.Minute
+	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
 )
@@ -271,24 +271,52 @@ func NewK8s() (*K8s, error) {
 	return &client, nil
 }
 
+// Immediate deletion does not wait for confirmation that the running resource has been terminated.
+// The resource may continue to run on the cluster indefinitely
+func (o *K8s) deletePodForce(pod *v1.Pod) error {
+	graceTimeout := int64(0)
+	delOpt := &metaV1.DeleteOptions{
+		GracePeriodSeconds: &graceTimeout,
+	}
+	err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+	defer cancel()
+	err = blockUntilPodWorking(o.clientset, ctx, pod)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete POD with completion check
+// Make force delete on timeout
 func (o *K8s) deletePods(pods ...*v1.Pod) error {
+	var ctx []context.Context
 	for _, pod := range pods {
-		graceTimeout := int64(0)
-		delOpt := &metaV1.DeleteOptions{
-			GracePeriodSeconds: &graceTimeout,
-		}
+		delOpt := &metaV1.DeleteOptions{}
 		err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 		if err != nil {
 			return err
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+
+		c, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+		ctx = append(ctx, c)
 		defer cancel()
-		err = blockUntilPodWorking(o.clientset, ctx, pod)
-		if err != nil {
-			return err
-		}
 	}
 
+	for i, pod := range pods {
+		err := blockUntilPodWorking(o.clientset, ctx[i], pod)
+		if err != nil {
+			err = o.deletePodForce(pod)
+			logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
+			if err != nil {
+				logrus.Warn(err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -332,10 +360,9 @@ func (o *K8s) CleanupCRDs() {
 }
 
 func (l *K8s) Cleanup() {
-	for _, result := range l.pods {
-		err := l.deletePods(result)
-		Expect(err).To(BeNil())
-	}
+	err := l.deletePods(l.pods...)
+	Expect(err).To(BeNil())
+	l.CleanupCRDs()
 	l.pods = nil
 	l.CleanupCRDs()
 	l.CleanupConfigMaps()
