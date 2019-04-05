@@ -504,6 +504,9 @@ workflows:
           container: "vppagent-firewall-nse"
           requires:
             - sanity-check
+      - packet-deploy:
+          requires:
+            - sanity-check
       - packet-deploy-k8s:
           name: "packet-deploy-k8s-1"
           cluster_id: "1"
