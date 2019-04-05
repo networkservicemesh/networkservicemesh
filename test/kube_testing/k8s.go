@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	podStartTimeout  = 1 * time.Minute
+	podStartTimeout  = 3 * time.Minute
 	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
