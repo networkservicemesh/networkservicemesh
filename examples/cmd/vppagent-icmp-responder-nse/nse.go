@@ -33,9 +33,10 @@ func main() {
 		MechanismType: "mem",
 	}
 
-	composite := composite.NewMonitorCompositeEndpoint(configuration).SetNext(
-		newVppAgentComposite(configuration).SetNext(
-			composite.NewConnectionCompositeEndpoint(configuration)))
+	composite := composite.NewMonitorCompositeEndpoint(configuration).
+		SetNext(newVppAgentComposite(configuration).
+			SetNext(composite.NewIpamCompositeEndpoint(nil).
+				SetNext(composite.NewConnectionCompositeEndpoint(configuration))))
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
