@@ -1,15 +1,6 @@
 ---
 version: 2.1
 
-commands:
-  packet-destroy:
-    steps:
-      - restore_cache:
-          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp -a data/terraform/* ./scripts/terraform/ || true
-      - run: cd ./scripts/terraform && terraform init && cd ../..
-      - run: .circleci/destroy-cluster.sh
-
 jobs:
   sanity-check:
     resource_class: medium+
@@ -96,8 +87,8 @@ jobs:
           name: "Prepare cache data<< parameters.cluster_id >>"
           command: |
             cp kubeconfig data/
-      - when:
-          condition: on_fail
+      - run:
+          when: on_fail
           command: .circleci/destroy-cluster.sh
       - save_cache:
           key: cncf-data<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
@@ -131,6 +122,8 @@ jobs:
           command: |
             sudo mkdir -p /cncf/data
             sudo chown -R circleci:circleci /cncf/
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - restore_cache:
           key: cncf-data<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
@@ -168,10 +161,12 @@ jobs:
             kubectl get nodes
             kubectl get pods -o wide
             kubectl describe pods
-      - when:
-          condition: on_fail
-          steps:
-            - packet-destroy
+      - run:
+          when: on_fail
+          command: cd ./scripts/terraform && terraform init && cd ../..
+      - run:
+          when: on_fail
+          command: .circleci/destroy-cluster.sh
 
     environment:
       KUBECONFIG: /home/circleci/project/data/kubeconfig
@@ -189,7 +184,11 @@ jobs:
           name: Cache Prep
       - restore_cache:
           key: cncf-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - packet-destroy
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run: cp -a data/terraform/* ./scripts/terraform/
+      - run: cd ./scripts/terraform && terraform init && cd ../..
+      - run: .circleci/destroy-cluster.sh
 
   build-container:
     parameters:
