@@ -37,7 +37,7 @@ func TestModelSelectDataplane(t *testing.T) {
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
-	dp, err := mdl.SelectDataplane()
+	dp, err := mdl.SelectDataplane(nil)
 	Expect(dp.RegisteredName).To(Equal("test_name"))
 	Expect(err).To(BeNil())
 }
@@ -46,9 +46,9 @@ func TestModelSelectDataplaneNone(t *testing.T) {
 
 	mdl := newModel()
 
-	dp, err := mdl.SelectDataplane()
+	dp, err := mdl.SelectDataplane(nil)
 	Expect(dp).To(BeNil())
-	Expect(err.Error()).To(Equal("no dataplanes registered"))
+	Expect(err.Error()).To(Equal("no appropriate dataplanes found"))
 }
 
 func TestModelAddEndpoint(t *testing.T) {

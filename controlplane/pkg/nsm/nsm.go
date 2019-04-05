@@ -16,6 +16,8 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -30,7 +32,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"time"
 )
 
 const (
@@ -107,7 +108,20 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 
 	// 3. get dataplane
 	srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, DataplaneTimeout)
-	dp, err := srv.model.SelectDataplane()
+	dp, err := srv.model.SelectDataplane(func(dp *model.Dataplane) bool {
+		if request.IsRemote() {
+			return findRemoteMechanism(dp.RemoteMechanisms, remote_connection.MechanismType_VXLAN) != nil
+		} else {
+			r := request.(*networkservice.NetworkServiceRequest)
+			for _, m := range r.MechanismPreferences {
+				if findLocalMechanism(dp.LocalMechanisms, m.Type) != nil {
+					return true
+				}
+			}
+		}
+		return false
+	})
+
 	if err != nil {
 		return nil, err
 	}

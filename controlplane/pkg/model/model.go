@@ -127,7 +127,7 @@ type Model interface {
 	GetDataplane(name string) *Dataplane
 	AddDataplane(dataplane *Dataplane)
 	DeleteDataplane(name string)
-	SelectDataplane() (*Dataplane, error)
+	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
 
 	AddClientConnection(clientConnection *ClientConnection)
 	GetClientConnection(connectionId string) *ClientConnection
@@ -326,13 +326,19 @@ func (i *impl) GetDataplane(name string) *Dataplane {
 	return nil
 }
 
-func (i *impl) SelectDataplane() (*Dataplane, error) {
+func (i *impl) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error) {
 	i.Lock()
 	defer i.Unlock()
 	for _, v := range i.dataplanes {
-		return v, nil // TODO: Return first for now
+		if dataplaneSelector == nil {
+			return v, nil // Return first if no selector
+		}
+		if (dataplaneSelector(v)) {
+			return v, nil
+		}
+
 	}
-	return nil, fmt.Errorf("no dataplanes registered")
+	return nil, fmt.Errorf("no appropriate dataplanes found")
 }
 
 func (i *impl) AddDataplane(dataplane *Dataplane) {
