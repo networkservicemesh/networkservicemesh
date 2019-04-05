@@ -12,6 +12,6 @@ else
 	az aks delete \
 		--name "$AZURE_CLUSTER_NAME" \
 		--resource-group "$AZURE_RESOURCE_GROUP" \
-		--yes && \
+		--yes --no-wait && \
 	echo "done" || exit 1
 fi

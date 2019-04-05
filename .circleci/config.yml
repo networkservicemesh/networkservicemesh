@@ -200,6 +200,133 @@ jobs:
       - run: cd ./scripts/terraform && terraform init && cd ../..
       - run: .circleci/destroy-cluster.sh
 
+  azure-deploy:
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install Azure Prerequisites
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${CIRCLE_AZURE_APP_ID} --tenant ${CIRCLE_AZURE_TENANT_ID} --password ${CIRCLE_AZURE_PASSWORD}
+      - run:
+          name: Create AKS Cluster
+          command: |
+            export AZURE_CLUSTER_NAME="DevNsmCluster${CIRCLE_WORKFLOW_ID}"
+            export AZURE_SERVICE_PRINCIPAL="${CIRCLE_AZURE_APP_ID}"
+            export AZURE_SERVICE_PRINCIPAL_SECRET="${CIRCLE_AZURE_PASSWORD}"
+            mkdir -p "${AZURE_CREDENTIALS_PATH}"
+            make azure-start
+          environment:
+            AZURE_CREDENTIALS_PATH: data/.kube
+      - save_cache:
+          key: azure-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          paths:
+            - data
+
+  azure-destroy:
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install Azure Prerequisites
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${CIRCLE_AZURE_APP_ID} --tenant ${CIRCLE_AZURE_TENANT_ID} --password ${CIRCLE_AZURE_PASSWORD}
+      - run:
+          name: Destroy AKS Cluster
+          command: |
+            export AZURE_CLUSTER_NAME="DevNsmCluster${CIRCLE_WORKFLOW_ID}"
+            make azure-destroy
+
+  azure-integration-tests:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            sudo ./.circleci/install-yq.sh
+      - run:
+          command: |
+            ./.circleci/set-nameserver.sh sudo
+            sudo apt-get install gettext-base
+      - run:
+          name: Cache Prep
+          command: |
+            sudo mkdir -p /cncf/data
+            sudo chown -R circleci:circleci /cncf/
+      - restore_cache:
+          key: azure-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run:
+          name: Downloading go deps
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            ./scripts/prepare-circle-integration-tests.sh
+            mkdir -p ~/junit/
+            go mod download
+          no_output_timeout: 40m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/.kube/config
+            GO111MODULE: "on"
+      - run:
+          name: Running integration tests - basic
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=basic
+          no_output_timeout: 40m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/.kube/config
+            GO111MODULE: "on"
+      - run:
+          name: Running integration tests - recover
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            gotestsum --junitfile ~/junit/integration-tests-recover.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=recover
+          no_output_timeout: 40m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/.kube/config
+            GO111MODULE: "on"
+      - run:
+          name: Running integration tests - usecase
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            gotestsum --junitfile ~/junit/integration-tests-usecase.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags=usecase
+          no_output_timeout: 40m
+          environment:
+            KUBECONFIG: /home/circleci/project/data/.kube/config
+            GO111MODULE: "on"
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+      - run:
+          when: always
+          name: Dump K8s state
+          command: |
+            kubectl get nodes
+            kubectl get pods -o wide
+            kubectl describe pods
+          environment:
+            KUBECONFIG: /home/circleci/project/data/.kube/config
+      - run:
+          when: on_fail
+          name: Trigger AKS cluster destroy
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${CIRCLE_AZURE_APP_ID} --tenant ${CIRCLE_AZURE_TENANT_ID} --password ${CIRCLE_AZURE_PASSWORD}
+            export AZURE_CLUSTER_NAME="DevNsmCluster${CIRCLE_WORKFLOW_ID}"
+            make azure-destroy
+
   build-container:
     parameters:
       container:
@@ -377,9 +504,6 @@ workflows:
           container: "vppagent-firewall-nse"
           requires:
             - sanity-check
-      - packet-deploy:
-          requires:
-            - sanity-check
       - packet-deploy-k8s:
           name: "packet-deploy-k8s-1"
           cluster_id: "1"
@@ -416,9 +540,28 @@ workflows:
             - "packet-test-basic-usecase"
             - "packet-test-recover"
             - "packet-test-bench"
+      - azure-deploy:
+          requires:
+            - sanity-check
+      - azure-integration-tests:
+          requires:
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-firewall-nse
+            - azure-deploy
+      - azure-destroy:
+          requires:
+            - azure-integration-tests
       - docker-push-latest:
           requires:
             - packet-destroy
+            - azure-destroy
           filters:
             branches:
               only: master

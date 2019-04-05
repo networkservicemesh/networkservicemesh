@@ -12,7 +12,7 @@ endif
 
 .PHONY: azure-start
 azure-start: azure-check
-	@scripts/azure/create-aks-cluster.sh "$(AZURE_RESOURCE_GROUP)" "$(AZURE_CLUSTER_NAME)" "$(AZURE_CREDENTIALS_PATH)"
+	@scripts/azure/create-aks-cluster.sh "$(AZURE_RESOURCE_GROUP)" "$(AZURE_CLUSTER_NAME)" "$(AZURE_CREDENTIALS_PATH)" "$(AZURE_SERVICE_PRINCIPAL)" "$(AZURE_SERVICE_PRINCIPAL_SECRET)"
 
 .PHONY: azure-destroy
 azure-destroy: azure-check
