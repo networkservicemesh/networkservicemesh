@@ -243,9 +243,9 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model, ti
 		if dp, _ := model.SelectDataplane(); dp != nil {
 
 			// Wait for mechanisms configuration
-			if !dp.RemoteConfigured {
+			if !dp.MechanismsConfigured {
 				logrus.Info("Waiting for dataplane mechanisms configured...")
-				for ; !dp.RemoteConfigured; <-time.After(100 * time.Millisecond) {
+				for ; !dp.MechanismsConfigured; <-time.After(100 * time.Millisecond) {
 					if time.Since(st) > timeout {
 						break
 					}

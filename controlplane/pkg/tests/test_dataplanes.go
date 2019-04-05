@@ -22,7 +22,7 @@ var testDataplane1 = &model.Dataplane{
 			},
 		},
 	},
-	RemoteConfigured: true,
+	MechanismsConfigured: true,
 }
 var testDataplane1_1 = &model.Dataplane{
 	RegisteredName: "test_data_plane_11",
@@ -40,7 +40,7 @@ var testDataplane1_1 = &model.Dataplane{
 			},
 		},
 	},
-	RemoteConfigured: true,
+	MechanismsConfigured: true,
 }
 
 var testDataplane2 = &model.Dataplane{
@@ -59,5 +59,5 @@ var testDataplane2 = &model.Dataplane{
 			},
 		},
 	},
-	RemoteConfigured: true,
+	MechanismsConfigured: true,
 }

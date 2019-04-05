@@ -93,7 +93,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 				},
 			},
 		},
-		RemoteConfigured: true,
+		MechanismsConfigured: true,
 	})
 
 	srv2.testModel.AddDataplane(&model.Dataplane{
@@ -108,7 +108,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 				},
 			},
 		},
-		RemoteConfigured: true,
+		MechanismsConfigured: true,
 	})
 
 	// Register in both
@@ -228,7 +228,7 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 
 	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
 	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms
-	testDataplane2_2.RemoteConfigured = true
+	testDataplane2_2.MechanismsConfigured = true
 
 	res := <- resultChan
 	Expect(res.err).To(BeNil())

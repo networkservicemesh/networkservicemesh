@@ -17,11 +17,11 @@ import (
 )
 
 type Dataplane struct {
-	RegisteredName   string
-	SocketLocation   string
-	LocalMechanisms  []*local.Mechanism
-	RemoteMechanisms []*remote.Mechanism
-	RemoteConfigured bool
+	RegisteredName       string
+	SocketLocation       string
+	LocalMechanisms      []*local.Mechanism
+	RemoteMechanisms     []*remote.Mechanism
+	MechanismsConfigured bool
 }
 
 type Endpoint struct {
