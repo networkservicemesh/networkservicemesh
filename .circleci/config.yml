@@ -210,6 +210,10 @@ jobs:
           command: |
             ./scripts/azure/install-azure-cli.sh
             az login --service-principal --username ${CIRCLE_AZURE_APP_ID} --tenant ${CIRCLE_AZURE_TENANT_ID} --password ${CIRCLE_AZURE_PASSWORD}
+          environment:
+            CIRCLE_AZURE_APP_ID: "d2724be4-f5b4-4b99-98a2-c69018f78447"
+            CIRCLE_AZURE_TENANT_ID: "5a60fd29-7786-4a74-a1d6-9c9d894b1881"
+            CIRCLE_AZURE_PASSWORD: "90b39325-6ebc-4c11-9b57-88a20e117a0d"
       - run:
           name: Create AKS Cluster
           command: |
@@ -219,6 +223,8 @@ jobs:
             mkdir -p "${AZURE_CREDENTIALS_PATH}"
             make azure-start
           environment:
+            CIRCLE_AZURE_APP_ID: "d2724be4-f5b4-4b99-98a2-c69018f78447"
+            CIRCLE_AZURE_PASSWORD: "90b39325-6ebc-4c11-9b57-88a20e117a0d"
             AZURE_CREDENTIALS_PATH: data/.kube
       - save_cache:
           key: azure-data-{{.Environment.CIRCLE_WORKFLOW_ID}}
@@ -235,6 +241,10 @@ jobs:
           command: |
             ./scripts/azure/install-azure-cli.sh
             az login --service-principal --username ${CIRCLE_AZURE_APP_ID} --tenant ${CIRCLE_AZURE_TENANT_ID} --password ${CIRCLE_AZURE_PASSWORD}
+          environment:
+            CIRCLE_AZURE_APP_ID: "d2724be4-f5b4-4b99-98a2-c69018f78447"
+            CIRCLE_AZURE_TENANT_ID: "5a60fd29-7786-4a74-a1d6-9c9d894b1881"
+            CIRCLE_AZURE_PASSWORD: "90b39325-6ebc-4c11-9b57-88a20e117a0d"
       - run:
           name: Destroy AKS Cluster
           command: |
@@ -326,6 +336,10 @@ jobs:
             az login --service-principal --username ${CIRCLE_AZURE_APP_ID} --tenant ${CIRCLE_AZURE_TENANT_ID} --password ${CIRCLE_AZURE_PASSWORD}
             export AZURE_CLUSTER_NAME="DevNsmCluster${CIRCLE_WORKFLOW_ID}"
             make azure-destroy
+          environment:
+            CIRCLE_AZURE_APP_ID: "d2724be4-f5b4-4b99-98a2-c69018f78447"
+            CIRCLE_AZURE_TENANT_ID: "5a60fd29-7786-4a74-a1d6-9c9d894b1881"
+            CIRCLE_AZURE_PASSWORD: "90b39325-6ebc-4c11-9b57-88a20e117a0d"
 
   build-container:
     parameters:
