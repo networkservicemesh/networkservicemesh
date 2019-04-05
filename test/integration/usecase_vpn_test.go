@@ -9,6 +9,7 @@ import (
 	"time"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/crds"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
@@ -19,6 +20,11 @@ import (
 
 func TestVPNLocal(t *testing.T) {
 	RegisterTestingT(t)
+
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
+		return
+	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -35,6 +41,11 @@ func TestVPNLocal(t *testing.T) {
 func TestVPNFirewallRemote(t *testing.T) {
 	RegisterTestingT(t)
 
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
+		return
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -50,6 +61,11 @@ func TestVPNFirewallRemote(t *testing.T) {
 func TestVPNNSERemote(t *testing.T) {
 	RegisterTestingT(t)
 
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
+		return
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -64,6 +80,11 @@ func TestVPNNSERemote(t *testing.T) {
 
 func TestVPNNSCRemote(t *testing.T) {
 	RegisterTestingT(t)
+
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
+		return
+	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
