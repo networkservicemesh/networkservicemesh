@@ -425,7 +425,7 @@ func CheckNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 	Expect(strings.Contains(info.routeResponse, "8.8.8.8")).To(Equal(true))
 	Expect(strings.Contains(info.routeResponse, "nsm")).To(Equal(true))
 
-	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", pingIP, "-c", "5")
+	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", pingIP, "-A", "-c", "5")
 	Expect(err).To(BeNil())
 	Expect(strings.Contains(info.pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
 	logrus.Printf("NSC Ping is success:%s", info.pingResponse)
