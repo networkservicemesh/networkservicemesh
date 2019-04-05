@@ -2,6 +2,7 @@ package nsm
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -20,7 +21,8 @@ func (c *nsmClient) Request(ctx context.Context, request nsm.NSMRequest) (nsm.NS
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("Remote NSM Connection is not initialized...")
 	}
-	return c.client.Request(ctx, request.(*networkservice.NetworkServiceRequest))
+	response, err := c.client.Request(ctx, request.(*networkservice.NetworkServiceRequest))
+	return proto.Clone(response).(*connection.Connection), err
 }
 func (c *nsmClient) Close(ctx context.Context, conn nsm.NSMConnection) error {
 	if c == nil || c.client == nil {
