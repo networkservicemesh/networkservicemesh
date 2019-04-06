@@ -106,6 +106,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 
 	// 3. get dataplane
+	srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, DataplaneTimeout);
 	dp, err := srv.model.SelectDataplane()
 	if err != nil {
 		return nil, err
