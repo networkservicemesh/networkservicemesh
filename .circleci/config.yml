@@ -290,7 +290,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast '-tags=azure basic'
+            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="azure basic"
           no_output_timeout: 40m
           environment:
             KUBECONFIG: /home/circleci/project/data/.kube/config
@@ -300,7 +300,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-recover.xml -f standard-verbose ./test/... -timeout 30m -failfast '-tags=azure recover'
+            gotestsum --junitfile ~/junit/integration-tests-recover.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="azure recover"
           no_output_timeout: 40m
           environment:
             KUBECONFIG: /home/circleci/project/data/.kube/config
@@ -310,7 +310,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-usecase.xml -f standard-verbose ./test/... -timeout 30m -failfast '-tags=azure usecase'
+            gotestsum --junitfile ~/junit/integration-tests-usecase.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="azure usecase"
           no_output_timeout: 40m
           environment:
             KUBECONFIG: /home/circleci/project/data/.kube/config
