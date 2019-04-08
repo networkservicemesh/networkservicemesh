@@ -62,7 +62,7 @@ jobs:
           when: on_fail
           command: .circleci/destroy-cluster.sh
       - save_cache:
-          key: packet-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - /go/bin/terraform
             - terraform
@@ -77,7 +77,7 @@ jobs:
       - checkout
       - run: mkdir terraform
       - restore_cache:
-          key: packet-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run: ssh-add terraform/sshkey
       - run: cp -a terraform/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
@@ -127,7 +127,7 @@ jobs:
             sudo mkdir -p /cncf/data
             sudo chown -R circleci:circleci /cncf/
       - restore_cache:
-          key: << parameters.cloud_provider >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
       - run: ssh-add /home/circleci/project/terraform/sshkey
       - restore_cache:
@@ -183,7 +183,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: packet-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
       - run: .circleci/destroy-cluster.sh
