@@ -98,7 +98,7 @@ jobs:
     environment:
       PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
 
-  packet-integration-tests:
+  integration-tests:
     parameters:
       cloud_provider:
         type: string
@@ -306,14 +306,14 @@ workflows:
           cluster_id: "packet-2"
           requires:
             - packet-deploy
-      - packet-integration-tests:
+      - integration-tests:
           name: "packet test basic usecase"
           cluster_id: "packet-1"
           test_tags: "basic usecase"
           cloud_provider: "packet"
           requires:
             - packet-deploy-k8s-1
-      - packet-integration-tests:
+      - integration-tests:
           name: "packet test recover"
           cluster_id: "packet-2"
           test_tags: "recover"
