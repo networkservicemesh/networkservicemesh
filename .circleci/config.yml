@@ -92,7 +92,7 @@ jobs:
           when: on_fail
           command: .circleci/destroy-cluster.sh
       - save_cache:
-          key: cncf-data-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: cncf-data-packet-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
     environment:
@@ -298,12 +298,12 @@ workflows:
             - sanity-check
       - packet-deploy-k8s:
           name: "packet-deploy-k8s-1"
-          cluster_id: "packet-1"
+          cluster_id: "1"
           requires:
             - packet-deploy
       - packet-deploy-k8s:
           name: "packet-deploy-k8s-2"
-          cluster_id: "packet-2"
+          cluster_id: "2"
           requires:
             - packet-deploy
       - integration-tests:
