@@ -62,7 +62,7 @@ type NetworkServiceManager interface {
 	Close(ctx context.Context, clientConnection NSMClientConnection) error
 	Heal(connection NSMClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
-	GetHealProperties() *HealTimeouts
+	GetHealProperties() *NsmProperties
 	WaitForDataplane(duration time.Duration) error
 	RemoteConnectionLost(clientConnection NSMClientConnection)
 }
