@@ -131,7 +131,7 @@ jobs:
       - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
       - run: ssh-add /home/circleci/project/terraform/sshkey
       - restore_cache:
-          key: cncf-data-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: cncf-data-<< parameters.cloud_provider >>-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run: cp /home/circleci/project/terraform/sshkey* /cncf/data
       - run:
           name: Downloading go deps
@@ -308,16 +308,16 @@ workflows:
             - packet-deploy
       - integration-tests:
           name: "packet test basic usecase"
-          cluster_id: "packet-1"
-          test_tags: "basic usecase"
           cloud_provider: "packet"
+          cluster_id: "1"
+          test_tags: "basic usecase"
           requires:
             - packet-deploy-k8s-1
       - integration-tests:
           name: "packet test recover"
-          cluster_id: "packet-2"
-          test_tags: "recover"
           cloud_provider: "packet"
+          cluster_id: "2"
+          test_tags: "recover"
           requires:
             - packet-deploy-k8s-2
       - packet-destroy:
