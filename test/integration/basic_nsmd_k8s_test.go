@@ -18,6 +18,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNSMDDRegistryNSE(t *testing.T) {
@@ -312,6 +313,15 @@ func TestClusterInfo(t *testing.T) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
+
+	clientset, err := k8s.GetClientSet()
+	Expect(err).To(BeNil())
+	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
+
+	if cm == nil {
+		t.Skip("Skip, no kubeadm-config")
+		return
+	}
 
 	k8s.Prepare("nsmgr")
 	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
