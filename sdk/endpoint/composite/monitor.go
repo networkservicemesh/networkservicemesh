@@ -34,6 +34,10 @@ type MonitorCompositeEndpoint struct {
 	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 }
 
+func (mce *MonitorCompositeEndpoint) GetOpaque(interface{}) interface{} {
+	return nil
+}
+
 // Request imeplements the request handler
 func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 

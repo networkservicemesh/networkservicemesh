@@ -34,6 +34,7 @@ func main() {
 	}
 
 	composite := endpoint.NewCompositeService(
+		composite.NewMonitorCompositeEndpoint(configuration),
 		newVppAgentComposite(configuration),
 		composite.NewIpamCompositeEndpoint(nil),
 		composite.NewConnectionCompositeEndpoint(configuration))

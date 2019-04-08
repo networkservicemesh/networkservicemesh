@@ -29,6 +29,7 @@ import (
 func main() {
 
 	composite := endpoint.NewCompositeService(
+		composite.NewMonitorCompositeEndpoint(nil),
 		composite.NewIpamCompositeEndpoint(nil),
 		composite.NewConnectionCompositeEndpoint(nil))
 

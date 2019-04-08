@@ -28,9 +28,11 @@ func TestNSMDRestart1(t *testing.T) {
 		AdvertiseNseName: "test_nse",
 	}
 
-	composite := composite.NewMonitorCompositeEndpoint(configuration).SetNext(
-		composite.NewIpamCompositeEndpoint(configuration).SetNext(
-			composite.NewConnectionCompositeEndpoint(configuration)))
+	composite := endpoint.NewCompositeService(
+		composite.NewMonitorCompositeEndpoint(configuration),
+		composite.NewIpamCompositeEndpoint(configuration),
+		composite.NewConnectionCompositeEndpoint(configuration),
+	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
