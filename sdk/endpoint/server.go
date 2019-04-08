@@ -27,7 +27,7 @@ import (
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Request for Network Service received %v", request)
 
-	incomingConnection, err := nsme.composite.Request(ctx, request)
+	incomingConnection, err := nsme.service.Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("The composite returned an error: %v", err)
 		return nil, err
@@ -39,7 +39,7 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 
 func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
 
-	nsme.composite.Close(ctx, incomingConnection)
+	nsme.service.Close(ctx, incomingConnection)
 	nsme.NsClient.Close(ctx, incomingConnection)
 	return &empty.Empty{}, nil
 }

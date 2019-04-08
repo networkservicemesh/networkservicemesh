@@ -30,7 +30,7 @@ import (
 
 // MonitorCompositeEndpoint is a monitoring composite
 type MonitorCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+	endpoint.ChainedImpl
 	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 }
 
@@ -76,7 +76,6 @@ func NewMonitorCompositeEndpoint(configuration *common.NSConfiguration) *Monitor
 	self := &MonitorCompositeEndpoint{
 		monitorConnectionServer: local_connection_monitor.NewLocalConnectionMonitor(),
 	}
-	self.SetSelf(self)
 
 	return self
 }

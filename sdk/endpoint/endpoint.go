@@ -20,7 +20,7 @@ import (
 	"io"
 	"net"
 
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -33,7 +33,7 @@ import (
 
 type nsmEndpoint struct {
 	*common.NsmConnection
-	composite      CompositeEndpoint
+	service        *CompositeService
 	grpcServer     *grpc.Server
 	registryClient registry.NetworkServiceRegistryClient
 	endpointName   string
@@ -137,14 +137,14 @@ func (nsme *nsmEndpoint) Delete() error {
 }
 
 // NewNSMEndpoint creates a new NSM endpoint
-func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, composite CompositeEndpoint) (*nsmEndpoint, error) {
+func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service *CompositeService) (*nsmEndpoint, error) {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	if composite == nil {
-		composite = &BaseCompositeEndpoint{}
+	if service == nil {
+		service = &CompositeService{}
 	}
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
@@ -155,7 +155,7 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 
 	endpoint := &nsmEndpoint{
 		NsmConnection: nsmConnection,
-		composite:     composite,
+		service:       service,
 	}
 
 	return endpoint, nil

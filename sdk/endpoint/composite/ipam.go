@@ -33,7 +33,7 @@ import (
 )
 
 type IpamCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+	endpoint.ChainedImpl
 	prefixPool prefix_pool.PrefixPool
 }
 
@@ -115,6 +115,11 @@ func (ice *IpamCompositeEndpoint) Close(ctx context.Context, connection *connect
 	return &empty.Empty{}, nil
 }
 
+// GetOpaque will return the corresponding outgoing connection
+func (ice *IpamCompositeEndpoint) GetOpaque(incoming interface{}) interface{} {
+	return nil
+}
+
 // NewIpamCompositeEndpoint creates a IpamCompositeEndpoint
 func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompositeEndpoint {
 	// ensure the env variables are processed
@@ -133,7 +138,6 @@ func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompos
 	self := &IpamCompositeEndpoint{
 		prefixPool: pool,
 	}
-	self.SetSelf(self)
 
 	return self
 }

@@ -34,7 +34,7 @@ import (
 )
 
 type ConnectionCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+	endpoint.ChainedImpl
 	mechanismType connection.MechanismType
 	id            *shortid.Shortid
 }
@@ -96,6 +96,11 @@ func (cce *ConnectionCompositeEndpoint) generateIfName() string {
 	return ifName
 }
 
+// GetOpaque will return the corresponding outgoing connection
+func (cce *ConnectionCompositeEndpoint) GetOpaque(incoming interface{}) interface{} {
+	return nil
+}
+
 // NewConnectionCompositeEndpoint creates a ConnectionCompositeEndpoint
 func NewConnectionCompositeEndpoint(configuration *common.NSConfiguration) *ConnectionCompositeEndpoint {
 	// ensure the env variables are processed
@@ -110,7 +115,6 @@ func NewConnectionCompositeEndpoint(configuration *common.NSConfiguration) *Conn
 		mechanismType: common.MechanismFromString(configuration.MechanismType),
 		id:            shortid.MustNew(1, shortid.DEFAULT_ABC, rand.Uint64()),
 	}
-	self.SetSelf(self)
 
 	return self
 }

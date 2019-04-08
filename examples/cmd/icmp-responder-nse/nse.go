@@ -28,9 +28,9 @@ import (
 
 func main() {
 
-	composite := composite.NewMonitorCompositeEndpoint(nil).SetNext(
-		composite.NewIpamCompositeEndpoint(nil).SetNext(
-			composite.NewConnectionCompositeEndpoint(nil)))
+	composite := endpoint.NewCompositeService(
+		composite.NewIpamCompositeEndpoint(nil),
+		composite.NewConnectionCompositeEndpoint(nil))
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
 	if err != nil {

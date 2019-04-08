@@ -28,7 +28,7 @@ import (
 )
 
 type ClientCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+	endpoint.ChainedImpl
 	nsmClient     *client.NsmClient
 	mechanismType string
 	ioConnMap     map[string]*connection.Connection
@@ -104,7 +104,6 @@ func NewClientCompositeEndpoint(configuration *common.NSConfiguration) *ClientCo
 		mechanismType: configuration.MechanismType,
 		nsmClient:     nsmClient,
 	}
-	self.SetSelf(self)
 
 	return self
 }

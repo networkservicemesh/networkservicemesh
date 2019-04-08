@@ -18,64 +18,73 @@ package endpoint
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
-// CompositeEndpoint is  the base service compostion interface
-type CompositeEndpoint interface {
+type NetworkService interface {
 	networkservice.NetworkServiceServer
-	SetSelf(CompositeEndpoint)
-	GetNext() CompositeEndpoint
-	SetNext(CompositeEndpoint) CompositeEndpoint
 	GetOpaque(interface{}) interface{}
 }
 
+type Chained interface {
+	SetNext(service NetworkService)
+	GetNext() NetworkService
+}
+
+type ChainedService interface {
+	NetworkService
+	Chained
+}
+
+type ChainedImpl struct {
+	next NetworkService
+}
+
+func (c *ChainedImpl) SetNext(service NetworkService) {
+	c.next = service
+}
+
+func (c *ChainedImpl) GetNext() NetworkService {
+	return c.next
+}
+
 // BaseCompositeEndpoint is the base service compostion struct
-type BaseCompositeEndpoint struct {
-	self CompositeEndpoint
-	next CompositeEndpoint
+type CompositeService struct {
+	serviceChain []ChainedService
+}
+
+func NewCompositeService(services ...ChainedService) *CompositeService {
+	for i := 0; i < len(services); i++ {
+		var nextService ChainedService
+		if i != len(services)-1 {
+			nextService = services[i+1]
+		}
+		services[i].SetNext(nextService)
+	}
+	return &CompositeService{
+		serviceChain: services,
+	}
 }
 
 // Request imeplements a dummy request handler
-func (bce *BaseCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if bce.GetNext() != nil {
-		return bce.GetNext().Request(ctx, request)
+func (bce *CompositeService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	if len(bce.serviceChain) == 0 {
+		return request.Connection, nil
 	}
-	return nil, nil
+	return bce.serviceChain[0].Request(ctx, request)
 }
 
 // Close imeplements a dummy close handler
-func (bce *BaseCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if bce.GetNext() != nil {
-		return bce.GetNext().Close(ctx, connection)
+func (bce *CompositeService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if len(bce.serviceChain) == 0 {
+		return &empty.Empty{}, nil
 	}
-	return &empty.Empty{}, nil
-}
-
-// SetSelf sets the original self struct
-func (bce *BaseCompositeEndpoint) SetSelf(self CompositeEndpoint) {
-	bce.self = self
-}
-
-// GetNext returns the next composite
-func (bce *BaseCompositeEndpoint) GetNext() CompositeEndpoint {
-	return bce.next
-}
-
-// SetNext sets the next composite
-func (bce *BaseCompositeEndpoint) SetNext(next CompositeEndpoint) CompositeEndpoint {
-	if bce.self == nil {
-		logrus.Fatal("Any struct that edtends BaseCompositeEndpoint should have 'self' set. Consider using SetSelf().")
-	}
-	bce.next = next
-	return bce.self
+	return bce.serviceChain[0].Close(ctx, connection)
 }
 
 // GetOpaque returns a composite specific arnitrary data
-func (bce *BaseCompositeEndpoint) GetOpaque(interface{}) interface{} {
+func (bce *CompositeService) GetOpaque(interface{}) interface{} {
 	return nil
 }
