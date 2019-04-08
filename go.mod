@@ -22,7 +22,7 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
-	github.com/ligato/vpp-agent v2.0.0+incompatible
+	github.com/ligato/vpp-agent v2.0.1+incompatible
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/onsi/gomega v1.5.0
