@@ -75,7 +75,6 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		return nil, nil, err
 	}
 
-	logrus.Infof("Remote Network Service %s is available at %s, attempting to connect...", nsm.GetName(), nsm.GetUrl())
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.DialContext(ctx, nsm.Url, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
@@ -87,6 +86,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		return nil, nil, err
 	}
 	client := remote_networkservice.NewNetworkServiceClient(conn)
+	logrus.Infof("Connection with Remote Network Service %s at %s is established", nsm.GetName(), nsm.GetUrl())
 	return client, conn, nil
 }
 

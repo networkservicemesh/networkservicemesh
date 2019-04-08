@@ -12,11 +12,12 @@ const (
 	NsmdHealDSTWaitTimeout = "NSMD_HEAL_DST_TIMEOUTs" // Wait timeout for DST in seconds
 )
 
-type HealTimeouts struct {
-	HealTimeout          time.Duration
-	HealCloseTimeout     time.Duration
-	HealRequestTimeout   time.Duration
-	HealDataplaneTimeout time.Duration
+type NsmProperties struct {
+	HealTimeout               time.Duration
+	CloseTimeout              time.Duration
+	HealRequestTimeout        time.Duration
+	HealRequestConnectTimeout time.Duration
+	HealDataplaneTimeout      time.Duration
 
 	// Total DST heal timeout is 20 seconds.
 	HealDSTNSEWaitTimeout time.Duration
@@ -25,12 +26,13 @@ type HealTimeouts struct {
 	HealEnabled bool
 }
 
-func NewHealProperties() *HealTimeouts {
-	values := &HealTimeouts{
-		HealTimeout:          time.Minute * 1,
-		HealCloseTimeout:     time.Second * 5,
-		HealRequestTimeout:   time.Minute * 1,
-		HealDataplaneTimeout: time.Minute * 1,
+func NewNsmProperties() *NsmProperties {
+	values := &NsmProperties{
+		HealTimeout:               time.Minute * 1,
+		CloseTimeout:              time.Second * 5,
+		HealRequestTimeout:        time.Minute * 1,
+		HealRequestConnectTimeout: time.Second * 5,
+		HealDataplaneTimeout:      time.Minute * 1,
 
 		// Total DST heal timeout is 20 seconds.
 		HealDSTNSEWaitTimeout: time.Second * 30,       // Maximum time to wait for NSMD/NSE to re-appear
