@@ -1,3 +1,5 @@
+//+build bench
+
 package nsmd_integration_tests
 
 import (
@@ -14,11 +16,131 @@ import (
 )
 
 const (
-	ncmAgentName   = "vppagent-nsc"
-	icmpAgentName  = "vppagent-icmp-responder"
-	ipAddressParam = "IP_ADDRESS"
-	threadsCount   = 10
+	nscAgentName      = "vppagent-nsc"
+	icmpAgentName     = "vppagent-icmp-responder"
+	ipAddressParam    = "IP_ADDRESS"
+	nscClientCount    = 5
+	nscMaxClientCount = 15
 )
+
+func TestBenchMemifOneTimeConnecting(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+
+	Expect(err).To(BeNil())
+
+	k8s.PrepareDefault()
+
+	node := createNode(k8s)
+	vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, icmpEnv()))
+	Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
+
+	doneChannel := make(chan nscPingResult, nscClientCount)
+	defer close(doneChannel)
+
+	for count := nscMaxClientCount; count >= 0; count-- {
+		go createNscAndPingIcmp(k8s, count, node, vppAgentIcmp, doneChannel)
+	}
+
+	for count := nscMaxClientCount; count >= 0; count-- {
+		nscPingResult := <-doneChannel
+		Expect(nscPingResult.success).To(Equal(true))
+	}
+}
+
+func TestBenchMemifMovingConnection(t *testing.T) {
+
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+
+	Expect(err).To(BeNil())
+
+	k8s.PrepareDefault()
+
+	node := createNode(k8s)
+
+	vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, nscEnv()))
+	Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
+
+	doneChannel := make(chan nscPingResult, nscClientCount)
+	defer close(doneChannel)
+
+	for testCount := 0; testCount < nscMaxClientCount; testCount += nscClientCount {
+		for count := nscClientCount; count >= 0; count-- {
+			go createNscAndPingIcmp(k8s, count, node, vppAgentIcmp, doneChannel)
+		}
+
+		for count := nscClientCount; count >= 0; count-- {
+			nscPingResult := <-doneChannel
+			Expect(nscPingResult.success).To(Equal(true))
+			k8s.DeletePods(nscPingResult.nsc)
+		}
+	}
+}
+
+func TestBenchMemifPerToPer(t *testing.T) {
+
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s()
+	defer k8s.Cleanup()
+
+	Expect(err).To(BeNil())
+
+	k8s.PrepareDefault()
+	node := createNode(k8s)
+	doneChannel := make(chan nscPingResult, 1)
+	defer close(doneChannel)
+
+	for testCount := 0; testCount < nscMaxClientCount; testCount += nscClientCount {
+		vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, nscEnv()))
+		Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
+		createNscAndPingIcmp(k8s, 1, node, vppAgentIcmp, doneChannel)
+		result := <-doneChannel
+		Expect(result.success).To(Equal(true))
+		k8s.DeletePods(vppAgentIcmp, result.nsc)
+	}
+}
+
+type nscPingResult struct {
+	success bool
+	nsc     *v1.Pod
+}
+
+func icmpEnv() map[string]string {
+	return map[string]string{
+		"ADVERTISE_NSE_NAME":   "icmp-responder",
+		"ADVERTISE_NSE_LABELS": "app=icmp",
+		"IP_ADDRESS":           "10.20.1.0/24",
+	}
+}
+
+func nscEnv() map[string]string {
+	return map[string]string{
+		"ADVERTISE_NSE_NAME":   "icmp-responder",
+		"ADVERTISE_NSE_LABELS": "app=icmp",
+		"IP_ADDRESS":           "10.20.1.0/24",
+	}
+}
 
 func createNode(k8s *kube_testing.K8s) *v1.Node {
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
@@ -39,15 +161,11 @@ func ping(k8s *kube_testing.K8s, from *v1.Pod, to *v1.Pod) (string, error) {
 	return response, err
 }
 
-func createAndPingIcmp(k8s *kube_testing.K8s, id int, node *v1.Node, vppIcmpAgent *v1.Pod, done chan bool) {
-	envNsc := map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
-	}
-	vppAgentNsc := k8s.CreatePod(pods.VppagentNSC(ncmAgentName+strconv.Itoa(id), node, envNsc))
-	Expect(vppAgentNsc.Name).To(Equal(ncmAgentName + strconv.Itoa(id)))
+func createNscAndPingIcmp(k8s *kube_testing.K8s, id int, node *v1.Node, vppIcmpAgent *v1.Pod, done chan nscPingResult) {
+	vppAgentNsc := k8s.CreatePod(pods.VppagentNSC(nscAgentName+strconv.Itoa(id), node, nscEnv()))
+	Expect(vppAgentNsc.Name).To(Equal(nscAgentName + strconv.Itoa(id)))
 	result := false
-	for attempts := 30; attempts > 0; <-time.Tick(300 * time.Millisecond) {
+	for attempts := 10; attempts > 0; <-time.Tick(1000 * time.Millisecond) {
 		response, _ := ping(k8s, vppAgentNsc, vppIcmpAgent)
 		if !strings.Contains(response, "100% packet loss") {
 			result = true
@@ -56,40 +174,7 @@ func createAndPingIcmp(k8s *kube_testing.K8s, id int, node *v1.Node, vppIcmpAgen
 		}
 		attempts--
 	}
-	done <- result
-}
-
-func TestBenchMemifConnection(t *testing.T) {
-
-	RegisterTestingT(t)
-
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	k8s, err := kube_testing.NewK8s()
-	k8s.Cleanup()
-
-	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
-
-	node := createNode(k8s)
-	envIcmp := map[string]string{
-		"ADVERTISE_NSE_NAME":   "icmp-responder",
-		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "10.20.1.0/24",
-	}
-	vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, envIcmp))
-	Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
-
-	doneChannel := make(chan bool, threadsCount)
-	for count := threadsCount; count >= 0; count-- {
-		go createAndPingIcmp(k8s, count, node, vppAgentIcmp, doneChannel)
-	}
-
-	for count := threadsCount; count >= 0; count-- {
-		Expect(<-doneChannel).To(Equal(true))
-	}
+	done <- nscPingResult{
+		success: result,
+		nsc:     vppAgentNsc}
 }
