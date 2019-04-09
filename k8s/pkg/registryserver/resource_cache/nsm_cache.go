@@ -1,7 +1,7 @@
 package resource_cache
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/sirupsen/logrus"
 )
@@ -9,6 +9,7 @@ import (
 type NetworkServiceManagerCache struct {
 	cache                  abstractResourceCache
 	networkServiceManagers map[string]*v1.NetworkServiceManager
+	AddedHandler           func(nsm *v1.NetworkServiceManager)
 }
 
 func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
@@ -58,6 +59,9 @@ func (c *NetworkServiceManagerCache) resourceAdded(obj interface{}) {
 	nsm := obj.(*v1.NetworkServiceManager)
 	logrus.Infof("NetworkServiceManagerCache.Added(%v)", nsm)
 	c.networkServiceManagers[getNsmKey(nsm)] = nsm
+	if c.AddedHandler != nil {
+		c.AddedHandler(nsm)
+	}
 }
 
 func (c *NetworkServiceManagerCache) resourceUpdated(obj interface{}) {

@@ -4,40 +4,53 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"path/filepath"
 	"sync"
-	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
-var closing = false
-var managers = map[string]string{}
+// Dict to map nsm URL to grpc connection
+var managers = map[string]*grpc.ClientConn{}
+var stopInformer func()
 
-func monitorCrossConnects(address string, continuousMonitor bool) {
-	var err error
-	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
+func deleteManager(manager string) {
+	conn, ok := managers[manager]
+	if !ok {
+		logrus.Warningf("Error: no connection to manager %s", manager)
 		return
 	}
-	defer conn.Close()
-	dataplaneClient := crossconnect.NewMonitorCrossConnectClient(conn)
+	conn.Close()
+	delete(managers, manager)
+}
+
+func monitorCrossConnects(manager string) {
+	var err error
+	logrus.Infof("Starting CrossConnections Monitor on %s", manager)
+
+	conn, ok := managers[manager]
+	if !ok {
+		logrus.Warningf("Error: no connection to manager %s", manager)
+		return
+	}
+	defer deleteManager(manager)
+	nsmClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
 	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplaneClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
+	stream, err := nsmClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 
 	if err != nil {
 		logrus.Warningf("Error: %+v.", err)
@@ -51,18 +64,13 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 			return
 		}
 		data := fmt.Sprintf("\u001b[31m*** %s\n\u001b[0m", event.Type)
-		data += fmt.Sprintf("\u001b[31m*** %s\n\u001b[0m", address)
+		data += fmt.Sprintf("\u001b[31m*** %s\n\u001b[0m", conn.Target())
 		for _, cc := range event.CrossConnects {
 			if cc != nil {
 				data += fmt.Sprintf("\u001b[32m%s\n\u001b[0m", t.Text(cc))
 			}
 		}
 		println(data)
-		if !continuousMonitor {
-			logrus.Infof("Monitoring of server: %s. is complete...", address)
-			delete(managers, address)
-			return
-		}
 	}
 }
 
@@ -90,22 +98,39 @@ func lookForNSMServers() {
 	if err != nil {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", err)
 	}
+	// register the cacheInformer
+	nsmCache := resource_cache.NewNetworkServiceManagerCache()
+	nsmCache.AddedHandler = nsmGrAdded
 
-	nsmNamespace := namespace.GetNamespace()
-	for !closing {
-		result, err := nsmClientSet.Networkservicemesh().NetworkServiceManagers(nsmNamespace).List(metav1.ListOptions{})
-		if err != nil {
-			logrus.Fatalln("Unable to find NSMs", err)
-		}
-		for _, mgr := range result.Items {
-			if _, ok := managers[mgr.Status.URL]; !ok {
-				logrus.Printf("Found manager: %s at %s", mgr.Name, mgr.Status.URL)
-				managers[mgr.Status.URL] = "true"
-				go monitorCrossConnects(mgr.Status.URL, true)
-			}
-		}
-		time.Sleep(time.Second)
+	factory := externalversions.NewSharedInformerFactory(nsmClientSet, 0)
+	stopFunc, err := nsmCache.Start(factory)
+	if err != nil {
+		logrus.Fatalln("Unable to start k8s informer", err)
 	}
+	stopInformer = stopFunc
+}
+
+func connectAndMonitor(nsm *v1.NetworkServiceManager) {
+	conn, err := grpc.Dial(nsm.Status.URL, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("failure to communicate with the socket %s with error: %+v", nsm.Status.URL, err)
+		return
+	}
+	logrus.Printf("Found manager: %s at %s", nsm.Name, nsm.Status.URL)
+	managers[nsm.Name] = conn
+	go monitorCrossConnects(nsm.Name)
+
+	return
+}
+
+func nsmGrAdded(nsm *v1.NetworkServiceManager) {
+	logrus.Infof("nsmgr %v added", nsm.Name)
+	if _, ok := managers[nsm.Name]; !ok {
+		connectAndMonitor(nsm)
+	} else {
+		logrus.Warningf("Received nsmGrAdded event for a nsmgr that alredy exists: %v. No new connection will be created", nsm.Name)
+	}
+	return
 }
 
 func main() {
@@ -117,12 +142,11 @@ func main() {
 	c := tools.NewOSSignalChannel()
 	go func() {
 		<-c
-		closing = true
 		wg.Done()
 	}()
 
 	lookForNSMServers()
 
 	wg.Wait()
-
+	stopInformer()
 }
