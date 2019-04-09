@@ -1,5 +1,3 @@
-//+build bench
-
 package nsmd_integration_tests
 
 import (

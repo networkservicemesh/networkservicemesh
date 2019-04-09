@@ -49,7 +49,9 @@ func TestSimpleMemifConnection(t *testing.T) {
 	attempts := 30
 	for ; attempts > 0; <-time.Tick(300 * time.Millisecond) {
 		response, _, _ := k8s.Exec(vppagentNsc, vppagentNsc.Spec.Containers[0].Name, "vppctl", "ping", "10.20.1.2", "repeat", "2")
-		if response != "" && !strings.Contains(response, "100% packet loss") {
+		logrus.Infof("Ping result: %v, attempt: %v", response, 31-attempts)
+
+		if response != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
 			nseAvailable = true
 			logrus.Info("Ping successful")
 			break
