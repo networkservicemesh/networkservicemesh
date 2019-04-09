@@ -320,13 +320,6 @@ workflows:
           test_tags: "recover"
           requires:
             - packet-deploy-k8s-2
-      - packet-integration-tests:
-          name: "test benchmark"
-          cluster_id: "2"
-          test_tags: "bench"
-          requires:
-            - packet-deploy-k8s-1
-            - "test recover"
       - packet-destroy:
           requires:
             - "packet test basic usecase"
