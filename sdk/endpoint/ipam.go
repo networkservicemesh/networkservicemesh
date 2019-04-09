@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package composite
+package endpoint
 
 import (
 	"context"
@@ -28,17 +28,16 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 )
 
-type IpamCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+type IpamEndpoint struct {
+	ChainedImpl
 	prefixPool prefix_pool.PrefixPool
 }
 
-// Request imeplements the request handler
-func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request implements the request handler
+func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if ice.GetNext() == nil {
 		err := fmt.Errorf("IPAM needs next")
@@ -101,8 +100,8 @@ func (ice *IpamCompositeEndpoint) Request(ctx context.Context, request *networks
 	return newConnection, nil
 }
 
-// Close imeplements the close handler
-func (ice *IpamCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+// Close implements the close handler
+func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	prefix, requests, err := ice.prefixPool.GetConnectionInformation(connection.GetId())
 	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
 	if err != nil {
@@ -115,8 +114,8 @@ func (ice *IpamCompositeEndpoint) Close(ctx context.Context, connection *connect
 	return &empty.Empty{}, nil
 }
 
-// NewIpamCompositeEndpoint creates a IpamCompositeEndpoint
-func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompositeEndpoint {
+// NewIpamEndpoint creates a IpamEndpoint
+func NewIpamEndpoint(configuration *common.NSConfiguration) *IpamEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
@@ -130,10 +129,9 @@ func NewIpamCompositeEndpoint(configuration *common.NSConfiguration) *IpamCompos
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	self := &IpamCompositeEndpoint{
+	self := &IpamEndpoint{
 		prefixPool: pool,
 	}
-	self.SetSelf(self)
 
 	return self
 }

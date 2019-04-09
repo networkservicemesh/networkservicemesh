@@ -44,11 +44,11 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	model            model.Model
 	excludedPrefixes prefix_pool.PrefixPool
-	properties       *nsm.HealTimeouts
+	properties       *nsm.NsmProperties
 	stateRestored    chan bool
 }
 
-func (srv *networkServiceManager) GetHealProperties() *nsm.HealTimeouts {
+func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 	return srv.properties
 }
 
@@ -57,7 +57,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		serviceRegistry:  serviceRegistry,
 		model:            model,
 		excludedPrefixes: excludedPrefixes,
-		properties:       nsm.NewHealProperties(),
+		properties:       nsm.NewNsmProperties(),
 		stateRestored:    make(chan bool, 1),
 	}
 }
@@ -388,6 +388,9 @@ func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistra
 	return srv.getNetworkServiceManagerName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
 }
 
+/**
+	ctx - we assume it is big enought to perform connection.
+ */
 func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 	if srv.isLocalEndpoint(endpoint) {
 		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
@@ -404,8 +407,7 @@ func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint 
 		return &endpointClient{connection: conn, client: client}, nil
 	} else {
 		logrus.Infof("Create remote NSE connection to endpoint: %v", endpoint)
-		connectCtx, _ := context.WithTimeout(ctx, 5*time.Second)
-		client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(connectCtx, endpoint.GetNetworkServiceManager())
+		client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(ctx, endpoint.GetNetworkServiceManager())
 		if err != nil {
 			return nil, err
 		}
@@ -415,7 +417,10 @@ func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint 
 
 func (srv *networkServiceManager) performNSERequest(requestId string, ctx context.Context, endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, request nsm.NSMRequest, dp *model.Dataplane, existingConnection *model.ClientConnection) (*model.ClientConnection, error) {
 	// 7.2.6.x
-	client, err := srv.createNSEClient(ctx, endpoint)
+	connectCtx, connectCancel := context.WithTimeout(ctx, srv.properties.HealRequestConnectTimeout)
+	defer connectCancel()
+
+	client, err := srv.createNSEClient(connectCtx, endpoint)
 	if err != nil {
 		// 7.2.6.1
 		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
@@ -842,7 +847,10 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 
 func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConnection *model.ClientConnection) error {
 
-	client, nseClientError := srv.createNSEClient(ctx, clientConnection.Endpoint)
+	closeCtx, closeCancel := context.WithTimeout(ctx, srv.properties.CloseTimeout)
+	defer closeCancel()
+
+	client, nseClientError := srv.createNSEClient(closeCtx, clientConnection.Endpoint)
 
 	if client != nil {
 		if ld := clientConnection.Xcon.GetLocalDestination(); ld != nil {

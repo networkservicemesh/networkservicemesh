@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package composite
+package endpoint
 
 import (
 	"context"
@@ -24,18 +24,17 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 )
 
-// MonitorCompositeEndpoint is a monitoring composite
-type MonitorCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+// MonitorEndpoint is a monitoring composite
+type MonitorEndpoint struct {
+	ChainedImpl
 	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 }
 
-// Request imeplements the request handler
-func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request implements the request handler
+func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if mce.GetNext() == nil {
 		err := fmt.Errorf("Monitor needs next")
@@ -55,8 +54,8 @@ func (mce *MonitorCompositeEndpoint) Request(ctx context.Context, request *netwo
 	return incomingConnection, nil
 }
 
-// Close imeplements the close handler
-func (mce *MonitorCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+// Close implements the close handler
+func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("Monitor DeleteConnection: %v", connection)
 	mce.monitorConnectionServer.Delete(connection)
 	if mce.GetNext() != nil {
@@ -65,18 +64,17 @@ func (mce *MonitorCompositeEndpoint) Close(ctx context.Context, connection *conn
 	return &empty.Empty{}, nil
 }
 
-// NewMonitorCompositeEndpoint creates a MonitorCompositeEndpoint
-func NewMonitorCompositeEndpoint(configuration *common.NSConfiguration) *MonitorCompositeEndpoint {
+// NewMonitorEndpoint creates a MonitorEndpoint
+func NewMonitorEndpoint(configuration *common.NSConfiguration) *MonitorEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	self := &MonitorCompositeEndpoint{
+	self := &MonitorEndpoint{
 		monitorConnectionServer: local_connection_monitor.NewLocalConnectionMonitor(),
 	}
-	self.SetSelf(self)
 
 	return self
 }

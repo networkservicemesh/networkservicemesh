@@ -3,7 +3,6 @@ package tests
 import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -28,9 +27,11 @@ func TestNSMDRestart1(t *testing.T) {
 		AdvertiseNseName: "test_nse",
 	}
 
-	composite := composite.NewMonitorCompositeEndpoint(configuration).SetNext(
-		composite.NewIpamCompositeEndpoint(configuration).SetNext(
-			composite.NewConnectionCompositeEndpoint(configuration)))
+	composite := endpoint.NewCompositeEndpoint(
+		endpoint.NewMonitorEndpoint(configuration),
+		endpoint.NewIpamEndpoint(configuration),
+		endpoint.NewConnectionEndpoint(configuration),
+	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {

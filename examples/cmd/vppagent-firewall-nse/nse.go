@@ -23,7 +23,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,11 +37,12 @@ func main() {
 		MechanismType: "mem",
 	}
 
-	composite := composite.NewMonitorCompositeEndpoint(nil).SetNext(
-		newVppAgentAclComposite(configuration).SetNext(
-			newVppAgentXConnComposite(configuration).SetNext(
-				composite.NewClientCompositeEndpoint(configuration).SetNext(
-					composite.NewConnectionCompositeEndpoint(configuration)))))
+	composite := endpoint.NewCompositeEndpoint(
+		endpoint.NewMonitorEndpoint(configuration),
+		newVppAgentAclComposite(configuration),
+		newVppAgentXConnComposite(configuration),
+		endpoint.NewClientEndpoint(configuration),
+		endpoint.NewConnectionEndpoint(configuration))
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
