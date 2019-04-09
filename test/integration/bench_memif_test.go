@@ -16,16 +16,15 @@ import (
 )
 
 const (
-	nscAgentName      = "vppagent-nsc"
-	icmpAgentName     = "vppagent-icmp-responder"
-	ipAddressParam    = "IP_ADDRESS"
-	nscClientCount    = 5
-	nscMaxClientCount = 15
+	nscAgentName   = "vppagent-nsc"
+	icmpAgentName  = "vppagent-icmp-responder"
+	ipAddressParam = "IP_ADDRESS"
+	nscCount       = 5
+	nscMaxCount    = 15
 )
 
 func TestBenchMemifOneTimeConnecting(t *testing.T) {
 	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -42,23 +41,21 @@ func TestBenchMemifOneTimeConnecting(t *testing.T) {
 	vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, icmpEnv()))
 	Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
 
-	doneChannel := make(chan nscPingResult, nscClientCount)
+	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
 
-	for count := nscMaxClientCount; count >= 0; count-- {
+	for count := nscMaxCount; count >= 0; count-- {
 		go createNscAndPingIcmp(k8s, count, node, vppAgentIcmp, doneChannel)
 	}
 
-	for count := nscMaxClientCount; count >= 0; count-- {
+	for count := nscMaxCount; count >= 0; count-- {
 		nscPingResult := <-doneChannel
 		Expect(nscPingResult.success).To(Equal(true))
 	}
 }
 
 func TestBenchMemifMovingConnection(t *testing.T) {
-
 	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -76,15 +73,15 @@ func TestBenchMemifMovingConnection(t *testing.T) {
 	vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, nscEnv()))
 	Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
 
-	doneChannel := make(chan nscPingResult, nscClientCount)
+	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
 
-	for testCount := 0; testCount < nscMaxClientCount; testCount += nscClientCount {
-		for count := nscClientCount; count >= 0; count-- {
+	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
+		for count := nscCount; count >= 0; count-- {
 			go createNscAndPingIcmp(k8s, count, node, vppAgentIcmp, doneChannel)
 		}
 
-		for count := nscClientCount; count >= 0; count-- {
+		for count := nscCount; count >= 0; count-- {
 			nscPingResult := <-doneChannel
 			Expect(nscPingResult.success).To(Equal(true))
 			k8s.DeletePods(nscPingResult.nsc)
@@ -93,9 +90,7 @@ func TestBenchMemifMovingConnection(t *testing.T) {
 }
 
 func TestBenchMemifPerToPer(t *testing.T) {
-
 	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -111,7 +106,7 @@ func TestBenchMemifPerToPer(t *testing.T) {
 	doneChannel := make(chan nscPingResult, 1)
 	defer close(doneChannel)
 
-	for testCount := 0; testCount < nscMaxClientCount; testCount += nscClientCount {
+	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		vppAgentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod(icmpAgentName, node, nscEnv()))
 		Expect(vppAgentIcmp.Name).To(Equal(icmpAgentName))
 		createNscAndPingIcmp(k8s, 1, node, vppAgentIcmp, doneChannel)
