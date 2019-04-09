@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package composite
+package endpoint
 
 import (
 	"context"
@@ -23,19 +23,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 )
 
-type ClientCompositeEndpoint struct {
-	endpoint.BaseCompositeEndpoint
+type ClientEndpoint struct {
+	ChainedImpl
 	nsmClient     *client.NsmClient
 	mechanismType string
 	ioConnMap     map[string]*connection.Connection
 }
 
-// Request imeplements the request handler
-func (cce *ClientCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request implements the request handler
+func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if cce.GetNext() == nil {
 		logrus.Fatal("The connection composite requires that there is Next set.")
@@ -64,8 +63,8 @@ func (cce *ClientCompositeEndpoint) Request(ctx context.Context, request *networ
 	return incomingConnection, nil
 }
 
-// Close imeplements the close handler
-func (cce *ClientCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+// Close implements the close handler
+func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
 		cce.nsmClient.Close(outgoingConnection)
 	}
@@ -76,7 +75,7 @@ func (cce *ClientCompositeEndpoint) Close(ctx context.Context, connection *conne
 }
 
 // GetOpaque will return the corresponding outgoing connection
-func (cce *ClientCompositeEndpoint) GetOpaque(incoming interface{}) interface{} {
+func (cce *ClientEndpoint) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)
 	if outgoingConnection, ok := cce.ioConnMap[incomingConnection.GetId()]; ok {
 		return outgoingConnection
@@ -85,8 +84,8 @@ func (cce *ClientCompositeEndpoint) GetOpaque(incoming interface{}) interface{} 
 	return nil
 }
 
-// NewClientCompositeEndpoint creates a ClientCompositeEndpoint
-func NewClientCompositeEndpoint(configuration *common.NSConfiguration) *ClientCompositeEndpoint {
+// NewClientEndpoint creates a ClientEndpoint
+func NewClientEndpoint(configuration *common.NSConfiguration) *ClientEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
@@ -99,12 +98,11 @@ func NewClientCompositeEndpoint(configuration *common.NSConfiguration) *ClientCo
 		return nil
 	}
 
-	self := &ClientCompositeEndpoint{
+	self := &ClientEndpoint{
 		ioConnMap:     map[string]*connection.Connection{},
 		mechanismType: configuration.MechanismType,
 		nsmClient:     nsmClient,
 	}
-	self.SetSelf(self)
 
 	return self
 }

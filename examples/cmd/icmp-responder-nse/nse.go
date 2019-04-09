@@ -22,15 +22,15 @@ import (
 	"syscall"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
-	composite := composite.NewMonitorCompositeEndpoint(nil).SetNext(
-		composite.NewIpamCompositeEndpoint(nil).SetNext(
-			composite.NewConnectionCompositeEndpoint(nil)))
+	composite := endpoint.NewCompositeEndpoint(
+		endpoint.NewMonitorEndpoint(nil),
+		endpoint.NewIpamEndpoint(nil),
+		endpoint.NewConnectionEndpoint(nil))
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
 	if err != nil {
