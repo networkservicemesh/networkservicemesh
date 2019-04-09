@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package composite
+package endpoint
 
 import (
 	"context"
@@ -28,19 +28,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 	"github.com/teris-io/shortid"
 )
 
-type ConnectionCompositeEndpoint struct {
-	endpoint.ChainedImpl
+type ConnectionEndpoint struct {
+	ChainedImpl
 	mechanismType connection.MechanismType
 	id            *shortid.Shortid
 }
 
-// Request imeplements the request handler
-func (cce *ConnectionCompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request implements the request handler
+func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	err := request.IsValid()
 	if err != nil {
@@ -80,15 +79,15 @@ func (cce *ConnectionCompositeEndpoint) Request(ctx context.Context, request *ne
 	return newConnection, nil
 }
 
-// Close imeplements the close handler
-func (cce *ConnectionCompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+// Close implements the close handler
+func (cce *ConnectionEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if cce.GetNext() != nil {
 		return cce.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
-func (cce *ConnectionCompositeEndpoint) generateIfName() string {
+func (cce *ConnectionEndpoint) generateIfName() string {
 	ifName := "nsm" + cce.id.MustGenerate()
 	ifName = strings.Replace(ifName, "-", "", -1)
 	ifName = strings.Replace(ifName, "_", "", -1)
@@ -96,13 +95,8 @@ func (cce *ConnectionCompositeEndpoint) generateIfName() string {
 	return ifName
 }
 
-// GetOpaque will return the corresponding outgoing connection
-func (cce *ConnectionCompositeEndpoint) GetOpaque(incoming interface{}) interface{} {
-	return nil
-}
-
-// NewConnectionCompositeEndpoint creates a ConnectionCompositeEndpoint
-func NewConnectionCompositeEndpoint(configuration *common.NSConfiguration) *ConnectionCompositeEndpoint {
+// NewConnectionEndpoint creates a ConnectionEndpoint
+func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEndpoint {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
@@ -111,7 +105,7 @@ func NewConnectionCompositeEndpoint(configuration *common.NSConfiguration) *Conn
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	self := &ConnectionCompositeEndpoint{
+	self := &ConnectionEndpoint{
 		mechanismType: common.MechanismFromString(configuration.MechanismType),
 		id:            shortid.MustNew(1, shortid.DEFAULT_ABC, rand.Uint64()),
 	}

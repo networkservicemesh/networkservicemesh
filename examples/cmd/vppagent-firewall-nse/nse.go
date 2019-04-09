@@ -16,7 +16,6 @@
 package main
 
 import (
-	composite "github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 	"os"
 	"os/signal"
 	"sync"
@@ -38,12 +37,12 @@ func main() {
 		MechanismType: "mem",
 	}
 
-	composite := endpoint.NewCompositeService(
-		composite.NewMonitorCompositeEndpoint(configuration),
+	composite := endpoint.NewCompositeEndpoint(
+		endpoint.NewMonitorEndpoint(configuration),
 		newVppAgentAclComposite(configuration),
 		newVppAgentXConnComposite(configuration),
-		composite.NewClientCompositeEndpoint(configuration),
-		composite.NewConnectionCompositeEndpoint(configuration))
+		endpoint.NewClientEndpoint(configuration),
+		endpoint.NewConnectionEndpoint(configuration))
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {

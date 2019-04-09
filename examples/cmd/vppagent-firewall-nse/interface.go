@@ -149,10 +149,6 @@ type vppAgentAclComposite struct {
 	aclRules         map[string]string
 }
 
-func (vac *vppAgentAclComposite) GetOpaque(interface{}) interface{} {
-	return nil
-}
-
 func (vac *vppAgentAclComposite) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if vac.GetNext() == nil {

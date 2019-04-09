@@ -1,5 +1,3 @@
-// +build basic
-
 package nsmd_integration_tests
 
 import (
