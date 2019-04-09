@@ -70,6 +70,8 @@ github.com/ligato/cn-infra v2.0.0+incompatible h1:f8sXC6BxwJBd+M0mRpJPfu78XqSbZE
 github.com/ligato/cn-infra v2.0.0+incompatible/go.mod h1:wBXHMbKAlgOc/MkJMy/25284ri77duvS0XlIImme7z0=
 github.com/ligato/vpp-agent v2.0.0+incompatible h1:ILnuTYS4zjAFd1PMwRODvgFZ4NkZpsWR+pbCHl+2YJI=
 github.com/ligato/vpp-agent v2.0.0+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
+github.com/ligato/vpp-agent v2.0.1+incompatible h1:M9KBhPPErMdX6u72PNjk+JlD8w4ZFFC0DzSd5mL27sQ=
+github.com/ligato/vpp-agent v2.0.1+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
 github.com/magiconair/properties v1.8.0 h1:LLgXmsheXeRoUOBOjtwPQCWIYqM/LU1ayDtDePerRcY=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
