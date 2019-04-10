@@ -17,7 +17,7 @@
 
 set -xe
 
-KUBECTL_VERSION=v1.13.3
+KUBECTL_VERSION=v1.14.1
 
 # Install kubectl
 if ! command -v kubectl > /dev/null 2>&1; then

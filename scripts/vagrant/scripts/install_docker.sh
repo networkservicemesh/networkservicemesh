@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Copy the vagrant docker provisioner, but force the docker version to 18.06
-# see:
-# - https://github.com/hashicorp/vagrant/blob/master/plugins/provisioners/docker/cap/debian/docker_install.rb
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
 
-apt-get install -qq -y --force-yes curl apt-transport-https
-apt-get purge -qq -y lxc-docker* || true
-curl -sSL https://get.docker.com/ | VERSION=18.06 sh
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io
