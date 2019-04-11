@@ -15,7 +15,7 @@ import (
 const (
 	nscAgentName  = "vppagent-nsc"
 	icmpAgentName = "icmp-responder"
-	nscCount      = 5
+	nscCount      = 3
 	nscMaxCount   = 10
 )
 
