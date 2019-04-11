@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestDataplaneCrossConnectBasic(t *testing.T) {
+func TestMemifProxy(t *testing.T) {
 	RegisterTestingT(t)
 	proxy := memifproxy.NewCustomProxy("source.sock", "target.sock", "unix")
 	for i := 0; i < 10; i++ {
