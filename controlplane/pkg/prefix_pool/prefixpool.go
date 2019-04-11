@@ -2,10 +2,11 @@ package prefix_pool
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"math/big"
 	"net"
 	"sync"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 )
 
 /**
@@ -20,6 +21,7 @@ type PrefixPool interface {
 	GetConnectionInformation(connectionId string) (string, []string, error)
 	GetPrefixes() []string
 	Intersect(prefix string) (bool, error)
+	ExcludePrefixes(excludedPrefixes []string)
 }
 type prefixPool struct {
 	sync.RWMutex
@@ -45,6 +47,11 @@ func NewPrefixPool(prefixes ...string) (PrefixPool, error) {
 		prefixes:     prefixes,
 		connections:  map[string]*connectionRecord{},
 	}, nil
+}
+
+/* Exclude prefixes from the pool of available prefixes */
+func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) {
+
 }
 
 func (impl *prefixPool) Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP *net.IPNet, dstIP *net.IPNet, requested []string, err error) {

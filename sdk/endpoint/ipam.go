@@ -50,6 +50,8 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
+	/* Exclude the prefixes from the pool of available prefixes */
+	ice.prefixPool.ExcludePrefixes(request.Connection.Context.ExcludedPrefixes)
 
 	//TODO: We need to somehow support IPv6.
 	srcIP, dstIP, prefixes, err := ice.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
