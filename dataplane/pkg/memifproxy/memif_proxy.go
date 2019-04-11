@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"net"
-	"sync"
 	"syscall"
 )
 
@@ -23,7 +22,7 @@ type Proxy struct {
 }
 
 type connectionResult struct {
-	err error
+	err  error
 	conn *net.UnixConn
 }
 
@@ -35,12 +34,13 @@ func NewCustomProxy(sourceSocket, targetSocket, network string) *Proxy {
 	return &Proxy{
 		sourceSocket: sourceSocket,
 		targetSocket: targetSocket,
-		network:      network}
+		network:      network,
+	}
 }
 
 func (mp *Proxy) Start() error {
-	if (mp.stopCh != nil) {
-		return errors.New("Proxy already started")
+	if mp.stopCh != nil {
+		return errors.New("proxy is already started")
 	}
 	mp.stopCh = make(chan struct{}, 1)
 	mp.errCh = make(chan error, 1)
@@ -60,20 +60,23 @@ func (mp *Proxy) Start() error {
 
 	go func() {
 		mp.errCh <- proxy(source, target, mp.network, mp.stopCh)
-	}();
+	}()
 	return nil
 }
 
 func (mp *Proxy) Stop() error {
+	if mp.stopCh == nil {
+		return errors.New("proxy is not started")
+	}
 	close(mp.stopCh)
 	err := <-mp.errCh
 	close(mp.errCh)
 	mp.stopCh = nil
 	mp.errCh = nil
-	return err;
+	return err
 }
 
-func proxy(source, target *net.UnixAddr, network string, stopCh <- chan struct{}) error {
+func proxy(source, target *net.UnixAddr, network string, stopCh <-chan struct{}) error {
 	logrus.Info("Listening source socket...")
 	sourceListener, err := net.ListenUnix(network, source)
 	if err != nil {
@@ -110,7 +113,7 @@ func proxy(source, target *net.UnixAddr, network string, stopCh <- chan struct{}
 	sourceFd, closeSourceFd, err := getConnFd(sourceConn)
 	if err != nil {
 		logrus.Error(err)
-		return  err
+		return err
 	}
 	defer closeSourceFd()
 	logrus.Infof("Source connection fd: %v", sourceFd)
@@ -123,25 +126,20 @@ func proxy(source, target *net.UnixAddr, network string, stopCh <- chan struct{}
 	defer closeTargetFd()
 	logrus.Infof("Target connection fd: %v", targetFd)
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	sourceStopCh := make(chan struct{})
+	targetStopCh := make(chan struct{})
 
-	go func() {
-		defer wg.Done()
-		transfer(sourceFd, targetFd, stopCh)
-	}()
+	go transfer(sourceFd, targetFd, sourceStopCh)
+	go transfer(targetFd, sourceFd, targetStopCh)
 
-	go func() {
-		defer wg.Done()
-		transfer(targetFd, sourceFd, stopCh)
-	}()
-
-	wg.Wait()
+	<-stopCh
+	close(sourceStopCh)
+	close(targetStopCh)
 	logrus.Info("Proxy has stopped")
-	return  nil
+	return nil
 }
 
-func connectToTargetAsync(target *net.UnixAddr, network string, stopCh <- chan struct{}) (*net.UnixConn, error) {
+func connectToTargetAsync(target *net.UnixAddr, network string, stopCh <-chan struct{}) (*net.UnixConn, error) {
 	logrus.Info("Connecting to target socket...")
 	connResCh := make(chan connectionResult, 1)
 	go func() {
@@ -149,7 +147,8 @@ func connectToTargetAsync(target *net.UnixAddr, network string, stopCh <- chan s
 		conn, err := net.DialUnix(network, nil, target)
 		connResCh <- connectionResult{
 			conn: conn,
-			err:  err}
+			err:  err,
+		}
 		logrus.Info("Connected to target socket")
 	}()
 	for {
@@ -163,7 +162,7 @@ func connectToTargetAsync(target *net.UnixAddr, network string, stopCh <- chan s
 	}
 }
 
-func acceptConnectionAsync(listener *net.UnixListener, stopCh <- chan struct{}) (*net.UnixConn, error) {
+func acceptConnectionAsync(listener *net.UnixListener, stopCh <-chan struct{}) (*net.UnixConn, error) {
 	logrus.Info("Accepting connections to source socket...")
 	connResCh := make(chan connectionResult, 1)
 	go func() {
@@ -171,7 +170,8 @@ func acceptConnectionAsync(listener *net.UnixListener, stopCh <- chan struct{}) 
 		conn, err := listener.AcceptUnix()
 		connResCh <- connectionResult{
 			conn: conn,
-			err:  err}
+			err:  err,
+		}
 		logrus.Info("Connection from source socket successfully accepted")
 	}()
 	for {
@@ -191,13 +191,15 @@ func transfer(fromFd, toFd int, stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			break
+			logrus.Infof("Transfer from %v to %v has benn stopped", fromFd, toFd)
+			return
 		default:
 			dataN, cmsgN, _, _, err := syscall.Recvmsg(fromFd, dataBuffer, cmsgBuffer, 0)
 			if err != nil {
 				logrus.Error(err)
 				return
 			}
+			logrus.Infof("Received message from %v", fromFd)
 			var sendDataBuf []byte = nil
 			if dataN > 0 {
 				sendDataBuf = dataBuffer
@@ -210,6 +212,7 @@ func transfer(fromFd, toFd int, stopCh <-chan struct{}) {
 				logrus.Error(err)
 				return
 			}
+			logrus.Infof("Send message to %v", toFd)
 		}
 	}
 }
