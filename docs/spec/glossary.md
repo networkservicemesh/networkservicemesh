@@ -51,8 +51,6 @@ In NSM, a Network Service is expressed in terms that developers understand:
 
 **Network Service Registry Domain** - The registry of all network services, network service endpoint(s) providing the services, and network service managers registered to a specific NSR
 
-**Network Service Manager Domain** - The collective of Network Service Client(s) and Network Service Endpoint(s) directly managed by an NSMgr.
-
 **Network Service Manager (NSMgr)** - A daemon set, which resides at the host level, providing a full mesh by forming connections to every other NSMgr within an NSR domain. Additionally, the daemon set manages the gRPC requests for connections by matching clients with appropriate endpoints.)  
 Fundamentally, the defining characteristics of a Network Service Manager is that:
  1. It accepts the remote.Request, remote.Close, remote.Monitor grpc calls and provides connectivity to Network Services.
@@ -64,6 +62,8 @@ Fundamentally, the defining characteristics of a Network Service Manager is that
  * Physical functions - ToR(s), Leaf-Spine fabrics etc.
 
 **Proxy Network Service Manager (pNSM)** - An additional shim layer between two or more NSMgrs allowing for additional sets of instructions to be layered on top of network services or create hooks for a centralized information model in a distributed network service.
+
+**Network Service Manager Domain** - The collective of Network Service Client(s) and Network Service Endpoint(s) directly managed by an NSMgr.
 
 **Local Mechanism** - An interface (defined as local.mechanism in code) between neighbouring workloads (NSCs and NSEs) and/or a forwarding element used to create an attachment to a wire.
  * Kernel Interfaces
@@ -83,13 +83,13 @@ Fundamentally, the defining characteristics of a Network Service Manager is that
 
 **Connections** - An end-to-end data flow for a network service built on top of physical/logical wires
 
-**Forwarding Element** - The component that makes decisions on moving packets between inputs and outputs 
+**Forwarding Element** - The component that makes decisions on moving packets between inputs and outputs
 
-**Network Service Mesh Dataplane** - The logical construct providing end-to-end connections, wires, mechanisms and forwarding elements to a network service. This may be achieved by provisioning mechanisms and configuring forwarding elements directly, or by making requests to an intermediate control plane acting as a proxy capable of providing the four components needed to realize the network service. 
+**Network Service Mesh Dataplane** - The logical construct providing end-to-end connections, wires, mechanisms and forwarding elements to a network service. This may be achieved by provisioning mechanisms and configuring forwarding elements directly, or by making requests to an intermediate control plane acting as a proxy capable of providing the four components needed to realize the network service.
 
 *For example*: FD.io (VPP), OvS, Kernel Networking, SRIOV etc.
 
-**Network Service Mesh Control Plane** - A decentralized system of peers composed of layers used to define a network service, establishing connections between network service requesters and network service providers. This is realized via a mesh of Network Service Managers all contained within a Network Service Registry Domains. 
+**Network Service Mesh Control Plane** - A decentralized system of peers composed of layers used to define a network service, establishing connections between network service requesters and network service providers. This is realized via a mesh of Network Service Managers all contained within a Network Service Registry Domains.
 
 
 References
