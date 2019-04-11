@@ -7,10 +7,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"strings"
 	"testing"
-	"time"
 )
 
 func TestSimpleMemifConnection(t *testing.T) {
@@ -30,33 +27,8 @@ func TestSimpleMemifConnection(t *testing.T) {
 
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
 
-	envIcmp := map[string]string{
-		"ADVERTISE_NSE_NAME":   "icmp-responder",
-		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "10.20.1.0/24",
-	}
-	vppagentIcmp := k8s.CreatePod(pods.VppagentICMPResponderPod("vppagent-icmp-responder", nodes[0].Node, envIcmp))
-	Expect(vppagentIcmp.Name).To(Equal("vppagent-icmp-responder"))
+	nsmd_test_utils.DeployVppAgentICMP(k8s, nodes[0].Node, icmpAgentName, defaultTimeout)
+	vppagentNsc := nsmd_test_utils.DeployVppAgentNSC(k8s, nodes[0].Node, nscAgentName, defaultTimeout)
+	nsmd_test_utils.IsMemifNsePinged(k8s, vppagentNsc)
 
-	envNsc := map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
-	}
-	vppagentNsc := k8s.CreatePod(pods.VppagentNSC("vppagent-nsc", nodes[0].Node, envNsc))
-	Expect(vppagentNsc.Name).To(Equal("vppagent-nsc"))
-
-	nseAvailable := false
-	attempts := 30
-	for ; attempts > 0; <-time.Tick(300 * time.Millisecond) {
-		response, _, _ := k8s.Exec(vppagentNsc, vppagentNsc.Spec.Containers[0].Name, "vppctl", "ping", "10.20.1.2", "repeat", "2")
-		logrus.Infof("Ping result: %v, attempt: %v", response, 31-attempts)
-
-		if response != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
-			nseAvailable = true
-			logrus.Info("Ping successful")
-			break
-		}
-		attempts--
-	}
-	Expect(nseAvailable).To(Equal(true))
 }
