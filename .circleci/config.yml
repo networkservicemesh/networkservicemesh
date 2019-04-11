@@ -307,14 +307,14 @@ workflows:
           requires:
             - packet-deploy
       - integration-tests:
-          name: "packet test basic usecase"
+          name: "packet-test-basic-usecase"
           cloud_provider: "packet"
           cluster_id: "1"
           test_tags: "basic usecase"
           requires:
             - packet-deploy-k8s-1
       - integration-tests:
-          name: "packet test recover"
+          name: "packet-test-recover"
           cloud_provider: "packet"
           cluster_id: "2"
           test_tags: "recover"
@@ -322,8 +322,8 @@ workflows:
             - packet-deploy-k8s-2
       - packet-destroy:
           requires:
-            - "packet test basic usecase"
-            - "packet test recover"
+            - "packet-test-basic-usecase"
+            - "packet-test-recover"
       - docker-push-latest:
           requires:
             - packet-destroy

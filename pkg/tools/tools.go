@@ -126,7 +126,7 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 		default:
 			conn, err := net.Dial(protoType, registryAddress)
 			if err != nil {
-				if time.Since(last) > 60 * time.Second {
+				if time.Since(last) > 60*time.Second {
 					logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
 					last = time.Now()
 				}

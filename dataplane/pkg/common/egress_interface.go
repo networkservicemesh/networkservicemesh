@@ -36,9 +36,9 @@ type EgressInterface interface {
 
 type egressInterface struct {
 	EgressInterface
-	srcNet *net.IPNet
-	iface *net.Interface
-	defaultGateway net.IP
+	srcNet            *net.IPNet
+	iface             *net.Interface
+	defaultGateway    net.IP
 	outgoingInterface string
 }
 
@@ -115,9 +115,9 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 			case *net.IPNet:
 				if v.IP.Equal(srcIp) {
 					return &egressInterface{
-						srcNet:    v,
-						iface: &iface,
-						defaultGateway: gw,
+						srcNet:            v,
+						iface:             &iface,
+						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
 					}, nil
 				}
@@ -150,14 +150,14 @@ func (e *egressInterface) DefaultGateway() *net.IP {
 	return &e.defaultGateway
 }
 
-func (e *egressInterface) Name () string {
+func (e *egressInterface) Name() string {
 	if e == nil {
 		return ""
 	}
 	return e.Interface().Name
 }
 
-func (e *egressInterface) HardwareAddr () *net.HardwareAddr {
+func (e *egressInterface) HardwareAddr() *net.HardwareAddr {
 	if e == nil {
 		return nil
 	}

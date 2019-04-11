@@ -45,24 +45,26 @@ func DeleteEksRole(iamClient *iam.IAM, eksRoleName *string) {
 
 	policyArn := "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 	_, err := iamClient.DetachRolePolicy(&iam.DetachRolePolicyInput{
-		RoleName: eksRoleName,
+		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
 	})
 	checkDeferError(err)
 
 	policyArn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
 	_, err = iamClient.DetachRolePolicy(&iam.DetachRolePolicyInput{
-		RoleName: eksRoleName,
+		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
 	})
 	checkDeferError(err)
 
 	_, err = iamClient.DeleteRole(&iam.DeleteRoleInput{
-		RoleName:                 eksRoleName,
-			})
-	if checkDeferError(err) { return }
+		RoleName: eksRoleName,
+	})
+	if checkDeferError(err) {
+		return
+	}
 
-	log.Printf("Role \"%s\" successfully deleted!\n" , *eksRoleName)
+	log.Printf("Role \"%s\" successfully deleted!\n", *eksRoleName)
 }
 
 func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) {
@@ -71,14 +73,18 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 	resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: clusterStackName,
 	})
-	if checkDeferError(err) { return }
+	if checkDeferError(err) {
+		return
+	}
 
 	stackId := resp.Stacks[0].StackId
 
 	_, err = cfClient.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName:    clusterStackName,
+		StackName: clusterStackName,
 	})
-	if checkDeferError(err) { return }
+	if checkDeferError(err) {
+		return
+	}
 
 	for {
 		resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -92,15 +98,15 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 		}
 
 		switch *resp.Stacks[0].StackStatus {
-			case "DELETE_COMPLETE":
-				log.Printf("Cluster VPC \"%s\" successfully deleted!\n", *clusterStackName)
-				return
-			case  "DELETE_IN_PROGRESS":
-				time.Sleep(time.Second)
-			default:
-				log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-				deferError = true
-				return
+		case "DELETE_COMPLETE":
+			log.Printf("Cluster VPC \"%s\" successfully deleted!\n", *clusterStackName)
+			return
+		case "DELETE_IN_PROGRESS":
+			time.Sleep(time.Second)
+		default:
+			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
+			deferError = true
+			return
 		}
 	}
 }
@@ -111,7 +117,9 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 	_, err := eksClient.DeleteCluster(&eks.DeleteClusterInput{
 		Name: clusterName,
 	})
-	if checkDeferError(err) { return }
+	if checkDeferError(err) {
+		return
+	}
 
 	for {
 		resp, err := eksClient.DescribeCluster(&eks.DescribeClusterInput{
@@ -127,13 +135,13 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 			return
 		}
 
-		switch  *resp.Cluster.Status {
-			case  "DELETING":
-				time.Sleep(time.Second)
-			default:
-				log.Printf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
-				deferError = true
-				return
+		switch *resp.Cluster.Status {
+		case "DELETING":
+			time.Sleep(time.Second)
+		default:
+			log.Printf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
+			deferError = true
+			return
 		}
 	}
 }
@@ -143,7 +151,9 @@ func DeleteEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	_, err := ec2Client.DeleteKeyPair(&ec2.DeleteKeyPairInput{
 		KeyName: keyPairName,
 	})
-	if checkDeferError(err) { return }
+	if checkDeferError(err) {
+		return
+	}
 
 	log.Printf("Amazon EC2 key pair \"%s\" successfully Deleted!\n", *keyPairName)
 }
@@ -154,26 +164,32 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: nodesStackName,
 	})
-	if checkDeferError(err) { return }
+	if checkDeferError(err) {
+		return
+	}
 
 	stackId := resp.Stacks[0].StackId
 
 	_, err = cfClient.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: nodesStackName,
 	})
-	if checkDeferError(err) { return }
+	if checkDeferError(err) {
+		return
+	}
 
 	for {
 		resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: stackId,
 		})
-		if checkDeferError(err) { return }
+		if checkDeferError(err) {
+			return
+		}
 
 		switch *resp.Stacks[0].StackStatus {
 		case "DELETE_COMPLETE":
 			log.Printf("EKS Worker Nodes \"%s\" successfully deleted!\n", *nodesStackName)
 			return
-		case  "DELETE_IN_PROGRESS":
+		case "DELETE_IN_PROGRESS":
 			time.Sleep(time.Second)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)

@@ -58,7 +58,7 @@ func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context,
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
-		_, err = client.Update(ctx, &configurator.UpdateRequest {
+		_, err = client.Update(ctx, &configurator.UpdateRequest{
 			Update: dataChange,
 		})
 	} else {
@@ -86,8 +86,7 @@ func (vxc *vppAgentXConnComposite) reset() error {
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
-		Update: &configurator.Config{
-		},
+		Update:     &configurator.Config{},
 		FullResync: true,
 	})
 	if err != nil {

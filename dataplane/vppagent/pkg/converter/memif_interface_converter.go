@@ -20,9 +20,9 @@ import (
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/ligato/vpp-agent/api/models/vpp/l3"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"os"
 	"path"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
 type MemifInterfaceConverter struct {
@@ -80,7 +80,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 		IpAddresses: ipAddresses,
 		Link: &vpp_interfaces.Interface_Memif{
 			Memif: &vpp_interfaces.MemifLink{
-				Master: isMaster,
+				Master:         isMaster,
 				SocketFilename: path.Join(fullyQualifiedSocketFilename),
 			},
 		},
@@ -90,8 +90,8 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	if c.conversionParameters.Side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
 			route := &vpp.Route{
-				Type: vpp_l3.Route_INTER_VRF,
-				DstNetwork:         route.Prefix,
+				Type:              vpp_l3.Route_INTER_VRF,
+				DstNetwork:        route.Prefix,
 				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 				OutgoingInterface: c.conversionParameters.Name,
 			}
