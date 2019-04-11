@@ -105,7 +105,7 @@ func getIcmp(parsed map[string]string) (*vpp_acl.ACL_Rule_IpRule_Icmp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed parsing icmptype [%v] with: %v", icmpType, err)
 	}
-	return &vpp_acl.ACL_Rule_IpRule_Icmp {
+	return &vpp_acl.ACL_Rule_IpRule_Icmp{
 		Icmpv6: false,
 		IcmpCodeRange: &vpp_acl.ACL_Rule_IpRule_Icmp_Range{
 			First: uint32(0),
@@ -263,8 +263,8 @@ func (c *aclConverter) ToDataRequest(rv *configurator.Config, connect bool) (*co
 		rules = append(rules, match)
 
 		rv.VppConfig.Acls = append(rv.VppConfig.Acls, &vpp_acl.ACL{
-			Name: c.Name,
-			Rules:   rules,
+			Name:  c.Name,
+			Rules: rules,
 			Interfaces: &vpp_acl.ACL_Interfaces{
 				Egress: []string{},
 				Ingress: []string{

@@ -22,15 +22,15 @@ import (
 )
 
 type OutputsMap struct {
-	SecurityGroups 	*string
-	VpcId			*string
-	SubnetIds		*string
+	SecurityGroups *string
+	VpcId          *string
+	SubnetIds      *string
 }
 
 var _, currentFilePath, _, _ = runtime.Caller(0)
 var currentPath = path.Dir(currentFilePath)
 
-func strp(str string) *string{
+func strp(str string) *string {
 	return &str
 }
 
@@ -79,14 +79,14 @@ func CreateEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
 		RoleName:                 eksRoleName,
 		Description:              &roleDescription,
 		AssumeRolePolicyDocument: &rps,
-			})
+	})
 	checkError(err)
 
 	policyArn := "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 	_, err = iamClient.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
-			})
+	})
 	checkError(err)
 
 	policyArn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
@@ -96,13 +96,12 @@ func CreateEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
 	})
 	checkError(err)
 
-
 	result, err := iamClient.GetRole(&iam.GetRoleInput{
 		RoleName: eksRoleName,
-		})
+	})
 	checkError(err)
 
-	log.Printf("Role \"%s\"(%s) successfully created!\n" , *eksRoleName, *result.Role.Arn)
+	log.Printf("Role \"%s\"(%s) successfully created!\n", *eksRoleName, *result.Role.Arn)
 
 	return result.Role.Arn
 }
@@ -127,13 +126,13 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 		checkError(err)
 
 		switch *resp.Stacks[0].StackStatus {
-			case "CREATE_COMPLETE":
-				log.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
-				return OutputsToMap(resp.Stacks[0].Outputs)
-			case  "CREATE_IN_PROGRESS":
-				time.Sleep(time.Second)
-			default:
-				log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
+		case "CREATE_COMPLETE":
+			log.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
+			return OutputsToMap(resp.Stacks[0].Outputs)
+		case "CREATE_IN_PROGRESS":
+			time.Sleep(time.Second)
+		default:
+			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 		}
 	}
 }
@@ -149,7 +148,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 	endpointPublicAccess := true
 
 	_, err := eksClient.CreateCluster(&eks.CreateClusterInput{
-		Name: clusterName,
+		Name:    clusterName,
 		RoleArn: eksRoleArn,
 		ResourcesVpcConfig: &eks.VpcConfigRequest{
 			SubnetIds: subnetIds,
@@ -157,7 +156,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 				clusterStackOutputs.SecurityGroups,
 			},
 			EndpointPrivateAccess: &endpointPrivateAccess,
-			EndpointPublicAccess: &endpointPublicAccess,
+			EndpointPublicAccess:  &endpointPublicAccess,
 		},
 	})
 	checkError(err)
@@ -168,14 +167,14 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 		})
 		checkError(err)
 
-		switch  *resp.Cluster.Status {
-			case "ACTIVE":
-				log.Printf("EKS Cluster \"%s\" successfully created!\n", *clusterName)
-				return resp.Cluster
-			case  "CREATING":
-				time.Sleep(time.Second)
-			default:
-				log.Fatalf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
+		switch *resp.Cluster.Status {
+		case "ACTIVE":
+			log.Printf("EKS Cluster \"%s\" successfully created!\n", *clusterName)
+			return resp.Cluster
+		case "CREATING":
+			time.Sleep(time.Second)
+		default:
+			log.Fatalf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
 		}
 	}
 }
@@ -218,32 +217,32 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	s := string(sf)
 
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
-		StackName: nodesStackName,
+		StackName:    nodesStackName,
 		TemplateBody: &s,
 		Capabilities: []*string{strp("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			{
-				ParameterKey: strp("KeyName"),
+				ParameterKey:   strp("KeyName"),
 				ParameterValue: keyPairName,
 			},
 			{
-				ParameterKey: strp("NodeImageId"),
+				ParameterKey:   strp("NodeImageId"),
 				ParameterValue: strp("ami-0484545fe7d3da96f"),
 			},
 			{
-				ParameterKey: strp("ClusterName"),
+				ParameterKey:   strp("ClusterName"),
 				ParameterValue: clusterName,
 			},
 			{
-				ParameterKey: strp("NodeGroupName"),
+				ParameterKey:   strp("NodeGroupName"),
 				ParameterValue: nodeGroupName,
 			},
 			{
-				ParameterKey: strp("ClusterControlPlaneSecurityGroup"),
+				ParameterKey:   strp("ClusterControlPlaneSecurityGroup"),
 				ParameterValue: clusterStackOutputs.SecurityGroups,
 			},
 			{
-				ParameterKey: strp("VpcId"),
+				ParameterKey:   strp("VpcId"),
 				ParameterValue: clusterStackOutputs.VpcId,
 			},
 			{
@@ -269,7 +268,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 				}
 			}
 			return nil
-		case  "CREATE_IN_PROGRESS":
+		case "CREATE_IN_PROGRESS":
 			time.Sleep(time.Second)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
@@ -312,7 +311,7 @@ func createAWSKubernetesCluster() {
 	sf, err := ioutil.ReadFile(path.Join(currentPath, "aws-auth-cm-temp.yaml"))
 	checkError(err)
 
-	f, err := ioutil.TempFile(os.TempDir(),"aws-auth-cm-temp-*.yaml")
+	f, err := ioutil.TempFile(os.TempDir(), "aws-auth-cm-temp-*.yaml")
 	checkError(err)
 
 	s := string(sf)
@@ -321,8 +320,8 @@ func createAWSKubernetesCluster() {
 
 	_ = f.Close()
 
-	log.Printf("> kubectl %s %s %s","apply","-f", f.Name())
-	cmd := exec.Command("kubectl","apply","-f", f.Name())
+	log.Printf("> kubectl %s %s %s", "apply", "-f", f.Name())
+	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err = cmd.Run()

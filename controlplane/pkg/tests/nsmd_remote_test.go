@@ -215,22 +215,22 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 
 	type Response struct {
 		nsmResponse *connection.Connection
-		err error
+		err         error
 	}
 	resultChan := make(chan *Response, 1)
 
 	go func(ctx context.Context, req *networkservice.NetworkServiceRequest) {
 		nsmResponse, err := nsmClient.Request(ctx, req)
-		resultChan <- &Response{nsmResponse: nsmResponse, err:err}
+		resultChan <- &Response{nsmResponse: nsmResponse, err: err}
 	}(context.Background(), request)
 
-	<- time.Tick(1 * time.Second)
+	<-time.Tick(1 * time.Second)
 
 	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
 	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms
 	testDataplane2_2.MechanismsConfigured = true
 
-	res := <- resultChan
+	res := <-resultChan
 	Expect(res.err).To(BeNil())
 	Expect(res.nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
