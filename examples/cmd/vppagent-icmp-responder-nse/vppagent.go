@@ -45,9 +45,9 @@ func (ns *vppagentComposite) CreateVppInterface(ctx context.Context, nseConnecti
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange,}); err != nil {
+	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
 		logrus.Error(err)
-		client.Delete(ctx, &configurator.DeleteRequest{Delete:dataChange})
+		client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 		return err
 	}
 	return nil
@@ -72,8 +72,7 @@ func (ns *vppagentComposite) Reset() error {
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
-		Update: &configurator.Config{
-		},
+		Update:     &configurator.Config{},
 		FullResync: true,
 	})
 	if err != nil {

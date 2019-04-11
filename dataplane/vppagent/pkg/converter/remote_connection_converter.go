@@ -82,7 +82,7 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Vxlan: &vpp_interfaces.VxlanLink{
 				SrcAddress: srcip,
 				DstAddress: dstip,
-				Vni: vni,
+				Vni:        vni,
 			},
 		},
 	})

@@ -106,7 +106,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 
 	// 3. get dataplane
-	srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, DataplaneTimeout);
+	srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, DataplaneTimeout)
 	dp, err := srv.model.SelectDataplane()
 	if err != nil {
 		return nil, err
@@ -389,8 +389,8 @@ func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistra
 }
 
 /**
-	ctx - we assume it is big enought to perform connection.
- */
+ctx - we assume it is big enought to perform connection.
+*/
 func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 	if srv.isLocalEndpoint(endpoint) {
 		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())

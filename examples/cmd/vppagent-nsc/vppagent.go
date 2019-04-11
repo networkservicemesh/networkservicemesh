@@ -70,8 +70,7 @@ func Reset(vppAgentEndpoint string) error {
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
-		Update: &configurator.Config{
-		},
+		Update:     &configurator.Config{},
 		FullResync: true,
 	})
 	if err != nil {
