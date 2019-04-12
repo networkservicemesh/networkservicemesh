@@ -65,6 +65,14 @@ func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
 
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
+	if _, err := os.Stat(w.NsmDirectory()); err == nil {
+		logrus.Infof("Removing exist content: %s, error: %v", w.NsmDirectory(), err)
+		err := os.RemoveAll(w.NsmDirectory())
+		if err != nil {
+			logrus.Errorf("Can't delete folder: %s, error: %v", w.NsmDirectory(), err)
+			return nil, err
+		}
+	}
 	if err := os.MkdirAll(w.NsmDirectory(), folderMask); err != nil {
 		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
