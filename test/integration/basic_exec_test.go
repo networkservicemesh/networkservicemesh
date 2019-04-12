@@ -19,7 +19,7 @@ func TestExec(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8sWithoutRoles()
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())

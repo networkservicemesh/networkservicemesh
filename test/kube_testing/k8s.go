@@ -20,6 +20,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kube_testing/rbac"
 )
 
 const (
@@ -245,9 +247,17 @@ type K8s struct {
 	versionedClientSet *versioned.Clientset
 	pods               []*v1.Pod
 	config             *rest.Config
+	roles              []nsmrbac.Role
 }
 
 func NewK8s() (*K8s, error) {
+
+	client, err := NewK8sWithoutRoles()
+	client.roles, _ = client.CreateRoles("admin", "view", "binding")
+	return client, err
+}
+
+func NewK8sWithoutRoles() (*K8s, error) {
 
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
@@ -362,10 +372,10 @@ func (o *K8s) CleanupCRDs() {
 func (l *K8s) Cleanup() {
 	err := l.deletePods(l.pods...)
 	Expect(err).To(BeNil())
-	l.CleanupCRDs()
 	l.pods = nil
 	l.CleanupCRDs()
 	l.CleanupConfigMaps()
+	l.DeleteRoles(l.roles)
 }
 
 func (l *K8s) PrepareDefault() {
@@ -602,4 +612,31 @@ func (o *K8s) CleanupConfigMaps() {
 	for _, cm := range configMaps.Items {
 		_ = o.clientset.CoreV1().ConfigMaps("default").Delete(cm.Name, &metaV1.DeleteOptions{})
 	}
+}
+
+func (o *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
+	createdRoles := []nsmrbac.Role{}
+	for _, kind := range rolesList {
+		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind])
+		err := role.Create(o.clientset)
+		if err != nil {
+			logrus.Errorf("failed creating role: %v %v", role, err)
+			return createdRoles, err
+		} else {
+			logrus.Infof("role is created: %v", role)
+			createdRoles = append(createdRoles, role)
+		}
+	}
+	return createdRoles, nil
+}
+
+func (o *K8s) DeleteRoles(rolesList []nsmrbac.Role) error {
+	for i := range rolesList {
+		err := rolesList[i].Delete(o.clientset, rolesList[i].GetName())
+		if err != nil {
+			logrus.Errorf("failed deleting role: %v %v", rolesList[i], err)
+			return err
+		}
+	}
+	return nil
 }
