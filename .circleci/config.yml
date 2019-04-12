@@ -331,7 +331,7 @@ workflows:
           requires:
             - "packet-test-basic-usecase"
             - "packet-test-recover"
-            - "pakcet-test-bench"
+            - "packet-test-bench"
       - docker-push-latest:
           requires:
             - packet-destroy
