@@ -497,7 +497,8 @@ workflows:
       - docker-push-latest:
           requires:
             - packet-destroy
-            - azure-destroy
+            - azure-destroy-1
+            - azure-destroy-2
           filters:
             branches:
               only: master
