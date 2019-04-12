@@ -42,3 +42,6 @@ azure-group-check: azure-cli-check
 		false; \
 	fi
 
+.PHONY: azure-download-postmortem
+azure-download-postmortem:
+	@echo "Not implemented yet."
