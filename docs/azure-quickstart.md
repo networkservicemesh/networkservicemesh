@@ -1,19 +1,5 @@
 # Azure Quick Start
 
-## Contents
-1. [Running Integration tests](#Running NSM integration tests on Azure)
-   1. [Get Account](#Get Azure Account)
-   2. [Install CLI Tool](#Install CLI Tool)
-   3. [Sign in with CLI Tool](#Sign in with CLI Tool)
-   4. [Create Resource Group](#Define a Resource Group)
-   5. [Start AKS Cluster](#Start and Configure AKS Cluster)
-   6. [Stop AKS Cluster](#Stop AKS Cluster)
-2. [Using Service Principal](#Using Service Principal)
-   1. [Create a Service principal](#Create a Service principal)
-   2. [Grant Privileges](#Grant Privileges)
-   3. [Login Azure CLI with Service Principal](#Login Azure CLI with Service Principal)
-   4. [Create AKS Cluster using Service Principal](#Create AKS Cluster using Service Principal)
-
 ## Running NSM integration tests on Azure
 
 All the steps below could be done via Azure [portal](https://portal.azure.com). 
