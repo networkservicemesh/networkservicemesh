@@ -49,10 +49,10 @@ az aks wait  \
 	--created > /dev/null && \
 echo "done" || exit 1
 
-mkdir -p "$AZURE_CREDENTIALS_PATH"
+mkdir -p "$(dirname "$AZURE_CREDENTIALS_PATH")"
 az aks get-credentials \
    	--name "$AZURE_CLUSTER_NAME" \
    	--resource-group "$AZURE_RESOURCE_GROUP" \
-   	--file "$AZURE_CREDENTIALS_PATH/config" \
+   	--file "$AZURE_CREDENTIALS_PATH" \
    	--overwrite-existing || exit 1
 

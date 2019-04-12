@@ -1,13 +1,13 @@
 ifeq ($(AZURE_RESOURCE_GROUP),)
-AZURE_RESOURCE_GROUP := DevResourceGroup
+AZURE_RESOURCE_GROUP := nsm-ci
 endif
 
 ifeq ($(AZURE_CLUSTER_NAME),)
-AZURE_CLUSTER_NAME := DevNsmCluster
+AZURE_CLUSTER_NAME := nsm-ci-cluster
 endif
 
 ifeq ($(AZURE_CREDENTIALS_PATH),)
-AZURE_CREDENTIALS_PATH := scripts/azure/.kube
+AZURE_CREDENTIALS_PATH := scripts/azure/.kube/config
 endif
 
 .PHONY: azure-start
