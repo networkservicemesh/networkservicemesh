@@ -123,7 +123,7 @@ func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 
 func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) *v1.Pod {
 	if useWebhook {
-		return deployNSC(k8s, node, name, "nsc", timeout, k8s.CreatePod(pods.NSCPodWebhook(name, node)))
+		return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
 	} else {
 		return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 			defaultNSCEnv()))
