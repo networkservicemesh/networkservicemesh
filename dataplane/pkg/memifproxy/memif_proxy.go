@@ -48,7 +48,7 @@ func (mp *Proxy) Start() error {
 	logrus.Infof("Request proxy source: %s, target: %s", mp.sourceSocket, mp.targetSocket)
 
 	if err := tryDeleteFileIfExist(mp.sourceSocket); err != nil {
-		logrus.Info("An error during trying to delete file socket file %v", mp.sourceSocket)
+		logrus.Errorf("An error during socket file deleting %v", err.Error())
 		return err
 	}
 

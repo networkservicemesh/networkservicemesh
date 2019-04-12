@@ -473,7 +473,7 @@ func getNSEMemifAddr(k8s *kube_testing.K8s, pod *v1.Pod) (net.IP, error) {
 			if response == "" {
 				continue
 			}
-			splitedResponse := strings.Split(response, "L3 ");
+			splitedResponse := strings.Split(response, "L3 ")
 			if len(splitedResponse) < 2 {
 				continue
 			}
@@ -482,7 +482,7 @@ func getNSEMemifAddr(k8s *kube_testing.K8s, pod *v1.Pod) (net.IP, error) {
 				continue
 			}
 
-			ip, err = prefix_pool.IncrementIP(ip, net);
+			ip, err = prefix_pool.IncrementIP(ip, net)
 			if err != nil {
 				continue
 			}
@@ -497,7 +497,7 @@ func getNSEMemifAddr(k8s *kube_testing.K8s, pod *v1.Pod) (net.IP, error) {
 func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 	nseIp, err := getNSEMemifAddr(k8s, from)
 	if err != nil {
-		return false;
+		return false
 	}
 	logrus.Infof("nse ip: %v", nseIp)
 	logrus.Infof(" %v trying vppctl ping to %v", from.Name, nseIp)
@@ -506,7 +506,7 @@ func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 		if err != nil {
 			logrus.Error(err.Error())
 		}
-		logrus.Infof("Ping result: %v, attempt: %v ", response, 31-attempts);
+		logrus.Infof("Ping result: %v, attempt: %v ", response, 31-attempts)
 		if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
 			result = true
 			logrus.Info("Ping successful")

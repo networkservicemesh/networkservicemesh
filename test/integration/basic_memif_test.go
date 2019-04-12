@@ -30,5 +30,4 @@ func TestSimpleMemifConnection(t *testing.T) {
 	nsmd_test_utils.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
 	vppagentNsc := nsmd_test_utils.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
 	nsmd_test_utils.IsMemifNsePinged(k8s, vppagentNsc)
-
 }
