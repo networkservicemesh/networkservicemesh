@@ -36,7 +36,7 @@ func connectAndSendMsg(sock string) {
 	addr, err := net.ResolveUnixAddr("unix", sock)
 	Expect(err).To(BeNil())
 	conn, err := net.DialUnix("unix", nil, addr)
-	defer conn.Close();
+	defer conn.Close()
 	Expect(err).To(BeNil())
 	_, err = conn.Write([]byte("secret"))
 	Expect(err).To(BeNil())
