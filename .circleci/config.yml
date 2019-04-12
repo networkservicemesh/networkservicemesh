@@ -214,11 +214,13 @@ jobs:
           name: Install Azure Prerequisites
           command: |
             ./scripts/azure/install-azure-cli.sh
-            az login --username ${CIRCLE_AZURE_USERNAME} --password ${CIRCLE_AZURE_PASSWORD}
+            az login --service-principal --username ${CIRCLE_AZURE_USERNAME} --password ${CIRCLE_AZURE_PASSWORD} --tenant ${CIRCLE_AZURE_TENANT}
       - run:
           name: Create AKS Cluster
           command: |
             export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_SERVICE_PRINCIPAL=${CIRCLE_AZURE_USERNAME}
+            export AZURE_SERVICE_PRINCIPAL_SECRET=${CIRCLE_AZURE_PASSWORD}
             make azure-start
           environment:
             AZURE_CREDENTIALS_PATH: "data/kubeconfig"
@@ -239,7 +241,7 @@ jobs:
           name: Install Azure Prerequisites
           command: |
             ./scripts/azure/install-azure-cli.sh
-            az login --username ${CIRCLE_AZURE_USERNAME} --password ${CIRCLE_AZURE_PASSWORD}
+            az login --service-principal --username ${CIRCLE_AZURE_USERNAME} --password ${CIRCLE_AZURE_PASSWORD} --tenant ${CIRCLE_AZURE_TENANT}
       - run:
           name: Destroy AKS Cluster
           command: |
