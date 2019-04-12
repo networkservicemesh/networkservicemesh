@@ -4,6 +4,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/memifproxy"
 	. "github.com/onsi/gomega"
 	"net"
+	"os"
 	"testing"
 	"time"
 )
@@ -13,6 +14,7 @@ func TestClosingOpeningMemifProxy(t *testing.T) {
 	proxy := memifproxy.NewCustomProxy("source.sock", "target.sock", "unix")
 	for i := 0; i < 10; i++ {
 		startProxy(proxy)
+		time.Sleep(time.Millisecond * 10)
 		stopProxy(proxy)
 	}
 }
@@ -30,6 +32,16 @@ func TestTransferBetweenMemifProxies(t *testing.T) {
 	stopProxy(proxy1)
 	stopProxy(proxy2)
 
+}
+
+func TestStartProxyIfSocketFileIsExist(t *testing.T) {
+	RegisterTestingT(t)
+	_, err := os.Create("source.sock")
+	Expect(err).Should(BeNil())
+	proxy := memifproxy.NewCustomProxy("source.sock", "target.sock", "unix")
+	startProxy(proxy)
+	time.Sleep(time.Millisecond * 10)
+	stopProxy(proxy)
 }
 
 func connectAndSendMsg(sock string) {

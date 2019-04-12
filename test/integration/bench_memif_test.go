@@ -15,8 +15,8 @@ import (
 const (
 	nscAgentName  = "vppagent-nsc"
 	icmpAgentName = "icmp-responder"
-	nscCount      = 3
-	nscMaxCount   = 10
+	nscCount      = 10
+	nscMaxCount   = 20
 )
 
 func TestBenchMemifOneTimeConnecting(t *testing.T) {
@@ -39,11 +39,11 @@ func TestBenchMemifOneTimeConnecting(t *testing.T) {
 	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
 
-	for count := nscCount; count >= 0; count-- {
+	for count := nscCount; count > 0; count-- {
 		go createNscAndPingIcmp(k8s, count, node, doneChannel)
 	}
 
-	for count := nscCount; count >= 0; count-- {
+	for count := nscCount; count > 0; count-- {
 		nscPingResult := <-doneChannel
 		Expect(nscPingResult.success).To(Equal(true))
 	}
