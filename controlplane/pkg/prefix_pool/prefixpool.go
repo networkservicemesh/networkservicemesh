@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/sirupsen/logrus"
 )
 
 /**
@@ -21,7 +22,7 @@ type PrefixPool interface {
 	GetConnectionInformation(connectionId string) (string, []string, error)
 	GetPrefixes() []string
 	Intersect(prefix string) (bool, error)
-	ExcludePrefixes(excludedPrefixes []string)
+	ExcludePrefixes(excludedPrefixes []string) error
 }
 type prefixPool struct {
 	sync.RWMutex
@@ -50,8 +51,97 @@ func NewPrefixPool(prefixes ...string) (PrefixPool, error) {
 }
 
 /* Exclude prefixes from the pool of available prefixes */
-func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) {
+func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) error {
+	impl.Lock()
+	defer impl.Unlock()
 
+	for _, excludedPrefix := range excludedPrefixes {
+		splittedEntries := []string{}
+		prefixesToRemove := []string{}
+		_, subnetExclude, _ := net.ParseCIDR(excludedPrefix)
+
+		/* 1. Check if each excluded entry overlaps with the available prefix */
+		for _, prefix := range impl.prefixes {
+			intersecting := false
+			excludedIsBigger := false
+			_, subnetPrefix, _ := net.ParseCIDR(prefix)
+			intersecting, excludedIsBigger = intersect(subnetExclude, subnetPrefix)
+			/* 1.1. If intersecting, check which one is bigger */
+			if intersecting {
+				/* 1.1.1. If excluded is bigger, we remove the original entry */
+				if !excludedIsBigger {
+					/* 1.1.2. If the original entry is bigger, we split it and remove the avoided range */
+					res, err := extractSubnet(subnetPrefix, subnetExclude)
+					if err != nil {
+						return err
+					}
+					/* 1.1.3. Collect the resulted split prefixes */
+					splittedEntries = append(splittedEntries, res...)
+				}
+				/* 1.1.4. Collect prefixes that should be removed from the original pool */
+				prefixesToRemove = append(prefixesToRemove, subnetPrefix.String())
+				break
+			}
+			/* 1.2. If not intersecting, proceed verifying the next one */
+		}
+		/* 2. Keep only the prefixes that should not be removed from the original pool */
+		if len(prefixesToRemove) != 0 {
+			for _, presentPrefix := range impl.prefixes {
+				prefixFound := false
+				for _, prefixToRemove := range prefixesToRemove {
+					if presentPrefix == prefixToRemove {
+						prefixFound = true
+						break
+					}
+				}
+				if !prefixFound {
+					/* 2.1. Add the original non-split prefixes to the split ones */
+					splittedEntries = append(splittedEntries, presentPrefix)
+				}
+			}
+			/* 2.2. Update the original prefix list */
+			impl.prefixes = splittedEntries
+		}
+	}
+	/* 3. Raise an error, if there aren't any available prefixes left after excluding */
+	if len(impl.prefixes) == 0 {
+		err := fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")
+		logrus.Errorf("%v", err)
+		return err
+	}
+	return nil
+}
+
+/* Split the wider range removing the avoided smaller range from it */
+func extractSubnet(wider, smaller *net.IPNet) ([]string, error) {
+	root := wider
+	prefixLen, _ := smaller.Mask.Size()
+	leftParts, rightParts := []string{}, []string{}
+	for {
+		rootLen, _ := root.Mask.Size()
+		if rootLen == prefixLen {
+			// we found the required prefix
+			break
+		}
+		sub1, err := subnet(root, 0)
+		if err != nil {
+			return nil, err
+		}
+		sub2, err := subnet(root, 1)
+		if err != nil {
+			return nil, err
+		}
+		if sub1.Contains(smaller.IP) {
+			rightParts = append(rightParts, sub2.String())
+			root = sub1
+		} else if sub2.Contains(smaller.IP) {
+			leftParts = append(leftParts, sub1.String())
+			root = sub2
+		} else {
+			return nil, fmt.Errorf("split failed")
+		}
+	}
+	return append(leftParts, rightParts...), nil
 }
 
 func (impl *prefixPool) Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP *net.IPNet, dstIP *net.IPNet, requested []string, err error) {
@@ -102,6 +192,7 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 	}
 	return &net.IPNet{IP: src, Mask: ipNet.Mask}, &net.IPNet{IP: dst, Mask: ipNet.Mask}, requested, nil
 }
+
 func (impl *prefixPool) Release(connectionId string) error {
 	impl.Lock()
 	defer impl.Unlock()
@@ -144,30 +235,31 @@ func (impl *prefixPool) Intersect(prefix string) (bool, error) {
 
 	for _, p := range impl.prefixes {
 		_, sn, _ := net.ParseCIDR(p)
-		if intersect(sn, subnet) {
+		if ret, _ := intersect(sn, subnet); ret {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func intersect(first, second *net.IPNet) bool {
+func intersect(first, second *net.IPNet) (bool, bool) {
 	f, _ := first.Mask.Size()
 	s, _ := second.Mask.Size()
+	firstIsBigger := false
 
 	var widerRange, narrowerRange *net.IPNet
 	if f < s {
 		widerRange, narrowerRange = first, second
+		firstIsBigger = true
 	} else {
 		widerRange, narrowerRange = second, first
 	}
 
-	return widerRange.Contains(narrowerRange.IP)
+	return widerRange.Contains(narrowerRange.IP), firstIsBigger
 }
 
 func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPrefixRequest) (requested []string, remaining []string, err error) {
 	// Check if requests are valid.
-
 	for _, request := range requests {
 		error := request.IsValid()
 		if error != nil {

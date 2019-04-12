@@ -1,11 +1,13 @@
 package prefix_pool
 
 import (
+	"fmt"
+	"net"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"net"
-	"testing"
 )
 
 func TestPrefixPoolSubnet1(t *testing.T) {
@@ -319,4 +321,41 @@ func TestIntersect2(t *testing.T) {
 	Expect(pp.Intersect("10.32.0.0/24")).To(Equal(true))
 	Expect(pp.Intersect("10.2.0.0/16")).To(Equal(false))
 
+}
+
+func TestExcludePrefixesPartialOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16", "10.32.1.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.1.10/24", "10.20.32.0/19"}
+
+	err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/24", "10.20.128.0/17", "10.20.64.0/18", "10.20.16.0/20", "10.20.8.0/21", "10.20.4.0/22", "10.20.2.0/23", "10.32.1.0/16"}))
+}
+
+func TestExcludePrefixesNoOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.32.1.0/16"}
+
+	err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+}
+
+func TestExcludePrefixesFullOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/24")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.1.0/16"}
+
+	err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(Equal(fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")))
 }
