@@ -5,6 +5,7 @@
 [![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20license%202.0-blue.svg)](https://github.com/networkservicemesh/networkservicemesh/blob/master/LICENSE)
 [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh?ref=badge_shield)
 
 <p align="center">
   <a href="https://www.networkservicemesh.io/"><img src="https://networkservicemesh.io/img/logo.png"></a>
@@ -69,3 +70,6 @@ If you run into problems, check the [docs](/docs/README.md) and feel free to pos
 ## Licence
 
 This project is released under the Apache 2.0 License. Please review the [License file](LICENSE) for more details.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh?ref=badge_large)
