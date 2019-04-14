@@ -5,6 +5,7 @@ ENV GO111MODULE=on
 
 RUN mkdir /root/networkservicemesh
 ADD ["go.mod","/root/networkservicemesh"]
+ADD ["vendor","/root/networkservicemesh"]
 WORKDIR /root/networkservicemesh/
 RUN until go mod download;do echo "Trying again";done
 
