@@ -49,3 +49,5 @@ require (
 	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kubernetes v1.14.1
 )
+
+replace cloud.google.com/go => ./vendor/gocloud

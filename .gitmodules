@@ -1,0 +1,3 @@
+[submodule "vendor/gocloud"]
+	path = vendor/gocloud
+	url = https://code.googlesource.com/gocloud
