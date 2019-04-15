@@ -1,6 +1,7 @@
 package serviceregistry
 
 import (
+	"golang.org/x/net/context"
 	"net"
 	"time"
 
@@ -25,19 +26,19 @@ A method to obtain different connectivity mechanism for parts of model
 type ServiceRegistry interface {
 	GetPublicAPI() string
 
-	NetworkServiceDiscovery() (registry.NetworkServiceDiscoveryClient, error)
-	RegistryClient() (registry.NetworkServiceRegistryClient, error)
+	DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error)
+	NseRegistryClient() (registry.NetworkServiceRegistryClient, error)
+	NsmRegistryClient() (registry.NsmRegistryClient, error)
+	ClusterInfoClient() (registry.ClusterInfoClient, error)
 
 	Stop()
 	NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error)
 	DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error)
 
-	EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
-	RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
+	EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
+	RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 
 	WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error
-
-	WorkspaceName(endpoint *registry.NSERegistration) string
 
 	VniAllocator() vni.VniAllocator
 
@@ -50,4 +51,7 @@ type WorkspaceLocationProvider interface {
 	ClientBaseDir() string
 	NsmServerSocket() string
 	NsmClientSocket() string
+
+	// A persistent file based NSE <-> Workspace registry.
+	NsmNSERegistryFile() string
 }

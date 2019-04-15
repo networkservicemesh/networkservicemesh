@@ -27,8 +27,24 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 	return rv
 }
 
-func (c *NetworkServiceEndpointCache) Get(networkServiceName string) []*v1.NetworkServiceEndpoint {
+func (c *NetworkServiceEndpointCache) Get(key string) *v1.NetworkServiceEndpoint {
+	return c.networkServiceEndpoints[key]
+}
+
+func (c *NetworkServiceEndpointCache) GetByNetworkService(networkServiceName string) []*v1.NetworkServiceEndpoint {
 	return c.nseByNs[networkServiceName]
+}
+
+func (c *NetworkServiceEndpointCache) GetByNetworkServiceManager(nsmName string) []*v1.NetworkServiceEndpoint {
+	var rv []*v1.NetworkServiceEndpoint
+
+	for _, endpoint := range c.networkServiceEndpoints {
+		if endpoint.Spec.NsmName == nsmName {
+			rv = append(rv, endpoint)
+		}
+	}
+
+	return rv
 }
 
 func (c *NetworkServiceEndpointCache) Add(nse *v1.NetworkServiceEndpoint) {

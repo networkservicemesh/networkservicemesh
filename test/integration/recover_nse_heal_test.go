@@ -46,25 +46,25 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse", "jaeger")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	// Run ICMP on latest node
-	nse1 := nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	nse1 := nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout)
+	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	// Do dumping of container state to dig into what is happened.
+	// Do dumping of container state to dig into what is happened.Heal: Connection recovered
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse2", defaultTimeout)
+	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-2", defaultTimeout)
 
 	logrus.Infof("Delete first NSE")
 	k8s.DeletePods(nse1)
@@ -80,7 +80,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	if len(nodes_setup) > 1 {
 		l2, err := k8s.GetLogs(nodes_setup[1].Nsmd, "nsmd")
 		Expect(err).To(BeNil())
-		if strings.Contains(l2, "Dataplane1 request failed:") {
+		if strings.Contains(l2, "Dataplane request failed:") {
 			logrus.Infof("Dataplane first attempt was failed: %v", l2)
 		}
 	}

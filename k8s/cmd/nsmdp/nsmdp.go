@@ -17,19 +17,20 @@ package main
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"net"
 	"os"
 	"os/signal"
 	"path"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -41,10 +42,21 @@ const (
 	resourceName = "networkservicemesh.io/socket"
 	// ServerSock defines the name of NSM client socket
 	ServerSock = "networkservicemesh.io.sock"
+
+	// A number of devices we have in buffer for use, so we hold extra DeviceBuffer count of deviceids send to kubelet.
+	DeviceBuffer = 30
+
+	// Send device ids to kubelet every N seconds.
+	KubeletNotifyDelay = 30 * time.Second
 )
 
 type nsmClientEndpoints struct {
 	serviceRegistry serviceregistry.ServiceRegistry
+	resp            *pluginapi.ListAndWatchResponse
+	devs            map[string]*pluginapi.Device
+	pluginApi       *pluginapi.DevicePlugin_ListAndWatchServer
+	mutext          sync.Mutex
+	clientId        int
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
@@ -112,7 +124,8 @@ func (n *nsmClientEndpoints) GetDevicePluginOptions(context.Context, *pluginapi.
 	return &pluginapi.DevicePluginOptions{}, nil
 }
 
-func (n *nsmClientEndpoints) PreStartContainer(context.Context, *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
+func (n *nsmClientEndpoints) PreStartContainer(ctx context.Context, info *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
+	logrus.Infof("Pre start container called... %v ", info)
 	return &pluginapi.PreStartContainerResponse{}, nil
 }
 
@@ -126,7 +139,6 @@ func enumWorkspaces(serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.E
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("nsmd allocated workspace %+v for client operations...", reply)
 	return reply, nil
 }
 
@@ -141,35 +153,15 @@ func indexOf(slice []string, value string) int {
 
 func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
 	logrus.Infof("ListAndWatch was called with s: %+v", s)
+	n.pluginApi = &s
+
+	// Restore state from NSMD
 	for {
-		resp := new(pluginapi.ListAndWatchResponse)
-		enumWS, err := enumWorkspaces(n.serviceRegistry)
-		if err != nil {
-			logrus.Errorf("error retrieving workspaces from nsmd: %v", err)
-		}
-		workspaces := enumWS.Workspace
-		id := 1
-		for pool := 0; pool < 10; id++ {
-			workspace := fmt.Sprintf("nsm-%d", id)
-			if indexOf(workspaces, workspace) != -1 {
-				continue
-			}
-			pool++
-			resp.Devices = append(resp.Devices, &pluginapi.Device{
-				ID:     workspace,
-				Health: pluginapi.Healthy,
-			})
-		}
-		for _, w := range workspaces {
-			resp.Devices = append(resp.Devices, &pluginapi.Device{
-				ID:     w,
-				Health: pluginapi.Healthy,
-			})
-		}
-		if err := s.Send(resp); err != nil {
-			logrus.Errorf("Failed to send response to kubelet: %v\n", err)
-		}
-		time.Sleep(30 * time.Second)
+		n.receiveWorkspaces()
+		n.sendDeviceUpdate()
+
+		// Sleep before next notification.
+		time.Sleep(KubeletNotifyDelay)
 	}
 }
 
@@ -198,7 +190,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.SocketOperationCheck(listenEndpoint)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(listenEndpoint))
 	if err != nil {
 		return err
 	}
@@ -220,6 +212,12 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	waitForNsmdAvailable()
 	nsm := &nsmClientEndpoints{
 		serviceRegistry: serviceRegistry,
+		resp:            new(pluginapi.ListAndWatchResponse),
+		devs:            map[string]*pluginapi.Device{},
+	}
+
+	for i := 0; i < DeviceBuffer; i++ {
+		nsm.addClientDevice()
 	}
 
 	if err := startDeviceServer(nsm); err != nil {
@@ -229,6 +227,78 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	err := Register(pluginapi.KubeletSocket)
 
 	return err
+}
+
+func (nsm *nsmClientEndpoints) addClientDevice() {
+	nsm.mutext.Lock()
+	defer nsm.mutext.Unlock()
+
+	for {
+		nsm.clientId++
+
+		id := fmt.Sprintf("nsm-%d", nsm.clientId)
+		if _, ok := nsm.devs[id]; ok {
+			// Item already exists, increment to new one.
+			continue
+		}
+		// Add a new device Id
+		dev := &pluginapi.Device{
+			ID:     id,
+			Health: pluginapi.Healthy,
+		}
+		nsm.devs[id] = dev
+		nsm.resp.Devices = append(nsm.resp.Devices, dev)
+		break
+	}
+
+}
+
+func (n *nsmClientEndpoints) sendDeviceUpdate() {
+	n.mutext.Lock()
+	defer n.mutext.Unlock()
+	if n.pluginApi != nil {
+		api := *n.pluginApi
+		logrus.Infof("Send device plugins intfo %v", n.resp)
+		if err := api.Send(n.resp); err != nil {
+			logrus.Errorf("Failed to send response to kubelet: %v\n", err)
+		}
+	}
+}
+
+func (n *nsmClientEndpoints) receiveWorkspaces() {
+	for {
+		reply, err := enumWorkspaces(n.serviceRegistry)
+		if err != nil {
+			logrus.Errorf("Error receive devices from NSM. %v", err)
+			// Make a fast delay to faster startup of NSMD.
+			<-time.Tick(100 * time.Millisecond)
+			continue
+		}
+		n.mutext.Lock()
+
+		// Check we had all workspaces in our update list
+		// This list could be changed in case both NSMDp and NSMD restart.
+		for _, w := range reply.GetWorkspace() {
+			if len(w) > 0 {
+				if _, ok := n.devs[w]; !ok {
+					// We do not have this one in list of our devices
+					dev := &pluginapi.Device{
+						ID:     w,
+						Health: pluginapi.Healthy,
+					}
+					n.devs[w] = dev
+					n.resp.Devices = append(n.resp.Devices, dev)
+				}
+			}
+		}
+		n.mutext.Unlock()
+		// Be sure we have enought deviced ids allocated.
+		for len(n.resp.Devices) < len(reply.GetWorkspace())+DeviceBuffer {
+			n.addClientDevice()
+		}
+
+		break
+	}
 }
 
 func main() {

@@ -3,6 +3,9 @@
 package nsmd_integration_tests
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"strings"
 	"testing"
 	"time"
@@ -11,10 +14,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
-func TestNscDiesSingleNode(t *testing.T) {
+func TestNSCDiesSingleNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -25,7 +28,7 @@ func TestNscDiesSingleNode(t *testing.T) {
 	testDie(t, true, 1)
 }
 
-func TestNseDiesSingleNode(t *testing.T) {
+func TestNSEDiesSingleNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -36,7 +39,7 @@ func TestNseDiesSingleNode(t *testing.T) {
 	testDie(t, false, 1)
 }
 
-func TestNscDiesMultiNode(t *testing.T) {
+func TestNSCDiesMultiNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -47,7 +50,7 @@ func TestNscDiesMultiNode(t *testing.T) {
 	testDie(t, true, 2)
 }
 
-func TestNseDiesMultiNode(t *testing.T) {
+func TestNSEDiesMultiNode(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -58,21 +61,29 @@ func TestNseDiesMultiNode(t *testing.T) {
 	testDie(t, false, 2)
 }
 
+var NSENoHeal = &pods.NSMgrPodConfig{
+	Variables: map[string]string{
+		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
+		nsm.NsmdHealEnabled:          "true",
+	},
+}
+
 func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
-
-	icmp := nsmd_test_utils.DeployIcmp(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
-	nsc := nsmd_test_utils.DeployNsc(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{NSENoHeal, NSENoHeal})
 
 	failures := InterceptGomegaFailures(func() {
+		icmp := nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+		nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout, false)
+
 		ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")
 		Expect(err).To(BeNil())
 		Expect(errOut).To(Equal(""))
@@ -83,7 +94,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 		Expect(errOut).To(Equal(""))
 		Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
-		pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-c", "5")
+		pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "5")
 		Expect(err).To(BeNil())
 		Expect(strings.Contains(pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
 		logrus.Printf("NSC Ping is success:%s", pingResponse)
@@ -112,7 +123,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	})
 
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 		for k := 0; k < nodesCount; k++ {
 			nsmdLogs, _ := k8s.GetLogs(nodes[k].Nsmd, "nsmd")
 			logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)

@@ -9,37 +9,44 @@ fi
 
 cd /go/src/github.com/networkservicemesh/networkservicemesh/ || exit 101
 
+echo "Starting debug for $1"
+
 go_file=""
 port=40000
 mkdir -p /bin
 output=/bin/debug
 if [ "$1" = "nsmd" ]; then
     go_file=./controlplane/cmd/nsmd
-    port=40000
+    output=/bin/$1
+fi
+
+if [ "$1" = "nsmdp" ]; then
+    go_file=./k8s/cmd/nsmdp
+    output=/bin/$1
+fi
+
+if [ "$1" = "nsmd-k8s" ]; then
+    go_file=./k8s/cmd/nsmdp-k8s
     output=/bin/$1
 fi
 
 if [ "$1" = "nsc" ]; then
     go_file=./examples/cmd/nsc
-    port=40001
     output=/bin/$1
 fi
 
 if [ "$1" = "icmp-responder-nse" ]; then
     go_file=./examples/cmd/icmp-responder-nse
-    port=40002
     output=/bin/$1
 fi
 
 if [ "$1" = "vppagent-dataplane" ]; then
     go_file=./dataplane/vppagent/cmd/vppagent-dataplane.go
-    port=40003
     output=/bin/$1
 fi
 
 if [ "$1" = "crossconnect-monitor" ]; then
     go_file=./k8s/cmd/crossconnect_monitor
-    port=40004
     output=/bin/$1
 fi
 

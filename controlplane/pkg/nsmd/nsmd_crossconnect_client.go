@@ -79,6 +79,7 @@ func dial(ctx context.Context, network string, address string) (*grpc.ClientConn
 func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dataplane *model.Dataplane) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client.dataplanes[dataplane.RegisteredName] = cancel
+	logrus.Infof("Starting Dataplane crossconnect monitoring client...")
 	go client.dataplaneCrossConnectMonitor(dataplane, ctx)
 }
 
@@ -189,25 +190,32 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 					client.crossConnectMonitor.Update(xcon)
 				}
 			}
+			if event.GetType() == crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER {
+				connects := []*crossconnect.CrossConnect{}
+				for _, xcon := range event.GetCrossConnects() {
+					connects = append(connects, xcon)
+				}
+				client.xconManager.UpdateFromInitialState(connects, dataplane)
+			}
 		}
 	}
 }
 
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePeer *registry.NetworkServiceManager, ctx context.Context) {
-	logrus.Infof("Connecting to Remote NSM: %s", remotePeer.Name)
+	logrus.Infof("NSM-PeerMonitor(%v): Connecting...", remotePeer.Name)
 	conn, err := grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry %s at %s: %s", remotePeer.GetName(), remotePeer.Url, err)
+		logrus.Errorf("NSM-PeerMonitor(%v): Failed to dial Network Service Registry at %s: %s", remotePeer.GetName(), remotePeer.Url, err)
 		return
 	}
 	defer conn.Close()
 
 	defer func() {
-		logrus.Infof("Remote monitor closed... %v", remotePeer)
+		logrus.Infof("NSM-PeerMonitor(%v): Remote monitor closed...", remotePeer.Name)
 	}()
 
 	monitorClient := remote_connection.NewMonitorConnectionClient(conn)
-	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: remotePeer.Name}
+	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: client.xconManager.GetNsmName()}
 	stream, err := monitorClient.MonitorConnections(context.Background(), selector)
 	if err != nil {
 		logrus.Error(err)
@@ -217,17 +225,21 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Info("Context timeout exceeded...")
+			logrus.Infof("NSM-PeerMonitor(%v): Context timeout exceeded...", remotePeer.Name)
 			return
 		default:
-			logrus.Info("Recv Connection event...")
+			logrus.Infof("NSM-PeerMonitor(%v): Waiting for events...", remotePeer.Name)
 			event, err := stream.Recv()
 			if err != nil {
-				logrus.Error(err)
-				//TODO (lobkovilya): handle remote NSM dies
+				logrus.Errorf("NSM-PeerMonitor(%v) Uexpected error: %v", remotePeer.Name, err)
+				connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
+				for _, c := range connections {
+					// Same as DST down case, we need to find another NSE to connect to.
+					client.xconManager.UpdateClientConnectionDstStateDown(c)
+				}
 				return
 			}
-			logrus.Infof("Receive event from remote NSM %s: %s %s", remotePeer.GetName(), event.Type, event.Connections)
+			logrus.Infof("NSM-PeerMonitor(%v) Receive event %s %s", remotePeer.GetName(), event.Type, event.Connections)
 
 			for _, remoteConnection := range event.GetConnections() {
 				clientConnection := client.xconManager.GetClientConnectionByDst(remoteConnection.GetId())

@@ -6,22 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 )
-
-func createNscPod(node *v1.Node) *v1.Pod {
-	return pods.NSCPod("nsc1", node,
-		map[string]string{
-			"OUTGOING_NSC_LABELS": "app=icmp",
-			"OUTGOING_NSC_NAME":   "icmp-responder",
-		},
-	)
-}
 
 func TestNSCAndICMPLocal(t *testing.T) {
 	RegisterTestingT(t)
@@ -31,7 +22,7 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, createNscPod)
+	testNSCAndICMP(t, 1, false, false)
 }
 
 func TestNSCAndICMPRemote(t *testing.T) {
@@ -42,7 +33,7 @@ func TestNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, createNscPod)
+	testNSCAndICMP(t, 2, false, false)
 }
 
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
@@ -53,9 +44,7 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, func(node *v1.Node) *v1.Pod {
-		return pods.NSCPodWebhook("nsc1", node)
-	})
+	testNSCAndICMP(t, 1, true, false)
 }
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
@@ -66,30 +55,64 @@ func TestNSCAndICMPWebhookRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, func(node *v1.Node) *v1.Pod {
-		return pods.NSCPodWebhook("nsc1", node)
-	})
+	testNSCAndICMP(t, 2, true, false)
+}
+
+func TestNSCAndICMPLocalVeth(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 1, false, true)
+}
+
+func TestNSCAndICMPRemoteVeth(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 2, false, true)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *v1.Pod) {
+func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	s1 := time.Now()
-	k8s.Prepare("nsmd", "nsc", "nsmd-dataplane", "icmp-responder-nse")
+	k8s.PrepareDefault()
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	if useWebhook {
+		awc, awDeployment, awService := nsmd_test_utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", "default")
+		defer nsmd_test_utils.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, "default")
+	}
+
+	config := []*pods.NSMgrPodConfig{}
+	for i := 0; i < nodesCount; i++ {
+		cfg := &pods.NSMgrPodConfig{}
+		if disableVHost {
+			cfg.DataplaneVariables = map[string]string{}
+			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
+		}
+		config = append(config, cfg)
+	}
+	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config)
 
 	// Run ICMP on latest node
-	_ = nsmd_test_utils.DeployIcmp(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse1", defaultTimeout)
+	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNsc(k8s, nodes_setup[0].Node, "nsc1", defaultTimeout)
+	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, useWebhook)
 
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 
@@ -98,7 +121,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, nscPodFactory func(*v1.Node) *
 	})
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
-		logrus.Errorf("Failues: %v", failures)
+		logrus.Errorf("Failures: %v", failures)
 		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
 		nscInfo.PrintLogs()
 

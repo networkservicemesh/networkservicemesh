@@ -69,35 +69,29 @@ func (impl *nsmdServiceRegistry) NewWorkspaceProvider() serviceregistry.Workspac
 	return NewDefaultWorkspaceProvider()
 }
 
-func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.GetUrl(), 1*time.Second)
+func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+	err := tools.WaitForPortAvailable(ctx, "tcp", nsm.GetUrl(), 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	logrus.Infof("Remote Network Service %s is available at %s, attempting to connect...", nsm.GetName(), nsm.GetUrl())
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure(),
+	conn, err := grpc.DialContext(ctx, nsm.Url, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry %s at %s: %s", nsm.GetName(), nsm.Url, err)
+		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
 	}
 	client := remote_networkservice.NewNetworkServiceClient(conn)
+	logrus.Infof("Connection with Remote Network Service %s at %s is established", nsm.GetName(), nsm.GetUrl())
 	return client, conn, nil
 }
 
-func (impl *nsmdServiceRegistry) EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
-	if workspace == nil {
-		err := fmt.Errorf("cannot find workspace for endpoint %v", endpoint)
-		logrus.Error(err)
-		return nil, nil, err
-	}
-	nseConn, err := tools.SocketOperationCheck(workspace.NsmClientSocket())
+func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+	nseConn, err := tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation))
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
@@ -107,17 +101,8 @@ func (impl *nsmdServiceRegistry) EndpointConnection(endpoint *registry.NSERegist
 	return client, nseConn, nil
 }
 
-func (impl *nsmdServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
-	// TODO - this is terribly dirty and needs to be fixed
-	workspace := WorkSpaceRegistry().WorkspaceByEndpoint(endpoint.GetNetworkserviceEndpoint())
-	if workspace != nil { // In case of tests this could be empty
-		return workspace.Name()
-	}
-	return ""
-}
-
 func (impl *nsmdServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {
-	dataplaneConn, err := tools.SocketOperationCheck(dataplane.SocketLocation)
+	dataplaneConn, err := tools.SocketOperationCheck(tools.SocketPath(dataplane.SocketLocation))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -131,7 +116,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 		return nil, nil, err
 	}
 
-	conn, err := tools.SocketOperationCheck(ServerSock)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(ServerSock))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,11 +125,11 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 
-func (impl *nsmdServiceRegistry) RegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
-	logrus.Info("Requesting RegistryClient...")
+	logrus.Info("Requesting NseRegistryClient...")
 
 	impl.initRegistryClient()
 	if impl.registryClientConnection != nil {
@@ -153,11 +138,35 @@ func (impl *nsmdServiceRegistry) RegistryClient() (registry.NetworkServiceRegist
 	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
 }
 
+func (impl *nsmdServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+	impl.RWMutex.Lock()
+	defer impl.RWMutex.Unlock()
+
+	logrus.Info("Requesting NsmRegistryClient...")
+	impl.initRegistryClient()
+	if impl.registryClientConnection != nil {
+		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
+	}
+	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+}
+
+func (impl *nsmdServiceRegistry) ClusterInfoClient() (registry.ClusterInfoClient, error) {
+	impl.RWMutex.Lock()
+	defer impl.RWMutex.Unlock()
+
+	logrus.Info("Requesting ClusterInfoClient...")
+	impl.initRegistryClient()
+	if impl.registryClientConnection != nil {
+		return registry.NewClusterInfoClient(impl.registryClientConnection), nil
+	}
+	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+}
+
 func (impl *nsmdServiceRegistry) GetPublicAPI() string {
 	return GetLocalIPAddress() + ":5001"
 }
 
-func (impl *nsmdServiceRegistry) NetworkServiceDiscovery() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
@@ -177,7 +186,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 	}
 	// TODO doing registry Address here is ugly
 	for impl.stopRedial {
-		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 1*time.Second)
+		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		logrus.Println("Registry port now available, attempting to connect...")
 		tracer := opentracing.GlobalTracer()
 		conn, err := grpc.Dial(impl.registryAddress, grpc.WithInsecure(),
@@ -232,6 +241,17 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model, ti
 	st := time.Now()
 	for ; true; <-time.After(100 * time.Millisecond) {
 		if dp, _ := model.SelectDataplane(); dp != nil {
+
+			// Wait for mechanisms configuration
+			if !dp.MechanismsConfigured {
+				logrus.Info("Waiting for dataplane mechanisms configured...")
+				for ; !dp.MechanismsConfigured; <-time.After(100 * time.Millisecond) {
+					if time.Since(st) > timeout {
+						break
+					}
+				}
+			}
+
 			break
 		}
 		if time.Since(st) > timeout {
@@ -251,6 +271,7 @@ type defaultWorkspaceProvider struct {
 	clientBaseDir   string
 	nsmServerSocket string
 	nsmClientSocket string
+	nseRegistryFile string
 }
 
 func NewDefaultWorkspaceProvider() serviceregistry.WorkspaceLocationProvider {
@@ -267,6 +288,7 @@ func NewWorkspaceProvider(rootDir string) serviceregistry.WorkspaceLocationProvi
 		clientBaseDir:   rootDir,
 		nsmServerSocket: "nsm.server.io.sock",
 		nsmClientSocket: "nsm.client.io.sock",
+		nseRegistryFile: "nse.registry",
 	}
 }
 
@@ -276,6 +298,10 @@ func (w *defaultWorkspaceProvider) HostBaseDir() string {
 
 func (w *defaultWorkspaceProvider) NsmBaseDir() string {
 	return w.nsmBaseDir
+}
+
+func (w *defaultWorkspaceProvider) NsmNSERegistryFile() string {
+	return w.nsmBaseDir + w.nseRegistryFile
 }
 
 func (w *defaultWorkspaceProvider) ClientBaseDir() string {

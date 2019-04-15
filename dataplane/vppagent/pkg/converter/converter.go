@@ -1,9 +1,11 @@
 package converter
 
-import "github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+import (
+	"github.com/ligato/vpp-agent/api/configurator"
+)
 
 type Converter interface {
-	ToDataRequest(rv *rpc.DataRequest, connect bool) (*rpc.DataRequest, error)
+	ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error)
 }
 
 type CrossConnectConversionParameters struct {

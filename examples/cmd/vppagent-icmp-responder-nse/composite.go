@@ -31,9 +31,13 @@ const (
 )
 
 type vppagentComposite struct {
-	endpoint.BaseCompositeEndpoint
+	endpoint.ChainedImpl
 	vppAgentEndpoint string
 	workspace        string
+}
+
+func (ns *vppagentComposite) GetOpaque(interface{}) interface{} {
+	return nil
 }
 
 func (ns *vppagentComposite) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -53,7 +57,8 @@ func (ns *vppagentComposite) Request(ctx context.Context, request *networkservic
 		logrus.Error(err)
 		return nil, err
 	}
-	return nil, nil
+
+	return incoming, nil
 }
 
 func (ns *vppagentComposite) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
@@ -72,7 +77,6 @@ func newVppAgentComposite(configuration *common.NSConfiguration) *vppagentCompos
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 		workspace:        configuration.Workspace,
 	}
-	newVppAgentComposite.SetSelf(newVppAgentComposite)
 	newVppAgentComposite.Reset()
 
 	return newVppAgentComposite

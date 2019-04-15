@@ -19,23 +19,28 @@ import (
 	"os"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 const (
-	containerRegistryEnv  = "CONTAINER_REGISTRY"
+	containerRepoEnv      = "CONTAINER_REPO"
 	containerTagEnv       = "CONTAINER_TAG"
 	containerTagDefault   = "latest"
 	containerForcePullEnv = "CONTAINER_FORCE_PULL"
+	containerRepoDefault  = "networkservicemesh"
 )
 
-var containerRegistry = ""
+var containerRepo = ""
 var containerTag = "latest"
 var containerForcePull = false
 
 func init() {
 	found := false
-	containerRegistry, found = os.LookupEnv(containerRegistryEnv)
+	containerRepo, found = os.LookupEnv(containerRepoEnv)
+
+	if !found {
+		containerRepo = containerRepoDefault
+	}
 
 	containerTag, found = os.LookupEnv(containerTagEnv)
 	if !found {
@@ -47,10 +52,10 @@ func init() {
 }
 
 func containerMod(c *v1.Container) v1.Container {
-	if strings.HasPrefix(c.Image, "networkservicemesh") {
+	if strings.HasPrefix(c.Image, containerRepoDefault) {
 		c.Image = strings.Split(c.Image, ":")[0] + ":" + containerTag
-		if len(containerRegistry) > 0 {
-			c.Image = containerRegistry + "/" + c.Image
+		if len(containerRepo) > 0 {
+			c.Image = strings.Replace(c.Image, containerRepoDefault, containerRepo, -1)
 		}
 
 		if containerForcePull {

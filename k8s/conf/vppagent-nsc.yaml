@@ -1,7 +1,11 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 spec:
+  selector:
+    matchLabels:
+      networkservicemesh.io: "true"
+      networkservicemesh.io/app: "vppagent-nsc"
   replicas: 2
   template:
     metadata:

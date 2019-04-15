@@ -30,6 +30,7 @@ import (
 const (
 	connectRetries = 10
 	connectSleep   = 5 * time.Second
+	connectTimeout = 10 * time.Second
 )
 
 // NsmClient is the NSM client struct
@@ -72,7 +73,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 		var err error
 		logrus.Infof("Sending outgoing request %v", outgoingRequest)
 
-		ctx, cancel := context.WithTimeout(nsmc.Context, 5*time.Second)
+		ctx, cancel := context.WithTimeout(nsmc.Context, connectTimeout)
 		defer cancel()
 		outgoingConnection, err = nsmc.NsClient.Request(ctx, outgoingRequest)
 

@@ -74,9 +74,12 @@ metadata:
 Here is example for a deployment requesting 4 SRIOV network services
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 spec:
+  selector:
+    matchLabels:
+      app: nsm-sriov
   replicas: 1
   template:
     metadata:

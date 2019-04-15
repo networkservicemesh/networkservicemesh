@@ -33,5 +33,5 @@ func newNetworkServiceClientSocket() (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	return tools.SocketOperationCheck(nsmServerSocket)
+	return tools.SocketOperationCheck(tools.SocketPath(nsmServerSocket))
 }

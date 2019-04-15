@@ -8,11 +8,17 @@ import (
 	"time"
 )
 
+const (
+	stepTimeout = time.Millisecond * 50
+)
+
 type testConnectionModelListener struct {
 	model.ModelListenerImpl
 	additions int
 	updates   int
 	deletions int
+
+	endpoints int
 
 	connections   map[string]*model.ClientConnection
 	textMarshaler proto.TextMarshaler
@@ -36,10 +42,17 @@ func (impl *testConnectionModelListener) ClientConnectionUpdated(clientConnectio
 	logrus.Infof("ClientConnectionUpdated: %s %v", clientConnection.GetId(), impl.textMarshaler.Text(clientConnection.Xcon))
 }
 
+func (impl *testConnectionModelListener) EndpointAdded(endpoint *model.Endpoint) {
+	impl.endpoints++
+}
+func (impl *testConnectionModelListener) EndpointDeleted(endpoint *model.Endpoint) {
+	impl.endpoints--
+}
+
 func (impl *testConnectionModelListener) WaitAdd(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(1 * time.Second)
+		<-time.Tick(stepTimeout)
 		if impl.additions == count {
 			break
 		}
@@ -53,7 +66,7 @@ func (impl *testConnectionModelListener) WaitAdd(count int, duration time.Durati
 func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(1 * time.Second)
+		<-time.Tick(stepTimeout)
 		if impl.updates == count {
 			break
 		}
@@ -68,8 +81,22 @@ func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Dur
 func (impl *testConnectionModelListener) WaitDelete(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(1 * time.Second)
+		<-time.Tick(stepTimeout)
 		if impl.deletions == count {
+			break
+		}
+		if time.Since(st) > duration {
+			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
+			break
+		}
+		logrus.Warnf("Waiting for deletions: %d to match %d", impl.deletions, count)
+	}
+}
+func (impl *testConnectionModelListener) WaitEndpoints(count int, duration time.Duration, t *testing.T) {
+	st := time.Now()
+	for {
+		<-time.Tick(stepTimeout)
+		if impl.endpoints == count {
 			break
 		}
 		if time.Since(st) > duration {

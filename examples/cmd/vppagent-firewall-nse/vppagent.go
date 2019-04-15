@@ -17,19 +17,19 @@ package main
 
 import (
 	"context"
+	"github.com/ligato/vpp-agent/api/configurator"
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *rpc.DataRequest, error) {
+func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool, baseDir string) (*crossconnect.CrossConnect, *configurator.Config, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", vxc.vppAgentEndpoint, 100*time.Millisecond)
@@ -45,7 +45,7 @@ func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context,
 		return nil, nil, err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: baseDir,
@@ -58,9 +58,13 @@ func (vxc *vppAgentXConnComposite) crossConnecVppInterfaces(ctx context.Context,
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
-		_, err = client.Put(ctx, dataChange)
+		_, err = client.Update(ctx, &configurator.UpdateRequest{
+			Update: dataChange,
+		})
 	} else {
-		_, err = client.Del(ctx, dataChange)
+		_, err = client.Delete(ctx, &configurator.DeleteRequest{
+			Delete: dataChange,
+		})
 	}
 	if err != nil {
 		logrus.Error(err)
@@ -79,9 +83,12 @@ func (vxc *vppAgentXConnComposite) reset() error {
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataResyncServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
-	_, err = client.Resync(context.Background(), &rpc.DataRequest{})
+	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
+		Update:     &configurator.Config{},
+		FullResync: true,
+	})
 	if err != nil {
 		logrus.Errorf("failed to reset vppagent: %s", err)
 	}
@@ -104,7 +111,7 @@ func (vac *vppAgentAclComposite) applyAclOnVppInterface(ctx context.Context, acl
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 
 	dataChange, err := converter.NewAclConverter(aclname, ifname, rules).ToDataRequest(nil, true)
 
@@ -113,9 +120,13 @@ func (vac *vppAgentAclComposite) applyAclOnVppInterface(ctx context.Context, acl
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Put(ctx, dataChange); err != nil {
+	if _, err := client.Update(ctx, &configurator.UpdateRequest{
+		Update: dataChange,
+	}); err != nil {
 		logrus.Error(err)
-		client.Del(ctx, dataChange)
+		client.Delete(ctx, &configurator.DeleteRequest{
+			Delete: dataChange,
+		})
 		return err
 	}
 	return nil

@@ -4,8 +4,6 @@ kind: CustomResourceDefinition
 metadata:
   name: networkserviceendpoints.networkservicemesh.io
 spec:
-  conversion:
-    strategy: None
   group: networkservicemesh.io
   names:
     kind: NetworkServiceEndpoint

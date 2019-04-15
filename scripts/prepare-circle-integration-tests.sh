@@ -17,7 +17,7 @@
 
 set -xe
 
-KUBECTL_VERSION=v1.13.3
+KUBECTL_VERSION=v1.14.1
 
 # Install kubectl
 if ! command -v kubectl > /dev/null 2>&1; then
@@ -28,7 +28,7 @@ fi
 kubectl get nodes -o wide
 kubectl version
 kubectl api-versions
-kubectl label --overwrite --all=true nodes app=nsmd-ds
+kubectl label --overwrite --all=true nodes app=nsmgr-daemonset
 
 kubectl apply -f k8s/conf/cluster-role-admin.yaml
 kubectl apply -f k8s/conf/cluster-role-binding.yaml
@@ -36,9 +36,5 @@ kubectl apply -f k8s/conf/cluster-role-binding.yaml
 kubectl apply -f k8s/conf/crd-networkservices.yaml
 kubectl apply -f k8s/conf/crd-networkserviceendpoints.yaml
 kubectl apply -f k8s/conf/crd-networkservicemanagers.yaml
-
-./scripts/webhook-create-cert.sh
-kubectl apply -f k8s/conf/admission-webhook.yaml
-./scripts/webhook-patch-ca-bundle.sh < ./k8s/conf/admission-webhook-cfg.yaml | kubectl apply -f -
 
 # vim: sw=4 ts=4 et si

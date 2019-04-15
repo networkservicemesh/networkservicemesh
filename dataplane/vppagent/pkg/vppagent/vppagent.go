@@ -16,17 +16,24 @@ package vppagent
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/gogo/protobuf/proto"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"net"
+	"os"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
@@ -37,54 +44,33 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type VPPAgent struct {
-	// Parameters set in constructor
-	vppAgentEndpoint string
-	monitor          *crossconnect_monitor.CrossConnectMonitor
+// VPPAgent related constants
+const (
+	DataplaneNameKey           = "DATAPLANE_NAME"
+	DataplaneNameDefault       = "vppagent"
+	DataplaneSocketKey         = "DATAPLANE_SOCKET"
+	DataplaneSocketDefault     = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketTypeKey     = "DATAPLANE_SOCKET_TYPE"
+	DataplaneSocketTypeDefault = "unix"
+	DataplaneEndpointKey       = "VPPAGENT_ENDPOINT"
+	DataplaneEndpointDefault   = "localhost:9111"
+	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
+	ManagementInterface        = "mgmt"
+)
 
-	// Internal state from here on
+type VPPAgent struct {
+	vppAgentEndpoint     string
+	common               *common.DataplaneConfigBase
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
-	baseDir              string
-	srcIP                net.IP
-	srcIPNet             net.IPNet
-	mgmtIfaceName        string
 	directMemifConnector *memif.DirectMemifConnector
+	srcIP                net.IP
+	egressInterface      common.EgressInterface
+	monitor              *crossconnect_monitor.CrossConnectMonitor
 }
 
-func NewVPPAgent(vppAgentEndpoint string, monitor *crossconnect_monitor.CrossConnectMonitor, baseDir string, srcIP net.IP, srcIPNet net.IPNet, mgmtIfaceName string) *VPPAgent {
-	// TODO provide some validations here for inputs
-	rv := &VPPAgent{
-		updateCh:         make(chan *Mechanisms, 1),
-		vppAgentEndpoint: vppAgentEndpoint,
-		baseDir:          baseDir,
-		srcIP:            srcIP,
-		srcIPNet:         srcIPNet,
-		mgmtIfaceName:    mgmtIfaceName,
-		monitor:          monitor,
-		mechanisms: &Mechanisms{
-			localMechanisms: []*local.Mechanism{
-				{
-					Type: local.MechanismType_KERNEL_INTERFACE,
-				},
-				{
-					Type: local.MechanismType_MEM_INTERFACE,
-				},
-			},
-			remoteMechanisms: []*remote.Mechanism{
-				{
-					Type: remote.MechanismType_VXLAN,
-					Parameters: map[string]string{
-						remote.VXLANSrcIP: srcIP.String(),
-					},
-				},
-			},
-		},
-		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
-	}
-	rv.reset()
-	rv.programMgmtInterface()
-	return rv
+func CreateVPPAgent() *VPPAgent {
+	return &VPPAgent{}
 }
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
@@ -115,7 +101,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 				RemoteMechanisms: update.remoteMechanisms,
 				LocalMechanisms:  update.localMechanisms,
 			}); err != nil {
-				logrus.Errorf("vpp dataplane server: Deteced error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+				logrus.Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
 			}
 		}
@@ -148,9 +134,9 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		return nil, err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 	conversionParameters := &converter.CrossConnectConversionParameters{
-		BaseDir: v.baseDir,
+		BaseDir: v.common.NSMBaseDir,
 	}
 	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
 	if err != nil {
@@ -159,10 +145,13 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if connect {
-		_, err = client.Put(ctx, dataChange)
+		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
 	} else {
-		_, err = client.Del(ctx, dataChange)
+		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 	}
+
+	v.printVppAgentConfiguration(client)
+
 	if err != nil {
 		logrus.Error(err)
 		// TODO handle connection tracking
@@ -170,6 +159,14 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		return crossConnect, err
 	}
 	return crossConnect, nil
+}
+
+func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorClient) {
+	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
+	if err != nil {
+		logrus.Errorf("Failed to dump VPP-agent state %v", err)
+	}
+	logrus.Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
 }
 
 func (v *VPPAgent) reset() error {
@@ -187,9 +184,9 @@ func (v *VPPAgent) reset() error {
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataResyncServiceClient(conn)
+	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
-	_, err = client.Resync(context.Background(), &rpc.DataRequest{})
+	_, err = client.Update(context.Background(), &configurator.UpdateRequest{Update: &configurator.Config{}, FullResync: true})
 	if err != nil {
 		logrus.Errorf("failed to reset vppagent: %s", err)
 	}
@@ -212,22 +209,77 @@ func (v *VPPAgent) programMgmtInterface() error {
 		return err
 	}
 	defer conn.Close()
-	client := rpc.NewDataChangeServiceClient(conn)
-	dataRequest := &rpc.DataRequest{
-		Interfaces: []*interfaces.Interfaces_Interface{
-			{
-				Name:        "mgmt",
-				Type:        interfaces.InterfaceType_AF_PACKET_INTERFACE,
-				Enabled:     true,
-				IpAddresses: []string{v.srcIPNet.String()},
-				Afpacket: &interfaces.Interfaces_Interface_Afpacket{
-					HostIfName: v.mgmtIfaceName,
+	client := configurator.NewConfiguratorClient(conn)
+	dataRequest := &configurator.UpdateRequest{
+		Update: &configurator.Config{
+			VppConfig: &vpp.ConfigData{
+				Interfaces: []*vpp.Interface{
+					{
+						Name:        ManagementInterface,
+						Type:        vpp_interfaces.Interface_AF_PACKET,
+						Enabled:     true,
+						IpAddresses: []string{v.egressInterface.SrcIPNet().String()},
+						PhysAddress: v.egressInterface.HardwareAddr().String(),
+						Link: &vpp_interfaces.Interface_Afpacket{
+							Afpacket: &vpp_interfaces.AfpacketLink{
+								HostIfName: v.egressInterface.Name(),
+							},
+						},
+					},
+				},
+				// Add default route via default gateway
+				Routes: []*vpp.Route{
+					&vpp.Route{
+						Type:              vpp_l3.Route_INTER_VRF,
+						OutgoingInterface: ManagementInterface,
+						DstNetwork:        "0.0.0.0/0",
+						Weight:            1,
+						NextHopAddr:       v.egressInterface.DefaultGateway().String(),
+					},
+				},
+			},
+		},
+	}
+	// When using AF_PACKET, both the kernel, and vpp receive the packets.
+	// Since both vpp and the kernel have the same IP and hw address,
+	// vpp will send icmp port unreachable messages out for anything
+	// that is sent to that IP/mac address ... which screws up lots of things.
+	// This causes vpp to have an ACL on the management interface such that
+	// it drops anything that isn't destined for VXLAN (port 4789).
+	// This way it avoids sending icmp port unreachable messages out.
+	// This bug wasn't really obvious till we tried to switch to hostNetwork:true
+	dataRequest.Update.VppConfig.Acls = []*vpp.ACL{
+		&vpp_acl.ACL{
+			Name: "NSMmgmtInterfaceACL",
+			Interfaces: &vpp_acl.ACL_Interfaces{
+				Ingress: []string{dataRequest.Update.VppConfig.Interfaces[0].Name},
+			},
+			Rules: []*vpp_acl.ACL_Rule{
+				//Rule NSMmgmtInterfaceACL permit VXLAN dst
+				&vpp_acl.ACL_Rule{
+					Action: vpp_acl.ACL_Rule_PERMIT,
+					IpRule: &vpp_acl.ACL_Rule_IpRule{
+						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+							DestinationNetwork: v.egressInterface.SrcIPNet().IP.String() + "/32",
+							SourceNetwork:      "0.0.0.0/0",
+						},
+						Udp: &vpp_acl.ACL_Rule_IpRule_Udp{
+							DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+								LowerPort: 4789,
+								UpperPort: 4789,
+							},
+							SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+								LowerPort: 0,
+								UpperPort: 65535,
+							},
+						},
+					},
 				},
 			},
 		},
 	}
 	logrus.Infof("Setting up Mgmt Interface %v", dataRequest)
-	_, err = client.Put(context.Background(), dataRequest)
+	_, err = client.Update(context.Background(), dataRequest)
 	if err != nil {
 		logrus.Errorf("Error Setting up Mgmt Interface: %s", err)
 		return err
@@ -243,4 +295,101 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	}
 	v.monitor.Delete(xcon)
 	return &empty.Empty{}, nil
+}
+
+func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnect_monitor.CrossConnectMonitor) error {
+	tracer, closer := tools.InitJaeger("vppagent-dataplane")
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+
+	v.common = common
+	v.setDataplaneConfigBase()
+	v.setDataplaneConfigVPPAgent(monitor)
+	v.reset()
+	v.programMgmtInterface()
+
+	return nil
+}
+
+func (v *VPPAgent) setDataplaneConfigBase() {
+	var ok bool
+
+	v.common.Name, ok = os.LookupEnv(DataplaneNameKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
+		v.common.Name = DataplaneNameDefault
+	}
+
+	logrus.Infof("Starting dataplane - %s", v.common.Name)
+	v.common.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
+		v.common.DataplaneSocket = DataplaneSocketDefault
+	}
+	logrus.Infof("DataplaneSocket: %s", v.common.DataplaneSocket)
+
+	v.common.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
+		v.common.DataplaneSocketType = DataplaneSocketTypeDefault
+	}
+	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
+}
+
+func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.CrossConnectMonitor) {
+	var err error
+
+	v.monitor = monitor
+
+	srcIPStr, ok := os.LookupEnv(SrcIPEnvKey)
+	if !ok {
+		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIPEnvKey)
+		common.SetSrcIPFailed()
+	}
+	v.srcIP = net.ParseIP(srcIPStr)
+	if v.srcIP == nil {
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIPEnvKey, srcIPStr)
+		common.SetValidIPFailed()
+	}
+
+	v.egressInterface, err = common.NewEgressInterface(v.srcIP)
+	if err != nil {
+		logrus.Fatalf("Unable to find egress Interface: %s", err)
+		common.SetNewEgressIFFailed()
+	}
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name(), v.egressInterface.SrcIPNet())
+
+	err = tools.SocketCleanup(v.common.DataplaneSocket)
+	if err != nil {
+		logrus.Fatalf("Error cleaning up socket %s: %s", v.common.DataplaneSocket, err)
+		common.SetSocketCleanFailed()
+	}
+
+	v.vppAgentEndpoint, ok = os.LookupEnv(DataplaneEndpointKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneEndpointKey, DataplaneEndpointDefault)
+		v.vppAgentEndpoint = DataplaneEndpointDefault
+	}
+	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
+
+	v.updateCh = make(chan *Mechanisms, 1)
+	v.mechanisms = &Mechanisms{
+		localMechanisms: []*local.Mechanism{
+			{
+				Type: local.MechanismType_KERNEL_INTERFACE,
+			},
+			{
+				Type: local.MechanismType_MEM_INTERFACE,
+			},
+		},
+		remoteMechanisms: []*remote.Mechanism{
+			{
+				Type: remote.MechanismType_VXLAN,
+				Parameters: map[string]string{
+					remote.VXLANSrcIP: v.egressInterface.SrcIPNet().IP.String(),
+				},
+			},
+		},
+	}
+	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
 }

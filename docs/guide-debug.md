@@ -13,7 +13,7 @@ One node debug is done inside one Docker container with files synchronized with 
 To build a docker dev environment container image, use:
 
 ```bash
-make docker-devenv-build
+make docker-devenv-save
 ```
 
 This container is used to build DLV and have all necessary dependencies + have file synchronized via volume to a
@@ -47,16 +47,6 @@ Starting NSC DevEnv dummy application
 ********************************************************************************
           Welcome to NetworkServiceMesh Dev/Debug environment
 ********************************************************************************
-
-Call dep ensure
-Install openapi-gen
-Install deepcopy-gen
-Run generators
-Generating deepcopy funcs
-Generating clientset for networkservice:v1 at github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset
-Generating listers for networkservice:v1 at github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/listers
-Generating informers for networkservice:v1 at github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers
-Initialisation done... 
 Please use docker run debug.sh app to attach and start debug for particular application
 #You could do Ctrl+C to detach from this log.
 ```
@@ -67,6 +57,11 @@ Container is executed in detached mode, and logs are tailed, so after it complet
 
 It allows to start one the components in `debug` mode, since codebase is synchronized every call will compile
 actual code, so every restart will start the last code into debug.
+
+#### Usefull script ./scripts/run.sh 
+
+It allows to start one the components in `run` mode, since codebase is synchronized every call will compile
+actual code, so every restart will start the last code.
 
 ### Debug components
 
@@ -115,6 +110,23 @@ Since devenv require sources to be mapped, Vagrant is modified to map sources in
 7. Attach to the local port from IDE.
 
 > Step 5 could be repeated since the code is in sync, so there's no need to re-deploy any other components.
+
+## Debug of integration tests.
+
+Using `devenv` infrastructure it is easy to do debug for NSMD/NSMDp/NSMDk8s pods directly from integration tests.
+To support this please set env variable NSMD_HOST_ROOT to point to host root if kubernetes has access to host system for docker volumes,
+or do not pass this env variable to use vagrant mapped default value in case of vagrant.
+
+In integration test please create NSMD with following options:
+
+```go
+nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+    &pods.NSMgrPodConfig{Nsmd:pods.NSMgrContainerRun},
+})
+```
+
+* NSMgrContainerRun - execute run.sh for nsmd/etc.
+* NSMgrContainerDebug - execute debug.sh for nsmd/etc.
 
 ### IDEs
 

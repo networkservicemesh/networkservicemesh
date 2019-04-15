@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -31,42 +32,62 @@ import (
 	"google.golang.org/grpc"
 )
 
-type nsmdTestServiceDiscovery struct {
-	apiRegistry *testApiRegistry
+const (
+	Master = "master"
+	Worker = "worker"
+)
 
-	services   map[string]*registry.NetworkService
-	managers   map[string]*registry.NetworkServiceManager
-	endpoints  map[string]*registry.NetworkServiceEndpoint
-	nsmCounter int
+type sharedStorage struct {
+	services  map[string]*registry.NetworkService
+	managers  map[string]*registry.NetworkServiceManager
+	endpoints map[string]*registry.NetworkServiceEndpoint
+}
+
+func newSharedStorage() *sharedStorage {
+	return &sharedStorage{
+		services:  make(map[string]*registry.NetworkService),
+		endpoints: make(map[string]*registry.NetworkServiceEndpoint),
+		managers:  make(map[string]*registry.NetworkServiceManager),
+	}
+}
+
+type nsmdTestServiceDiscovery struct {
+	apiRegistry          *testApiRegistry
+	storage              *sharedStorage
+	nsmCounter           int
+	nsmgrName            string
+	clusterConfiguration *registry.ClusterConfiguration
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
+	logrus.Infof("Register NSE: %v", in)
+
 	if in.GetNetworkService() != nil {
-		impl.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
+		impl.storage.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
 	}
 	if in.GetNetworkServiceManager() != nil {
-		in.NetworkServiceManager.Name = in.GetNetworkServiceManager().Url
+		in.NetworkServiceManager.Name = impl.nsmgrName
 		impl.nsmCounter++
-		impl.managers[in.GetNetworkServiceManager().Name] = in.GetNetworkServiceManager()
 	}
 	if in.GetNetworkserviceEndpoint() != nil {
-		impl.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
+		impl.storage.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
 	}
+	in.NetworkServiceManager = impl.storage.managers[impl.nsmgrName]
 	return in, nil
 }
 
 func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registry.RemoveNSERequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	delete(impl.endpoints, in.EndpointName)
+	delete(impl.storage.endpoints, in.EndpointName)
 	return nil, nil
 }
 
-func newNSMDTestServiceDiscovery(testApi *testApiRegistry) *nsmdTestServiceDiscovery {
+func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage, clusterConfiguration *registry.ClusterConfiguration) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
-		services:    make(map[string]*registry.NetworkService),
-		endpoints:   make(map[string]*registry.NetworkServiceEndpoint),
-		managers:    make(map[string]*registry.NetworkServiceManager),
-		apiRegistry: testApi,
-		nsmCounter:  0,
+		storage:              storage,
+		apiRegistry:          testApi,
+		nsmCounter:           0,
+		nsmgrName:            nsmgrName,
+		clusterConfiguration: clusterConfiguration,
 	}
 }
 
@@ -74,11 +95,11 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 	endpoints := []*registry.NetworkServiceEndpoint{}
 
 	managers := map[string]*registry.NetworkServiceManager{}
-	for _, ep := range impl.endpoints {
+	for _, ep := range impl.storage.endpoints {
 		if ep.NetworkServiceName == in.NetworkServiceName {
 			endpoints = append(endpoints, ep)
 
-			mgr := impl.managers[ep.NetworkServiceManagerName]
+			mgr := impl.storage.managers[ep.NetworkServiceManagerName]
 			if mgr != nil {
 				managers[mgr.Name] = mgr
 			}
@@ -86,10 +107,33 @@ func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in
 	}
 
 	return &registry.FindNetworkServiceResponse{
-		NetworkService:          impl.services[in.NetworkServiceName],
+		NetworkService:          impl.storage.services[in.NetworkServiceName],
 		NetworkServiceEndpoints: endpoints,
 		NetworkServiceManagers:  managers,
 	}, nil
+}
+
+func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *registry.NetworkServiceManager, opts ...grpc.CallOption) (*registry.NetworkServiceManager, error) {
+	logrus.Infof("Register NSM: %v", in)
+	in.Name = impl.nsmgrName
+	impl.nsmCounter++
+	impl.storage.managers[impl.nsmgrName] = in
+	return in, nil
+}
+
+func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
+	return &registry.NetworkServiceEndpointList{
+		NetworkServiceEndpoints: []*registry.NetworkServiceEndpoint{
+			&registry.NetworkServiceEndpoint{
+				NetworkServiceManagerName: "nsm1",
+				EndpointName:              "ep1",
+			},
+		},
+	}, nil
+}
+
+func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.ClusterConfiguration, error) {
+	return impl.clusterConfiguration, nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -110,16 +154,15 @@ func (impl *nsmdTestServiceRegistry) NewWorkspaceProvider() serviceregistry.Work
 }
 
 func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error {
-	// Do Nothing.
-	return nil
+	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(model, timeout)
 }
 
 func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
 	return ""
 }
 
-func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 1*time.Second)
+func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -182,7 +225,7 @@ func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *con
 	return nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) EndpointConnection(endpoint *registry.NSERegistration) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	return impl.localTestNSE, nil, nil
 }
 
@@ -192,6 +235,18 @@ type testDataplaneConnection struct {
 
 func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
 	impl.connections = append(impl.connections, in)
+
+	if source := in.GetLocalSource(); source != nil && source.Labels != nil {
+		if source.Labels != nil {
+			if val, ok := source.Labels["dataplane_sleep"]; ok {
+				delay, err := strconv.Atoi(val)
+				if err == nil {
+					logrus.Infof("Delaying Dataplane Request: %v", delay)
+					<-time.Tick(time.Duration(delay) * time.Second)
+				}
+			}
+		}
+	}
 	return in, nil
 }
 
@@ -212,7 +267,7 @@ func (impl *nsmdTestServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.
 	logrus.Infof("Connecting to nsmd on socket: %s...", addr)
 
 	// Wait to be sure it is already initialized
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", addr, 1*time.Second)
+	err := tools.WaitForPortAvailable(context.Background(), "tcp", addr, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -230,11 +285,19 @@ func (impl *nsmdTestServiceRegistry) GetPublicAPI() string {
 	return fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPublicPort)
 }
 
-func (impl *nsmdTestServiceRegistry) NetworkServiceDiscovery() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdTestServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) RegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
+	return impl.nseRegistry, nil
+}
+
+func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+	return impl.nseRegistry, nil
+}
+
+func (impl *nsmdTestServiceRegistry) ClusterInfoClient() (registry.ClusterInfoClient, error) {
 	return impl.nseRegistry, nil
 }
 
@@ -249,24 +312,21 @@ type testApiRegistry struct {
 }
 
 func (impl *testApiRegistry) NewNSMServerListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(impl.nsmdPort))
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	impl.nsmdPort = listener.Addr().(*net.TCPAddr).Port
 	return listener, err
 }
 
 func (impl *testApiRegistry) NewPublicListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(impl.nsmdPublicPort))
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	impl.nsmdPublicPort = listener.Addr().(*net.TCPAddr).Port
 	return listener, err
 }
 
-var apiPortIterator = 5001
-
 func newTestApiRegistry() *testApiRegistry {
-	nsmdPort := apiPortIterator
-	nsmdPublicPort := apiPortIterator + 1
-	apiPortIterator += 2
 	return &testApiRegistry{
-		nsmdPort:       nsmdPort,
-		nsmdPublicPort: nsmdPublicPort,
+		nsmdPort:       0,
+		nsmdPublicPort: 0,
 	}
 }
 
@@ -279,7 +339,7 @@ func newNetworkServiceClient(nsmServerSocket string) (networkservice.NetworkServ
 		return nil, nil, err
 	}
 
-	conn, err := tools.SocketOperationCheck(nsmServerSocket)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(nsmServerSocket))
 
 	if err != nil {
 		return nil, nil, err
@@ -298,10 +358,26 @@ type nsmdFullServerImpl struct {
 	serviceRegistry *nsmdTestServiceRegistry
 	testModel       model.Model
 	manager         nsm2.NetworkServiceManager
+	nsmServer       nsmd.NSMServer
+	rootDir         string
 }
 
 func (srv *nsmdFullServerImpl) Stop() {
 	srv.serviceRegistry.Stop()
+	if srv.nsmServer != nil {
+		srv.nsmServer.Stop()
+	}
+
+	dir, _ := ioutil.ReadDir(srv.rootDir)
+	for _, d := range dir {
+		_ = os.RemoveAll(path.Join([]string{srv.rootDir, d.Name()}...))
+	}
+}
+
+func (srv *nsmdFullServerImpl) StopNoClean() {
+	if srv.nsmServer != nil {
+		srv.nsmServer.Stop()
+	}
 }
 
 func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string) {
@@ -316,21 +392,17 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 	})
 }
 
-func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *registry.NSERegistration {
+func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *model.Endpoint {
 	return srv.registerFakeEndpointWithName(networkServiceName, payload, nse_address, networkServiceName+"provider")
 }
-func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nse_address string, endpointname string) *registry.NSERegistration {
+func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nsmgrName string, endpointname string) *model.Endpoint {
 	reg := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name:    networkServiceName,
 			Payload: payload,
 		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: nse_address,
-			Url:  nse_address,
-		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceManagerName: nse_address,
+			NetworkServiceManagerName: nsmgrName,
 			Payload:                   payload,
 			NetworkServiceName:        networkServiceName,
 			EndpointName:              endpointname,
@@ -339,10 +411,24 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), reg)
 	Expect(err).To(BeNil())
 	Expect(regResp.NetworkService.Name).To(Equal(networkServiceName))
-	return reg
+
+	return &model.Endpoint{
+		Endpoint:       reg,
+		Workspace:      "nsm-1",
+		SocketLocation: "nsm-1/client",
+	}
 }
 
 func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networkservice.NetworkServiceClient, *grpc.ClientConn) {
+	response, conn := srv.requestNSM(clientName)
+
+	// Now we could try to connect via Client API
+	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
+	Expect(err).To(BeNil())
+	return nsmClient, conn
+}
+
+func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientConnectionReply, *grpc.ClientConn) {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()
 	Expect(err).To(BeNil())
 	defer con.Close()
@@ -356,22 +442,38 @@ func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networks
 	logrus.Printf("workspace %s", response.Workspace)
 
 	Expect(response.Workspace).To(Equal(clientName))
-
-	// Now we could try to connect via Client API
-	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
-	Expect(err).To(BeNil())
-	return nsmClient, conn
+	return response, con
 }
 
-func newNSMDFullServer() *nsmdFullServerImpl {
-	srv := &nsmdFullServerImpl{}
-	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry)
-
+func newNSMDFullServer(nsmgrName string, storage *sharedStorage, excludedPrefixes ...string) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		logrus.Fatal(err)
 	}
+
+	if len(excludedPrefixes) == 0 {
+		excludedPrefixes = []string{
+			"127.0.0.0/24",
+			"127.0.1.0/24",
+		}
+	}
+
+	return newNSMDFullServerAt(nsmgrName, storage, rootDir, excludedPrefixes...)
+}
+
+func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, excludedPrefixes ...string) *nsmdFullServerImpl {
+	var clusterConfiguration registry.ClusterConfiguration
+	if len(excludedPrefixes) == 2 {
+		clusterConfiguration = registry.ClusterConfiguration{
+			PodSubnet:     excludedPrefixes[0],
+			ServiceSubnet: excludedPrefixes[1],
+		}
+	}
+	srv := &nsmdFullServerImpl{}
+	srv.apiRegistry = newTestApiRegistry()
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, &clusterConfiguration)
+	srv.rootDir = rootDir
+
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
 	if err != nil {
 		logrus.Fatal(err)
@@ -388,12 +490,25 @@ func newNSMDFullServer() *nsmdFullServerImpl {
 	}
 
 	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, nsmd.GetExcludedPrefixes())
+	pool, err := prefix_pool.NewPrefixPool(clusterConfiguration.PodSubnet, clusterConfiguration.ServiceSubnet)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, pool)
 
+	// Choose a public API listener
+	sock, err := srv.apiRegistry.NewPublicListener()
+	if err != nil {
+		logrus.Errorf("Failed to start Public API server...")
+		return nil
+	}
 	// Lets start NSMD NSE registry service
-	err = nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	srv.nsmServer = nsmServer
 	Expect(err).To(BeNil())
-	err = nsmd.StartAPIServer(srv.testModel, srv.manager, srv.apiRegistry, srv.serviceRegistry)
+
+	// Start API Server
+	err = nsmd.StartAPIServerAt(nsmServer, sock)
 	Expect(err).To(BeNil())
 
 	return srv

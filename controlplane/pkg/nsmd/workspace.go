@@ -15,21 +15,20 @@
 package nsmd
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"net"
 	"os"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	. "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -45,24 +44,26 @@ const (
 type Workspace struct {
 	name                    string
 	listener                net.Listener
-	registryServer          registry.NetworkServiceRegistryServer
+	registryServer          NSERegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
 	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
 	locationProvider serviceregistry.WorkspaceLocationProvider
+	localRegistry    *nseregistry.NSERegistry
 }
 
-func NewWorkSpace(model Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, name string) (*Workspace, error) {
+func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{
-		locationProvider: serviceRegistry.NewWorkspaceProvider(),
+		locationProvider: nsm.locationProvider,
+		name:             name,
+		state:            NEW,
+		localRegistry:    nsm.localRegistry,
 	}
 
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
-	w.state = NEW
-	w.name = name
 	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
 	if err := os.MkdirAll(w.NsmDirectory(), folderMask); err != nil {
 		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
@@ -77,13 +78,13 @@ func NewWorkSpace(model Model, manager nsm.NetworkServiceManager, serviceRegistr
 	}
 	w.listener = listener
 	logrus.Infof("Creating new NetworkServiceRegistryServer")
-	w.registryServer = NewRegistryServer(model, w, serviceRegistry)
+	w.registryServer = NewRegistryServer(nsm, w)
 
 	logrus.Infof("Creating new MonitorConnectionServer")
 	w.monitorConnectionServer = local_connection_monitor.NewLocalConnectionMonitor()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(model, w, manager, serviceRegistry)
+	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
 
 	logrus.Infof("Creating new GRPC Server")
 	tracer := opentracing.GlobalTracer()
@@ -93,11 +94,11 @@ func NewWorkSpace(model Model, manager nsm.NetworkServiceManager, serviceRegistr
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	logrus.Infof("Registering NetworkServiceRegistryServer with grpcServer")
+	logrus.Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
-	logrus.Infof("Registering NetworkServiceServer with grpcServer")
+	logrus.Infof("Registering NetworkServiceServer with registerServer")
 	networkservice.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
-	logrus.Infof("Registering MonitorConnectionServer with grpcServer")
+	logrus.Infof("Registering MonitorConnectionServer with registerServer")
 	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
 	w.state = RUNNING
 	go func() {
@@ -108,7 +109,7 @@ func NewWorkSpace(model Model, manager nsm.NetworkServiceManager, serviceRegistr
 			return
 		}
 	}()
-	conn, err := tools.SocketOperationCheck(socket)
+	conn, err := tools.SocketOperationCheck(tools.SocketPath(socket))
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
 		return nil, err

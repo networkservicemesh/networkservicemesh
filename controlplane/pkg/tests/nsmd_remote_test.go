@@ -2,6 +2,9 @@ package tests
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -9,7 +12,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"testing"
 )
 
 // Below only tests
@@ -17,8 +19,9 @@ import (
 func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv := newNSMDFullServer()
-	srv2 := newNSMDFullServer()
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 
@@ -27,7 +30,7 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	srv2.testModel.AddDataplane(testDataplane2)
 
 	// Register in both
-	nseReg := srv.registerFakeEndpoint("golden_network", "test", srv2.serviceRegistry.GetPublicAPI())
+	nseReg := srv2.registerFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
 
@@ -68,8 +71,9 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 func TestNSMDCloseCrossConnection(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv := newNSMDFullServer()
-	srv2 := newNSMDFullServer()
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 	srv.testModel.AddDataplane(&model.Dataplane{
@@ -85,10 +89,11 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 				Type: connection2.MechanismType_VXLAN,
 				Parameters: map[string]string{
 					connection2.VXLANVNI:   "1",
-					connection2.VXLANSrcIP: "127.0.0.1",
+					connection2.VXLANSrcIP: "10.1.1.1",
 				},
 			},
 		},
+		MechanismsConfigured: true,
 	})
 
 	srv2.testModel.AddDataplane(&model.Dataplane{
@@ -99,14 +104,15 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 				Type: connection2.MechanismType_VXLAN,
 				Parameters: map[string]string{
 					connection2.VXLANVNI:   "3",
-					connection2.VXLANSrcIP: "127.0.0.2",
+					connection2.VXLANSrcIP: "10.1.1.2",
 				},
 			},
 		},
+		MechanismsConfigured: true,
 	})
 
 	// Register in both
-	nseReg := srv.registerFakeEndpoint("golden_network", "test", srv2.serviceRegistry.GetPublicAPI())
+	nseReg := srv2.registerFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
 
@@ -158,4 +164,78 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	cross_connection2 = srv2.testModel.GetClientConnection(destConnectionId)
 	Expect(cross_connection2).To(BeNil())
 
+}
+
+func TestNSMDDelayRemoteMechanisms(t *testing.T) {
+	RegisterTestingT(t)
+
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
+	defer srv.Stop()
+	defer srv2.Stop()
+
+	srv.testModel.AddDataplane(testDataplane1)
+
+	testDataplane2_2 := &model.Dataplane{
+		RegisteredName: "test_data_plane2",
+		SocketLocation: "tcp:some_addr",
+	}
+
+	srv2.testModel.AddDataplane(testDataplane2_2)
+
+	// Register in both
+	nseReg := srv2.registerFakeEndpoint("golden_network", "test", Worker)
+	// Add to local endpoints for Server2
+	srv2.testModel.AddEndpoint(nseReg)
+
+	// Now we could try to connect via Client API
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			NetworkService: "golden_network",
+			Context: &connectioncontext.ConnectionContext{
+				DstIpRequired: true,
+				SrcIpRequired: true,
+			},
+			Labels: make(map[string]string),
+		},
+		MechanismPreferences: []*connection.Mechanism{
+			{
+				Type: connection.MechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{
+					connection.NetNsInodeKey:    "10",
+					connection.InterfaceNameKey: "icmp-responder1",
+				},
+			},
+		},
+	}
+
+	type Response struct {
+		nsmResponse *connection.Connection
+		err         error
+	}
+	resultChan := make(chan *Response, 1)
+
+	go func(ctx context.Context, req *networkservice.NetworkServiceRequest) {
+		nsmResponse, err := nsmClient.Request(ctx, req)
+		resultChan <- &Response{nsmResponse: nsmResponse, err: err}
+	}(context.Background(), request)
+
+	<-time.Tick(1 * time.Second)
+
+	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
+	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms
+	testDataplane2_2.MechanismsConfigured = true
+
+	res := <-resultChan
+	Expect(res.err).To(BeNil())
+	Expect(res.nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+
+	// We need to check for crМфвук31oss connections.
+	cross_connections := srv2.serviceRegistry.testDataplaneConnection.connections
+	Expect(len(cross_connections)).To(Equal(1))
+	logrus.Print("End of test")
 }

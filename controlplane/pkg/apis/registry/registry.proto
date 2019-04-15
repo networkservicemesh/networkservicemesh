@@ -25,7 +25,7 @@ message Match {
     repeated Destination routes = 2;
 }
 
-message Destination{
+message Destination {
     map<string, string> destination_selector = 1;
     uint32 weight = 2;
 }
@@ -47,13 +47,13 @@ message FindNetworkServiceRequest {
 message FindNetworkServiceResponse {
     string payload = 1;
     NetworkService network_service = 2;
-    map<string,NetworkServiceManager> network_service_managers = 3;
+    map<string, NetworkServiceManager> network_service_managers = 3;
     repeated NetworkServiceEndpoint network_service_endpoints = 4;
 }
 
 message NSERegistration {
-    NetworkService network_service =1;
-    NetworkServiceManager network_service_manager =2;
+    NetworkService network_service = 1;
+    NetworkServiceManager network_service_manager = 2;
     NetworkServiceEndpoint networkservice_endpoint = 3;
 }
 
@@ -64,4 +64,22 @@ service NetworkServiceRegistry {
 
 service NetworkServiceDiscovery {
     rpc FindNetworkService (FindNetworkServiceRequest) returns (FindNetworkServiceResponse);
+}
+
+message NetworkServiceEndpointList {
+    repeated NetworkServiceEndpoint network_service_endpoints = 1;
+}
+
+service NsmRegistry {
+    rpc RegisterNSM (NetworkServiceManager) returns (NetworkServiceManager);
+    rpc GetEndpoints (google.protobuf.Empty) returns (NetworkServiceEndpointList);
+}
+
+message ClusterConfiguration {
+    string podSubnet = 1;
+    string serviceSubnet = 2;
+}
+
+service ClusterInfo {
+    rpc GetClusterConfiguration(google.protobuf.Empty) returns (ClusterConfiguration);
 }

@@ -15,8 +15,9 @@ import (
 func TestHealRemoteNSE(t *testing.T) {
 	RegisterTestingT(t)
 
-	srv := newNSMDFullServer()
-	srv2 := newNSMDFullServer()
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 
@@ -24,8 +25,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	srv2.testModel.AddDataplane(testDataplane2)
 
 	// Register in both
-	nseReg := srv.registerFakeEndpointWithName("golden_network", "test", srv2.serviceRegistry.GetPublicAPI(), "ep1")
-	nseReg2 := srv.registerFakeEndpointWithName("golden_network", "test", srv2.serviceRegistry.GetPublicAPI(), "ep2")
+	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
+	nseReg2 := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep2")
 
 	// Add to local endpoints for Server2
 	srv2.testModel.AddEndpoint(nseReg)
@@ -91,20 +92,14 @@ func TestHealRemoteNSE(t *testing.T) {
 	}
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
+	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
 	srv2.manager.Heal(clientConnection2, nsm.HealState_DstDown)
 
 	// First update, is delete
 	// Second update is update
 	l1.WaitUpdate(2, timeout, t)
 
-	// Choose a epName not first one.
-	newEpName := "ep1"
-	if epName == newEpName {
-		newEpName = "ep2"
-	}
-
 	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
 	Expect(clientConnection1_1.GetId()).To(Equal("1"))
 	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("4"))
-	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetNetworkServiceEndpointName()).To(Equal(newEpName))
 }

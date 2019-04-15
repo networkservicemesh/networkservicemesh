@@ -17,7 +17,9 @@ func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSER
 		remoteM = append(remoteM, mechanism)
 	}
 	var message *remote_networkservice.NetworkServiceRequest
-	if existingConnection != nil {
+
+	// Try Heal only if endpoint are same as for existing connection.
+	if existingConnection != nil && endpoint == existingConnection.Endpoint {
 		remoteDst := existingConnection.Xcon.GetRemoteDestination()
 		message = &remote_networkservice.NetworkServiceRequest{
 

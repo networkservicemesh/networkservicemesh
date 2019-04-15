@@ -12,16 +12,19 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
 	podStartTimeout  = 1 * time.Minute
-	podDeleteTimeout = 1 * time.Minute
+	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
 )
@@ -53,7 +56,6 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 	resultChan := make(chan *PodDeployResult, len(pods))
 
 	for _, pod := range pods {
-
 		wg.Add(1)
 		go func(pod *v1.Pod) {
 			defer wg.Done()
@@ -61,10 +63,11 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 			createdPod, err := client.CoreV1().Pods(namespace).Create(pod)
 
 			// We need to have non nil pod in any case.
-			if createdPod != nil {
+			if createdPod != nil && createdPod.Name != "" {
 				pod = createdPod
 			}
 			if err != nil {
+				logrus.Errorf("Failed to create pod. Cause: %v pod: %v", err, pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -128,7 +131,7 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 
 func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
 	st := time.Now()
-
+	infoPrinted := false
 	for {
 		pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
 
@@ -144,8 +147,9 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 			break
 		}
 
-		if time.Since(st) > timeout/2 {
+		if time.Since(st) > timeout/2 && !infoPrinted {
 			logrus.Infof("Pod deploy half time passed: %v", pod)
+			infoPrinted = true
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(50))
@@ -267,24 +271,52 @@ func NewK8s() (*K8s, error) {
 	return &client, nil
 }
 
+// Immediate deletion does not wait for confirmation that the running resource has been terminated.
+// The resource may continue to run on the cluster indefinitely
+func (o *K8s) deletePodForce(pod *v1.Pod) error {
+	graceTimeout := int64(0)
+	delOpt := &metaV1.DeleteOptions{
+		GracePeriodSeconds: &graceTimeout,
+	}
+	err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+	defer cancel()
+	err = blockUntilPodWorking(o.clientset, ctx, pod)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete POD with completion check
+// Make force delete on timeout
 func (o *K8s) deletePods(pods ...*v1.Pod) error {
+	var ctx []context.Context
 	for _, pod := range pods {
-		graceTimeout := int64(0)
-		delOpt := &metaV1.DeleteOptions{
-			GracePeriodSeconds: &graceTimeout,
-		}
+		delOpt := &metaV1.DeleteOptions{}
 		err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 		if err != nil {
 			return err
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+
+		c, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+		ctx = append(ctx, c)
 		defer cancel()
-		err = blockUntilPodWorking(o.clientset, ctx, pod)
-		if err != nil {
-			return err
-		}
 	}
 
+	for i, pod := range pods {
+		err := blockUntilPodWorking(o.clientset, ctx[i], pod)
+		if err != nil {
+			err = o.deletePodForce(pod)
+			logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
+			if err != nil {
+				logrus.Warn(err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -328,11 +360,16 @@ func (o *K8s) CleanupCRDs() {
 }
 
 func (l *K8s) Cleanup() {
-	for _, result := range l.pods {
-		err := l.deletePods(result)
-		Expect(err).To(BeNil())
-	}
+	err := l.deletePods(l.pods...)
+	Expect(err).To(BeNil())
 	l.CleanupCRDs()
+	l.pods = nil
+	l.CleanupCRDs()
+	l.CleanupConfigMaps()
+}
+
+func (l *K8s) PrepareDefault() {
+	l.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
 }
 
 func (l *K8s) Prepare(noPods ...string) {
@@ -359,7 +396,9 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
 	errs := []error{}
 	for _, podResult := range results {
-		pods = append(pods, podResult.pod)
+		if podResult.pod != nil {
+			pods = append(pods, podResult.pod)
+		}
 		if podResult.err != nil {
 			logrus.Errorf("Error Creating Pod: %s %v", podResult.pod.Name, podResult.err)
 			errs = append(errs, podResult.err)
@@ -488,7 +527,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			Expect(len(nodes)).To(Equal(requiredNumber))
 		}
 		if since > timeout/10 && !warnPrinted {
-			logrus.Warnf("Waiting for %d nodes to arrive, currenctly have: %d", len(nodes), requiredNumber)
+			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", len(nodes), requiredNumber)
 			warnPrinted = true
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -496,15 +535,71 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 
 }
 
-func (o *K8s) CreateService(service *v1.Service) {
-	_ = o.clientset.CoreV1().Services("default").Delete(service.Name, &metaV1.DeleteOptions{})
-	s, err := o.clientset.CoreV1().Services("default").Create(service)
+func (o *K8s) CreateService(service *v1.Service, namespace string) (*v1.Service, error) {
+	_ = o.clientset.CoreV1().Services(namespace).Delete(service.Name, &metaV1.DeleteOptions{})
+	s, err := o.clientset.CoreV1().Services(namespace).Create(service)
 	if err != nil {
 		logrus.Errorf("Error creating service: %v %v", s, err)
 	}
 	logrus.Infof("Service is created: %v", s)
+	return s, err
+}
+
+func (o *K8s) DeleteService(service *v1.Service, namespace string) error {
+	return o.clientset.CoreV1().Services(namespace).Delete(service.GetName(), &metaV1.DeleteOptions{})
+}
+
+func (o *K8s) CreateDeployment(deployment *appsv1.Deployment, namespace string) (*appsv1.Deployment, error) {
+	d, err := o.clientset.AppsV1().Deployments(namespace).Create(deployment)
+	if err != nil {
+		logrus.Errorf("Error creating deployment: %v %v", d, err)
+	}
+	logrus.Infof("Deployment is created: %v", d)
+	return d, err
+}
+
+func (o *K8s) DeleteDeployment(deployment *appsv1.Deployment, namespace string) error {
+	return o.clientset.AppsV1().Deployments(namespace).Delete(deployment.GetName(), &metaV1.DeleteOptions{})
+}
+
+func (o *K8s) CreateMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta1.MutatingWebhookConfiguration) (*arv1beta1.MutatingWebhookConfiguration, error) {
+	awc, err := o.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(mutatingWebhookConf)
+	if err != nil {
+		logrus.Errorf("Error creating MutatingWebhookConfiguration: %v %v", awc, err)
+	}
+	logrus.Infof("MutatingWebhookConfiguration is created: %v", awc)
+	return awc, err
+}
+
+func (o *K8s) DeleteMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta1.MutatingWebhookConfiguration) error {
+	return o.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(mutatingWebhookConf.GetName(), &metaV1.DeleteOptions{})
+}
+
+func (o *K8s) CreateSecret(secret *v1.Secret, namespace string) (*v1.Secret, error) {
+	s, err := o.clientset.CoreV1().Secrets(namespace).Create(secret)
+	if err != nil {
+		logrus.Errorf("Error creating secret: %v %v", s, err)
+	}
+	logrus.Infof("secret is created: %v", s)
+	return s, err
+}
+
+func (o *K8s) DeleteSecret(name string, namespace string) error {
+	return o.clientset.CoreV1().Secrets(namespace).Delete(name, &metaV1.DeleteOptions{})
 }
 
 func (o *K8s) IsPodReady(pod *v1.Pod) bool {
 	return isPodReady(pod)
+}
+
+func (o *K8s) CreateConfigMap(cm *v1.ConfigMap) (*v1.ConfigMap, error) {
+	return o.clientset.CoreV1().ConfigMaps(cm.Namespace).Create(cm)
+}
+
+func (o *K8s) CleanupConfigMaps() {
+	// Clean up Network Service Endpoints
+	configMaps, _ := o.clientset.CoreV1().ConfigMaps("default").List(metaV1.ListOptions{})
+	for _, cm := range configMaps.Items {
+		_ = o.clientset.CoreV1().ConfigMaps("default").Delete(cm.Name, &metaV1.DeleteOptions{})
+	}
 }

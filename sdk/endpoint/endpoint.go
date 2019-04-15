@@ -17,10 +17,12 @@ package endpoint
 
 import (
 	"context"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"io"
 	"net"
 
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -33,7 +35,7 @@ import (
 
 type nsmEndpoint struct {
 	*common.NsmConnection
-	composite      CompositeEndpoint
+	service        *CompositeEndpoint
 	grpcServer     *grpc.Server
 	registryClient registry.NetworkServiceRegistryClient
 	endpointName   string
@@ -136,15 +138,34 @@ func (nsme *nsmEndpoint) Delete() error {
 	return err
 }
 
+func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	logrus.Infof("Request for Network Service received %v", request)
+
+	incomingConnection, err := nsme.service.Request(ctx, request)
+	if err != nil {
+		logrus.Errorf("The composite returned an error: %v", err)
+		return nil, err
+	}
+
+	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	return incomingConnection, nil
+}
+
+func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
+	nsme.service.Close(ctx, incomingConnection)
+	nsme.NsClient.Close(ctx, incomingConnection)
+	return &empty.Empty{}, nil
+}
+
 // NewNSMEndpoint creates a new NSM endpoint
-func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, composite CompositeEndpoint) (*nsmEndpoint, error) {
+func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service *CompositeEndpoint) (*nsmEndpoint, error) {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	if composite == nil {
-		composite = &BaseCompositeEndpoint{}
+	if service == nil {
+		service = &CompositeEndpoint{}
 	}
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
@@ -155,7 +176,7 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 
 	endpoint := &nsmEndpoint{
 		NsmConnection: nsmConnection,
-		composite:     composite,
+		service:       service,
 	}
 
 	return endpoint, nil
