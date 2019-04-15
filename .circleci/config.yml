@@ -24,7 +24,7 @@ jobs:
       - run:
           name: golint
           command: |
-            go get golang.org/x/lint/golint@v0.0.0-20190227174305-8f45f776aaf1
+            go get golang.org/x/lint/golint
             golint ./...
       - run: make vet check
       - run: go install k8s.io/code-generator/cmd/deepcopy-gen
