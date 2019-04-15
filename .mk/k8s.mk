@@ -39,7 +39,6 @@ CLUSTER_RULES_PREFIX := vagrant
 endif
 include .mk/vagrant.mk
 include .mk/packet.mk
-include .mk/gke.mk
 include .mk/aws.mk
 
 # .kind.mk enables the kind.sigs.k8s.io docker based K8s install:
@@ -53,6 +52,8 @@ include .mk/kind.mk
 include .mk/null.mk
 
 include .mk/docker.mk
+
+include .mk/gke.mk
 
 # Pull in docker targets
 ifeq ($(CONTAINER_BUILD_PREFIX),)

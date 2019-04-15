@@ -516,3 +516,13 @@ func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 	}
 	return result
 }
+
+func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
+	if len(failures) > 0 {
+		logrus.Errorf("Failures: %v", failures)
+		PrintLogs(k8s, nodes_setup)
+		nscInfo.PrintLogs()
+
+		t.Fail()
+	}
+}
