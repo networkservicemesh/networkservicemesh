@@ -62,7 +62,7 @@ func testDataplaneHeal(t *testing.T, nodesCount int) {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Selected dataplane")
 	k8s.DeletePods(nodes_setup[nodesCount-1].Dataplane)
@@ -91,5 +91,5 @@ func testDataplaneHeal(t *testing.T, nodesCount int) {
 	failures = InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
