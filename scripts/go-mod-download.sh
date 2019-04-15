@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 limit=10;
 attempt=1;
 
-until (( attempt > limit )) || go mod download; do
+until test "$attempt" -gt "$limit"  || go mod download; do
     attempt=$(( attempt + 1 ));
     rm -rf "$GOPATH"/pkg/mod/cache/vcs/* # wipe out the vcs cache to overwrite corrupted repos
-    (( attempt <= limit )) && echo "Trying again, attempt $attempt";
+    test "$attempt" -le "$limit" && echo "Trying again, attempt $attempt";
 done
 
-(( attempt <= limit )) # ensure correct exit code
+test "$attempt" -le "$limit" # ensure correct exit code
