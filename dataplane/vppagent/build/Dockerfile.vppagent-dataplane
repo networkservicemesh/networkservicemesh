@@ -8,7 +8,7 @@ ENV GO111MODULE=on
 RUN mkdir /root/networkservicemesh
 ADD ["go.mod","/root/networkservicemesh"]
 WORKDIR /root/networkservicemesh/
-RUN until go mod download;do echo "Trying again";done
+RUN attempt=1; until go mod download || (( $attempt >= 10 )); do attempt=$(( $attempt + 1 )); echo "Trying again, attempt $attempt"; done
 
 ADD [".","/root/networkservicemesh"]
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd/vppagent-dataplane.go
