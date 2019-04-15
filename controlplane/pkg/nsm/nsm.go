@@ -30,6 +30,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"sync"
 	"time"
 )
 
@@ -41,6 +42,7 @@ const (
 
 // Network service manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
+	sync.RWMutex
 	serviceRegistry  serviceregistry.ServiceRegistry
 	model            model.Model
 	excludedPrefixes prefix_pool.PrefixPool
@@ -52,13 +54,26 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 	return srv.properties
 }
 
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes prefix_pool.PrefixPool) nsm.NetworkServiceManager {
-	return &networkServiceManager{
-		serviceRegistry:  serviceRegistry,
-		model:            model,
-		excludedPrefixes: excludedPrefixes,
-		properties:       nsm.NewNsmProperties(),
-		stateRestored:    make(chan bool, 1),
+func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes <-chan prefix_pool.PrefixPool) nsm.NetworkServiceManager {
+	nsm := &networkServiceManager{
+		serviceRegistry: serviceRegistry,
+		model:           model,
+		properties:      nsm.NewNsmProperties(),
+		stateRestored:   make(chan bool, 1),
+	}
+	go monitorExcludePrefixes(nsm, excludedPrefixes)
+	return nsm
+}
+
+func monitorExcludePrefixes(nsm *networkServiceManager, excludedPrefixesCh <-chan prefix_pool.PrefixPool) {
+	for {
+		pool, ok := <-excludedPrefixesCh
+		if !ok {
+			return
+		}
+		nsm.Lock()
+		nsm.excludedPrefixes = pool
+		nsm.Unlock()
 	}
 }
 
@@ -508,6 +523,9 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 	return dpApiConnection
 }
 func (srv *networkServiceManager) validateNSEConnection(requestId string, nseConnection nsm.NSMConnection) error {
+	srv.RLock()
+	defer srv.RUnlock()
+
 	errorFormatter := func(err error) error {
 		return fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
 	}
@@ -583,6 +601,9 @@ func (srv *networkServiceManager) updateConnectionParameters(requestId string, n
 }
 
 func (srv *networkServiceManager) updateExcludePrefixes(requestConnection nsm.NSMConnection) {
+	srv.RLock()
+	defer srv.RUnlock()
+
 	c := requestConnection.GetContext()
 	if c == nil {
 		c = &connectioncontext.ConnectionContext{}

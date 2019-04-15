@@ -402,20 +402,20 @@ func addressCount(pr string) uint64 {
 }
 
 func setNetIndexInIP(ip net.IP, num int, prefixLen int) net.IP {
-	ipInt, totalBits := fromIP(ip)
+	ipInt, totalBits := FromIP(ip)
 	bigNum := big.NewInt(int64(num))
 	bigNum.Lsh(bigNum, uint(totalBits-prefixLen))
 	ipInt.Or(ipInt, bigNum)
-	return toIP(ipInt, totalBits)
+	return ToIP(ipInt, totalBits)
 }
 
 func clearNetIndexInIP(ip net.IP, prefixLen int) net.IP {
-	ipInt, totalBits := fromIP(ip)
+	ipInt, totalBits := FromIP(ip)
 	ipInt.SetBit(ipInt, totalBits-prefixLen, 0)
-	return toIP(ipInt, totalBits)
+	return ToIP(ipInt, totalBits)
 }
 
-func toIP(ipInt *big.Int, bits int) net.IP {
+func ToIP(ipInt *big.Int, bits int) net.IP {
 	ipBytes := ipInt.Bytes()
 	ret := make([]byte, bits/8)
 	// Pack our IP bytes into the end of the return array,
@@ -425,7 +425,8 @@ func toIP(ipInt *big.Int, bits int) net.IP {
 	}
 	return net.IP(ret)
 }
-func fromIP(ip net.IP) (*big.Int, int) {
+
+func FromIP(ip net.IP) (*big.Int, int) {
 	val := &big.Int{}
 	val.SetBytes([]byte(ip))
 	i := len(ip)
@@ -433,6 +434,43 @@ func fromIP(ip net.IP) (*big.Int, int) {
 		return val, 32
 	} // else if i == net.IPv6len
 	return val, 128
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func MaxCommonPrefixSubnet(s1, s2 *net.IPNet) *net.IPNet {
+	rawIp1, n1 := FromIP(s1.IP)
+	rawIp2, _ := FromIP(s2.IP)
+
+	xored := &big.Int{}
+	xored.Xor(rawIp1, rawIp2)
+	maskSize := leadingZeros(xored, n1)
+
+	m1, bits := s1.Mask.Size()
+	m2, _ := s2.Mask.Size()
+
+	mask := net.CIDRMask(min(min(m1, m2), maskSize), bits)
+	return &net.IPNet{
+		IP:   s1.IP.Mask(mask),
+		Mask: mask,
+	}
+}
+
+func IpToNet(ipAddr net.IP) *net.IPNet {
+	mask := net.CIDRMask(len(ipAddr)*8, len(ipAddr)*8)
+	return &net.IPNet{IP: ipAddr, Mask: mask}
+}
+
+func leadingZeros(n *big.Int, size int) int {
+	i := size - 1
+	for ; n.Bit(i) == 0 && i > 0; i-- {
+	}
+	return size - 1 - i
 }
 
 /**
@@ -448,14 +486,14 @@ func AddressRange(network *net.IPNet) (net.IP, net.IP) {
 		return firstIP, lastIP
 	}
 
-	firstIPInt, bits := fromIP(firstIP)
+	firstIPInt, bits := FromIP(firstIP)
 	hostLen := uint(bits) - uint(prefixLen)
 	lastIPInt := big.NewInt(1)
 	lastIPInt.Lsh(lastIPInt, hostLen)
 	lastIPInt.Sub(lastIPInt, big.NewInt(1))
 	lastIPInt.Or(lastIPInt, firstIPInt)
 
-	return firstIP, toIP(lastIPInt, bits)
+	return firstIP, ToIP(lastIPInt, bits)
 }
 
 func IncrementIP(sourceIp net.IP, ipNet *net.IPNet) (net.IP, error) {

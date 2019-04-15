@@ -6,6 +6,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	context2 "golang.org/x/net/context"
@@ -194,6 +195,49 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
 	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"127.0.0.0/24", "127.0.1.0/24"}))
+}
+
+func TestExcludePrefixesMonitor(t *testing.T) {
+	RegisterTestingT(t)
+
+	storage := newSharedStorage()
+	poolCh := make(chan prefix_pool.PrefixPool, 10)
+	srv := newNSMDFullServerWithSubnetMonitoring(Master, storage, poolCh)
+	defer srv.Stop()
+
+	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+
+	pool, _ := prefix_pool.NewPrefixPool("10.32.1.0/24", "10.96.0.0/12")
+	poolCh <- pool
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := createRequest(false)
+	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	Expect(err).To(BeNil())
+	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	logrus.Print("End of test")
+
+	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
+	Expect(ok).To(Equal(true))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
+
+	pool, _ = prefix_pool.NewPrefixPool("10.32.1.0/22", "10.96.0.0/10")
+	poolCh <- pool
+
+	nsmClient, conn = srv.requestNSMConnection("nsm-1")
+
+	request = createRequest(false)
+	nsmResponse, err = nsmClient.Request(context.Background(), request)
+	Expect(err).To(BeNil())
+	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	logrus.Print("End of test")
+
+	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
+	Expect(ok).To(Equal(true))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/22", "10.96.0.0/10"}))
 }
 
 func TestNSEIPNeghtbours(t *testing.T) {
