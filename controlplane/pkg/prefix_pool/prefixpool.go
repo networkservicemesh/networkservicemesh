@@ -22,7 +22,8 @@ type PrefixPool interface {
 	GetConnectionInformation(connectionId string) (string, []string, error)
 	GetPrefixes() []string
 	Intersect(prefix string) (bool, error)
-	ExcludePrefixes(excludedPrefixes []string) error
+	ExcludePrefixes(excludedPrefixes []string) ([]string, error)
+	ReleaseExcludedPrefixes(excludedPrefixes []string) error
 }
 type prefixPool struct {
 	sync.RWMutex
@@ -50,10 +51,27 @@ func NewPrefixPool(prefixes ...string) (PrefixPool, error) {
 	}, nil
 }
 
-/* Exclude prefixes from the pool of available prefixes */
-func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) error {
+/* Release excluded prefixes back the pool of available ones */
+func (impl *prefixPool) ReleaseExcludedPrefixes(excludedPrefixes []string) error {
 	impl.Lock()
 	defer impl.Unlock()
+
+	remaining, err := ReleasePrefixes(impl.prefixes, excludedPrefixes...)
+	if err != nil {
+		return err
+	}
+	impl.prefixes = remaining
+	return nil
+}
+
+/* Exclude prefixes from the pool of available prefixes */
+func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) ([]string, error) {
+	impl.Lock()
+	defer impl.Unlock()
+	/* Use a working copy for the available prefixes */
+	copyPrefixes := append([]string{}, impl.prefixes...)
+
+	removedPrefixes := []string{}
 
 	for _, excludedPrefix := range excludedPrefixes {
 		splittedEntries := []string{}
@@ -61,7 +79,7 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) error {
 		_, subnetExclude, _ := net.ParseCIDR(excludedPrefix)
 
 		/* 1. Check if each excluded entry overlaps with the available prefix */
-		for _, prefix := range impl.prefixes {
+		for _, prefix := range copyPrefixes {
 			intersecting := false
 			excludedIsBigger := false
 			_, subnetPrefix, _ := net.ParseCIDR(prefix)
@@ -73,20 +91,22 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) error {
 					/* 1.1.2. If the original entry is bigger, we split it and remove the avoided range */
 					res, err := extractSubnet(subnetPrefix, subnetExclude)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					/* 1.1.3. Collect the resulted split prefixes */
 					splittedEntries = append(splittedEntries, res...)
 				}
 				/* 1.1.4. Collect prefixes that should be removed from the original pool */
 				prefixesToRemove = append(prefixesToRemove, subnetPrefix.String())
+				/* 1.1.5. Collect the actual excluded prefixes that should be added back to the original pool */
+				removedPrefixes = append(removedPrefixes, subnetExclude.String())
 				break
 			}
 			/* 1.2. If not intersecting, proceed verifying the next one */
 		}
 		/* 2. Keep only the prefixes that should not be removed from the original pool */
 		if len(prefixesToRemove) != 0 {
-			for _, presentPrefix := range impl.prefixes {
+			for _, presentPrefix := range copyPrefixes {
 				prefixFound := false
 				for _, prefixToRemove := range prefixesToRemove {
 					if presentPrefix == prefixToRemove {
@@ -100,16 +120,18 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) error {
 				}
 			}
 			/* 2.2. Update the original prefix list */
-			impl.prefixes = splittedEntries
+			copyPrefixes = splittedEntries
 		}
 	}
-	/* 3. Raise an error, if there aren't any available prefixes left after excluding */
-	if len(impl.prefixes) == 0 {
+	/* Raise an error, if there aren't any available prefixes left after excluding */
+	if len(copyPrefixes) == 0 {
 		err := fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")
 		logrus.Errorf("%v", err)
-		return err
+		return nil, err
 	}
-	return nil
+	/* Everything should be fine, update the available prefixes with what's left */
+	impl.prefixes = copyPrefixes
+	return removedPrefixes, nil
 }
 
 /* Split the wider range removing the avoided smaller range from it */
