@@ -357,6 +357,22 @@ func TestReleaseExcludePrefixesNoOverlap(t *testing.T) {
 	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
 }
 
+func TestReleaseExcludePrefixesFullOverlap(t *testing.T) {
+	RegisterTestingT(t)
+	pool, err := NewPrefixPool("10.20.0.0/16", "2.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"2.20.0.0/8"}
+
+	excluded, err := pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+
+	err = pool.ReleaseExcludedPrefixes(excluded)
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16", "2.20.0.0/16"}))
+}
+
 func TestExcludePrefixesPartialOverlap(t *testing.T) {
 	RegisterTestingT(t)
 

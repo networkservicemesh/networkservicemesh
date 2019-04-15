@@ -95,11 +95,15 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) ([]string, er
 					}
 					/* 1.1.3. Collect the resulted split prefixes */
 					splittedEntries = append(splittedEntries, res...)
+					/* 1.1.5. Collect the actual excluded prefixes that should be added back to the original pool */
+					removedPrefixes = append(removedPrefixes, subnetExclude.String())
+				} else {
+					/* 1.1.5. Collect the actual excluded prefixes that should be added back to the original pool */
+					removedPrefixes = append(removedPrefixes, subnetPrefix.String())
 				}
 				/* 1.1.4. Collect prefixes that should be removed from the original pool */
 				prefixesToRemove = append(prefixesToRemove, subnetPrefix.String())
-				/* 1.1.5. Collect the actual excluded prefixes that should be added back to the original pool */
-				removedPrefixes = append(removedPrefixes, subnetExclude.String())
+
 				break
 			}
 			/* 1.2. If not intersecting, proceed verifying the next one */
