@@ -22,7 +22,18 @@ func TestNSEHealLocal(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 1)
+	testNSEHeal(t, 1, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+}
+
+func TestNSEHealLocalMemif(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSEHeal(t, 1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC)
 }
 
 func TestNSEHealRemote(t *testing.T) {
@@ -33,13 +44,13 @@ func TestNSEHealRemote(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 2)
+	testNSEHeal(t, 2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSEHeal(t *testing.T, nodesCount int) {
+func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -53,18 +64,18 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	// Run ICMP on latest node
-	nse1 := nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	nse1 := icmpDeploy(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
+	nscPodNode := nscDeploy(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.Heal: Connection recovered
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-2", defaultTimeout)
+	icmpDeploy(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-2", defaultTimeout)
 
 	logrus.Infof("Delete first NSE")
 	k8s.DeletePods(nse1)
@@ -86,7 +97,7 @@ func testNSEHeal(t *testing.T, nodesCount int) {
 	}
 
 	failures = InterceptGomegaFailures(func() {
-		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
 	printErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
