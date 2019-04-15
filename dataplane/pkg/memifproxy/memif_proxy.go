@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"net"
+	"os"
 	"syscall"
 )
 
@@ -45,6 +46,11 @@ func (mp *Proxy) Start() error {
 	mp.stopCh = make(chan struct{}, 1)
 	mp.errCh = make(chan error, 1)
 	logrus.Infof("Request proxy source: %s, target: %s", mp.sourceSocket, mp.targetSocket)
+
+	if err := tryDeleteFileIfExist(mp.sourceSocket); err != nil {
+		logrus.Errorf("An error during socket file deleting %v", err.Error())
+		return err
+	}
 
 	source, err := net.ResolveUnixAddr(mp.network, mp.sourceSocket)
 	if err != nil {
@@ -225,4 +231,15 @@ func getConnFd(conn *net.UnixConn) (int, func(), error) {
 
 	fd := int(file.Fd())
 	return fd, func() { file.Close() }, nil
+}
+
+func tryDeleteFileIfExist(path string) error {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err == nil {
+		return os.Remove(path)
+	}
+	return err
 }
