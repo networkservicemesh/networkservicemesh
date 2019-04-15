@@ -242,6 +242,32 @@ jobs:
               docker tag ${REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
               docker push ${REPO}/${c}:${TAG}
             done
+  license-scan:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install fossa
+          command: |
+            curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | bash
+      - run:
+          name: Go mod Download
+          command: |
+            ./scripts/go-mod-download.sh
+      - run:
+          name: Go build
+          command: |
+            go build ./...
+      - run:
+          name: Performan License License Scan
+          command: |
+            fossa init
+            fossa
+            fossa test
+    environment:
+      GO111MODULE: "on"
 
   gke-create-cluster:
     parameters:
@@ -299,6 +325,7 @@ workflows:
   build-and-test:
     jobs:
       - sanity-check
+      - license-scan
       - build-container:
           name: "build-nsmd"
           container: "nsmd"
