@@ -2,7 +2,6 @@ module github.com/networkservicemesh/networkservicemesh
 
 require (
 	github.com/aws/aws-sdk-go v1.19.11
-	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -20,7 +19,6 @@ require (
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
 	github.com/ligato/vpp-agent v2.0.1+incompatible
-	github.com/namsral/flag v1.7.4-pre // indirect
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
@@ -28,7 +26,6 @@ require (
 	github.com/rs/xid v1.2.1
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.1
-	github.com/spf13/cobra v0.0.3 // indirect
 	github.com/spf13/viper v1.3.2
 	github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c
 	github.com/uber-go/atomic v1.3.2 // indirect
