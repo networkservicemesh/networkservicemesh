@@ -18,8 +18,7 @@ jobs:
       - run:
           name: Download Go Dependencies
           command: |
-            attempt=1
-            until go mod download || (( $attempt >= 10 )); do attempt=$(( $attempt + 1 )); echo "Trying again, attempt $attempt"; done
+            ./scripts/go-mod-download.sh
       - run: "! go fmt ./... 2>&1 | read"
       - run:
           name: golint
