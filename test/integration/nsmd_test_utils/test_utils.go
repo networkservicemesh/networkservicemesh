@@ -3,7 +3,10 @@ package nsmd_test_utils
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -106,17 +109,48 @@ func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v
 	return
 }
 
-func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) (icmp *v1.Pod) {
+func DeployVppAgentICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
+		defaultICMPEnv(),
+	))
+}
+
+func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node,
+		defaultICMPEnv(),
+	))
+}
+
+func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) *v1.Pod {
+	if useWebhook {
+		return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
+	} else {
+		return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
+			defaultNSCEnv()))
+	}
+}
+
+func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
+}
+func defaultICMPEnv() map[string]string {
+	return map[string]string{
+		"ADVERTISE_NSE_NAME":   "icmp-responder",
+		"ADVERTISE_NSE_LABELS": "app=icmp",
+		"IP_ADDRESS":           "10.20.1.0/24",
+	}
+}
+func defaultNSCEnv() map[string]string {
+	return map[string]string{
+		"OUTGOING_NSC_LABELS": "app=icmp",
+		"OUTGOING_NSC_NAME":   "icmp-responder",
+	}
+}
+func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
 	logrus.Infof("Starting ICMP Responder NSE on node: %s", node.Name)
-	icmp = k8s.CreatePod(pods.ICMPResponderPod(name, node,
-		map[string]string{
-			"ADVERTISE_NSE_NAME":   "icmp-responder",
-			"ADVERTISE_NSE_LABELS": "app=icmp",
-			"IP_ADDRESS":           "10.20.1.0/24",
-		},
-	))
+	icmp := k8s.CreatePod(template)
 	Expect(icmp.Name).To(Equal(name))
 
 	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
@@ -125,24 +159,17 @@ func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 	return icmp
 }
 
-func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) (nsc *v1.Pod) {
+func deployNSC(k8s *kube_testing.K8s, node *v1.Node, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
+	Expect(template).ShouldNot(BeNil())
 
 	logrus.Infof("Starting NSC %s on node: %s", name, node.Name)
-	if useWebhook {
-		nsc = k8s.CreatePod(pods.NSCPodWebhook(name, node))
-	} else {
-		nsc = k8s.CreatePod(pods.NSCPod(name, node,
-			map[string]string{
-				"OUTGOING_NSC_LABELS": "app=icmp",
-				"OUTGOING_NSC_NAME":   "icmp-responder",
-			},
-		))
-	}
+
+	nsc := k8s.CreatePod(template)
 
 	Expect(nsc.Name).To(Equal(name))
 
-	k8s.WaitLogsContains(nsc, "nsc", "nsm client: initialization is completed successfully", timeout)
+	k8s.WaitLogsContains(nsc, container, "nsm client: initialization is completed successfully", timeout)
 
 	logrus.Printf("NSC started done: %v", time.Since(startTime))
 	return nsc
@@ -435,4 +462,57 @@ func CheckNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
+}
+
+func getNSEMemifAddr(k8s *kube_testing.K8s, pod *v1.Pod) (net.IP, error) {
+	for {
+		select {
+		case <-time.Tick(time.Second):
+			response, _, _ := k8s.Exec(pod, pod.Spec.Containers[0].Name, "vppctl", "show int addr")
+			response = strings.TrimSpace(response)
+			if response == "" {
+				continue
+			}
+			splitedResponse := strings.Split(response, "L3 ")
+			if len(splitedResponse) < 2 {
+				continue
+			}
+			ip, net, err := net.ParseCIDR(splitedResponse[1])
+			if err != nil {
+				continue
+			}
+
+			ip, err = prefix_pool.IncrementIP(ip, net)
+			if err != nil {
+				continue
+			}
+			return ip, nil
+		case <-time.Tick(time.Second * 30):
+			return nil, errors.New("can not get IP during 30 sec")
+
+		}
+	}
+}
+
+func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
+	nseIp, err := getNSEMemifAddr(k8s, from)
+	if err != nil {
+		return false
+	}
+	logrus.Infof("nse ip: %v", nseIp)
+	logrus.Infof(" %v trying vppctl ping to %v", from.Name, nseIp)
+	for attempts := 30; attempts > 0; <-time.Tick(300 * time.Millisecond) {
+		response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
+		if err != nil {
+			logrus.Error(err.Error())
+		}
+		logrus.Infof("Ping result: %v, attempt: %v ", response, 31-attempts)
+		if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
+			result = true
+			logrus.Info("Ping successful")
+			break
+		}
+		attempts--
+	}
+	return result
 }

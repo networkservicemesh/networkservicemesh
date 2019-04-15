@@ -15,3 +15,4 @@
 !sdk
 !utils
 !vendor
+!scripts/go-mod-download.sh
