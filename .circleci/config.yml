@@ -9,6 +9,9 @@ jobs:
       - image: circleci/golang
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           command: |
             sudo apt-get install yamllint python3-pkg-resources
@@ -40,6 +43,10 @@ jobs:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
     environment:
       GO111MODULE: "on"
 
