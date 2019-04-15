@@ -15,12 +15,15 @@ jobs:
             ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
       - run: go version
-      - run: until go mod download;do echo "Trying again";done
+      - run:
+          name: Download Go Dependencies
+          command: |
+            ./scripts/go-mod-download.sh
       - run: "! go fmt ./... 2>&1 | read"
       - run:
           name: golint
           command: |
-            go get golang.org/x/lint/golint@v0.0.0-20190227174305-8f45f776aaf1
+            go get golang.org/x/lint/golint
             golint ./...
       - run: make vet check
       - run: go install k8s.io/code-generator/cmd/deepcopy-gen
@@ -141,7 +144,7 @@ jobs:
             # export CONTAINER_FORCE_PULL="true"
             ./scripts/prepare-circle-integration-tests.sh
             mkdir -p ~/junit/
-            go mod download
+            ./scripts/go-mod-download.sh
           no_output_timeout: 40m
       - run:
           name: Running integration tests - <<parameters.test_tags>>
