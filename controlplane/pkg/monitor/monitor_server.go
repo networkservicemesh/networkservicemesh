@@ -1,7 +1,7 @@
 package monitor
 
 import (
-	"github.com/ligato/vpp-agent/plugins/vpp/model/interfaces"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -26,7 +26,7 @@ type Event struct {
 
 type statistics struct {
 	name       string
-	statistics *interfaces.InterfacesState_Interface_Statistics
+	statistics *vpp_interfaces.InterfaceState_Statistics
 }
 
 type EventConverter interface {
@@ -41,7 +41,7 @@ type MonitorServer interface {
 	Update(entity Entity)
 	Delete(entity Entity)
 
-	UpdateStatistics(name string, statistics *interfaces.InterfacesState_Interface_Statistics)
+	UpdateStatistics(name string, statistics *vpp_interfaces.InterfaceState_Statistics)
 
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
@@ -58,8 +58,8 @@ type monitorServerImpl struct {
 	closedMonitorRecipientCh chan Recipient
 	entities                 map[string]Entity
 	recipients               []Recipient
-	srcStats                 map[string]*interfaces.InterfacesState_Interface_Statistics
-	dstStats                 map[string]*interfaces.InterfacesState_Interface_Statistics
+	srcStats                 map[string]*vpp_interfaces.InterfaceState_Statistics
+	dstStats                 map[string]*vpp_interfaces.InterfaceState_Statistics
 }
 
 func NewMonitorServer(eventConverter EventConverter) MonitorServer {
@@ -71,8 +71,8 @@ func NewMonitorServer(eventConverter EventConverter) MonitorServer {
 		closedMonitorRecipientCh: make(chan Recipient, defaultSize),
 		entities:                 make(map[string]Entity),
 		recipients:               make([]Recipient, 0, defaultSize),
-		srcStats:                 make(map[string]*interfaces.InterfacesState_Interface_Statistics),
-		dstStats:                 make(map[string]*interfaces.InterfacesState_Interface_Statistics),
+		srcStats:                 make(map[string]*vpp_interfaces.InterfaceState_Statistics),
+		dstStats:                 make(map[string]*vpp_interfaces.InterfaceState_Statistics),
 	}
 }
 
@@ -83,7 +83,7 @@ func (m *monitorServerImpl) Update(entity Entity) {
 	}
 }
 
-func (m *monitorServerImpl) UpdateStatistics(name string, metrics *interfaces.InterfacesState_Interface_Statistics) {
+func (m *monitorServerImpl) UpdateStatistics(name string, metrics *vpp_interfaces.InterfaceState_Statistics) {
 	m.statsCh <- statistics{
 		name:       name,
 		statistics: metrics,

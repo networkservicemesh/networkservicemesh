@@ -3,7 +3,7 @@ package vppagent
 import (
 	"context"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/ligato/vpp-agent/plugins/vpp/model/rpc"
+	rpc "github.com/ligato/vpp-agent/api/configurator"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func startMetricsCollector(crossConnectServer  *crossconnect_monitor.CrossConnectMonitor, vppAgentEndpoint string) {
+func startMetricsCollector(crossConnectServer *crossconnect_monitor.CrossConnectMonitor, vppAgentEndpoint string) {
 	go func() {
 		tracer := opentracing.GlobalTracer()
 		conn, err := grpc.Dial(vppAgentEndpoint, grpc.WithInsecure(),
@@ -26,9 +26,9 @@ func startMetricsCollector(crossConnectServer  *crossconnect_monitor.CrossConnec
 		}
 		for {
 			<-time.Tick(10 * time.Second)
-			notificationClient := rpc.NewNotificationServiceClient(conn)
+			notificationClient := rpc.NewConfiguratorClient(conn)
 			nr := &rpc.NotificationRequest{}
-			stream, err := notificationClient.Get(context.Background(), nr)
+			stream, err := notificationClient.Notify(context.Background(), nr)
 			if err != nil {
 				logrus.Errorf("Can't get notification stream: %v", err)
 				continue
@@ -42,11 +42,11 @@ func startMetricsCollector(crossConnectServer  *crossconnect_monitor.CrossConnec
 					}
 					break
 				}
-				name := msg.GetNIf().GetState().Name
-				stat := msg.GetNIf().GetState().Statistics
+				name := msg.GetNotification().GetVppNotification().Interface.State.Name
+				stat := msg.GetNotification().GetVppNotification().Interface.State.Statistics
 				crossConnectServer.UpdateStatistics(name, stat)
 
-				//logrus.Infof("Monitor msg: %v", msg)
+				logrus.Infof("Monitor msg: %v", msg)
 			}
 		}
 	}()

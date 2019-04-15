@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2018-2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,7 +37,8 @@ func NewServer(vppAgentEndpoint string, baseDir string, srcIp net.IP, srcIPNet n
 	monitor := crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
 
-	vppagent := NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName)
+	vppagent := CreateVPPAgent()
+	//NewVPPAgent(vppAgentEndpoint, monitor, baseDir, srcIp, srcIPNet, mgmtIfaceName)
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(monitor)
 	startMetricsCollector(monitor, vppAgentEndpoint)
 	dataplane.RegisterDataplaneServer(server, vppagent)
