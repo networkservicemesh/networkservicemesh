@@ -136,6 +136,10 @@ func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Contex
 	return impl.clusterConfiguration, nil
 }
 
+func (impl *nsmdTestServiceDiscovery) MonitorSubnets(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (registry.ClusterInfo_MonitorSubnetsClient, error) {
+	panic("implement me")
+}
+
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
@@ -494,7 +498,53 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, pool)
+	poolCh := make(chan prefix_pool.PrefixPool, 1)
+	poolCh <- pool
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, poolCh)
+
+	// Choose a public API listener
+	sock, err := srv.apiRegistry.NewPublicListener()
+	if err != nil {
+		logrus.Errorf("Failed to start Public API server...")
+		return nil
+	}
+	// Lets start NSMD NSE registry service
+	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	srv.nsmServer = nsmServer
+	Expect(err).To(BeNil())
+
+	// Start API Server
+	err = nsmd.StartAPIServerAt(nsmServer, sock)
+	Expect(err).To(BeNil())
+
+	return srv
+}
+
+func newNSMDFullServerWithSubnetMonitoring(nsmgrName string, storage *sharedStorage, excludePrefixCh <-chan prefix_pool.PrefixPool) *nsmdFullServerImpl {
+	rootDir, err := ioutil.TempDir("", "nsmd_test")
+
+	srv := &nsmdFullServerImpl{}
+	srv.apiRegistry = newTestApiRegistry()
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, nil)
+	srv.rootDir = rootDir
+
+	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	srv.serviceRegistry = &nsmdTestServiceRegistry{
+		nseRegistry:             srv.nseRegistry,
+		apiRegistry:             srv.apiRegistry,
+		testDataplaneConnection: &testDataplaneConnection{},
+		localTestNSE: &localTestNSENetworkServiceClient{
+			prefixPool: prefixPool,
+		},
+		vniAllocator: vni.NewVniAllocator(),
+		rootDir:      rootDir,
+	}
+
+	srv.testModel = model.NewModel()
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, excludePrefixCh)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()
