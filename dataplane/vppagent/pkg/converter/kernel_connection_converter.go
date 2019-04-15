@@ -91,11 +91,11 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Enabled:     true,
 			IpAddresses: ipAddresses,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
-			Namespace: &linux_namespace.NetNamespace {
-				Type:     linux_namespace.NetNamespace_FD,
+			Namespace: &linux_namespace.NetNamespace{
+				Type:      linux_namespace.NetNamespace_FD,
 				Reference: filepath,
 			},
-			Link: &linux_interfaces.Interface_Tap {
+			Link: &linux_interfaces.Interface_Tap{
 				Tap: &linux_interfaces.TapLink{
 					VppTapIfName: c.conversionParameters.Name,
 				},
@@ -121,13 +121,13 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Enabled:     true,
 			IpAddresses: ipAddresses,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
-			Namespace: &linux_namespace.NetNamespace {
-				Type:     linux_namespace.NetNamespace_FD,
+			Namespace: &linux_namespace.NetNamespace{
+				Type:      linux_namespace.NetNamespace_FD,
 				Reference: filepath,
 			},
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
-					PeerIfName:	c.conversionParameters.Name + "-veth",
+					PeerIfName: c.conversionParameters.Name + "-veth",
 				},
 			},
 		})
@@ -135,7 +135,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Name:    c.conversionParameters.Name,
 			Type:    vpp_interfaces.Interface_AF_PACKET,
 			Enabled: true,
-			Link: &vpp_interfaces.Interface_Afpacket {
+			Link: &vpp_interfaces.Interface_Afpacket{
 				Afpacket: &vpp_interfaces.AfpacketLink{
 					HostIfName: c.conversionParameters.Name + "-veth",
 				},
@@ -148,9 +148,9 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if c.conversionParameters.Side == SOURCE {
 		for _, route := range c.Connection.GetContext().GetRoutes() {
 			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
-				DstNetwork:   route.Prefix,
-				OutgoingInterface:   c.conversionParameters.Name,
-				Scope: linux_l3.Route_LINK,
+				DstNetwork:        route.Prefix,
+				OutgoingInterface: c.conversionParameters.Name,
+				Scope:             linux_l3.Route_LINK,
 			})
 		}
 	}
@@ -159,7 +159,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if c.conversionParameters.Side == SOURCE {
 		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
 			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
-				IpAddress:    neightbour.Ip,
+				IpAddress: neightbour.Ip,
 				Interface: c.conversionParameters.Name,
 				HwAddress: neightbour.HardwareAddress,
 			})

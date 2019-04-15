@@ -147,7 +147,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	if connect {
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
 	} else {
-		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange,})
+		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 	}
 
 	v.printVppAgentConfiguration(client)
@@ -186,8 +186,7 @@ func (v *VPPAgent) reset() error {
 	defer conn.Close()
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
-	_, err = client.Update(context.Background(), &configurator.UpdateRequest{Update: &configurator.Config{
-	}, FullResync: true})
+	_, err = client.Update(context.Background(), &configurator.UpdateRequest{Update: &configurator.Config{}, FullResync: true})
 	if err != nil {
 		logrus.Errorf("failed to reset vppagent: %s", err)
 	}
