@@ -25,12 +25,12 @@ jobs:
           command: |
             go get golang.org/x/lint/golint
             golint ./...
-      - run: make vet check
       - run: go install k8s.io/code-generator/cmd/deepcopy-gen
       - run: go install github.com/golang/protobuf/protoc-gen-go
       - run: go get golang.org/x/tools/cmd/stringer
       - run: ./scripts/install-protoc.sh
       - run: go generate ./...
+      - run: make vet check
       - run: go build ./...
       - run: mkdir -p ~/junit/
       - run:
