@@ -109,9 +109,6 @@ jobs:
         type: string
       test_tags:
         type: string
-      gke_compute_zone:
-        type: string
-        default: "us-west2-a"
       gke_project_id:
         type: string
         default: "ci-management"
@@ -183,7 +180,7 @@ jobs:
           when: on_fail
           command: |
             if [ "x<< parameters.cloud_provider >>" == "xgke" ]; then
-              .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "<< parameters.gke_compute_zone >>" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+              .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
             else
               .circleci/cleanup-<< parameters.cloud_provider >>.sh
             fi
@@ -273,9 +270,6 @@ jobs:
     parameters:
       cluster_id:
         type: string
-      gke_compute_zone:
-        type: string
-        default: "us-west2-a"
       gke_project_id:
         type: string
         default: "ci-management"
@@ -286,7 +280,7 @@ jobs:
       - run:
           name: Setup Google Kubernetes Cluster
           command: |
-            .circleci/gke/init-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "<< parameters.gke_compute_zone >>"
+            .circleci/gke/init-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}"
             export GKE_CLUSTER_NAME="dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
             make gke-start
       - run:
@@ -306,9 +300,6 @@ jobs:
     parameters:
       cluster_id:
         type: string
-      gke_compute_zone:
-        type: string
-        default: "us-west2-a"
       gke_project_id:
         type: string
         default: "ci-management"
@@ -319,7 +310,7 @@ jobs:
       - run:
           name: "Install google cloud SDK"
           command: |
-            .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "<< parameters.gke_compute_zone >>" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+            .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
 workflows:
   version: 2
   build-and-test:
