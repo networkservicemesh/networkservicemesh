@@ -51,8 +51,20 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return nil, err
 	}
 
+	/* Exclude the prefixes from the pool of available prefixes */
+	excludedPrefixes, err := ice.prefixPool.ExcludePrefixes(request.Connection.Context.ExcludedPrefixes)
+	if err != nil {
+		return nil, err
+	}
+
 	//TODO: We need to somehow support IPv6.
 	srcIP, dstIP, prefixes, err := ice.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
+	if err != nil {
+		return nil, err
+	}
+
+	/* Release the actual prefixes that were excluded during IPAM */
+	err = ice.prefixPool.ReleaseExcludedPrefixes(excludedPrefixes)
 	if err != nil {
 		return nil, err
 	}

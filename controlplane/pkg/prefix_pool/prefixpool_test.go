@@ -1,11 +1,13 @@
 package prefix_pool
 
 import (
+	"fmt"
+	"net"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"net"
-	"testing"
 )
 
 func TestPrefixPoolSubnet1(t *testing.T) {
@@ -319,4 +321,104 @@ func TestIntersect2(t *testing.T) {
 	Expect(pp.Intersect("10.32.0.0/24")).To(Equal(true))
 	Expect(pp.Intersect("10.2.0.0/16")).To(Equal(false))
 
+}
+
+func TestReleaseExcludePrefixes(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.1.10/24", "10.20.32.0/19"}
+
+	excluded, err := pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/24", "10.20.128.0/17", "10.20.64.0/18", "10.20.16.0/20", "10.20.8.0/21", "10.20.4.0/22", "10.20.2.0/23"}))
+
+	err = pool.ReleaseExcludedPrefixes(excluded)
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+}
+
+func TestReleaseExcludePrefixesNoOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.32.0.0/16"}
+
+	excluded, err := pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+
+	err = pool.ReleaseExcludedPrefixes(excluded)
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+}
+
+func TestReleaseExcludePrefixesFullOverlap(t *testing.T) {
+	RegisterTestingT(t)
+	pool, err := NewPrefixPool("10.20.0.0/16", "2.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"2.20.0.0/8"}
+
+	excluded, err := pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+
+	err = pool.ReleaseExcludedPrefixes(excluded)
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16", "2.20.0.0/16"}))
+}
+
+func TestExcludePrefixesPartialOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16", "10.32.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.1.10/24", "10.20.32.0/19"}
+
+	_, err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/24", "10.20.128.0/17", "10.20.64.0/18", "10.20.16.0/20", "10.20.8.0/21", "10.20.4.0/22", "10.20.2.0/23", "10.32.0.0/16"}))
+}
+
+func TestExcludePrefixesPartialOverlapSmallNetworks(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.1.0/30", "10.20.10.0/30", "10.20.20.0/30", "10.20.20.20/30", "10.20.40.20/30"}
+
+	_, err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(BeNil())
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.32.0/21", "10.20.40.0/28", "10.20.40.16/30", "10.20.48.0/20", "10.20.44.0/22", "10.20.42.0/23", "10.20.41.0/24", "10.20.40.128/25", "10.20.40.64/26", "10.20.40.32/27", "10.20.40.24/29", "10.20.20.16/30", "10.20.20.24/29", "10.20.16.0/22", "10.20.24.0/21", "10.20.22.0/23", "10.20.21.0/24", "10.20.20.128/25", "10.20.20.64/26", "10.20.20.32/27", "10.20.20.8/29", "10.20.20.4/30", "10.20.8.0/23", "10.20.12.0/22", "10.20.11.0/24", "10.20.10.128/25", "10.20.10.64/26", "10.20.10.32/27", "10.20.10.16/28", "10.20.10.8/29", "10.20.10.4/30", "10.20.0.0/24", "10.20.128.0/17", "10.20.64.0/18", "10.20.4.0/22", "10.20.2.0/23", "10.20.1.128/25", "10.20.1.64/26", "10.20.1.32/27", "10.20.1.16/28", "10.20.1.8/29", "10.20.1.4/30"}))
+}
+
+func TestExcludePrefixesNoOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.32.1.0/16"}
+
+	_, err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(pool.GetPrefixes()).To(Equal([]string{"10.20.0.0/16"}))
+}
+
+func TestExcludePrefixesFullOverlap(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/24")
+	Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.1.0/16"}
+
+	_, err = pool.ExcludePrefixes(excludedPrefix)
+
+	Expect(err).To(Equal(fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")))
 }

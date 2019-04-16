@@ -3,14 +3,15 @@
 package nsmd_integration_tests
 
 import (
+	"testing"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 func TestExcludePrefixCheck(t *testing.T) {
@@ -40,12 +41,12 @@ func TestExcludePrefixCheck(t *testing.T) {
 		},
 	})
 
-	nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmp := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	clientset, err := k8s.GetClientSet()
 	Expect(err).To(BeNil())
 
-	nsc, err := clientset.CoreV1().Pods("default").Create(pods.NSCPod("nsc", nodes[0].Node,
+	_, err = clientset.CoreV1().Pods("default").Create(pods.NSCPod("nsc", nodes[0].Node,
 		map[string]string{
 			"OUTGOING_NSC_LABELS": "app=icmp",
 			"OUTGOING_NSC_NAME":   "icmp-responder",
@@ -53,5 +54,5 @@ func TestExcludePrefixCheck(t *testing.T) {
 	))
 	Expect(err).To(BeNil())
 
-	k8s.WaitLogsContains(nsc, "nsc", "srcIp intersects excludedPrefix", defaultTimeout)
+	k8s.WaitLogsContains(icmp, "", "IPAM: The available address pool is empty, probably intersected by excludedPrefix", defaultTimeout)
 }
