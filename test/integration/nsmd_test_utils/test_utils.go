@@ -461,16 +461,26 @@ func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 	logrus.Printf("NSC Ping is success:%s", info.pingResponse)
 	return info
 }
+
 func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
-	time.Sleep(time.Second * 5)
 	info := &NSCCheckInfo{}
-	info.ipResponse, info.errOut, _ = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
-	Expect(info.errOut).To(Equal(""))
+	for attempts := 0; attempts < 30; attempts++ {
+		response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
+		if strings.Contains(response, checkIP) {
+			info.ipResponse = response
+			info.errOut = errOut
+			break
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	Expect(info.ipResponse).ShouldNot(Equal(""))
+	Expect(info.errOut).Should(Equal(""))
 	logrus.Printf("NSC IP status Ok")
 	Expect(true, IsMemifNsePinged(k8s, nscPodNode))
 
 	return info
 }
+
 func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok

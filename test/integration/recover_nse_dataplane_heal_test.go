@@ -34,7 +34,7 @@ func TestDataplaneHealLocalMemif(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testDataplaneHeal(t, 1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC)
 }
 
 func TestDataplaneHealRemote(t *testing.T) {
