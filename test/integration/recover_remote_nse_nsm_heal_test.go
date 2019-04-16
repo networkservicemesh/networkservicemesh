@@ -1,4 +1,4 @@
-// +build recover,!azure
+// +build recover,!azure,!gke
 
 package nsmd_integration_tests
 
