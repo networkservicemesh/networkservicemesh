@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -121,7 +122,7 @@ func createPatch(annotationValue string, path string) ([]byte, error) {
 			"imagePullPolicy": "IfNotPresent",
 			"env": []interface{}{
 				map[string]string{
-					"name":  "NS_NETWORKSERVICEMESH_IO",
+					"name":  client.AnnotationEnv,
 					"value": annotationValue,
 				},
 			},
