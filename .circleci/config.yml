@@ -311,6 +311,16 @@ jobs:
           name: "Install google cloud SDK"
           command: |
             .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+  helm-chart-tests:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
+    docker:
+      - image: quay.io/helmpack/chart-testing:v2.3.0
+    steps:
+      - checkout
+      - run:
+          name: Install charts
+          command: |
+            .circleci/helm/install-charts.sh
 workflows:
   version: 2
   build-and-test:
@@ -480,3 +490,7 @@ workflows:
           requires:
             - "gke-cluster2"
             - "gke test recover"
+      - helm-chart-tests:
+          name: "helm-chart-tests"
+          requires:
+            - sanity-check
