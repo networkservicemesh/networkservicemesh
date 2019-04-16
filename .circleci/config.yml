@@ -463,14 +463,14 @@ workflows:
           name: "azure-test-basic-usecase"
           cloud_provider: "azure"
           cluster_id: "1"
-          test_tags: "basic usecase"
+          test_tags: "basic usecase azure"
           requires:
             - azure-deploy-k8s-1
       - integration-tests:
           name: "azure-test-recover"
           cloud_provider: "azure"
           cluster_id: "2"
-          test_tags: "recover"
+          test_tags: "recover azure"
           requires:
             - azure-deploy-k8s-2
       - packet-destroy:
