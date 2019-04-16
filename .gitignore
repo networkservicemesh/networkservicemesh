@@ -43,5 +43,3 @@ unit-tests.xml
 # Vagrant
 scripts/vagrant/.kube/
 
-# Protobuf files.
-*.pb.go
