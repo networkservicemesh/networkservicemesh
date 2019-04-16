@@ -35,8 +35,6 @@ type prefixPool struct {
 }
 
 func (impl *prefixPool) GetPrefixes() []string {
-	/* Sort the prefixes, so their order is consistent during unit testing */
-	sort.Slice(impl.prefixes, func(i, j int) bool { return impl.prefixes[i] < impl.prefixes[j] })
 	return impl.prefixes
 }
 
@@ -63,6 +61,8 @@ func (impl *prefixPool) ReleaseExcludedPrefixes(excludedPrefixes []string) error
 	if err != nil {
 		return err
 	}
+	/* Sort the prefixes, so their order is consistent during unit testing */
+	sort.Slice(remaining, func(i, j int) bool { return remaining[i] < remaining[j] })
 	impl.prefixes = remaining
 	return nil
 }
