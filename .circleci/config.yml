@@ -227,6 +227,12 @@ jobs:
           key: cncf-data-azure-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
+      - run:
+          when: on_fail
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-destroy
 
   azure-destroy:
     parameters:
