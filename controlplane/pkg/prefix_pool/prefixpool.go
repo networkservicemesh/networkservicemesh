@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"sort"
 	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
@@ -60,6 +61,8 @@ func (impl *prefixPool) ReleaseExcludedPrefixes(excludedPrefixes []string) error
 	if err != nil {
 		return err
 	}
+	/* Sort the prefixes, so their order is consistent during unit testing */
+	sort.Slice(remaining, func(i, j int) bool { return remaining[i] < remaining[j] })
 	impl.prefixes = remaining
 	return nil
 }
