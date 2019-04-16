@@ -143,7 +143,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		logrus.Error(err)
 		return nil, err
 	}
-	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
+	logrus.Infof("Sending DataChange to vppagent: %v", proto.MarshalTextString(dataChange))
 	if connect {
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
 	} else {

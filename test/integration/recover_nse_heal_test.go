@@ -1,4 +1,4 @@
-// +build recover
+// +build recover, !gke
 
 package nsmd_integration_tests
 
@@ -72,7 +72,7 @@ func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_u
 		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.Heal: Connection recovered
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
 	icmpDeploy(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-2", defaultTimeout)
@@ -85,7 +85,7 @@ func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_u
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	})
 	if len(failures) > 0 {
-		printErrors(failures, k8s, nodes_setup, nscInfo, t)
+		nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 	}
 
 	if len(nodes_setup) > 1 {
@@ -99,15 +99,5 @@ func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_u
 	failures = InterceptGomegaFailures(func() {
 		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
-}
-
-func printErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*nsmd_test_utils.NodeConf, nscInfo *nsmd_test_utils.NSCCheckInfo, t *testing.T) {
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }

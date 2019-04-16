@@ -318,7 +318,7 @@ func TestClusterInfo(t *testing.T) {
 	Expect(err).To(BeNil())
 	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
 
-	if cm == nil {
+	if cm == nil || err != nil {
 		t.Skip("Skip, no kubeadm-config")
 		return
 	}

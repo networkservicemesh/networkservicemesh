@@ -42,6 +42,8 @@ steps:
       '--cache-from',
       '${_REPO}/${_NAME}:${_CACHE_TAG}',
       '--cache-from',
+      'networkservicemesh/${_NAME}:latest',
+      '--cache-from',
       '${_REPO}/${_NAME}-${_TARGET}:${_CACHE_TAG}',
       '-f',
       'docker/Dockerfile.${_NAME}',
