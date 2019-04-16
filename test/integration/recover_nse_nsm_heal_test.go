@@ -1,4 +1,4 @@
-// +build recover
+// +build recover,!gke
 
 package nsmd_integration_tests
 
@@ -50,7 +50,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Remote NSMD")
 	k8s.DeletePods(nodes_setup[1].Nsmd)
@@ -76,7 +76,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
 func TestNSMHealRemoteDieNSMD(t *testing.T) {
@@ -109,7 +109,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Remote NSMD")
 	k8s.DeletePods(nodes_setup[1].Nsmd)
@@ -131,7 +131,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
 func TestNSMHealLocalDieNSMD(t *testing.T) {
@@ -164,7 +164,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
@@ -186,7 +186,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
 func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
@@ -219,7 +219,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
@@ -239,5 +239,5 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
 	})
-	printErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
