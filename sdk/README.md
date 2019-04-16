@@ -1,7 +1,20 @@
 # Network Service Mesh SDK
 
 ## General Concepts
-TBD
+The purpose of the SDK is to hide the lower level setup and communication details of Network Service Mesh (NSM). Using it eases the implemetation of Network Service Clients and Endpoints. Please refer to the [glossary](../docs/spec/glossary.md) for more detailed explanation of the terminology. 
+The current SDK targets Golang as the main Client and Endpoint implementation language. Other languages (C/C++, Python) might be considered for the future.
+
+NSM comes with an admission controller implementation, which will allow for simple init and sidecar container approach when migrating existing services. This is appraich is suitable for simpler solutions like web services, where no advanced interface knowledge is needed.
+
+### The underlying gRPC communication
+As noted, the SDK is a higher laye abstraction of the underlying gRPC API.
+
+#### Client gRPC
+
+The client uses a named socket to talk to its local Network Service Manager (NSMgr). The socket is located in ***TBD***. The gRPC itself is described in [networkservice.proto](../controlplane/pkg/apis/local/networkservice/networkservice.proto).
+
+#### Endpoint gRPC
+The endpoint implements a communication over a socket to its local NSMgr. The socket is the same as what the client uses. The gRPC for registering an endpoint is implemented as `service NetworkServiceRegistry` in [registry.proto](../controlplane/pkg/apis/registry/registry.proto).
 
 ### Configuration
 
