@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -422,10 +423,12 @@ func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 }
 
 func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) (<-chan prefix_pool.PrefixPool, error) {
+	excludePrefixes := getExcludePrefixesFromEnv()
+
 	// trying to get excludePrefixes from kubeadm-config, if it exists
 	if configMapPrefixes, err := getExcludedPrefixesFromConfigMap(serviceRegistry); err == nil {
 		poolCh := make(chan prefix_pool.PrefixPool, 1)
-		pool, err := prefix_pool.NewPrefixPool(configMapPrefixes...)
+		pool, err := prefix_pool.NewPrefixPool(append(excludePrefixes, configMapPrefixes...)...)
 		if err != nil {
 			return nil, err
 		}
@@ -434,7 +437,7 @@ func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) (<-cha
 	}
 
 	// seems like we don't have kubeadm-config in cluster, starting monitor client
-	return monitorReservedSubnets(serviceRegistry)
+	return monitorReservedSubnets(serviceRegistry, excludePrefixes...)
 }
 
 func getExcludedPrefixesFromConfigMap(serviceRegistry serviceregistry.ServiceRegistry) ([]string, error) {
@@ -462,7 +465,16 @@ func getExcludedPrefixesFromConfigMap(serviceRegistry serviceregistry.ServiceReg
 	}, nil
 }
 
-func monitorReservedSubnets(serviceRegistry serviceregistry.ServiceRegistry) (<-chan prefix_pool.PrefixPool, error) {
+func getExcludePrefixesFromEnv() []string {
+	excludedPrefixesEnv, ok := os.LookupEnv(ExcludedPrefixesEnv)
+	if !ok {
+		return []string{}
+	}
+	logrus.Infof("Getting excludedPrefixes from ENV: %v", excludedPrefixesEnv)
+	return strings.Split(excludedPrefixesEnv, ",")
+}
+
+func monitorReservedSubnets(serviceRegistry serviceregistry.ServiceRegistry, additionalPrefixes ...string) (<-chan prefix_pool.PrefixPool, error) {
 	clusterInfoClient, err := serviceRegistry.ClusterInfoClient()
 	if err != nil {
 		return nil, fmt.Errorf("error during ClusterInfoClient creation: %v", err)
@@ -493,7 +505,7 @@ func monitorReservedSubnets(serviceRegistry serviceregistry.ServiceRegistry) (<-
 				serviceSubnet = extendResponse.Subnet
 			}
 
-			pool, err := prefix_pool.NewPrefixPool(podSubnet, serviceSubnet)
+			pool, err := prefix_pool.NewPrefixPool(append(additionalPrefixes, podSubnet, serviceSubnet)...)
 			if err != nil {
 				logrus.Error(err)
 				continue
