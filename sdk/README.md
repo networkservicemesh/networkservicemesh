@@ -62,9 +62,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint/composite"
 )
 
-composite := 
-    composite.NewIpamCompositeEndpoint(nil).SetNext(
-        composite.NewConnectionCompositeEndpoint(nil))
+composite := endpoint.NewCompositeEndpoint(
+	endpoint.NewIpamEndpoint(nil),
+	endpoint.NewConnectionEndpoint(nil))
 
 nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
 if err != nil {
@@ -74,22 +74,24 @@ if err != nil {
 nsmEndpoint.Start()
 defer nsmEndpoint.Delete()
 ```
-As there is no explicit configuration, both *composites* and the *endpoint* are initalized with the matching environment variables.
+Endpoint `CompositeEndpoint` allows you to create *chain* of *endpoints*. Every *endpoint* that implements `ChainedEndpoint` interface could 
+be passed to `endpoint.NewCompositeEndpoint` function.
+
+As there is no explicit configuration, *endpoint* are initalized with the matching environment variables.
 
 ## Creating an Advanced Endpoint
 TBD
 
-### Writing a Composite
+### Writing a ChainedEndpoint
 
-Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implemenst the `CompositeEndpoint` interface.
+Writing a new *endpoint* is done better by extending the `ChainedImpl` strucure. It already implements the `Chained` interface.
 
-`CompositeEndpoint` method description:
+`ChainedEndpoint` method description:
 
  * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/composite/monitor.go`
  * `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
- * `SetSelf(CompositeEndpoint)` - do not override. Recommended to be called once the new composite is allocated. Example: check the implementation of `NewMonitorCompositeEndpoint` in `sdk/endpoint/composite/monitor.go`.
- * `GetNext() CompositeEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
- * `SetNext(CompositeEndpoint) CompositeEndpoint` - do not override. Sets the next composite in the chain. Called before the endpoint is created. See the example in `Creating a Simple Endpoint`.
+ * `GetNext() ChainedEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
+ * `SetNext(ChainedEndpoint)` - do not override. Sets the next composite in the chain. Called before the endpoint is created. See the example in `Creating a Simple Endpoint`.
  * `GetOpaque(interface{}) interface{}` - get an arbitrary data from the composite. Both the parameter and the return are freely interpreted data and specific to the composite. See `GetOpaque` in `sdk/endpoint/composite/client.go`.
 
 ### Pre-defined composites
