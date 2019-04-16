@@ -54,7 +54,7 @@ type Workspace struct {
 	localRegistry    *nseregistry.NSERegistry
 }
 
-func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
+func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error) {
 	logrus.Infof("Creating new workspace: %s", name)
 	w := &Workspace{
 		locationProvider: nsm.locationProvider,
@@ -62,17 +62,13 @@ func NewWorkSpace(nsm *nsmServer, name string) (*Workspace, error) {
 		state:            NEW,
 		localRegistry:    nsm.localRegistry,
 	}
-
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
-	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
-	if _, err := os.Stat(w.NsmDirectory()); err == nil {
-		logrus.Infof("Removing exist content: %s, error: %v", w.NsmDirectory(), err)
-		err := os.RemoveAll(w.NsmDirectory())
-		if err != nil {
-			logrus.Errorf("Can't delete folder: %s, error: %v", w.NsmDirectory(), err)
+	if !restore {
+		if err := w.cleanContent(); err != nil {
 			return nil, err
 		}
 	}
+	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
 	if err := os.MkdirAll(w.NsmDirectory(), folderMask); err != nil {
 		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
@@ -170,7 +166,7 @@ func (w *Workspace) Close() {
 func (w *Workspace) cleanup() {
 	if w.state != RUNNING {
 		if w.NsmDirectory() != "" {
-			os.RemoveAll(w.NsmDirectory())
+			w.cleanContent()
 		}
 		if w.grpcServer != nil {
 			// TODO switch to Graceful stop once we think through possible long running connections
@@ -180,4 +176,16 @@ func (w *Workspace) cleanup() {
 			w.listener.Close()
 		}
 	}
+}
+
+func (w *Workspace) cleanContent() error {
+	if _, err := os.Stat(w.NsmDirectory()); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	logrus.Infof("Removing exist content im %s", w.NsmDirectory())
+	err := os.RemoveAll(w.NsmDirectory())
+	return err
 }
