@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"sort"
 	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
@@ -34,6 +35,8 @@ type prefixPool struct {
 }
 
 func (impl *prefixPool) GetPrefixes() []string {
+	/* Sort the prefixes, so their order is consistent during unit testing */
+	sort.Slice(impl.prefixes, func(i, j int) bool { return impl.prefixes[i] < impl.prefixes[j] })
 	return impl.prefixes
 }
 
