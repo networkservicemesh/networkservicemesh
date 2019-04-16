@@ -82,7 +82,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	failures := InterceptGomegaFailures(func() {
 		icmp := nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-		nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout, false)
+		nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
 		ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")
 		Expect(err).To(BeNil())

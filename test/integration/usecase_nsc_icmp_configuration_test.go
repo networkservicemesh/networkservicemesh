@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	v1 "k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -112,8 +113,12 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	// Run ICMP on latest node
 	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, useWebhook)
-
+	var nscPodNode *v1.Pod
+	if useWebhook {
+		nscPodNode = nsmd_test_utils.DeployNSCWebghook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+	} else {
+		nscPodNode = nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+	}
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 
 	failures := InterceptGomegaFailures(func() {

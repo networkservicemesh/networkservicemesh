@@ -31,6 +31,8 @@ type NodeConf struct {
 	Dataplane *v1.Pod
 	Node      *v1.Node
 }
+type PodSupplier = func(*kube_testing.K8s, *v1.Node, string, time.Duration) *v1.Pod
+type NscChecker = func(*kube_testing.K8s, *testing.T, *v1.Pod) *NSCCheckInfo
 
 func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{})
@@ -121,15 +123,13 @@ func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 	))
 }
 
-func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, useWebhook bool) *v1.Pod {
-	if useWebhook {
-		return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
-	} else {
-		return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
-			defaultNSCEnv()))
-	}
+func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
+		defaultNSCEnv()))
 }
-
+func DeployNSCWebghook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
+}
 func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
@@ -431,9 +431,12 @@ func (info *NSCCheckInfo) PrintLogs() {
 }
 
 func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return CheckNSCConfig(k8s, t, nscPodNode, "10.20.1.1", "10.20.1.2")
+	return checkNSCConfig(k8s, t, nscPodNode, "10.20.1.1", "10.20.1.2")
 }
-func CheckNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string, pingIP string) *NSCCheckInfo {
+func CheckVppAgentNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
+	return checkVppAgentNSCConfig(k8s, t, nscPodNode, "10.20.1.1")
+}
+func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string, pingIP string) *NSCCheckInfo {
 	var err error
 	info := &NSCCheckInfo{}
 	info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
@@ -459,16 +462,35 @@ func CheckNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 	return info
 }
 
+func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
+	info := &NSCCheckInfo{}
+	for attempts := 0; attempts < 30; attempts++ {
+		response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
+		if strings.Contains(response, checkIP) {
+			info.ipResponse = response
+			info.errOut = errOut
+			break
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	Expect(info.ipResponse).ShouldNot(Equal(""))
+	Expect(info.errOut).Should(Equal(""))
+	logrus.Printf("NSC IP status Ok")
+	Expect(true, IsMemifNsePinged(k8s, nscPodNode))
+
+	return info
+}
+
 func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
 }
 
-func getNSEMemifAddr(k8s *kube_testing.K8s, pod *v1.Pod) (net.IP, error) {
+func getNSEMemifAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {
 	for {
 		select {
 		case <-time.Tick(time.Second):
-			response, _, _ := k8s.Exec(pod, pod.Spec.Containers[0].Name, "vppctl", "show int addr")
+			response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "vppctl", "show int addr")
 			response = strings.TrimSpace(response)
 			if response == "" {
 				continue

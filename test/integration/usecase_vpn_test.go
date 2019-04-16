@@ -198,10 +198,10 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	k8s.WaitLogsContains(nscPodNode, "nsc", "nsm client: initialization is completed successfully", defaultTimeout)
 	logrus.Printf("VPN Gateway NSC started done: %v", time.Since(s1))
 
-	var ipResponse string = ""
-	var routeResponse string = ""
-	var pingResponse string = ""
-	var errOut string = ""
+	var ipResponse = ""
+	var routeResponse = ""
+	var pingResponse = ""
+	var errOut = ""
 	var wgetResponse string
 	var failures []string
 

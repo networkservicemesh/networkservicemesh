@@ -34,17 +34,17 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 
 	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsm.NsmdHealDSTWaitTimeout: "60", // 60 second delay, since we know on CI it could not fit into delay.
 			},
-		}, &pods.NSMgrPodConfig{},
+		}, {},
 	})
 
 	// Run ICMP on latest node
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
+	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
@@ -103,7 +103,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 
-	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
+	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
@@ -158,7 +158,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 
-	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
+	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
@@ -196,7 +196,20 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+}
 
+func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC)
+}
+
+func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
 	k8s, err := kube_testing.NewK8s()
 	defer k8s.Cleanup()
 
@@ -210,13 +223,13 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
 	// Run ICMP on latest node
-	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmpPod := deployNse(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 
-	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout, false)
+	nscPodNode := deployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
@@ -237,7 +250,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
