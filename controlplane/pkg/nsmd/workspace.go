@@ -64,7 +64,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	}
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	if !restore {
-		if err := w.cleanContent(); err != nil {
+		if err := w.clearContents(); err != nil {
 			return nil, err
 		}
 	}
@@ -166,7 +166,7 @@ func (w *Workspace) Close() {
 func (w *Workspace) cleanup() {
 	if w.state != RUNNING {
 		if w.NsmDirectory() != "" {
-			w.cleanContent()
+			w.clearContents()
 		}
 		if w.grpcServer != nil {
 			// TODO switch to Graceful stop once we think through possible long running connections
@@ -178,7 +178,7 @@ func (w *Workspace) cleanup() {
 	}
 }
 
-func (w *Workspace) cleanContent() error {
+func (w *Workspace) clearContents() error {
 	if _, err := os.Stat(w.NsmDirectory()); err != nil {
 		if os.IsNotExist(err) {
 			return nil

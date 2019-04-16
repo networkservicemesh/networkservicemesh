@@ -168,7 +168,6 @@ func deployNSC(k8s *kube_testing.K8s, node *v1.Node, name, container string, tim
 	nsc := k8s.CreatePod(template)
 
 	Expect(nsc.Name).To(Equal(name))
-
 	k8s.WaitLogsContains(nsc, container, "nsm client: initialization is completed successfully", timeout)
 
 	logrus.Printf("NSC started done: %v", time.Since(startTime))
