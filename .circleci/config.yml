@@ -186,6 +186,8 @@ jobs:
             fi
     environment:
       PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      CLOUD_PROVIDER: "<< parameters.cloud_provider >>"
       KUBECONFIG: /home/circleci/project/data/kubeconfig
       GO111MODULE: "on"
 
@@ -199,6 +201,58 @@ jobs:
       - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
       - run: .circleci/destroy-cluster.sh
+
+  azure-deploy:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install Azure Prerequisites
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
+      - run:
+          name: Create AKS Cluster
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-start
+          environment:
+            AZURE_CREDENTIALS_PATH: "data/kubeconfig"
+      - save_cache:
+          key: cncf-data-azure-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          paths:
+            - data
+      - run:
+          when: on_fail
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-destroy
+
+  azure-destroy:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install Azure Prerequisites
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
+      - run:
+          name: Destroy AKS Cluster
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-destroy
 
   build-container:
     parameters:
@@ -411,6 +465,20 @@ workflows:
           test_tags: "bench"
           requires:
             - "packet-test-recover"
+      - integration-tests:
+          name: "azure-test-basic-usecase"
+          cloud_provider: "azure"
+          cluster_id: "1"
+          test_tags: "basic usecase azure"
+          requires:
+            - azure-deploy-k8s-1
+      - integration-tests:
+          name: "azure-test-recover"
+          cloud_provider: "azure"
+          cluster_id: "2"
+          test_tags: "recover azure"
+          requires:
+            - azure-deploy-k8s-2
       - packet-destroy:
           requires:
             - "packet-test-basic-usecase"
@@ -419,6 +487,8 @@ workflows:
       - docker-push-latest:
           requires:
             - packet-destroy
+            - azure-destroy-1
+            - azure-destroy-2
           filters:
             branches:
               only: master
@@ -480,3 +550,23 @@ workflows:
           requires:
             - "gke-cluster2"
             - "gke test recover"
+      - azure-deploy:
+          name: "azure-deploy-k8s-1"
+          cluster_id: "1"
+          requires:
+            - sanity-check
+      - azure-deploy:
+          name: "azure-deploy-k8s-2"
+          cluster_id: "2"
+          requires:
+            - sanity-check
+      - azure-destroy:
+          name: "azure-destroy-1"
+          cluster_id: "1"
+          requires:
+            - azure-test-basic-usecase
+      - azure-destroy:
+          name: "azure-destroy-2"
+          cluster_id: "2"
+          requires:
+            - azure-test-recover

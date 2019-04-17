@@ -103,7 +103,7 @@ func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string
 func (nsm *nsmServer) RequestClientConnection(context context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
 	logrus.Infof("Requested client connection to nsmd : %+v", request)
 
-	workspace, err := NewWorkSpace(nsm, request.Workspace)
+	workspace, err := NewWorkSpace(nsm, request.Workspace, false)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -187,7 +187,7 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 			if len(client) == 0 {
 				continue
 			}
-			workspace, err := NewWorkSpace(nsm, client)
+			workspace, err := NewWorkSpace(nsm, client, true)
 			if err != nil {
 				logrus.Errorf("NSMServer: Failed to create workspace %s %v. Ignoring...", client, err)
 				continue

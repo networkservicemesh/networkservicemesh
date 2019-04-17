@@ -4,6 +4,6 @@ import "time"
 
 const (
 	ciDelayCoefficient = 1
-	defaultTimeout     = 60 * time.Second * ciDelayCoefficient
+	defaultTimeout     = 2 * time.Minute * ciDelayCoefficient
 	fastTimeout        = defaultTimeout / 5
 )
