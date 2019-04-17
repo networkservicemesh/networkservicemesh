@@ -115,7 +115,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 
 	var nscPodNode *v1.Pod
 	if useWebhook {
-		nscPodNode = nsmd_test_utils.DeployNSCWebghook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+		nscPodNode = nsmd_test_utils.DeployNSCWebhook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	} else {
 		nscPodNode = nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	}

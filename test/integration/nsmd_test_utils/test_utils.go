@@ -127,7 +127,7 @@ func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.D
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
-func DeployNSCWebghook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployNSCWebhook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
 }
 func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
@@ -463,14 +463,10 @@ func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 
 func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
 	info := &NSCCheckInfo{}
-	for attempts := 0; attempts < 30; attempts++ {
-		response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
-		if strings.Contains(response, checkIP) {
-			info.ipResponse = response
-			info.errOut = errOut
-			break
-		}
-		time.Sleep(time.Millisecond * 100)
+	response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
+	if strings.Contains(response, checkIP) {
+		info.ipResponse = response
+		info.errOut = errOut
 	}
 	Expect(info.ipResponse).ShouldNot(Equal(""))
 	Expect(info.errOut).Should(Equal(""))
@@ -522,19 +518,16 @@ func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 	}
 	logrus.Infof("nse ip: %v", nseIp)
 	logrus.Infof(" %v trying vppctl ping to %v", from.Name, nseIp)
-	for attempts := 60; attempts > 0; <-time.Tick(300 * time.Millisecond) {
-		response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
-		if err != nil {
-			logrus.Error(err.Error())
-		}
-		logrus.Infof("Ping result: %v, attempt: %v ", response, 31-attempts)
-		if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
-			result = true
-			logrus.Info("Ping successful")
-			break
-		}
-		attempts--
+	response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
+	logrus.Infof("ping result: %s", response)
+	if err != nil {
+		logrus.Error(err.Error())
 	}
+	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
+		result = true
+		logrus.Info("Ping successful")
+	}
+
 	return result
 }
 
