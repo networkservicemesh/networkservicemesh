@@ -1,4 +1,4 @@
-// +build recover, !gke
+// +build recover
 
 package nsmd_integration_tests
 
