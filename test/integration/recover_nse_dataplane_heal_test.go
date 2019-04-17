@@ -45,7 +45,7 @@ func TestDataplaneHealRemote(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testDataplaneHeal(t, 2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
 }
 
 /**
