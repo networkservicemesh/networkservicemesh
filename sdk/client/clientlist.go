@@ -50,7 +50,7 @@ func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
 }
 
 // Close terminates all connections establised by Connect
-func (nsmcl *NsmClientList) Close(name, mechanism, description string) error {
+func (nsmcl *NsmClientList) Close() error {
 	for _, entry := range nsmcl.clients {
 		for _, connection := range entry.connections {
 			err := entry.client.Close(connection)
