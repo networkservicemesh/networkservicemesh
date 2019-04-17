@@ -318,9 +318,9 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install charts
+          name: Install and lint Helm charts
           command: |
-            .circleci/helm/install-charts.sh
+            .circleci/helm/test-charts.sh
 workflows:
   version: 2
   build-and-test:
