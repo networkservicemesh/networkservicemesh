@@ -520,7 +520,7 @@ func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 	logrus.Infof("nse ip: %v", nseIp)
 	logrus.Infof(" %v trying vppctl ping to %v", from.Name, nseIp)
 	response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
-	logrus.Info("ping result: %v", response)
+	logrus.Infof("ping result: %s", response)
 	if err != nil {
 		logrus.Error(err.Error())
 	}
