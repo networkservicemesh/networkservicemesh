@@ -13,7 +13,7 @@
 # limitations under the License.
 
 BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane vppagent-dataplane-dev
-BUILD_CONTAINERS+=devenv crossconnect-monitor
+BUILD_CONTAINERS+=crossconnect-monitor
 BUILD_CONTAINERS+=nsc icmp-responder-nse
 BUILD_CONTAINERS+=vppagent-firewall-nse
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
@@ -26,15 +26,25 @@ include .mk/vpp_agent.mk
 .PHONY: docker-build
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
+.PHONY: docker-builder-build
+docker-builder-build:
+	@${DOCKERBUILD} '--cache-from' '${ORG}/builder'  -t ${ORG}/builder -f docker/Dockerfile.builder . && \
+    	if [ "x${COMMIT}" != "x" ] ; then \
+    		docker tag ${ORG}/builder ${ORG}/builder:${COMMIT} ;\
+    	fi
+
 .PHONY: docker-%-build
-docker-%-build:
-	@${DOCKERBUILD} --build-arg VPP_AGENT=${VPP_AGENT} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
-	if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+docker-%-build: docker-builder-build
+	@if [ "x${COMMIT}" != "x" ] ; then \
+		sed "s;\(FROM[ \t]*\)\(networkservicemesh\)\(/[^:]*\)\.*\(as.*\);\1${ORG}\3$${COMMIT/$${COMMIT}/:$${COMMIT}\4};" docker/Dockerfile.$* | \
+		${DOCKERBUILD} '--cache-from' '${ORG}/$*' --build-arg VPP_AGENT=${VPP_AGENT} -t ${ORG}/$* - ;\
+		echo docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+	else \
+		${DOCKERBUILD} --build-arg VPP_AGENT=${VPP_AGENT} -t ${ORG}/$* -f docker/Dockerfile.$* . ;\
 	fi
 
 .PHONY: docker-vppagent-dataplane-dev-build
-docker-vppagent-dataplane-dev-build: docker-vppagent-dataplane-build
+docker-vppagent-dataplane-dev-build: docker-builder-build docker-vppagent-dataplane-build
 	@${DOCKERBUILD} --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VPP_DEV=${VPP_AGENT_DEV} --build-arg REPO=${ORG} -t ${ORG}/vppagent-dataplane-dev -f docker/Dockerfile.vppagent-dataplane-dev . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/vppagent-dataplane-dev ${ORG}/vppagent-dataplane-dev:${COMMIT} ;\

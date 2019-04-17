@@ -1,6 +1,7 @@
 ARG VPP_AGENT
 ARG VPP_DEV
 ARG REPO
+ARG COMMIT
 
 FROM golang:alpine as build
 FROM ${VPP_DEV} as vpp_dev
@@ -27,19 +28,8 @@ RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vp
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
 
-FROM golang:alpine as build_vpp
-RUN apk --no-cache add git
-ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
-ENV GO111MODULE=on
-
-RUN mkdir /root/networkservicemesh
-ADD ["go.mod","/root/networkservicemesh"]
-ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
-WORKDIR /root/networkservicemesh/
-RUN ./go-mod-download.sh
-
-ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd/vppagent-dataplane.go
+FROM networkservicemesh/builder:latest as build_vpp
+RUN CGO_ENABLED=0 GOOS=linux go build  -i -ldflags '-extldflags "-static"' -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd/vppagent-dataplane.go
 
 FROM vpp_agent
 COPY --from=build_vpp /go/bin/vppagent-dataplane /bin/vppagent-dataplane

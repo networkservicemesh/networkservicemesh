@@ -1,16 +1,6 @@
-FROM golang:alpine as build
-RUN apk --no-cache add git
-ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
-ENV GO111MODULE=on
+FROM networkservicemesh/builder:latest as build
 
-RUN mkdir /root/networkservicemesh
-ADD ["go.mod","/root/networkservicemesh"]
-ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
-WORKDIR /root/networkservicemesh/
-RUN ./go-mod-download.sh
-
-ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nsc ./examples/cmd/nsc/nsc.go
+RUN CGO_ENABLED=0 GOOS=linux go build  -i -ldflags '-extldflags "-static"' -o /go/bin/nsc ./examples/cmd/nsc/nsc.go
 
 FROM alpine as runtime
 COPY --from=build /go/bin/nsc /bin/nsc
