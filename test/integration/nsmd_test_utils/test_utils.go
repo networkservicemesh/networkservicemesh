@@ -127,7 +127,7 @@ func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.D
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
-func DeployNSCWebghook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployNSCWebhook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
 }
 func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
