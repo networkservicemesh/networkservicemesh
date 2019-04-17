@@ -16,9 +16,9 @@ The client uses a named socket to talk to its local Network Service Manager (NSM
 #### Endpoint gRPC
 The endpoint implements a communication over a socket to its local NSMgr. The socket is the same as what the client uses. The gRPC for registering an endpoint is implemented as `service NetworkServiceRegistry` in [registry.proto](../controlplane/pkg/apis/registry/registry.proto).
 
-### Configuration
+## Configuring the SDK
 
-NSM SDK can be configured by filling in the values of the following structure:
+NSM SDK configuration is common for both Client and Endpoint APIs. It is done by setting the values of the following structure:
 
 ```go
 type NSConfiguration struct {
@@ -35,7 +35,7 @@ type NSConfiguration struct {
 }
 ```
 
-Note that some of the members of this structure can be initialized through the environment variables shown as comments here. A detailed explanation of each configuration option follows:
+Note that some of the members of this structure can be initialized through the environment variables shown as comments aboove. A detailed explanation of each configuration option follows:
 
  * `NsmServerSocket` - [ *system* ], NS manager communication socket
  * `NsmClientSocket` - [ *system* ], NS manager communication socket
@@ -48,9 +48,13 @@ Note that some of the members of this structure can be initialized through the e
  * `MechanismType` - [ `MECHANISM_TYPE` ], enforce a particular Mechanism type. Currently `kernel` or `mem`. Defaults to `kernel`
  * `IPAddress` - [ `IP_ADDRESS` ], the IP network to initalize a prefix pool in the IPAM composite
 
-## Creating a Client
+## Implementing a Client
 
-The NSM Client's main task is to request a connection to a particular Network Service through NSM. The following code snippet illustrates its usage.
+The NSM Client's main task is to request a connection to a particular Network Service through NSM. The NSM SDK provides two API sets for implementing clients.
+
+### Simple Client
+
+The following code snippet illustrates its usage.
 
 ```go
 import "github.com/networkservicemesh/networkservicemesh/sdk/client"
@@ -59,11 +63,51 @@ client, err := client.NewNSMClient(nil, nil)
 if err != nil {
    // Handle the error
 }
+// ensure the client is terminated at the end
+defer client.Destroy()
 
-client.Connect("eth101", "kernel", "Primary interface")
+conn, err := client.Connect("eth101", "kernel", "Primary interface")
+
+// run the actual code
+
+// Close the current active connection
+client.Close(conn)
 ```
 
-This will create a *client*, configure it using the environment variables as described in `Configuration` and connect a Kernel interface called `eth101`.
+This will create a *client*, configure it using the environment variables as described in `Configuration` and connect a Kernel interface called `eth101`. During the lifecycle of the *client*, an arbitrary *Connect* requests can be invoked. The *Destroy* call ensures these are all terminated, if not alreaddy done by calling *Close*.
+
+### Client list
+
+The more advanced API call is the client list. It follows the same ***Connect***/***Close***/***Destroy*** pattern as teh simple client. The difference is that it spawns multiple clients which are configured by an env variable `NS_NETWORKSERVICEMESH_IO`. It takes a commma separated list of URLs with the following format:
+
+```shell
+${nsname}/${interface}?${label1}=${value1}&${label2}=${value2}
+```
+A simple example will be:
+```shell
+NS_NETWORKSERVICEMESH_IO=icmp?app=responder&version=v1,http?app=nginx
+```
+Invoking the client list API with this environment set will intiate a connection to a service named `icmp` and the connection request will be labelled with `app=responder` and `version=v1`. Addtionally a second connection to a service `http` and its request will be labelled `app=nginx`. The [admission hook](TBD) leverages this configuration method.
+
+A simplified example code which demonstrates the ClientList usage is shown below.
+
+```go
+import "github.com/networkservicemesh/networkservicemesh/sdk/client"
+
+...
+
+	client, err := client.NewNSMClientList(nil, nil)
+	if err != nil {
+		// Handle the error
+	}
+	// ensure the client is terminated at the end
+	defer client.Destroy()
+
+	if err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
+		// Handle the error
+	}
+}
+```
 
 ## Creating a Simple Endpoint
 
