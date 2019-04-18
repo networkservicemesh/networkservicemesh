@@ -292,6 +292,7 @@ jobs:
               docker push ${REPO}/${c}:${TAG}
             done
   license-scan:
+    resource_class: medium+
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang
