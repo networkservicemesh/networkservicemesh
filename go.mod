@@ -1,7 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh
 
 require (
-	github.com/aws/aws-sdk-go v1.19.12
+	github.com/aws/aws-sdk-go v1.19.13
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
