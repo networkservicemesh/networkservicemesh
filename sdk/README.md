@@ -133,15 +133,16 @@ defer nsmEndpoint.Delete()
 As there is no explicit configuration, the *ConnectionEndpoint*, *IpamEndpoint* and the composed *nsmEndpoint* are initalized with the matching environment variables.
 
 ## Creating an Advanced Endpoint
-TBD
 
-### Writing a Composite
+The NSM SDK Endpoint API enables plugging together different functionalities based on the `CompositeEndpoint` interface. The basic principle is that the `Request` call handlers are chained together in a process called composition. The function call to create such *composite* is `NewCompositeEndpoint(endpoints ...ChainedEndpoint) *CompositeEndpoint`. Its argument order determines the order of `Request` call chaining. The arguments implement the `ChainedEndpoint` interface.
 
-Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implemenst the `CompositeEndpoint` interface.
+### Writing a ChainedEndpoint
 
-`CompositeEndpoint` method description:
+Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implemenst the `ChainedEndpoint` interface.
 
- * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/composite/monitor.go`
+`ChainedEndpoint` method description:
+
+ * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`
  * `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
  * `GetNext() CompositeEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
  * `GetOpaque(interface{}) interface{}` - get an arbitrary data from the composite. Both the parameter and the return are freely interpreted data and specific to the composite. See `GetOpaque` in `sdk/endpoint/composite/client.go`.
