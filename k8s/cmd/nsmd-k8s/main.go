@@ -78,7 +78,11 @@ func main() {
 	registry.RegisterClusterInfoServer(server, clusterInfoService)
 
 	logrus.Print("nsmd-k8s initialized and waiting for connection")
-	err = server.Serve(listener)
-	logrus.Fatalln(err)
+	go func() {
+		err = server.Serve(listener)
+		if err != nil {
+			logrus.Fatalln(err)
+		}
+	}()
 	<-c
 }
