@@ -240,7 +240,7 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model, ti
 	logrus.Info("Waiting for dataplane available...")
 	st := time.Now()
 	for ; true; <-time.After(100 * time.Millisecond) {
-		if dp, _ := model.SelectDataplane(); dp != nil {
+		if dp, _ := model.SelectDataplane(nil); dp != nil {
 
 			// Wait for mechanisms configuration
 			if !dp.MechanismsConfigured {
