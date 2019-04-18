@@ -19,4 +19,4 @@
 
 package dataplaneregistrar
 
-//go:generate protoc -I . dataplaneregistrar.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src
+//go:generate protoc -I . dataplaneregistrar.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src --proto_path=$GOPATH/pkg/mod/

@@ -42,3 +42,4 @@ unit-tests.xml
 
 # Vagrant
 scripts/vagrant/.kube/
+

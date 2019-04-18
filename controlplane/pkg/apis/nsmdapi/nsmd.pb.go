@@ -35,7 +35,7 @@ func (m *ClientConnectionRequest) Reset()         { *m = ClientConnectionRequest
 func (m *ClientConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*ClientConnectionRequest) ProtoMessage()    {}
 func (*ClientConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmd_e3950fd45f20a9e1, []int{0}
+	return fileDescriptor_nsmd_a586b2a60b7b2017, []int{0}
 }
 func (m *ClientConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClientConnectionRequest.Unmarshal(m, b)
@@ -81,7 +81,7 @@ func (m *ClientConnectionReply) Reset()         { *m = ClientConnectionReply{} }
 func (m *ClientConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*ClientConnectionReply) ProtoMessage()    {}
 func (*ClientConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmd_e3950fd45f20a9e1, []int{1}
+	return fileDescriptor_nsmd_a586b2a60b7b2017, []int{1}
 }
 func (m *ClientConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClientConnectionReply.Unmarshal(m, b)
@@ -148,7 +148,7 @@ func (m *DeleteConnectionRequest) Reset()         { *m = DeleteConnectionRequest
 func (m *DeleteConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteConnectionRequest) ProtoMessage()    {}
 func (*DeleteConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmd_e3950fd45f20a9e1, []int{2}
+	return fileDescriptor_nsmd_a586b2a60b7b2017, []int{2}
 }
 func (m *DeleteConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteConnectionRequest.Unmarshal(m, b)
@@ -185,7 +185,7 @@ func (m *DeleteConnectionReply) Reset()         { *m = DeleteConnectionReply{} }
 func (m *DeleteConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*DeleteConnectionReply) ProtoMessage()    {}
 func (*DeleteConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmd_e3950fd45f20a9e1, []int{3}
+	return fileDescriptor_nsmd_a586b2a60b7b2017, []int{3}
 }
 func (m *DeleteConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteConnectionReply.Unmarshal(m, b)
@@ -215,7 +215,7 @@ func (m *EnumConnectionRequest) Reset()         { *m = EnumConnectionRequest{} }
 func (m *EnumConnectionRequest) String() string { return proto.CompactTextString(m) }
 func (*EnumConnectionRequest) ProtoMessage()    {}
 func (*EnumConnectionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmd_e3950fd45f20a9e1, []int{4}
+	return fileDescriptor_nsmd_a586b2a60b7b2017, []int{4}
 }
 func (m *EnumConnectionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EnumConnectionRequest.Unmarshal(m, b)
@@ -246,7 +246,7 @@ func (m *EnumConnectionReply) Reset()         { *m = EnumConnectionReply{} }
 func (m *EnumConnectionReply) String() string { return proto.CompactTextString(m) }
 func (*EnumConnectionReply) ProtoMessage()    {}
 func (*EnumConnectionReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_nsmd_e3950fd45f20a9e1, []int{5}
+	return fileDescriptor_nsmd_a586b2a60b7b2017, []int{5}
 }
 func (m *EnumConnectionReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EnumConnectionReply.Unmarshal(m, b)
@@ -420,9 +420,9 @@ var _NSMD_serviceDesc = grpc.ServiceDesc{
 	Metadata: "nsmd.proto",
 }
 
-func init() { proto.RegisterFile("nsmd.proto", fileDescriptor_nsmd_e3950fd45f20a9e1) }
+func init() { proto.RegisterFile("nsmd.proto", fileDescriptor_nsmd_a586b2a60b7b2017) }
 
-var fileDescriptor_nsmd_e3950fd45f20a9e1 = []byte{
+var fileDescriptor_nsmd_a586b2a60b7b2017 = []byte{
 	// 288 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xcd, 0x4a, 0xf3, 0x40,
 	0x14, 0x25, 0x6d, 0xbf, 0x4f, 0x7a, 0x45, 0x85, 0x91, 0x9a, 0x50, 0x8a, 0x84, 0xe0, 0xa2, 0xab,

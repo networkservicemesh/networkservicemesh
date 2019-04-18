@@ -4,7 +4,7 @@ package crossconnect;
 
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection/connection.proto";
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
-import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+import "github.com/golang/protobuf@v1.3.1/ptypes/empty/empty.proto";
 
 enum CrossConnectEventType {
     INITIAL_STATE_TRANSFER = 0;

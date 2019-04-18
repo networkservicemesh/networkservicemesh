@@ -38,7 +38,7 @@ func (x IpFamily_Family) String() string {
 	return proto.EnumName(IpFamily_Family_name, int32(x))
 }
 func (IpFamily_Family) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_4a4f0d2acbd96bb7, []int{2, 0}
+	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{2, 0}
 }
 
 type IpNeighbor struct {
@@ -53,7 +53,7 @@ func (m *IpNeighbor) Reset()         { *m = IpNeighbor{} }
 func (m *IpNeighbor) String() string { return proto.CompactTextString(m) }
 func (*IpNeighbor) ProtoMessage()    {}
 func (*IpNeighbor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_4a4f0d2acbd96bb7, []int{0}
+	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{0}
 }
 func (m *IpNeighbor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IpNeighbor.Unmarshal(m, b)
@@ -98,7 +98,7 @@ func (m *Route) Reset()         { *m = Route{} }
 func (m *Route) String() string { return proto.CompactTextString(m) }
 func (*Route) ProtoMessage()    {}
 func (*Route) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_4a4f0d2acbd96bb7, []int{1}
+	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{1}
 }
 func (m *Route) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Route.Unmarshal(m, b)
@@ -136,7 +136,7 @@ func (m *IpFamily) Reset()         { *m = IpFamily{} }
 func (m *IpFamily) String() string { return proto.CompactTextString(m) }
 func (*IpFamily) ProtoMessage()    {}
 func (*IpFamily) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_4a4f0d2acbd96bb7, []int{2}
+	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{2}
 }
 func (m *IpFamily) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IpFamily.Unmarshal(m, b)
@@ -177,7 +177,7 @@ func (m *ExtraPrefixRequest) Reset()         { *m = ExtraPrefixRequest{} }
 func (m *ExtraPrefixRequest) String() string { return proto.CompactTextString(m) }
 func (*ExtraPrefixRequest) ProtoMessage()    {}
 func (*ExtraPrefixRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_4a4f0d2acbd96bb7, []int{3}
+	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{3}
 }
 func (m *ExtraPrefixRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExtraPrefixRequest.Unmarshal(m, b)
@@ -244,7 +244,7 @@ func (m *ConnectionContext) Reset()         { *m = ConnectionContext{} }
 func (m *ConnectionContext) String() string { return proto.CompactTextString(m) }
 func (*ConnectionContext) ProtoMessage()    {}
 func (*ConnectionContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_4a4f0d2acbd96bb7, []int{4}
+	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{4}
 }
 func (m *ConnectionContext) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionContext.Unmarshal(m, b)
@@ -337,10 +337,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("connectioncontext.proto", fileDescriptor_connectioncontext_4a4f0d2acbd96bb7)
+	proto.RegisterFile("connectioncontext.proto", fileDescriptor_connectioncontext_05440d8eaa7bf48e)
 }
 
-var fileDescriptor_connectioncontext_4a4f0d2acbd96bb7 = []byte{
+var fileDescriptor_connectioncontext_05440d8eaa7bf48e = []byte{
 	// 473 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x53, 0xdf, 0x8b, 0xd3, 0x40,
 	0x10, 0xb6, 0x3f, 0x2e, 0x36, 0x13, 0xfb, 0x6b, 0x15, 0x5d, 0xd0, 0xd3, 0x12, 0x38, 0xad, 0x08,

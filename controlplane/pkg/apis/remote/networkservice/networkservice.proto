@@ -23,7 +23,7 @@ package remote.networkservice;
 option go_package = "networkservice";
 
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
-import "github.com/golang/protobuf/ptypes/empty/empty.proto";
+import "github.com/golang/protobuf@v1.3.1/ptypes/empty/empty.proto";
 
 message NetworkServiceRequest {
     remote.connection.Connection connection = 1;

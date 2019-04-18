@@ -62,7 +62,7 @@ func (x MechanismType) String() string {
 	return proto.EnumName(MechanismType_name, int32(x))
 }
 func (MechanismType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{0}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{0}
 }
 
 type State int32
@@ -85,7 +85,7 @@ func (x State) String() string {
 	return proto.EnumName(State_name, int32(x))
 }
 func (State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{1}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{1}
 }
 
 type ConnectionEventType int32
@@ -111,7 +111,7 @@ func (x ConnectionEventType) String() string {
 	return proto.EnumName(ConnectionEventType_name, int32(x))
 }
 func (ConnectionEventType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{2}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{2}
 }
 
 type Mechanism struct {
@@ -126,7 +126,7 @@ func (m *Mechanism) Reset()         { *m = Mechanism{} }
 func (m *Mechanism) String() string { return proto.CompactTextString(m) }
 func (*Mechanism) ProtoMessage()    {}
 func (*Mechanism) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{0}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{0}
 }
 func (m *Mechanism) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mechanism.Unmarshal(m, b)
@@ -179,7 +179,7 @@ func (m *Connection) Reset()         { *m = Connection{} }
 func (m *Connection) String() string { return proto.CompactTextString(m) }
 func (*Connection) ProtoMessage()    {}
 func (*Connection) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{1}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{1}
 }
 func (m *Connection) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Connection.Unmarshal(m, b)
@@ -274,7 +274,7 @@ func (m *ConnectionEvent) Reset()         { *m = ConnectionEvent{} }
 func (m *ConnectionEvent) String() string { return proto.CompactTextString(m) }
 func (*ConnectionEvent) ProtoMessage()    {}
 func (*ConnectionEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{2}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{2}
 }
 func (m *ConnectionEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionEvent.Unmarshal(m, b)
@@ -319,7 +319,7 @@ func (m *MonitorScopeSelector) Reset()         { *m = MonitorScopeSelector{} }
 func (m *MonitorScopeSelector) String() string { return proto.CompactTextString(m) }
 func (*MonitorScopeSelector) ProtoMessage()    {}
 func (*MonitorScopeSelector) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connection_5aea164b3f5efe0c, []int{3}
+	return fileDescriptor_connection_4a6c056d55d7f30d, []int{3}
 }
 func (m *MonitorScopeSelector) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MonitorScopeSelector.Unmarshal(m, b)
@@ -458,9 +458,9 @@ var _MonitorConnection_serviceDesc = grpc.ServiceDesc{
 	Metadata: "connection.proto",
 }
 
-func init() { proto.RegisterFile("connection.proto", fileDescriptor_connection_5aea164b3f5efe0c) }
+func init() { proto.RegisterFile("connection.proto", fileDescriptor_connection_4a6c056d55d7f30d) }
 
-var fileDescriptor_connection_5aea164b3f5efe0c = []byte{
+var fileDescriptor_connection_4a6c056d55d7f30d = []byte{
 	// 716 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x6d, 0x6b, 0xdb, 0x48,
 	0x10, 0x8e, 0xe4, 0xb7, 0x78, 0x9c, 0x97, 0xcd, 0x5e, 0x38, 0x14, 0x93, 0x70, 0x26, 0x17, 0x2e,
