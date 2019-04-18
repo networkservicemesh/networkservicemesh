@@ -15,5 +15,3 @@
 !utils/**
 !vendor/**
 !build/**
-!scripts/**
-scripts/vagrant/**
