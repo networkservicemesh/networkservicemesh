@@ -24,7 +24,8 @@ DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
 DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
-DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
+DEPLOY_DIRTY_NSE = dirty-nse
+DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN) $(DEPLOY_DIRTY_NSE)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
@@ -268,6 +269,12 @@ k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-buil
 
 .PHONY: k8s-icmp-responder-nse-save
 k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
+
+.PHONY: k8s-dirty-nse-build
+k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-dirty-nse-build
+
+.PHONY: k8s-dirty-nse-save
+k8s-dirty-nse-save:  ${CONTAINER_BUILD_PREFIX}-dirty-nse-save
 
 .PHONY: k8s-vppagent-icmp-responder-nse-build
 k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-build
