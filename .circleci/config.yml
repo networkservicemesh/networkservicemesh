@@ -315,7 +315,7 @@ jobs:
           command: |
             fossa init
             fossa
-            fossa test
+            fossa test --timeout 1800
     environment:
       GO111MODULE: "on"
 
