@@ -79,8 +79,8 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.1 h1:mweAR1A6xJ3oS2pRaGi
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/ligato/cn-infra v2.0.0+incompatible h1:f8sXC6BxwJBd+M0mRpJPfu78XqSbZE6eNIJNXKmrPxI=
 github.com/ligato/cn-infra v2.0.0+incompatible/go.mod h1:wBXHMbKAlgOc/MkJMy/25284ri77duvS0XlIImme7z0=
-github.com/ligato/vpp-agent v2.0.1+incompatible h1:M9KBhPPErMdX6u72PNjk+JlD8w4ZFFC0DzSd5mL27sQ=
-github.com/ligato/vpp-agent v2.0.1+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
+github.com/ligato/vpp-agent v2.0.2+incompatible h1:65sp7EJOqVI9q6n2r6H+/jg6FMszwzlcViEAthOFhVI=
+github.com/ligato/vpp-agent v2.0.2+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/magiconair/properties v1.8.0 h1:LLgXmsheXeRoUOBOjtwPQCWIYqM/LU1ayDtDePerRcY=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
