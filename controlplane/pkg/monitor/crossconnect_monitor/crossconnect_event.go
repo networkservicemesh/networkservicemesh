@@ -6,15 +6,25 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )
 
-type CrossConnectEventConverter struct{}
+type CrossConnectEvent struct {
+	monitor.EventImpl
+	statistics map[string]*crossconnect.Metrics
+}
 
-func (c *CrossConnectEventConverter) Convert(event monitor.Event) (interface{}, error) {
-	eventType, err := convertType(event.EventType)
-	if err != nil {
-		return nil, err
+func CreateCrossConnectEvent(eventType string, entities map[string]monitor.Entity) monitor.Event {
+	return CrossConnectEvent{
+		EventImpl:  monitor.CrateEventImpl(eventType, entities),
+		statistics: make(map[string]*crossconnect.Metrics),
+	}
+}
+
+func (event CrossConnectEvent) Message() (interface{}, error) {
+	eventType, err := convertType(event.EventType())
+	if (err != nil) {
+		return err, nil
 	}
 
-	xcons, err := convertEntities(event.Entities)
+	xcons, err := convertEntities(event.Entities())
 	if err != nil {
 		return nil, err
 	}
@@ -22,6 +32,7 @@ func (c *CrossConnectEventConverter) Convert(event monitor.Event) (interface{}, 
 	return &crossconnect.CrossConnectEvent{
 		Type:          eventType,
 		CrossConnects: xcons,
+		Metrics:       event.statistics,
 	}, nil
 }
 

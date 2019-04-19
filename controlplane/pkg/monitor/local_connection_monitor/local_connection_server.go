@@ -12,7 +12,7 @@ type LocalConnectionMonitor struct {
 
 func NewLocalConnectionMonitor() *LocalConnectionMonitor {
 	rv := &LocalConnectionMonitor{
-		MonitorServer: monitor.NewMonitorServer(&LocalConnectionEventConverter{}),
+		MonitorServer: monitor.NewMonitorServer(CreateLocalConnectionEvent),
 	}
 	go rv.Serve()
 	return rv

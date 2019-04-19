@@ -98,7 +98,6 @@ func createDataplaneConfig() *dataplaneConfig {
 
 	dpConfig.monitor = crossconnect_monitor.NewCrossConnectMonitor()
 	crossconnect.RegisterMonitorCrossConnectServer(dpConfig.gRPCserver, dpConfig.monitor)
-
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(dpConfig.monitor)
 
 	return dpConfig

@@ -22,6 +22,7 @@ import (
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"net"
 	"os"
 	"time"
@@ -307,7 +308,7 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 	v.setDataplaneConfigVPPAgent(monitor)
 	v.reset()
 	v.programMgmtInterface()
-
+	metrics.NewMetricsCollector().CollectAsync(monitor, v.vppAgentEndpoint)
 	return nil
 }
 
