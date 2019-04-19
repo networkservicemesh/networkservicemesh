@@ -21,6 +21,18 @@ k8s-integration-config:
 k8s-integration-tests: k8s-integration-config
 	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m -tags="basic recover usecase"
 
+.PHONY: k8s-integration-tests
+k8s-integration-basic-tests: k8s-integration-config
+	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m -tags="basic"
+
+.PHONY: k8s-integration-tests
+k8s-integration-recover-tests: k8s-integration-config
+	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m -tags="recover"
+
+.PHONY: k8s-integration-tests
+k8s-integration-usecase-tests: k8s-integration-config
+	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m -tags="usecase"
+
 .PHONY: k8s-integration-%-test
 k8s-integration-%-test: k8s-integration-config
 	@GO111MODULE=on BROKEN_TESTS_ENABLED=on go test -v ./test/... -failfast -tags="basic recover usecase" -run $*
