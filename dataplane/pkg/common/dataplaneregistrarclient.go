@@ -44,6 +44,7 @@ type dataplaneRegistration struct {
 	onConnect       OnConnectFunc
 	onDisconnect    OnDisConnectFunc
 	client          dataplaneregistrar.DataplaneRegistrationClient
+	wasRegistered bool
 }
 
 type OnConnectFunc func() error
@@ -97,6 +98,7 @@ func (dr *dataplaneRegistration) tryRegistration(ctx context.Context) error {
 	}
 	if dr.onConnect != nil {
 		dr.onConnect()
+		dr.wasRegistered = true
 	}
 	go dr.livenessMonitor(ctx)
 	return nil
@@ -118,6 +120,7 @@ func (dr *dataplaneRegistration) livenessMonitor(ctx context.Context) {
 			logrus.Infof("DataplaneRegistrarClient cancelled, cleaning up")
 			if dr.onDisconnect != nil {
 				dr.onDisconnect()
+				dr.wasRegistered = false
 			}
 			return
 		default:
@@ -126,6 +129,7 @@ func (dr *dataplaneRegistration) livenessMonitor(ctx context.Context) {
 				logrus.Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
 				if dr.onConnect != nil {
 					dr.onDisconnect()
+					dr.wasRegistered = false
 				}
 				go dr.register(ctx)
 				return
@@ -136,16 +140,25 @@ func (dr *dataplaneRegistration) livenessMonitor(ctx context.Context) {
 
 func (dr *dataplaneRegistration) Close() {
 	dr.cancelFunc()
-	conn, err := tools.SocketOperationCheck(dr.registrar.registrarSocket)
-	if err != nil {
-		logrus.Errorf("%s: failure to communicate with the socket %v with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
-		return
+
+	if dr.wasRegistered {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		conn, err := tools.SocketOperationCheckContext(ctx, dr.registrar.registrarSocket)
+		if err != nil {
+			logrus.Errorf("%s: failure to communicate with the socket %v with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
+			return
+		}
+		logrus.Infof("%s: connection to dataplane registrar socket %v succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
+		client := dataplaneregistrar.NewDataplaneUnRegistrationClient(conn)
+
+		unregCtx, unRegCancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer unRegCancel()
+
+		_, _ = client.RequestDataplaneUnRegistration(unregCtx, &dataplaneregistrar.DataplaneUnRegistrationRequest{
+			DataplaneName: dr.dataplaneName,
+		})
 	}
-	logrus.Infof("%s: connection to dataplane registrar socket %v succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
-	client := dataplaneregistrar.NewDataplaneUnRegistrationClient(conn)
-	client.RequestDataplaneUnRegistration(context.Background(), &dataplaneregistrar.DataplaneUnRegistrationRequest{
-		DataplaneName: dr.dataplaneName,
-	})
 }
 
 func NewDataplaneRegistrarClient(network, registrarSocket string) *DataplaneRegistrarClient {

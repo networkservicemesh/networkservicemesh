@@ -18,7 +18,6 @@ package main
 import (
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -47,18 +46,11 @@ func main() {
 	defer nsmEndpoint.Delete()
 
 	// Capture signals to cleanup before exiting
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c,
-		os.Interrupt,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+	<-c
 }

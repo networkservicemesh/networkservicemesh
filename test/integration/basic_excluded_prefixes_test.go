@@ -53,7 +53,8 @@ func TestExcludePrefixCheck(t *testing.T) {
 			"OUTGOING_NSC_NAME":   "icmp-responder",
 		},
 	))
+	defer k8s.DeletePods(pod)
 	Expect(err).To(BeNil())
-
 	k8s.WaitLogsContains(icmp, "", "IPAM: The available address pool is empty, probably intersected by excludedPrefix", defaultTimeout)
+
 }

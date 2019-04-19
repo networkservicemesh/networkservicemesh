@@ -208,7 +208,6 @@ func isPodReady(pod *v1.Pod) bool {
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
 
 	exists := make(chan error)
-
 	go func() {
 		for {
 			pod, err := client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
@@ -222,8 +221,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 				close(exists)
 				break
 			}
-
-			time.Sleep(time.Millisecond * time.Duration(50))
+			<- time.Tick(time.Millisecond * time.Duration(50))
 		}
 	}()
 
@@ -314,27 +312,41 @@ func (o *K8s) initNamespace() {
 // Delete POD with completion check
 // Make force delete on timeout
 func (o *K8s) deletePods(pods ...*v1.Pod) error {
-	var ctx []context.Context
-	for _, pod := range pods {
-		delOpt := &metaV1.DeleteOptions{}
-		err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
-		if err != nil {
-			return err
-		}
+	var wg sync.WaitGroup
 
-		c, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
-		ctx = append(ctx, c)
-		defer cancel()
-	}
-
-	for i, pod := range pods {
-		err := blockUntilPodWorking(o.clientset, ctx[i], pod)
-		if err != nil {
-			err = o.deletePodForce(pod)
-			logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
+	for _, my_pod := range pods {
+		wg.Add(1)
+		pod := my_pod
+		go func() {
+			defer wg.Done()
+			delOpt := &metaV1.DeleteOptions{}
+			logrus.Infof("Deleting %v", pod.Name)
+			err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 			if err != nil {
-				logrus.Warn(err)
+				logrus.Warnf(`The POD "%s" may continue to run on the cluster, %v`, pod.Name, err)
+				return
 			}
+			c, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
+			defer cancel()
+			err = blockUntilPodWorking(o.clientset, c, pod)
+			if err != nil {
+				err = o.deletePodForce(pod)
+				logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
+				if err != nil {
+					logrus.Warn(err)
+				}
+			}
+			logrus.Warnf(`The POD "%s" Deleted`, pod.Name)
+		}()
+	}
+	wg.Wait()
+	return nil
+}
+func (o *K8s) deletePodsForce(pods ...*v1.Pod) error {
+	for _, pod := range pods {
+		err := o.deletePodForce(pod)
+		if err != nil {
+			logrus.Warnf(`The POD "%s" may continue to run on the cluster %v`, pod.Name, err)
 		}
 	}
 	return nil
@@ -380,13 +392,35 @@ func (o *K8s) CleanupCRDs() {
 }
 
 func (l *K8s) Cleanup() {
-	err := l.deletePods(l.pods...)
-	Expect(err).To(BeNil())
+	st := time.Now()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := l.deletePods(l.pods...)
+		Expect(err).To(BeNil())
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		l.CleanupCRDs()
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		l.CleanupConfigMaps()
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		l.DeleteRoles(l.roles)
+	}()
+
+	wg.Wait()
 	l.pods = nil
-	l.CleanupCRDs()
-	l.CleanupConfigMaps()
-	l.DeleteRoles(l.roles)
 	l.DeleteTestNamespace(l.namespace)
+	logrus.Infof("Cleanup time: %v", time.Since(st))
 }
 
 func (l *K8s) PrepareDefault() {
@@ -464,6 +498,20 @@ func (l *K8s) DeletePods(pods ...*v1.Pod) {
 		}
 	}
 }
+
+func (l *K8s) DeletePodsForce(pods ...*v1.Pod) {
+	err := l.deletePodsForce(pods...)
+	Expect(err).To(BeNil())
+
+	for _, pod := range pods {
+		for idx, pod0 := range l.pods {
+			if pod.Name == pod0.Name {
+				l.pods = append(l.pods[:idx], l.pods[idx+1:]...)
+			}
+		}
+	}
+}
+
 
 func (k8s *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
 	getLogsOpt := &v1.PodLogOptions{}
