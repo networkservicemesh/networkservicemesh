@@ -39,16 +39,6 @@ func (k *k8sClusterInfo) GetClusterConfiguration(ctx context.Context, in *empty.
 		return nil, err
 	}
 
-	nodes, err := k.clientset.CoreV1().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-
-	for _, n := range nodes.Items {
-		logrus.Infof("Node: %v", n)
-	}
-
 	clusterConfiguration := &v1alpha3.ClusterConfiguration{}
 	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(kubeadmConfig.Data["ClusterConfiguration"]), 4096).
 		Decode(clusterConfiguration)
