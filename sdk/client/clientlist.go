@@ -17,55 +17,74 @@ package client
 
 import (
 	"context"
+	"os"
+	"strconv"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
-	"os"
-	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
-const (
-	annotationEnv = "NS_NETWORKSERVICEMESH_IO"
-)
-
-type NsmClientList struct {
-	clients     []*NsmClient
+type nsmClientListEntry struct {
+	client      *NsmClient
 	connections []*connection.Connection
 }
 
-func configFromUrl(configuration *common.NSConfiguration, url *tools.NsUrl) *common.NSConfiguration {
-	var conf common.NSConfiguration
-	if configuration != nil {
-		conf = *configuration
-	}
-	conf.OutgoingNscName = url.NsName
-	var labels strings.Builder
-	separator := false
-	for k, v := range url.Params {
-		if separator {
-			labels.WriteRune(',')
-		} else {
-			separator = true
-		}
-		labels.WriteString(k)
-		labels.WriteRune('=')
-		labels.WriteString(v[0])
-	}
-	conf.OutgoingNscLabels = labels.String()
-	return &conf
+// NsmClientList represents a set of clients
+type NsmClientList struct {
+	clients []nsmClientListEntry
 }
 
+// Connect will create new interfaces with the specified name and mechanism
+func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
+	for idx, entry := range nsmcl.clients {
+		conn, err := entry.client.Connect(name+strconv.Itoa(idx), mechanism, description)
+		if err != nil {
+			return err
+		}
+		entry.connections = append(entry.connections, conn)
+	}
+	return nil
+}
+
+// Close terminates all connections establised by Connect
+func (nsmcl *NsmClientList) Close() error {
+	for _, entry := range nsmcl.clients {
+		for _, connection := range entry.connections {
+			err := entry.client.Close(connection)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Destroy terminates all clients
+func (nsmcl *NsmClientList) Destroy() error {
+	for _, entry := range nsmcl.clients {
+		err := entry.client.Destroy()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// NewNSMClientList creates a new list of clients
 func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration) (*NsmClientList, error) {
-	annotationValue := os.Getenv(annotationEnv)
+	annotationValue := os.Getenv(AnnotationEnv)
 	if len(annotationValue) == 0 {
 		client, err := NewNSMClient(ctx, configuration)
 		if err != nil {
 			return nil, err
 		}
 		return &NsmClientList{
-			clients: []*NsmClient{client},
+			clients: []nsmClientListEntry{
+				nsmClientListEntry{
+					client: client}},
 		}, nil
 	}
 
@@ -75,26 +94,18 @@ func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration
 		return nil, err
 	}
 
-	var clients []*NsmClient
+	var clients []nsmClientListEntry
 	for _, url := range urls {
-		client, err := NewNSMClient(ctx, configFromUrl(configuration, url))
+		configuration = common.NSConfigurationFromUrl(configuration, url)
+		client, err := NewNSMClient(ctx, configuration)
 		if err != nil {
 			return nil, err
 		}
-		clients = append(clients, client)
+		clients = append(clients, nsmClientListEntry{
+			client: client,
+		})
 	}
 	return &NsmClientList{
 		clients: clients,
 	}, nil
-}
-
-func (nsmc *NsmClientList) Connect(name, mechanism, description string) error {
-	for _, client := range nsmc.clients {
-		conn, err := client.Connect(name, mechanism, description)
-		if err != nil {
-			return err
-		}
-		nsmc.connections = append(nsmc.connections, conn)
-	}
-	return nil
 }

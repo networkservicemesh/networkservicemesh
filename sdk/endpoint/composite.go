@@ -23,49 +23,36 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
-type Chained interface {
-	SetNext(service ChainedEndpoint)
-	GetNext() ChainedEndpoint
-	GetOpaque(interface{}) interface{}
-}
-
+// ChainedEndpoint is the basic endpoint composition interface
 type ChainedEndpoint interface {
 	networkservice.NetworkServiceServer
-	Chained
+	GetNext() ChainedEndpoint
+	GetOpaque(interface{}) interface{}
+	setNext(service ChainedEndpoint)
 }
 
-type ChainedImpl struct {
+// BaseCompositeEndpoint is the base for building endpoints
+type BaseCompositeEndpoint struct {
 	next ChainedEndpoint
 }
 
-func (c *ChainedImpl) SetNext(service ChainedEndpoint) {
+func (c *BaseCompositeEndpoint) setNext(service ChainedEndpoint) {
 	c.next = service
 }
 
-func (c *ChainedImpl) GetNext() ChainedEndpoint {
+// GetNext return the next endpoint in the composition chain
+func (c *BaseCompositeEndpoint) GetNext() ChainedEndpoint {
 	return c.next
 }
 
-func (c *ChainedImpl) GetOpaque(interface{}) interface{} {
+// GetOpaque is an implementation specific method to get arbitrary data out of a comosable
+func (c *BaseCompositeEndpoint) GetOpaque(interface{}) interface{} {
 	return nil
 }
 
 // CompositeEndpoint is the base service composition struct
 type CompositeEndpoint struct {
 	chainedEndpoints []ChainedEndpoint
-}
-
-func NewCompositeEndpoint(endpoints ...ChainedEndpoint) *CompositeEndpoint {
-	for i := 0; i < len(endpoints); i++ {
-		var nextEndpoint ChainedEndpoint
-		if i != len(endpoints)-1 {
-			nextEndpoint = endpoints[i+1]
-		}
-		endpoints[i].SetNext(nextEndpoint)
-	}
-	return &CompositeEndpoint{
-		chainedEndpoints: endpoints,
-	}
 }
 
 // Request implements a dummy request handler
@@ -82,4 +69,18 @@ func (bce *CompositeEndpoint) Close(ctx context.Context, connection *connection.
 		return &empty.Empty{}, nil
 	}
 	return bce.chainedEndpoints[0].Close(ctx, connection)
+}
+
+// NewCompositeEndpoint creates a new composed endpoint
+func NewCompositeEndpoint(endpoints ...ChainedEndpoint) *CompositeEndpoint {
+	for i := 0; i < len(endpoints); i++ {
+		var nextEndpoint ChainedEndpoint
+		if i != len(endpoints)-1 {
+			nextEndpoint = endpoints[i+1]
+		}
+		endpoints[i].setNext(nextEndpoint)
+	}
+	return &CompositeEndpoint{
+		chainedEndpoints: endpoints,
+	}
 }

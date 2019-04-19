@@ -33,7 +33,7 @@ import (
 )
 
 type ConnectionEndpoint struct {
-	ChainedImpl
+	BaseCompositeEndpoint
 	mechanismType connection.MechanismType
 	id            *shortid.Shortid
 }
