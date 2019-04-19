@@ -19,6 +19,3 @@ COPY --from=build /go/bin/vppagent-icmp-responder-nse /bin/vppagent-icmp-respond
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "0.0.0.0:9112"' > /opt/vpp-agent/dev/grpc.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY examples/conf/vppagent-icmp-responder-nse/supervisord.conf /etc/supervisord/supervisord.conf
-
-RUN rm -f /dev/shm/db /dev/shm/global_vm /dev/shm/vpe-api
-ENTRYPOINT ["/usr/bin/supervisord","-c","/etc/supervisord/supervisord.conf"]
