@@ -17,8 +17,9 @@ package main
 
 import (
 	"context"
-	"github.com/ligato/vpp-agent/api/configurator"
 	"time"
+
+	"github.com/ligato/vpp-agent/api/configurator"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -97,6 +98,12 @@ func (vxc *vppAgentXConnComposite) reset() error {
 }
 
 func (vac *vppAgentAclComposite) applyAclOnVppInterface(ctx context.Context, aclname, ifname string, rules map[string]string) error {
+
+	if len(rules) == 0 {
+		logrus.Info("No ACL rules speccified, skipping")
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", vac.vppAgentEndpoint, 100*time.Millisecond)

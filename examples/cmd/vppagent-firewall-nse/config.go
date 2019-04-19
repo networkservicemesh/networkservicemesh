@@ -23,7 +23,7 @@ func initConfig() {
 	viperConfig.SetConfigName("config")
 	viperConfig.AddConfigPath("/etc/vppagent-firewall/")
 
-	viperConfig.SetDefault(aclRules, defaultAclRules)
+	// viperConfig.SetDefault(aclRules, defaultAclRules)
 
 	err := viperConfig.ReadInConfig()
 	if err != nil {

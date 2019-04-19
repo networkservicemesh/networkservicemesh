@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  selector:
+    matchLabels:
+      networkservicemesh.io/app: "passthrough"
+      networkservicemesh.io/impl: "secure-intranet-connectivity"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "passthrough"
+        networkservicemesh.io/impl: "secure-intranet-connectivity"
+    spec:
+      containers:
+        - name: passthrough-nse
+          image: networkservicemesh/vppagent-firewall-nse:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ADVERTISE_NSE_NAME
+              value: "secure-intranet-connectivity"
+            - name: ADVERTISE_NSE_LABELS
+              value: "app=passthrough"
+            - name: OUTGOING_NSC_NAME
+              value: "secure-intranet-connectivity"
+            - name: OUTGOING_NSC_LABELS
+              value: "app=passthrough"
+            - name: TRACER_ENABLED
+              value: "true"
+          resources:
+            limits:
+              networkservicemesh.io/socket: 1
+          volumeMounts:
+            - mountPath: /etc/vppagent-firewall/config.yaml
+              subPath: config.yaml
+              name: vppagent-passthrough-config-volume
+      volumes:
+        - name: vppagent-passthrough-config-volume
+          configMap:
+            name: vppagent-passthrough-config-file
+metadata:
+  name: vppagent-passthrough-nse
+  namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vppagent-passthrough-config-file
+data:
+  config.yaml: |
+  empty: data

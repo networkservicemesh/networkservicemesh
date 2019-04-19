@@ -12,6 +12,13 @@ spec:
       route:
         - destination:
           destinationSelector:
+            app: passthrough
+    - match:
+      sourceSelector:
+        app: passthrough
+      route:
+        - destination:
+          destinationSelector:
             app: vpn-gateway
     - match:
       route:
