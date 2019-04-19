@@ -68,7 +68,7 @@ metadata:
   labels:
     networkservicemesh.io/sriov: ""
   name: nsm-sriov-vf-list
-  namespace: default
+  namespace: nsm-system
 ```
 
 Here is example for a deployment requesting 4 SRIOV network services
@@ -103,5 +103,5 @@ spec:
               networkservicemesh.io/sriov-ns-4: 1    
 metadata:
    name: nsm-sriov
-   namespace: default
+   namespace: nsm-system
 ```

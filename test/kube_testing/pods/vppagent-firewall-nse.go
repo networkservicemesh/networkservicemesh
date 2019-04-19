@@ -6,12 +6,12 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func VppAgentFirewallNSEConfigMapIcmpHttp(name string) *v1.ConfigMap {
+func VppAgentFirewallNSEConfigMapIcmpHttp(name string, namespace string) *v1.ConfigMap {
 
 	return &v1.ConfigMap{
 		ObjectMeta: v12.ObjectMeta{
 			Name:      name + "-config-file",
-			Namespace: "default",
+			Namespace: namespace,
 		},
 		TypeMeta: v12.TypeMeta{
 			Kind: "ConfigMap",

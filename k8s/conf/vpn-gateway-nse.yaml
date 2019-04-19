@@ -43,4 +43,4 @@ spec:
           image: networkservicemesh/nginx
 metadata:
   name: vpn-gateway-nse
-  namespace: default
+  namespace: nsm-system

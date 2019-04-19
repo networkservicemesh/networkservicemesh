@@ -4,12 +4,13 @@ metadata:
   name: nsm-admission-webhook-cfg
   labels:
     app: nsm-admission-webhook
+  namespace: nsm-system
 webhooks:
   - name: admission-webhook.networkservicemesh.io
     clientConfig:
       service:
         name: nsm-admission-webhook-svc
-        namespace: default
+        namespace: nsm-system
         path: "/mutate"
       caBundle: ${CA_BUNDLE}
     rules:

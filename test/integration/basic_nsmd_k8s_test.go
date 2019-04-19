@@ -5,10 +5,11 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -36,7 +37,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	k8s.PrepareDefault()
 
-	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
+	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	k8s.WaitLogsContains(nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
@@ -146,7 +147,7 @@ func TestUpdateNSM(t *testing.T) {
 	k8s.CleanupCRDs()
 
 	k8s.PrepareDefault()
-	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
+	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())
@@ -370,7 +371,7 @@ func TestLostUpdate(t *testing.T) {
 	k8s.CleanupCRDs()
 
 	k8s.PrepareDefault()
-	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil))
+	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	// We need to wait until it is started
 	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
@@ -420,7 +421,7 @@ func TestLostUpdate(t *testing.T) {
 
 	k8s.DeletePods(nsmd)
 	fwd.Stop()
-	nsmgr2 := k8s.CreatePod(pods.NSMgrPod("nsmgr-2", nil))
+	nsmgr2 := k8s.CreatePod(pods.NSMgrPod("nsmgr-2", nil, k8s.GetK8sNamespace()))
 
 	fwd, err = k8s.NewPortForwarder(nsmgr2, 5000)
 	Expect(err).To(BeNil())

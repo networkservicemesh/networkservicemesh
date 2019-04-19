@@ -3,13 +3,14 @@
 package nsmd_integration_tests
 
 import (
+	"strconv"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
-	"strconv"
-	"testing"
 )
 
 const (
@@ -114,7 +115,7 @@ type nscPingResult struct {
 }
 
 func createNode(k8s *kube_testing.K8s) *v1.Node {
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{})
+	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	Expect(len(nodes), 1)
 	return nodes[0].Node
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,8 +93,9 @@ func lookForNSMServers() {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", err)
 	}
 
+	nsmNamespace := namespace.GetNamespace()
 	for !closing {
-		result, err := nsmClientSet.Networkservicemesh().NetworkServiceManagers("default").List(metav1.ListOptions{})
+		result, err := nsmClientSet.Networkservicemesh().NetworkServiceManagers(nsmNamespace).List(metav1.ListOptions{})
 		if err != nil {
 			logrus.Fatalln("Unable to find NSMs", err)
 		}

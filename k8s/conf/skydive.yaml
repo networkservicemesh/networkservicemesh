@@ -4,6 +4,7 @@ metadata:
   name: skydive-analyzer
   labels:
     app: skydive-analyzer
+  namespace: nsm-system
 spec:
   type: NodePort
   ports:
@@ -24,6 +25,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: skydive-analyzer-config-file
+  namespace: nsm-system
 data:
   skydive.yml: |
     storage:
@@ -54,7 +56,7 @@ data:
     ui:
       topology:
         favorites:
-          nsm-filter: "G.V().Has('Type', 'container', 'Docker.Labels.io.kubernetes.pod.namespace', 'default').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
+          nsm-filter: "G.V().Has('Type', 'container', 'Docker.Labels.io.kubernetes.pod.namespace', 'nsm-system').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
           nsm-filter-secure-intranet-connectivity: "G.V().Has('Type', 'container', 'Docker.Labels.networkservicemesh.io/impl', 'secure-intranet-connectivity').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
           nsm-edges: "G.E().HasKey('NSM')"
 
@@ -65,6 +67,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: skydive-analyzer
+  namespace: nsm-system
 spec:
   selector:
     matchLabels:
@@ -109,6 +112,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: skydive-agent
+  namespace: nsm-system
 spec:
   selector:
     matchLabels:

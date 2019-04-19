@@ -22,6 +22,6 @@ spec:
           command: ['tail', '-f', '/dev/null']
 metadata:
   name: vpn-gateway-nsc
-  namespace: default
+  namespace: nsm-system
   annotations:
     ns.networkservicemesh.io: secure-intranet-connectivity

@@ -101,7 +101,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	for k := 0; k < nodesCount; k++ {
 		corePodName := fmt.Sprintf("nsmgr-%d", k)
 		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", k)
-		corePods := k8s.CreatePods(pods.NSMgrPod(corePodName, &nodes[k]), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
+		corePods := k8s.CreatePods(pods.NSMgrPod(corePodName, &nodes[k], k8s.GetK8sNamespace()), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
 		logrus.Printf("Started NSMD/Dataplane: %v on node %d", time.Since(s1), k)
 		nsmdPodNode = append(nsmdPodNode, corePods[0])
 		nsmdDataplanePodNode = append(nsmdDataplanePodNode, corePods[1])
@@ -133,7 +133,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	s1 = time.Now()
 	node := affinity["vppagent-firewall-nse-1"]
 	logrus.Infof("Starting VPPAgent Firewall NSE on node: %d", node)
-	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapIcmpHttp("vppagent-firewall-nse-1"))
+	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapIcmpHttp("vppagent-firewall-nse-1", k8s.GetK8sNamespace()))
 	Expect(err).To(BeNil())
 	vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", &nodes[node],
 		map[string]string{

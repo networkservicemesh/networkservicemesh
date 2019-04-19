@@ -4,6 +4,7 @@ metadata:
   name: nsm-admission-webhook
   labels:
     app: nsm-admission-webhook
+  namespace: nsm-system
 spec:
   replicas: 1
   selector:
@@ -33,6 +34,7 @@ metadata:
   name: nsm-admission-webhook-svc
   labels:
     app: nsm-admission-webhook
+  namespace: nsm-system
 spec:
   ports:
     - port: 443

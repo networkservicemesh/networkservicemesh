@@ -20,6 +20,7 @@ import (
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nscrd "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	. "github.com/onsi/gomega"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,8 +76,9 @@ func NewNSCRD() (*NSCRD, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", path)
 	Expect(err).To(BeNil())
 
+	nsmNamespace := namespace.GetNamespace()
 	client := NSCRD{
-		namespace: "default",
+		namespace: nsmNamespace,
 		resource:  "networkservices",
 		config:    config,
 	}

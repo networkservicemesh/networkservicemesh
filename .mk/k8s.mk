@@ -28,7 +28,10 @@ DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
-CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD)
+CLUSTER_CONFIG_NAMESPACE = namespace-nsm
+CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_NAMESPACE)
+
+NSM_NAMESPACE = `cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}'`
 
 # All of the rules that use vagrant are intentionally written in such a way
 # That you could set the CLUSTER_RULES_PREFIX different and introduce
@@ -294,7 +297,7 @@ k8s-admission-webhook-load-images:  k8s-start $(addsuffix -load-images,$(addpref
 
 .PHONY: k8s-admission-webhook-create-cert
 k8s-admission-webhook-create-cert:
-	./scripts/webhook-create-cert.sh
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/webhook-create-cert.sh
 
 .PHONY: k8s-admission-webhook-delete-cert
 k8s-admission-webhook-delete-cert:

@@ -28,4 +28,4 @@ spec:
               networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-nsc
-  namespace: default
+  namespace: nsm-system

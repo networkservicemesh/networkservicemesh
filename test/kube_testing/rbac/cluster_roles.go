@@ -1,3 +1,18 @@
+// Copyright 2019 VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package rbac
 
 import (
@@ -50,7 +65,7 @@ func (r *ClusterRoleBinding) GetName() string {
 Roles is a map containing simplified roles names for external usage and mapping them to a function
 that creates object of the required type.
 */
-var Roles = map[string]func(string) Role{
+var Roles = map[string]func(string, string) Role{
 	"admin":   CreateRoleAdmin,
 	"view":    CreateRoleView,
 	"binding": CreateRoleBinding,
@@ -66,7 +81,7 @@ var RoleNames = map[string]string{
 	"binding": "nsm-role-binding",
 }
 
-func CreateRoleAdmin(name string) Role {
+func CreateRoleAdmin(name string, namespace string) Role {
 	roleAdmin := &ClusterRole{
 		ClusterRole: rbacv1.ClusterRole{
 			TypeMeta: metav1.TypeMeta{
@@ -105,7 +120,7 @@ func CreateRoleAdmin(name string) Role {
 	return roleAdmin
 }
 
-func CreateRoleView(name string) Role {
+func CreateRoleView(name string, namespace string) Role {
 	roleView := &ClusterRole{
 		ClusterRole: rbacv1.ClusterRole{
 			TypeMeta: metav1.TypeMeta{
@@ -129,7 +144,7 @@ func CreateRoleView(name string) Role {
 	return roleView
 }
 
-func CreateRoleBinding(name string) Role {
+func CreateRoleBinding(name string, namespace string) Role {
 	roleBinding := &ClusterRoleBinding{
 		ClusterRoleBinding: rbacv1.ClusterRoleBinding{
 			TypeMeta: metav1.TypeMeta{
@@ -148,7 +163,7 @@ func CreateRoleBinding(name string) Role {
 					Kind:      "ServiceAccount",
 					APIGroup:  "",
 					Name:      "default",
-					Namespace: "default",
+					Namespace: namespace,
 				},
 			},
 		},
