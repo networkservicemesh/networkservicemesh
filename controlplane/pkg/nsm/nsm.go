@@ -48,32 +48,43 @@ type networkServiceManager struct {
 	excludedPrefixes prefix_pool.PrefixPool
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
+	errCh            chan error
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 	return srv.properties
 }
 
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes <-chan prefix_pool.PrefixPool) nsm.NetworkServiceManager {
-	nsm := &networkServiceManager{
+func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
+	srv := &networkServiceManager{
 		serviceRegistry: serviceRegistry,
 		model:           model,
 		properties:      nsm.NewNsmProperties(),
 		stateRestored:   make(chan bool, 1),
+		errCh:           make(chan error, 1),
 	}
-	go monitorExcludePrefixes(nsm, excludedPrefixes)
-	return nsm
+
+	go srv.monitorExcludePrefixes()
+	return srv
 }
 
-func monitorExcludePrefixes(nsm *networkServiceManager, excludedPrefixesCh <-chan prefix_pool.PrefixPool) {
+func (srv *networkServiceManager) monitorExcludePrefixes() {
+	poolCh, err := GetExcludedPrefixes(srv.serviceRegistry)
+	if err != nil {
+		srv.errCh <- err
+		return
+	}
+
 	for {
-		pool, ok := <-excludedPrefixesCh
+		pool, ok := <-poolCh
 		if !ok {
+			srv.errCh <- fmt.Errorf("nsmd-k8s is not responding, exclude prefixes won't be updating")
 			return
 		}
-		nsm.Lock()
-		nsm.excludedPrefixes = pool
-		nsm.Unlock()
+
+		srv.Lock()
+		srv.excludedPrefixes = pool
+		srv.Unlock()
 	}
 }
 

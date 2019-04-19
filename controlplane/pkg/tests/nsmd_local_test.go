@@ -6,7 +6,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	context2 "golang.org/x/net/context"
@@ -105,7 +105,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
@@ -126,7 +126,7 @@ func TestNSENoSrc(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -153,7 +153,7 @@ func TestNSEExcludePrefixes(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, "127.0.0.0/24", "127.0.1.0/24")
+	srv := newNSMDFullServer(Master, storage, newClusterConfiguration("127.0.0.0/24", "127.0.1.0/24"))
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -177,7 +177,7 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, "127.0.0.0/24", "127.0.1.0/24")
+	srv := newNSMDFullServer(Master, storage, newClusterConfiguration("127.0.0.0/24", "127.0.1.0/24"))
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -201,15 +201,21 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	poolCh := make(chan prefix_pool.PrefixPool, 10)
-	srv := newNSMDFullServerWithSubnetMonitoring(Master, storage, poolCh)
+	srv := newNSMDFullServer(Master, storage, nil)
 	defer srv.Stop()
 
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	ds := srv.serviceRegistry.nseRegistry.currentSubnetStream
 
-	pool, _ := prefix_pool.NewPrefixPool("10.32.1.0/24", "10.96.0.0/12")
-	poolCh <- pool
+	ds.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_POD,
+		Subnet: "10.32.1.0/24",
+	})
+	ds.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_SERVICE,
+		Subnet: "10.96.0.0/12",
+	})
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
@@ -218,14 +224,19 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	Expect(err).To(BeNil())
 	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
-	logrus.Print("End of test")
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
 	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
 
-	pool, _ = prefix_pool.NewPrefixPool("10.32.1.0/22", "10.96.0.0/10")
-	poolCh <- pool
+	ds.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_POD,
+		Subnet: "10.32.1.0/22",
+	})
+	ds.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_SERVICE,
+		Subnet: "10.96.0.0/10",
+	})
 
 	nsmClient, conn = srv.requestNSMConnection("nsm-1")
 
@@ -233,7 +244,63 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 	nsmResponse, err = nsmClient.Request(context.Background(), request)
 	Expect(err).To(BeNil())
 	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
-	logrus.Print("End of test")
+
+	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
+	Expect(ok).To(Equal(true))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/22", "10.96.0.0/10"}))
+}
+
+func TestExcludePrefixesMonitorFails(t *testing.T) {
+	RegisterTestingT(t)
+
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage, nil)
+	defer srv.Stop()
+
+	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	ds := srv.serviceRegistry.nseRegistry.currentSubnetStream
+
+	ds.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_POD,
+		Subnet: "10.32.1.0/24",
+	})
+	ds.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_SERVICE,
+		Subnet: "10.96.0.0/12",
+	})
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := createRequest(false)
+	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	Expect(err).To(BeNil())
+	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+
+	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
+	Expect(ok).To(Equal(true))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
+
+	ds.dummyKill()
+
+	nsmResponse, err = nsmClient.Request(context.Background(), request)
+
+	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
+	Expect(ok).To(Equal(true))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
+
+	newDs := srv.serviceRegistry.nseRegistry.currentSubnetStream
+
+	newDs.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_POD,
+		Subnet: "10.32.1.0/22",
+	})
+	newDs.addResponse(&registry.SubnetExtendingResponse{
+		Type:   registry.SubnetExtendingResponse_SERVICE,
+		Subnet: "10.96.0.0/10",
+	})
+	nsmResponse, err = nsmClient.Request(context.Background(), request)
 
 	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
@@ -244,7 +311,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns:             "12",
@@ -278,7 +345,7 @@ func TestSlowNSE(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -311,7 +378,7 @@ func TestSlowDP(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{

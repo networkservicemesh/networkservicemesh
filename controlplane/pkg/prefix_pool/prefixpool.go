@@ -530,20 +530,20 @@ func addressCount(pr string) uint64 {
 }
 
 func setNetIndexInIP(ip net.IP, num int, prefixLen int) net.IP {
-	ipInt, totalBits := FromIP(ip)
+	ipInt, totalBits := fromIP(ip)
 	bigNum := big.NewInt(int64(num))
 	bigNum.Lsh(bigNum, uint(totalBits-prefixLen))
 	ipInt.Or(ipInt, bigNum)
-	return ToIP(ipInt, totalBits)
+	return toIP(ipInt, totalBits)
 }
 
 func clearNetIndexInIP(ip net.IP, prefixLen int) net.IP {
-	ipInt, totalBits := FromIP(ip)
+	ipInt, totalBits := fromIP(ip)
 	ipInt.SetBit(ipInt, totalBits-prefixLen, 0)
-	return ToIP(ipInt, totalBits)
+	return toIP(ipInt, totalBits)
 }
 
-func ToIP(ipInt *big.Int, bits int) net.IP {
+func toIP(ipInt *big.Int, bits int) net.IP {
 	ipBytes := ipInt.Bytes()
 	ret := make([]byte, bits/8)
 	// Pack our IP bytes into the end of the return array,
@@ -554,7 +554,7 @@ func ToIP(ipInt *big.Int, bits int) net.IP {
 	return net.IP(ret)
 }
 
-func FromIP(ip net.IP) (*big.Int, int) {
+func fromIP(ip net.IP) (*big.Int, int) {
 	val := &big.Int{}
 	val.SetBytes([]byte(ip))
 	i := len(ip)
@@ -572,8 +572,8 @@ func min(a, b int) int {
 }
 
 func MaxCommonPrefixSubnet(s1, s2 *net.IPNet) *net.IPNet {
-	rawIp1, n1 := FromIP(s1.IP)
-	rawIp2, _ := FromIP(s2.IP)
+	rawIp1, n1 := fromIP(s1.IP)
+	rawIp2, _ := fromIP(s2.IP)
 
 	xored := &big.Int{}
 	xored.Xor(rawIp1, rawIp2)
@@ -614,14 +614,14 @@ func AddressRange(network *net.IPNet) (net.IP, net.IP) {
 		return firstIP, lastIP
 	}
 
-	firstIPInt, bits := FromIP(firstIP)
+	firstIPInt, bits := fromIP(firstIP)
 	hostLen := uint(bits) - uint(prefixLen)
 	lastIPInt := big.NewInt(1)
 	lastIPInt.Lsh(lastIPInt, hostLen)
 	lastIPInt.Sub(lastIPInt, big.NewInt(1))
 	lastIPInt.Or(lastIPInt, firstIPInt)
 
-	return firstIP, ToIP(lastIPInt, bits)
+	return firstIP, toIP(lastIPInt, bits)
 }
 
 func IncrementIP(sourceIp net.IP, ipNet *net.IPNet) (net.IP, error) {

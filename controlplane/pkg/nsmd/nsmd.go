@@ -14,7 +14,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
@@ -25,7 +24,6 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
@@ -420,100 +418,4 @@ func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
 
 	return nil
-}
-
-func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) (<-chan prefix_pool.PrefixPool, error) {
-	excludePrefixes := getExcludePrefixesFromEnv()
-
-	// trying to get excludePrefixes from kubeadm-config, if it exists
-	if configMapPrefixes, err := getExcludedPrefixesFromConfigMap(serviceRegistry); err == nil {
-		poolCh := make(chan prefix_pool.PrefixPool, 1)
-		pool, err := prefix_pool.NewPrefixPool(append(excludePrefixes, configMapPrefixes...)...)
-		if err != nil {
-			return nil, err
-		}
-		poolCh <- pool
-		return poolCh, nil
-	}
-
-	// seems like we don't have kubeadm-config in cluster, starting monitor client
-	return monitorReservedSubnets(serviceRegistry, excludePrefixes...)
-}
-
-func getExcludedPrefixesFromConfigMap(serviceRegistry serviceregistry.ServiceRegistry) ([]string, error) {
-	clusterInfoClient, err := serviceRegistry.ClusterInfoClient()
-	if err != nil {
-		return nil, fmt.Errorf("error during ClusterInfoClient creation: %v", err)
-	}
-
-	clusterConfiguration, err := clusterInfoClient.GetClusterConfiguration(context.Background(), &empty.Empty{})
-	if err != nil {
-		return nil, fmt.Errorf("error during GetClusterConfiguration request: %v", err)
-	}
-
-	if clusterConfiguration.PodSubnet == "" {
-		return nil, fmt.Errorf("clusterConfiguration.PodSubnet is empty")
-	}
-
-	if clusterConfiguration.ServiceSubnet == "" {
-		return nil, fmt.Errorf("clusterConfiguration.ServiceSubnet is empty")
-	}
-
-	return []string{
-		clusterConfiguration.PodSubnet,
-		clusterConfiguration.ServiceSubnet,
-	}, nil
-}
-
-func getExcludePrefixesFromEnv() []string {
-	excludedPrefixesEnv, ok := os.LookupEnv(ExcludedPrefixesEnv)
-	if !ok {
-		return []string{}
-	}
-	logrus.Infof("Getting excludedPrefixes from ENV: %v", excludedPrefixesEnv)
-	return strings.Split(excludedPrefixesEnv, ",")
-}
-
-func monitorReservedSubnets(serviceRegistry serviceregistry.ServiceRegistry, additionalPrefixes ...string) (<-chan prefix_pool.PrefixPool, error) {
-	clusterInfoClient, err := serviceRegistry.ClusterInfoClient()
-	if err != nil {
-		return nil, fmt.Errorf("error during ClusterInfoClient creation: %v", err)
-	}
-	stream, err := clusterInfoClient.MonitorSubnets(context.Background(), &empty.Empty{})
-	if err != nil {
-		return nil, fmt.Errorf("error during ClusterInfoClient.MonitorSubnet calling: %v", err)
-	}
-
-	poolCh := make(chan prefix_pool.PrefixPool, 10)
-	var podSubnet string
-	var serviceSubnet string
-
-	go func() {
-		for {
-			extendResponse, err := stream.Recv()
-			if err != nil {
-				logrus.Error(err)
-				close(poolCh)
-				return
-			}
-
-			if extendResponse.Type == registry.SubnetExtendingResponse_POD {
-				podSubnet = extendResponse.Subnet
-			}
-
-			if extendResponse.Type == registry.SubnetExtendingResponse_SERVICE {
-				serviceSubnet = extendResponse.Subnet
-			}
-
-			pool, err := prefix_pool.NewPrefixPool(append(additionalPrefixes, podSubnet, serviceSubnet)...)
-			if err != nil {
-				logrus.Error(err)
-				continue
-			}
-
-			poolCh <- pool
-		}
-	}()
-
-	return poolCh, nil
 }
