@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func createTestDataplane(name string, localMechanisms []*localConnection.Mechanism, RemoteMechanisms []*remoteConnection.Mechanism) *model.Dataplane{
+func createTestDataplane(name string, localMechanisms []*localConnection.Mechanism, RemoteMechanisms []*remoteConnection.Mechanism) *model.Dataplane {
 	return &model.Dataplane{
 		RegisteredName:   name,
 		SocketLocation:   "tcp:some_addr",
@@ -23,7 +23,7 @@ func createTestDataplane(name string, localMechanisms []*localConnection.Mechani
 	}
 }
 
-func TestSelectDataplane (t *testing.T) {
+func TestSelectDataplane(t *testing.T) {
 	RegisterTestingT(t)
 
 	testDataplane1_1 := createTestDataplane("test_data_plane_2",
@@ -51,8 +51,8 @@ func TestSelectDataplane (t *testing.T) {
 		})
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv2 := newNSMDFullServer(Worker, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 	defer srv2.Stop()
 	srv.testModel.AddDataplane(testDataplane1)
