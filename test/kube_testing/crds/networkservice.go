@@ -107,6 +107,18 @@ func SecureIntranetConnectivity() *nsapiv1.NetworkService {
 					Routes: []*nsapiv1.Destination{
 						&nsapiv1.Destination{
 							DestinationSelector: map[string]string{
+								"app": "passthrough",
+							},
+						},
+					},
+				},
+				&nsapiv1.Match{
+					SourceSelector: map[string]string{
+						"app": "passthrough",
+					},
+					Routes: []*nsapiv1.Destination{
+						&nsapiv1.Destination{
+							DestinationSelector: map[string]string{
 								"app": "vpn-gateway",
 							},
 						},
