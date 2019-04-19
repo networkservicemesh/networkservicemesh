@@ -320,6 +320,7 @@ func (o *K8s) deletePods(pods ...*v1.Pod) error {
 		go func() {
 			defer wg.Done()
 			delOpt := &metaV1.DeleteOptions{}
+			st := time.Now()
 			logrus.Infof("Deleting %v", pod.Name)
 			err := o.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 			if err != nil {
@@ -331,12 +332,12 @@ func (o *K8s) deletePods(pods ...*v1.Pod) error {
 			err = blockUntilPodWorking(o.clientset, c, pod)
 			if err != nil {
 				err = o.deletePodForce(pod)
-				logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
 				if err != nil {
+					logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
 					logrus.Warn(err)
 				}
 			}
-			logrus.Warnf(`The POD "%s" Deleted`, pod.Name)
+			logrus.Warnf(`The POD "%s" Deleted %v`, pod.Name, time.Since(st))
 		}()
 	}
 	wg.Wait()

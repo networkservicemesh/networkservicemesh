@@ -27,6 +27,7 @@ func AlpinePod(name string, node *v1.Node) *v1.Pod {
 					},
 				},
 			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 	if node != nil {

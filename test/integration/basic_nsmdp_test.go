@@ -3,9 +3,6 @@
 package nsmd_integration_tests
 
 import (
-	"testing"
-	"time"
-
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"

@@ -422,7 +422,7 @@ func TestLostUpdate(t *testing.T) {
 	fwd.Stop()
 	k8s.DeletePods(nsmd)
 
-	nsmgr2 := k8s.CreatePod(pods.NSMgrPod("nsmgr-2", k8s.GetK8sNamespace()))
+	nsmgr2 := k8s.CreatePod(pods.NSMgrPod("nsmgr-2", nil, k8s.GetK8sNamespace()))
 
 	fwd, err = k8s.NewPortForwarder(nsmgr2, 5000)
 	Expect(err).To(BeNil())
