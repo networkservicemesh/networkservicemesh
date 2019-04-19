@@ -4,7 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 CONTAINERTXT=/tmp/container.txt
 
 docker build -t networkservicemesh/nsmd -f "${DIR}/../build/Dockerfile.nsmd" "${DIR}/../../"
-docker build -t networkservicemesh/nse -f "${DIR}/../../examples/build/Dockerfile.icmp-responder-nse" "${DIR}/../../"
+docker build -t networkservicemesh/nse -f "${DIR}/../../examples/build/Dockerfile.nse" "${DIR}/../../"
 docker build -t networkservicemesh/nsc -f "${DIR}/../../examples/build/Dockerfile.nsc" "${DIR}/../../"
 
 echo "Starting nsmd..."

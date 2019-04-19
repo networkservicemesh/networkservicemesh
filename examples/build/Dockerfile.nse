@@ -10,7 +10,14 @@ WORKDIR /root/networkservicemesh/
 RUN ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/icmp-responder-nse ./examples/cmd/icmp-responder-nse
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/dirty-nse ./examples/cmd/nse/dirty-nse
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/icmp-responder-nse ./examples/cmd/nse/icmp-responder-nse
+
 FROM alpine as runtime
 COPY --from=build /go/bin/icmp-responder-nse /bin/icmp-responder-nse
-ENTRYPOINT ["/bin/icmp-responder-nse"]
+COPY --from=build /go/bin/dirty-nse /bin/dirty-nse
+
+ENV NSE_IMAGE=icmp-responder-nse
+COPY ./examples/cmd/nse/nse_run.sh /bin/nse_run.sh
+
+ENTRYPOINT ["/bin/nse_run.sh"]

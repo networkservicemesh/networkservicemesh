@@ -29,9 +29,11 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: icmp-responder-nse
-          image: networkservicemesh/icmp-responder-nse:latest
+          image: networkservicemesh/nse:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: NSE_IMAGE
+              value: "icmp-responder-nse"
             - name: ADVERTISE_NSE_NAME
               value: "icmp-responder"
             - name: ADVERTISE_NSE_LABELS

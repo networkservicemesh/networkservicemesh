@@ -20,12 +20,11 @@ DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_NSM = nsmgr vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
-DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
+DEPLOY_ICMP_KERNEL = nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
 DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
-DEPLOY_DIRTY_NSE = dirty-nse
-DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN) $(DEPLOY_DIRTY_NSE)
+DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
@@ -111,7 +110,7 @@ k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete
 .PHONY: k8s-vpn-gateway-nse-deploy
 k8s-vpn-gateway-nse-deploy: k8s-start k8s-config k8s-%-delete k8s-%-load-images
 	@until ! $$($(kubectl) get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/icmp-responder-nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
@@ -246,7 +245,7 @@ k8s-vpn-gateway-nse-build:
 k8s-vpn-gateway-nse-save:
 
 .PHONY: k8s-vpn-gateway-nse-load-images
-k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
+k8s-vpn-gateway-nse-load-images: k8s-nse-load-images
 
 .PHONY: k8s-vpn-gateway-nsc-build
 k8s-vpn-gateway-nsc-build:
@@ -263,18 +262,11 @@ k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 .PHONY: k8s-nsc-save
 k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
 
+.PHONY: k8s-nse-build
+k8s-nse-build:  ${CONTAINER_BUILD_PREFIX}-nse-build
 
-.PHONY: k8s-icmp-responder-nse-build
-k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-build
-
-.PHONY: k8s-icmp-responder-nse-save
-k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
-
-.PHONY: k8s-dirty-nse-build
-k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-dirty-nse-build
-
-.PHONY: k8s-dirty-nse-save
-k8s-dirty-nse-save:  ${CONTAINER_BUILD_PREFIX}-dirty-nse-save
+.PHONY: k8s-nse-save
+k8s-nse-save:  ${CONTAINER_BUILD_PREFIX}-nse-save
 
 .PHONY: k8s-vppagent-icmp-responder-nse-build
 k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-build
@@ -338,7 +330,7 @@ k8s-vpn-gateway-nse-build:
 k8s-vpn-gateway-nse-save:
 
 .PHONY: k8s-vpn-gateway-nse-load-images
-k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
+k8s-vpn-gateway-nse-load-images: k8s-nse-load-images
 
 .PHONY: k8s-vpn-gateway-nsc-build
 k8s-vpn-gateway-nsc-build:

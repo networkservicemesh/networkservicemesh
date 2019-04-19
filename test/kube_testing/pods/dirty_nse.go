@@ -10,19 +10,12 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	nsc_container := containerMod(&v1.Container{
-		Name:            "dirty-nse",
-		Image:           "networkservicemesh/dirty-nse:latest",
-		ImagePullPolicy: v1.PullIfNotPresent,
-		Resources: v1.ResourceRequirements{
-			Limits: v1.ResourceList{
-				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
-			},
-			Requests: nil,
-		},
-	})
+	envVars := []v1.EnvVar{{
+		Name:  "NSE_IMAGE",
+		Value: "icmp-responder-nse",
+	}}
 	for k, v := range env {
-		nsc_container.Env = append(nsc_container.Env,
+		envVars = append(envVars,
 			v1.EnvVar{
 				Name:  k,
 				Value: v,
@@ -36,7 +29,22 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		TypeMeta: v12.TypeMeta{
 			Kind: "Deployment",
 		},
-		Spec: v1.PodSpec{Containers: []v1.Container{nsc_container}},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:            "dirty-nse",
+					Image:           "networkservicemesh/nse:latest",
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+						},
+						Requests: nil,
+					},
+					Env: envVars,
+				},
+			},
+		},
 	}
 
 	if node != nil {
