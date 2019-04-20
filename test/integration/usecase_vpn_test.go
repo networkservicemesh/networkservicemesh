@@ -116,7 +116,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	}
 
 	{
-		nscrd, err := crds.NewNSCRD()
+		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
 
 		nsSecureIntranetConnectivity := crds.SecureIntranetConnectivity()
