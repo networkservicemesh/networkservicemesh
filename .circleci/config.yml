@@ -2,6 +2,8 @@
 version: 2.1
 
 jobs:
+
+# sanity
   sanity-check:
     resource_class: medium+
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
@@ -44,6 +46,7 @@ jobs:
     environment:
       GO111MODULE: "on"
 
+# packet
   packet-deploy:
     docker:
       - image: circleci/golang
@@ -99,6 +102,119 @@ jobs:
     environment:
       PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
 
+  packet-destroy:
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
+      - run: cd ./scripts/terraform && terraform init && cd ../..
+      - run: .circleci/destroy-cluster.sh
+
+# azure
+  azure-deploy:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install Azure Prerequisites
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
+      - run:
+          name: Create AKS Cluster
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-start
+          environment:
+            AZURE_CREDENTIALS_PATH: "data/kubeconfig"
+      - save_cache:
+          key: cncf-data-azure-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          paths:
+            - data
+      - run:
+          when: on_fail
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-destroy
+
+  azure-destroy:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install Azure Prerequisites
+          command: |
+            ./scripts/azure/install-azure-cli.sh
+            az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
+      - run:
+          name: Destroy AKS Cluster
+          command: |
+            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+            make azure-destroy
+
+# gke
+  gke-create-cluster:
+    parameters:
+      cluster_id:
+        type: string
+      gke_project_id:
+        type: string
+        default: "ci-management"
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Setup Google Kubernetes Cluster
+          command: |
+            .circleci/gke/init-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}"
+            export GKE_CLUSTER_NAME="dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+            make gke-start
+      - run:
+          name: "Prepare cache data << parameters.cluster_id >>"
+          command: |
+            mkdir -p data
+            cp ~/.kube/config data/kubeconfig
+            cat data/kubeconfig
+      - run:
+          when: on_fail
+          command: sudo .circleci/gke/cleanup-gke.sh
+      - save_cache:
+          key: cncf-data-gke-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          paths:
+            - data
+
+  gke-destroy-cluster:
+    parameters:
+      cluster_id:
+        type: string
+      gke_project_id:
+        type: string
+        default: "ci-management"
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: "Install google cloud SDK"
+          command: |
+            .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+
+# integration
   integration-tests:
     parameters:
       cloud_provider:
@@ -193,69 +309,7 @@ jobs:
       GO111MODULE: "on"
       NSM_NAMESPACE: "<< parameters.namespace >>"
 
-  packet-destroy:
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - restore_cache:
-          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
-      - run: cd ./scripts/terraform && terraform init && cd ../..
-      - run: .circleci/destroy-cluster.sh
-
-  azure-deploy:
-    parameters:
-      cluster_id:
-        type: string
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - run:
-          name: Install Azure Prerequisites
-          command: |
-            ./scripts/azure/install-azure-cli.sh
-            az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
-      - run:
-          name: Create AKS Cluster
-          command: |
-            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
-            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
-            make azure-start
-          environment:
-            AZURE_CREDENTIALS_PATH: "data/kubeconfig"
-      - save_cache:
-          key: cncf-data-azure-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
-          paths:
-            - data
-      - run:
-          when: on_fail
-          command: |
-            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
-            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
-            make azure-destroy
-
-  azure-destroy:
-    parameters:
-      cluster_id:
-        type: string
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - run:
-          name: Install Azure Prerequisites
-          command: |
-            ./scripts/azure/install-azure-cli.sh
-            az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
-      - run:
-          name: Destroy AKS Cluster
-          command: |
-            export AZURE_CLUSTER_NAME="nsm-ci-cluster-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
-            export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
-            make azure-destroy
-
+# build
   build-container:
     parameters:
       container:
@@ -274,6 +328,7 @@ jobs:
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
+# docker push
   docker-push-latest:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -296,51 +351,7 @@ jobs:
               docker push ${REPO}/${c}:${TAG}
             done
 
-  gke-create-cluster:
-    parameters:
-      cluster_id:
-        type: string
-      gke_project_id:
-        type: string
-        default: "ci-management"
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - run:
-          name: Setup Google Kubernetes Cluster
-          command: |
-            .circleci/gke/init-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}"
-            export GKE_CLUSTER_NAME="dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
-            make gke-start
-      - run:
-          name: "Prepare cache data << parameters.cluster_id >>"
-          command: |
-            mkdir -p data
-            cp ~/.kube/config data/kubeconfig
-            cat data/kubeconfig
-      - run:
-          when: on_fail
-          command: sudo .circleci/gke/cleanup-gke.sh
-      - save_cache:
-          key: cncf-data-gke-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
-          paths:
-            - data
-  gke-destroy-cluster:
-    parameters:
-      cluster_id:
-        type: string
-      gke_project_id:
-        type: string
-        default: "ci-management"
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - run:
-          name: "Install google cloud SDK"
-          command: |
-            .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+# helm
   helm-chart-tests:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
@@ -351,11 +362,15 @@ jobs:
           name: Install and lint Helm charts
           command: |
             .circleci/helm/test-charts.sh
+
+# workflows
 workflows:
   version: 2
   build-and-test:
     jobs:
       - sanity-check
+
+# build
       - build-container:
           name: "build-nsmd"
           container: "nsmd"
@@ -416,6 +431,8 @@ workflows:
           container: "vppagent-firewall-nse"
           requires:
             - sanity-check
+
+# packet
       - packet-deploy:
           requires:
             - sanity-check
@@ -453,6 +470,23 @@ workflows:
           test_tags: "bench"
           requires:
             - "packet-test-recover"
+      - packet-destroy:
+          requires:
+            - "packet-test-basic-usecase"
+            - "packet-test-recover"
+            - "packet-test-bench"
+
+# azure
+      - azure-deploy:
+          name: "azure-deploy-k8s-1"
+          cluster_id: "1"
+          requires:
+            - sanity-check
+      - azure-deploy:
+          name: "azure-deploy-k8s-2"
+          cluster_id: "2"
+          requires:
+            - sanity-check
       - integration-tests:
           name: "azure-test-basic-usecase"
           cloud_provider: "azure"
@@ -467,22 +501,37 @@ workflows:
           test_tags: "recover azure"
           requires:
             - azure-deploy-k8s-2
-      - packet-destroy:
+      - azure-destroy:
+          name: "azure-destroy-1"
+          cluster_id: "1"
           requires:
-            - "packet-test-basic-usecase"
-            - "packet-test-recover"
-            - "packet-test-bench"
-      - docker-push-latest:
+            - azure-test-basic-usecase
+      - azure-destroy:
+          name: "azure-destroy-2"
+          cluster_id: "2"
           requires:
-            - packet-destroy
-            - azure-destroy-1
-            - azure-destroy-2
-          filters:
-            branches:
-              only: master
+            - azure-test-recover
+
+# gke
       - gke-create-cluster:
           cluster_id: "1"
           name: "gke-cluster1"
+          requires:
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-admission-webhook
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-dataplane
+            - build-vppagent-dataplane-dev
+            - build-vppagent-firewall-nse
+      - gke-create-cluster:
+          cluster_id: "2"
+          name: "gke-cluster2"
           requires:
             - build-nsmd
             - build-nsmd-k8s
@@ -503,28 +552,6 @@ workflows:
           test_tags: "basic usecase gke"
           requires:
             - "gke-cluster1"
-      - gke-destroy-cluster:
-          name: "gke-destroy-cluster1"
-          cluster_id: "1"
-          requires:
-            - "gke-cluster1"
-            - "gke test basic usecase"
-      - gke-create-cluster:
-          cluster_id: "2"
-          name: "gke-cluster2"
-          requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
       - integration-tests:
           name: "gke test recover"
           cloud_provider: "gke"
@@ -533,32 +560,28 @@ workflows:
           requires:
             - "gke-cluster2"
       - gke-destroy-cluster:
+          name: "gke-destroy-cluster1"
+          cluster_id: "1"
+          requires:
+            - "gke-cluster1"
+            - "gke test basic usecase"
+      - gke-destroy-cluster:
           name: "gke-destroy-cluster2"
           cluster_id: "2"
           requires:
             - "gke-cluster2"
             - "gke test recover"
+
+# helm
       - helm-chart-tests:
           name: "helm-chart-tests"
           requires:
             - sanity-check
-      - azure-deploy:
-          name: "azure-deploy-k8s-1"
-          cluster_id: "1"
+
+# push
+      - docker-push-latest:
           requires:
-            - sanity-check
-      - azure-deploy:
-          name: "azure-deploy-k8s-2"
-          cluster_id: "2"
-          requires:
-            - sanity-check
-      - azure-destroy:
-          name: "azure-destroy-1"
-          cluster_id: "1"
-          requires:
-            - azure-test-basic-usecase
-      - azure-destroy:
-          name: "azure-destroy-2"
-          cluster_id: "2"
-          requires:
-            - azure-test-recover
+            - packet-destroy
+          filters:
+            branches:
+              only: master
