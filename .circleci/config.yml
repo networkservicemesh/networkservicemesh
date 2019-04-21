@@ -229,7 +229,6 @@ jobs:
       namespace:
         type: string
         default: "default"
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang
     steps:
@@ -251,11 +250,13 @@ jobs:
             sudo chown -R circleci:circleci /cncf/
       - restore_cache:
           key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/ || true
-      - run: ssh-add /home/circleci/project/terraform/sshkey || true
       - restore_cache:
           key: cncf-data-<< parameters.cloud_provider >>-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp /home/circleci/project/terraform/sshkey* /cncf/data || true
+      - run:
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+              cp /home/circleci/project/terraform/sshkey* /cncf/data
+            fi
       - run:
           name: Downloading go deps
           command: |
@@ -299,6 +300,9 @@ jobs:
             if [ "x<< parameters.cloud_provider >>" == "xgke" ]; then
               .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
             else
+              if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+                cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
+              fi
               .circleci/cleanup-<< parameters.cloud_provider >>.sh
             fi
     environment:
@@ -314,7 +318,6 @@ jobs:
     parameters:
       container:
         type: string
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang
     steps:
@@ -330,7 +333,6 @@ jobs:
 
 # docker push
   docker-push-latest:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: circleci/golang
     steps:
@@ -353,7 +355,6 @@ jobs:
 
 # helm
   helm-chart-tests:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: quay.io/helmpack/chart-testing:v2.3.0
     steps:
