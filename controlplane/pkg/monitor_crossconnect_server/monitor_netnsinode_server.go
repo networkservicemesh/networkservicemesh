@@ -51,6 +51,7 @@ func copyEvent(event *crossconnect.CrossConnectEvent) *crossconnect.CrossConnect
 	return &crossconnect.CrossConnectEvent{
 		Type:          event.Type,
 		CrossConnects: crossConnectsCopy,
+		Metrics:       event.Metrics,
 	}
 }
 

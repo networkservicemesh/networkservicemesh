@@ -10,7 +10,7 @@ type EventImpl struct {
 func CrateEventImpl(eventType string, entities map[string]Entity) EventImpl {
 	return EventImpl{
 		eventType: eventType,
-		entities: entities,
+		entities:  entities,
 	}
 }
 

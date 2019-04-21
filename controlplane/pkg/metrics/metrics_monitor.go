@@ -1,10 +1,7 @@
 package metrics
 
-type Statistics struct {
-	Name       string
-	Metrics map[string]string
-}
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
 type MetricsMonitor interface {
-	HandleMetrics(statistics *Statistics)
+	HandleMetrics(statistics map[string]*crossconnect.Metrics)
 }

@@ -20,15 +20,13 @@ func CreateCrossConnectEvent(eventType string, entities map[string]monitor.Entit
 
 func (event CrossConnectEvent) Message() (interface{}, error) {
 	eventType, err := convertType(event.EventType())
-	if (err != nil) {
-		return err, nil
+	if err != nil {
+		return nil, err
 	}
-
 	xcons, err := convertEntities(event.Entities())
 	if err != nil {
 		return nil, err
 	}
-
 	return &crossconnect.CrossConnectEvent{
 		Type:          eventType,
 		CrossConnects: xcons,

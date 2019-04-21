@@ -7,6 +7,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -15,23 +16,17 @@ import (
 )
 
 type MetricsCollector struct {
-	stopChannel     chan struct{}
-	nextRequestTime time.Duration
+	requestPeriod time.Duration
 }
 
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{
-		stopChannel:     make(chan struct{}),
-		nextRequestTime: time.Second * 10,
+		requestPeriod: time.Second * 15,
 	}
 }
 
 func (m *MetricsCollector) CollectAsync(monitor MetricsMonitor, endpoint string) {
 	go m.collect(monitor, endpoint)
-}
-
-func (m *MetricsCollector) Close() {
-	close(m.stopChannel)
 }
 
 func (m *MetricsCollector) collect(monitor MetricsMonitor, endpoint string) {
@@ -42,24 +37,15 @@ func (m *MetricsCollector) collect(monitor MetricsMonitor, endpoint string) {
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	if err != nil {
-		logrus.Errorf("can't dial grpc server: %v", err)
+		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return
 	}
-
-	for {
-		select {
-		case <-m.stopChannel:
-			logrus.Info("Metrics collector: stop")
-			return
-		default:
-			logrus.Info("Metrics collector: waiting new client")
-			notificationClient := rpc.NewConfiguratorClient(conn)
-			m.handleNotifications(monitor, notificationClient)
-		}
-	}
+	logrus.Infof("Metrics collector: creating notificaiton client for %v", endpoint)
+	notificationClient := rpc.NewConfiguratorClient(conn)
+	m.startListenNotifications(monitor, notificationClient)
 }
 
-func (m *MetricsCollector) handleNotifications(monitor MetricsMonitor, client rpc.ConfiguratorClient) {
+func (m *MetricsCollector) startListenNotifications(monitor MetricsMonitor, client rpc.ConfiguratorClient) {
 	var nextIdx uint32 = 0
 	logrus.Info("Metrics collector: start handle notifications")
 	for {
@@ -69,30 +55,32 @@ func (m *MetricsCollector) handleNotifications(monitor MetricsMonitor, client rp
 		}
 		stream, err := client.Notify(context.Background(), request)
 		if err != nil {
-			logrus.Errorf("Metrics collector: an problem during get stream %v", err)
+			logrus.Errorf("Metrics collector: an error during getting stream %v", err)
 			return
 		}
-		for {
-			notification, err := stream.Recv()
-			if err == io.EOF {
-				logrus.Info("Metrics collector: EOF")
-				break;
-			}
-			if err != nil {
-				logrus.Errorf("Metrics collector: an problem during recv notification %v", err)
-				return
-			}
-			nextIdx = notification.NextIdx
-			stat := convertStatistics(notification.Notification.GetVppNotification().Interface.State)
-			logrus.Infof("Metrics collector: new statistics %v", proto.MarshalTextString(notification.Notification))
-			monitor.HandleMetrics(stat)
-			logrus.Info("Metrics collector: handle metrics")
+		err = m.handleNotifications(monitor, stream, &nextIdx)
+		if err != nil && err != io.EOF {
+			logrus.Errorf("Metrics collector: an error during handling notifications %v", err)
+			return
 		}
-		time.Sleep(m.nextRequestTime)
+		time.Sleep(m.requestPeriod)
+	}
+}
+func (m *MetricsCollector) handleNotifications(monitor MetricsMonitor, stream rpc.Configurator_NotifyClient, nextIndex *uint32) error {
+	for {
+		notification, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+		*nextIndex = notification.NextIdx
+		statistics := convertStatistics(notification.Notification.GetVppNotification().Interface.State)
+		logrus.Infof("Metrics collector: new statistics %v", proto.MarshalTextString(notification.Notification))
+		monitor.HandleMetrics(statistics)
+		logrus.Info("Metrics collector: statistics handled")
 	}
 }
 
-func convertStatistics(state *interfaces.InterfaceState) *Statistics {
+func convertStatistics(state *interfaces.InterfaceState) map[string]*crossconnect.Metrics {
 	stats := state.Statistics
 	metrics := make(map[string]string)
 	metrics["rx_bytes"] = fmt.Sprint(stats.InBytes)
@@ -101,8 +89,7 @@ func convertStatistics(state *interfaces.InterfaceState) *Statistics {
 	metrics["tx_packets"] = fmt.Sprint(stats.OutPackets)
 	metrics["rx_error_packets"] = fmt.Sprint(stats.InErrorPackets)
 	metrics["tx_error_packets"] = fmt.Sprint(stats.OutErrorPackets)
-	return &Statistics{
-		Name:    state.Name,
-		Metrics: metrics,
+	return map[string]*crossconnect.Metrics{
+		state.Name: {Metrics: metrics},
 	}
 }

@@ -5,9 +5,6 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
@@ -15,62 +12,67 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"testing"
 )
 
 func TestSimpleMetrics(t *testing.T) {
 	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
 	k8s, err := kube_testing.NewK8s()
-	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	s1 := time.Now()
+	defer k8s.Cleanup()
+
 	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 	nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
+
 	defer fwd.Stop()
 
 	err = fwd.Start()
 	Expect(err).To(BeNil())
 
-	nsmdMonitor, close, cancel := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	nsmdMonitor, close := crossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 	defer close()
-	monitorCrossConnects(nsmdMonitor, cancel)
-	time.Sleep(time.Minute * 5)
-	cancel()
 
+	metricsCh := make(chan map[string]string)
+	monitorCrossConnectsMetrics(nsmdMonitor, metricsCh)
+
+	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "4")
+	logrus.Infof("response = %v", response)
 	Expect(err).To(BeNil())
+
+	k8s.DeletePods(nsc)
+	metrics := <-metricsCh
+
+	Expect(isMetricsEmpty(metrics)).Should(Equal(false))
+	Expect(metrics["rx_error_packets"]).Should(Equal("0"))
+	Expect(metrics["tx_error_packets"]).Should(Equal("0"))
 }
 
-func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, func(), context.CancelFunc) {
+func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, func()) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		Expect(err).To(BeNil())
-		return nil, nil, nil
+		return nil, nil
 	}
-
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
-	ctx, cancel := context.WithCancel(context.Background())
-	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
+	stream, err := monitorClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 	if err != nil {
 		Expect(err).To(BeNil())
-		cancel()
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	closeFunc := func() {
@@ -78,24 +80,42 @@ func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_Monito
 			logrus.Errorf("Closing the stream with: %v", err)
 		}
 	}
-	return stream, closeFunc, cancel
+	return stream, closeFunc
 }
 
-func monitorCrossConnects(stream crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, cancel context.CancelFunc) {
+func monitorCrossConnectsMetrics(stream crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, metricsCh chan<- map[string]string) {
 	go func() {
 		for {
 			select {
 			case <-stream.Context().Done():
-				logrus.Info("GG")
 				return
 			default:
-				event, _ := stream.Recv()
-				logrus.Infof("Receive event type: %v", event.GetType())
+				event, err := stream.Recv()
+				if err != nil {
+					println(err)
+					continue
+				}
+				if event.Metrics == nil {
+					continue
+				}
 				for k, v := range event.Metrics {
 					logrus.Infof("New statistics: %v %v", k, v)
+					if isMetricsEmpty(v.Metrics) {
+						logrus.Infof("Statistics: %v %v skipped", k, v)
+						continue
+					}
+					metricsCh <- v.Metrics
 				}
 			}
 		}
 	}()
+}
 
+func isMetricsEmpty(metrics map[string]string) bool {
+	for _, v := range metrics {
+		if v != "0" && v != "" {
+			return false
+		}
+	}
+	return true
 }

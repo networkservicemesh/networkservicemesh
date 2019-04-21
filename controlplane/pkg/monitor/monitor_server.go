@@ -132,11 +132,13 @@ func (m *monitorServerImpl) SendAll(event Event) {
 func (m *monitorServerImpl) send(event Event, recipients ...Recipient) {
 	for _, recipient := range recipients {
 		msg, err := event.Message()
+		logrus.Infof("Try to send message %v", msg)
 		if err != nil {
-			logrus.Errorf("Error during converting event: %v", err)
+			logrus.Errorf("An error during convertion event: %v", err)
+			continue
 		}
 		if err := recipient.SendMsg(msg); err != nil {
-			logrus.Errorf("Error during send: %+v", err)
+			logrus.Errorf("An error during send: %v", err)
 		}
 	}
 }
