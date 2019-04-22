@@ -1,3 +1,3 @@
 #!/bin/sh
 
-/bin/${NSE_IMAGE}
+"/bin/${NSE_IMAGE}"
