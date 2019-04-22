@@ -546,14 +546,14 @@ workflows:
             - build-vppagent-dataplane-dev
             - build-vppagent-firewall-nse
       - integration-tests:
-          name: "gke test basic usecase"
+          name: "gke-test-basic-usecase"
           cloud_provider: "gke"
           cluster_id: "1"
           test_tags: "basic usecase gke"
           requires:
             - "gke-cluster1"
       - integration-tests:
-          name: "gke test recover"
+          name: "gke-test-recover"
           cloud_provider: "gke"
           cluster_id: "2"
           test_tags: "recover gke"
@@ -564,13 +564,13 @@ workflows:
           cluster_id: "1"
           requires:
             - "gke-cluster1"
-            - "gke test basic usecase"
+            - "gke-test-basic-usecase"
       - gke-destroy-cluster:
           name: "gke-destroy-cluster2"
           cluster_id: "2"
           requires:
             - "gke-cluster2"
-            - "gke test recover"
+            - "gke-test-recover"
 
 # helm
       - helm-chart-tests:
