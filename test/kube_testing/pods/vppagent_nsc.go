@@ -37,6 +37,7 @@ func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
 					},
 				},
 			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 	return pod

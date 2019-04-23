@@ -82,6 +82,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			InitContainers: []v1.Container{
 				nsc_container,
 			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 	if node != nil {

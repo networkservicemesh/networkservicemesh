@@ -1,9 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -18,12 +15,7 @@ func main() {
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
+	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)

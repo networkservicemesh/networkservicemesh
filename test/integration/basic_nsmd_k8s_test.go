@@ -419,8 +419,9 @@ func TestLostUpdate(t *testing.T) {
 	logrus.Info(nseResp)
 	Expect(getNsmUrl(discovery)).To(Equal(url1))
 
-	k8s.DeletePods(nsmd)
 	fwd.Stop()
+	k8s.DeletePods(nsmd)
+
 	nsmgr2 := k8s.CreatePod(pods.NSMgrPod("nsmgr-2", nil, k8s.GetK8sNamespace()))
 
 	fwd, err = k8s.NewPortForwarder(nsmgr2, 5000)

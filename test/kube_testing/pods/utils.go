@@ -6,6 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+var ZeroGraceTimeout int64 = 0
+
 func createProbe(path string) *v1.Probe {
 	return &v1.Probe{
 		Handler: v1.Handler{

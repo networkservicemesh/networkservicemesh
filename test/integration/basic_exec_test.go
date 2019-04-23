@@ -33,5 +33,6 @@ func TestExec(t *testing.T) {
 	Expect(errResponse).To(Equal(""))
 	logrus.Printf("NSC IP status:%s", ipResponse)
 	logrus.Printf("End of test")
+	k8s.DeletePods(alpinePod)
 
 }
