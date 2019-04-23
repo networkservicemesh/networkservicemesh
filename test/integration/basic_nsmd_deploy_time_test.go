@@ -29,8 +29,12 @@ func TestNSMDDeploy(t *testing.T) {
 
 	k8s.PrepareDefault()
 	st := time.Now()
-	nodes := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
-	k8s.DeletePods(nodes[0].Dataplane)
+	_ = nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+	deploy := time.Now()
 	k8s.Cleanup()
-	logrus.Infof("Deploy/Shutdown time: %v", time.Since(st))
+	destroy := time.Now()
+	logrus.Infof("Pods Start time: %v", deploy.Sub(st))
+	Expect(deploy.Sub(st) < time.Second * 15).To(Equal(true))
+	logrus.Infof("Pods Cleanup time: %v", destroy.Sub(deploy))
+	Expect(destroy.Sub(deploy) < time.Second * 25).To(Equal(true))
 }
