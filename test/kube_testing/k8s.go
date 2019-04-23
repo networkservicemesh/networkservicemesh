@@ -426,6 +426,7 @@ func (l *K8s) Cleanup() {
 
 func (l *K8s) PrepareDefault() {
 	l.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
+	l.CleanupCRDs()
 }
 
 func (l *K8s) Prepare(noPods ...string) {

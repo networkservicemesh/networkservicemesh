@@ -52,7 +52,7 @@ func (m *ClientConnectionManager) UpdateClientConnectionDataplaneStateDown(clien
 	}
 }
 
-func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConnection *model.ClientConnection) {
+func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConnection *model.ClientConnection, nsmdDie bool) {
 	logrus.Info("ClientConnection dst state is down")
 	if clientConnection.Xcon.GetLocalDestination() != nil {
 		clientConnection.Xcon.GetLocalDestination().State = connection.State_DOWN
@@ -60,7 +60,11 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConne
 		clientConnection.Xcon.GetRemoteDestination().State = remote_connection.State_DOWN
 	}
 	m.model.UpdateClientConnection(clientConnection)
-	m.manager.Heal(clientConnection, nsm.HealState_DstDown)
+	if nsmdDie {
+		m.manager.Heal(clientConnection, nsm.HealState_DstNmgrDown)
+	} else {
+		m.manager.Heal(clientConnection, nsm.HealState_DstDown)
+	}
 }
 func (m *ClientConnectionManager) UpdateClientConnectionDstUpdated(clientConnection *model.ClientConnection, remoteConnection *remote_connection.Connection) {
 	if clientConnection.ConnectionState != model.ClientConnection_Ready {

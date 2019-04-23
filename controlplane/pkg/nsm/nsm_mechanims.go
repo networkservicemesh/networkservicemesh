@@ -64,7 +64,7 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestId string, reques
 			remoteSrc := mechanism.Parameters[remote_connection.VXLANSrcIP]
 			mechanism.Parameters[remote_connection.VXLANSrcIP] = remoteSrc
 			mechanism.Parameters[remote_connection.VXLANDstIP] = dp_mechanism.Parameters[remote_connection.VXLANSrcIP]
-			mechanism.Parameters[remote_connection.VXLANVNI] = strconv.FormatUint(srv.serviceRegistry.VniAllocator().Vni(dp_mechanism.Parameters[remote_connection.VXLANSrcIP], remoteSrc), 10)
+			mechanism.Parameters[remote_connection.VXLANVNI] = strconv.FormatUint(uint64(srv.serviceRegistry.VniAllocator().Vni(dp_mechanism.Parameters[remote_connection.VXLANSrcIP], remoteSrc)), 10)
 		}
 		logrus.Infof("NSM:(4.1-%v) Remote mechanism selected %v", requestId, mechanism)
 		return mechanism, nil

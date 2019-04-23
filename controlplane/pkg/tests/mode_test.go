@@ -215,3 +215,15 @@ func TestModelListenExistingEndpoint(t *testing.T) {
 
 	mdl.RemoveListener(listener)
 }
+
+func TestModelRestoreIds(t *testing.T) {
+	RegisterTestingT(t)
+
+	mdl := newModel()
+	Expect(mdl.ConnectionId()).To(Equal("1"))
+	Expect(mdl.ConnectionId()).To(Equal("2"))
+	mdl2 := newModel()
+	mdl2.CorrectIdGenerator(mdl.ConnectionId())
+	Expect(mdl2.ConnectionId()).To(Equal("4"))
+
+}

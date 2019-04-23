@@ -1,9 +1,10 @@
-// +build recover,!azure
+// +build recover
 
 package nsmd_integration_tests
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"testing"
 	"time"
 
@@ -19,11 +20,6 @@ import (
 
 func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	RegisterTestingT(t)
-
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("Skipped for a while, will be enabled soon")
-		return
-	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -43,17 +39,19 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables: map[string]string{
-				nsm.NsmdHealDSTWaitTimeout: "60", // 60 second delay, since we know on CI it could not fit into delay.
+				nsm.NsmdHealDSTWaitTimeout: "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
+				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
 			Namespace: k8s.GetK8sNamespace(),
 		},
 		{
 			Namespace: k8s.GetK8sNamespace(),
+			Variables: pods.DefaultNSMD,
 		},
 	}, k8s.GetK8sNamespace())
 
 	// Run ICMP on latest node
-	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmpPod := nsmd_test_utils.DeployICMPWithConfig(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout, 30)
 
 	nscPodNode := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	var nscInfo *nsmd_test_utils.NSCCheckInfo
@@ -63,18 +61,20 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	// Do dumping of container state to dig into what is happened.
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
-	logrus.Infof("Delete Remote NSMD")
+	logrus.Infof("Delete Remote NSMD/ICMP responder NSE")
 	k8s.DeletePods(nodes_setup[1].Nsmd)
 	k8s.DeletePods(icmpPod)
+	//k8s.DeletePods(nodes_setup[1].Nsmd, icmpPod)
 	logrus.Infof("Waiting for NSE with network service")
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder. Since elapsed:", 60*time.Second)
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", 60*time.Second)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
-	time.Sleep(10 * time.Second)
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
 	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
+	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
+	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmdp", "ListAndWatch was called with", defaultTimeout)
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
@@ -126,7 +126,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	k8s.DeletePods(nodes_setup[1].Nsmd)
 
 	logrus.Infof("Waiting for NSE with network service")
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder. Since elapsed:", defaultTimeout)
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", defaultTimeout)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 

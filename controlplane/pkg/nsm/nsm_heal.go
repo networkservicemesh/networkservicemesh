@@ -37,6 +37,25 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 
 	clientConnection.ConnectionState = model.ClientConnection_Healing
 
+	// We need to check if Remove NSM is alive, and if not alive we should have a bit different wait logic here.
+	if healState == nsm.HealState_DstDown {
+		logrus.Infof("NSM_Heal(1.1.1-%v) Checking if DST die is NSMD/DST die...", healId)
+		// Check if this is a really HealState_DstDown or HealState_DstNmgrDown
+		if !srv.isLocalEndpoint(clientConnection.Endpoint) {
+			ctx, cancel := context.WithTimeout(context.Background(), srv.properties.HealTimeout*3)
+			defer cancel()
+			remoteNsmClient, err := srv.createNSEClient(ctx, clientConnection.Endpoint)
+			if remoteNsmClient != nil {
+				_ = remoteNsmClient.Cleanup()
+			}
+			if err != nil {
+				// This is NSMD die case.
+				healState = nsm.HealState_DstNmgrDown
+			}
+		}
+		logrus.Infof("NSM_Heal(1.1.2-%v) Connection healing state is %v...", healId, healState)
+	}
+
 	// 2 Choose heal style
 	switch healState {
 	case nsm.HealState_DstDown:
@@ -52,22 +71,17 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 			logrus.Infof("NSM_Heal(2.2-%v) Starting DST Heal...", healId)
 			// We are client NSMd, we need to try recover our connection srv.
 
-			if srv.isLocalEndpoint(clientConnection.Endpoint) {
-				// if NSE is DIE, on recovery it would be different NSE with different ID, so lets's just wait for any NSE with required name available
-				// And filter same NSE as we had, since information about it could be outdated.
-				srv.waitAnyNSE(clientConnection)
-			} else {
-				// Remote NSE let's wait for remote NSM providing NSE with our endpoint id is available via registry.
-				// Get endpoints, do it every time since we do not know if list are changed or not.
-				if !srv.waitRemoteNSE(ctx, clientConnection) {
-					// Not remote NSE found, we need to update connection
-					if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil {
-						dst.SetId("-") // We need to mark this as new connection.
-					}
-					if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
-						dst.SetId("-") // We need to mark this as new connection.
-					}
+			// Wait for NSE not equal to down one, since we know it will be re-registered with new EndpointName.
+			if !srv.waitNSE(ctx, clientConnection, clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName, clientConnection.GetNetworkService()) {
+				// Not remote NSE found, we need to update connection
+				if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil {
+					dst.SetId("-") // We need to mark this as new connection.
 				}
+				if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
+					dst.SetId("-") // We need to mark this as new connection.
+				}
+				// We need to remove selected endpoint here.
+				clientConnection.Endpoint = nil
 			}
 			// Fallback to heal with choose of new NSE.
 			requestCtx, requestCancel := context.WithTimeout(context.Background(), srv.properties.HealRequestTimeout)
@@ -86,7 +100,6 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 				return
 			}
 		}
-
 		// Let's Close remote connection and re-create new one.
 	case nsm.HealState_DataplaneDown:
 		ctx, cancel := context.WithTimeout(context.Background(), srv.properties.HealTimeout)
@@ -131,6 +144,59 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 			srv.requestOrClose(fmt.Sprintf("NSM_Heal(5.2-%v) ", healId), ctx, request, clientConnection)
 			return
 		}
+	case nsm.HealState_DstNmgrDown:
+		logrus.Infof("NSM_Heal(6.1-%v) Starting DST + NSMGR Heal...", healId)
+
+		ctx, cancel := context.WithTimeout(context.Background(), srv.properties.HealTimeout*3)
+		defer cancel()
+
+		var initialEndpoint = clientConnection.Endpoint
+		networkServiceName := clientConnection.GetNetworkService()
+		// Wait for exact same NSE to be available with NSMD connection alive.
+		if clientConnection.Endpoint != nil && !srv.waitSpecificNSE(ctx, clientConnection) {
+			// Not remote NSE found, we need to update connection
+			if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil {
+				dst.SetId("-") // We need to mark this as new connection.
+			}
+			if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
+				dst.SetId("-") // We need to mark this as new connection.
+			}
+			clientConnection.Endpoint = nil
+		}
+		requestCtx, requestCancel := context.WithTimeout(context.Background(), srv.properties.HealRequestTimeout)
+		defer requestCancel()
+		recoveredConnection, err := srv.request(requestCtx, clientConnection.Request, clientConnection)
+		if err != nil {
+			logrus.Errorf("NSM_Heal(6.2.1-%v) Failed to heal connection with same NSE from registry: %v", healId, err)
+			if initialEndpoint != nil {
+				logrus.Infof("NSM_Heal(6.2.2-%v) Waiting for another NSEs...", healId)
+				// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
+				if srv.waitNSE(ctx, clientConnection, initialEndpoint.NetworkserviceEndpoint.EndpointName, networkServiceName) {
+					// Ok we have NSE, lets retry request
+					requestCtx, requestCancel := context.WithTimeout(context.Background(), srv.properties.HealRequestTimeout)
+					defer requestCancel()
+					recoveredConnection, err = srv.request(requestCtx, clientConnection.Request, clientConnection)
+					if err != nil {
+						if err != nil {
+							logrus.Errorf("NSM_Heal(6.2.3-%v) Error in Recovery Close: %v", healId, err)
+						}
+					} else {
+						logrus.Infof("NSM_Heal(6.3-%v) Heal: Connection recovered: %v", healId, recoveredConnection)
+						return
+					}
+				}
+			}
+
+			logrus.Errorf("NSM_Heal(6.4.1-%v) Failed to heal connection: %v", healId, err)
+			// We need to delete connection, since we are not able to Heal it
+			srv.model.DeleteClientConnection(clientConnection.ConnectionId)
+			if err != nil {
+				logrus.Errorf("NSM_Heal(6.4.2-%v) Error in Recovery Close: %v", healId, err)
+			}
+		} else {
+			logrus.Infof("NSM_Heal(6.5-%v) Heal: Connection recovered: %v", healId, recoveredConnection)
+			return
+		}
 	}
 
 	// Close both connection and dataplane
@@ -153,27 +219,55 @@ func (srv *networkServiceManager) requestOrClose(logPrefix string, ctx context.C
 		logrus.Infof("%v Heal: Connection recovered: %v", logPrefix, connection)
 	}
 }
-func (srv *networkServiceManager) waitAnyNSE(clientConnection *model.ClientConnection) {
+
+
+func (srv *networkServiceManager) waitSpecificNSE(ctx context.Context, clientConnection *model.ClientConnection) bool {
+	discoveryClient, err := srv.serviceRegistry.DiscoveryClient()
+	if err != nil {
+		logrus.Errorf("Failed to connect to Registry... %v", err)
+		// Still try to recovery
+		return false
+	}
+
 	st := time.Now()
+
+	networkService := clientConnection.Endpoint.NetworkService.Name
+	nseRequest := &registry.FindNetworkServiceRequest{
+		NetworkServiceName: networkService,
+	}
+
+	defer func() {
+		logrus.Infof("Complete Waiting for Remote NSE/NSMD with network service %s. Since elapsed: %v", networkService, time.Since(st))
+	}()
+
 	for {
-		logrus.Infof("NSM: LocalNSE: Waiting for NSE with network service %s. Since elapsed: %v", clientConnection.Endpoint.NetworkService.Name, time.Since(st))
-		ignored := map[string]*registry.NSERegistration{}
-		nsmConnection := srv.newConnection(clientConnection.Request)
-		ep, err := srv.getEndpoint(context.Background(), nsmConnection, ignored)
-		if err == nil && ep != nil {
-			// We could call requires since we have some Endpoint to check with.
-			break
+		logrus.Infof("NSM: RemoteNSE: Waiting for NSE with network service %s NSE %v. Since elapsed: %v", networkService, clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName, time.Since(st))
+
+		endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
+		if err == nil {
+			for _, ep := range endpointResponse.NetworkServiceEndpoints {
+				if ep.EndpointName == clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName {
+					// Out endpoint, we need to check if it is remote one and NSM is accessible.
+					// Check remote is accessible.
+					if srv.checkUpdateNSE(ctx, clientConnection, ep, endpointResponse) {
+						logrus.Infof("NSE is available and Remote NSMD is accessible. %s. Since elapsed: %v", clientConnection.Endpoint.NetworkServiceManager.Url, time.Since(st))
+						// We are able to connect to NSM with required NSE
+						return true
+					}
+				}
+			}
 		}
+
 		if time.Since(st) > srv.properties.HealDSTNSEWaitTimeout {
-			logrus.Errorf("")
-			break
+			logrus.Errorf("Timeout waiting for NetworkService: %v and NSE: %v", networkService, clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName)
+			return false
 		}
 		// Wait a bit
 		<-time.Tick(srv.properties.HealDSTNSEWaitTick)
 	}
 }
 
-func (srv *networkServiceManager) waitRemoteNSE(ctx context.Context, clientConnection *model.ClientConnection) bool {
+func (srv *networkServiceManager) waitNSE(ctx context.Context, clientConnection *model.ClientConnection, ignoreEndpoint string, networkService string) bool {
 	discoveryClient, err := srv.serviceRegistry.DiscoveryClient()
 	if err != nil {
 		logrus.Errorf("Failed to connect to Registry... %v", err)
@@ -184,45 +278,46 @@ func (srv *networkServiceManager) waitRemoteNSE(ctx context.Context, clientConne
 	st := time.Now()
 
 	nseRequest := &registry.FindNetworkServiceRequest{
-		NetworkServiceName: clientConnection.GetNetworkService(),
+		NetworkServiceName: networkService,
 	}
 
 	defer func() {
-		logrus.Infof("Complete Waiting for Remote NSE/NSMD with network service %s. Since elapsed: %v", clientConnection.Endpoint.NetworkService.Name, time.Since(st))
+		logrus.Infof("Complete Waiting for Remote NSE/NSMD with network service %s. Since elapsed: %v", networkService, time.Since(st))
 	}()
 
 	for {
-		logrus.Infof("NSM: RemoteNSE:  Waiting for NSE with network service %s. Since elapsed: %v", clientConnection.Endpoint.NetworkService.Name, time.Since(st))
+		logrus.Infof("NSM: RemoteNSE: Waiting for NSE with network service %s. Since elapsed: %v", networkService, time.Since(st))
 
 		endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 		if err == nil {
 			for _, ep := range endpointResponse.NetworkServiceEndpoints {
-				if ep.EndpointName == clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName {
-					// Out endpoint, we need to check if it is remote one and NSM is accessible.
-					pingCtx, pingCancel := context.WithTimeout(ctx, srv.properties.HealRequestConnectTimeout)
-					defer pingCancel()
+				if ignoreEndpoint != "" && ep.EndpointName == ignoreEndpoint {
+					// Skip ignored endpoint
+					continue
+				}
+
+				// Check local only if not waiting for specific NSE.
+				if srv.getNetworkServiceManagerName() == ep.GetNetworkServiceManagerName() {
+					// Another local endpoint is found, success.
 					reg := &registry.NSERegistration{
 						NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[ep.GetNetworkServiceManagerName()],
 						NetworkserviceEndpoint: ep,
 						NetworkService:         endpointResponse.GetNetworkService(),
 					}
-
-					client, err := srv.createNSEClient(pingCtx, reg)
-					if err == nil && client != nil {
-						_ = client.Cleanup()
-
-						// Update endpoint to connect new one.
-						clientConnection.Endpoint = reg
-						logrus.Infof("NSE is available and Remote NSMD is accessible. %s. Since elapsed: %v", clientConnection.Endpoint.NetworkServiceManager.Url, time.Since(st))
-						// We are able to connect to NSM with required NSE
-						return true
-					}
+					clientConnection.Endpoint = reg
+					return true
+				}
+				// Check remote is accessible.
+				if srv.checkUpdateNSE(ctx, clientConnection, ep, endpointResponse) {
+					logrus.Infof("NSE is available and Remote NSMD is accessible. %s. Since elapsed: %v", clientConnection.Endpoint.NetworkServiceManager.Url, time.Since(st))
+					// We are able to connect to NSM with required NSE
+					return true
 				}
 			}
 		}
 
 		if time.Since(st) > srv.properties.HealDSTNSEWaitTimeout {
-			logrus.Errorf("Timeout waiting for NSE: %v", clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName)
+			logrus.Errorf("Timeout waiting for NetworkService: %v", networkService)
 			return false
 		}
 		// Wait a bit
