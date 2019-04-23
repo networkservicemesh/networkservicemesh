@@ -31,6 +31,7 @@ func NewK8sClusterInfoService(config *rest.Config) (registry.ClusterInfoServer, 
 }
 
 func (k *k8sClusterInfo) GetClusterConfiguration(ctx context.Context, in *empty.Empty) (*registry.ClusterConfiguration, error) {
+	logrus.Info("ClusterConfiguration request")
 	kubeadmConfig, err := k.clientset.CoreV1().
 		ConfigMaps("kube-system").
 		Get("kubeadm-config", metav1.GetOptions{})

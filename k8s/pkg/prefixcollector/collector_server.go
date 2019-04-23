@@ -66,8 +66,8 @@ func WatchPodCIDR(clientset *kubernetes.Clientset) (*SubnetWatcher, error) {
 	return watchSubnet(nodeWatcher, keyFunc, subnetFunc)
 }
 
-func WatchServiceIpAddr(clientset *kubernetes.Clientset) (*SubnetWatcher, error) {
-	serviceWatcher, err := clientset.CoreV1().Services("default").Watch(metav1.ListOptions{})
+func WatchServiceIpAddr(cs *kubernetes.Clientset) (*SubnetWatcher, error) {
+	serviceWatcher, err := newServiceWatcher(cs)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -99,6 +99,66 @@ func WatchServiceIpAddr(clientset *kubernetes.Clientset) (*SubnetWatcher, error)
 	}
 
 	return watchSubnet(serviceWatcher, keyFunc, subnetFunc)
+}
+
+type serviceWatcher struct {
+	resultCh chan watch.Event
+	stopCh   chan struct{}
+}
+
+func (s *serviceWatcher) Stop() {
+	close(s.stopCh)
+}
+
+func (s *serviceWatcher) ResultChan() <-chan watch.Event {
+	return s.resultCh
+}
+
+func newServiceWatcher(cs *kubernetes.Clientset) (watch.Interface, error) {
+	ns, err := getNamespaces(cs)
+	if err != nil {
+		return nil, err
+	}
+	resultCh := make(chan watch.Event, 10)
+	stopCh := make(chan struct{})
+
+	for _, n := range ns {
+		w, err := cs.CoreV1().Services(n).Watch(metav1.ListOptions{})
+		if err != nil {
+			logrus.Errorf("Unable to watch services in %v namespace: %v", n, err)
+			close(stopCh)
+			return nil, err
+		}
+
+		go func() {
+			for {
+				select {
+				case <-stopCh:
+					return
+				case e := <-w.ResultChan():
+					resultCh <- e
+				}
+			}
+		}()
+	}
+
+	return &serviceWatcher{
+		resultCh: resultCh,
+		stopCh:   stopCh,
+	}, nil
+}
+
+func getNamespaces(cs *kubernetes.Clientset) ([]string, error) {
+	ns, err := cs.CoreV1().Namespaces().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	rv := []string{}
+	for _, n := range ns.Items {
+		rv = append(rv, n.Name)
+	}
+	return rv, nil
 }
 
 func watchSubnet(resourceWatcher watch.Interface, keyFunc keyFunc, subnetFunc subnetFunc) (*SubnetWatcher, error) {

@@ -116,7 +116,7 @@ func CreateRoleAdmin(name string, namespace string) Role {
 				},
 				{
 					APIGroups: []string{""},
-					Resources: []string{"nodes", "services"},
+					Resources: []string{"nodes", "services", "namespaces"},
 					Verbs:     []string{"get", "list", "watch"},
 				},
 			},

@@ -73,6 +73,7 @@ const (
 )
 
 func monitorReservedSubnets(s serviceregistry.ServiceRegistry, additionalPrefixes ...string) <-chan prefix_pool.PrefixPool {
+	logrus.Infof("Start monitoring prefixes to exclude")
 	poolCh := make(chan prefix_pool.PrefixPool, poolChannelSize)
 
 	go func() {
