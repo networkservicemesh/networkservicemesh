@@ -296,9 +296,9 @@ jobs:
           when: always
           name: Dump K8s state
           command: |
-            kubectl get nodes
-            kubectl get pods -o wide
-            kubectl describe pods
+            kubectl -n $NSM_NAMESPACE get nodes
+            kubectl -n $NSM_NAMESPACE get pods -o wide
+            kubectl -n $NSM_NAMESPACE describe pods
       - run:
           when: on_fail
           command: |
