@@ -73,6 +73,8 @@ ifeq ($(CONTAINER_REPO),)
 CONTAINER_REPO=networkservicemesh
 endif
 
+kubectl = kubectl -n ${NSM_NAMESPACE}
+
 export ORG=$(CONTAINER_REPO)
 
 .PHONY: k8s-deploy
@@ -95,31 +97,31 @@ k8s-deployonly: $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
 
 .PHONY: k8s-jaeger-deploy
 k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
-	@until ! $$(kubectl get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | kubectl apply -f -
+	@until ! $$($(kubectl) get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | $(kubectl) apply -f -
 
 .PHONY: k8s-admission-webhook-deploy
 k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete k8s-admission-webhook-load-images k8s-admission-webhook-create-cert
-	@until ! $$(kubectl get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml | kubectl apply -f -
+	@until ! $$($(kubectl) get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml | $(kubectl) apply -f -
 	@echo "Installing webhook..."
-	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl apply -f -
+	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) apply -f -
 
 .PHONY: k8s-vpn-gateway-nse-deploy
 k8s-vpn-gateway-nse-deploy: k8s-start k8s-config k8s-%-delete k8s-%-load-images
-	@until ! $$(kubectl get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/icmp-responder-nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | kubectl apply -f -
+	@until ! $$($(kubectl) get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/icmp-responder-nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
-	@until ! $$(kubectl get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
+	@until ! $$($(kubectl) get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
 
 .PHONY: k8s-%-deployonly
 k8s-%-deployonly:
-	@until ! $$(kubectl get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
+	@until ! $$($(kubectl) get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
 .PHONY: k8s-delete
 k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
@@ -136,16 +138,16 @@ k8s-vpn-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_VPN)))
 .PHONY: k8s-admission-webhook-delete
 k8s-admission-webhook-delete:
 	@echo "Uninstalling webhook..."
-	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | kubectl delete -f - > /dev/null 2>&1 || echo "admission-webhook-cfg does not exist and thus cannot be deleted"
+	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) delete -f - > /dev/null 2>&1 || echo "admission-webhook-cfg does not exist and thus cannot be deleted"
 	@echo "Deleting ${K8S_CONF_DIR}/admission-webhook.yaml"
-	@kubectl delete -f ${K8S_CONF_DIR}/admission-webhook.yaml > /dev/null 2>&1 || echo "admission-webhook does not exist and thus cannot be deleted"
+	@$(kubectl) delete -f ${K8S_CONF_DIR}/admission-webhook.yaml > /dev/null 2>&1 || echo "admission-webhook does not exist and thus cannot be deleted"
 	@echo "Deleting nsm-admission-webhook-certs secret..."
-	@kubectl delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
+	@$(kubectl) delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
 
 .PHONY: k8s-%-delete
 k8s-%-delete:
 	@echo "Deleting ${K8S_CONF_DIR}/$*.yaml"
-	@kubectl delete -f ${K8S_CONF_DIR}/$*.yaml > /dev/null 2>&1 || echo "$* does not exist and thus cannot be deleted"
+	@$(kubectl) delete -f ${K8S_CONF_DIR}/$*.yaml > /dev/null 2>&1 || echo "$* does not exist and thus cannot be deleted"
 
 .PHONY: k8s-load-images
 k8s-load-images: $(addsuffix -load-images,$(addprefix k8s-,$(DEPLOYS)))
@@ -156,7 +158,7 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 
 .PHONY: k8s-%-config
 k8s-%-config:  k8s-start
-	@kubectl apply -f ${K8S_CONF_DIR}/$*.yaml
+	@$(kubectl) apply -f ${K8S_CONF_DIR}/$*.yaml
 
 .PHONY: k8s-config
 k8s-config: $(addsuffix -config,$(addprefix k8s-,$(CLUSTER_CONFIGS)))
@@ -187,7 +189,7 @@ k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)
 
 .PHONY: k8s-%-save-deploy
 k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
-	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | kubectl apply -f -
+	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
 NSMGR_CONTAINERS = nsmd nsmdp nsmd-k8s
 .PHONY: k8s-nsmgr-build
@@ -302,7 +304,7 @@ k8s-admission-webhook-create-cert:
 .PHONY: k8s-admission-webhook-delete-cert
 k8s-admission-webhook-delete-cert:
 	@echo "Deleting nsm-admission-webhook-certs secret..."
-	@kubectl delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
+	@$(kubectl) delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
 
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
@@ -339,21 +341,21 @@ k8s-logs: $(addsuffix -logs,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-%logs
 k8s-%-logs:
 	@echo "K8s logs for $*"
-	@for pod in $$(kubectl get pods --all-namespaces | grep $* | awk '{print $$2}');do \
+	@for pod in $$($(kubectl) get pods --all-namespaces | grep $* | awk '{print $$2}');do \
 		echo '******************************************'; \
 		echo "Logs: $${pod}:"; \
-		kubectl logs $${pod} || true; \
-		kubectl logs -p $${pod} || true; \
+		$(kubectl) logs $${pod} || true; \
+		$(kubectl) logs -p $${pod} || true; \
 		echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
 		echo "Network information for $${pod}"; \
-		kubectl exec -ti $${pod} ip addr; \
-		kubectl exec -ti $${pod} ip neigh; \
+		$(kubectl) exec -ti $${pod} ip addr; \
+		$(kubectl) exec -ti $${pod} ip neigh; \
 		if [[ "$${pod}" == *"vppagent"* ]]; then \
 			echo "vpp information for $${pod}"; \
-			kubectl exec -it $${pod} vppctl show int; \
-			kubectl exec -it $${pod} vppctl show int addr; \
-			kubectl exec -it $${pod} vppctl show vxlan tunnel; \
-			kubectl exec -it $${pod} vppctl show memif; \
+			$(kubectl) exec -it $${pod} vppctl show int; \
+			$(kubectl) exec -it $${pod} vppctl show int addr; \
+			$(kubectl) exec -it $${pod} vppctl show vxlan tunnel; \
+			$(kubectl) exec -it $${pod} vppctl show memif; \
 		fi; \
 	done
 
@@ -361,55 +363,55 @@ k8s-%-logs:
 k8s-nsmgr-logs:
 	@echo "K8s logs for nsmds"
 	@echo '******************************************'
-	@for pod in $$(kubectl get pods --all-namespaces | grep nsmgr | awk '{print $$2}'); do \
+	@for pod in $$($(kubectl) get pods --all-namespaces | grep nsmgr | awk '{print $$2}'); do \
 		for container in nsmd nsmdp nsmd-k8s; do \
 			echo '------------------------------------------'; \
 			echo "K8s logs for $${pod} container $${container}"; \
-			kubectl logs $${pod} --container $${container} || true; \
-			kubectl logs -p $${pod} --container $${container} || true ;\
+			$(kubectl) logs $${pod} --container $${container} || true; \
+			$(kubectl) logs -p $${pod} --container $${container} || true ;\
 			echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'; \
 			echo 'NSMD Network information'; \
-			kubectl exec -ti $${pod} --container $${container} ip addr; \
+			$(kubectl) exec -ti $${pod} --container $${container} ip addr; \
 		done \
 	done
 
 .PHONY: k8s-%-debug
 k8s-%-debug:
 	@echo "Debugging $*"
-	@kubectl exec -ti $$(kubectl get pods | grep $*- | cut -d \  -f1) /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh $*
+	@$(kubectl) exec -ti $$($(kubectl) get pods | grep $*- | cut -d \  -f1) /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh $*
 
 .PHONY: k8s-nsmgr-debug
 k8s-nsmgr-debug:
-	@kubectl exec -ti $(pod) -c nsmd /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh nsmd
+	@$(kubectl) exec -ti $(pod) -c nsmd /go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug.sh nsmd
 
 .PHONY: k8s-forward
 k8s-forward:
 	@echo "Forwarding local $(port1) to $(port2) for $(pod)"
-	@kubectl port-forward $$(kubectl get pods | grep $(pod) | cut -d \  -f1) $(port1):$(port2)
+	@$(kubectl) port-forward $$($(kubectl) get pods | grep $(pod) | cut -d \  -f1) $(port1):$(port2)
 
 .PHONY: k8s-check
 k8s-check:
-	./scripts/nsc_ping_all.sh
-	./scripts/verify_vpn_gateway.sh
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/nsc_ping_all.sh
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_vpn_gateway.sh
 
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
-	@kubectl get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs kubectl delete pods --force --grace-period 0 {}
+	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs $(kubectl) delete pods --force --grace-period 0 {}
 
 .PHONE: k8s-kublet-restart
 k8s-kublet-restart: vagrant-kublet-restart
 
 .PHONE: k8s-pods
 k8s-pods:
-	@kubectl get pods -o wide
+	@$(kubectl) get pods -o wide
 
 .PHONY: k8s-nsmgr-master-tlogs
 k8s-nsmgr-master-tlogs:
-	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-master | grep nsmgr | cut -d\  -f1) -c nsmd
+	@$(kubectl) logs -f $$($(kubectl) get pods -o wide | grep kube-master | grep nsmgr | cut -d\  -f1) -c nsmd
 
 .PHONY: k8s-nsmgr-worker-tlogs
 k8s-nsmgr-worker-tlogs:
-	@kubectl logs -f $$(kubectl get pods -o wide | grep kube-worker | grep nsmgr | cut -d\  -f1) -c nsmd
+	@$(kubectl) logs -f $$($(kubectl) get pods -o wide | grep kube-worker | grep nsmgr | cut -d\  -f1) -c nsmd
 
 
 
