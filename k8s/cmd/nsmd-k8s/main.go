@@ -3,31 +3,23 @@ package main
 import (
 	"flag"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"net"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"syscall"
-
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func main() {
 	// Capture signals to cleanup before exiting
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
+	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsmd-k8s")
 	opentracing.SetGlobalTracer(tracer)

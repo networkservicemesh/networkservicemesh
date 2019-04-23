@@ -16,16 +16,16 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
@@ -51,12 +51,5 @@ func main() {
 	nsmEndpoint.Start()
 	defer nsmEndpoint.Delete()
 
-	// Capture signals to cleanup before exiting
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
 	<-c
 }
