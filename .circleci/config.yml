@@ -523,48 +523,52 @@ workflows:
           cluster_id: "1"
           name: "gke-cluster1"
           requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
+            - sanity-check
       - gke-create-cluster:
           cluster_id: "2"
           name: "gke-cluster2"
           requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
+            - sanity-check
       - integration-tests:
           name: "gke-test-basic-usecase"
           cloud_provider: "gke"
           cluster_id: "1"
           test_tags: "basic usecase gke"
           requires:
+            - sanity-check
             - "gke-cluster1"
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-admission-webhook
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-dataplane
+            - build-vppagent-dataplane-dev
+            - build-vppagent-firewall-nse
       - integration-tests:
           name: "gke-test-recover"
           cloud_provider: "gke"
           cluster_id: "2"
           test_tags: "recover gke"
           requires:
+            - sanity-check
             - "gke-cluster2"
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-admission-webhook
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-dataplane
+            - build-vppagent-dataplane-dev
+            - build-vppagent-firewall-nse
       - gke-destroy-cluster:
           name: "gke-destroy-cluster1"
           cluster_id: "1"
