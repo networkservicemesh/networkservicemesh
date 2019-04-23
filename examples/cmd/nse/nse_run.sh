@@ -1,7 +1,7 @@
 #!/bin/sh
 
 kill_nse() {
-    kill -s $1 "${NSE}"
+    kill -s "$1" "${NSE}"
 }
 
 sighup () {
@@ -20,12 +20,12 @@ sigquit () {
     kill_nse "QUIT"
 }
 
-trap sighup SIGHUP
-trap sigint SIGINT
-trap sigterm SIGTERM
-trap sigquit SIGQUIT
+trap sighup HUP
+trap sigint INT
+trap sigterm TERM
+trap sigquit QUIT
 
-echo Starting NSE: ${NSE_IMAGE}
+echo Starting NSE: "${NSE_IMAGE}"
 "/bin/${NSE_IMAGE}" &
 
 NSE=$!
