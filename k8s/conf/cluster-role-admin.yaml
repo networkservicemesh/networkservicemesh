@@ -19,3 +19,6 @@ rules:
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["nodes", "services"]
+    verbs: ["get", "list", "watch"]

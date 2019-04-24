@@ -553,6 +553,7 @@ func toIP(ipInt *big.Int, bits int) net.IP {
 	}
 	return net.IP(ret)
 }
+
 func fromIP(ip net.IP) (*big.Int, int) {
 	val := &big.Int{}
 	val.SetBytes([]byte(ip))
@@ -561,6 +562,43 @@ func fromIP(ip net.IP) (*big.Int, int) {
 		return val, 32
 	} // else if i == net.IPv6len
 	return val, 128
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func MaxCommonPrefixSubnet(s1, s2 *net.IPNet) *net.IPNet {
+	rawIp1, n1 := fromIP(s1.IP)
+	rawIp2, _ := fromIP(s2.IP)
+
+	xored := &big.Int{}
+	xored.Xor(rawIp1, rawIp2)
+	maskSize := leadingZeros(xored, n1)
+
+	m1, bits := s1.Mask.Size()
+	m2, _ := s2.Mask.Size()
+
+	mask := net.CIDRMask(min(min(m1, m2), maskSize), bits)
+	return &net.IPNet{
+		IP:   s1.IP.Mask(mask),
+		Mask: mask,
+	}
+}
+
+func IpToNet(ipAddr net.IP) *net.IPNet {
+	mask := net.CIDRMask(len(ipAddr)*8, len(ipAddr)*8)
+	return &net.IPNet{IP: ipAddr, Mask: mask}
+}
+
+func leadingZeros(n *big.Int, size int) int {
+	i := size - 1
+	for ; n.Bit(i) == 0 && i > 0; i-- {
+	}
+	return size - 1 - i
 }
 
 /**

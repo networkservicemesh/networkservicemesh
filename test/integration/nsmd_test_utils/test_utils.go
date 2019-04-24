@@ -549,3 +549,16 @@ func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeCo
 		t.Fail()
 	}
 }
+
+func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
+	if r := recover(); r != nil {
+		PrintLogs(k8s, nodes_setup)
+		panic(r)
+	}
+
+	if t.Failed() {
+		PrintLogs(k8s, nodes_setup)
+	}
+
+	return
+}

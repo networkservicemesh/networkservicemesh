@@ -16,8 +16,6 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -32,6 +30,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"sync"
+	"time"
 )
 
 const (
@@ -42,24 +42,49 @@ const (
 
 // Network service manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
+	sync.RWMutex
 	serviceRegistry  serviceregistry.ServiceRegistry
 	model            model.Model
 	excludedPrefixes prefix_pool.PrefixPool
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
+	errCh            chan error
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 	return srv.properties
 }
 
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, excludedPrefixes prefix_pool.PrefixPool) nsm.NetworkServiceManager {
-	return &networkServiceManager{
-		serviceRegistry:  serviceRegistry,
-		model:            model,
-		excludedPrefixes: excludedPrefixes,
-		properties:       nsm.NewNsmProperties(),
-		stateRestored:    make(chan bool, 1),
+func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
+	srv := &networkServiceManager{
+		serviceRegistry: serviceRegistry,
+		model:           model,
+		properties:      nsm.NewNsmProperties(),
+		stateRestored:   make(chan bool, 1),
+		errCh:           make(chan error, 1),
+	}
+
+	go srv.monitorExcludePrefixes()
+	return srv
+}
+
+func (srv *networkServiceManager) monitorExcludePrefixes() {
+	poolCh, err := GetExcludedPrefixes(srv.serviceRegistry)
+	if err != nil {
+		srv.errCh <- err
+		return
+	}
+
+	for {
+		pool, ok := <-poolCh
+		if !ok {
+			srv.errCh <- fmt.Errorf("nsmd-k8s is not responding, exclude prefixes won't be updating")
+			return
+		}
+
+		srv.Lock()
+		srv.excludedPrefixes = pool
+		srv.Unlock()
 	}
 }
 
@@ -522,6 +547,9 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 	return dpApiConnection
 }
 func (srv *networkServiceManager) validateNSEConnection(requestId string, nseConnection nsm.NSMConnection) error {
+	srv.RLock()
+	defer srv.RUnlock()
+
 	errorFormatter := func(err error) error {
 		return fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
 	}
