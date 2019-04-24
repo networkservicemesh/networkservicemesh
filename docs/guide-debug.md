@@ -84,7 +84,7 @@ Another examples are:
 
 * `make docker-debug-nsmd` - debug *controlplane/cmd/nsmd*
 * `make docker-debug-nsc` - debug *examples/cmd/nsc*
-* `make docker-debug-icmp-responder-nse` - debug *examples/cmd/icmp-responder-nse*
+* `make docker-debug-icmp-responder-nse` - debug *examples/cmd/nse/icmp-responder-nse*
 
 ### Stopping a debug container
 

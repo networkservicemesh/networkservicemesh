@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ] ; then
     echo ""
-    echo "Please use ./scripts/debug.sh and one of application names nsmd/nsc/vppagent/icmp-responder-nse"
+    echo "Please use ./scripts/debug.sh and one of application names nsmd/nsc/vppagent/icmp-responder-nse/dirty-nse"
     echo ""
     exit
 fi
@@ -36,7 +36,12 @@ if [ "$1" = "nsc" ]; then
 fi
 
 if [ "$1" = "icmp-responder-nse" ]; then
-    go_file=./examples/cmd/icmp-responder-nse
+    go_file=./examples/cmd/nse/icmp-responder-nse
+    output=/bin/$1
+fi
+
+if [ "$1" = "dirty-nse" ]; then
+    go_file=./examples/cmd/nse/dirty-nse
     output=/bin/$1
 fi
 

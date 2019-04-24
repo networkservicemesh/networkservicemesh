@@ -25,9 +25,11 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: vpn-gateway
-          image: {{ .Values.registry }}/networkservicemesh/icmp-responder-nse:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/nse:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
+            - name: NSE_IMAGE
+              value: "icmp-responder-nse"
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS

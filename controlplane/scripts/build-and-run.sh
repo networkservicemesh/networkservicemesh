@@ -10,7 +10,7 @@ docker build -t networkservicemesh/nsc -f "${DIR}/../../examples/build/Dockerfil
 echo "Starting nsmd..."
 docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/nsmd > "${CONTAINERTXT}"
 echo "Starting nse..."
-docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/icmp-responder-nse >> "${CONTAINERTXT}"
+docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/nse >> "${CONTAINERTXT}"
 echo "Starting vpp..."
 docker run --network=host --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --ipc=host --pid=host -d networkservicemesh/vpp >> "${CONTAINERTXT}"
 echo "Starting vpp-daemon..."
