@@ -31,7 +31,7 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "dirty-nse",
 					Image:           "networkservicemesh/nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -41,7 +41,7 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 						},
 					},
 					Env: envVars,
-				},
+				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
