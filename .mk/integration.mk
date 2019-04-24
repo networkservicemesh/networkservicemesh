@@ -25,7 +25,7 @@ k8s-integration-tests: k8s-integration-config
 
 .PHONY: k8s-integration-tests-%
 k8s-integration-tests-%: k8s-integration-config
-	@GO111MODULE=on go test -v ./test/... -failfast -timeout 30m -tags="$*"
+	@GO111MODULE=on NSM_NAMESPACE=${NSM_NAMESPACE} go test -v ./test/... -failfast -timeout 30m -tags="$*"
 
 .PHONY: k8s-integration-%-test
 k8s-integration-%-test: k8s-integration-config
