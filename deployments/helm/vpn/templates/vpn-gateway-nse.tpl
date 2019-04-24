@@ -39,9 +39,9 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          command: "/bin/icmp-responder-nse"
+          command: ["/bin/icmp-responder-nse"]
         - name: nginx
-          image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/nginx:latest
 metadata:
   name: vpn-gateway-nse
   namespace: nsm-system

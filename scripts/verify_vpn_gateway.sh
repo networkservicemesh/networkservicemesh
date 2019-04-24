@@ -1,10 +1,43 @@
 #!/bin/bash
 
-kubectl="kubectl -n ${NSM_NAMESPACE}"
+namespace="${NSM_NAMESPACE:=nsm-system}"
+
+function join_by { local IFS="$1"; shift; echo "$*"; }
+
+function parse_args {
+  # positional args
+  args=()
+
+  # named args
+  while [ "$1" != "" ]; do
+      case "$1" in
+          -k | --kubeconfig )           kubeconfig="$2";         shift;;
+          -n | --namespace )            namespace="$2";          shift;;
+          * )                           args+=("$1")             # if no match, add it to the positional args
+      esac
+      shift # move to next kv pair
+  done
+
+  # restore positional args
+  set -- "${args[@]}"
+}
+
+parse_args "$@"
+
+echo "kubeconfig: ${kubeconfig}"
+echo "namespace: ${namespace}"
+echo "remaining args: ${args}"
+echo ""
+
+kubectl="kubectl -n ${namespace}"
+
+if [[ -n ${kubeconfig} ]]; then
+    kubectl+=" --kubeconfig ${kubeconfig}"
+fi
 
 #  Ping all the things!
 EXIT_VAL=0
-for nsc in $(${kubectl} get pods -o=name | grep vpn-gateway-nsc | sed 's@.*/@@'); do
+for nsc in $(${kubectl} get pods -o=name $(join_by ' ' ${args[@]}) | grep vpn-gateway-nsc | sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     for ip in $(${kubectl} exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
         if [[ "${ip}" == 10.60.1.* ]];then
@@ -15,8 +48,6 @@ for nsc in $(${kubectl} get pods -o=name | grep vpn-gateway-nsc | sed 's@.*/@@')
         fi
 
         if [ -n "${targetIp}" ]; then
-
-
             if ${kubectl} exec -it "${nsc}" -- ping -c 1 "${targetIp}" ; then
                 echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                 PingSuccess="true"
