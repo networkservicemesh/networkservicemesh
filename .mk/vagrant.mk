@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+
 .PHONY: vagrant-start
 vagrant-start:
 	@cd scripts/vagrant; vagrant up --no-parallel;
@@ -36,13 +38,17 @@ vagrant-resume:
 vagrant-ssh:
 	@cd scripts/vagrant; vagrant ssh master
 
-.PHONY: vagrant-ssh-slave
-vagrant-ssh-worker:
-	@cd scripts/vagrant; vagrant ssh worker
+.PHONY: vagrant-ssh-worker%
+vagrant-ssh-worker%:
+	@cd scripts/vagrant; vagrant ssh worker$*
 
-.PHONY: vagrant-kublet-restart
-vagrant-restart-kublet:
-	@cd scripts/vagrant; vagrant ssh master -c "sudo service kubelet restart"; vagrant ssh worker -c "sudo service kubelet restart"
+.PHONY: vagrant-restart-kubelet
+vagrant-restart-kubelet:
+	@cd scripts/vagrant; vagrant ssh master -c "sudo service kubelet restart"; \
+	number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
+		vagrant ssh worker$$number	-c "sudo service kubelet restart" ; \
+		((number = number + 1)) ; \
+	done
 
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:
@@ -50,8 +56,11 @@ vagrant-%-load-images:
 		cd scripts/vagrant; \
 		echo "Loading image $*.tar to master"; \
 		vagrant ssh master -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
-		echo "Loading image $*.tar to worker"; \
-		vagrant ssh worker -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+		number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
+			echo "Loading image $*.tar to worker$$number"; \
+			vagrant ssh worker$$number	"sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+			((number = number + 1)) ; \
+		done
 	else \
 		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
