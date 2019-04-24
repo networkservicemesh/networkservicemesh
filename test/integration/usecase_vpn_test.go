@@ -4,6 +4,7 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+const (
+	ptNum = 10 // Number of Passthrought Endpoints to deploy
+)
+
 func TestVPNLocal(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -25,11 +30,11 @@ func TestVPNLocal(t *testing.T) {
 		return
 	}
 
-	testVPN(t, 1, map[string]int{
-		"vppagent-firewall-nse-1":    0,
-		"vppagent-passthrough-nse-1": 0,
-		"vpn-gateway-nse-1":          0,
-		"vpn-gateway-nsc-1":          0,
+	testVPN(t, ptNum, 1, map[string]int{
+		"vppagent-firewall-nse-1":  0,
+		"vppagent-passthrough-nse": 0,
+		"vpn-gateway-nse-1":        0,
+		"vpn-gateway-nsc-1":        0,
 	}, false)
 }
 
@@ -41,11 +46,11 @@ func TestVPNFirewallRemote(t *testing.T) {
 		return
 	}
 
-	testVPN(t, 2, map[string]int{
-		"vppagent-firewall-nse-1":    1,
-		"vppagent-passthrough-nse-1": 0,
-		"vpn-gateway-nse-1":          0,
-		"vpn-gateway-nsc-1":          0,
+	testVPN(t, ptNum, 2, map[string]int{
+		"vppagent-firewall-nse-1":  1,
+		"vppagent-passthrough-nse": 0,
+		"vpn-gateway-nse-1":        0,
+		"vpn-gateway-nsc-1":        0,
 	}, false)
 }
 
@@ -57,11 +62,11 @@ func TestVPNNSERemote(t *testing.T) {
 		return
 	}
 
-	testVPN(t, 2, map[string]int{
-		"vppagent-firewall-nse-1":    0,
-		"vppagent-passthrough-nse-1": 0,
-		"vpn-gateway-nse-1":          1,
-		"vpn-gateway-nsc-1":          0,
+	testVPN(t, ptNum, 2, map[string]int{
+		"vppagent-firewall-nse-1":  0,
+		"vppagent-passthrough-nse": 0,
+		"vpn-gateway-nse-1":        1,
+		"vpn-gateway-nsc-1":        0,
 	}, false)
 }
 
@@ -73,15 +78,15 @@ func TestVPNNSCRemote(t *testing.T) {
 		return
 	}
 
-	testVPN(t, 2, map[string]int{
-		"vppagent-firewall-nse-1":    0,
-		"vppagent-passthrough-nse-1": 0,
-		"vpn-gateway-nse-1":          0,
-		"vpn-gateway-nsc-1":          1,
+	testVPN(t, ptNum, 2, map[string]int{
+		"vppagent-firewall-nse-1":  0,
+		"vppagent-passthrough-nse": 0,
+		"vpn-gateway-nse-1":        0,
+		"vpn-gateway-nsc-1":        1,
 	}, false)
 }
 
-func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool) {
+func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbose bool) {
 	RegisterTestingT(t)
 
 	k8s, err := kube_testing.NewK8s()
@@ -123,7 +128,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
 
-		nsSecureIntranetConnectivity := crds.SecureIntranetConnectivity()
+		nsSecureIntranetConnectivity := crds.SecureIntranetConnectivity(ptnum)
 		logrus.Printf("About to insert: %v", nsSecureIntranetConnectivity)
 		var result *nsapiv1.NetworkService
 		result, err = nscrd.Create(nsSecureIntranetConnectivity)
@@ -153,23 +158,26 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 
 	logrus.Printf("VPN firewall started done: %v", time.Since(s1))
 
-	s1 = time.Now()
-	node = affinity["vppagent-passthrough-nse-1"]
-	logrus.Infof("Starting VPPAgent Passthrough NSE on node: %d", node)
+	for i := 1; i <= ptnum; i++ {
+		s1 = time.Now()
+		id := strconv.Itoa(i)
+		node = affinity["vppagent-passthrough-nse"]
+		logrus.Infof("Starting VPPAgent Passthrough NSE on node: %d", node)
 
-	vppagentPassthroughNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-1", &nodes[node],
-		map[string]string{
-			"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
-			"ADVERTISE_NSE_LABELS": "app=passthrough",
-			"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
-			"OUTGOING_NSC_LABELS":  "app=passthrough",
-		},
-	))
-	Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-1"))
+		vppagentPassthroughNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-"+id, &nodes[node],
+			map[string]string{
+				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+				"ADVERTISE_NSE_LABELS": "app=passthrough-" + id,
+				"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
+				"OUTGOING_NSC_LABELS":  "app=passthrough-" + id,
+			},
+		))
+		Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-" + id))
 
-	k8s.WaitLogsContains(vppagentPassthroughNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
+		k8s.WaitLogsContains(vppagentPassthroughNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
 
-	logrus.Printf("VPN passthrough started done: %v", time.Since(s1))
+		logrus.Printf("VPN passthrough started done: %v", time.Since(s1))
+	}
 
 	s1 = time.Now()
 	node = affinity["vpn-gateway-nse-1"]
