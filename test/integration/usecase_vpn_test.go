@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	ptNum = 10 // Number of Passthrought Endpoints to deploy
+	ptNum = 5 // Number of Passthrought Endpoints to deploy
 )
 
 func TestVPNLocal(t *testing.T) {
