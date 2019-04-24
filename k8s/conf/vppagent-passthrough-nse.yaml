@@ -31,23 +31,6 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          volumeMounts:
-            - mountPath: /etc/vppagent-firewall/config.yaml
-              subPath: config.yaml
-              name: vppagent-passthrough-config-volume
-      volumes:
-        - name: vppagent-passthrough-config-volume
-          configMap:
-            name: vppagent-passthrough-config-file
 metadata:
   name: vppagent-passthrough-nse
   namespace: nsm-system
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: vppagent-passthrough-config-file
-  namespace: nsm-system
-data:
-  config.yaml: |
-  empty: data
