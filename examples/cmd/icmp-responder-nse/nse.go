@@ -16,16 +16,14 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(nil),
@@ -41,18 +39,5 @@ func main() {
 	defer nsmEndpoint.Delete()
 
 	// Capture signals to cleanup before exiting
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c,
-		os.Interrupt,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+	<-c
 }

@@ -37,6 +37,7 @@ func VppagentICMPResponderPod(name string, node *v1.Node, env map[string]string)
 					Env: envVars,
 				},
 			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 

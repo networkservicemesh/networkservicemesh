@@ -2,6 +2,8 @@
 version: 2.1
 
 jobs:
+
+# sanity
   sanity-check:
     resource_class: medium+
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
@@ -25,6 +27,11 @@ jobs:
           command: |
             go get golang.org/x/lint/golint
             golint ./...
+      - run:
+          name: gosec
+          command: |
+            GO111MODULE=off go get github.com/securego/gosec/cmd/gosec/...
+            gosec -quiet -severity low -no-fail ./...
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: go generate ./...
@@ -44,6 +51,7 @@ jobs:
     environment:
       GO111MODULE: "on"
 
+# packet
   packet-deploy:
     docker:
       - image: circleci/golang
@@ -99,100 +107,6 @@ jobs:
     environment:
       PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
 
-  integration-tests:
-    parameters:
-      cloud_provider:
-        type: string
-      cluster_id:
-        type: string
-      test_tags:
-        type: string
-      gke_project_id:
-        type: string
-        default: "ci-management"
-      namespace:
-        type: string
-        default: "default"
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            sudo ./.circleci/install-yq.sh
-      - run:
-          command: |
-            ./.circleci/set-nameserver.sh sudo
-            sudo apt-get install gettext-base
-      - run:
-          name: Cache Prep
-          command: |
-            mkdir terraform
-            sudo mkdir -p /cncf/data
-            sudo chown -R circleci:circleci /cncf/
-      - restore_cache:
-          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/ || true
-      - run: ssh-add /home/circleci/project/terraform/sshkey || true
-      - restore_cache:
-          key: cncf-data-<< parameters.cloud_provider >>-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
-      - run: cp /home/circleci/project/terraform/sshkey* /cncf/data || true
-      - run:
-          name: Downloading go deps
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
-            # export CONTAINER_FORCE_PULL="true"
-            ./scripts/install-kubectl.sh
-            cat /home/circleci/project/data/kubeconfig
-            ./scripts/prepare-circle-integration-tests.sh
-            mkdir -p ~/junit/
-            ./scripts/go-mod-download.sh
-          no_output_timeout: 40m
-      - run:
-          name: Running integration tests - <<parameters.test_tags>>
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="<<parameters.test_tags>>"
-          no_output_timeout: 40m
-      - run:
-          when: always
-          name: Save postmortem data
-          command: |
-            make << parameters.cloud_provider >>-download-postmortem
-      - store_test_results:
-          path: ~/junit
-      - store_artifacts:
-          path: ~/junit
-      - store_artifacts:
-          path: ~/postmortem
-      - run:
-          when: always
-          name: Dump K8s state
-          command: |
-            kubectl get nodes
-            kubectl get pods -o wide
-            kubectl describe pods
-      - run:
-          when: on_fail
-          command: |
-            if [ "x<< parameters.cloud_provider >>" == "xgke" ]; then
-              .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
-            else
-              .circleci/cleanup-<< parameters.cloud_provider >>.sh
-            fi
-    environment:
-      PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
-      CLUSTER_ID: "<< parameters.cluster_id >>"
-      CLOUD_PROVIDER: "<< parameters.cloud_provider >>"
-      KUBECONFIG: /home/circleci/project/data/kubeconfig
-      GO111MODULE: "on"
-      NSM_NAMESPACE: "<< parameters.namespace >>"
-
   packet-destroy:
     docker:
       - image: circleci/golang
@@ -204,6 +118,7 @@ jobs:
       - run: cd ./scripts/terraform && terraform init && cd ../..
       - run: .circleci/destroy-cluster.sh
 
+# azure
   azure-deploy:
     parameters:
       cluster_id:
@@ -256,46 +171,7 @@ jobs:
             export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
             make azure-destroy
 
-  build-container:
-    parameters:
-      container:
-        type: string
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            make docker-<< parameters.container >>-build
-            make docker-<< parameters.container >>-push
-
-  docker-push-latest:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export PULL_TAG="${COMMIT}"
-            export TAG="latest"
-            export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook)
-            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-            for c in ${CONTAINERS[@]}; do
-              docker pull ${REPO}/${c}:${PULL_TAG}
-              docker tag ${REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
-              docker push ${REPO}/${c}:${TAG}
-            done
-
+# gke
   gke-create-cluster:
     parameters:
       cluster_id:
@@ -326,6 +202,7 @@ jobs:
           key: cncf-data-gke-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
+
   gke-destroy-cluster:
     parameters:
       cluster_id:
@@ -341,8 +218,148 @@ jobs:
           name: "Install google cloud SDK"
           command: |
             .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+
+# integration
+  integration-tests:
+    parameters:
+      cloud_provider:
+        type: string
+      cluster_id:
+        type: string
+      test_tags:
+        type: string
+      gke_project_id:
+        type: string
+        default: "ci-management"
+      namespace:
+        type: string
+        default: "default"
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            sudo ./.circleci/install-yq.sh
+      - run:
+          command: |
+            ./.circleci/set-nameserver.sh sudo
+            sudo apt-get install gettext-base
+      - run:
+          name: Cache Prep
+          command: |
+            mkdir terraform
+            sudo mkdir -p /cncf/data
+            sudo chown -R circleci:circleci /cncf/
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - restore_cache:
+          key: cncf-data-<< parameters.cloud_provider >>-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run:
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+              cp /home/circleci/project/terraform/sshkey* /cncf/data
+            fi
+      - run:
+          name: Downloading go deps
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            # export CONTAINER_FORCE_PULL="true"
+            ./scripts/install-kubectl.sh
+            cat /home/circleci/project/data/kubeconfig
+            ./scripts/prepare-circle-integration-tests.sh
+            mkdir -p ~/junit/
+            ./scripts/go-mod-download.sh
+          no_output_timeout: 40m
+      - run:
+          name: Running integration tests - <<parameters.test_tags>>
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -failfast -tags="<<parameters.test_tags>>"
+          no_output_timeout: 40m
+      - run:
+          when: always
+          name: Save postmortem data
+          command: |
+            make << parameters.cloud_provider >>-download-postmortem
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/postmortem
+      - run:
+          when: always
+          name: Dump K8s state
+          command: |
+            kubectl -n $NSM_NAMESPACE get nodes
+            kubectl -n $NSM_NAMESPACE get pods -o wide
+            kubectl -n $NSM_NAMESPACE describe pods
+      - run:
+          when: on_fail
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xgke" ]; then
+              .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+            else
+              if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+                cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
+              fi
+              .circleci/cleanup-<< parameters.cloud_provider >>.sh
+            fi
+    environment:
+      PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      CLOUD_PROVIDER: "<< parameters.cloud_provider >>"
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
+      NSM_NAMESPACE: "<< parameters.namespace >>"
+
+# build
+  build-container:
+    parameters:
+      container:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export TAG="${COMMIT}"
+            make docker-<< parameters.container >>-build
+            make docker-<< parameters.container >>-push
+
+# docker push
+  docker-push-latest:
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export PULL_TAG="${COMMIT}"
+            export TAG="latest"
+            export REPO="networkservicemesh"
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor icmp-responder-nse vppagent-icmp-responder-nse vppagent-nsc nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook)
+            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+            for c in ${CONTAINERS[@]}; do
+              docker pull ${REPO}/${c}:${PULL_TAG}
+              docker tag ${REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
+              docker push ${REPO}/${c}:${TAG}
+            done
+
+# helm
   helm-chart-tests:
-    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh/
     docker:
       - image: quay.io/helmpack/chart-testing:v2.3.0
     steps:
@@ -351,11 +368,15 @@ jobs:
           name: Install and lint Helm charts
           command: |
             .circleci/helm/test-charts.sh
+
+# workflows
 workflows:
   version: 2
   build-and-test:
     jobs:
       - sanity-check
+
+# build
       - build-container:
           name: "build-nsmd"
           container: "nsmd"
@@ -416,6 +437,8 @@ workflows:
           container: "vppagent-firewall-nse"
           requires:
             - sanity-check
+
+# packet
       - packet-deploy:
           requires:
             - sanity-check
@@ -453,6 +476,23 @@ workflows:
           test_tags: "bench"
           requires:
             - "packet-test-recover"
+      - packet-destroy:
+          requires:
+            - "packet-test-basic-usecase"
+            - "packet-test-recover"
+            - "packet-test-bench"
+
+# azure
+      - azure-deploy:
+          name: "azure-deploy-k8s-1"
+          cluster_id: "1"
+          requires:
+            - sanity-check
+      - azure-deploy:
+          name: "azure-deploy-k8s-2"
+          cluster_id: "2"
+          requires:
+            - sanity-check
       - integration-tests:
           name: "azure-test-basic-usecase"
           cloud_provider: "azure"
@@ -467,91 +507,6 @@ workflows:
           test_tags: "recover azure"
           requires:
             - azure-deploy-k8s-2
-      - packet-destroy:
-          requires:
-            - "packet-test-basic-usecase"
-            - "packet-test-recover"
-            - "packet-test-bench"
-      - docker-push-latest:
-          requires:
-            - packet-destroy
-            - azure-destroy-1
-            - azure-destroy-2
-          filters:
-            branches:
-              only: master
-      - gke-create-cluster:
-          cluster_id: "1"
-          name: "gke-cluster1"
-          requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
-      - integration-tests:
-          name: "gke test basic usecase"
-          cloud_provider: "gke"
-          cluster_id: "1"
-          test_tags: "basic usecase gke"
-          requires:
-            - "gke-cluster1"
-      - gke-destroy-cluster:
-          name: "gke-destroy-cluster1"
-          cluster_id: "1"
-          requires:
-            - "gke-cluster1"
-            - "gke test basic usecase"
-      - gke-create-cluster:
-          cluster_id: "2"
-          name: "gke-cluster2"
-          requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
-      - integration-tests:
-          name: "gke test recover"
-          cloud_provider: "gke"
-          cluster_id: "2"
-          test_tags: "recover gke"
-          requires:
-            - "gke-cluster2"
-      - gke-destroy-cluster:
-          name: "gke-destroy-cluster2"
-          cluster_id: "2"
-          requires:
-            - "gke-cluster2"
-            - "gke test recover"
-      - helm-chart-tests:
-          name: "helm-chart-tests"
-          requires:
-            - sanity-check
-      - azure-deploy:
-          name: "azure-deploy-k8s-1"
-          cluster_id: "1"
-          requires:
-            - sanity-check
-      - azure-deploy:
-          name: "azure-deploy-k8s-2"
-          cluster_id: "2"
-          requires:
-            - sanity-check
       - azure-destroy:
           name: "azure-destroy-1"
           cluster_id: "1"
@@ -562,3 +517,81 @@ workflows:
           cluster_id: "2"
           requires:
             - azure-test-recover
+
+# gke
+      - gke-create-cluster:
+          cluster_id: "1"
+          name: "gke-cluster1"
+          requires:
+            - sanity-check
+      - gke-create-cluster:
+          cluster_id: "2"
+          name: "gke-cluster2"
+          requires:
+            - sanity-check
+      - integration-tests:
+          name: "gke-test-basic-usecase"
+          cloud_provider: "gke"
+          cluster_id: "1"
+          test_tags: "basic usecase gke"
+          requires:
+            - sanity-check
+            - "gke-cluster1"
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-admission-webhook
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-dataplane
+            - build-vppagent-dataplane-dev
+            - build-vppagent-firewall-nse
+      - integration-tests:
+          name: "gke-test-recover"
+          cloud_provider: "gke"
+          cluster_id: "2"
+          test_tags: "recover gke"
+          requires:
+            - sanity-check
+            - "gke-cluster2"
+            - build-nsmd
+            - build-nsmd-k8s
+            - build-nsmdp
+            - build-admission-webhook
+            - build-crossconnect-monitor
+            - build-icmp-responder-nse
+            - build-vppagent-icmp-responder-nse
+            - build-vppagent-nsc
+            - build-nsc
+            - build-vppagent-dataplane
+            - build-vppagent-dataplane-dev
+            - build-vppagent-firewall-nse
+      - gke-destroy-cluster:
+          name: "gke-destroy-cluster1"
+          cluster_id: "1"
+          requires:
+            - "gke-cluster1"
+            - "gke-test-basic-usecase"
+      - gke-destroy-cluster:
+          name: "gke-destroy-cluster2"
+          cluster_id: "2"
+          requires:
+            - "gke-cluster2"
+            - "gke-test-recover"
+
+# helm
+      - helm-chart-tests:
+          name: "helm-chart-tests"
+          requires:
+            - sanity-check
+
+# push
+      - docker-push-latest:
+          requires:
+            - packet-destroy
+          filters:
+            branches:
+              only: master

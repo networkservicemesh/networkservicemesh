@@ -20,10 +20,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"net"
 	"os"
-	"os/signal"
 	"path"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -303,12 +301,8 @@ func (n *nsmClientEndpoints) receiveWorkspaces() {
 
 func main() {
 	// Capture signals to cleanup before exiting
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsmdp")
 	defer closer.Close()

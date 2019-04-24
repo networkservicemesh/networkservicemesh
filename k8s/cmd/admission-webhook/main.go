@@ -4,15 +4,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	"net/http"
+	"os"
 )
 
 const (
@@ -278,6 +275,9 @@ func (whsvr *WebhookServer) serve(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
+
 	logrus.Info("Admission Webhook starting...")
 
 	repo = os.Getenv(repoEnv)
@@ -320,9 +320,5 @@ func main() {
 	}()
 
 	logrus.Info("Server started")
-
-	// listening OS shutdown singal
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	<-signalChan
+	<- c
 }
