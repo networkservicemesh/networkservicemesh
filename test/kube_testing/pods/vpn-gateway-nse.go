@@ -31,7 +31,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "vpn-gateway",
 					Image:           "networkservicemesh/nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -41,7 +41,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 						},
 					},
 					Env: envVars,
-				},
+				}),
 				{
 					Name:  "nginx",
 					Image: "networkservicemesh/nginx",
