@@ -12,10 +12,24 @@ spec:
       route:
         - destination:
           destinationSelector:
-            app: passthrough
+            app: passthrough-1
     - match:
       sourceSelector:
-        app: passthrough
+        app: passthrough-1
+      route:
+        - destination:
+          destinationSelector:
+            app: passthrough-2
+    - match:
+      sourceSelector:
+        app: passthrough-2
+      route:
+        - destination:
+          destinationSelector:
+            app: passthrough-3
+    - match:
+      sourceSelector:
+        app: passthrough-3
       route:
         - destination:
           destinationSelector:
