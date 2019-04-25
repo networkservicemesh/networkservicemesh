@@ -4,16 +4,17 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/sirupsen/logrus"
+	"sync"
 )
 
 type NetworkServiceManagerCache struct {
 	cache                  abstractResourceCache
-	networkServiceManagers map[string]*v1.NetworkServiceManager
+	networkServiceManagers sync.Map
 }
 
 func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
 	rv := &NetworkServiceManagerCache{
-		networkServiceManagers: make(map[string]*v1.NetworkServiceManager),
+		networkServiceManagers: sync.Map{},
 	}
 	config := cacheConfig{
 		keyFunc:             getNsmKey,
@@ -27,7 +28,10 @@ func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
 }
 
 func (c *NetworkServiceManagerCache) Get(key string) *v1.NetworkServiceManager {
-	return c.networkServiceManagers[key]
+	if result, ok := c.networkServiceManagers.Load(key); ok {
+		return result.(*v1.NetworkServiceManager)
+	}
+	return nil
 }
 
 func (c *NetworkServiceManagerCache) Add(nsm *v1.NetworkServiceManager) {
@@ -51,18 +55,19 @@ func (c *NetworkServiceManagerCache) Start(informerFactory externalversions.Shar
 func (c *NetworkServiceManagerCache) resourceAdded(obj interface{}) {
 	nsm := obj.(*v1.NetworkServiceManager)
 	logrus.Infof("NetworkServiceManagerCache.Added(%v)", nsm)
-	c.networkServiceManagers[getNsmKey(nsm)] = nsm
+	c.networkServiceManagers.Store(getNsmKey(nsm), nsm)
 }
 
 func (c *NetworkServiceManagerCache) resourceUpdated(obj interface{}) {
 	nsm := obj.(*v1.NetworkServiceManager)
 	logrus.Infof("NetworkServiceManagerCache.resourceUpdated(%v)", nsm)
-	c.networkServiceManagers[getNsmKey(nsm)] = nsm
+	c.networkServiceManagers.Store(getNsmKey(nsm), nsm)
 }
 
 func (c *NetworkServiceManagerCache) resourceDeleted(key string) {
-	logrus.Infof("NetworkServiceManagerCache.Deleted(%v=%v)", key, c.networkServiceManagers[key])
-	delete(c.networkServiceManagers, key)
+	deletedVal := c.Get(key)
+	c.networkServiceManagers.Delete(key)
+	logrus.Infof("NetworkServiceManagerCache.Deleted(%v=%v)", key, deletedVal)
 }
 
 func getNsmKey(obj interface{}) string {

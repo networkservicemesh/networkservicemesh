@@ -3,16 +3,17 @@ package resource_cache
 import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"sync"
 )
 
 type NetworkServiceCache struct {
 	cache           abstractResourceCache
-	networkServices map[string]*v1.NetworkService
+	networkServices sync.Map
 }
 
 func NewNetworkServiceCache() *NetworkServiceCache {
 	rv := &NetworkServiceCache{
-		networkServices: make(map[string]*v1.NetworkService),
+		networkServices: sync.Map{},
 	}
 	config := cacheConfig{
 		keyFunc:             getNsKey,
@@ -25,7 +26,10 @@ func NewNetworkServiceCache() *NetworkServiceCache {
 }
 
 func (c *NetworkServiceCache) Get(key string) *v1.NetworkService {
-	return c.networkServices[key]
+	if result, ok := c.networkServices.Load(key); ok {
+		return result.(*v1.NetworkService)
+	}
+	return nil
 }
 
 func (c *NetworkServiceCache) Add(ns *v1.NetworkService) {
@@ -42,11 +46,11 @@ func (c *NetworkServiceCache) Start(informerFactory externalversions.SharedInfor
 
 func (c *NetworkServiceCache) resourceAdded(obj interface{}) {
 	ns := obj.(*v1.NetworkService)
-	c.networkServices[getNsKey(ns)] = ns
+	c.networkServices.Store(ns.Name, ns)
 }
 
 func (c *NetworkServiceCache) resourceDeleted(key string) {
-	delete(c.networkServices, key)
+	c.networkServices.Delete(key)
 }
 
 func getNsKey(obj interface{}) string {

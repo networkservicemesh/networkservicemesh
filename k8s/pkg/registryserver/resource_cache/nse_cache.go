@@ -4,18 +4,19 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/sirupsen/logrus"
+	"sync"
 )
 
 type NetworkServiceEndpointCache struct {
 	cache                   abstractResourceCache
-	nseByNs                 map[string][]*v1.NetworkServiceEndpoint
-	networkServiceEndpoints map[string]*v1.NetworkServiceEndpoint
+	nseByNs                 sync.Map
+	networkServiceEndpoints sync.Map
 }
 
 func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 	rv := &NetworkServiceEndpointCache{
-		nseByNs:                 make(map[string][]*v1.NetworkServiceEndpoint),
-		networkServiceEndpoints: make(map[string]*v1.NetworkServiceEndpoint),
+		nseByNs:                 sync.Map{},
+		networkServiceEndpoints: sync.Map{},
 	}
 	config := cacheConfig{
 		keyFunc:             getNseKey,
@@ -28,21 +29,29 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 }
 
 func (c *NetworkServiceEndpointCache) Get(key string) *v1.NetworkServiceEndpoint {
-	return c.networkServiceEndpoints[key]
+	if result, ok := c.networkServiceEndpoints.Load(key); ok {
+		return result.(*v1.NetworkServiceEndpoint)
+	}
+	return nil
 }
 
 func (c *NetworkServiceEndpointCache) GetByNetworkService(networkServiceName string) []*v1.NetworkServiceEndpoint {
-	return c.nseByNs[networkServiceName]
+	if result, ok := c.nseByNs.Load(networkServiceName); ok {
+		return result.([]*v1.NetworkServiceEndpoint)
+	}
+	return nil
 }
 
 func (c *NetworkServiceEndpointCache) GetByNetworkServiceManager(nsmName string) []*v1.NetworkServiceEndpoint {
 	var rv []*v1.NetworkServiceEndpoint
 
-	for _, endpoint := range c.networkServiceEndpoints {
+	c.networkServiceEndpoints.Range(func(key, value interface{}) bool {
+		endpoint := value.(*v1.NetworkServiceEndpoint)
 		if endpoint.Spec.NsmName == nsmName {
 			rv = append(rv, endpoint)
 		}
-	}
+		return true
+	})
 
 	return rv
 }
@@ -62,9 +71,14 @@ func (c *NetworkServiceEndpointCache) Start(informerFactory externalversions.Sha
 
 func (c *NetworkServiceEndpointCache) resourceAdded(obj interface{}) {
 	nse := obj.(*v1.NetworkServiceEndpoint)
-	endpoints := c.nseByNs[nse.Spec.NetworkServiceName]
-	if _, exist := c.networkServiceEndpoints[getNseKey(nse)]; !exist {
-		c.nseByNs[nse.Spec.NetworkServiceName] = append(endpoints, nse)
+	var endpoints []*v1.NetworkServiceEndpoint
+	if val, ok := c.nseByNs.Load(nse.Spec.NetworkServiceName); ok {
+		endpoints = val.([]*v1.NetworkServiceEndpoint)
+	} else {
+		endpoints = []*v1.NetworkServiceEndpoint{}
+	}
+	if _, exist := c.networkServiceEndpoints.Load(getNseKey(nse)); !exist {
+		c.nseByNs.Store(nse.Spec.NetworkServiceName, append(endpoints, nse))
 	} else {
 		for i, e := range endpoints {
 			if getNseKey(nse) == getNseKey(e) {
@@ -73,16 +87,21 @@ func (c *NetworkServiceEndpointCache) resourceAdded(obj interface{}) {
 			}
 		}
 	}
-	c.networkServiceEndpoints[getNseKey(nse)] = nse
+	c.networkServiceEndpoints.Store(getNseKey(nse), nse)
 }
 
 func (c *NetworkServiceEndpointCache) resourceDeleted(key string) {
-	nse, exist := c.networkServiceEndpoints[key]
+	val, exist := c.networkServiceEndpoints.Load(key)
 	if !exist {
 		return
 	}
-
-	endpoints := c.nseByNs[nse.Spec.NetworkServiceName]
+	nse := val.(*v1.NetworkServiceEndpoint)
+	var endpoints []*v1.NetworkServiceEndpoint
+	if val, ok := c.nseByNs.Load(nse.Spec.NetworkServiceName); ok {
+		endpoints = val.([]*v1.NetworkServiceEndpoint)
+	} else {
+		endpoints = []*v1.NetworkServiceEndpoint{}
+	}
 	var index int
 	for i, e := range endpoints {
 		if getNseKey(nse) == getNseKey(e) {
@@ -92,11 +111,11 @@ func (c *NetworkServiceEndpointCache) resourceDeleted(key string) {
 	}
 	endpoints = append(endpoints[:index], endpoints[index+1:]...)
 	if len(endpoints) == 0 {
-		delete(c.nseByNs, nse.Spec.NetworkServiceName)
+		c.nseByNs.Delete(nse.Spec.NetworkServiceName)
 	} else {
-		c.nseByNs[nse.Spec.NetworkServiceName] = endpoints
+		c.nseByNs.Store(nse.Spec.NetworkServiceName, endpoints)
 	}
-	delete(c.networkServiceEndpoints, key)
+	c.networkServiceEndpoints.Delete(key)
 }
 
 func getNseKey(obj interface{}) string {
