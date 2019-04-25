@@ -210,6 +210,17 @@ func (v *VPPAgent) programMgmtInterface() error {
 	}
 	defer conn.Close()
 	client := configurator.NewConfiguratorClient(conn)
+
+	vppArpEntries := []*vpp.ARPEntry{}
+	for _, arpEntry := range v.egressInterface.ArpEntries() {
+		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
+			Interface: ManagementInterface,
+			IpAddress: arpEntry.IpAddress,
+			PhysAddress: arpEntry.PhysAddress,
+
+		})
+	}
+
 	dataRequest := &configurator.UpdateRequest{
 		Update: &configurator.Config{
 			VppConfig: &vpp.ConfigData{
@@ -237,6 +248,9 @@ func (v *VPPAgent) programMgmtInterface() error {
 						NextHopAddr:       v.egressInterface.DefaultGateway().String(),
 					},
 				},
+				// Add system arp entries
+				Arps: vppArpEntries,
+
 			},
 		},
 	}
