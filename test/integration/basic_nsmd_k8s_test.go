@@ -30,12 +30,10 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
 
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
@@ -141,12 +139,10 @@ func TestUpdateNSM(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-	k8s.CleanupCRDs()
 
-	k8s.PrepareDefault()
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
@@ -232,11 +228,10 @@ func TestGetEndpoints(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault()
 	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
 	// We need to wait unti it is started
@@ -311,7 +306,7 @@ func TestClusterInfo(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
@@ -365,12 +360,10 @@ func TestLostUpdate(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-	k8s.CleanupCRDs()
 
-	k8s.PrepareDefault()
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	// We need to wait until it is started

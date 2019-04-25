@@ -89,14 +89,11 @@ func TestVPNNSCRemote(t *testing.T) {
 func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbose bool) {
 	RegisterTestingT(t)
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 	if len(nodes) < nodesCount {
 		logrus.Printf("At least one Kubernetes node is required for this test")
@@ -106,7 +103,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	nsmdPodNode := []*v1.Pod{}
 	nsmdDataplanePodNode := []*v1.Pod{}
 
-	s1 = time.Now()
+	s1 := time.Now()
 	for k := 0; k < nodesCount; k++ {
 		corePodName := fmt.Sprintf("nsmgr-%d", k)
 		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", k)

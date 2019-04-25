@@ -175,3 +175,11 @@ func CreateRoleBinding(name string, namespace string) Role {
 	}
 	return roleBinding
 }
+
+func DeleteAllRoles(clientset kubernetes.Interface) error {
+	(&ClusterRole{}).Delete(clientset, RoleNames["admin"])
+	(&ClusterRole{}).Delete(clientset, RoleNames["view"])
+	(&ClusterRoleBinding{}).Delete(clientset, RoleNames["binding"])
+
+	return nil
+}

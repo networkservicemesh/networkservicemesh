@@ -22,12 +22,10 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 
 	logrus.Print("Running NSMD Deploy test")
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
-
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault() // Be sure where is no NSMD
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
 	if len(nodes) < 1 {

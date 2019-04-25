@@ -4,7 +4,6 @@ package nsmd_integration_tests
 
 import (
 	"testing"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -86,14 +85,10 @@ func TestNSCAndICMPRemoteVeth(t *testing.T) {
 If passed 1 both will be on same node, if not on different.
 */
 func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	if useWebhook {
 		awc, awDeployment, awService := nsmd_test_utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())

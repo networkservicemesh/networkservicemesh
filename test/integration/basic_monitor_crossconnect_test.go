@@ -25,13 +25,9 @@ func TestSingleCrossConnect(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
 
@@ -72,13 +68,9 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
 
@@ -120,13 +112,9 @@ func TestSeveralCrossConnects(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
 
@@ -168,13 +156,9 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 2
 

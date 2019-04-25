@@ -72,8 +72,6 @@ func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.
 
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault()
-
 	nodes := createNodes(k8s, nodeCount)
 	icmpDeploy(k8s, nodes[nodeCount-1], icmpDefaultName, defaultTimeout)
 
@@ -95,8 +93,6 @@ func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.P
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
 
 	nodes := createNodes(k8s, nodeCount)
 
@@ -123,7 +119,6 @@ func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils
 
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault()
 	nodes := createNodes(k8s, nodeCount)
 	doneChannel := make(chan nscPingResult, 1)
 	defer close(doneChannel)
