@@ -238,8 +238,8 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 				ParameterValue: keyPairName,
 			},
 			{
-				ParameterKey: aws.String("NodeImageId"),
-				ParameterValue: aws.String("ami-0484545fe7d3da96f"),
+				ParameterKey:   aws.String("NodeImageId"),
+				ParameterValue: aws.String("ami-04ea7cb66af82ae4a"),
 			},
 			{
 				ParameterKey: aws.String("ClusterName"),
