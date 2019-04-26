@@ -49,6 +49,8 @@ type networkServiceManager struct {
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
 	errCh            chan error
+
+	healer networkServiceHealer
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
@@ -65,6 +67,10 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		properties:       nsm.NewNsmProperties(),
 		stateRestored:    make(chan bool, 1),
 		errCh:            make(chan error, 1),
+	}
+
+	srv.healer = &healer{
+		nsm: srv,
 	}
 
 	go srv.monitorExcludePrefixes()
