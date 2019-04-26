@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 .PHONY: vagrant-start
 vagrant-start:
 	@cd scripts/vagrant; vagrant up --no-parallel;
@@ -47,7 +45,7 @@ vagrant-restart-kubelet:
 	@cd scripts/vagrant; vagrant ssh master -c "sudo service kubelet restart"; \
 	number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
 		vagrant ssh worker$$number	-c "sudo service kubelet restart" ; \
-		((number = number + 1)) ; \
+		((number++)) ; \
 	done
 
 .PHONY: vagrant-%-load-images
@@ -59,7 +57,7 @@ vagrant-%-load-images:
 		number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
 			echo "Loading image $*.tar to worker$$number"; \
 			vagrant ssh worker$$number	"sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
-			((number = number + 1)) ; \
+			((number++)) ; \
 		done
 	else \
 		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
