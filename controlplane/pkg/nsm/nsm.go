@@ -56,12 +56,15 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 }
 
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
+	emptyPrefixPool, _ := prefix_pool.NewPrefixPool()
+
 	srv := &networkServiceManager{
-		serviceRegistry: serviceRegistry,
-		model:           model,
-		properties:      nsm.NewNsmProperties(),
-		stateRestored:   make(chan bool, 1),
-		errCh:           make(chan error, 1),
+		serviceRegistry:  serviceRegistry,
+		model:            model,
+		excludedPrefixes: emptyPrefixPool,
+		properties:       nsm.NewNsmProperties(),
+		stateRestored:    make(chan bool, 1),
+		errCh:            make(chan error, 1),
 	}
 
 	go srv.monitorExcludePrefixes()
