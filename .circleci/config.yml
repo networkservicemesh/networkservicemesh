@@ -189,6 +189,7 @@ jobs:
           command: |
             export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            ./scripts/install-kubectl.sh
             make aws-start
             mkdir -p data
             cp ~/.kube/config data/kubeconfig
