@@ -184,23 +184,25 @@ jobs:
           name: Install AWS Prerequisites
           command: |
             ./scripts/aws/aws-init.sh
+            mkdir -p data
+            sudo cp "$HOME/bin/aws-iam-authenticator" data/aws-iam-authenticator
+            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
       - run:
           name: Create AWS Cluster
           command: |
-            export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
             make aws-start
-            mkdir -p data
             cp ~/.kube/config data/kubeconfig
       - save_cache:
           key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
+            - ~/.aws
+            - ~/.kube
       - run:
           when: on_fail
           command: |
-            export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
 
@@ -216,10 +218,10 @@ jobs:
           name: Install AWS Prerequisites
           command: |
             ./scripts/aws/aws-init.sh
+            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin
       - run:
           name: Destroy AWS Cluster
           command: |
-            export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
 
@@ -313,6 +315,10 @@ jobs:
           command: |
             if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
               cp /home/circleci/project/terraform/sshkey* /cncf/data
+            else
+              if [ "x<< parameters.cloud_provider >>" == "xaws" ]; then
+                sudo cp /home/circleci/project/data/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+              fi
             fi
       - run:
           name: Downloading go deps

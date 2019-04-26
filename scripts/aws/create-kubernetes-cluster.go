@@ -227,8 +227,6 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 
 	s := string(sf)
 
-	subnetId := strings.Split(*clusterStackOutputs.SubnetIds, ",")[0]
-
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    nodesStackName,
 		TemplateBody: &s,
