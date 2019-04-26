@@ -317,6 +317,38 @@ func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
 	checkError(err)
 }
 
+func CreateSSHConfig(ec2client *ec2.EC2, vpcId *string, scpConfigFileName string) {
+	res, err := ec2client.DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []* ec2.Filter {
+			{
+				Name: aws.String("vpc-id"),
+				Values: []*string{
+					vpcId,
+				},
+			},
+		},
+	})
+	checkError(err)
+
+	scpConfigBytes, err := ioutil.ReadFile(path.Join(currentPath, "scp-config-template"))
+	checkError(err)
+	scpConfig := string(scpConfigBytes)
+
+	i := 0
+	hostNames := [2]string{"<EC2MASTER>", "<EC2WORKER>"}
+	for _, reserv := range(res.Reservations) {
+		for _, v := range(reserv.Instances) {
+			if len(hostNames) > i {
+				scpConfig = strings.Replace(scpConfig, hostNames[i], *v.PublicIpAddress, 1)
+				i++;
+			}
+		}
+	}
+
+	err = ioutil.WriteFile(path.Join(currentPath, scpConfigFileName), []byte(scpConfig), 0666)
+	checkError(err)
+}
+
 func createAWSKubernetesCluster() {
 	sess := session.Must(session.NewSession())
 	iamClient := iam.New(sess)
@@ -371,4 +403,6 @@ func createAWSKubernetesCluster() {
 	checkError(err)
 	log.Printf(out.String())
 	_ = os.Remove(f.Name())
+
+	CreateSSHConfig(ec2Client, clusterStackOutputs.VpcId, "scp-config"+serviceSuffix)
 }
