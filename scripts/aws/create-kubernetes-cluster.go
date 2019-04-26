@@ -181,7 +181,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 func CreateKubeConfigFile(cluster *eks.Cluster) {
 	kubeconfigFile := os.Getenv("KUBECONFIG")
 	if len(kubeconfigFile) == 0 {
-		kubeconfigFile = os.Getenv("HOME") + "/.kube/config"
+		kubeconfigFile = path.Join(os.Getenv("HOME"), ".kube/config")
 	}
 	kc, err := ioutil.ReadFile(path.Join(currentPath, "kube-config-template"))
 	checkError(err)
@@ -192,6 +192,7 @@ func CreateKubeConfigFile(cluster *eks.Cluster) {
 	kubeconfig = strings.Replace(kubeconfig, "<SERVER_NAME>", *cluster.Arn, -1)
 	kubeconfig = strings.Replace(kubeconfig, "<CLUSTER_NAME>", *cluster.Name, -1)
 
+	err = os.Mkdir(path.Dir(kubeconfigFile), 0775)
 	err = ioutil.WriteFile(kubeconfigFile, []byte(kubeconfig), 0644)
 	checkError(err)
 

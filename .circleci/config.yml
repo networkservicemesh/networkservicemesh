@@ -187,8 +187,11 @@ jobs:
       - run:
           name: Create AWS Cluster
           command: |
+            export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-start
+            mkdir -p data
+            cp ~/.kube/config data/kubeconfig
       - save_cache:
           key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
@@ -196,6 +199,7 @@ jobs:
       - run:
           when: on_fail
           command: |
+            export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
 
@@ -214,6 +218,7 @@ jobs:
       - run:
           name: Destroy AWS Cluster
           command: |
+            export PATH="$HOME/bin:$PATH"
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
 
