@@ -9,8 +9,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sync"
 )
 
 type RegistryCache interface {
@@ -36,6 +36,7 @@ type registryCacheImpl struct {
 	clientset                   *nsmClientset.Clientset
 	stopFuncs                   []func()
 	nsmNamespace                string
+	createOrUpdate              sync.Mutex
 }
 
 func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
@@ -46,6 +47,7 @@ func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
 		clientset:                   clientset,
 		stopFuncs:                   make([]func(), 0, 3),
 		nsmNamespace:                namespace.GetNamespace(),
+		createOrUpdate:              sync.Mutex{},
 	}
 }
 
@@ -134,6 +136,8 @@ func (rc *registryCacheImpl) GetEndpointsByNsm(nsmName string) []*v1.NetworkServ
 }
 
 func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
+	rc.createOrUpdate.Lock()
+	defer rc.createOrUpdate.Unlock()
 	existingNsm := rc.networkServiceManagerCache.Get(nsm.GetName())
 
 	if existingNsm != nil {
@@ -145,13 +149,14 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 	logrus.Infof("Creating NSM: %v", nsm)
 	createNsm, err := rc.addNetworkServiceManager(nsm)
 	if err != nil || apierrors.IsAlreadyExists(err) {
-		existingNsm, err = rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Get(nsm.Name, metaV1.GetOptions{})
+		existingNsm, err = rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Get(nsm.Name, metav1.GetOptions{})
 		if err != nil {
 			return existingNsm, err
 		}
 		nsm.ObjectMeta = existingNsm.ObjectMeta
-		logrus.Infof("NSM with name %v already exist on server, updating: %v", nsm.GetName(), nsm)
-		return rc.updateNetworkServiceManager(nsm)
+		logrus.Infof("NSM with name %v already exist on server, updating cache: %v", nsm.GetName(), nsm)
+		rc.networkServiceManagerCache.Add(nsm)
+		return nsm, nil
 	}
 	return createNsm, err
 }

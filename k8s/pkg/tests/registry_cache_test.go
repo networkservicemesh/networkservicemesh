@@ -25,7 +25,7 @@ func readNsm(reader io.ReadCloser) v1.NetworkServiceManager {
 	return nsm
 }
 
-func fakeNsmRest(serverData sync.Map) *FakeRest {
+func fakeNsmRest(serverData *sync.Map) *FakeRest {
 	result := NewFakeRest(v1.SchemeGroupVersion, scheme.Codecs)
 	result.MockGet("/networkserviceendpoints", func(r *http.Request, resource string) (response *http.Response, e error) {
 		return Ok([]v1.NetworkServiceEndpoint{}), nil
@@ -71,7 +71,7 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	nsm.ResourceVersion = "1"
 	serverData := sync.Map{}
 	serverData.Store("fake", nsm)
-	fakeRest := fakeNsmRest(serverData)
+	fakeRest := fakeNsmRest(&serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
 	_, err := cache.CreateOrUpdateNetworkServiceManager(FakeNsm("fake"))
 	defer cache.Stop()
@@ -81,7 +81,7 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	RegisterTestingT(t)
 	serverData := sync.Map{}
-	fakeRest := fakeNsmRest(serverData)
+	fakeRest := fakeNsmRest(&serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
 	defer cache.Stop()
 	stopClient1 := RepeatAsync(func() {
@@ -96,10 +96,10 @@ func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 		Expect(err).Should(BeNil())
 	})
 	defer stopClient2()
-	stop3 := RepeatAsync(func() {
+	stopDelete := RepeatAsync(func() {
 		serverData.Delete("fake")
-		cache.Delete("fake")
+		time.Sleep(time.Millisecond * 100)
 	})
-	defer stop3()
-	time.Sleep(time.Minute * 15)
+	defer stopDelete()
+	time.Sleep(time.Second * 5)
 }
