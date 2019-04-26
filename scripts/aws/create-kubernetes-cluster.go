@@ -200,11 +200,16 @@ func CreateKubeConfigFile(cluster *eks.Cluster) {
 
 func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	log.Printf("Creating Amazon EC2 key pair \"%s\"...\n", *keyPairName)
-	_, err := ec2Client.CreateKeyPair(&ec2.CreateKeyPairInput{
+	var resp *ec2.CreateKeyPairOutput
+	resp, err := ec2Client.CreateKeyPair(&ec2.CreateKeyPairInput{
 		KeyName: keyPairName,
 	})
-	checkError(err)
 
+	keyFile := "nsm-key-pair" + os.Getenv("NSM_AWS_SERVICE_SUFFIX")
+	err = ioutil.WriteFile(keyFile, []byte(*resp.KeyMaterial), 0400)
+
+	checkError(err)
+	log.Print(resp);
 	log.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
 }
 

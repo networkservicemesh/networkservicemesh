@@ -41,3 +41,17 @@ aws-get-kubeconfig:
 	@pushd scripts/aws
 	@aws eks update-kubeconfig --name nsm --kubeconfig ../../kubeconfig
 	@popd
+
+.PHONY: aws-build
+aws-build: $(addsuffix -build,$(addprefix aws-,$(BUILD_CONTAINERS)))
+
+.PHONY: aws-%-build
+aws-%-build:
+	
+	@ssh -i scripts/aws/nsm-key-pair$(NSM_AWS_SERVICE_SUFFIX) 
+
+.PHONY: aws-save
+aws-save: $(addsuffix -save,$(addprefix aws-,$(BUILD_CONTAINERS))) ;
+
+.PHONY: aws-%-save
+aws-%-save: aws-%-build ;
