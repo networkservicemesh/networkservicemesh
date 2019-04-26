@@ -47,7 +47,6 @@ func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
 		clientset:                   clientset,
 		stopFuncs:                   make([]func(), 0, 3),
 		nsmNamespace:                namespace.GetNamespace(),
-		createOrUpdate:              sync.Mutex{},
 	}
 }
 

@@ -12,9 +12,7 @@ type NetworkServiceCache struct {
 }
 
 func NewNetworkServiceCache() *NetworkServiceCache {
-	rv := &NetworkServiceCache{
-		networkServices: sync.Map{},
-	}
+	rv := &NetworkServiceCache{}
 	config := cacheConfig{
 		keyFunc:             getNsKey,
 		resourceAddedFunc:   rv.resourceAdded,

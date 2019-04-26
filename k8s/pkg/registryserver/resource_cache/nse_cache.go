@@ -14,10 +14,7 @@ type NetworkServiceEndpointCache struct {
 }
 
 func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
-	rv := &NetworkServiceEndpointCache{
-		nseByNs:                 sync.Map{},
-		networkServiceEndpoints: sync.Map{},
-	}
+	rv := &NetworkServiceEndpointCache{}
 	config := cacheConfig{
 		keyFunc:             getNseKey,
 		resourceAddedFunc:   rv.resourceAdded,

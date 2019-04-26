@@ -13,9 +13,7 @@ type NetworkServiceManagerCache struct {
 }
 
 func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
-	rv := &NetworkServiceManagerCache{
-		networkServiceManagers: sync.Map{},
-	}
+	rv := &NetworkServiceManagerCache{}
 	config := cacheConfig{
 		keyFunc:             getNsmKey,
 		resourceAddedFunc:   rv.resourceAdded,
