@@ -70,6 +70,9 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 	}
 
 	srv.healer = &healer{
+		serviceRegistry: serviceRegistry,
+		model:           model,
+
 		nsm: srv,
 	}
 
