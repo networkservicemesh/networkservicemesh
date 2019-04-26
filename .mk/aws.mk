@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+SSH_PARAMS=-i "scripts/aws/nsm-key-pair${NSM_AWS_SERVICE_SUFFIX}" -F scripts/aws/scp_config -o StrictHostKeyChecking=no
+
 .PHONY: aws-init
 aws-init:
 	@pushd scripts/aws
@@ -42,13 +44,29 @@ aws-get-kubeconfig:
 	@aws eks update-kubeconfig --name nsm --kubeconfig ../../kubeconfig
 	@popd
 
+.PHONY: aws-upload-nsm
+aws-upload-nsm:
+	#@scp -r -i "scripts/aws/nsm-key-pair${NSM_AWS_SERVICE_SUFFIX}" -F scripts/aws/scp_config -o StrictHostKeyChecking=no . aws-master:~/ ;
+	@tar czf - . --exclude=".git" | ssh -i "scripts/aws/nsm-key-pair${NSM_AWS_SERVICE_SUFFIX}" -F scripts/aws/scp_config -o StrictHostKeyChecking=no aws-master "\
+	rm -rf nsm && \
+	mkdir nsm && \
+	cd nsm && \
+	tar xvzf -"
+
 .PHONY: aws-build
-aws-build: $(addsuffix -build,$(addprefix aws-,$(BUILD_CONTAINERS)))
+aws-build: $(addsuffix -build,$(addprefix aws-,$(BUILD_CONTAINERS))) 
 
 .PHONY: aws-%-build
-aws-%-build:
-	
-	@ssh -i scripts/aws/nsm-key-pair$(NSM_AWS_SERVICE_SUFFIX) 
+aws-%-build: aws-upload-nsm
+	#ssh -i scripts/aws/nsm-key-pair -F scripts/aws/scp_config -o StrictHostKeyChecking=no aws-master
+	#@scp -r -i scripts/aws/nsm-key-pair -F scripts/aws/scp_config -o StrictHostKeyChecking=no . aws-master:~/
+	echo ${SSH_PARAMS}
+	@ssh ${SSH_PARAMS} aws-master "\
+	cd nsm && \
+	make docker-$*-save"
+	@scp ${SSH_PARAMS} -3 aws-master:~/nsm/scripts/vagrant/images/$*.tar aws-worker:~/
+	@ssh ${SSH_PARAMS} aws-worker "sudo docker load -i $*.tar"
+	#@ssh -i scripts/aws/nsm-key-pair$(NSM_AWS_SERVICE_SUFFIX) 
 
 .PHONY: aws-save
 aws-save: $(addsuffix -save,$(addprefix aws-,$(BUILD_CONTAINERS))) ;

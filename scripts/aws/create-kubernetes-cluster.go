@@ -13,6 +13,7 @@ import (
 )
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -30,10 +31,6 @@ type OutputsMap struct {
 var _, currentFilePath, _, _ = runtime.Caller(0)
 var currentPath = path.Dir(currentFilePath)
 
-func strp(str string) *string {
-	return &str
-}
-
 func checkError(err error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -42,6 +39,7 @@ func checkError(err error) {
 			case "AlreadyExistsException":
 			case "ResourceInUseException":
 			case "InvalidKeyPair.Duplicate":
+			case "InvalidPermission.Duplicate":
 			default:
 				log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
 			}
@@ -158,6 +156,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 			EndpointPrivateAccess: &endpointPrivateAccess,
 			EndpointPublicAccess:  &endpointPublicAccess,
 		},
+		Version: aws.String("1.12"),
 	})
 	checkError(err)
 
@@ -191,6 +190,7 @@ func CreateKubeConfigFile(cluster *eks.Cluster) {
 	kubeconfig = strings.Replace(kubeconfig, "<CERT>", *cluster.CertificateAuthority.Data, -1)
 	kubeconfig = strings.Replace(kubeconfig, "<SERVER_ENDPOINT>", *cluster.Endpoint, -1)
 	kubeconfig = strings.Replace(kubeconfig, "<SERVER_NAME>", *cluster.Arn, -1)
+	kubeconfig = strings.Replace(kubeconfig, "<CLUSTER_NAME>", *cluster.Name, -1)
 
 	err = ioutil.WriteFile(kubeconfigFile, []byte(kubeconfig), 0644)
 	checkError(err)
@@ -204,8 +204,13 @@ func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	resp, err := ec2Client.CreateKeyPair(&ec2.CreateKeyPairInput{
 		KeyName: keyPairName,
 	})
+	if err != nil && err.(awserr.Error).Code() == "InvalidKeyPair.Duplicate" {
+		return
+	}
+	checkError(err)
 
 	keyFile := "nsm-key-pair" + os.Getenv("NSM_AWS_SERVICE_SUFFIX")
+	os.Remove(keyFile)
 	err = ioutil.WriteFile(keyFile, []byte(*resp.KeyMaterial), 0400)
 
 	checkError(err)
@@ -213,7 +218,7 @@ func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	log.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
 }
 
-func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string, nodeGroupName *string, clusterName *string, keyPairName *string, clusterStackOutputs *OutputsMap) *string {
+func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string, nodeGroupName *string, clusterName *string, keyPairName *string, clusterStackOutputs *OutputsMap) (*string, *string) {
 	log.Printf("Creating Amazon EKS Worker Nodes on cluster \"%s\"...\n", *clusterName)
 
 	sf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-nodegroup.yaml"))
@@ -224,34 +229,34 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    nodesStackName,
 		TemplateBody: &s,
-		Capabilities: []*string{strp("CAPABILITY_IAM")},
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			{
-				ParameterKey:   strp("KeyName"),
+				ParameterKey: aws.String("KeyName"),
 				ParameterValue: keyPairName,
 			},
 			{
-				ParameterKey:   strp("NodeImageId"),
-				ParameterValue: strp("ami-0484545fe7d3da96f"),
+				ParameterKey: aws.String("NodeImageId"),
+				ParameterValue: aws.String("ami-0484545fe7d3da96f"),
 			},
 			{
-				ParameterKey:   strp("ClusterName"),
+				ParameterKey: aws.String("ClusterName"),
 				ParameterValue: clusterName,
 			},
 			{
-				ParameterKey:   strp("NodeGroupName"),
+				ParameterKey: aws.String("NodeGroupName"),
 				ParameterValue: nodeGroupName,
 			},
 			{
-				ParameterKey:   strp("ClusterControlPlaneSecurityGroup"),
+				ParameterKey: aws.String("ClusterControlPlaneSecurityGroup"),
 				ParameterValue: clusterStackOutputs.SecurityGroups,
 			},
 			{
-				ParameterKey:   strp("VpcId"),
+				ParameterKey: aws.String("VpcId"),
 				ParameterValue: clusterStackOutputs.VpcId,
 			},
 			{
-				ParameterKey:   strp("Subnets"),
+				ParameterKey:   aws.String("Subnets"),
 				ParameterValue: clusterStackOutputs.SubnetIds,
 			},
 		},
@@ -267,18 +272,49 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 		switch *resp.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
 			log.Printf("EKS Worker Nodes \"%s\" successfully created!\n", *nodesStackName)
+
+			var sequrityGroup *string
+			var instanceRole *string
+
 			for _, output := range resp.Stacks[0].Outputs {
-				if *output.OutputKey == "NodeInstanceRole" {
-					return output.OutputValue
+				if *output.OutputKey == "NodeSecurityGroup" {
+					sequrityGroup = output.OutputValue
+					break
 				}
 			}
-			return nil
-		case "CREATE_IN_PROGRESS":
+
+			for _, output := range resp.Stacks[0].Outputs {
+				if *output.OutputKey == "NodeInstanceRole" {
+					instanceRole = output.OutputValue
+				}
+			}
+			return sequrityGroup, instanceRole
+		case  "CREATE_IN_PROGRESS":
 			time.Sleep(time.Second)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 		}
 	}
+}
+
+func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
+	_, err := ec2client.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: groupId,
+		IpPermissions: []*ec2.IpPermission{
+			{
+				IpProtocol: aws.String("tcp"),
+				ToPort:     aws.Int64(22),
+				FromPort:   aws.Int64(22),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:aws.String("0.0.0.0/0"),
+						Description:aws.String("SSH access"),
+					},
+				},
+			},
+		},
+	})
+	checkError(err)
 }
 
 func createAWSKubernetesCluster() {
@@ -310,7 +346,9 @@ func createAWSKubernetesCluster() {
 
 	nodesStackName := "nsm-nodes" + serviceSuffix
 	nodeGroupName := "nsm-node-group" + serviceSuffix
-	nodeInstanceRole := createEksWorkerNodes(cfClient, &nodesStackName, &nodeGroupName, &clusterName, &keyPairName, clusterStackOutputs)
+	nodeSequrityGroup, nodeInstanceRole := createEksWorkerNodes(cfClient, &nodesStackName, &nodeGroupName, &clusterName, &keyPairName, clusterStackOutputs)
+
+	AuthorizeSecurityGroupIngress(ec2Client, nodeSequrityGroup)
 
 	// Enable worker nodes to join the cluster
 	sf, err := ioutil.ReadFile(path.Join(currentPath, "aws-auth-cm-temp.yaml"))
