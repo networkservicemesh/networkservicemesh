@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sync"
 )
 
 type RegistryCache interface {
@@ -36,7 +35,6 @@ type registryCacheImpl struct {
 	clientset                   *nsmClientset.Clientset
 	stopFuncs                   []func()
 	nsmNamespace                string
-	createOrUpdate              sync.Mutex
 }
 
 func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
@@ -135,8 +133,6 @@ func (rc *registryCacheImpl) GetEndpointsByNsm(nsmName string) []*v1.NetworkServ
 }
 
 func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
-	rc.createOrUpdate.Lock()
-	defer rc.createOrUpdate.Unlock()
 	existingNsm := rc.networkServiceManagerCache.Get(nsm.GetName())
 
 	if existingNsm != nil {

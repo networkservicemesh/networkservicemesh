@@ -44,13 +44,13 @@ func NewFakeRest(groupVersion schema.GroupVersion, serializer runtime.Negotiated
 }
 
 func (f *FakeRest) MockGet(api string, handler MethodHandler) {
-	f.getHandlersForMethod("GET")[api] = handler
+	f.getHandlersForMethod(http.MethodGet)[api] = handler
 }
 func (f *FakeRest) MockPost(api string, handler MethodHandler) {
-	f.getHandlersForMethod("POST")[api] = handler
+	f.getHandlersForMethod(http.MethodPost)[api] = handler
 }
 func (f *FakeRest) MockPut(api string, handler MethodHandler) {
-	f.getHandlersForMethod("PUT")[api] = handler
+	f.getHandlersForMethod(http.MethodPut)[api] = handler
 }
 
 func (f *FakeRest) getHandlersForMethod(method string) map[string]MethodHandler {

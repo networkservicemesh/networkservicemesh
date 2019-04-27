@@ -85,11 +85,12 @@ func TestNseCacheConcurrentModification(t *testing.T) {
 	stopRead := RepeatAsync(func() {
 		c.Get("nse1")
 		c.Get("nse2")
+		c.GetByNetworkService("ms1")
 
 	})
 	defer stopRead()
 	stopWrite := RepeatAsync(func() {
-		c.Delete("nsm-2")
+		c.Delete("nsm2")
 		c.Add(newTestNse("nse2", "ns2"))
 	})
 	defer stopWrite()

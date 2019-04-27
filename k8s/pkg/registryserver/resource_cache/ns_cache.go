@@ -3,20 +3,23 @@ package resource_cache
 import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
-	"sync"
 )
 
 type NetworkServiceCache struct {
 	cache           abstractResourceCache
-	networkServices sync.Map
+	networkServices map[string]*v1.NetworkService
+	getCh           chan *v1.NetworkService
 }
 
 func NewNetworkServiceCache() *NetworkServiceCache {
-	rv := &NetworkServiceCache{}
+	rv := &NetworkServiceCache{
+		networkServices: make(map[string]*v1.NetworkService),
+	}
 	config := cacheConfig{
 		keyFunc:             getNsKey,
 		resourceAddedFunc:   rv.resourceAdded,
 		resourceDeletedFunc: rv.resourceDeleted,
+		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsResource,
 	}
 	rv.cache = newAbstractResourceCache(config)
@@ -24,8 +27,9 @@ func NewNetworkServiceCache() *NetworkServiceCache {
 }
 
 func (c *NetworkServiceCache) Get(key string) *v1.NetworkService {
-	if result, ok := c.networkServices.Load(key); ok {
-		return result.(*v1.NetworkService)
+	v := c.cache.get(key)
+	if v != nil {
+		return v.(*v1.NetworkService)
 	}
 	return nil
 }
@@ -44,11 +48,15 @@ func (c *NetworkServiceCache) Start(informerFactory externalversions.SharedInfor
 
 func (c *NetworkServiceCache) resourceAdded(obj interface{}) {
 	ns := obj.(*v1.NetworkService)
-	c.networkServices.Store(ns.Name, ns)
+	c.networkServices[ns.Name] = ns
 }
 
 func (c *NetworkServiceCache) resourceDeleted(key string) {
-	c.networkServices.Delete(key)
+	delete(c.networkServices, key)
+}
+
+func (c *NetworkServiceCache) resourceGet(key string) interface{} {
+	return c.networkServices[key]
 }
 
 func getNsKey(obj interface{}) string {

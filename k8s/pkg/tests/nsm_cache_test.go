@@ -1,11 +1,24 @@
 package tests
 
 import (
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 	. "github.com/onsi/gomega"
 	"testing"
 	"time"
 )
+
+func TestNsmCacheGetNil(t *testing.T) {
+	RegisterTestingT(t)
+	c := resource_cache.NewNetworkServiceManagerCache()
+
+	stopFunc, err := c.Start(&fakeRegistry{})
+	defer stopFunc()
+	Expect(stopFunc).ToNot(BeNil())
+	Expect(err).To(BeNil())
+	var expect *v1.NetworkServiceManager = nil
+	Expect(c.Get("Justice")).Should(Equal(expect))
+}
 
 func TestNsmCacheConcurrentModification(t *testing.T) {
 	RegisterTestingT(t)
@@ -20,7 +33,10 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 	c.Add(FakeNsm("nsm-2"))
 
 	stopRead := RepeatAsync(func() {
-		c.Get("nsm-1")
+		nsm1 := c.Get("nsm-1")
+		Expect(nsm1).ShouldNot(BeNil())
+		Expect(nsm1.Name).Should(Equal("nsm-1"))
+
 		c.Get("nsm-2")
 
 	})

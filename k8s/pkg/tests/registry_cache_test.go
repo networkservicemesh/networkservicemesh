@@ -9,11 +9,11 @@ import (
 	. "github.com/onsi/gomega"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"net/http"
 	"sync"
 	"testing"
-	"time"
 )
 
 func readNsm(reader io.ReadCloser) v1.NetworkServiceManager {
@@ -73,7 +73,9 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	serverData.Store("fake", nsm)
 	fakeRest := fakeNsmRest(&serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
-	_, err := cache.CreateOrUpdateNetworkServiceManager(FakeNsm("fake"))
+	err := cache.Start()
+	Expect(err).Should(BeNil())
+	_, err = cache.CreateOrUpdateNetworkServiceManager(FakeNsm("fake"))
 	defer cache.Stop()
 	Expect(err).Should(BeNil())
 
@@ -82,24 +84,23 @@ func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	RegisterTestingT(t)
 	serverData := sync.Map{}
 	fakeRest := fakeNsmRest(&serverData)
-	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
-	defer cache.Stop()
-	stopClient1 := RepeatAsync(func() {
-		nsm := FakeNsm("fake")
-		_, err := cache.CreateOrUpdateNetworkServiceManager(nsm)
+	for i := 0; i < 10; i++ {
+		cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+		err := cache.Start()
 		Expect(err).Should(BeNil())
-	})
-	defer stopClient1()
-	stopClient2 := RepeatAsync(func() {
-		nsm := FakeNsm("fake")
-		_, err := cache.CreateOrUpdateNetworkServiceManager(nsm)
-		Expect(err).Should(BeNil())
-	})
-	defer stopClient2()
-	stopDelete := RepeatAsync(func() {
-		serverData.Delete("fake")
-		time.Sleep(time.Millisecond * 100)
-	})
-	defer stopDelete()
-	time.Sleep(time.Second * 5)
+		defer cache.Stop()
+		stopClient1 := RepeatAsync(func() {
+			nsm := FakeNsm("fake")
+			_, err := cache.CreateOrUpdateNetworkServiceManager(nsm)
+			Expect(err).Should(BeNil())
+		})
+		defer stopClient1()
+		stopClient2 := RepeatAsync(func() {
+			nsm := FakeNsm("fake")
+			_, err := cache.CreateOrUpdateNetworkServiceManager(nsm)
+			Expect(err).Should(BeNil())
+		})
+		defer stopClient2()
+		time.Sleep(time.Microsecond * 500)
+	}
 }

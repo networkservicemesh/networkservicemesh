@@ -21,7 +21,6 @@ func TestNsCacheConcurrentModification(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	c.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1"}})
-
 	stopRead := RepeatAsync(func() {
 		ns := c.Get("ns1")
 		Expect(ns).ShouldNot(BeNil())
