@@ -21,8 +21,9 @@ type networkServiceHealer interface {
 type healer struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
+	properties      *nsm.NsmProperties
 
-	nsm *networkServiceManager
+	nsm        *networkServiceManager
 	nseManager networkServiceEndpointManager
 }
 
@@ -30,7 +31,7 @@ func (h *healer) healDstDown(healID string, connection *model.ClientConnection) 
 	logrus.Infof("NSM_Heal(1.1.1-%v) Checking if DST die is NSMD/DST die...", healID)
 	// Check if this is a really HealState_DstDown or HealState_DstNmgrDown
 	if !h.nseManager.isLocalEndpoint(connection.Endpoint) {
-		ctx, cancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealTimeout*3)
+		ctx, cancel := context.WithTimeout(context.Background(), h.properties.HealTimeout*3)
 		defer cancel()
 		remoteNsmClient, err := h.nseManager.createNSEClient(ctx, connection.Endpoint)
 		if remoteNsmClient != nil {
@@ -51,7 +52,7 @@ func (h *healer) healDstDown(healID string, connection *model.ClientConnection) 
 		logrus.Infof("NSM_Heal(2.1-%v) Remote NSE heal is done on source side", healID)
 		return false
 	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealTimeout*3)
+		ctx, cancel := context.WithTimeout(context.Background(), h.properties.HealTimeout*3)
 		defer cancel()
 
 		logrus.Infof("NSM_Heal(2.2-%v) Starting DST Heal...", healID)
@@ -70,7 +71,7 @@ func (h *healer) healDstDown(healID string, connection *model.ClientConnection) 
 			connection.Endpoint = nil
 		}
 		// Fallback to heal with choose of new NSE.
-		requestCtx, requestCancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealRequestTimeout)
+		requestCtx, requestCancel := context.WithTimeout(context.Background(), h.properties.HealRequestTimeout)
 		defer requestCancel()
 		logrus.Errorf("NSM_Heal(2.3.0-%v) Starting Heal by calling request: %v", healID, connection.Request)
 		recoveredConnection, err := h.nsm.request(requestCtx, connection.Request, connection)
@@ -91,14 +92,14 @@ func (h *healer) healDstDown(healID string, connection *model.ClientConnection) 
 }
 
 func (h *healer) healDataplaneDown(healID string, connection *model.ClientConnection) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), h.properties.HealTimeout)
 	defer cancel()
 
 	// Dataplane is down, we only need to re-programm dataplane.
 	// 1. Wait for dataplane to appear.
 	logrus.Infof("NSM_Heal(3.1-%v) Waiting for Dataplane to recovery...", healID)
-	if err := h.serviceRegistry.WaitForDataplaneAvailable(h.model, h.nsm.GetHealProperties().HealDataplaneTimeout); err != nil {
-		logrus.Errorf("NSM_Heal(3.1-%v) Dataplane is not available on recovery for timeout %v: %v", h.nsm.GetHealProperties().HealDataplaneTimeout, healID, err)
+	if err := h.serviceRegistry.WaitForDataplaneAvailable(h.model, h.properties.HealDataplaneTimeout); err != nil {
+		logrus.Errorf("NSM_Heal(3.1-%v) Dataplane is not available on recovery for timeout %v: %v", h.properties.HealDataplaneTimeout, healID, err)
 		return false
 	}
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
@@ -122,7 +123,7 @@ func (h *healer) healDataplaneDown(healID string, connection *model.ClientConnec
 }
 
 func (h *healer) healDstUpdate(healID string, connection *model.ClientConnection) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), h.properties.HealTimeout)
 	defer cancel()
 
 	// Remote DST is updated.
@@ -141,7 +142,7 @@ func (h *healer) healDstUpdate(healID string, connection *model.ClientConnection
 func (h *healer) healDstNmgrDown(healID string, connection *model.ClientConnection) bool {
 	logrus.Infof("NSM_Heal(6.1-%v) Starting DST + NSMGR Heal...", healID)
 
-	ctx, cancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealTimeout*3)
+	ctx, cancel := context.WithTimeout(context.Background(), h.properties.HealTimeout*3)
 	defer cancel()
 
 	var initialEndpoint = connection.Endpoint
@@ -157,7 +158,7 @@ func (h *healer) healDstNmgrDown(healID string, connection *model.ClientConnecti
 		}
 		connection.Endpoint = nil
 	}
-	requestCtx, requestCancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealRequestTimeout)
+	requestCtx, requestCancel := context.WithTimeout(context.Background(), h.properties.HealRequestTimeout)
 	defer requestCancel()
 	recoveredConnection, err := h.nsm.request(requestCtx, connection.Request, connection)
 	if err != nil {
@@ -167,7 +168,7 @@ func (h *healer) healDstNmgrDown(healID string, connection *model.ClientConnecti
 			// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
 			if h.waitNSE(ctx, connection, initialEndpoint.NetworkserviceEndpoint.EndpointName, networkServiceName) {
 				// Ok we have NSE, lets retry request
-				requestCtx, requestCancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealRequestTimeout)
+				requestCtx, requestCancel := context.WithTimeout(context.Background(), h.properties.HealRequestTimeout)
 				defer requestCancel()
 				recoveredConnection, err = h.nsm.request(requestCtx, connection.Request, connection)
 				if err != nil {
@@ -244,12 +245,12 @@ func (h *healer) waitSpecificNSE(ctx context.Context, clientConnection *model.Cl
 			}
 		}
 
-		if time.Since(st) > h.nsm.GetHealProperties().HealDSTNSEWaitTimeout {
+		if time.Since(st) > h.properties.HealDSTNSEWaitTimeout {
 			logrus.Errorf("Timeout waiting for NetworkService: %v and NSE: %v", networkService, clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName)
 			return false
 		}
 		// Wait a bit
-		<-time.Tick(h.nsm.GetHealProperties().HealDSTNSEWaitTick)
+		<-time.Tick(h.properties.HealDSTNSEWaitTick)
 	}
 }
 
@@ -302,11 +303,11 @@ func (h *healer) waitNSE(ctx context.Context, clientConnection *model.ClientConn
 			}
 		}
 
-		if time.Since(st) > h.nsm.GetHealProperties().HealDSTNSEWaitTimeout {
+		if time.Since(st) > h.properties.HealDSTNSEWaitTimeout {
 			logrus.Errorf("Timeout waiting for NetworkService: %v", networkService)
 			return false
 		}
 		// Wait a bit
-		<-time.Tick(h.nsm.GetHealProperties().HealDSTNSEWaitTick)
+		<-time.Tick(h.properties.HealDSTNSEWaitTick)
 	}
 }

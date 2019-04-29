@@ -60,7 +60,6 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
 	emptyPrefixPool, _ := prefix_pool.NewPrefixPool()
 	properties := nsm.NewNsmProperties()
-
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
 		model:           model,
@@ -81,6 +80,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 	srv.healer = &healer{
 		serviceRegistry: serviceRegistry,
 		model:           model,
+		properties:      properties,
 
 		nsm:        srv,
 		nseManager: nseManager,
