@@ -50,7 +50,6 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Limits: v1.ResourceList{
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 			},
-			Requests: nil,
 		},
 	})
 	for k, v := range env {
