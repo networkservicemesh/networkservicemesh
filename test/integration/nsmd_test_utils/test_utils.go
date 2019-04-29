@@ -183,7 +183,7 @@ func defaultDirtyNSEEnv() map[string]string {
 }
 
 func defaultDirtyNSECommand() []string {
-	return []string{ "/bin/dirty-nse" }
+	return []string{ "/bin/icmp-responder-nse", "--dirty" }
 }
 
 func defaultNSCEnv() map[string]string {
