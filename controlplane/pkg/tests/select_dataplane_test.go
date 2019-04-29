@@ -20,6 +20,7 @@ func createTestDataplane(name string, localMechanisms []*localConnection.Mechani
 		SocketLocation:   "tcp:some_addr",
 		LocalMechanisms:  localMechanisms,
 		RemoteMechanisms: RemoteMechanisms,
+		MechanismsConfigured: true,
 	}
 }
 
