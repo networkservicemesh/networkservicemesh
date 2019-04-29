@@ -31,9 +31,10 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 	NSEs := make([]*registry.NetworkServiceEndpoint, len(endpointList))
 
 	NSMs := make(map[string]*registry.NetworkServiceManager)
-
+	endpointIds := []string{}
 	for i, endpoint := range endpointList {
 		NSEs[i] = mapNseFromCustomResource(endpoint, payload)
+		endpointIds = append(endpointIds, NSEs[i].EndpointName)
 		if nsm := d.cache.GetNetworkServiceManager(endpoint.Spec.NsmName); nsm != nil {
 			NSMs[endpoint.Spec.NsmName] = mapNsmFromCustomResource(nsm)
 		}
@@ -69,6 +70,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		NetworkServiceManagers:  NSMs,
 		NetworkServiceEndpoints: NSEs,
 	}
-	logrus.Infof("FindNetworkService done: time %v", time.Since(st))
+
+	logrus.Infof("FindNetworkService done: time %v %v", time.Since(st), endpointIds)
 	return response, nil
 }

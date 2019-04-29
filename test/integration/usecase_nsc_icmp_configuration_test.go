@@ -102,7 +102,9 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 
 	config := []*pods.NSMgrPodConfig{}
 	for i := 0; i < nodesCount; i++ {
-		cfg := &pods.NSMgrPodConfig{}
+		cfg := &pods.NSMgrPodConfig{
+			Variables: pods.DefaultNSMD,
+		}
 		cfg.Namespace = k8s.GetK8sNamespace()
 		if disableVHost {
 			cfg.DataplaneVariables = map[string]string{}

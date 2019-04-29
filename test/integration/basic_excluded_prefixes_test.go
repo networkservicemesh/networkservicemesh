@@ -34,6 +34,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 
 	variables := map[string]string{
 		nsmd.ExcludedPrefixesEnv: "10.20.1.0/24",
+		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{

@@ -76,6 +76,7 @@ func NSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Pod {
 	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
 		liveness:  createProbe("/liveness"),
 		readiness: createProbe("/readiness"),
+		Variables: DefaultNSMD,
 		Namespace: namespace})
 }
 

@@ -133,6 +133,13 @@ func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 		defaultICMPEnv(),
 	))
 }
+func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
+	pod := pods.ICMPResponderPod(name, node,
+		defaultICMPEnv(),
+	)
+	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
+	return deployICMP(k8s, node, name, timeout, pod )
+}
 
 func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,

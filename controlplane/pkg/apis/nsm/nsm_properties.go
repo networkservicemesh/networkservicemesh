@@ -13,11 +13,12 @@ const (
 )
 
 type NsmProperties struct {
-	HealTimeout               time.Duration
-	CloseTimeout              time.Duration
-	HealRequestTimeout        time.Duration
-	HealRequestConnectTimeout time.Duration
-	HealDataplaneTimeout      time.Duration
+	HealTimeout                    time.Duration
+	CloseTimeout                   time.Duration
+	HealRequestTimeout             time.Duration
+	RequestConnectTimeout          time.Duration
+	HealRequestConnectCheckTimeout time.Duration
+	HealDataplaneTimeout           time.Duration
 
 	// Total DST heal timeout is 20 seconds.
 	HealDSTNSEWaitTimeout time.Duration
@@ -28,11 +29,12 @@ type NsmProperties struct {
 
 func NewNsmProperties() *NsmProperties {
 	values := &NsmProperties{
-		HealTimeout:               time.Minute * 1,
-		CloseTimeout:              time.Second * 5,
-		HealRequestTimeout:        time.Minute * 1,
-		HealRequestConnectTimeout: time.Second * 5,
-		HealDataplaneTimeout:      time.Minute * 1,
+		HealTimeout:                    time.Minute * 1,
+		CloseTimeout:                   time.Second * 5,
+		HealRequestTimeout:             time.Minute * 1,
+		RequestConnectTimeout:          time.Second * 15,
+		HealRequestConnectCheckTimeout: time.Second * 1,
+		HealDataplaneTimeout:           time.Minute * 1,
 
 		// Total DST heal timeout is 20 seconds.
 		HealDSTNSEWaitTimeout: time.Second * 30,       // Maximum time to wait for NSMD/NSE to re-appear

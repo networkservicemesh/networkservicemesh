@@ -101,5 +101,5 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
 	Expect(clientConnection1_1.GetId()).To(Equal("1"))
-	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("4"))
+	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("3"))
 }

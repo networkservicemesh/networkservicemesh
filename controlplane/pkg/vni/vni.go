@@ -20,22 +20,23 @@ import (
 )
 
 type VniAllocator interface {
-	Vni(local_ip string, remote_ip string) uint64
+	Vni(local_ip string, remote_ip string) uint32
+	Restore(local_ip string, remote_ip string, vniId uint32)
 }
 
 type vniAllocator struct {
-	lastVni map[string]uint64
+	lastVni map[string]uint32
 	sync.Mutex
 }
 
 func NewVniAllocator() VniAllocator {
 	return &vniAllocator{
-		lastVni: make(map[string]uint64),
+		lastVni: make(map[string]uint32),
 	}
 }
 
 // Vni - Allocate a new VNI, odd if local_ip < remote_ip, even otherwise
-func (a *vniAllocator) Vni(local_ip string, remote_ip string) uint64 {
+func (a *vniAllocator) Vni(local_ip string, remote_ip string) uint32 {
 	a.Lock()
 	defer a.Unlock()
 	lip := net.ParseIP(local_ip)
@@ -49,6 +50,12 @@ func (a *vniAllocator) Vni(local_ip string, remote_ip string) uint64 {
 	a.lastVni[remote_ip] = lastVni + 2
 	return a.lastVni[remote_ip]
 }
+
+// Restore value of last Vni based on connections we have at the moment.
+func (a *vniAllocator) Restore(local_ip string, remote_ip string, vniId uint32) {
+	a.lastVni[remote_ip] = vniId
+}
+
 
 func compareIps(ip1 net.IP, ip2 net.IP) int {
 	for index, value := range ip1 {

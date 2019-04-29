@@ -124,32 +124,34 @@ func dial(ctx context.Context, endpoint net.Addr) (*grpc.ClientConn, error) {
 	return c, err
 }
 
-//TODO: We need to change this method, having ctx and interval have not give good understanding of how it works.
-func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string, interval time.Duration) error {
-	if interval < 0 {
-		return errors.New("interval must be positive")
+func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string, idleSleep time.Duration) error {
+	if idleSleep < 0 {
+		return errors.New("idleSleep must be positive")
 	}
 	logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
 	last := time.Now()
-	for ; true; <-time.After(interval) {
+
+	for {
 		select {
 		case <-ctx.Done():
 			return errors.New("timeout waiting for: " + protoType + ":" + registryAddress)
 		default:
-			conn, err := net.Dial(protoType, registryAddress)
-			if err != nil {
-				if time.Since(last) > 60*time.Second {
-					logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
-					last = time.Now()
-				}
-				time.Sleep(interval)
-				continue
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, protoType, registryAddress)
+			if conn != nil {
+				_ = conn.Close()
 			}
-			conn.Close()
-			return nil
+			if err == nil {
+				return nil
+			}
+			if time.Since(last) > 60*time.Second {
+				logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
+				last = time.Now()
+			}
+			// Sleep to not overflow network
+			<- time.After(idleSleep)
 		}
 	}
-	return nil
 }
 
 func parseKV(kv, kvsep string) (string, string) {

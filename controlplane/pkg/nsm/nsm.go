@@ -430,6 +430,9 @@ func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistra
 	return srv.getNetworkServiceManagerName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
 }
 
+
+
+
 /**
 ctx - we assume it is big enought to perform connection.
 */
@@ -459,7 +462,7 @@ func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint 
 
 func (srv *networkServiceManager) performNSERequest(requestId string, ctx context.Context, endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, request nsm.NSMRequest, dp *model.Dataplane, existingConnection *model.ClientConnection) (*model.ClientConnection, error) {
 	// 7.2.6.x
-	connectCtx, connectCancel := context.WithTimeout(ctx, srv.properties.HealRequestConnectTimeout)
+	connectCtx, connectCancel := context.WithTimeout(ctx, srv.properties.RequestConnectTimeout)
 	defer connectCancel()
 
 	client, err := srv.createNSEClient(connectCtx, endpoint)
@@ -665,15 +668,19 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, requestConnec
 		logrus.Error(err)
 		return nil, err
 	}
-	endpoints := srv.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignore_endpoints)
+	allEndpoints := endpointResponse.GetNetworkServiceEndpoints()
+	logrus.Infof("Discovered %v total endpoints...", len(allEndpoints))
+	endpoints := srv.filterEndpoints(allEndpoints, ignore_endpoints)
 
 	if len(endpoints) == 0 {
 		return nil, fmt.Errorf("Failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
-			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
+			requestConnection.GetNetworkService(), len(ignore_endpoints), len(allEndpoints))
 	}
 
 	endpoint := srv.model.GetSelector().SelectEndpoint(requestConnection.(*connection.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
+		err = fmt.Errorf("No endpoint found for network service: %v total endpoints %v...", nseRequest.NetworkServiceName, len(allEndpoints))
+		logrus.Info(err)
 		return nil, err
 	}
 	return &registry.NSERegistration{
@@ -762,6 +769,10 @@ func (srv *networkServiceManager) WaitForDataplane(timeout time.Duration) error 
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string) {
 	for _, xcon := range xcons {
+
+		// Model should increase its id counter to max of xcons restored from dataplane
+		srv.model.CorrectIdGenerator(xcon.GetId())
+
 		existing := srv.model.GetClientConnection(xcon.GetId())
 		if existing == nil {
 			logrus.Infof("Restoring state of active connection %v", xcon)
@@ -797,6 +808,19 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 
 				networkServiceName = xcon.GetRemoteDestination().GetNetworkService()
 				endpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
+
+				// In case VxLan is used we need to correct vlanId id generator.
+				m := dst.GetMechanism()
+				if m.Type == remote_connection.MechanismType_VXLAN {
+					srcIp, err := m.SrcIP()
+					dstIp, err2 := m.DstIP()
+					vni, err3 := m.VNI()
+					if err != nil || err2 != nil || err3 != nil {
+						logrus.Errorf("Error retriving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+					} else {
+						srv.serviceRegistry.VniAllocator().Restore(srcIp, dstIp, vni)
+					}
+				}
 			}
 
 			if endpointName != "" {
@@ -843,7 +867,11 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 
 			// Add healing timer, for connection to be headled from source side.
 			if src := xcon.GetRemoteSource(); src != nil {
-				srv.RemoteConnectionLost(clientConnection)
+				if endpoint != nil {
+					srv.RemoteConnectionLost(clientConnection)
+				} else {
+					srv.closeLocalMissingNSE(clientConnection)
+				}
 			} else if src := xcon.GetLocalSource(); src != nil {
 				// Update request to match source connection
 				request := &networkservice.NetworkServiceRequest{
@@ -853,10 +881,15 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				clientConnection.Request = request
 
 				if dst := xcon.GetRemoteDestination(); dst != nil {
-					srv.Heal(clientConnection, nsm.HealState_DstDown)
+					srv.Heal(clientConnection, nsm.HealState_DstNmgrDown)
 				}
 				if dst := xcon.GetLocalDestination(); dst != nil {
-					srv.Heal(clientConnection, nsm.HealState_DstDown)
+					// In this case if there is no NSE, we just need to close.
+					if endpoint != nil {
+						srv.Heal(clientConnection, nsm.HealState_DstNmgrDown)
+					} else {
+						srv.closeLocalMissingNSE(clientConnection)
+					}
 				}
 			}
 			if src := xcon.GetLocalSource(); src != nil {
@@ -871,6 +904,14 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 	logrus.Infof("All connections are recovered...")
 	// Notify state is restored
 	srv.stateRestored <- true
+}
+
+func (srv *networkServiceManager) closeLocalMissingNSE(clientConnection *model.ClientConnection) {
+	logrus.Infof("Local endopoint is not available, so closing local NSE connection %v", clientConnection)
+	err := srv.close(context.Background(), clientConnection, true, true)
+	if err != nil {
+		logrus.Errorf("Failed to close local NSE(missing) connection %v", err)
+	}
 }
 
 func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMClientConnection) {
@@ -891,7 +932,10 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 }
 
 func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConnection *model.ClientConnection) error {
-
+	if clientConnection.Endpoint == nil {
+		logrus.Infof("No need to close, since NSE is we know is dead at this point.")
+		return nil
+	}
 	closeCtx, closeCancel := context.WithTimeout(ctx, srv.properties.CloseTimeout)
 	defer closeCancel()
 
@@ -912,4 +956,24 @@ func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConne
 		logrus.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
 	}
 	return nseClientError
+}
+
+func (srv *networkServiceManager) checkUpdateNSE(ctx context.Context, clientConnection *model.ClientConnection, ep *registry.NetworkServiceEndpoint, endpointResponse *registry.FindNetworkServiceResponse) bool {
+	pingCtx, pingCancel := context.WithTimeout(ctx, srv.properties.HealRequestConnectCheckTimeout)
+	defer pingCancel()
+	reg := &registry.NSERegistration{
+		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[ep.GetNetworkServiceManagerName()],
+		NetworkserviceEndpoint: ep,
+		NetworkService:         endpointResponse.GetNetworkService(),
+	}
+
+	client, err := srv.createNSEClient(pingCtx, reg)
+	if err == nil && client != nil {
+		_ = client.Cleanup()
+
+		// Update endpoint to connect new one.
+		clientConnection.Endpoint = reg
+		return true
+	}
+	return false
 }

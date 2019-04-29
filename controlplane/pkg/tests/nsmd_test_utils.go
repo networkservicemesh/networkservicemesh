@@ -439,6 +439,7 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 				Type: connection.MechanismType_KERNEL_INTERFACE,
 			},
 		},
+		MechanismsConfigured: true,
 	})
 }
 
