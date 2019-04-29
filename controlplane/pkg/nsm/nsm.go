@@ -19,8 +19,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -82,7 +82,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		model:           model,
 		properties:      properties,
 
-		nsm:        srv,
+		conManager: srv,
 		nseManager: nseManager,
 	}
 
@@ -159,7 +159,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		if request.IsRemote() {
 			return findRemoteMechanism(dp.RemoteMechanisms, remote_connection.MechanismType_VXLAN) != nil
 		} else {
-			r := request.(*networkservice.NetworkServiceRequest)
+			r := request.(*local_networkservice.NetworkServiceRequest)
 			for _, m := range r.MechanismPreferences {
 				if findLocalMechanism(dp.LocalMechanisms, m.Type) != nil {
 					return true
@@ -251,8 +251,8 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		} else {
 			// 7.2.2 It is local connection from NSC, so just copy values.
 			ls := clientConnection.Xcon.GetLocalSource()
-			ls.Mechanism = nsmConnection.(*connection.Connection).Mechanism
-			ls.State = connection.State_UP
+			ls.Mechanism = nsmConnection.(*local_connection.Connection).Mechanism
+			ls.State = local_connection.State_UP
 		}
 	}
 
@@ -501,7 +501,7 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 		}
 	} else {
 		dpApiConnection.Source = &crossconnect.CrossConnect_LocalSource{
-			LocalSource: requestConnection.(*connection.Connection),
+			LocalSource: requestConnection.(*local_connection.Connection),
 		}
 	}
 
@@ -513,7 +513,7 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 		}
 	} else {
 		dpApiConnection.Destination = &crossconnect.CrossConnect_LocalDestination{
-			LocalDestination: nseConnection.(*connection.Connection),
+			LocalDestination: nseConnection.(*local_connection.Connection),
 		}
 	}
 	return dpApiConnection
@@ -589,10 +589,10 @@ func (srv *networkServiceManager) updateConnectionParameters(requestId string, n
 	if srv.nseManager.isLocalEndpoint(endpoint) {
 		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
 		if modelEp != nil { // In case of tests this could be empty
-			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = modelEp.Workspace
-			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.WorkspaceNSEName] = modelEp.Endpoint.NetworkserviceEndpoint.EndpointName
+			nseConnection.(*local_connection.Connection).GetMechanism().GetParameters()[local_connection.Workspace] = modelEp.Workspace
+			nseConnection.(*local_connection.Connection).GetMechanism().GetParameters()[local_connection.WorkspaceNSEName] = modelEp.Endpoint.NetworkserviceEndpoint.EndpointName
 		}
-		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*connection.Connection).GetMechanism())
+		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*local_connection.Connection).GetMechanism())
 	}
 }
 
@@ -689,7 +689,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				connectionState = model.ClientConnection_Ready
 
 				networkServiceName = dst.GetNetworkService()
-				endpointName = dst.GetMechanism().GetParameters()[connection.WorkspaceNSEName]
+				endpointName = dst.GetMechanism().GetParameters()[local_connection.WorkspaceNSEName]
 			}
 			if dst := xcon.GetRemoteDestination(); dst != nil {
 				// NSE is remote one, and source is local one, we are ready.
@@ -763,9 +763,9 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				}
 			} else if src := xcon.GetLocalSource(); src != nil {
 				// Update request to match source connection
-				request := &networkservice.NetworkServiceRequest{
+				request := &local_networkservice.NetworkServiceRequest{
 					Connection:           src,
-					MechanismPreferences: []*connection.Mechanism{src.GetMechanism()},
+					MechanismPreferences: []*local_connection.Mechanism{src.GetMechanism()},
 				}
 				clientConnection.Request = request
 
@@ -782,7 +782,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				}
 			}
 			if src := xcon.GetLocalSource(); src != nil {
-				if src.State == connection.State_DOWN {
+				if src.State == local_connection.State_DOWN {
 					// if source is down, we need to close connection properly.
 					_ = srv.Close(context.Background(), clientConnection)
 				}

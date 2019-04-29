@@ -23,8 +23,13 @@ type healer struct {
 	model           model.Model
 	properties      *nsm.NsmProperties
 
-	nsm        *networkServiceManager
+	conManager connectionManager
 	nseManager networkServiceEndpointManager
+}
+
+type connectionManager interface {
+	request(ctx context.Context, request nsm.NSMRequest, existingConnection *model.ClientConnection) (nsm.NSMConnection, error)
+	close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool, modelRemove bool) error
 }
 
 func (h *healer) healDstDown(healID string, connection *model.ClientConnection) bool {
@@ -74,7 +79,7 @@ func (h *healer) healDstDown(healID string, connection *model.ClientConnection) 
 		requestCtx, requestCancel := context.WithTimeout(context.Background(), h.properties.HealRequestTimeout)
 		defer requestCancel()
 		logrus.Errorf("NSM_Heal(2.3.0-%v) Starting Heal by calling request: %v", healID, connection.Request)
-		recoveredConnection, err := h.nsm.request(requestCtx, connection.Request, connection)
+		recoveredConnection, err := h.conManager.request(requestCtx, connection.Request, connection)
 		if err != nil {
 			logrus.Errorf("NSM_Heal(2.3.1-%v) Failed to heal connection: %v", healID, err)
 			// We need to delete connection, since we are not able to Heal it
@@ -160,7 +165,7 @@ func (h *healer) healDstNmgrDown(healID string, connection *model.ClientConnecti
 	}
 	requestCtx, requestCancel := context.WithTimeout(context.Background(), h.properties.HealRequestTimeout)
 	defer requestCancel()
-	recoveredConnection, err := h.nsm.request(requestCtx, connection.Request, connection)
+	recoveredConnection, err := h.conManager.request(requestCtx, connection.Request, connection)
 	if err != nil {
 		logrus.Errorf("NSM_Heal(6.2.1-%v) Failed to heal connection with same NSE from registry: %v", healID, err)
 		if initialEndpoint != nil {
@@ -170,7 +175,7 @@ func (h *healer) healDstNmgrDown(healID string, connection *model.ClientConnecti
 				// Ok we have NSE, lets retry request
 				requestCtx, requestCancel := context.WithTimeout(context.Background(), h.properties.HealRequestTimeout)
 				defer requestCancel()
-				recoveredConnection, err = h.nsm.request(requestCtx, connection.Request, connection)
+				recoveredConnection, err = h.conManager.request(requestCtx, connection.Request, connection)
 				if err != nil {
 					if err != nil {
 						logrus.Errorf("NSM_Heal(6.2.3-%v) Error in Recovery Close: %v", healID, err)
@@ -197,12 +202,13 @@ func (h *healer) healDstNmgrDown(healID string, connection *model.ClientConnecti
 
 func (h *healer) requestOrClose(logPrefix string, ctx context.Context, request nsm.NSMRequest, clientConnection *model.ClientConnection) {
 	logrus.Infof("%v delegate to Request %v", logPrefix, request)
-	connection, err := h.nsm.request(ctx, request, clientConnection)
+	connection, err := h.conManager.request(ctx, request, clientConnection)
 	if err != nil {
 		logrus.Errorf("%v Failed to heal connection: %v", logPrefix, err)
 		// Close in case of any errors in recovery.
-		err = h.nsm.Close(context.Background(), clientConnection)
-		logrus.Errorf("%v Error in Recovery Close: %v", logPrefix, err)
+		if err = h.conManager.close(context.Background(), clientConnection, true, true); err != nil {
+			logrus.Errorf("%v Error in Recovery Close: %v", logPrefix, err)
+		}
 	} else {
 		logrus.Infof("%v Heal: Connection recovered: %v", logPrefix, connection)
 	}
@@ -215,7 +221,6 @@ func (h *healer) waitSpecificNSE(ctx context.Context, clientConnection *model.Cl
 		// Still try to recovery
 		return false
 	}
-
 	st := time.Now()
 
 	networkService := clientConnection.Endpoint.NetworkService.Name
@@ -284,7 +289,7 @@ func (h *healer) waitNSE(ctx context.Context, clientConnection *model.ClientConn
 				}
 
 				// Check local only if not waiting for specific NSE.
-				if h.nsm.getNetworkServiceManagerName() == ep.GetNetworkServiceManagerName() {
+				if h.model.GetNsm().GetName() == ep.GetNetworkServiceManagerName() {
 					// Another local endpoint is found, success.
 					reg := &registry.NSERegistration{
 						NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[ep.GetNetworkServiceManagerName()],
