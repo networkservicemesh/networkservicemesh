@@ -67,10 +67,10 @@ func (c *NetworkServiceManagerCache) resourceUpdated(obj interface{}) {
 }
 
 func (c *NetworkServiceManagerCache) resourceDeleted(key string) {
-	deletedVal := c.networkServiceManagers[key]
+	logrus.Infof("NetworkServiceManagerCache.Deleted(%v=%v)", key, c.networkServiceManagers[key])
 	delete(c.networkServiceManagers, key)
-	logrus.Infof("NetworkServiceManagerCache.Deleted(%v=%v)", key, deletedVal)
 }
+
 func (c *NetworkServiceManagerCache) resourceGet(key string) interface{} {
 	return c.networkServiceManagers[key]
 }

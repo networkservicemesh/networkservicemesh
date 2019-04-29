@@ -8,8 +8,6 @@ import (
 	"reflect"
 )
 
-type eventType int
-
 const (
 	NseResource = "networkserviceendpoints"
 	NsResource  = "networkservices"
