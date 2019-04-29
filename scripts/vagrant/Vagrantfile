@@ -1,6 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+WORKER_COUNT = ENV['WORKER_COUNT'].nil? ? 1 : ENV['WORKER_COUNT'].to_i
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/go/src/github.com/networkservicemesh/networkservicemesh",
@@ -47,10 +48,12 @@ Vagrant.configure("2") do |config|
     master.vm.provision "shell", path: "scripts/configureK8smaster.sh"
     master.vm.provision "shell", path: "scripts/coredump.sh"
   end
-  config.vm.define "worker" do |worker|
-    worker.vm.hostname = "kube-worker"
-    worker.vm.provision "shell", path: "scripts/configureK8sworker.sh"
-    worker.vm.provision "shell", path: "scripts/coredump.sh"
+  (1..WORKER_COUNT).each do |i|
+    config.vm.define "worker#{i}" do |worker|
+      worker.vm.hostname = "kube-worker#{i}"
+      worker.vm.provision "shell", path: "scripts/configureK8sworker.sh"
+      worker.vm.provision "shell", path: "scripts/coredump.sh"
+    end
   end
 
 end

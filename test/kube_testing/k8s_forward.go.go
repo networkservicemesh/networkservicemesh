@@ -24,6 +24,7 @@ type PortForward struct {
 	ListenPort int
 	stopChan   chan struct{}
 	readyChan  chan struct{}
+	pf         *portforward.PortForwarder
 }
 
 func (k8s *K8s) NewPortForwarder(pod *v1.Pod, port int) (*PortForward, error) {
@@ -60,6 +61,7 @@ func (p *PortForward) Start() error {
 	if err != nil {
 		return fmt.Errorf("Could not port forward into pod %v", err)
 	}
+	p.pf = pf
 
 	go func() {
 		errChan <- pf.ForwardPorts()
@@ -75,6 +77,7 @@ func (p *PortForward) Start() error {
 
 func (p *PortForward) Stop() {
 	p.stopChan <- struct{}{}
+	p.pf.Close()
 }
 
 func (p *PortForward) getListenPort() (int, error) {

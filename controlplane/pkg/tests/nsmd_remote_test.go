@@ -20,8 +20,8 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv2 := newNSMDFullServer(Worker, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 	defer srv2.Stop()
 
@@ -72,8 +72,8 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv2 := newNSMDFullServer(Worker, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 	defer srv2.Stop()
 	srv.testModel.AddDataplane(&model.Dataplane{
@@ -170,8 +170,8 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv2 := newNSMDFullServer(Worker, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 	defer srv2.Stop()
 

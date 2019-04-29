@@ -128,6 +128,8 @@ type standaloneDataplaneFixture struct {
 
 func (fixture *standaloneDataplaneFixture) cleanup() {
 	fixture.forwarding.Stop()
+	// Let's delete source/destPod without gracetimeout
+	fixture.k8s.DeletePodsForce(fixture.sourcePod, fixture.destPod)
 	fixture.k8s.Cleanup()
 }
 

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -57,6 +58,7 @@ type nsmdTestServiceDiscovery struct {
 	nsmCounter           int
 	nsmgrName            string
 	clusterConfiguration *registry.ClusterConfiguration
+	currentSubnetStream  *dummySubnetStream
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
@@ -133,7 +135,55 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 }
 
 func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.ClusterConfiguration, error) {
+	if impl.clusterConfiguration == nil {
+		return nil, fmt.Errorf("ClusterConfiguration is not supported")
+	}
 	return impl.clusterConfiguration, nil
+}
+
+type dummySubnetStream struct {
+	sync.RWMutex
+	grpc.ClientStream
+	isKilled  bool
+	responses chan *registry.SubnetExtendingResponse
+}
+
+func newDummySubnetStream() *dummySubnetStream {
+	return &dummySubnetStream{
+		isKilled:  false,
+		responses: make(chan *registry.SubnetExtendingResponse, 10),
+	}
+}
+
+func (d *dummySubnetStream) Recv() (*registry.SubnetExtendingResponse, error) {
+	r := <-d.responses
+
+	d.RLock()
+	if d.isKilled {
+		return nil, fmt.Errorf("killed")
+	}
+	d.RUnlock()
+
+	return r, nil
+}
+
+func (d *dummySubnetStream) dummyKill() {
+	d.Lock()
+	defer d.Unlock()
+
+	logrus.Info("Killing subnetStream")
+	d.isKilled = true
+	d.responses <- nil
+}
+
+func (d *dummySubnetStream) addResponse(r *registry.SubnetExtendingResponse) {
+	d.responses <- r
+}
+
+func (impl *nsmdTestServiceDiscovery) MonitorSubnets(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (registry.ClusterInfo_MonitorSubnetsClient, error) {
+	logrus.Info("New subnet stream requested")
+	impl.currentSubnetStream = newDummySubnetStream()
+	return impl.currentSubnetStream, nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -445,33 +495,19 @@ func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientCon
 	return response, con
 }
 
-func newNSMDFullServer(nsmgrName string, storage *sharedStorage, excludedPrefixes ...string) *nsmdFullServerImpl {
+func newNSMDFullServer(nsmgrName string, storage *sharedStorage, cfg *registry.ClusterConfiguration) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	if len(excludedPrefixes) == 0 {
-		excludedPrefixes = []string{
-			"127.0.0.0/24",
-			"127.0.1.0/24",
-		}
-	}
-
-	return newNSMDFullServerAt(nsmgrName, storage, rootDir, excludedPrefixes...)
+	return newNSMDFullServerAt(nsmgrName, storage, rootDir, cfg)
 }
 
-func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, excludedPrefixes ...string) *nsmdFullServerImpl {
-	var clusterConfiguration registry.ClusterConfiguration
-	if len(excludedPrefixes) == 2 {
-		clusterConfiguration = registry.ClusterConfiguration{
-			PodSubnet:     excludedPrefixes[0],
-			ServiceSubnet: excludedPrefixes[1],
-		}
-	}
+func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, cfg *registry.ClusterConfiguration) *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, &clusterConfiguration)
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, cfg)
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -490,11 +526,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	srv.testModel = model.NewModel()
-	pool, err := prefix_pool.NewPrefixPool(clusterConfiguration.PodSubnet, clusterConfiguration.ServiceSubnet)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, pool)
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()
@@ -512,4 +544,16 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	Expect(err).To(BeNil())
 
 	return srv
+}
+
+func newClusterConfiguration(podCIDR, serviceCIDR string) *registry.ClusterConfiguration {
+	return &registry.ClusterConfiguration{
+		PodSubnet:     podCIDR,
+		ServiceSubnet: serviceCIDR,
+	}
+}
+
+var defaultClusterConfiguration = &registry.ClusterConfiguration{
+	PodSubnet:     "127.0.1.0/24",
+	ServiceSubnet: "127.0.2.0/24",
 }

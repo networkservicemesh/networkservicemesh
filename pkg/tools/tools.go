@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
 	"syscall"
@@ -81,6 +82,17 @@ func (socket SocketPath) Network() string {
 
 func (socket SocketPath) String() string {
 	return string(socket)
+}
+
+func NewOSSignalChannel() chan os.Signal {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		os.Interrupt,
+		// More Linux signals here
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+	return c
 }
 
 // SocketOperationCheck checks for liveness of a gRPC server socket.

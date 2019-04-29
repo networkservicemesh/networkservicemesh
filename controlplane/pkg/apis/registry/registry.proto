@@ -80,6 +80,16 @@ message ClusterConfiguration {
     string serviceSubnet = 2;
 }
 
+message SubnetExtendingResponse {
+    enum SubnetType {
+        POD = 0;
+        SERVICE = 1;
+    }
+    SubnetType type = 1;
+    string subnet = 2;
+}
+
 service ClusterInfo {
     rpc GetClusterConfiguration(google.protobuf.Empty) returns (ClusterConfiguration);
+    rpc MonitorSubnets(google.protobuf.Empty) returns (stream SubnetExtendingResponse);
 }

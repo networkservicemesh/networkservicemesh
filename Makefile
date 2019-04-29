@@ -14,6 +14,7 @@
 
 # We want to use bash
 SHELL:=/bin/bash
+WORKER_COUNT ?= 1
 
 # Default target, no other targets should be before default
 .PHONY: default

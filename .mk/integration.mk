@@ -23,6 +23,10 @@ k8s-integration-config:
 k8s-integration-tests: k8s-integration-config
 	@GO111MODULE=on NSM_NAMESPACE=${NSM_NAMESPACE} go test -v ./test/... -failfast -timeout 30m -tags="basic recover usecase"
 
+.PHONY: k8s-integration-tests-%
+k8s-integration-tests-%: k8s-integration-config
+	@GO111MODULE=on NSM_NAMESPACE=${NSM_NAMESPACE} go test -v ./test/... -failfast -timeout 30m -tags="$*"
+
 .PHONY: k8s-integration-%-test
 k8s-integration-%-test: k8s-integration-config
 	@GO111MODULE=on BROKEN_TESTS_ENABLED=on NSM_NAMESPACE=${NSM_NAMESPACE} go test -v ./test/... -failfast -tags="basic recover usecase" -run $*

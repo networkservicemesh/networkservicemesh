@@ -4,11 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
-	"os/signal"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -114,8 +112,9 @@ func main() {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	go func() {
 		<-c
 		closing = true

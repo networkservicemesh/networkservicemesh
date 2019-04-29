@@ -20,6 +20,11 @@ import (
 func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	RegisterTestingT(t)
 
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Skipped for a while, will be enabled soon")
+		return
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return

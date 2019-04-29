@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,7 +34,9 @@ type NodeConf struct {
 	Node      *v1.Node
 }
 type PodSupplier = func(*kube_testing.K8s, *v1.Node, string, time.Duration) *v1.Pod
+type NsePinger = func(k8s *kube_testing.K8s, from *v1.Pod) bool
 type NscChecker = func(*kube_testing.K8s, *testing.T, *v1.Pod) *NSCCheckInfo
+type ipParser = func(string) (string, error)
 
 func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
@@ -43,48 +46,54 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 
-	confs := []*NodeConf{}
-	for i := 0; i < nodesCount; i++ {
-		startTime := time.Now()
-		node := &nodes[i]
-		nsmdName := fmt.Sprintf("nsmgr-%s", node.Name)
-		dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
-		var corePod *v1.Pod
-		var dataplanePod *v1.Pod
-		debug := false
-		if i >= len(conf) {
-			corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-			dataplanePod = pods.VPPDataplanePod(dataplaneName, node)
-		} else {
-			conf[i].Namespace = namespace
-			if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
-				debug = true
+	var wg sync.WaitGroup
+	confs := make([]*NodeConf, nodesCount)
+	for ii := 0; ii < nodesCount; ii++ {
+		wg.Add(1)
+		i := ii
+		go func() {
+			defer wg.Done()
+			startTime := time.Now()
+			node := &nodes[i]
+			nsmdName := fmt.Sprintf("nsmgr-%s", node.Name)
+			dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
+			var corePod *v1.Pod
+			var dataplanePod *v1.Pod
+			debug := false
+			if i >= len(conf) {
+				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
+				dataplanePod = pods.VPPDataplanePod(dataplaneName, node)
+			} else {
+				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
+					debug = true
+				}
+				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
+				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, conf[i].DataplaneVariables)
 			}
-			corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
-			dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, conf[i].DataplaneVariables)
-		}
-		corePods := k8s.CreatePods(corePod, dataplanePod)
-		if debug {
-			podContainer := "nsmd"
-			if conf[i].Nsmd == pods.NSMgrContainerDebug {
-				podContainer = "nsmd"
-			} else if conf[i].NsmdP == pods.NSMgrContainerDebug {
-				podContainer = "nsmdp"
+			corePods := k8s.CreatePods(corePod, dataplanePod)
+			if debug {
+				podContainer := "nsmd"
+				if conf[i].Nsmd == pods.NSMgrContainerDebug {
+					podContainer = "nsmd"
+				} else if conf[i].NsmdP == pods.NSMgrContainerDebug {
+					podContainer = "nsmdp"
+				}
+
+				k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
+				logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
 			}
+			nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, &nodes[i], corePods, timeout)
 
-			k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
-			logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
-		}
-		nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, &nodes[i], corePods, timeout)
-
-		logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
-		Expect(err).To(BeNil())
-		confs = append(confs, &NodeConf{
-			Nsmd:      nsmd,
-			Dataplane: dataplane,
-			Node:      &nodes[i],
-		})
+			logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
+			Expect(err).To(BeNil())
+			confs[i] = &NodeConf{
+				Nsmd:      nsmd,
+				Dataplane: dataplane,
+				Node:      &nodes[i],
+			}
+		}()
 	}
+	wg.Wait()
 	return confs
 }
 
@@ -458,7 +467,9 @@ func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 
 	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", pingIP, "-A", "-c", "5")
 	Expect(err).To(BeNil())
-	Expect(strings.Contains(info.pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
+	Expect(info.errOut).To(Equal(""))
+	Expect(strings.Contains(info.pingResponse, "100% packet loss")).To(Equal(false))
+
 	logrus.Printf("NSC Ping is success:%s", info.pingResponse)
 	return info
 }
@@ -473,7 +484,7 @@ func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.
 	Expect(info.ipResponse).ShouldNot(Equal(""))
 	Expect(info.errOut).Should(Equal(""))
 	logrus.Printf("NSC IP status Ok")
-	Expect(true, IsMemifNsePinged(k8s, nscPodNode))
+	Expect(true, IsVppAgentNsePinged(k8s, nscPodNode))
 
 	return info
 }
@@ -483,56 +494,81 @@ func IsBrokeTestsEnabled() bool {
 	return ok
 }
 
-func getNSEMemifAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {
-	for {
-		select {
-		case <-time.Tick(time.Second):
-			response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "vppctl", "show int addr")
-			response = strings.TrimSpace(response)
-			if response == "" {
-				continue
-			}
-			splitedResponse := strings.Split(response, "L3 ")
-			if len(splitedResponse) < 2 {
-				continue
-			}
-			ip, net, err := net.ParseCIDR(splitedResponse[1])
-			if err != nil {
-				continue
-			}
-
-			ip, err = prefix_pool.IncrementIP(ip, net)
-			if err != nil {
-				continue
-			}
-			return ip, nil
-		case <-time.Tick(time.Second * 30):
-			return nil, errors.New("can not get IP during 30 sec")
-
-		}
-	}
+func GetVppAgentNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {
+	return getNSEAddr(k8s, nsc, parseVppAgentAddr, "vppctl", "show int addr")
 }
 
-func IsMemifNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
-	nseIp, err := getNSEMemifAddr(k8s, from)
-	if err != nil {
-		return false
+func parseVppAgentAddr(ipReponse string) (string, error) {
+	spitedResponse := strings.Split(ipReponse, "L3 ")
+	if len(spitedResponse) < 2 {
+		return "", errors.New(fmt.Sprintf("bad ip response %v", ipReponse))
 	}
-	logrus.Infof("nse ip: %v", nseIp)
-	logrus.Infof(" %v trying vppctl ping to %v", from.Name, nseIp)
-	response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
+	return spitedResponse[1], nil
+}
+
+func parseAddr(ipReponse string) (string, error) {
+	nsmInterfaceIndex := strings.Index(ipReponse, "nsm")
+	if nsmInterfaceIndex == -1 {
+		return "", errors.New(fmt.Sprintf("bad ip response %v", ipReponse))
+	}
+	nsmBlock := ipReponse[nsmInterfaceIndex:]
+	inetIndex := strings.Index(nsmBlock, "inet ")
+	if inetIndex == -1 {
+		return "", errors.New(fmt.Sprintf("bad ip response %v", ipReponse))
+	}
+	inetBlock := nsmBlock[inetIndex+len("inet "):]
+	ip := inetBlock[:strings.Index(inetBlock, " ")]
+	return ip, nil
+}
+
+func getNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod, parseIp ipParser, showIpCommand ...string) (net.IP, error) {
+	response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, showIpCommand...)
+	response = strings.TrimSpace(response)
+	if response == "" {
+		return nil, errors.New(fmt.Sprintf("exec [%v] returned empty response", showIpCommand))
+	}
+	addr, err := parseIp(response)
+	if err != nil {
+		return nil, err
+	}
+	ip, net, err := net.ParseCIDR(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err = prefix_pool.IncrementIP(ip, net)
+	if err != nil {
+		return nil, err
+	}
+	return ip, nil
+}
+
+func IsVppAgentNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
+	nseIp, err := GetVppAgentNSEAddr(k8s, from)
+	Expect(err).Should(BeNil())
+	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIp)
+	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
 	logrus.Infof("ping result: %s", response)
-	if err != nil {
-		logrus.Error(err.Error())
-	}
-	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Failed") {
+	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
 		result = true
 		logrus.Info("Ping successful")
 	}
 
 	return result
 }
+func IsNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
+	nseIp, err := getNSEAddr(k8s, from, parseAddr, "ip", "addr")
+	Expect(err).Should(BeNil())
+	logrus.Infof("%v trying ping to %v", from.Name, nseIp)
+	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
+	logrus.Infof("ping result: %s", response)
+	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
+		result = true
+		logrus.Info("Ping successful")
+	}
 
+	return result
+}
 func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
@@ -541,4 +577,17 @@ func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeCo
 
 		t.Fail()
 	}
+}
+
+func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
+	if r := recover(); r != nil {
+		PrintLogs(k8s, nodes_setup)
+		panic(r)
+	}
+
+	if t.Failed() {
+		PrintLogs(k8s, nodes_setup)
+	}
+
+	return
 }
