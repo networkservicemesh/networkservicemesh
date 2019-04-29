@@ -152,7 +152,9 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 
 	arpEntries, err := getArpEntries()
 	if err != nil {
-		return nil, err
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
 	}
 
 	for _, iface := range ifaces {
