@@ -25,6 +25,7 @@ trap sigint SIGINT
 trap sigterm SIGTERM
 trap sigquit SIGQUIT
 
+echo Starting NSE: ${NSE_IMAGE}
 "/bin/${NSE_IMAGE}" &
 
 NSE=$!

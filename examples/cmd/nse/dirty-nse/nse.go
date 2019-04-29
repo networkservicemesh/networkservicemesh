@@ -1,9 +1,7 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
@@ -21,15 +19,9 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 
-	nsmEndpoint.Start()
+	_ = nsmEndpoint.Start()
 
-	c := make(chan os.Signal)
-	signal.Notify(c,
-		os.Interrupt,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-
-	<-c
+	for {
+		time.Sleep(1 * time.Second)
+	}
 }

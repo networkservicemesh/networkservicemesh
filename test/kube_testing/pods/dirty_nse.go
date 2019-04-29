@@ -12,7 +12,7 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 
 	envVars := []v1.EnvVar{{
 		Name:  "NSE_IMAGE",
-		Value: "icmp-responder-nse",
+		Value: "dirty-nse",
 	}}
 	for k, v := range env {
 		envVars = append(envVars,
