@@ -16,8 +16,3 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bi
 FROM alpine as runtime
 COPY --from=build /go/bin/icmp-responder-nse /bin/icmp-responder-nse
 COPY --from=build /go/bin/dirty-nse /bin/dirty-nse
-
-ENV NSE_IMAGE=icmp-responder-nse
-COPY ./examples/cmd/nse/nse_run.sh /bin/nse_run.sh
-
-ENTRYPOINT ["/bin/nse_run.sh"]

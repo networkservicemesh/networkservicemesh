@@ -10,10 +10,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	envVars := []v1.EnvVar{{
-		Name:  "NSE_IMAGE",
-		Value: "icmp-responder-nse",
-	}}
+	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{
@@ -41,6 +38,9 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 						},
 					},
 					Env: envVars,
+					Command: []string{
+						"/bin/icmp-responder-nse",
+					},
 				}),
 				{
 					Name:  "nginx",

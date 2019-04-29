@@ -6,14 +6,11 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
+func TestNSEPod(name string, node *v1.Node, env map[string]string, command []string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	envVars := []v1.EnvVar{{
-		Name:  "NSE_IMAGE",
-		Value: "dirty-nse",
-	}}
+	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{
@@ -32,7 +29,7 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
-					Name:            "dirty-nse",
+					Name:            name,
 					Image:           "networkservicemesh/test-nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources: v1.ResourceRequirements{
@@ -40,7 +37,8 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
-					Env: envVars,
+					Env:     envVars,
+					Command: command,
 				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
@@ -52,5 +50,6 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
 		}
 	}
+
 	return pod
 }

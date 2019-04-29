@@ -130,21 +130,22 @@ func DeployVppAgentICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeo
 }
 
 func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node,
-		defaultICMPEnv(),
+	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultICMPCommand(),
 	))
 }
+
 func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
-	pod := pods.ICMPResponderPod(name, node,
-		defaultICMPEnv(),
+	pod := pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultICMPCommand(),
 	)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, node, name, timeout, pod)
 }
 
 func DeployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployDirtyNSE(k8s, node, name, timeout, pods.DirtyNSEPod(name, node,
-		defaultDirtyNSEEnv(),
+	return deployDirtyNSE(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultDirtyNSEEnv(), defaultDirtyNSECommand(),
 	))
 }
 
@@ -169,12 +170,20 @@ func defaultICMPEnv() map[string]string {
 	}
 }
 
+func defaultICMPCommand() []string {
+	return []string{ "/bin/icmp-responder-nse" }
+}
+
 func defaultDirtyNSEEnv() map[string]string {
 	return map[string]string{
 		"ADVERTISE_NSE_NAME":   "dirty",
 		"ADVERTISE_NSE_LABELS": "app=dirty",
 		"IP_ADDRESS":           "10.30.1.0/24",
 	}
+}
+
+func defaultDirtyNSECommand() []string {
+	return []string{ "/bin/dirty-nse" }
 }
 
 func defaultNSCEnv() map[string]string {
