@@ -21,6 +21,7 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 		keyFunc:             getNseKey,
 		resourceAddedFunc:   rv.resourceAdded,
 		resourceDeletedFunc: rv.resourceDeleted,
+		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NseResource,
 	}
 	rv.cache = newAbstractResourceCache(config)
@@ -28,22 +29,30 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 }
 
 func (c *NetworkServiceEndpointCache) Get(key string) *v1.NetworkServiceEndpoint {
-	return c.networkServiceEndpoints[key]
+	v := c.cache.get(key)
+	if v != nil {
+		return v.(*v1.NetworkServiceEndpoint)
+	}
+	return nil
 }
 
 func (c *NetworkServiceEndpointCache) GetByNetworkService(networkServiceName string) []*v1.NetworkServiceEndpoint {
-	return c.nseByNs[networkServiceName]
+	var result []*v1.NetworkServiceEndpoint
+	c.cache.syncExec(func() {
+		result = c.nseByNs[networkServiceName]
+	})
+	return result
 }
 
 func (c *NetworkServiceEndpointCache) GetByNetworkServiceManager(nsmName string) []*v1.NetworkServiceEndpoint {
 	var rv []*v1.NetworkServiceEndpoint
-
-	for _, endpoint := range c.networkServiceEndpoints {
-		if endpoint.Spec.NsmName == nsmName {
-			rv = append(rv, endpoint)
+	c.cache.syncExec(func() {
+		for _, endpoint := range c.networkServiceEndpoints {
+			if endpoint.Spec.NsmName == nsmName {
+				rv = append(rv, endpoint)
+			}
 		}
-	}
-
+	})
 	return rv
 }
 
@@ -101,4 +110,8 @@ func (c *NetworkServiceEndpointCache) resourceDeleted(key string) {
 
 func getNseKey(obj interface{}) string {
 	return obj.(*v1.NetworkServiceEndpoint).Name
+}
+
+func (c *NetworkServiceEndpointCache) resourceGet(key string) interface{} {
+	return c.networkServiceEndpoints[key]
 }

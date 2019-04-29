@@ -1,4 +1,4 @@
-package resource_cache_test
+package tests
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
@@ -69,6 +69,33 @@ func TestK8sRegistryAdd(t *testing.T) {
 	Expect(endpointList[0].Name).To(Equal("nse1"))
 }
 
+func TestNseCacheConcurrentModification(t *testing.T) {
+	RegisterTestingT(t)
+	fakeRegistry := fakeRegistry{}
+	c := resource_cache.NewNetworkServiceEndpointCache()
+
+	stopFunc, err := c.Start(&fakeRegistry)
+	defer stopFunc()
+	Expect(stopFunc).ToNot(BeNil())
+	Expect(err).To(BeNil())
+
+	c.Add(newTestNse("nse1", "ns1"))
+	c.Add(newTestNse("nse2", "ns2"))
+
+	stopRead := RepeatAsync(func() {
+		c.Get("nse1")
+		c.Get("nse2")
+		c.GetByNetworkService("ms1")
+
+	})
+	defer stopRead()
+	stopWrite := RepeatAsync(func() {
+		c.Delete("nsm2")
+		c.Add(newTestNse("nse2", "ns2"))
+	})
+	defer stopWrite()
+	time.Sleep(time.Second * 5)
+}
 func TestNsmdRegistryAdd(t *testing.T) {
 	RegisterTestingT(t)
 

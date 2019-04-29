@@ -18,25 +18,22 @@ type cacheConfig struct {
 	keyFunc             func(obj interface{}) string
 	resourceAddedFunc   func(obj interface{})
 	resourceUpdatedFunc func(obj interface{})
+	resourceGetFunc     func(key string) interface{}
 	resourceDeletedFunc func(key string)
 	resourceType        string
 }
 
 type abstractResourceCache struct {
-	addCh    chan interface{}
-	deleteCh chan string
-	updateCh chan interface{}
-	config   cacheConfig
+	eventCh chan resourceEvent
+	config  cacheConfig
 }
 
-const defaultChannelSize = 10
+const defaultChannelSize = 40
 
 func newAbstractResourceCache(config cacheConfig) abstractResourceCache {
 	return abstractResourceCache{
-		addCh:    make(chan interface{}, defaultChannelSize),
-		deleteCh: make(chan string, defaultChannelSize),
-		updateCh: make(chan interface{}, defaultChannelSize),
-		config:   config,
+		eventCh: make(chan resourceEvent, defaultChannelSize),
+		config:  config,
 	}
 }
 
@@ -55,32 +52,33 @@ func (c *abstractResourceCache) start(informerFactory externalversions.SharedInf
 }
 
 func (c *abstractResourceCache) add(obj interface{}) {
-	c.addCh <- obj
+	c.eventCh <- resourceAddEvent{obj}
 }
 
+func (c *abstractResourceCache) get(key string) interface{} {
+	getCh := make(chan interface{})
+	c.eventCh <- resourceGetEvent{key, getCh}
+	return <-getCh
+}
 func (c *abstractResourceCache) update(obj interface{}) {
-	c.updateCh <- obj
+	c.eventCh <- resourceUpdateEvent{obj}
 }
 
 func (c *abstractResourceCache) delete(key string) {
-	c.deleteCh <- key
+	c.eventCh <- resourceDeleteEvent{key}
+}
+
+func (c *abstractResourceCache) syncExec(f func()) {
+	doneCh := make(chan struct{})
+	c.eventCh <- syncExecEvent{f, doneCh}
+	<-doneCh
 }
 
 func (c *abstractResourceCache) run(stopCh chan struct{}) {
 	for {
 		select {
-		case newResource := <-c.addCh:
-			if c.config.resourceAddedFunc != nil {
-				c.config.resourceAddedFunc(newResource)
-			}
-		case upd := <-c.updateCh:
-			if c.config.resourceUpdatedFunc != nil {
-				c.config.resourceUpdatedFunc(upd)
-			}
-		case deleteResourceKey := <-c.deleteCh:
-			if c.config.resourceDeletedFunc != nil {
-				c.config.resourceDeletedFunc(deleteResourceKey)
-			}
+		case e := <-c.eventCh:
+			e.accept(c.config)
 		case <-stopCh:
 			return
 		}

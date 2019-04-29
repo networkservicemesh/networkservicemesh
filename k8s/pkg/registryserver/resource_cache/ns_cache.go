@@ -8,6 +8,7 @@ import (
 type NetworkServiceCache struct {
 	cache           abstractResourceCache
 	networkServices map[string]*v1.NetworkService
+	getCh           chan *v1.NetworkService
 }
 
 func NewNetworkServiceCache() *NetworkServiceCache {
@@ -18,6 +19,7 @@ func NewNetworkServiceCache() *NetworkServiceCache {
 		keyFunc:             getNsKey,
 		resourceAddedFunc:   rv.resourceAdded,
 		resourceDeletedFunc: rv.resourceDeleted,
+		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsResource,
 	}
 	rv.cache = newAbstractResourceCache(config)
@@ -25,7 +27,11 @@ func NewNetworkServiceCache() *NetworkServiceCache {
 }
 
 func (c *NetworkServiceCache) Get(key string) *v1.NetworkService {
-	return c.networkServices[key]
+	v := c.cache.get(key)
+	if v != nil {
+		return v.(*v1.NetworkService)
+	}
+	return nil
 }
 
 func (c *NetworkServiceCache) Add(ns *v1.NetworkService) {
@@ -42,11 +48,15 @@ func (c *NetworkServiceCache) Start(informerFactory externalversions.SharedInfor
 
 func (c *NetworkServiceCache) resourceAdded(obj interface{}) {
 	ns := obj.(*v1.NetworkService)
-	c.networkServices[getNsKey(ns)] = ns
+	c.networkServices[ns.Name] = ns
 }
 
 func (c *NetworkServiceCache) resourceDeleted(key string) {
 	delete(c.networkServices, key)
+}
+
+func (c *NetworkServiceCache) resourceGet(key string) interface{} {
+	return c.networkServices[key]
 }
 
 func getNsKey(obj interface{}) string {

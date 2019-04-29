@@ -20,6 +20,7 @@ func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
 		resourceAddedFunc:   rv.resourceAdded,
 		resourceDeletedFunc: rv.resourceDeleted,
 		resourceUpdatedFunc: rv.resourceUpdated,
+		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsmResource,
 	}
 	rv.cache = newAbstractResourceCache(config)
@@ -27,10 +28,15 @@ func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
 }
 
 func (c *NetworkServiceManagerCache) Get(key string) *v1.NetworkServiceManager {
-	return c.networkServiceManagers[key]
+	v := c.cache.get(key)
+	if v != nil {
+		return v.(*v1.NetworkServiceManager)
+	}
+	return nil
 }
 
 func (c *NetworkServiceManagerCache) Add(nsm *v1.NetworkServiceManager) {
+	logrus.Infof("NetworkServiceManagerCache.Add(%v)", nsm)
 	c.cache.add(nsm)
 }
 
@@ -63,6 +69,10 @@ func (c *NetworkServiceManagerCache) resourceUpdated(obj interface{}) {
 func (c *NetworkServiceManagerCache) resourceDeleted(key string) {
 	logrus.Infof("NetworkServiceManagerCache.Deleted(%v=%v)", key, c.networkServiceManagers[key])
 	delete(c.networkServiceManagers, key)
+}
+
+func (c *NetworkServiceManagerCache) resourceGet(key string) interface{} {
+	return c.networkServiceManagers[key]
 }
 
 func getNsmKey(obj interface{}) string {

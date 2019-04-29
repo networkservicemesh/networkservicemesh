@@ -2,7 +2,6 @@ package registryserver
 
 import (
 	"fmt"
-
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
@@ -138,17 +137,22 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 
 	if existingNsm != nil {
 		nsm.ObjectMeta = existingNsm.ObjectMeta
-		logrus.Infof("NSM with name %v already exist, updating: %v", nsm.GetName(), nsm)
+		logrus.Infof("NSM with name %v already exist in cache, updating: %v", nsm.GetName(), nsm)
 		return rc.updateNetworkServiceManager(nsm)
 	}
 
 	logrus.Infof("Creating NSM: %v", nsm)
 	createNsm, err := rc.addNetworkServiceManager(nsm)
 	if err != nil || apierrors.IsAlreadyExists(err) {
-		logrus.Infof("NSM with name %v already exist, updating: %v", nsm.GetName(), nsm)
-		return rc.updateNetworkServiceManager(nsm)
+		existingNsm, err = rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Get(nsm.Name, metav1.GetOptions{})
+		if err != nil {
+			return existingNsm, err
+		}
+		nsm.ObjectMeta = existingNsm.ObjectMeta
+		logrus.Infof("NSM with name %v already exist on server, updating cache: %v", nsm.GetName(), nsm)
+		rc.networkServiceManagerCache.Add(nsm)
+		return nsm, nil
 	}
-
 	return createNsm, err
 }
 
