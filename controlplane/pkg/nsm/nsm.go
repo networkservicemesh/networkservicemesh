@@ -24,7 +24,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -132,7 +131,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 
 	// 1. Create a new connection object.
-	nsmConnection := srv.newConnection(request)
+	nsmConnection := newConnection(request)
 
 	// 2. Set connection id for new connections.
 	// Every NSMD manage it's connections.
@@ -345,7 +344,7 @@ func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.C
 		}
 		endpoint = nil
 		// 7.1.1 Clone Connection to support iteration via EndPoints
-		nseConnection := srv.cloneConnection(request, nsmConnection)
+		nseConnection := cloneConnection(request, nsmConnection)
 
 		if existingConnection != nil {
 			// 7.1.2 Check previous endpoint, and it we will be able to contact it, it should be fine.
@@ -383,25 +382,6 @@ func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.C
 		// 7.1.9 We are fine with NSE connection and could continue.
 		return clientConnection, nil
 	}
-}
-
-func (srv *networkServiceManager) cloneConnection(request nsm.NSMRequest, response nsm.NSMConnection) nsm.NSMConnection {
-	var requestConnection nsm.NSMConnection
-	if request.IsRemote() {
-		requestConnection = proto.Clone(response.(*remote_connection.Connection)).(*remote_connection.Connection)
-	} else {
-		requestConnection = proto.Clone(response.(*connection.Connection)).(*connection.Connection)
-	}
-	return requestConnection
-}
-func (srv *networkServiceManager) newConnection(request nsm.NSMRequest) nsm.NSMConnection {
-	var requestConnection nsm.NSMConnection
-	if request.IsRemote() {
-		requestConnection = proto.Clone(request.(*remote_networkservice.NetworkServiceRequest).Connection).(*remote_connection.Connection)
-	} else {
-		requestConnection = proto.Clone(request.(*networkservice.NetworkServiceRequest).Connection).(*connection.Connection)
-	}
-	return requestConnection
 }
 
 func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMClientConnection) error {
