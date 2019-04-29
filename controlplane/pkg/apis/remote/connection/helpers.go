@@ -16,7 +16,7 @@
 package connection
 
 import (
-	fmt "fmt"
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 	"strconv"
@@ -54,7 +54,7 @@ func (c *Connection) SetContext(newContext *connectioncontext.ConnectionContext)
 	c.Context = newContext
 }
 
-// IsComplete - Have I been told enough to actually give you what you asked for
+// IsValid - Have I been told enough to actually give you what you asked for
 func (c *Connection) IsComplete() error {
 	if err := c.IsValid(); err != nil {
 		return err

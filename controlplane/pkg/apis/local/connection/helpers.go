@@ -46,7 +46,7 @@ func (c *Connection) IsComplete() error {
 		return fmt.Errorf("Connection.Id cannot be empty: %v", c)
 	}
 
-	if err := c.GetContext().IsComplete(); err != nil {
+	if err := c.GetContext().IsValid(); err != nil {
 		return err
 	}
 
