@@ -23,15 +23,16 @@ type healer struct {
 	model           model.Model
 
 	nsm *networkServiceManager
+	nseManager networkServiceEndpointManager
 }
 
 func (h *healer) healDstDown(healID string, connection *model.ClientConnection) bool {
 	logrus.Infof("NSM_Heal(1.1.1-%v) Checking if DST die is NSMD/DST die...", healID)
 	// Check if this is a really HealState_DstDown or HealState_DstNmgrDown
-	if !h.nsm.isLocalEndpoint(connection.Endpoint) {
+	if !h.nseManager.isLocalEndpoint(connection.Endpoint) {
 		ctx, cancel := context.WithTimeout(context.Background(), h.nsm.GetHealProperties().HealTimeout*3)
 		defer cancel()
-		remoteNsmClient, err := h.nsm.createNSEClient(ctx, connection.Endpoint)
+		remoteNsmClient, err := h.nseManager.createNSEClient(ctx, connection.Endpoint)
 		if remoteNsmClient != nil {
 			_ = remoteNsmClient.Cleanup()
 		}
@@ -234,7 +235,7 @@ func (h *healer) waitSpecificNSE(ctx context.Context, clientConnection *model.Cl
 				if ep.EndpointName == clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName {
 					// Out endpoint, we need to check if it is remote one and NSM is accessible.
 					// Check remote is accessible.
-					if h.nsm.checkUpdateNSE(ctx, clientConnection, ep, endpointResponse) {
+					if h.nseManager.checkUpdateNSE(ctx, clientConnection, ep, endpointResponse) {
 						logrus.Infof("NSE is available and Remote NSMD is accessible. %s. Since elapsed: %v", clientConnection.Endpoint.NetworkServiceManager.Url, time.Since(st))
 						// We are able to connect to NSM with required NSE
 						return true
@@ -293,7 +294,7 @@ func (h *healer) waitNSE(ctx context.Context, clientConnection *model.ClientConn
 					return true
 				}
 				// Check remote is accessible.
-				if h.nsm.checkUpdateNSE(ctx, clientConnection, ep, endpointResponse) {
+				if h.nseManager.checkUpdateNSE(ctx, clientConnection, ep, endpointResponse) {
 					logrus.Infof("NSE is available and Remote NSMD is accessible. %s. Since elapsed: %v", clientConnection.Endpoint.NetworkServiceManager.Url, time.Since(st))
 					// We are able to connect to NSM with required NSE
 					return true
