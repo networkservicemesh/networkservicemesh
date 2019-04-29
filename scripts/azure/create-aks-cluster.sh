@@ -23,7 +23,6 @@ else
             --name "$AZURE_CLUSTER_NAME" \
             --node-count 2 \
             --node-vm-size Standard_B2s \
-            --enable-addons monitoring \
             --generate-ssh-keys \
             --no-wait && \
         echo "done" || exit 1
@@ -33,7 +32,6 @@ else
             --name "$AZURE_CLUSTER_NAME" \
             --node-count 2 \
             --node-vm-size Standard_B2s \
-            --enable-addons monitoring \
             --generate-ssh-keys \
             --no-wait \
             --service-principal "$AZURE_SERVICE_PRINCIPAL" \
