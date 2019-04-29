@@ -14,8 +14,8 @@
 
 .PHONY: skydive-url
 skydive-url:
-	@echo "$$(kubectl cluster-info | grep master | awk '{print $$6}' | sed 's/https/http/' | awk -F: '{print $$1":"$$2}'| sed $$'s,\x1b\\[[0-9;]*[a-zA-Z],,g'):$$(kubectl get svc skydive-analyzer | grep -v "NAME" | awk '{print $$5}' | awk -F, '{print $$1}' | awk -F/ '{print $$1}' | awk -F: '{print $$2}')"
+	@echo "$$($(kubectl) cluster-info | grep master | awk '{print $$6}' | sed 's/https/http/' | awk -F: '{print $$1":"$$2}'| sed $$'s,\x1b\\[[0-9;]*[a-zA-Z],,g'):$$($(kubectl) get svc skydive-analyzer | grep -v "NAME" | awk '{print $$5}' | awk -F, '{print $$1}' | awk -F/ '{print $$1}' | awk -F: '{print $$2}')"
 
 .PHONY: skydive-port-forward
 skydive-port-forward:
-	@kubectl port-forward svc/skydive-analyzer 8082:8082
+	@$(kubectl) port-forward svc/skydive-analyzer 8082:8082

@@ -19,7 +19,7 @@ metadata:
   name: sriov-controller-binding
 subjects:
   - kind: ServiceAccount
-    namespace: default
+    namespace: nsm-system
     name: sriov-controller
 roleRef:
   kind: ClusterRole
@@ -63,4 +63,4 @@ spec:
           name: sriov-controller-config
 metadata:
   name: sriov-controller
-  namespace: default
+  namespace: nsm-system

@@ -27,7 +27,7 @@ import (
 )
 
 type ClientEndpoint struct {
-	ChainedImpl
+	BaseCompositeEndpoint
 	nsmClient     *client.NsmClient
 	mechanismType string
 	ioConnMap     map[string]*connection.Connection

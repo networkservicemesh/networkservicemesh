@@ -20,5 +20,5 @@ users:
       args:
       - token
       - -i
-      - nsm
+      - <CLUSTER_NAME>
       command: aws-iam-authenticator

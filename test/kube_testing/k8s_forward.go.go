@@ -3,14 +3,15 @@ package kube_testing
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
+
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	spdy2 "k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-	"net"
-	"net/http"
 )
 
 type PortForward struct {
@@ -23,6 +24,7 @@ type PortForward struct {
 	ListenPort int
 	stopChan   chan struct{}
 	readyChan  chan struct{}
+	pf         *portforward.PortForwarder
 }
 
 func (k8s *K8s) NewPortForwarder(pod *v1.Pod, port int) (*PortForward, error) {
@@ -59,6 +61,7 @@ func (p *PortForward) Start() error {
 	if err != nil {
 		return fmt.Errorf("Could not port forward into pod %v", err)
 	}
+	p.pf = pf
 
 	go func() {
 		errChan <- pf.ForwardPorts()
@@ -74,6 +77,7 @@ func (p *PortForward) Start() error {
 
 func (p *PortForward) Stop() {
 	p.stopChan <- struct{}{}
+	p.pf.Close()
 }
 
 func (p *PortForward) getListenPort() (int, error) {
@@ -103,10 +107,16 @@ func (p *PortForward) getFreePort() (int, error) {
 
 // Create an httpstream.Dialer for use with portforward.New
 func (p *PortForward) dialer() (httpstream.Dialer, error) {
+	podname := ""
+	if p.pod != nil {
+		podname = p.pod.Name
+	} else {
+		return nil, fmt.Errorf("Could not do POST request for a non-existing pod")
+	}
 	url := p.k8s.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
-		Namespace("default").
-		Name(p.pod.Name).
+		Namespace(p.k8s.GetK8sNamespace()).
+		Name(podname).
 		SubResource("portforward").URL()
 
 	transport, upgrader, err := roundTripperFor(p.k8s.config)

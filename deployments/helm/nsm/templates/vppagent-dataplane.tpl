@@ -48,4 +48,4 @@ spec:
           name: workspace
 metadata:
   name: nsm-vppagent-dataplane
-  namespace: default
+  namespace: nsm-system

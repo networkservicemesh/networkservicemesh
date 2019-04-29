@@ -41,12 +41,13 @@ spec:
             name: vppagent-firewall-config-file
 metadata:
   name: vppagent-firewall-nse
-  namespace: default
+  namespace: nsm-system
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: vppagent-firewall-config-file
+  namespace: nsm-system
 data:
   config.yaml: |
     aclRules:

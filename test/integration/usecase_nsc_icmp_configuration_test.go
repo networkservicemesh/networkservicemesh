@@ -3,9 +3,10 @@
 package nsmd_integration_tests
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"testing"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 
@@ -95,20 +96,21 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	if useWebhook {
-		awc, awDeployment, awService := nsmd_test_utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", "default")
-		defer nsmd_test_utils.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, "default")
+		awc, awDeployment, awService := nsmd_test_utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())
+		defer nsmd_test_utils.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 	}
 
 	config := []*pods.NSMgrPodConfig{}
 	for i := 0; i < nodesCount; i++ {
 		cfg := &pods.NSMgrPodConfig{}
+		cfg.Namespace = k8s.GetK8sNamespace()
 		if disableVHost {
 			cfg.DataplaneVariables = map[string]string{}
 			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
 		}
 		config = append(config, cfg)
 	}
-	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config)
+	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 
 	// Run ICMP on latest node
 	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

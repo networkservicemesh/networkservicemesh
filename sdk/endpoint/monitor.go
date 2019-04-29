@@ -29,7 +29,7 @@ import (
 
 // MonitorEndpoint is a monitoring composite
 type MonitorEndpoint struct {
-	ChainedImpl
+	BaseCompositeEndpoint
 	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
 }
 

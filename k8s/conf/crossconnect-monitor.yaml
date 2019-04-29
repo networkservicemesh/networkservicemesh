@@ -16,4 +16,4 @@ spec:
           imagePullPolicy: IfNotPresent
 metadata:
   name: crossconnect-monitor
-  namespace: default
+  namespace: nsm-system

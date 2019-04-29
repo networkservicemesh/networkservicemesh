@@ -65,7 +65,7 @@ func (nscrd *NSCRD) Get(name string) (*nsapiv1.NetworkService, error) {
 	return &result, err
 }
 
-func NewNSCRD() (*NSCRD, error) {
+func NewNSCRD(namespace string) (*NSCRD, error) {
 
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
@@ -75,8 +75,9 @@ func NewNSCRD() (*NSCRD, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", path)
 	Expect(err).To(BeNil())
 
+	nsmNamespace := namespace
 	client := NSCRD{
-		namespace: "default",
+		namespace: nsmNamespace,
 		resource:  "networkservices",
 		config:    config,
 	}

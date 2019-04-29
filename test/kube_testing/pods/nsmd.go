@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -53,28 +54,33 @@ type NSMgrPodConfig struct {
 	Variables           map[string]string
 	DataplaneVariables  map[string]string
 	liveness, readiness *v1.Probe
+	Namespace           string
 }
 
-func NSMgrDevConfig(nsmd NSMgrContainerMode, nsmdp NSMgrContainerMode, nsmdk8s NSMgrContainerMode) *NSMgrPodConfig {
+func NSMgrDevConfig(nsmd NSMgrContainerMode, nsmdp NSMgrContainerMode, nsmdk8s NSMgrContainerMode, namespace string) *NSMgrPodConfig {
 	return &NSMgrPodConfig{
-		Nsmd:    nsmd,
-		NsmdK8s: nsmdk8s,
-		NsmdP:   nsmdp,
+		Nsmd:      nsmd,
+		NsmdK8s:   nsmdk8s,
+		NsmdP:     nsmdp,
+		Namespace: namespace,
 	}
 }
 
-func NSMgrPod(name string, node *v1.Node) *v1.Pod {
+func NSMgrPod(name string, node *v1.Node, namespace string) *v1.Pod {
 	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
 		Variables: DefaultNSMD,
+		Namespace: namespace,
 	})
 }
-func NSMgrPodLiveCheck(name string, node *v1.Node) *v1.Pod {
+func NSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Pod {
 	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
 		liveness:  createProbe("/liveness"),
-		readiness: createProbe("/readiness")})
+		readiness: createProbe("/readiness"),
+		Namespace: namespace})
 }
 
 func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
+
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -137,6 +143,10 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						v1.EnvVar{
 							Name:  "NODE_NAME",
 							Value: nodeName,
+						},
+						v1.EnvVar{
+							Name:  namespace.NsmNamespaceEnv,
+							Value: config.Namespace,
 						},
 					},
 					Resources: createDefaultResources(),

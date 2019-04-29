@@ -31,7 +31,7 @@ const (
 )
 
 type vppagentComposite struct {
-	endpoint.ChainedImpl
+	endpoint.BaseCompositeEndpoint
 	vppAgentEndpoint string
 	workspace        string
 }

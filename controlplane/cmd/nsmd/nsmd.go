@@ -1,9 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -18,12 +15,7 @@ func main() {
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
+	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
@@ -37,15 +29,10 @@ func main() {
 	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
 
-	excludedPrefixes, err := nsmd.GetExcludedPrefixes(serviceRegistry)
-	if err != nil {
-		logrus.Errorf("Error during getting Excluded Prefixes: %v", err)
-		nsmd.SetExcludedPrefixFailed()
-	}
-
-	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, excludedPrefixes)
+	manager := nsm.NewNetworkServiceManager(model, serviceRegistry)
 
 	var server nsmd.NSMServer
+	var err error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)

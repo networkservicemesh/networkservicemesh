@@ -1,0 +1,7 @@
+Host aws-master
+    HostName <EC2MASTER>
+    User ec2-user
+
+Host aws-worker
+    HostName <EC2WORKER>
+    User ec2-user

@@ -17,8 +17,10 @@ package common
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
@@ -85,4 +87,26 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 	if len(configuration.IPAddress) == 0 {
 		configuration.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
 	}
+}
+
+func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NsUrl) *NSConfiguration {
+	var conf NSConfiguration
+	if configuration != nil {
+		conf = *configuration
+	}
+	conf.OutgoingNscName = url.NsName
+	var labels strings.Builder
+	separator := false
+	for k, v := range url.Params {
+		if separator {
+			labels.WriteRune(',')
+		} else {
+			separator = true
+		}
+		labels.WriteString(k)
+		labels.WriteRune('=')
+		labels.WriteString(v[0])
+	}
+	conf.OutgoingNscLabels = labels.String()
+	return &conf
 }

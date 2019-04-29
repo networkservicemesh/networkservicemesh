@@ -45,4 +45,4 @@ spec:
               networkservicemesh.io/socket: 1
 metadata:
   name: icmp-responder-nse
-  namespace: default
+  namespace: nsm-system

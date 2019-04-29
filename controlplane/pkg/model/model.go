@@ -333,7 +333,7 @@ func (i *impl) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dat
 		if dataplaneSelector == nil {
 			return v, nil // Return first if no selector
 		}
-		if (dataplaneSelector(v)) {
+		if dataplaneSelector(v) {
 			return v, nil
 		}
 

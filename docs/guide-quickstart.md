@@ -61,13 +61,13 @@ make k8s-infra-deploy
 The following check should show two `nsmgr`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
 
 ```bash
-kubectl get pods
+kubectl get pods -n nsm-system
 ```
 
 This will allow you to see your Network Service Mesh daemonset running:
 
 ```bash
-kubectl get daemonset nsmgr
+kubectl get daemonset nsmgr -n nsm-system
 
 
 NAME   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE

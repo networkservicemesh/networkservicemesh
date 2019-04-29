@@ -24,7 +24,7 @@ func TestNSMgrDdataplaneDeployLiveCheck(t *testing.T) {
 	testNSMgrDdataplaneDeploy(t, pods.NSMgrPodLiveCheck, pods.VPPDataplanePodLiveCheck)
 }
 
-func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node) *v1.Pod, dataplanePodFactory func(string, *v1.Node) *v1.Pod) {
+func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node) *v1.Pod) {
 	RegisterTestingT(t)
 
 	if testing.Short() {

@@ -45,6 +45,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 					Image: "networkservicemesh/nginx",
 				},
 			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 	if node != nil {

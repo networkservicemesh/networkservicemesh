@@ -32,7 +32,7 @@ import (
 )
 
 type IpamEndpoint struct {
-	ChainedImpl
+	BaseCompositeEndpoint
 	prefixPool prefix_pool.PrefixPool
 }
 

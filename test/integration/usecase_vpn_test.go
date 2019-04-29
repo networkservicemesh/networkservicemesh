@@ -9,7 +9,6 @@ import (
 	"time"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/crds"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
@@ -20,11 +19,6 @@ import (
 
 func TestVPNLocal(t *testing.T) {
 	RegisterTestingT(t)
-
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
-		return
-	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -41,11 +35,6 @@ func TestVPNLocal(t *testing.T) {
 func TestVPNFirewallRemote(t *testing.T) {
 	RegisterTestingT(t)
 
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
-		return
-	}
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -61,11 +50,6 @@ func TestVPNFirewallRemote(t *testing.T) {
 func TestVPNNSERemote(t *testing.T) {
 	RegisterTestingT(t)
 
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
-		return
-	}
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -80,11 +64,6 @@ func TestVPNNSERemote(t *testing.T) {
 
 func TestVPNNSCRemote(t *testing.T) {
 	RegisterTestingT(t)
-
-	if !nsmd_test_utils.IsBrokeTestsEnabled() {
-		t.Skip("VPN tests are broken with VPP v2.0.0. Skipping.")
-		return
-	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -122,7 +101,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	for k := 0; k < nodesCount; k++ {
 		corePodName := fmt.Sprintf("nsmgr-%d", k)
 		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", k)
-		corePods := k8s.CreatePods(pods.NSMgrPod(corePodName, &nodes[k]), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
+		corePods := k8s.CreatePods(pods.NSMgrPod(corePodName, &nodes[k], k8s.GetK8sNamespace()), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
 		logrus.Printf("Started NSMD/Dataplane: %v on node %d", time.Since(s1), k)
 		nsmdPodNode = append(nsmdPodNode, corePods[0])
 		nsmdDataplanePodNode = append(nsmdDataplanePodNode, corePods[1])
@@ -137,7 +116,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	}
 
 	{
-		nscrd, err := crds.NewNSCRD()
+		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
 
 		nsSecureIntranetConnectivity := crds.SecureIntranetConnectivity()
@@ -154,7 +133,7 @@ func testVPN(t *testing.T, nodesCount int, affinity map[string]int, verbose bool
 	s1 = time.Now()
 	node := affinity["vppagent-firewall-nse-1"]
 	logrus.Infof("Starting VPPAgent Firewall NSE on node: %d", node)
-	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapIcmpHttp("vppagent-firewall-nse-1"))
+	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapIcmpHttp("vppagent-firewall-nse-1", k8s.GetK8sNamespace()))
 	Expect(err).To(BeNil())
 	vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", &nodes[node],
 		map[string]string{

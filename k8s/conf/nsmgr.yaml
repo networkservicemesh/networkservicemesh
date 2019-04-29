@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: nsmgr
+  namespace: nsm-system
 spec:
   selector:
     matchLabels:

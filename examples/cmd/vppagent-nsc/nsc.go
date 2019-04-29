@@ -15,17 +15,14 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+	"os"
+	"sync"
 )
 
 const (
@@ -55,6 +52,8 @@ func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 }
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsc")
 	opentracing.SetGlobalTracer(tracer)
@@ -94,11 +93,6 @@ func main() {
 	logrus.Info("nsm client: initialization is completed successfully, wait for Ctrl+C...")
 	var wg sync.WaitGroup
 	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+
+	<-c
 }

@@ -1,7 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh
 
 require (
-	github.com/aws/aws-sdk-go v1.19.13
+	github.com/aws/aws-sdk-go v1.19.15
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -18,7 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
-	github.com/ligato/vpp-agent v2.0.1+incompatible
+	github.com/ligato/vpp-agent v2.0.2+incompatible
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
@@ -38,7 +38,7 @@ require (
 	golang.org/x/sys v0.0.0-20190312061237-fead79001313
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
-	google.golang.org/grpc v1.20.0
+	google.golang.org/grpc v1.20.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
 	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b

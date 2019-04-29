@@ -4,10 +4,11 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 
@@ -18,6 +19,11 @@ import (
 
 func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	RegisterTestingT(t)
+
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Skipped for a while, will be enabled soon")
+		return
+	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -39,8 +45,12 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 			Variables: map[string]string{
 				nsm.NsmdHealDSTWaitTimeout: "60", // 60 second delay, since we know on CI it could not fit into delay.
 			},
-		}, {},
-	})
+			Namespace: k8s.GetK8sNamespace(),
+		},
+		{
+			Namespace: k8s.GetK8sNamespace(),
+		},
+	}, k8s.GetK8sNamespace())
 
 	// Run ICMP on latest node
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
@@ -64,7 +74,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
+	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
@@ -122,7 +132,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{})) // Recovery NSEs
+	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {

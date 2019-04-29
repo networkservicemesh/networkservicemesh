@@ -38,7 +38,7 @@ type crossConnectStruct struct {
 }
 
 type vppAgentXConnComposite struct {
-	endpoint.ChainedImpl
+	endpoint.BaseCompositeEndpoint
 	vppAgentEndpoint string
 	crossConnects    map[string]crossConnectStruct
 	workspace        string
@@ -144,7 +144,7 @@ func newVppAgentXConnComposite(configuration *common.NSConfiguration) *vppAgentX
 }
 
 type vppAgentAclComposite struct {
-	endpoint.ChainedImpl
+	endpoint.BaseCompositeEndpoint
 	vppAgentEndpoint string
 	aclRules         map[string]string
 }
