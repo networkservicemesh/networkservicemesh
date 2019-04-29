@@ -439,48 +439,48 @@ workflows:
             - sanity-check
 
 # packet
-      - packet-deploy:
-          requires:
-            - sanity-check
-      - packet-deploy-k8s:
-          name: "packet-deploy-k8s-1"
-          cluster_id: "1"
-          requires:
-            - packet-deploy
-      - packet-deploy-k8s:
-          name: "packet-deploy-k8s-2"
-          cluster_id: "2"
-          requires:
-            - packet-deploy
-      - integration-tests:
-          name: "packet-test-basic-usecase"
-          namespace: "nsm-system-integration"
-          cloud_provider: "packet"
-          cluster_id: "1"
-          test_tags: "basic usecase"
-          requires:
-            - packet-deploy-k8s-1
-      - integration-tests:
-          name: "packet-test-recover"
-          namespace: "nsm-system-integration"
-          cloud_provider: "packet"
-          cluster_id: "2"
-          test_tags: "recover"
-          requires:
-            - packet-deploy-k8s-2
-      - integration-tests:
-          name: "packet-test-bench"
-          namespace: "nsm-system-integration"
-          cloud_provider: "packet"
-          cluster_id: "2"
-          test_tags: "bench"
-          requires:
-            - "packet-test-recover"
-      - packet-destroy:
-          requires:
-            - "packet-test-basic-usecase"
-            - "packet-test-recover"
-            - "packet-test-bench"
+#      - packet-deploy:
+#          requires:
+#            - sanity-check
+#      - packet-deploy-k8s:
+#          name: "packet-deploy-k8s-1"
+#          cluster_id: "1"
+#          requires:
+#            - packet-deploy
+#      - packet-deploy-k8s:
+#          name: "packet-deploy-k8s-2"
+#          cluster_id: "2"
+#          requires:
+#            - packet-deploy
+#      - integration-tests:
+#          name: "packet-test-basic-usecase"
+#          namespace: "nsm-system-integration"
+#          cloud_provider: "packet"
+#          cluster_id: "1"
+#          test_tags: "basic usecase"
+#          requires:
+#            - packet-deploy-k8s-1
+#      - integration-tests:
+#          name: "packet-test-recover"
+#          namespace: "nsm-system-integration"
+#          cloud_provider: "packet"
+#          cluster_id: "2"
+#          test_tags: "recover"
+#          requires:
+#            - packet-deploy-k8s-2
+#      - integration-tests:
+#          name: "packet-test-bench"
+#          namespace: "nsm-system-integration"
+#          cloud_provider: "packet"
+#          cluster_id: "2"
+#          test_tags: "bench"
+#          requires:
+#            - "packet-test-recover"
+#      - packet-destroy:
+#          requires:
+#            - "packet-test-basic-usecase"
+#            - "packet-test-recover"
+#            - "packet-test-bench"
 
 # azure
       - azure-deploy:
@@ -519,68 +519,68 @@ workflows:
             - azure-test-recover
 
 # gke
-      - gke-create-cluster:
-          cluster_id: "1"
-          name: "gke-cluster1"
-          requires:
-            - sanity-check
-      - gke-create-cluster:
-          cluster_id: "2"
-          name: "gke-cluster2"
-          requires:
-            - sanity-check
-      - integration-tests:
-          name: "gke-test-basic-usecase"
-          cloud_provider: "gke"
-          cluster_id: "1"
-          test_tags: "basic usecase gke"
-          requires:
-            - sanity-check
-            - "gke-cluster1"
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
-      - integration-tests:
-          name: "gke-test-recover"
-          cloud_provider: "gke"
-          cluster_id: "2"
-          test_tags: "recover gke"
-          requires:
-            - sanity-check
-            - "gke-cluster2"
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-icmp-responder-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
-            - build-nsc
-            - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
-      - gke-destroy-cluster:
-          name: "gke-destroy-cluster1"
-          cluster_id: "1"
-          requires:
-            - "gke-cluster1"
-            - "gke-test-basic-usecase"
-      - gke-destroy-cluster:
-          name: "gke-destroy-cluster2"
-          cluster_id: "2"
-          requires:
-            - "gke-cluster2"
-            - "gke-test-recover"
+#      - gke-create-cluster:
+#          cluster_id: "1"
+#          name: "gke-cluster1"
+#          requires:
+#            - sanity-check
+#      - gke-create-cluster:
+#          cluster_id: "2"
+#          name: "gke-cluster2"
+#          requires:
+#            - sanity-check
+#      - integration-tests:
+#          name: "gke-test-basic-usecase"
+#          cloud_provider: "gke"
+#          cluster_id: "1"
+#          test_tags: "basic usecase gke"
+#          requires:
+#            - sanity-check
+#            - "gke-cluster1"
+#            - build-nsmd
+#            - build-nsmd-k8s
+#            - build-nsmdp
+#            - build-admission-webhook
+#            - build-crossconnect-monitor
+#            - build-icmp-responder-nse
+#            - build-vppagent-icmp-responder-nse
+#            - build-vppagent-nsc
+#            - build-nsc
+#            - build-vppagent-dataplane
+#            - build-vppagent-dataplane-dev
+#            - build-vppagent-firewall-nse
+#      - integration-tests:
+#          name: "gke-test-recover"
+#          cloud_provider: "gke"
+#          cluster_id: "2"
+#          test_tags: "recover gke"
+#          requires:
+#            - sanity-check
+#            - "gke-cluster2"
+#            - build-nsmd
+#            - build-nsmd-k8s
+#            - build-nsmdp
+#            - build-admission-webhook
+#            - build-crossconnect-monitor
+#            - build-icmp-responder-nse
+#            - build-vppagent-icmp-responder-nse
+#            - build-vppagent-nsc
+#            - build-nsc
+#            - build-vppagent-dataplane
+#            - build-vppagent-dataplane-dev
+#            - build-vppagent-firewall-nse
+#      - gke-destroy-cluster:
+#          name: "gke-destroy-cluster1"
+#          cluster_id: "1"
+#          requires:
+#            - "gke-cluster1"
+#            - "gke-test-basic-usecase"
+#      - gke-destroy-cluster:
+#          name: "gke-destroy-cluster2"
+#          cluster_id: "2"
+#          requires:
+#            - "gke-cluster2"
+#            - "gke-test-recover"
 
 # helm
       - helm-chart-tests:
@@ -589,9 +589,9 @@ workflows:
             - sanity-check
 
 # push
-      - docker-push-latest:
-          requires:
-            - packet-destroy
-          filters:
-            branches:
-              only: master
+#      - docker-push-latest:
+#          requires:
+#            - packet-destroy
+#          filters:
+#            branches:
+#              only: master
