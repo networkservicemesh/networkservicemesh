@@ -21,7 +21,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -189,6 +189,9 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
 					client.crossConnectMonitor.Update(xcon)
 				}
+			}
+			if event.Metrics != nil {
+				client.crossConnectMonitor.HandleMetrics(event.Metrics)
 			}
 			if event.GetType() == crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER {
 				connects := []*crossconnect.CrossConnect{}

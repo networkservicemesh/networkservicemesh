@@ -1,20 +1,28 @@
-package local_connection_monitor
+package remote_connection_monitor
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )
 
-type LocalConnectionEventConverter struct{}
+type RemoteConnectionEvent struct {
+	monitor.EventImpl
+}
 
-func (c *LocalConnectionEventConverter) Convert(event monitor.Event) (interface{}, error) {
-	eventType, err := convertType(event.EventType)
+func CreateRemoteConnectionEvent(eventType string, entities map[string]monitor.Entity) monitor.Event {
+	return RemoteConnectionEvent{
+		EventImpl: monitor.CrateEventImpl(eventType, entities),
+	}
+}
+
+func (remoteConnectionEvent RemoteConnectionEvent) Message() (interface{}, error) {
+	eventType, err := convertType(remoteConnectionEvent.EventType())
 	if err != nil {
 		return nil, err
 	}
 
-	connections, err := convertEntities(event.Entities)
+	connections, err := convertEntities(remoteConnectionEvent.Entities())
 	if err != nil {
 		return nil, err
 	}

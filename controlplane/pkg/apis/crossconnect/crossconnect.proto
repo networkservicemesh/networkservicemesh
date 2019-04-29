@@ -11,10 +11,13 @@ enum CrossConnectEventType {
     UPDATE = 1;
     DELETE = 2;
 }
-
+message Metrics {
+    map<string, string> metrics = 1;
+}
 message CrossConnectEvent {
     CrossConnectEventType type = 1;
     map<string, CrossConnect> cross_connects = 2;
+    map<string, Metrics> metrics = 3;
 }
 
 message CrossConnect {

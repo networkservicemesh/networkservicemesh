@@ -12,17 +12,16 @@ const (
 	INITIAL_STATE_TRANSFER = "INITIAL_STATE_TRANSFER"
 )
 
+type EventSupplier func(eventType string, entities map[string]Entity) Event
+
 type Entity interface {
 	GetId() string
 }
 
-type Event struct {
-	EventType string
-	Entities  map[string]Entity
-}
-
-type EventConverter interface {
-	Convert(event Event) (interface{}, error)
+type Event interface {
+	Message() (interface{}, error)
+	EventType() string
+	Entities() map[string]Entity
 }
 
 type Recipient interface {
@@ -36,12 +35,13 @@ type MonitorServer interface {
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
 	MonitorEntities(stream grpc.ServerStream) error
-
+	SendAll(event Event)
 	Serve()
+	Entities() map[string]Entity
 }
 
 type monitorServerImpl struct {
-	eventConverter           EventConverter
+	eventSupplier            EventSupplier
 	eventCh                  chan Event
 	newMonitorRecipientCh    chan Recipient
 	closedMonitorRecipientCh chan Recipient
@@ -49,9 +49,9 @@ type monitorServerImpl struct {
 	recipients               []Recipient
 }
 
-func NewMonitorServer(eventConverter EventConverter) MonitorServer {
+func NewMonitorServer(eventSupplier EventSupplier) MonitorServer {
 	return &monitorServerImpl{
-		eventConverter:           eventConverter,
+		eventSupplier:            eventSupplier,
 		eventCh:                  make(chan Event, defaultSize),
 		newMonitorRecipientCh:    make(chan Recipient, defaultSize),
 		closedMonitorRecipientCh: make(chan Recipient, defaultSize),
@@ -60,18 +60,16 @@ func NewMonitorServer(eventConverter EventConverter) MonitorServer {
 	}
 }
 
+func (m monitorServerImpl) Entities() map[string]Entity {
+	return m.entities
+}
+
 func (m *monitorServerImpl) Update(entity Entity) {
-	m.eventCh <- Event{
-		EventType: UPDATE,
-		Entities:  map[string]Entity{entity.GetId(): entity},
-	}
+	m.eventCh <- m.eventSupplier(UPDATE, map[string]Entity{entity.GetId(): entity})
 }
 
 func (m *monitorServerImpl) Delete(entity Entity) {
-	m.eventCh <- Event{
-		EventType: DELETE,
-		Entities:  map[string]Entity{entity.GetId(): entity},
-	}
+	m.eventCh <- m.eventSupplier(DELETE, map[string]Entity{entity.GetId(): entity})
 }
 
 func (m *monitorServerImpl) AddRecipient(recipient Recipient) {
@@ -102,10 +100,7 @@ func (m *monitorServerImpl) Serve() {
 	for {
 		select {
 		case newRecipient := <-m.newMonitorRecipientCh:
-			initialStateTransferEvent := Event{
-				EventType: INITIAL_STATE_TRANSFER,
-				Entities:  m.entities,
-			}
+			initialStateTransferEvent := m.eventSupplier(INITIAL_STATE_TRANSFER, m.entities)
 			m.send(initialStateTransferEvent, newRecipient)
 			m.recipients = append(m.recipients, newRecipient)
 		case closedRecipient := <-m.closedMonitorRecipientCh:
@@ -117,27 +112,33 @@ func (m *monitorServerImpl) Serve() {
 			}
 		case event := <-m.eventCh:
 			logrus.Infof("New event: %v", event)
-			for _, entity := range event.Entities {
-				if event.EventType == UPDATE {
+			for _, entity := range event.Entities() {
+				if event.EventType() == UPDATE {
 					m.entities[entity.GetId()] = entity
 				}
-				if event.EventType == DELETE {
+				if event.EventType() == DELETE {
 					delete(m.entities, entity.GetId())
 				}
 			}
-			m.send(event, m.recipients...)
+			m.SendAll(event)
 		}
 	}
 }
 
+func (m *monitorServerImpl) SendAll(event Event) {
+	m.send(event, m.recipients...)
+}
+
 func (m *monitorServerImpl) send(event Event, recipients ...Recipient) {
 	for _, recipient := range recipients {
-		msg, err := m.eventConverter.Convert(event)
+		msg, err := event.Message()
+		logrus.Infof("Try to send message %v", msg)
 		if err != nil {
-			logrus.Errorf("Error during converting event: %v", err)
+			logrus.Errorf("An error during convertion event: %v", err)
+			continue
 		}
 		if err := recipient.SendMsg(msg); err != nil {
-			logrus.Errorf("Error during send: %+v", err)
+			logrus.Errorf("An error during send: %v", err)
 		}
 	}
 }

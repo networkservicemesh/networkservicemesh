@@ -22,6 +22,7 @@ import (
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"net"
 	"os"
 	"time"
@@ -61,6 +62,7 @@ const (
 type VPPAgent struct {
 	vppAgentEndpoint     string
 	common               *common.DataplaneConfigBase
+	metricsCollector     *metrics.MetricsCollector
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
 	directMemifConnector *memif.DirectMemifConnector
@@ -229,7 +231,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 				},
 				// Add default route via default gateway
 				Routes: []*vpp.Route{
-					&vpp.Route{
+					{
 						Type:              vpp_l3.Route_INTER_VRF,
 						OutgoingInterface: ManagementInterface,
 						DstNetwork:        "0.0.0.0/0",
@@ -249,14 +251,14 @@ func (v *VPPAgent) programMgmtInterface() error {
 	// This way it avoids sending icmp port unreachable messages out.
 	// This bug wasn't really obvious till we tried to switch to hostNetwork:true
 	dataRequest.Update.VppConfig.Acls = []*vpp.ACL{
-		&vpp_acl.ACL{
+		{
 			Name: "NSMmgmtInterfaceACL",
 			Interfaces: &vpp_acl.ACL_Interfaces{
 				Ingress: []string{dataRequest.Update.VppConfig.Interfaces[0].Name},
 			},
 			Rules: []*vpp_acl.ACL_Rule{
 				//Rule NSMmgmtInterfaceACL permit VXLAN dst
-				&vpp_acl.ACL_Rule{
+				{
 					Action: vpp_acl.ACL_Rule_PERMIT,
 					IpRule: &vpp_acl.ACL_Rule_IpRule{
 						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
@@ -307,7 +309,8 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 	v.setDataplaneConfigVPPAgent(monitor)
 	v.reset()
 	v.programMgmtInterface()
-
+	v.metricsCollector = metrics.NewMetricsCollector()
+	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
 	return nil
 }
 
@@ -351,7 +354,6 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.Cros
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIPEnvKey, srcIPStr)
 		common.SetValidIPFailed()
 	}
-
 	v.egressInterface, err = common.NewEgressInterface(v.srcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
