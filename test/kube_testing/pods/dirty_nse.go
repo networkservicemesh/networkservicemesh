@@ -33,7 +33,7 @@ func DirtyNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "dirty-nse",
-					Image:           "networkservicemesh/nse:latest",
+					Image:           "networkservicemesh/test-nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{

@@ -25,7 +25,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: vpn-gateway
-          image: {{ .Values.registry }}/networkservicemesh/nse:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/test-nse:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: NSE_IMAGE
