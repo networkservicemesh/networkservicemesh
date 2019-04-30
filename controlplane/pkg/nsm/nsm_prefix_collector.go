@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"strings"
-	"time"
 )
 
 func GetExcludedPrefixes(serviceRegistry serviceregistry.ServiceRegistry) (<-chan prefix_pool.PrefixPool, error) {
@@ -67,9 +66,7 @@ func getExcludePrefixesFromEnv() []string {
 }
 
 const (
-	maxFailInRow    = 10
 	poolChannelSize = 10
-	minRetryDelay   = 1 * time.Minute
 )
 
 func monitorReservedSubnets(s serviceregistry.ServiceRegistry, additionalPrefixes ...string) <-chan prefix_pool.PrefixPool {
@@ -77,7 +74,7 @@ func monitorReservedSubnets(s serviceregistry.ServiceRegistry, additionalPrefixe
 	poolCh := make(chan prefix_pool.PrefixPool, poolChannelSize)
 
 	go func() {
-		for fastFail := 0; fastFail < maxFailInRow; {
+		for {
 			errCh := make(chan error, 1)
 			listener := &subnetStreamListener{
 				errCh:              errCh,
@@ -86,20 +83,9 @@ func monitorReservedSubnets(s serviceregistry.ServiceRegistry, additionalPrefixe
 				serviceRegistry:    s,
 			}
 			go listener.listen()
-			listenStartTime := time.Now()
 			err := <-errCh
 			logrus.Error(err)
-
-			if sinceTime := time.Since(listenStartTime); sinceTime < minRetryDelay {
-				fastFail++
-				//<-time.After(minRetryDelay - sinceTime)
-			} else {
-				fastFail = 0
-			}
 		}
-
-		// seems like nsmd-k8s is not responding for a long time
-		close(poolCh)
 	}()
 
 	return poolCh
