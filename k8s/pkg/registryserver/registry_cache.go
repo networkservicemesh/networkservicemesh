@@ -150,8 +150,7 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 		}
 		nsm.ObjectMeta = existingNsm.ObjectMeta
 		logrus.Infof("NSM with name %v already exist on server, updating cache: %v", nsm.GetName(), nsm)
-		rc.networkServiceManagerCache.Add(nsm)
-		return nsm, nil
+		return rc.updateNetworkServiceManager(nsm)
 	}
 	return createNsm, err
 }

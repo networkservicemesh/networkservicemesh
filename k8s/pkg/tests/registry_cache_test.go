@@ -104,3 +104,42 @@ func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 		time.Sleep(time.Microsecond * 500)
 	}
 }
+
+func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
+	RegisterTestingT(t)
+	serverData := sync.Map{}
+	fakeRest := fakeNsmRest(&serverData)
+	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+	err := cache.Start()
+	Expect(err).Should(BeNil())
+	defer cache.Stop()
+	nsm := FakeNsm("fake")
+	_, err = cache.CreateOrUpdateNetworkServiceManager(nsm)
+	Expect(err).Should(BeNil())
+	nsm.Status.URL = "update"
+	_, err = cache.CreateOrUpdateNetworkServiceManager(nsm)
+	Expect(err).Should(BeNil())
+	val, ok := serverData.Load("fake")
+	Expect(ok).Should(Equal(true))
+	Expect(val.(v1.NetworkServiceManager).Status.URL).Should(Equal("update"))
+
+}
+func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
+	RegisterTestingT(t)
+	serverData := sync.Map{}
+	fakeRest := fakeNsmRest(&serverData)
+	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+	err := cache.Start()
+	Expect(err).Should(BeNil())
+	defer cache.Stop()
+	nsm := FakeNsm("fake")
+	nsm.ResourceVersion = "1"
+	serverData.Store(nsm.Name, nsm.DeepCopy())
+	Expect(err).Should(BeNil())
+	nsm.Status.URL = "update"
+	_, err = cache.CreateOrUpdateNetworkServiceManager(nsm)
+	Expect(err).Should(BeNil())
+	val, ok := serverData.Load("fake")
+	Expect(ok).Should(Equal(true))
+	Expect(val.(v1.NetworkServiceManager).Status.URL).Should(Equal("update"))
+}
