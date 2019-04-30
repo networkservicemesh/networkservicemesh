@@ -64,6 +64,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
 				dataplanePod = pods.VPPDataplanePod(dataplaneName, node)
 			} else {
+				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}
