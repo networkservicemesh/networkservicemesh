@@ -54,7 +54,7 @@ func (c *Connection) SetContext(newContext *connectioncontext.ConnectionContext)
 	c.Context = newContext
 }
 
-// IsValid - Have I been told enough to actually give you what you asked for
+// IsComplete - Have I been told enough to actually give you what you asked for
 func (c *Connection) IsComplete() error {
 	if err := c.IsValid(); err != nil {
 		return err
