@@ -86,9 +86,6 @@ func monitorReservedSubnets(s serviceregistry.ServiceRegistry, additionalPrefixe
 			err := <-errCh
 			logrus.Error(err)
 		}
-
-		// seems like nsmd-k8s is not responding for a long time
-		close(poolCh)
 	}()
 
 	return poolCh
