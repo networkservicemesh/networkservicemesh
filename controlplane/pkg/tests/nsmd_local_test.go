@@ -206,7 +206,7 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
-	ds := srv.serviceRegistry.nseRegistry.currentSubnetStream
+	ds := srv.serviceRegistry.nseRegistry.getNextSubnetStream()
 
 	ds.addResponse(&registry.SubnetExtendingResponse{
 		Type:   registry.SubnetExtendingResponse_POD,
@@ -259,7 +259,7 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
-	ds := srv.serviceRegistry.nseRegistry.currentSubnetStream
+	ds := srv.serviceRegistry.nseRegistry.getNextSubnetStream()
 
 	ds.addResponse(&registry.SubnetExtendingResponse{
 		Type:   registry.SubnetExtendingResponse_POD,
@@ -290,7 +290,7 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 	Expect(ok).To(Equal(true))
 	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
 
-	newDs := srv.serviceRegistry.nseRegistry.currentSubnetStream
+	newDs := srv.serviceRegistry.nseRegistry.getNextSubnetStream()
 
 	newDs.addResponse(&registry.SubnetExtendingResponse{
 		Type:   registry.SubnetExtendingResponse_POD,

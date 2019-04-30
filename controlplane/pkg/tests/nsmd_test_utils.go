@@ -58,7 +58,12 @@ type nsmdTestServiceDiscovery struct {
 	nsmCounter           int
 	nsmgrName            string
 	clusterConfiguration *registry.ClusterConfiguration
-	currentSubnetStream  *dummySubnetStream
+	subnetStreamCh       chan *dummySubnetStream
+}
+
+func (impl *nsmdTestServiceDiscovery) getNextSubnetStream() *dummySubnetStream {
+	s := <-impl.subnetStreamCh
+	return s
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
@@ -89,6 +94,7 @@ func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, sto
 		apiRegistry:          testApi,
 		nsmCounter:           0,
 		nsmgrName:            nsmgrName,
+		subnetStreamCh:       make(chan *dummySubnetStream),
 		clusterConfiguration: clusterConfiguration,
 	}
 }
@@ -182,8 +188,9 @@ func (d *dummySubnetStream) addResponse(r *registry.SubnetExtendingResponse) {
 
 func (impl *nsmdTestServiceDiscovery) MonitorSubnets(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (registry.ClusterInfo_MonitorSubnetsClient, error) {
 	logrus.Info("New subnet stream requested")
-	impl.currentSubnetStream = newDummySubnetStream()
-	return impl.currentSubnetStream, nil
+	s := newDummySubnetStream()
+	impl.subnetStreamCh <- s
+	return s, nil
 }
 
 type nsmdTestServiceRegistry struct {
