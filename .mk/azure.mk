@@ -27,7 +27,7 @@ azure-cli-check:
 	@if (which az > /dev/null 2>&1); then \
 		echo "installed"; \
 	else \
-		echo "not found"
+		echo "not found"; \
 		echo "You don't appear to have Azure CLI tool installed.  Please see: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest for installation instructions"; \
 		false; \
 	fi

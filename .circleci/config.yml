@@ -483,40 +483,40 @@ workflows:
             - "packet-test-bench"
 
 # azure
-      # - azure-deploy:
-      #     name: "azure-deploy-k8s-1"
-      #     cluster_id: "1"
-      #     requires:
-      #       - sanity-check
-      # - azure-deploy:
-      #     name: "azure-deploy-k8s-2"
-      #     cluster_id: "2"
-      #     requires:
-      #       - sanity-check
-      # - integration-tests:
-      #     name: "azure-test-basic-usecase"
-      #     cloud_provider: "azure"
-      #     cluster_id: "1"
-      #     test_tags: "basic usecase azure"
-      #     requires:
-      #       - azure-deploy-k8s-1
-      # - integration-tests:
-      #     name: "azure-test-recover"
-      #     cloud_provider: "azure"
-      #     cluster_id: "2"
-      #     test_tags: "recover azure"
-      #     requires:
-      #       - azure-deploy-k8s-2
-      # - azure-destroy:
-      #     name: "azure-destroy-1"
-      #     cluster_id: "1"
-      #     requires:
-      #       - azure-test-basic-usecase
-      # - azure-destroy:
-      #     name: "azure-destroy-2"
-      #     cluster_id: "2"
-      #     requires:
-      #       - azure-test-recover
+      - azure-deploy:
+          name: "azure-deploy-k8s-1"
+          cluster_id: "1"
+          requires:
+            - sanity-check
+      - azure-deploy:
+          name: "azure-deploy-k8s-2"
+          cluster_id: "2"
+          requires:
+            - sanity-check
+      - integration-tests:
+          name: "azure-test-basic-usecase"
+          cloud_provider: "azure"
+          cluster_id: "1"
+          test_tags: "basic usecase azure"
+          requires:
+            - azure-deploy-k8s-1
+      - integration-tests:
+          name: "azure-test-recover"
+          cloud_provider: "azure"
+          cluster_id: "2"
+          test_tags: "recover azure"
+          requires:
+            - azure-deploy-k8s-2
+      - azure-destroy:
+          name: "azure-destroy-1"
+          cluster_id: "1"
+          requires:
+            - azure-test-basic-usecase
+      - azure-destroy:
+          name: "azure-destroy-2"
+          cluster_id: "2"
+          requires:
+            - azure-test-recover
 
 # gke
       - gke-create-cluster:
