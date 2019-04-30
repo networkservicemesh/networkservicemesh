@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"testing"
+	"time"
 )
 
 func TestSimpleMetrics(t *testing.T) {
@@ -31,9 +32,10 @@ func TestSimpleMetrics(t *testing.T) {
 	nodesCount := 2
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	waitForMetricsCollectorInit(k8s, nodes)
 	nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
-
+	waitForStartCollectMetricsForClient(k8s, nodes)
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
 
@@ -51,15 +53,23 @@ func TestSimpleMetrics(t *testing.T) {
 	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "4")
 	logrus.Infof("response = %v", response)
 	Expect(err).To(BeNil())
-
 	k8s.DeletePods(nsc)
-	metrics := <-metricsCh
-
-	Expect(isMetricsEmpty(metrics)).Should(Equal(false))
-	Expect(metrics["rx_error_packets"]).Should(Equal("0"))
-	Expect(metrics["tx_error_packets"]).Should(Equal("0"))
+	select {
+	case metrics := <-metricsCh:
+		Expect(isMetricsEmpty(metrics)).Should(Equal(false))
+		Expect(metrics["rx_error_packets"]).Should(Equal("0"))
+		Expect(metrics["tx_error_packets"]).Should(Equal("0"))
+		return
+	case <-time.Tick(defaultTimeout):
+		t.Fatalf("Can't get metrics during %v", defaultTimeout)
+	}
 }
-
+func waitForMetricsCollectorInit(k8s *kube_testing.K8s, nodes []*nsmd_test_utils.NodeConf) {
+	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client for", defaultTimeout)
+}
+func waitForStartCollectMetricsForClient(k8s *kube_testing.K8s, nodes []*nsmd_test_utils.NodeConf) {
+	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: new statistics", defaultTimeout)
+}
 func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, func()) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
@@ -101,7 +111,7 @@ func monitorCrossConnectsMetrics(stream crossconnect.MonitorCrossConnect_Monitor
 				for k, v := range event.Metrics {
 					logrus.Infof("New statistics: %v %v", k, v)
 					if isMetricsEmpty(v.Metrics) {
-						logrus.Infof("Statistics: %v %v skipped", k, v)
+						logrus.Infof("Statistics: %v %v is empty", k, v)
 						continue
 					}
 					metricsCh <- v.Metrics
