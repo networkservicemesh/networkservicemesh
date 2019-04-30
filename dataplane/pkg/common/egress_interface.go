@@ -25,6 +25,12 @@ import (
 	"strings"
 )
 
+type ARPEntry struct {
+	Interface    	string
+	IpAddress       string
+	PhysAddress     string
+}
+
 type EgressInterface interface {
 	SrcIPNet() *net.IPNet
 	DefaultGateway() *net.IP
@@ -32,6 +38,7 @@ type EgressInterface interface {
 	Name() string
 	HardwareAddr() *net.HardwareAddr
 	OutgoingInterface() string
+	ArpEntries() 		[]* ARPEntry
 }
 
 type egressInterface struct {
@@ -40,6 +47,7 @@ type egressInterface struct {
 	iface             *net.Interface
 	defaultGateway    net.IP
 	outgoingInterface string
+	arpEntries		  []* ARPEntry
 }
 
 func findDefaultGateway4() (string, net.IP, error) {
@@ -94,6 +102,43 @@ func parseGatewayIP(defaultGateway string) net.IP {
 	return ip
 }
 
+func getArpEntries() ([]* ARPEntry, error) {
+	f, err := os.OpenFile("/proc/net/arp", os.O_RDONLY, 0600)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+
+	arps := []* ARPEntry{}
+	for l := 0; ; l++ {
+		line, err := reader.ReadString('\n')
+
+		if err != nil {
+			if err != io.EOF {
+				break
+			}
+			break
+		}
+
+		if l == 0 {
+			continue //Skip first line with headers and empty line
+		}
+		if line == "" {
+			break //Skip first line with headers and empty line
+		}
+		line = strings.TrimSpace(line)
+		parts := strings.Fields(line)
+		arps = append(arps, &ARPEntry{
+			PhysAddress: strings.TrimSpace(parts[3]),
+			IpAddress:   strings.TrimSpace(parts[0]),
+			Interface:   strings.TrimSpace(parts[5]),
+		})
+	}
+	return arps, nil
+}
+
 func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -103,6 +148,13 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 	outgoingInterface, gw, err := findDefaultGateway4()
 	if err != nil {
 		return nil, err
+	}
+
+	arpEntries, err := getArpEntries()
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
 	}
 
 	for _, iface := range ifaces {
@@ -119,6 +171,7 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 						iface:             &iface,
 						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
+						arpEntries:		   arpEntries,
 					}, nil
 				}
 			default:
@@ -169,4 +222,11 @@ func (e *egressInterface) OutgoingInterface() string {
 		return ""
 	}
 	return e.outgoingInterface
+}
+
+func (e *egressInterface) ArpEntries() []*ARPEntry {
+	if e == nil {
+		return nil
+	}
+	return e.arpEntries
 }
