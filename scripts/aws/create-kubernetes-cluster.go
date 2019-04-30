@@ -227,6 +227,11 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 
 	s := string(sf)
 
+	// Base image for Amazon EKS worker nodes
+	// with Kubernetes version 1.12.7
+	// for region us-east-2
+	eksAmi := aws.String("ami-04ea7cb66af82ae4a")
+
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    nodesStackName,
 		TemplateBody: &s,
@@ -238,7 +243,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			},
 			{
 				ParameterKey:   aws.String("NodeImageId"),
-				ParameterValue: aws.String("ami-04ea7cb66af82ae4a"),
+				ParameterValue: eksAmi,
 			},
 			{
 				ParameterKey: aws.String("ClusterName"),
