@@ -19,17 +19,15 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/sirupsen/logrus"
 )
 
 type IpamEndpoint struct {
@@ -81,28 +79,6 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		},
 	}
 	newConnection.Context.ExtraPrefixes = prefixes
-
-	addrs, err := net.Interfaces()
-	if err == nil {
-		for i := range addrs {
-			iface := &addrs[i]
-			adrs, err := iface.Addrs()
-			if err != nil {
-				continue
-			}
-			for _, a := range adrs {
-				addr, _, _ := net.ParseCIDR(a.String())
-				if !addr.IsLoopback() {
-					newConnection.Context.IpNeighbors = append(newConnection.Context.IpNeighbors,
-						&connectioncontext.IpNeighbor{
-							Ip:              addr.String(),
-							HardwareAddress: iface.HardwareAddr.String(),
-						},
-					)
-				}
-			}
-		}
-	}
 
 	err = newConnection.IsComplete()
 	if err != nil {
