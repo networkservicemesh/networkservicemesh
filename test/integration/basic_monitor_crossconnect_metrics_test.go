@@ -21,6 +21,10 @@ func TestSimpleMetrics(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+	if !nsmd_test_utils.IsBrokeTestsEnabled() {
+		t.Skip("Skipped for a while, will be enabled soon")
+		return
+	}
 	k8s, err := kube_testing.NewK8s()
 	Expect(err).To(BeNil())
 
