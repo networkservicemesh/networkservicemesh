@@ -5,6 +5,7 @@ endif
 .PHONY: gke-start
 gke-start: gcloud-check
 	@if ! (gcloud container clusters list | grep -q ^${GKE_CLUSTER_NAME}); then \
+	    gcloud compute networks subnets list; \
 		time gcloud container clusters create ${GKE_CLUSTER_NAME} --machine-type=n1-standard-2 --num-nodes=2 -q --cluster-ipv4-cidr=10.128.0.0/19; \
 		gcloud container clusters get-credentials ${GKE_CLUSTER_NAME}; \
 		kubectl create clusterrolebinding cluster-admin-binding \
