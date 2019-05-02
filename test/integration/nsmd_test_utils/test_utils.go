@@ -139,7 +139,7 @@ func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, tim
 		defaultICMPEnv(),
 	)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
-	return deployICMP(k8s, node, name, timeout, pod )
+	return deployICMP(k8s, node, name, timeout, pod)
 }
 
 func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
@@ -156,7 +156,7 @@ func defaultICMPEnv() map[string]string {
 	return map[string]string{
 		"ADVERTISE_NSE_NAME":   "icmp-responder",
 		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "10.20.1.0/24",
+		"IP_ADDRESS":           "172.16.1.0/24",
 	}
 }
 func defaultNSCEnv() map[string]string {
@@ -449,10 +449,10 @@ func (info *NSCCheckInfo) PrintLogs() {
 }
 
 func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return checkNSCConfig(k8s, t, nscPodNode, "10.20.1.1", "10.20.1.2")
+	return checkNSCConfig(k8s, t, nscPodNode, "172.16.1.1", "172.16.1.2")
 }
 func CheckVppAgentNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return checkVppAgentNSCConfig(k8s, t, nscPodNode, "10.20.1.1")
+	return checkVppAgentNSCConfig(k8s, t, nscPodNode, "172.16.1.1")
 }
 func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string, pingIP string) *NSCCheckInfo {
 	var err error

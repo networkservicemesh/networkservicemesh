@@ -100,7 +100,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 		Expect(errOut).To(Equal(""))
 		Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
-		pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "5")
+		pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
 		Expect(err).To(BeNil())
 		Expect(strings.Contains(pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
 		logrus.Printf("NSC Ping is success:%s", pingResponse)

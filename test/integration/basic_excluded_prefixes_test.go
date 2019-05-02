@@ -33,7 +33,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 	nodesCount := 1
 
 	variables := map[string]string{
-		nsmd.ExcludedPrefixesEnv: "10.20.1.0/24",
+		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
@@ -58,7 +58,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 	))
 
 	defer k8s.DeletePods(nsc)
-                                                                    
+
 	Expect(err).To(BeNil())
 	k8s.WaitLogsContains(icmp, "", "IPAM: The available address pool is empty, probably intersected by excludedPrefix", defaultTimeout)
 

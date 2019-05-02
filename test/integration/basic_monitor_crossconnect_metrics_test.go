@@ -52,7 +52,7 @@ func TestSimpleMetrics(t *testing.T) {
 	metricsCh := make(chan map[string]string)
 	monitorCrossConnectsMetrics(nsmdMonitor, metricsCh)
 
-	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "4")
+	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
 	logrus.Infof("response = %v", response)
 	Expect(err).To(BeNil())
 
