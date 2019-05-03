@@ -26,6 +26,7 @@ func TestSimpleMemifConnection(t *testing.T) {
 	k8s.PrepareDefault()
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+	defer nsmd_test_utils.FailLogger(k8s, nodes, t)
 
 	nsmd_test_utils.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
 	vppagentNsc := nsmd_test_utils.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
