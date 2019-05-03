@@ -46,7 +46,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 	logrus.Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
 	defer nsmc.Unlock()
-
+	start := time.Now()
 	mechanismType := common.MechanismFromString(mechanism)
 	outgoingMechanism, err := connection.NewMechanism(mechanismType, name, description)
 	if err != nil {
@@ -83,12 +83,12 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 			if iteration > 0 {
 				continue
 			}
-			logrus.Errorf("Connect failed after %v iterations", connectRetries)
+			logrus.Errorf("Connect failed after %v iterations and %v", connectRetries, time.Since(start))
 			return nil, err
 		}
 
 		nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
-		logrus.Infof("Received outgoing connection: %v", outgoingConnection)
+		logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)
 		break
 	}
 
