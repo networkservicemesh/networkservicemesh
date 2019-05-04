@@ -85,10 +85,9 @@ func (c *NetworkServiceEndpointCache) StartWithResync(f SharedInformerFactory, c
 func (c *NetworkServiceEndpointCache) replace(resources []v1.NetworkServiceEndpoint) {
 	c.networkServiceEndpoints = map[string]*v1.NetworkServiceEndpoint{}
 	c.nseByNs = map[string][]*v1.NetworkServiceEndpoint{}
-	logrus.Info("Replacing Network service endpoints with: ")
+	logrus.Infof("Replacing Network service endpoints with: %v", resources)
 
 	for _, r := range resources {
-		logrus.Infof("new nse: %v", r)
 		c.resourceAdded(&r)
 	}
 }

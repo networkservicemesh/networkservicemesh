@@ -61,14 +61,12 @@ func (c *NetworkServiceCache) StartWithResync(f SharedInformerFactory, cs *versi
 }
 
 func (c *NetworkServiceCache) replace(resources []v1.NetworkService) {
-	newMap := map[string]*v1.NetworkService{}
-	logrus.Info("Replacing Network services with: ")
+	c.networkServices = map[string]*v1.NetworkService{}
+	logrus.Infof("Replacing Network services with: %v", resources)
+
 	for _, r := range resources {
-		logrus.Infof("new ns: %v", r)
 		c.resourceAdded(&r)
 	}
-
-	c.networkServices = newMap
 }
 
 func (c *NetworkServiceCache) resourceAdded(obj interface{}) {

@@ -199,8 +199,6 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 			continue
 		}
 		impl.registryClientConnection = conn
-		for ; conn.GetState() != connectivity.Ready; <-time.Tick(300 * time.Millisecond) {
-		}
 		logrus.Infof("Successfully connected to %s", impl.registryAddress)
 		return
 	}
