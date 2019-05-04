@@ -70,8 +70,11 @@ func (c *NetworkServiceManagerCache) StartWithResync(f SharedInformerFactory, cs
 func (c *NetworkServiceManagerCache) replace(resources []v1.NetworkServiceManager) {
 	newMap := map[string]*v1.NetworkServiceManager{}
 
+	logrus.Info("Replacing Network service endpoints with: ")
+
 	for _, r := range resources {
-		newMap[getNsmKey(&r)] = &r
+		logrus.Infof("new nsm: %v", r)
+		c.resourceAdded(&r)
 	}
 
 	c.networkServiceManagers = newMap

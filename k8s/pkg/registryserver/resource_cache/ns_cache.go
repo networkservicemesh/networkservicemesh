@@ -6,6 +6,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+	"github.com/sirupsen/logrus"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -61,9 +62,10 @@ func (c *NetworkServiceCache) StartWithResync(f SharedInformerFactory, cs *versi
 
 func (c *NetworkServiceCache) replace(resources []v1.NetworkService) {
 	newMap := map[string]*v1.NetworkService{}
-
+	logrus.Info("Replacing Network services with: ")
 	for _, r := range resources {
-		newMap[getNsKey(&r)] = &r
+		logrus.Infof("new ns: %v", r)
+		c.resourceAdded(&r)
 	}
 
 	c.networkServices = newMap
