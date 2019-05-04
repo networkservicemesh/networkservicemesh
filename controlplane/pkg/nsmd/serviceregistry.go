@@ -19,7 +19,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -199,6 +199,8 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 			continue
 		}
 		impl.registryClientConnection = conn
+		for ; conn.GetState() != connectivity.Ready; <-time.Tick(300 * time.Millisecond) {
+		}
 		logrus.Infof("Successfully connected to %s", impl.registryAddress)
 		return
 	}
