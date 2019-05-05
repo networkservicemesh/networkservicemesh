@@ -32,7 +32,7 @@ func TestSimpleMetrics(t *testing.T) {
 	nodesCount := 2
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
-	waitForMetricsCollectorInit(k8s, nodes)
+
 	nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -44,32 +44,24 @@ func TestSimpleMetrics(t *testing.T) {
 
 	nsmdMonitor, close := crossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 	defer close()
-
 	metricsCh := make(chan map[string]string)
 	monitorCrossConnectsMetrics(nsmdMonitor, metricsCh)
-	for attempt := 0; attempt < 10; attempt++ {
-		nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
-		response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "4")
-		logrus.Infof("response = %v", response)
-		Expect(err).To(BeNil())
-		k8s.DeletePods(nsc)
-		select {
-		case metrics := <-metricsCh:
-			Expect(isMetricsEmpty(metrics)).Should(Equal(false))
-			Expect(metrics["rx_error_packets"]).Should(Equal("0"))
-			Expect(metrics["tx_error_packets"]).Should(Equal("0"))
-			return
-		case <-time.Tick(defaultTimeout):
-			logrus.Infof("Fail to get metrics, attempt %v", attempt)
-			continue
-		}
-		t.Fatalf("Can't get metrics during %v", defaultTimeout)
+	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "10.20.1.2", "-A", "-c", "4")
+	logrus.Infof("response = %v", response)
+	Expect(err).To(BeNil())
+	time.Sleep(time.Minute)
+	k8s.DeletePods(nsc)
+	select {
+	case metrics := <-metricsCh:
+		Expect(isMetricsEmpty(metrics)).Should(Equal(false))
+		Expect(metrics["rx_error_packets"]).Should(Equal("0"))
+		Expect(metrics["tx_error_packets"]).Should(Equal("0"))
+		return
+	case <-time.Tick(defaultTimeout):
+		t.Fatalf("Fail to get metrics during %v", defaultTimeout)
 	}
-
-}
-func waitForMetricsCollectorInit(k8s *kube_testing.K8s, nodes []*nsmd_test_utils.NodeConf) {
-	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client for", defaultTimeout)
 }
 
 func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, func()) {
