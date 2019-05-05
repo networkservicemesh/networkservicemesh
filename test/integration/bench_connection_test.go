@@ -67,12 +67,10 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 }
 
 func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, nsePing nsmd_test_utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
 
 	nodes := createNodes(k8s, nodeCount)
 	icmpDeploy(k8s, nodes[nodeCount-1], icmpDefaultName, defaultTimeout)
@@ -91,12 +89,10 @@ func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.
 }
 
 func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
 
 	nodes := createNodes(k8s, nodeCount)
 
@@ -118,12 +114,11 @@ func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.P
 }
 
 func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault()
 	nodes := createNodes(k8s, nodeCount)
 	doneChannel := make(chan nscPingResult, 1)
 	defer close(doneChannel)

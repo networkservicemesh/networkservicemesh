@@ -19,12 +19,10 @@ func TestNSMDDP(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
 
 	nodes := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
@@ -44,12 +42,10 @@ func TestNSMDRecoverNSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	k8s.PrepareDefault()
 
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
 		&pods.NSMgrPodConfig{

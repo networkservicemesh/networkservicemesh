@@ -23,14 +23,10 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 2, defaultTimeout)
@@ -91,14 +87,10 @@ func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
 }
 
 func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)

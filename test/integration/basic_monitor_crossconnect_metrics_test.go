@@ -25,12 +25,10 @@ func TestSimpleMetrics(t *testing.T) {
 		t.Skip("Skipped for a while, will be enabled soon")
 		return
 	}
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	Expect(err).To(BeNil())
 
 	defer k8s.Cleanup()
-
-	k8s.PrepareDefault()
 
 	nodesCount := 2
 

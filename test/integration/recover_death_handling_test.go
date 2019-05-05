@@ -71,13 +71,9 @@ var NSENoHeal = &pods.NSMgrPodConfig{
 }
 
 func testDie(t *testing.T, killSrc bool, nodesCount int) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	NSENoHeal.Namespace = k8s.GetK8sNamespace()
 
