@@ -67,7 +67,7 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 }
 
 func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, nsePing nsmd_test_utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -89,7 +89,7 @@ func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.
 }
 
 func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -114,7 +114,7 @@ func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.P
 }
 
 func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
