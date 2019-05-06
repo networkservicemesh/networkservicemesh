@@ -34,12 +34,11 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault()
 	nodes := k8s.GetNodesWait(2, defaultTimeout)
 
 	if len(nodes) < 2 {

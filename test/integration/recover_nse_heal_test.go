@@ -5,7 +5,6 @@ package nsmd_integration_tests
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 
@@ -51,14 +50,9 @@ func TestNSEHealRemote(t *testing.T) {
 If passed 1 both will be on same node, if not on different.
 */
 func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
-
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)

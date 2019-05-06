@@ -17,6 +17,7 @@ package crds
 
 import (
 	"os"
+	"strconv"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	nscrd "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
@@ -88,8 +89,8 @@ func NewNSCRD(namespace string) (*NSCRD, error) {
 	return &client, nil
 }
 
-func SecureIntranetConnectivity() *nsapiv1.NetworkService {
-	return &nsapiv1.NetworkService{
+func SecureIntranetConnectivity(ptnum int) *nsapiv1.NetworkService {
+	ns := &nsapiv1.NetworkService{
 		TypeMeta: v12.TypeMeta{
 			APIVersion: "networkservicemesh.io/v1",
 			Kind:       "NetworkService",
@@ -124,4 +125,28 @@ func SecureIntranetConnectivity() *nsapiv1.NetworkService {
 			},
 		},
 	}
+	matches := ns.Spec.Matches
+	for i := 0; i < ptnum; i++ {
+		id := strconv.Itoa(i + 1)
+		dest := matches[i].Routes[0].DestinationSelector["app"]
+		matches[i].Routes[0].DestinationSelector["app"] = "passthrough-" + id
+
+		m := &nsapiv1.Match{
+			SourceSelector: map[string]string{
+				"app": "passthrough-" + id,
+			},
+			Routes: []*nsapiv1.Destination{
+				&nsapiv1.Destination{
+					DestinationSelector: map[string]string{
+						"app": dest,
+					},
+				},
+			},
+		}
+
+		t := append([]*nsapiv1.Match{m}, matches[i+1:]...)
+		matches = append(matches[:i+1], t...)
+	}
+	ns.Spec.Matches = matches
+	return ns
 }

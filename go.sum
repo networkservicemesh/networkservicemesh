@@ -11,6 +11,8 @@ github.com/aws/aws-sdk-go v1.19.14 h1:wUq6zI7Y5RfzFIkworUhK71bd/Vld9Otc6bgM/0ws1
 github.com/aws/aws-sdk-go v1.19.14/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.19.15 h1:Ov8zxPunHxZFxrXBarqzkZBSZugJRzPgb4mfq/SyVgA=
 github.com/aws/aws-sdk-go v1.19.15/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
+github.com/aws/aws-sdk-go v1.19.20 h1:jom7GnR7rnJpTBMgK9X0+u9KtjAzZncAwkp2ARHIj3U=
+github.com/aws/aws-sdk-go v1.19.20/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd h1:qMd81Ts1T2OTKmB4acZcyKaMtRnY5Y44NuXGX2GFJ1w=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE/e/2PUdi/liOCUjSTXgM1o87ZssimdTWN964YiIeI=

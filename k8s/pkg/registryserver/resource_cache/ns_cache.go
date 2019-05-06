@@ -1,8 +1,13 @@
 package resource_cache
 
 import (
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	. "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+	"github.com/sirupsen/logrus"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type NetworkServiceCache struct {
@@ -42,8 +47,26 @@ func (c *NetworkServiceCache) Delete(key string) {
 	c.cache.delete(key)
 }
 
-func (c *NetworkServiceCache) Start(informerFactory externalversions.SharedInformerFactory) (func(), error) {
-	return c.cache.start(informerFactory)
+func (c *NetworkServiceCache) Start(f SharedInformerFactory, init ...v1.NetworkService) (func(), error) {
+	c.replace(init)
+	return c.cache.start(f)
+}
+
+func (c *NetworkServiceCache) StartWithResync(f SharedInformerFactory, cs *versioned.Clientset) (func(), error) {
+	l, err := cs.NetworkservicemeshV1().NetworkServices(namespace.GetNamespace()).List(v12.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to list NSs for cache initialization: %v", err)
+	}
+	return c.Start(f, l.Items...)
+}
+
+func (c *NetworkServiceCache) replace(resources []v1.NetworkService) {
+	c.networkServices = map[string]*v1.NetworkService{}
+	logrus.Infof("Replacing Network services with: %v", resources)
+
+	for _, r := range resources {
+		c.resourceAdded(&r)
+	}
 }
 
 func (c *NetworkServiceCache) resourceAdded(obj interface{}) {

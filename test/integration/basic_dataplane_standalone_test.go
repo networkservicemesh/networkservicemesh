@@ -139,12 +139,8 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 		test:    test,
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	// prepare node
 	nodes := k8s.GetNodesWait(1, timeout)

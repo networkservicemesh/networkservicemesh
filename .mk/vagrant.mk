@@ -56,7 +56,7 @@ vagrant-%-load-images:
 		vagrant ssh master -c "sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
 		number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
 			echo "Loading image $*.tar to worker$$number"; \
-			vagrant ssh worker$$number	"sudo docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+			vagrant ssh worker$$number -c "sudo docker load -i /vagrant/images/$*.tar" ; \
 			((number++)) ; \
 		done; \
 	else \

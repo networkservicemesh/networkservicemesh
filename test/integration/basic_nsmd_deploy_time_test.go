@@ -22,12 +22,11 @@ func TestNSMDDeploy(t *testing.T) {
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
-	k8s.PrepareDefault()
 	st := time.Now()
 	_ = nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 	deploy := time.Now()

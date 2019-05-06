@@ -14,7 +14,7 @@ import (
 func Test_createNSMNamespace(t *testing.T) {
 	RegisterTestingT(t)
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	namespaceName := k8s.GetK8sNamespace()

@@ -221,7 +221,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 				close(exists)
 				break
 			}
-			<- time.Tick(time.Millisecond * time.Duration(50))
+			<-time.Tick(time.Millisecond * time.Duration(50))
 		}
 	}()
 
@@ -250,14 +250,14 @@ type K8s struct {
 	namespace          string
 }
 
-func NewK8s() (*K8s, error) {
+func NewK8s(prepare bool) (*K8s, error) {
 
-	client, err := NewK8sWithoutRoles()
+	client, err := NewK8sWithoutRoles(prepare)
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
 	return client, err
 }
 
-func NewK8sWithoutRoles() (*K8s, error) {
+func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
 
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
@@ -279,6 +279,14 @@ func NewK8sWithoutRoles() (*K8s, error) {
 	client.versionedClientSet, err = versioned.NewForConfig(config)
 	Expect(err).To(BeNil())
 
+	if prepare {
+		start := time.Now()
+		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
+		client.CleanupCRDs()
+		client.CleanupConfigMaps()
+		nsmrbac.DeleteAllRoles(client.clientset)
+		logrus.Printf("Cleanup done: %v", time.Since(start))
+	}
 	return &client, nil
 }
 
@@ -424,11 +432,6 @@ func (l *K8s) Cleanup() {
 	logrus.Infof("Cleanup time: %v", time.Since(st))
 }
 
-func (l *K8s) PrepareDefault() {
-	l.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
-	l.CleanupCRDs()
-}
-
 func (l *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
 		for _, lpod := range l.ListPods() {
@@ -513,7 +516,6 @@ func (l *K8s) DeletePodsForce(pods ...*v1.Pod) {
 		}
 	}
 }
-
 
 func (k8s *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
 	getLogsOpt := &v1.PodLogOptions{}

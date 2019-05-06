@@ -23,7 +23,7 @@ DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITO
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
-DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc
+DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
@@ -219,6 +219,15 @@ k8s-secure-intranet-connectivity-save:
 
 k8s-secure-intranet-connectivity-load-images: 
 
+.PHONY: k8s-vppagent-passthrough-nse-build
+k8s-vppagent-passthrough-nse-build:
+
+.PHONY: k8s-vppagent-passthrough-nse-save
+k8s-vppagent-passthrough-nse-save:
+
+.PHONY: k8s-vppagent-passthrough-nse-load-images
+
+k8s-vppagent-passthrough-nse-load-images:
 
 .PHONY: k8s-skydive-build
 k8s-skydive-build:

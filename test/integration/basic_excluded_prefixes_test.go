@@ -4,14 +4,12 @@ package nsmd_integration_tests
 
 import (
 	"testing"
-	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 func TestExcludePrefixCheck(t *testing.T) {
@@ -22,18 +20,14 @@ func TestExcludePrefixCheck(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s()
+	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
-
-	s1 := time.Now()
-	k8s.PrepareDefault()
-	logrus.Printf("Cleanup done: %v", time.Since(s1))
 
 	nodesCount := 1
 
 	variables := map[string]string{
-		nsmd.ExcludedPrefixesEnv: "10.20.1.0/24",
+		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
@@ -58,7 +52,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 	))
 
 	defer k8s.DeletePods(nsc)
-                                                                    
+
 	Expect(err).To(BeNil())
 	k8s.WaitLogsContains(icmp, "", "IPAM: The available address pool is empty, probably intersected by excludedPrefix", defaultTimeout)
 

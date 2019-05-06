@@ -18,7 +18,6 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	cache := NewRegistryCache(clientset)
-	logrus.Info("RegistryCache started")
 
 	nseRegistry := newNseRegistryService(nsmName, cache)
 	nsmRegistry := newNsmRegistryService(nsmName, cache)
@@ -31,6 +30,7 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	if err := cache.Start(); err != nil {
 		logrus.Error(err)
 	}
+	logrus.Info("RegistryCache started")
 
 	return server
 }

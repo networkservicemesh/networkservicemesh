@@ -30,14 +30,20 @@ func fakeNsmRest(serverData *sync.Map) *FakeRest {
 	result.MockGet("/networkserviceendpoints", func(r *http.Request, resource string) (response *http.Response, e error) {
 		return Ok([]v1.NetworkServiceEndpoint{}), nil
 	})
+	result.MockGet("/namespaces/default/networkserviceendpoints", func(r *http.Request, resource string) (response *http.Response, e error) {
+		return Ok(v1.NetworkServiceEndpointList{}), nil
+	})
 	result.MockGet("/namespaces/default/networkservicemanagers", func(r *http.Request, resource string) (response *http.Response, e error) {
 		if val, ok := serverData.Load(resource); ok {
 			return Ok(val), nil
 		}
-		return NotFound(v1.NetworkServiceManager{}), nil
+		return Ok(v1.NetworkServiceManagerList{}), nil
 	})
 	result.MockGet("/networkservices", func(r *http.Request, resource string) (response *http.Response, e error) {
 		return Ok([]v1.NetworkService{}), nil
+	})
+	result.MockGet("/namespaces/default/networkservices", func(r *http.Request, resource string) (response *http.Response, e error) {
+		return Ok(v1.NetworkServiceList{}), nil
 	})
 	result.MockGet("/networkservicemanagers", func(r *http.Request, resource string) (response *http.Response, e error) {
 		return Ok([]v1.NetworkService{}), nil
