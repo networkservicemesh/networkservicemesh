@@ -49,8 +49,8 @@ type networkServiceManager struct {
 	stateRestored    chan bool
 	errCh            chan error
 
-	healer     networkServiceHealer
-	nseManager networkServiceEndpointManager
+	healProcessor networkServiceHealProcessor
+	nseManager    networkServiceEndpointManager
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
@@ -77,7 +77,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		nseManager: nseManager,
 	}
 
-	srv.healer = &healer{
+	srv.healProcessor = &nsmHealProcessor{
 		serviceRegistry: serviceRegistry,
 		model:           model,
 		properties:      properties,

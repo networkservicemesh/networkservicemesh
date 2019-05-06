@@ -39,13 +39,13 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	// 2 Choose heal style
 	switch healState {
 	case nsm.HealState_DstDown:
-		healed = srv.healer.healDstDown(healID, clientConnection)
+		healed = srv.healProcessor.healDstDown(healID, clientConnection)
 	case nsm.HealState_DataplaneDown:
-		healed = srv.healer.healDataplaneDown(healID, clientConnection)
-	case nsm.HealState_DstUpdate:
-		healed = srv.healer.healDstUpdate(healID, clientConnection)
+		healed = srv.healProcessor.healDataplaneDown(healID, clientConnection)
+	case nsm.HealState_RemoteDataplaneDown:
+		healed = srv.healProcessor.healRemoteDataplaneDown(healID, clientConnection)
 	case nsm.HealState_DstNmgrDown:
-		healed = srv.healer.healDstNmgrDown(healID, clientConnection)
+		healed = srv.healProcessor.healDstNmgrDown(healID, clientConnection)
 	}
 
 	if healed {
