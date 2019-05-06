@@ -37,12 +37,12 @@ type registryCacheImpl struct {
 	nsmNamespace                string
 }
 
-func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
+func NewRegistryCache(cs *nsmClientset.Clientset) RegistryCache {
 	return &registryCacheImpl{
 		networkServiceCache:         resource_cache.NewNetworkServiceCache(),
 		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(),
 		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(),
-		clientset:                   clientset,
+		clientset:                   cs,
 		stopFuncs:                   make([]func(), 0, 3),
 		nsmNamespace:                namespace.GetNamespace(),
 	}
@@ -51,21 +51,21 @@ func NewRegistryCache(clientset *nsmClientset.Clientset) RegistryCache {
 func (rc *registryCacheImpl) Start() error {
 	factory := externalversions.NewSharedInformerFactory(rc.clientset, 0)
 
-	if stopFunc, err := rc.networkServiceCache.Start(factory); err != nil {
+	if stopFunc, err := rc.networkServiceCache.StartWithResync(factory, rc.clientset); err != nil {
 		rc.Stop()
 		return err
 	} else {
 		rc.stopFuncs = append(rc.stopFuncs, stopFunc)
 	}
 
-	if stopFunc, err := rc.networkServiceEndpointCache.Start(factory); err != nil {
+	if stopFunc, err := rc.networkServiceEndpointCache.StartWithResync(factory, rc.clientset); err != nil {
 		rc.Stop()
 		return err
 	} else {
 		rc.stopFuncs = append(rc.stopFuncs, stopFunc)
 	}
 
-	if stopFunc, err := rc.networkServiceManagerCache.Start(factory); err != nil {
+	if stopFunc, err := rc.networkServiceManagerCache.StartWithResync(factory, rc.clientset); err != nil {
 		rc.Stop()
 		return err
 	} else {

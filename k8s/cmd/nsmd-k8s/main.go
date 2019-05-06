@@ -54,12 +54,6 @@ func main() {
 	}
 
 	nsmClientSet, err := versioned.NewForConfig(config)
-
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
 	server := registryserver.New(nsmClientSet, nsmName)
 
 	clusterInfoService, err := registryserver.NewK8sClusterInfoService(config)
@@ -68,6 +62,11 @@ func main() {
 	}
 
 	registry.RegisterClusterInfoServer(server, clusterInfoService)
+
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
 
 	logrus.Print("nsmd-k8s initialized and waiting for connection")
 	go func() {
