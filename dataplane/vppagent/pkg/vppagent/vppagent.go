@@ -25,6 +25,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
@@ -47,16 +48,19 @@ import (
 
 // VPPAgent related constants
 const (
-	DataplaneNameKey           = "DATAPLANE_NAME"
-	DataplaneNameDefault       = "vppagent"
-	DataplaneSocketKey         = "DATAPLANE_SOCKET"
-	DataplaneSocketDefault     = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
-	DataplaneSocketTypeKey     = "DATAPLANE_SOCKET_TYPE"
-	DataplaneSocketTypeDefault = "unix"
-	DataplaneEndpointKey       = "VPPAGENT_ENDPOINT"
-	DataplaneEndpointDefault   = "localhost:9111"
-	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
-	ManagementInterface        = "mgmt"
+	DataplaneMetricsCollectorEnabled              = "METRICS_COLLECTOR_ENABLED"
+	DataplaneMetricsCollectorRequestPeriod        = "METRICS_COLLECTOR_REQUEST_PERIOD"
+	DataplaneDefaultMetricsCollectorRequestPeriod = time.Second * 2
+	DataplaneNameKey                              = "DATAPLANE_NAME"
+	DataplaneNameDefault                          = "vppagent"
+	DataplaneSocketKey                            = "DATAPLANE_SOCKET"
+	DataplaneSocketDefault                        = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketTypeKey                        = "DATAPLANE_SOCKET_TYPE"
+	DataplaneSocketTypeDefault                    = "unix"
+	DataplaneEndpointKey                          = "VPPAGENT_ENDPOINT"
+	DataplaneEndpointDefault                      = "localhost:9111"
+	SrcIPEnvKey                                   = "NSM_DATAPLANE_SRC_IP"
+	ManagementInterface                           = "mgmt"
 )
 
 type VPPAgent struct {
@@ -216,10 +220,9 @@ func (v *VPPAgent) programMgmtInterface() error {
 	vppArpEntries := []*vpp.ARPEntry{}
 	for _, arpEntry := range v.egressInterface.ArpEntries() {
 		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
-			Interface: ManagementInterface,
-			IpAddress: arpEntry.IpAddress,
+			Interface:   ManagementInterface,
+			IpAddress:   arpEntry.IpAddress,
 			PhysAddress: arpEntry.PhysAddress,
-
 		})
 	}
 
@@ -252,7 +255,6 @@ func (v *VPPAgent) programMgmtInterface() error {
 				},
 				// Add system arp entries
 				Arps: vppArpEntries,
-
 			},
 		},
 	}
@@ -323,9 +325,36 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 	v.setDataplaneConfigVPPAgent(monitor)
 	v.reset()
 	v.programMgmtInterface()
-	v.metricsCollector = metrics.NewMetricsCollector()
-	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
+	v.setupMetricsCollector(monitor)
 	return nil
+}
+
+func (v *VPPAgent) setupMetricsCollector(monitor *crossconnect_monitor.CrossConnectMonitor) {
+	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabled)
+	if !ok {
+		logrus.Infof("%v not set, metrics collector is not using", DataplaneMetricsCollectorEnabled)
+		return
+	}
+	metricsCollectorEnabled, err := strconv.ParseBool(val)
+	if err != nil {
+		logrus.Errorf("Metrics collector is not using, %v ", err)
+		return
+	}
+	if !metricsCollectorEnabled {
+		return
+	}
+	requestPeriod := DataplaneDefaultMetricsCollectorRequestPeriod
+	if val, ok = os.LookupEnv(DataplaneMetricsCollectorRequestPeriod); ok {
+		parsedPeriod, err := time.ParseDuration(val)
+		if err != nil {
+			logrus.Errorf("Metrics collector using default request period, %v ", err)
+		} else {
+			requestPeriod = parsedPeriod
+		}
+	}
+	logrus.Infof("Metrics collector request period: %v ", requestPeriod)
+	v.metricsCollector = metrics.NewMetricsCollector(requestPeriod)
+	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
 }
 
 func (v *VPPAgent) setDataplaneConfigBase() {

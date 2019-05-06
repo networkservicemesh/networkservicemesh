@@ -19,9 +19,9 @@ type MetricsCollector struct {
 	requestPeriod time.Duration
 }
 
-func NewMetricsCollector() *MetricsCollector {
+func NewMetricsCollector(requestPeriod time.Duration) *MetricsCollector {
 	return &MetricsCollector{
-		requestPeriod: time.Second * 15,
+		requestPeriod: requestPeriod,
 	}
 }
 
