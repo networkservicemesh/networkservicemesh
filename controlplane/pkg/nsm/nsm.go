@@ -19,12 +19,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -49,6 +48,9 @@ type networkServiceManager struct {
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
 	errCh            chan error
+
+	healProcessor networkServiceHealProcessor
+	nseManager    networkServiceEndpointManager
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
@@ -57,14 +59,31 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
 	emptyPrefixPool, _ := prefix_pool.NewPrefixPool()
+	properties := nsm.NewNsmProperties()
+	nseManager := &nseManager{
+		serviceRegistry: serviceRegistry,
+		model:           model,
+		properties:      properties,
+	}
 
 	srv := &networkServiceManager{
 		serviceRegistry:  serviceRegistry,
 		model:            model,
 		excludedPrefixes: emptyPrefixPool,
-		properties:       nsm.NewNsmProperties(),
+		properties:       properties,
 		stateRestored:    make(chan bool, 1),
 		errCh:            make(chan error, 1),
+
+		nseManager: nseManager,
+	}
+
+	srv.healProcessor = &nsmHealProcessor{
+		serviceRegistry: serviceRegistry,
+		model:           model,
+		properties:      properties,
+
+		conManager: srv,
+		nseManager: nseManager,
 	}
 
 	go srv.monitorExcludePrefixes()
@@ -123,7 +142,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	}
 
 	// 1. Create a new connection object.
-	nsmConnection := srv.newConnection(request)
+	nsmConnection := newConnection(request)
 
 	// 2. Set connection id for new connections.
 	// Every NSMD manage it's connections.
@@ -140,7 +159,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		if request.IsRemote() {
 			return findRemoteMechanism(dp.RemoteMechanisms, remote_connection.MechanismType_VXLAN) != nil
 		} else {
-			r := request.(*networkservice.NetworkServiceRequest)
+			r := request.(*local_networkservice.NetworkServiceRequest)
 			for _, m := range r.MechanismPreferences {
 				if findLocalMechanism(dp.LocalMechanisms, m.Type) != nil {
 					return true
@@ -232,8 +251,8 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		} else {
 			// 7.2.2 It is local connection from NSC, so just copy values.
 			ls := clientConnection.Xcon.GetLocalSource()
-			ls.Mechanism = nsmConnection.(*connection.Connection).Mechanism
-			ls.State = connection.State_UP
+			ls.Mechanism = nsmConnection.(*local_connection.Connection).Mechanism
+			ls.State = local_connection.State_UP
 		}
 	}
 
@@ -336,7 +355,7 @@ func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.C
 		}
 		endpoint = nil
 		// 7.1.1 Clone Connection to support iteration via EndPoints
-		nseConnection := srv.cloneConnection(request, nsmConnection)
+		nseConnection := cloneConnection(request, nsmConnection)
 
 		if existingConnection != nil {
 			// 7.1.2 Check previous endpoint, and it we will be able to contact it, it should be fine.
@@ -348,7 +367,7 @@ func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.C
 
 		if endpoint == nil {
 			// 7.1.4 Choose a new endpoint
-			endpoint, err = srv.getEndpoint(ctx, nseConnection, ignore_endpoints)
+			endpoint, err = srv.nseManager.getEndpoint(ctx, nseConnection, ignore_endpoints)
 		}
 		if err != nil {
 			// 7.1.5 No endpoints found, we need to return error, including last error for previous NSE
@@ -374,25 +393,6 @@ func (srv *networkServiceManager) findConnectNSE(requestId string, ctx context.C
 		// 7.1.9 We are fine with NSE connection and could continue.
 		return clientConnection, nil
 	}
-}
-
-func (srv *networkServiceManager) cloneConnection(request nsm.NSMRequest, response nsm.NSMConnection) nsm.NSMConnection {
-	var requestConnection nsm.NSMConnection
-	if request.IsRemote() {
-		requestConnection = proto.Clone(response.(*remote_connection.Connection)).(*remote_connection.Connection)
-	} else {
-		requestConnection = proto.Clone(response.(*connection.Connection)).(*connection.Connection)
-	}
-	return requestConnection
-}
-func (srv *networkServiceManager) newConnection(request nsm.NSMRequest) nsm.NSMConnection {
-	var requestConnection nsm.NSMConnection
-	if request.IsRemote() {
-		requestConnection = proto.Clone(request.(*remote_networkservice.NetworkServiceRequest).Connection).(*remote_connection.Connection)
-	} else {
-		requestConnection = proto.Clone(request.(*networkservice.NetworkServiceRequest).Connection).(*connection.Connection)
-	}
-	return requestConnection
 }
 
 func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMClientConnection) error {
@@ -426,46 +426,12 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 	return nil
 }
 
-func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
-	return srv.getNetworkServiceManagerName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
-}
-
-
-
-
-/**
-ctx - we assume it is big enought to perform connection.
-*/
-func (srv *networkServiceManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
-	if srv.isLocalEndpoint(endpoint) {
-		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
-		if modelEp == nil {
-			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
-		}
-		logrus.Infof("Create local NSE connection to endpoint: %v", modelEp)
-		client, conn, err := srv.serviceRegistry.EndpointConnection(ctx, modelEp)
-		if err != nil {
-			// We failed to connect to local NSE.
-			srv.cleanupNSE(modelEp)
-			return nil, err
-		}
-		return &endpointClient{connection: conn, client: client}, nil
-	} else {
-		logrus.Infof("Create remote NSE connection to endpoint: %v", endpoint)
-		client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(ctx, endpoint.GetNetworkServiceManager())
-		if err != nil {
-			return nil, err
-		}
-		return &nsmClient{client: client, connection: conn}, nil
-	}
-}
-
 func (srv *networkServiceManager) performNSERequest(requestId string, ctx context.Context, endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, request nsm.NSMRequest, dp *model.Dataplane, existingConnection *model.ClientConnection) (*model.ClientConnection, error) {
 	// 7.2.6.x
 	connectCtx, connectCancel := context.WithTimeout(ctx, srv.properties.RequestConnectTimeout)
 	defer connectCancel()
 
-	client, err := srv.createNSEClient(connectCtx, endpoint)
+	client, err := srv.nseManager.createNSEClient(connectCtx, endpoint)
 	if err != nil {
 		// 7.2.6.1
 		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
@@ -478,7 +444,7 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 	}()
 
 	var message nsm.NSMRequest
-	if srv.isLocalEndpoint(endpoint) {
+	if srv.nseManager.isLocalEndpoint(endpoint) {
 		message = srv.createLocalNSERequest(endpoint, requestConnection)
 	} else {
 		message = srv.createRemoteNSMRequest(endpoint, requestConnection, dp, existingConnection)
@@ -516,7 +482,7 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 		ConnectionState: model.ClientConnection_Requesting,
 	}
 	// 7.2.6.2.6 - It not a local NSE put remote NSM name in request
-	if !srv.isLocalEndpoint(endpoint) {
+	if !srv.nseManager.isLocalEndpoint(endpoint) {
 		clientConnection.RemoteNsm = endpoint.GetNetworkServiceManager()
 	}
 	return clientConnection, nil
@@ -535,19 +501,19 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 		}
 	} else {
 		dpApiConnection.Source = &crossconnect.CrossConnect_LocalSource{
-			LocalSource: requestConnection.(*connection.Connection),
+			LocalSource: requestConnection.(*local_connection.Connection),
 		}
 	}
 
 	// We handling request from local or remote endpoint.
 	//TODO: in case of remote NSE( different cluster case, this method should be changed)
-	if !srv.isLocalEndpoint(endpoint) {
+	if !srv.nseManager.isLocalEndpoint(endpoint) {
 		dpApiConnection.Destination = &crossconnect.CrossConnect_RemoteDestination{
 			RemoteDestination: nseConnection.(*remote_connection.Connection),
 		}
 	} else {
 		dpApiConnection.Destination = &crossconnect.CrossConnect_LocalDestination{
-			LocalDestination: nseConnection.(*connection.Connection),
+			LocalDestination: nseConnection.(*local_connection.Connection),
 		}
 	}
 	return dpApiConnection
@@ -620,13 +586,13 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 }
 
 func (srv *networkServiceManager) updateConnectionParameters(requestId string, nseConnection nsm.NSMConnection, endpoint *registry.NSERegistration) {
-	if srv.isLocalEndpoint(endpoint) {
+	if srv.nseManager.isLocalEndpoint(endpoint) {
 		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
 		if modelEp != nil { // In case of tests this could be empty
-			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.Workspace] = modelEp.Workspace
-			nseConnection.(*connection.Connection).GetMechanism().GetParameters()[connection.WorkspaceNSEName] = modelEp.Endpoint.NetworkserviceEndpoint.EndpointName
+			nseConnection.(*local_connection.Connection).GetMechanism().GetParameters()[local_connection.Workspace] = modelEp.Workspace
+			nseConnection.(*local_connection.Connection).GetMechanism().GetParameters()[local_connection.WorkspaceNSEName] = modelEp.Endpoint.NetworkserviceEndpoint.EndpointName
 		}
-		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*connection.Connection).GetMechanism())
+		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestId, nseConnection.(*local_connection.Connection).GetMechanism())
 	}
 }
 
@@ -639,77 +605,6 @@ func (srv *networkServiceManager) updateExcludePrefixes(requestConnection nsm.NS
 
 	// Since we do not worry about validation, just
 	requestConnection.SetContext(c)
-}
-
-func (srv *networkServiceManager) getEndpoint(ctx context.Context, requestConnection nsm.NSMConnection, ignore_endpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
-
-	// Handle case we are remote NSM and asked for particular endpoint to connect to.
-	targetEndpoint := requestConnection.GetNetworkServiceEndpointName()
-	if len(targetEndpoint) > 0 {
-		endpoint := srv.model.GetEndpoint(targetEndpoint)
-		if endpoint != nil && ignore_endpoints[endpoint.EndpointName()] == nil {
-			return endpoint.Endpoint, nil
-		} else {
-			return nil, fmt.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
-		}
-	}
-
-	// Get endpoints, do it every time since we do not know if list are changed or not.
-	discoveryClient, err := srv.serviceRegistry.DiscoveryClient()
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	nseRequest := &registry.FindNetworkServiceRequest{
-		NetworkServiceName: requestConnection.GetNetworkService(),
-	}
-	endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	allEndpoints := endpointResponse.GetNetworkServiceEndpoints()
-	logrus.Infof("Discovered %v total endpoints...", len(allEndpoints))
-	endpoints := srv.filterEndpoints(allEndpoints, ignore_endpoints)
-
-	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("Failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
-			requestConnection.GetNetworkService(), len(ignore_endpoints), len(allEndpoints))
-	}
-
-	endpoint := srv.model.GetSelector().SelectEndpoint(requestConnection.(*connection.Connection), endpointResponse.GetNetworkService(), endpoints)
-	if endpoint == nil {
-		err = fmt.Errorf("No endpoint found for network service: %v total endpoints %v...", nseRequest.NetworkServiceName, len(allEndpoints))
-		logrus.Info(err)
-		return nil, err
-	}
-	return &registry.NSERegistration{
-		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
-		NetworkserviceEndpoint: endpoint,
-		NetworkService:         endpointResponse.GetNetworkService(),
-	}, nil
-}
-
-func (srv *networkServiceManager) filterEndpoints(endpoints []*registry.NetworkServiceEndpoint, ignore_endpoints map[string]*registry.NSERegistration) []*registry.NetworkServiceEndpoint {
-	result := []*registry.NetworkServiceEndpoint{}
-	// Do filter of endpoints
-	for _, candidate := range endpoints {
-		if ignore_endpoints[candidate.GetEndpointName()] == nil {
-			result = append(result, candidate)
-		}
-	}
-	return result
-}
-
-func (srv *networkServiceManager) filterRegEndpoints(endpoints []*registry.NSERegistration, ignore_endpoints map[string]*registry.NSERegistration) []*registry.NSERegistration {
-	result := []*registry.NSERegistration{}
-	// Do filter of endpoints
-	for _, candidate := range endpoints {
-		if ignore_endpoints[candidate.GetNetworkserviceEndpoint().GetEndpointName()] == nil {
-			result = append(result, candidate)
-		}
-	}
-	return result
 }
 
 /**
@@ -745,12 +640,6 @@ func (srv *networkServiceManager) checkNeedNSERequest(requestId string, nsmConne
 	}
 
 	return false
-}
-
-func (srv *networkServiceManager) cleanupNSE(endpoint *model.Endpoint) {
-	// Remove endpoint from model and put workspace into BAD state.
-	_ = srv.model.DeleteEndpoint(endpoint.EndpointName())
-	logrus.Infof("NSM: Remove Endpoint since it is not available... %v", endpoint)
 }
 
 func (srv *networkServiceManager) WaitForDataplane(timeout time.Duration) error {
@@ -800,7 +689,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				connectionState = model.ClientConnection_Ready
 
 				networkServiceName = dst.GetNetworkService()
-				endpointName = dst.GetMechanism().GetParameters()[connection.WorkspaceNSEName]
+				endpointName = dst.GetMechanism().GetParameters()[local_connection.WorkspaceNSEName]
 			}
 			if dst := xcon.GetRemoteDestination(); dst != nil {
 				// NSE is remote one, and source is local one, we are ready.
@@ -874,9 +763,9 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				}
 			} else if src := xcon.GetLocalSource(); src != nil {
 				// Update request to match source connection
-				request := &networkservice.NetworkServiceRequest{
+				request := &local_networkservice.NetworkServiceRequest{
 					Connection:           src,
-					MechanismPreferences: []*connection.Mechanism{src.GetMechanism()},
+					MechanismPreferences: []*local_connection.Mechanism{src.GetMechanism()},
 				}
 				clientConnection.Request = request
 
@@ -893,7 +782,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				}
 			}
 			if src := xcon.GetLocalSource(); src != nil {
-				if src.State == connection.State_DOWN {
+				if src.State == local_connection.State_DOWN {
 					// if source is down, we need to close connection properly.
 					_ = srv.Close(context.Background(), clientConnection)
 				}
@@ -939,7 +828,7 @@ func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConne
 	closeCtx, closeCancel := context.WithTimeout(ctx, srv.properties.CloseTimeout)
 	defer closeCancel()
 
-	client, nseClientError := srv.createNSEClient(closeCtx, clientConnection.Endpoint)
+	client, nseClientError := srv.nseManager.createNSEClient(closeCtx, clientConnection.Endpoint)
 
 	if client != nil {
 		if ld := clientConnection.Xcon.GetLocalDestination(); ld != nil {
@@ -956,24 +845,4 @@ func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConne
 		logrus.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
 	}
 	return nseClientError
-}
-
-func (srv *networkServiceManager) checkUpdateNSE(ctx context.Context, clientConnection *model.ClientConnection, ep *registry.NetworkServiceEndpoint, endpointResponse *registry.FindNetworkServiceResponse) bool {
-	pingCtx, pingCancel := context.WithTimeout(ctx, srv.properties.HealRequestConnectCheckTimeout)
-	defer pingCancel()
-	reg := &registry.NSERegistration{
-		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[ep.GetNetworkServiceManagerName()],
-		NetworkserviceEndpoint: ep,
-		NetworkService:         endpointResponse.GetNetworkService(),
-	}
-
-	client, err := srv.createNSEClient(pingCtx, reg)
-	if err == nil && client != nil {
-		_ = client.Cleanup()
-
-		// Update endpoint to connect new one.
-		clientConnection.Endpoint = reg
-		return true
-	}
-	return false
 }

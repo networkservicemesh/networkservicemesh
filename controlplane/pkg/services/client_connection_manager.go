@@ -84,7 +84,7 @@ func (m *ClientConnectionManager) UpdateClientConnectionDstUpdated(clientConnect
 	clientConnection.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
 		RemoteDestination: remoteConnection,
 	}
-	m.manager.Heal(clientConnection, nsm.HealState_DstUpdate)
+	m.manager.Heal(clientConnection, nsm.HealState_RemoteDataplaneDown)
 }
 
 func (m *ClientConnectionManager) markSourceConnectionDown(clientConnection *model.ClientConnection) {
