@@ -130,7 +130,16 @@ func (l *subnetStreamListener) listen() {
 			serviceSubnet = extendResponse.Subnet
 		}
 
-		pool, err := prefix_pool.NewPrefixPool(append(l.additionalPrefixes, podSubnet, serviceSubnet)...)
+		prefixes := l.additionalPrefixes
+		if len(podSubnet) > 0 {
+			prefixes = append(prefixes, podSubnet)
+		}
+		if len(serviceSubnet) > 0 {
+			prefixes = append(prefixes, serviceSubnet)
+		}
+
+		pool, err := prefix_pool.NewPrefixPool(prefixes...)
+
 		if err != nil {
 			logrus.Error(err)
 			continue
