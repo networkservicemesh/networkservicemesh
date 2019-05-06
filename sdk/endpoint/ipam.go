@@ -72,12 +72,6 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	newConnection.Context.SrcIpAddr = srcIP.String()
 	newConnection.Context.DstIpAddr = dstIP.String()
 
-	//Add extra routes.
-	newConnection.Context.Routes = []*connectioncontext.Route{
-		&connectioncontext.Route{
-			Prefix: "8.8.8.8/30",
-		},
-	}
 	newConnection.Context.ExtraPrefixes = prefixes
 
 	err = newConnection.IsComplete()

@@ -17,6 +17,7 @@ package main
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -35,6 +36,7 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(nil),
+		endpoint.NewRouteEndpoint(&common.NSConfiguration{Routes: []string{"8.8.8.8/30"}}),
 		endpoint.NewIpamEndpoint(nil),
 		endpoint.NewConnectionEndpoint(nil))
 

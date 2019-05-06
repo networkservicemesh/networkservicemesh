@@ -31,6 +31,7 @@ const (
 	tracerEnabled         = "TRACER_ENABLED"
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
+	routesEnv             = "ROUTES"
 )
 
 // NSConfiguration contains the full configuration used in the SDK
@@ -45,6 +46,7 @@ type NSConfiguration struct {
 	TracerEnabled      bool
 	MechanismType      string
 	IPAddress          string
+	Routes             []string
 }
 
 // CompleteNSConfiguration fills all unset options from the env variables
@@ -86,6 +88,11 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 
 	if len(configuration.IPAddress) == 0 {
 		configuration.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
+	}
+
+	if len(configuration.Routes) == 0 {
+		raw := getEnv(routesEnv, "Routes", false)
+		configuration.Routes = strings.Split(raw, ",")
 	}
 }
 
