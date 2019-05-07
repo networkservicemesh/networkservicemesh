@@ -16,7 +16,7 @@
 package connection
 
 import (
-	fmt "fmt"
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 	"strconv"

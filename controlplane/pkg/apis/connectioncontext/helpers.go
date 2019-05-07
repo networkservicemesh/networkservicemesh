@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func (c *ConnectionContext) IsComplete() error {
+func (c *ConnectionContext) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("ConnectionContext should not be nil...")
 	}
@@ -19,9 +19,12 @@ func (c *ConnectionContext) IsComplete() error {
 		}
 	}
 
-	for _, neightbor := range c.GetIpNeighbors() {
-		if neightbor.GetIp() == "" {
+	for _, neighbor := range c.GetIpNeighbors() {
+		if neighbor.GetIp() == "" {
 			return fmt.Errorf("ConnectionContext.IpNeighbors.Ip is required and cannot be empty/nil: %v", c)
+		}
+		if neighbor.GetHardwareAddress() == "" {
+			return fmt.Errorf("ConnectionContext.IpNeighbors.HardwareAddress is required and cannot be empty/nil: %v", c)
 		}
 	}
 	return nil
@@ -32,7 +35,7 @@ func (c *ConnectionContext) MeetsRequirements(original *ConnectionContext) error
 		return fmt.Errorf("ConnectionContext should not be nil...")
 	}
 
-	err := c.IsComplete()
+	err := c.IsValid()
 	if err != nil {
 		return err
 	}

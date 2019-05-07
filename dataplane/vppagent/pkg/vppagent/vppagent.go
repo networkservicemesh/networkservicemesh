@@ -113,6 +113,9 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
+	if err != nil {
+		return nil, err
+	}
 	v.monitor.Update(xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
