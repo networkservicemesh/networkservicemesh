@@ -40,6 +40,7 @@ func checkError(err error) {
 			case "ResourceInUseException":
 			case "InvalidKeyPair.Duplicate":
 			case "InvalidPermission.Duplicate":
+			case "Throttling":
 			default:
 				log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
 			}
@@ -128,7 +129,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 			log.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
 			return OutputsToMap(resp.Stacks[0].Outputs)
 		case "CREATE_IN_PROGRESS":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 		}
@@ -171,7 +172,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 			log.Printf("EKS Cluster \"%s\" successfully created!\n", *clusterName)
 			return resp.Cluster
 		case "CREATING":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
 		}
@@ -297,7 +298,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			}
 			return sequrityGroup, instanceRole
 		case  "CREATE_IN_PROGRESS":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 		}
