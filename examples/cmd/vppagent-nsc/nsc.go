@@ -61,7 +61,7 @@ func main() {
 
 	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
 	if !ok {
-		logrus.Fatalf("Failed gettign %s", nsmd.WorkspaceEnv)
+		logrus.Fatalf("Failed getting %s", nsmd.WorkspaceEnv)
 	}
 
 	backend := &nsClientBackend{
