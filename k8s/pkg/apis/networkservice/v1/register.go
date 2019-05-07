@@ -30,6 +30,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&NetworkServiceEndpointList{},
 		&NetworkServiceManager{},
 		&NetworkServiceManagerList{},
+		&NetworkServiceConnection{},
+		&NetworkServiceConnectionList{},
 	)
 
 	// register the type in the scheme

@@ -102,3 +102,27 @@ type NetworkServiceManagerStatus struct {
 	URL      string      `json:"url"`
 	State    State       `json:"state"`
 }
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type NetworkServiceConnection struct {
+	metaV1.TypeMeta   `json:",inline"`
+	metaV1.ObjectMeta `json:"metadata,omitempty"`
+
+	Status NetworkServiceConnectionStatus `json:"status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type NetworkServiceConnectionList struct {
+	metaV1.TypeMeta `json:",inline"`
+	metaV1.ListMeta `json:"metadata,omitempty"`
+
+	Items []NetworkServiceConnection `json:"items"`
+}
+
+type NetworkServiceConnectionStatus struct {
+	NetworkServiceType      string      `json:"network_service"`
+	NetworkServiceConnectionType      string      `json:"type"`
+	SourceIPAddress    string       `json:"src_ip"`
+	DestinationIPAddress    string       `json:"dst_ip"`
+}
