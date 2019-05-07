@@ -334,10 +334,8 @@ func (v *VPPAgent) setupMetricsCollector(monitor *crossconnect_monitor.CrossConn
 	if ok {
 		enabled, err := strconv.ParseBool(val)
 		if err != nil {
-			logrus.Errorf("Metrics collector is not using, %v ", err)
-			return
-		}
-		if !enabled {
+			logrus.Errorf("Metrics collector using default value for %v, %v ", DataplaneMetricsCollectorEnabledKey, err)
+		} else if !enabled {
 			logrus.Info("Metics collector is disabled")
 			return
 		}
