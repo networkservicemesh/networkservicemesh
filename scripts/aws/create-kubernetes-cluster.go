@@ -229,7 +229,8 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 
 	// Base image for Amazon EKS worker nodes
 	// with Kubernetes version 1.12.7
-	// for region us-east-2
+	// for region us-east-2.
+	// Amazon EKS-Optimized AMI list: https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html
 	eksAmi := aws.String("ami-04ea7cb66af82ae4a")
 
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
