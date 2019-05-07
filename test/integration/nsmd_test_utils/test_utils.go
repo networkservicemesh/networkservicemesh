@@ -130,28 +130,38 @@ func DeployVppAgentICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeo
 }
 
 func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node,
-		defaultICMPEnv(),
+	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultICMPCommand(),
 	))
 }
+
 func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
-	pod := pods.ICMPResponderPod(name, node,
-		defaultICMPEnv(),
+	pod := pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultICMPCommand(),
 	)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, node, name, timeout, pod)
+}
+
+func DeployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployDirtyNSE(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultDirtyNSEEnv(), defaultDirtyNSECommand(),
+	))
 }
 
 func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
+
 func DeployNSCWebhook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
 }
+
 func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
+
 func defaultICMPEnv() map[string]string {
 	return map[string]string{
 		"ADVERTISE_NSE_NAME":   "icmp-responder",
@@ -159,12 +169,30 @@ func defaultICMPEnv() map[string]string {
 		"IP_ADDRESS":           "172.16.1.0/24",
 	}
 }
+
+func defaultICMPCommand() []string {
+	return []string{ "/bin/icmp-responder-nse" }
+}
+
+func defaultDirtyNSEEnv() map[string]string {
+	return map[string]string{
+		"ADVERTISE_NSE_NAME":   "dirty",
+		"ADVERTISE_NSE_LABELS": "app=dirty",
+		"IP_ADDRESS":           "10.30.1.0/24",
+	}
+}
+
+func defaultDirtyNSECommand() []string {
+	return []string{ "/bin/icmp-responder-nse", "--dirty" }
+}
+
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
 		"OUTGOING_NSC_LABELS": "app=icmp",
 		"OUTGOING_NSC_NAME":   "icmp-responder",
 	}
 }
+
 func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
@@ -176,6 +204,19 @@ func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 
 	logrus.Printf("ICMP Responder %v started done: %v", name, time.Since(startTime))
 	return icmp
+}
+
+func deployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+	startTime := time.Now()
+
+	logrus.Infof("Starting dirty NSE on node: %s", node.Name)
+	dirty := k8s.CreatePod(template)
+	Expect(dirty.Name).To(Equal(name))
+
+	k8s.WaitLogsContains(dirty, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
+
+	logrus.Printf("Dirty NSE %v started done: %v", name, time.Since(startTime))
+	return dirty
 }
 
 func deployNSC(k8s *kube_testing.K8s, node *v1.Node, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {

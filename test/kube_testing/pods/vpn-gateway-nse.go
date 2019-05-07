@@ -10,7 +10,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	var envVars []v1.EnvVar
+	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{
@@ -28,18 +28,20 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "vpn-gateway",
-					Image:           "networkservicemesh/icmp-responder-nse:latest",
+					Image:           "networkservicemesh/test-nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
-						Requests: nil,
 					},
 					Env: envVars,
-				},
+					Command: []string{
+						"/bin/icmp-responder-nse",
+					},
+				}),
 				{
 					Name:  "nginx",
 					Image: "networkservicemesh/nginx",

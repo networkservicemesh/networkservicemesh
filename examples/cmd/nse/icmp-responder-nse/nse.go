@@ -19,9 +19,17 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 func main() {
+	dirty := false
+	for _, arg := range os.Args[:1] {
+		if arg == "--dirty" {
+			dirty = true
+		}
+	}
+
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
@@ -35,8 +43,10 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
+	_ = nsmEndpoint.Start()
+	if !dirty {
+		defer func() { _ = nsmEndpoint.Delete() }()
+	}
 
 	// Capture signals to cleanup before exiting
 	<-c
