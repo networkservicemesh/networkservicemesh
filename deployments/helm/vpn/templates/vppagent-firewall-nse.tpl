@@ -41,15 +41,16 @@ spec:
             name: vppagent-firewall-config-file
 metadata:
   name: vppagent-firewall-nse
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: vppagent-firewall-config-file
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
 data:
   config.yaml: |
     aclRules:
       "Allow ICMP": "action=reflect,icmptype=8"
       "Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80"
+

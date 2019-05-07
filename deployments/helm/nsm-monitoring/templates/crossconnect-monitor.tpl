@@ -16,4 +16,4 @@ spec:
           imagePullPolicy: {{ .Values.pullPolicy }}
 metadata:
   name: crossconnect-monitor
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}

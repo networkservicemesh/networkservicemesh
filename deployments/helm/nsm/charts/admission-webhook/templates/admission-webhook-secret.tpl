@@ -8,7 +8,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: nsm-admission-webhook-certs
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
 type: Opaque
 data:
   key.pem: {{ $cert.Key | b64enc }}
@@ -18,7 +18,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nsm-admission-webhook
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: nsm-admission-webhook
 spec:
@@ -48,7 +48,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nsm-admission-webhook-svc
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: nsm-admission-webhook
 spec:
@@ -69,7 +69,7 @@ webhooks:
     clientConfig:
       service:
         name: nsm-admission-webhook-svc
-        namespace: nsm-system
+        namespace: {{ .Release.Namespace }}
         path: "/mutate"
       caBundle: {{ $ca.Cert | b64enc }}
     rules:

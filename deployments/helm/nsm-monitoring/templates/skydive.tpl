@@ -54,7 +54,7 @@ data:
     ui:
       topology:
         favorites:
-          nsm-filter: "G.V().Has('Type', 'container', 'Docker.Labels.io.kubernetes.pod.namespace', 'default').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
+          nsm-filter: "G.V().Has('Type', 'container', 'Docker.Labels.io.kubernetes.pod.namespace', '{{ .Release.Namespace }}').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
           nsm-filter-secure-intranet-connectivity: "G.V().Has('Type', 'container', 'Docker.Labels.networkservicemesh.io/impl', 'secure-intranet-connectivity').In('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
           nsm-edges: "G.E().HasKey('NSM')"
 
