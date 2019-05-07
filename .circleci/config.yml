@@ -23,10 +23,10 @@ jobs:
             ./scripts/go-mod-download.sh
       - run: "! go fmt ./... 2>&1 | read"
       - run:
-          name: golint
+          name: lint
           command: |
-            go get golang.org/x/lint/golint
-            golint ./...
+            go get github.com/golangci/golangci-lint/cmd/golangci-lint
+            golangci-lint run --enable-all ./...
 #      - run:
 #          name: gosec
 #          command: |
