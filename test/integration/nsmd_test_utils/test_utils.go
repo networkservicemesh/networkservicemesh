@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"net"
 	"os"
 	"strings"
@@ -62,7 +63,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				dataplanePod = pods.VPPDataplanePod(dataplaneName, node)
+				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, defaultDataplaneVariables())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
@@ -501,7 +502,11 @@ func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
 }
-
+func defaultDataplaneVariables() map[string]string {
+	return map[string]string{
+		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
+	}
+}
 func GetVppAgentNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {
 	return getNSEAddr(k8s, nsc, parseVppAgentAddr, "vppctl", "show int addr")
 }

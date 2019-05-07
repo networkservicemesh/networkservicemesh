@@ -48,9 +48,9 @@ import (
 
 // VPPAgent related constants
 const (
-	DataplaneMetricsCollectorEnabled              = "METRICS_COLLECTOR_ENABLED"
-	DataplaneMetricsCollectorRequestPeriod        = "METRICS_COLLECTOR_REQUEST_PERIOD"
-	DataplaneDefaultMetricsCollectorRequestPeriod = time.Second * 2
+	DataplaneMetricsCollectorEnabledKey           = "METRICS_COLLECTOR_ENABLED"
+	DataplaneMetricsCollectorRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
+	DataplaneMetricsCollectorRequestPeriodDefault = time.Second * 2
 	DataplaneNameKey                              = "DATAPLANE_NAME"
 	DataplaneNameDefault                          = "vppagent"
 	DataplaneSocketKey                            = "DATAPLANE_SOCKET"
@@ -330,21 +330,20 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 }
 
 func (v *VPPAgent) setupMetricsCollector(monitor *crossconnect_monitor.CrossConnectMonitor) {
-	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabled)
-	if !ok {
-		logrus.Infof("%v not set, metrics collector is not using", DataplaneMetricsCollectorEnabled)
-		return
+	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabledKey)
+	if ok {
+		enabled, err := strconv.ParseBool(val)
+		if err != nil {
+			logrus.Errorf("Metrics collector is not using, %v ", err)
+			return
+		}
+		if !enabled {
+			logrus.Info("Metics collector is disabled")
+			return
+		}
 	}
-	metricsCollectorEnabled, err := strconv.ParseBool(val)
-	if err != nil {
-		logrus.Errorf("Metrics collector is not using, %v ", err)
-		return
-	}
-	if !metricsCollectorEnabled {
-		return
-	}
-	requestPeriod := DataplaneDefaultMetricsCollectorRequestPeriod
-	if val, ok = os.LookupEnv(DataplaneMetricsCollectorRequestPeriod); ok {
+	requestPeriod := DataplaneMetricsCollectorRequestPeriodDefault
+	if val, ok = os.LookupEnv(DataplaneMetricsCollectorRequestPeriodKey); ok {
 		parsedPeriod, err := time.ParseDuration(val)
 		if err != nil {
 			logrus.Errorf("Metrics collector using default request period, %v ", err)

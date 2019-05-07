@@ -31,15 +31,14 @@ func TestSimpleMetrics(t *testing.T) {
 
 	nodesCount := 2
 	requestPeriod := time.Second
-	variables := map[string]string{
-		vppagent.DataplaneMetricsCollectorEnabled:       "true",
-		vppagent.DataplaneMetricsCollectorRequestPeriod: requestPeriod.String(),
-	}
 
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
-			DataplaneVariables: variables,
-			Namespace:          k8s.GetK8sNamespace(),
+			DataplaneVariables: map[string]string{
+				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
+				vppagent.DataplaneMetricsCollectorRequestPeriodKey: requestPeriod.String(),
+			},
+			Variables: pods.DefaultNSMD,
 		},
 	}, k8s.GetK8sNamespace())
 
