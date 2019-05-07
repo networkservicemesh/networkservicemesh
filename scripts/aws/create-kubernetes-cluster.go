@@ -115,6 +115,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    clusterStackName,
 		TemplateBody: &s,
+		DisableRollback: aws.Bool(true),
 	})
 	checkError(err)
 
@@ -237,6 +238,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    nodesStackName,
 		TemplateBody: &s,
+		DisableRollback: aws.Bool(true),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			{
