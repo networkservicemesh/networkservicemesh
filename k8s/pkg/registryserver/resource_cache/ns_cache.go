@@ -64,8 +64,8 @@ func (c *NetworkServiceCache) replace(resources []v1.NetworkService) {
 	c.networkServices = map[string]*v1.NetworkService{}
 	logrus.Infof("Replacing Network services with: %v", resources)
 
-	for _, r := range resources {
-		c.resourceAdded(&r)
+	for i := 0; i < len(resources); i++ {
+		c.resourceAdded(&resources[i])
 	}
 }
 
