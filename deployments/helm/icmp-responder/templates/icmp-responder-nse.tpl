@@ -48,4 +48,4 @@ spec:
           command: "/bin/icmp-responder-nse"
 metadata:
   name: icmp-responder-nse
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}

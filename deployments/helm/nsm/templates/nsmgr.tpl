@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: nsmgr
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:

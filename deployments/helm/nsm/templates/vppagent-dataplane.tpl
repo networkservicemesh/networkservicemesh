@@ -48,4 +48,4 @@ spec:
           name: workspace
 metadata:
   name: nsm-vppagent-dataplane
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
