@@ -157,7 +157,7 @@ type dummySubnetStream struct {
 func newDummySubnetStream() *dummySubnetStream {
 	return &dummySubnetStream{
 		isKilled:  false,
-		responses: make(chan *registry.SubnetExtendingResponse, 10),
+		responses: make(chan *registry.SubnetExtendingResponse),
 	}
 }
 
