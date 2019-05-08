@@ -87,8 +87,8 @@ func (c *NetworkServiceEndpointCache) replace(resources []v1.NetworkServiceEndpo
 	c.nseByNs = map[string][]*v1.NetworkServiceEndpoint{}
 	logrus.Infof("Replacing Network service endpoints with: %v", resources)
 
-	for _, r := range resources {
-		c.resourceAdded(&r)
+	for i := 0; i < len(resources); i++ {
+		c.resourceAdded(&resources[i])
 	}
 }
 
