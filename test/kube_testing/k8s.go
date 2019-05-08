@@ -486,6 +486,10 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 	return pods, err
 }
 
+func (l *K8s) GetPod(pod *v1.Pod) (*v1.Pod,error) {
+	return l.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
+}
+
 func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 	results, err := l.CreatePodsRaw(podStartTimeout, true, template)
 	if err != nil || len(results) == 0 {
@@ -526,17 +530,20 @@ func (k8s *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
 	if len(container) > 0 {
 		getLogsOpt.Container = container
 	}
+	return k8s.GetLogsWithOptions(pod, getLogsOpt)
+}
+func (k8s *K8s) GetLogsWithOptions(pod *v1.Pod, options *v1.PodLogOptions) (string, error) {
 	var wg sync.WaitGroup
 	var result []byte
 	var err error
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, getLogsOpt)
+		response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, options)
 		result, err = response.DoRaw()
 	}()
-	if !waitTimeout(fmt.Sprintf("GetLogs %v:%v", pod.Name, container), &wg, podGetLogTimeout) {
-		logrus.Errorf("Failed to get logs from: %v.%v", pod.Name, container)
+	if !waitTimeout(fmt.Sprintf("GetLogs %v:%v", pod.Name, options), &wg, podGetLogTimeout) {
+		logrus.Errorf("Failed to get logs from: %v.%v", pod.Name, options)
 	}
 
 	if err != nil {
