@@ -275,9 +275,24 @@ func TestGetEndpoints(t *testing.T) {
 		Expect(err).To(BeNil())
 	}
 
+	nodes := k8s.GetNodesWait(1, defaultTimeout)
 	nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
 	Expect(err).To(BeNil())
 	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(len(letters)))
+	Expect(nseList.NetworkServiceEndpoints[0].EndpointName).To(ContainSubstring(nodes[0].Name))
+	Expect(nseList.NetworkServiceEndpoints[0].EndpointName).To(ContainSubstring("icmp-responder"))
+
+	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Payload: "IP",
+			Name:    "icmp-responder",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			EndpointName: nseList.NetworkServiceEndpoints[0].EndpointName,
+		},
+	})
+	Expect(err).NotTo(BeNil())
+	Expect(err.Error()).To(ContainSubstring("already exists"))
 }
 
 func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
