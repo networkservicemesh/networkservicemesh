@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -213,34 +212,19 @@ func deleteAWSKubernetesCluster() {
 
 	serviceSuffix := os.Getenv("NSM_AWS_SERVICE_SUFFIX")
 
-	var wg sync.WaitGroup
-	wg.Add(3)
-
 	// Deleting Amazon EKS Worker Nodes
 	nodesStackName := "nsm-nodes" + serviceSuffix
-	go func() {
-		defer wg.Done()
-		DeleteEksWorkerNodes(cfClient, &nodesStackName)
-	}()
+	DeleteEksWorkerNodes(cfClient, &nodesStackName)
 
 	// Deleting Amazon EKS Cluster
 	clusterName := "nsm" + serviceSuffix
-	go func() {
-		defer wg.Done()
-		DeleteEksCluster(eksClient, &clusterName)
-	}()
+	DeleteEksCluster(eksClient, &clusterName)
 
 	// Deleting Amazon EKS Cluster VPC
 	clusterStackName := "nsm-srv" + serviceSuffix
-	go func() {
-		defer wg.Done()
-		DeleteEksClusterVpc(cfClient, &clusterStackName)
-	}()
-
-	wg.Wait()
+	DeleteEksClusterVpc(cfClient, &clusterStackName)
 
 	// Deleting Amazon Roles and Keys
-
 	eksRoleName := "nsm-role" + serviceSuffix
 	DeleteEksRole(iamClient, &eksRoleName)
 	keyPairName := "nsm-key-pair" + serviceSuffix
