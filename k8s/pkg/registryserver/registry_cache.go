@@ -104,18 +104,10 @@ func (rc *registryCacheImpl) GetNetworkService(name string) (*v1.NetworkService,
 }
 
 func (rc *registryCacheImpl) AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error) {
-	if existingNse := rc.networkServiceEndpointCache.Get(nse.GetName()); existingNse != nil {
-		return existingNse, nil
-	}
-
 	nseResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints(rc.nsmNamespace).Create(nse)
 	if err == nil {
 		rc.networkServiceEndpointCache.Add(nseResponse)
 		return nseResponse, nil
-	}
-
-	if apierrors.IsAlreadyExists(err) {
-		return nse, nil
 	}
 
 	return nil, err
