@@ -19,9 +19,9 @@ type MetricsCollector struct {
 	requestPeriod time.Duration
 }
 
-func NewMetricsCollector() *MetricsCollector {
+func NewMetricsCollector(requestPeriod time.Duration) *MetricsCollector {
 	return &MetricsCollector{
-		requestPeriod: time.Second * 15,
+		requestPeriod: requestPeriod,
 	}
 }
 
@@ -47,7 +47,6 @@ func (m *MetricsCollector) collect(monitor MetricsMonitor, endpoint string) {
 
 func (m *MetricsCollector) startListenNotifications(monitor MetricsMonitor, client rpc.ConfiguratorClient) {
 	var nextIdx uint32 = 0
-	logrus.Info("Metrics collector: start handle notifications")
 	for {
 		logrus.Infof("Metrics collector: request %v", nextIdx)
 		request := &rpc.NotificationRequest{
@@ -76,7 +75,6 @@ func (m *MetricsCollector) handleNotifications(monitor MetricsMonitor, stream rp
 		statistics := convertStatistics(notification.Notification.GetVppNotification().Interface.State)
 		logrus.Infof("Metrics collector: new statistics %v", proto.MarshalTextString(notification.Notification))
 		monitor.HandleMetrics(statistics)
-		logrus.Info("Metrics collector: statistics handled")
 	}
 }
 
