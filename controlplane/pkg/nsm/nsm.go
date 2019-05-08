@@ -727,7 +727,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 						logrus.Errorf("Failed to find NSE to recovery: %v", err)
 					}
 					for _, ep := range endpoints.NetworkServiceEndpoints {
-						if ep.EndpointName == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
+						if xcon.GetRemoteDestination() != nil && ep.EndpointName == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
 							endpoint = &registry.NSERegistration{
 								NetworkServiceManager:  endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
 								NetworkserviceEndpoint: ep,
