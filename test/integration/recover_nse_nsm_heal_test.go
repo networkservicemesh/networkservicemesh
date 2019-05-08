@@ -73,7 +73,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC, false)
 }
 
 func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
@@ -83,10 +83,20 @@ func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC)
+	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC, false)
 }
 
-func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
+func TestNSMHealLocalDieNSMDOneNodeCleanedEndpoints(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	testNSMHealLocalDieNSMDOneNode(t, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC, true)
+}
+
+func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker, cleanupEndpointsCRDs bool) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
@@ -112,6 +122,11 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test
 
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
+
+	if cleanupEndpointsCRDs {
+		logrus.Infof("Cleanup Endpoints...")
+		k8s.CleanupEndpointsCRDs()
+	}
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
