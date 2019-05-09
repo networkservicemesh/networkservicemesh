@@ -10,7 +10,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2725/badge)](https://bestpractices.coreinfrastructure.org/projects/2725)
 
 <p align="center">
-  <a href="https://www.networkservicemesh.io/"><img src="https://networkservicemesh.io/img/logo.png"></a>
+  <a href="https://www.networkservicemesh.io/"><img src="https://github.com/cncf/artwork/blob/master/projects/networkservicemesh/horizontal/color/networkservicemesh-horizontal-color.png?raw=true" width="70%" height="70%"></a>
 </p>
 
 ## What is Network Service Mesh
@@ -32,33 +32,28 @@ See our full documentation at the [docs](/docs/README.md) folder.
 ## Get involved
 
 * Weekly meetings
-  * [Zoom meeting - General](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 8:00 - 9:00 AM PT
-  * [Zoom meeting - Documentation](https://zoom.us/my/networkservicemeshwg) - every Wednesday at 8:00 - 9:00 AM PT
-  * [Meeting minutes - General](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
-  * [Meeting minutes - Documentation](https://docs.google.com/document/d/1113nzdL-DcDAWT3963IsS9LeekgXLTgGebxPO7ZnJaA/edit?usp=sharing)
+  * [General - Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 8:00 - 9:00 AM PT
+  * [General - Meeting minutes](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
+  * [Documentation - Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Wednesday at 8:00 - 9:00 AM PT
+  * [Documentation - Meeting minutes](https://docs.google.com/document/d/1113nzdL-DcDAWT3963IsS9LeekgXLTgGebxPO7ZnJaA/edit?usp=sharing)
   * [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
   * [Recordings](https://www.youtube.com/playlist?list=PLj6h78yzYM2Ob01WuF-mqMxd8a_wAuppb)
 
 * Channels
+  * [![Slack Channel](https://img.shields.io/badge/Slack:-%23nsm%20on%20CNCF%20Slack-blue.svg?style=plastic&logo=slack)](https://cloud-native.slack.com/messages/CHQNNUPN1/files/FHU5KB3PW/#nsm)
   * [![IRC](https://www.irccloud.com/invite-svg?channel=%23networkservicemesh&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1)](http://webchat.freenode.net/?channels=networkservicemesh)
 
 * Mailing list
   * [![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
 
-## Upcoming Events:
+## Upcoming events
 
+* Network Service Mesh At KubeCon + CloudNativeCon EU 2019
+  * Tuesday, May 21 - 11:55am - 12:30pm - [Intro: Network Service Mesh (NSM) - Fredrick Kautz, Doc.ai & Ed Warnicke, Cisco](https://sched.co/NxZ5)
+  * Thursday, May 23 - 11:55am - 12:30pm - [Deep Dive: Network Service Mesh (NSM) - Nikolay Nikolaev, VMware & Frederic Kautz, Doc.ai](https://sched.co/NxZi)
 
-### NSM At KubeCon + CloudNativeCon EU 2019
-
-Tuesday, May 21 • 11:55am - 12:30pm - [Intro: Network Service Mesh (NSM) - Fredrick Kautz, Doc.ai & Ed Warnicke, Cisco](https://sched.co/NxZ5)
-
-Thursday, May 23 • 11:55am - 12:30pm - [Deep Dive: Network Service Mesh (NSM) - Nikolay Nikolaev, VMware & Frederic Kautz, Doc.ai](https://sched.co/NxZi)
-
-
-### NSM At KubeCon + CloudNativeCon China 2019
-
-Tuesday, June 25 • 12:05 - 12:40pm - [Intro: Network Service Mesh (NSM) - Fredrick Kautz, Doc.ai & Nikolay Nikolaev, VMware](https://sched.co/OB2V)
-
+* Network Service Mesh At KubeCon + CloudNativeCon China 2019
+  * Tuesday, June 25 - 12:05 - 12:40pm - [Intro: Network Service Mesh (NSM) - Fredrick Kautz, Doc.ai & Nikolay Nikolaev, VMware](https://sched.co/OB2V)
 
 ## References
 
