@@ -10,7 +10,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2725/badge)](https://bestpractices.coreinfrastructure.org/projects/2725)
 
 <p align="center">
-  <a href="https://www.networkservicemesh.io/"><img src="https://networkservicemesh.io/img/logo.png"></a>
+  <a href="https://www.networkservicemesh.io/"><img src="https://github.com/cncf/artwork/blob/master/projects/networkservicemesh/horizontal/color/networkservicemesh-horizontal-color.png?raw=true" width="60%" height="60%"></a>
 </p>
 
 ## What is Network Service Mesh
