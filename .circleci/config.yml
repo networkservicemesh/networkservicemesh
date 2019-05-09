@@ -268,7 +268,6 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             # export CONTAINER_FORCE_PULL="true"
-            ./scripts/install-kubectl.sh
             cat /home/circleci/project/data/kubeconfig
             ./scripts/prepare-circle-integration-tests.sh
             mkdir -p ~/junit/
