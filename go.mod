@@ -18,7 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
-	github.com/ligato/vpp-agent v2.0.2+incompatible
+	github.com/ligato/vpp-agent v2.1.0+incompatible
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
