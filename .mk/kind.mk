@@ -19,7 +19,11 @@ KIND_IMAGE_PATH=./scripts/vagrant/images/
 .PHONY: kind-config
 kind-config:
 	@which kind >/dev/null 2>&1 || \
-		GO111MODULE=off go get -u sigs.k8s.io/kind
+		make kind-install
+
+.PHONY: kind-install
+kind-install:
+	GO111MODULE="on" go get -u sigs.k8s.io/kind@master
 
 .PHONY: kind-start
 kind-start: kind-config
