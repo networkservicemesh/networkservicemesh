@@ -378,6 +378,117 @@ jobs:
       GO111MODULE: "on"
       NSM_NAMESPACE: "<< parameters.namespace >>"
 
+# example
+  example-test:
+    parameters:
+      cloud_provider:
+        type: string
+      cluster_id:
+        type: string
+      example:
+        type: string
+      gke_project_id:
+        type: string
+        default: "ci-management"
+      namespace:
+        type: string
+        default: "nsm-system"
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            sudo ./.circleci/install-yq.sh
+      - run:
+          command: |
+            ./.circleci/set-nameserver.sh sudo
+            sudo apt-get install gettext-base
+      - run:
+          name: Cache Prep
+          command: |
+            mkdir terraform
+            sudo mkdir -p /cncf/data
+            sudo chown -R circleci:circleci /cncf/
+      - restore_cache:
+          key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - restore_cache:
+          key: cncf-data-<< parameters.cloud_provider >>-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run:
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+              cp /home/circleci/project/terraform/sshkey* /cncf/data
+            fi
+      - run:
+          name: Downloading go deps
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            # export CONTAINER_FORCE_PULL="true"
+            cat /home/circleci/project/data/kubeconfig
+            ./scripts/prepare-circle-integration-tests.sh
+            mkdir -p ~/junit/
+            ./scripts/go-mod-download.sh
+          no_output_timeout: 40m
+      - run:
+          name: Deploy infra
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            make k8s-infra-deploy
+            kubectl wait -n nsm-system --timeout=150s --for condition=Ready --all pods
+          no_output_timeout: 40m
+      - run:
+          name: Running example - <<parameters.example>>
+          command: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            make k8s-<<parameters.example>>-deploy
+            kubectl wait -n nsm-system --timeout=150s --for condition=Ready --all pods
+          no_output_timeout: 40m
+      - run:
+          name: Verifying example - <<parameters.example>>
+          command: |
+            make k8s-check
+      - run:
+          name: Cleanup example - <<parameters.example>>
+          command: |
+            make k8s-delete
+      - run:
+          when: always
+          name: Save postmortem data
+          command: |
+            make << parameters.cloud_provider >>-download-postmortem
+      - store_artifacts:
+          path: ~/postmortem
+      - run:
+          when: always
+          name: Dump K8s state
+          command: |
+            kubectl -n $NSM_NAMESPACE get nodes
+            kubectl -n $NSM_NAMESPACE get pods -o wide
+            kubectl -n $NSM_NAMESPACE describe pods
+      - run:
+          when: on_fail
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xgke" ]; then
+              .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
+            else
+              if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+                cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
+              fi
+              .circleci/cleanup-<< parameters.cloud_provider >>.sh
+            fi
+    environment:
+      PACKET_CLUSTER_ID: "<< parameters.cluster_id >>"
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      CLOUD_PROVIDER: "<< parameters.cloud_provider >>"
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
+      NSM_NAMESPACE: "<< parameters.namespace >>"
+
 # build
   build-container:
     parameters:
@@ -536,6 +647,22 @@ workflows:
           test_tags: "bench"
           requires:
             - "packet-test-recover"
+      - example-test:
+          name: "packet-test-example-icmp"
+          namespace: "nsm-system"
+          cloud_provider: "packet"
+          cluster_id: "2"
+          example: "icmp"
+          requires:
+            - "packet-test-bench"
+      - example-test:
+          name: "packet-test-example-vpn"
+          namespace: "nsm-system"
+          cloud_provider: "packet"
+          cluster_id: "2"
+          example: "vpn"
+          requires:
+            - "packet-test-example-icmp"
       - packet-destroy:
           requires:
             - "packet-test-basic-usecase"
