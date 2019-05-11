@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"sync"
@@ -15,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -100,6 +101,7 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 			if err != nil {
 				logrus.Errorf("Failed to get pod information: %v", err)
 			}
+			l.DescribePod(pod)
 			if pod != nil {
 				logrus.Infof("Pod information: %v", pod)
 				for _, cs := range pod.Status.ContainerStatuses {
@@ -401,6 +403,30 @@ func (o *K8s) CleanupCRDs() {
 	managers, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers(o.namespace).List(metaV1.ListOptions{})
 	for _, mgr := range managers.Items {
 		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers(o.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
+	}
+}
+
+func (l *K8s) DescribePod(pod *v1.Pod) {
+	eventsInterface := l.clientset.CoreV1().Events(l.namespace)
+
+	selector := eventsInterface.GetFieldSelector(&pod.Name, &l.namespace, nil, nil)
+	options := metaV1.ListOptions{FieldSelector: selector.String()}
+	events, err := eventsInterface.List(options)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	var uid types.UID
+	for i := len(events.Items) - 1; i >= 0; i-- {
+		if uid == "" {
+			uid = events.Items[i].InvolvedObject.UID
+		}
+
+		if uid == events.Items[i].InvolvedObject.UID {
+			logrus.Info(events.Items[i])
+		} else {
+			break
+		}
 	}
 }
 
