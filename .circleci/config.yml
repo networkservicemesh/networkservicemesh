@@ -171,6 +171,60 @@ jobs:
             export AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
             make azure-destroy
 
+# aws
+  aws-deploy:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install AWS Prerequisites
+          command: |
+            ./scripts/aws/aws-init.sh
+            mkdir -p data
+            sudo cp "$HOME/bin/aws-iam-authenticator" data/aws-iam-authenticator
+            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
+      - run:
+          name: Create AWS Cluster
+          command: |
+            export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            ./scripts/install-kubectl.sh
+            make aws-start
+            cp ~/.kube/config data/kubeconfig
+      - save_cache:
+          key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          paths:
+            - data
+            - ~/.aws
+            - ~/.kube
+      - run:
+          when: on_fail
+          command: |
+            export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            make aws-destroy
+
+  aws-destroy:
+    parameters:
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install AWS Prerequisites
+          command: |
+            ./scripts/aws/aws-init.sh
+            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin
+      - run:
+          name: Destroy AWS Cluster
+          command: |
+            export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            make aws-destroy
+
 # gke
   gke-create-cluster:
     parameters:
@@ -261,6 +315,10 @@ jobs:
           command: |
             if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
               cp /home/circleci/project/terraform/sshkey* /cncf/data
+            else
+              if [ "x<< parameters.cloud_provider >>" == "xaws" ]; then
+                sudo cp /home/circleci/project/data/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+              fi
             fi
       - run:
           name: Downloading go deps
@@ -516,6 +574,42 @@ workflows:
           cluster_id: "2"
           requires:
             - azure-test-recover
+
+# aws
+      - aws-deploy:
+          name: "aws-deploy-k8s-1"
+          cluster_id: "1"
+          requires:
+            - sanity-check
+      - aws-deploy:
+          name: "aws-deploy-k8s-2"
+          cluster_id: "2"
+          requires:
+            - sanity-check
+      - aws-destroy:
+          name: "aws-destroy-1"
+          cluster_id: "1"
+          requires:
+            - aws-test-basic-usecase
+      - aws-destroy:
+          name: "aws-destroy-2"
+          cluster_id: "2"
+          requires:
+            - aws-test-recover
+      - integration-tests:
+          name: "aws-test-basic-usecase"
+          cloud_provider: "aws"
+          cluster_id: "1"
+          test_tags: "basic usecase aws"
+          requires:
+            - aws-deploy-k8s-1
+      - integration-tests:
+          name: "aws-test-recover"
+          cloud_provider: "aws"
+          cluster_id: "2"
+          test_tags: "recover aws"
+          requires:
+            - aws-deploy-k8s-2
 
 # gke
       - gke-create-cluster:
