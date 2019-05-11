@@ -203,6 +203,7 @@ jobs:
             - ~/.kube
       - run:
           when: on_fail
+          no_output_timeout: 40m
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
@@ -222,6 +223,7 @@ jobs:
             sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin
       - run:
           name: Destroy AWS Cluster
+          no_output_timeout: 40m
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
