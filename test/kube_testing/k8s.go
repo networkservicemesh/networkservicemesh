@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"sync"
@@ -416,16 +415,9 @@ func (l *K8s) DescribePod(pod *v1.Pod) {
 		logrus.Error(err)
 	}
 
-	var uid types.UID
 	for i := len(events.Items) - 1; i >= 0; i-- {
-		if uid == "" {
-			uid = events.Items[i].InvolvedObject.UID
-		}
-
-		if uid == events.Items[i].InvolvedObject.UID {
+		if pod.UID == events.Items[i].InvolvedObject.UID {
 			logrus.Info(events.Items[i])
-		} else {
-			break
 		}
 	}
 }
