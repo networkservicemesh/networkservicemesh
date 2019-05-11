@@ -194,6 +194,7 @@ jobs:
             ./scripts/install-kubectl.sh
             make aws-start
             cp ~/.kube/config data/kubeconfig
+          no_output_timeout: 40m
       - save_cache:
           key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
