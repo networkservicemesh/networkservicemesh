@@ -373,10 +373,15 @@ jobs:
 # example
   example-test:
     parameters:
+      cloud_provider:
+        type: string
       cluster_id:
         type: string
       example:
         type: string
+      gke_project_id:
+        type: string
+        default: "ci-management"
       namespace:
         type: string
         default: "nsm-system"
@@ -402,10 +407,16 @@ jobs:
       - restore_cache:
           key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - restore_cache:
-          key: cncf-data-packet-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+          key: cncf-data-<< parameters.cloud_provider >>-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run:
           command: |
-            cp /home/circleci/project/terraform/sshkey* /cncf/data
+            if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+              cp /home/circleci/project/terraform/sshkey* /cncf/data
+            else
+              if [ "x<< parameters.cloud_provider >>" == "xaws" ]; then
+                sudo cp /home/circleci/project/data/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+              fi
+            fi
             ./scripts/install-kubectl.sh
       - run:
           name: Deploy infra
@@ -413,7 +424,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             make k8s-infra-deploy
-            kubectl wait -n nsm-system --timeout=150s --for condition=Ready --all pods
+            kubectl wait -n $NSM_NAMESPACE --timeout=150s --for condition=Ready --all pods
           no_output_timeout: 10m
       - run:
           name: Running example - <<parameters.example>>
@@ -435,7 +446,7 @@ jobs:
           when: always
           name: Save postmortem data
           command: |
-            make packet-download-postmortem
+            make << parameters.cloud_provider >>-download-postmortem
       - store_artifacts:
           path: ~/postmortem
       - run:
@@ -619,6 +630,7 @@ workflows:
       - example-test:
           name: "packet-test-example-icmp"
           namespace: "nsm-system"
+          cloud_provider: "packet"
           cluster_id: "2"
           example: "icmp"
           requires:
@@ -626,6 +638,7 @@ workflows:
       - example-test:
           name: "packet-test-example-vpn"
           namespace: "nsm-system"
+          cloud_provider: "packet"
           cluster_id: "2"
           example: "vpn"
           requires:
