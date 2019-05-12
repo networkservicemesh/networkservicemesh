@@ -369,6 +369,7 @@ jobs:
       KUBECONFIG: /home/circleci/project/data/kubeconfig
       GO111MODULE: "on"
       NSM_NAMESPACE: "<< parameters.namespace >>"
+
 # example
   example-test:
     parameters:
@@ -405,6 +406,7 @@ jobs:
       - run:
           command: |
             cp /home/circleci/project/terraform/sshkey* /cncf/data
+            ./scripts/install-kubectl.sh
       - run:
           name: Deploy infra
           command: |
@@ -454,6 +456,7 @@ jobs:
       KUBECONFIG: /home/circleci/project/data/kubeconfig
       GO111MODULE: "on"
       NSM_NAMESPACE: "<< parameters.namespace >>"
+      CLUSTER_RULES_PREFIX: "null"
 
 # build
   build-container:
