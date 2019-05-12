@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 )
+
+const requestInterval = 5 * time.Second
 
 func printUsage() {
 	fmt.Printf("Usage: go run ./... <command>\n" +

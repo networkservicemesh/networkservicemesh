@@ -258,7 +258,6 @@ func TestGetEndpoints(t *testing.T) {
 	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
 	Expect(err).To(BeNil())
 
-	k8s.CleanupCRDs()
 	url := "1.1.1.1:1"
 
 	responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{

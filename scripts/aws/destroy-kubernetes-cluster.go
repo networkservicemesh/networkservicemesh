@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -21,6 +20,11 @@ var deferError = false
 func checkDeferError(err error) bool {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == "Throttling" {
+				log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
+				return false
+			}
+
 			switch aerr.Code() {
 			case "NoSuchEntity":
 			case "ResourceNotFoundException":
@@ -102,7 +106,7 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 			log.Printf("Cluster VPC \"%s\" successfully deleted!\n", *clusterStackName)
 			return
 		case "DELETE_IN_PROGRESS":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 			deferError = true
@@ -137,7 +141,7 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 
 		switch *resp.Cluster.Status {
 		case "DELETING":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
 			deferError = true
@@ -190,7 +194,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			log.Printf("EKS Worker Nodes \"%s\" successfully deleted!\n", *nodesStackName)
 			return
 		case "DELETE_IN_PROGRESS":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 			deferError = true
@@ -208,34 +212,19 @@ func deleteAWSKubernetesCluster() {
 
 	serviceSuffix := os.Getenv("NSM_AWS_SERVICE_SUFFIX")
 
-	var wg sync.WaitGroup
-	wg.Add(3)
-
 	// Deleting Amazon EKS Worker Nodes
 	nodesStackName := "nsm-nodes" + serviceSuffix
-	go func() {
-		defer wg.Done()
-		DeleteEksWorkerNodes(cfClient, &nodesStackName)
-	}()
+	DeleteEksWorkerNodes(cfClient, &nodesStackName)
 
 	// Deleting Amazon EKS Cluster
 	clusterName := "nsm" + serviceSuffix
-	go func() {
-		defer wg.Done()
-		DeleteEksCluster(eksClient, &clusterName)
-	}()
+	DeleteEksCluster(eksClient, &clusterName)
 
 	// Deleting Amazon EKS Cluster VPC
 	clusterStackName := "nsm-srv" + serviceSuffix
-	go func() {
-		defer wg.Done()
-		DeleteEksClusterVpc(cfClient, &clusterStackName)
-	}()
-
-	wg.Wait()
+	DeleteEksClusterVpc(cfClient, &clusterStackName)
 
 	// Deleting Amazon Roles and Keys
-
 	eksRoleName := "nsm-role" + serviceSuffix
 	DeleteEksRole(iamClient, &eksRoleName)
 	keyPairName := "nsm-key-pair" + serviceSuffix

@@ -47,3 +47,11 @@ export CLUSTER_RULES_PREFIX=kind
 ```
 
 All subsequent commands will assume `kind` as the cluster provider.
+
+## Latest `kind`
+
+The default behaviour is to use the installed `kind` version and not update it. An update can be forces by:
+
+```shell
+make kind-install
+```
