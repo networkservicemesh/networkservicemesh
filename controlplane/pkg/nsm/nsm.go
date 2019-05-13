@@ -222,7 +222,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 			}
 			return nil, err
 		}
-	} else if existingConnection != nil {
+	} else {
 		// 7.2 We do not need to access NSE, since all parameters are same.
 		if request.IsRemote() {
 			// 7.2.1 We are called from remote NSM so just copy.
@@ -405,8 +405,6 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 		return nil
 	}
 	clientConnection.ConnectionState = model.ClientConnection_Closing
-	var nseClientError error
-	var nseCloseError error
 
 	srv.closeEndpoint(ctx, clientConnection)
 
@@ -419,8 +417,8 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 		}
 	}
 
-	if nseClientError != nil || nseCloseError != nil || dpCloseError != nil {
-		return fmt.Errorf("NSM: Close error: %v", []error{nseClientError, nseCloseError, dpCloseError})
+	if dpCloseError != nil {
+		return fmt.Errorf("NSM: Close error: %v", dpCloseError)
 	}
 	logrus.Infof("NSM: Close for %s complete...", clientConnection.GetId())
 	return nil
@@ -429,9 +427,6 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 func (srv *networkServiceManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
 	return srv.getNetworkServiceManagerName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
 }
-
-
-
 
 /**
 ctx - we assume it is big enought to perform connection.

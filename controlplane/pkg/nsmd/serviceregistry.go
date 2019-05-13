@@ -28,7 +28,6 @@ import (
 const (
 	ServerSock             = "/var/lib/networkservicemesh/nsm.io.sock"
 	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
-	folderMask             = 0777
 	NsmdApiAddressEnv      = "NSMD_API_ADDRESS"
 	NsmdApiAddressDefaults = "0.0.0.0:5001"
 )

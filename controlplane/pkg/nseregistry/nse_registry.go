@@ -38,8 +38,8 @@ func store(values ...string) string {
 			res += "\t"
 		}
 		ss := strings.Replace(s, "\t", "\\t,", -1)
-		ss = strings.Replace(s, "\n", "\\n,", -1) // Just in case
-		ss = strings.Replace(s, "\r", "\\r,", -1) // Just in case
+		ss = strings.Replace(ss, "\n", "\\n,", -1) // Just in case
+		ss = strings.Replace(ss, "\r", "\\r,", -1) // Just in case
 		res += ss
 	}
 	return res

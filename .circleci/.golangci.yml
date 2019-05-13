@@ -1,0 +1,90 @@
+run:
+  concurrency: 4
+  deadline: 15m
+  issues-exit-code: 1
+
+  tests: false
+
+  skip-dirs:
+    - build
+    - conf
+    - controlplane/scripts
+    - dataplane/vppagent/build
+    - dataplane/vppagent/conf
+    - dataplane/scripts
+    - deployments
+    - docks
+    - scripts
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+
+  govet:
+    check-shadowing: true
+
+    settings:
+      printf:
+        funcs:
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+  golint:
+    min-confidence: 0.8
+  goimports:
+    local-prefixes: github.com/networkservicemesh/networkservicemesh
+  gocyclo:
+    min-complexity: 20
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  depguard:
+    list-type: blacklist
+    include-go-root: false
+    packages:
+      - github.com/davecgh/go-spew/spew
+  misspell:
+    locale: US
+    #ignore-words:
+  unused:
+    check-exported: true
+  unparam:
+    check-exported: true
+  nakedret:
+    max-func-lines: 30
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+  gocritic:
+    enabled-checks:
+      - rangeValCopy
+      - boolExprSimplify
+      - badCond
+      - methodExprCall
+      - paramTypeCombine
+      - ptrToRefParam
+      - rangeExprCopy
+
+    settings:
+      captLocal:
+        paramsOnly: true
+      rangeValCopy:
+        sizeThreshold: 32
+
+linters:
+  disable:
+    - lll
+    - gofmt
+  enable-all: true
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -92,9 +92,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 				logrus.Errorf("NSM_Heal(2.3.1-%v) Failed to heal connection: %v", healId, err)
 				// We need to delete connection, since we are not able to Heal it
 				srv.model.DeleteClientConnection(clientConnection.ConnectionId)
-				if err != nil {
-					logrus.Errorf("NSM_Heal(2.3.2-%v) Error in Recovery Close: %v", healId, err)
-				}
+				logrus.Errorf("NSM_Heal(2.3.2-%v) Error in Recovery Close: %v", healId, err)
 			} else {
 				logrus.Infof("NSM_Heal(2.4-%v) Heal: Connection recovered: %v", healId, recoveredConnection)
 				return
@@ -177,9 +175,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 					defer requestCancel()
 					recoveredConnection, err = srv.request(requestCtx, clientConnection.Request, clientConnection)
 					if err != nil {
-						if err != nil {
-							logrus.Errorf("NSM_Heal(6.2.3-%v) Error in Recovery Close: %v", healId, err)
-						}
+						logrus.Errorf("NSM_Heal(6.2.3-%v) Error in Recovery Close: %v", healId, err)
 					} else {
 						logrus.Infof("NSM_Heal(6.3-%v) Heal: Connection recovered: %v", healId, recoveredConnection)
 						return
@@ -219,7 +215,6 @@ func (srv *networkServiceManager) requestOrClose(logPrefix string, ctx context.C
 		logrus.Infof("%v Heal: Connection recovered: %v", logPrefix, connection)
 	}
 }
-
 
 func (srv *networkServiceManager) waitSpecificNSE(ctx context.Context, clientConnection *model.ClientConnection) bool {
 	discoveryClient, err := srv.serviceRegistry.DiscoveryClient()
