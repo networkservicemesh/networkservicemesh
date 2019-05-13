@@ -26,7 +26,8 @@ jobs:
           name: lint
           command: |
             go get github.com/golangci/golangci-lint/cmd/golangci-lint
-            golangci-lint run --new-from-rev=HEAD~ ./...
+            echo ${CIRCLE_BRANCH}
+            golangci-lint run --new-from-rev=${CIRCLE_BRANCH} ./...
 #      - run:
 #          name: gosec
 #          command: |
