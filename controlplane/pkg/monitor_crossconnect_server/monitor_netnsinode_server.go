@@ -2,14 +2,16 @@ package monitor_crossconnect_server
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
-	"github.com/sirupsen/logrus"
-	"strconv"
-	"time"
 )
 
 type MonitorNetNsInodeServer struct {

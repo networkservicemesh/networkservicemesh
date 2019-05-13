@@ -16,21 +16,28 @@ package vppagent
 
 import (
 	"context"
+	"net"
+	"os"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
-	"net"
-	"os"
-	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -39,10 +46,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
 )
 
 // VPPAgent related constants
@@ -216,10 +219,9 @@ func (v *VPPAgent) programMgmtInterface() error {
 	vppArpEntries := []*vpp.ARPEntry{}
 	for _, arpEntry := range v.egressInterface.ArpEntries() {
 		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
-			Interface: ManagementInterface,
-			IpAddress: arpEntry.IpAddress,
+			Interface:   ManagementInterface,
+			IpAddress:   arpEntry.IpAddress,
 			PhysAddress: arpEntry.PhysAddress,
-
 		})
 	}
 
@@ -252,7 +254,6 @@ func (v *VPPAgent) programMgmtInterface() error {
 				},
 				// Add system arp entries
 				Arps: vppArpEntries,
-
 			},
 		},
 	}

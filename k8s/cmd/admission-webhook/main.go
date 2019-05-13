@@ -4,10 +4,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/client"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"net/http"
+	"os"
+
+	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,8 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	v1 "k8s.io/kubernetes/pkg/apis/core/v1"
-	"net/http"
-	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
 const (
@@ -320,5 +322,5 @@ func main() {
 	}()
 
 	logrus.Info("Server started")
-	<- c
+	<-c
 }

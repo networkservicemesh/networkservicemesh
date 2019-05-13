@@ -16,7 +16,13 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -28,10 +34,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
-	"sync"
-	"time"
 )
 
 const (

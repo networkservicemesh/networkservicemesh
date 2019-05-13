@@ -43,7 +43,7 @@ const (
 	MaxSymLink = 8192
 )
 
-// GetCurrentNS discoveres the namespace of a running process and returns in a string.
+// GetCurrentNS discovers the namespace of a running process and returns in a string.
 func GetCurrentNS() (string, error) {
 	buf := make([]byte, MaxSymLink)
 	numBytes, err := syscall.Readlink(netnsfile, buf)
@@ -59,7 +59,7 @@ func GetCurrentNS() (string, error) {
 	return "", fmt.Errorf("namespace is not found")
 }
 
-// SocketCleanup check for the presense of a stale socket and if it finds it, removes it.
+// SocketCleanup check for the presence of a stale socket and if it finds it, removes it.
 func SocketCleanup(listenEndpoint string) error {
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
@@ -149,7 +149,7 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 				last = time.Now()
 			}
 			// Sleep to not overflow network
-			<- time.After(idleSleep)
+			<-time.After(idleSleep)
 		}
 	}
 }

@@ -37,7 +37,7 @@ func ICMPResponderPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			Containers: []v1.Container{nsc_container},
+			Containers:                    []v1.Container{nsc_container},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}

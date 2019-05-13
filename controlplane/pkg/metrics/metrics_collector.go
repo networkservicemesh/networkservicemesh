@@ -3,16 +3,18 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"io"
-	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 )
 
 type MetricsCollector struct {

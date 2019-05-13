@@ -2,6 +2,7 @@ package crossconnect_monitor
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )

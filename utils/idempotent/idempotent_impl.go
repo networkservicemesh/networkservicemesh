@@ -67,7 +67,7 @@ func (i *Impl) State() State {
 	return i.state
 }
 
-// Init should be overriden by a Plugin embedding idempotent.Impl
+// Init should be overridden by a Plugin embedding idempotent.Impl
 // When overriding use something like:
 // func (p *Plugin) Init() error {
 // 	return p.Impl.IdempotentInit(p.init)
@@ -75,7 +75,7 @@ func (i *Impl) State() State {
 // where p.init() is contains the real init code for your plugin
 func (i *Impl) Init() error { return nil }
 
-// Close should be overriden
+// Close should be overridden
 // When overriding use something like:
 // func (p *Plugin) Close() error {
 // 	return p.Impl.IdempotentInit(p.close)

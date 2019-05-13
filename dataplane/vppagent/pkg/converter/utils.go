@@ -1,9 +1,10 @@
 package converter
 
 import (
+	"net"
+
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
-	"net"
 )
 
 func TempIfName() string {

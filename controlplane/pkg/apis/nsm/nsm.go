@@ -1,10 +1,12 @@
 package nsm
 
 import (
+	"time"
+
+	"golang.org/x/net/context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"golang.org/x/net/context"
-	"time"
 )
 
 /*

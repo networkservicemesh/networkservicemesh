@@ -2,12 +2,14 @@ package nsm
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 //// Endpoint Connection Client

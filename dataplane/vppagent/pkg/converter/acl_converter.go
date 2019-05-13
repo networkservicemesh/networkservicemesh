@@ -17,14 +17,16 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/sirupsen/logrus"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 type aclConverter struct {

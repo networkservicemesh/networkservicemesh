@@ -2,12 +2,13 @@ package kube_testing
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
 	"strings"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 type Writer struct {

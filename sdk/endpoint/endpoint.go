@@ -17,20 +17,23 @@ package endpoint
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"io"
 	"net"
+
+	"github.com/golang/protobuf/ptypes/empty"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 
 	"github.com/opentracing/opentracing-go"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type nsmEndpoint struct {

@@ -2,12 +2,14 @@ package nsm
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
-	"time"
 )
 
 func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healState nsm.HealState) {

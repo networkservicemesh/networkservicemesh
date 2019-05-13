@@ -17,18 +17,19 @@ package common
 import (
 	"bufio"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type ARPEntry struct {
-	Interface    	string
-	IpAddress       string
-	PhysAddress     string
+	Interface   string
+	IpAddress   string
+	PhysAddress string
 }
 
 type EgressInterface interface {
@@ -38,7 +39,7 @@ type EgressInterface interface {
 	Name() string
 	HardwareAddr() *net.HardwareAddr
 	OutgoingInterface() string
-	ArpEntries() 		[]* ARPEntry
+	ArpEntries() []*ARPEntry
 }
 
 type egressInterface struct {
@@ -47,7 +48,7 @@ type egressInterface struct {
 	iface             *net.Interface
 	defaultGateway    net.IP
 	outgoingInterface string
-	arpEntries		  []* ARPEntry
+	arpEntries        []*ARPEntry
 }
 
 func findDefaultGateway4() (string, net.IP, error) {
@@ -102,7 +103,7 @@ func parseGatewayIP(defaultGateway string) net.IP {
 	return ip
 }
 
-func getArpEntries() ([]* ARPEntry, error) {
+func getArpEntries() ([]*ARPEntry, error) {
 	f, err := os.OpenFile("/proc/net/arp", os.O_RDONLY, 0600)
 	if err != nil {
 		return nil, err
@@ -111,7 +112,7 @@ func getArpEntries() ([]* ARPEntry, error) {
 
 	reader := bufio.NewReader(f)
 
-	arps := []* ARPEntry{}
+	arps := []*ARPEntry{}
 	for l := 0; ; l++ {
 		line, err := reader.ReadString('\n')
 
@@ -171,7 +172,7 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 						iface:             &iface,
 						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
-						arpEntries:		   arpEntries,
+						arpEntries:        arpEntries,
 					}, nil
 				}
 			default:

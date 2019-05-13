@@ -3,13 +3,15 @@ package nseregistry
 import (
 	"bufio"
 	"encoding/base64"
-	"github.com/gogo/protobuf/proto"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 const (

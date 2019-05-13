@@ -2,8 +2,9 @@ package connection
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"strconv"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 )
 
 // IsValid - returns nil if Connection is minimally valid.
