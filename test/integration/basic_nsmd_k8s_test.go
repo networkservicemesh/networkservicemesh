@@ -280,7 +280,6 @@ func TestGetEndpoints(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(len(letters)))
 	Expect(nseList.NetworkServiceEndpoints[0].EndpointName).To(ContainSubstring(nodes[0].Name))
-	Expect(nseList.NetworkServiceEndpoints[0].EndpointName).To(ContainSubstring("icmp-responder"))
 
 	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
