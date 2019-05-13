@@ -45,4 +45,4 @@ spec:
               networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-icmp-responder-nse
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}

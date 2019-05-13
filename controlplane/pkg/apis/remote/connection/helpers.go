@@ -17,10 +17,9 @@ package connection
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"net"
 	"strconv"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 )
 
 // IsValid - Did you tell me enough that some other party in the chain can fill in the blanks

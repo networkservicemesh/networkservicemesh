@@ -69,3 +69,7 @@ aws-save: $(addsuffix -save,$(addprefix aws-,$(BUILD_CONTAINERS))) ;
 
 .PHONY: aws-%-save
 aws-%-save: aws-%-build ;
+
+.PHONY: aws-download-postmortem
+aws-download-postmortem:
+	@echo "Not implemented yet."

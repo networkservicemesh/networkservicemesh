@@ -74,7 +74,7 @@ This will connect to docker image and execute `debug.sh X` that will start debug
 For example:
 
 ```bash
-make docker-debug-nsc
+make docker-nsc-debug
 Compile and start debug of ./examples/cmd/nsc/nsc.go at port 40001
 ```
 
@@ -82,9 +82,9 @@ This way we can connect via remote debugger to local port 40001.
 
 Another examples are:
 
-* `make docker-debug-nsmd` - debug *controlplane/cmd/nsmd*
-* `make docker-debug-nsc` - debug *examples/cmd/nsc*
-* `make docker-debug-icmp-responder-nse` - debug *examples/cmd/icmp-responder-nse*
+* `make docker-nsmd-debug` - debug *controlplane/cmd/nsmd*
+* `make docker-nsc-debug` - debug *examples/cmd/nsc*
+* `make docker-icmp-responder-nse-debug` - debug *examples/cmd/nse/icmp-responder-nse*
 
 ### Stopping a debug container
 

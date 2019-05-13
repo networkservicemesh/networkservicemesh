@@ -110,7 +110,7 @@ k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete
 .PHONY: k8s-vpn-gateway-nse-deploy
 k8s-vpn-gateway-nse-deploy: k8s-start k8s-config k8s-%-delete k8s-%-load-images
 	@until ! $$($(kubectl) get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/icmp-responder-nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/test-nse[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
 
 .PHONY: k8s-%-deploy
 k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
@@ -226,9 +226,7 @@ k8s-vppagent-passthrough-nse-build:
 k8s-vppagent-passthrough-nse-save:
 
 .PHONY: k8s-vppagent-passthrough-nse-load-images
-
 k8s-vppagent-passthrough-nse-load-images:
-
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
 
@@ -245,7 +243,7 @@ k8s-vpn-gateway-nse-build:
 k8s-vpn-gateway-nse-save:
 
 .PHONY: k8s-vpn-gateway-nse-load-images
-k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
+k8s-vpn-gateway-nse-load-images: k8s-test-nse-load-images
 
 .PHONY: k8s-vpn-gateway-nsc-build
 k8s-vpn-gateway-nsc-build:
@@ -262,12 +260,11 @@ k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 .PHONY: k8s-nsc-save
 k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
 
-
 .PHONY: k8s-icmp-responder-nse-build
-k8s-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-build
+k8s-test-nse-build:  ${CONTAINER_BUILD_PREFIX}-test-nse-build
 
 .PHONY: k8s-icmp-responder-nse-save
-k8s-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-icmp-responder-nse-save
+k8s-test-nse-save:  ${CONTAINER_BUILD_PREFIX}-test-nse-save
 
 .PHONY: k8s-vppagent-icmp-responder-nse-build
 k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-build
@@ -331,7 +328,7 @@ k8s-vpn-gateway-nse-build:
 k8s-vpn-gateway-nse-save:
 
 .PHONY: k8s-vpn-gateway-nse-load-images
-k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
+k8s-vpn-gateway-nse-load-images: k8s-test-nse-load-images
 
 .PHONY: k8s-vpn-gateway-nsc-build
 k8s-vpn-gateway-nsc-build:

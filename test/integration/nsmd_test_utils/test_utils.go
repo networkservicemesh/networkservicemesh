@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"net"
 	"os"
 	"strings"
@@ -63,7 +64,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				dataplanePod = pods.VPPDataplanePod(dataplaneName, node)
+				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, DefaultDataplaneVariables())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
@@ -131,28 +132,38 @@ func DeployVppAgentICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeo
 }
 
 func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node,
-		defaultICMPEnv(),
+	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultICMPCommand(),
 	))
 }
+
 func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
-	pod := pods.ICMPResponderPod(name, node,
-		defaultICMPEnv(),
+	pod := pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultICMPCommand(),
 	)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, node, name, timeout, pod)
+}
+
+func DeployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployDirtyNSE(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultDirtyNSEEnv(), defaultDirtyNSECommand(),
+	))
 }
 
 func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
+
 func DeployNSCWebhook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPodWebhook(name, node))
 }
+
 func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
+
 func defaultICMPEnv() map[string]string {
 	return map[string]string{
 		"ADVERTISE_NSE_NAME":   "icmp-responder",
@@ -160,12 +171,30 @@ func defaultICMPEnv() map[string]string {
 		"IP_ADDRESS":           "172.16.1.0/24",
 	}
 }
+
+func defaultICMPCommand() []string {
+	return []string{"/bin/icmp-responder-nse"}
+}
+
+func defaultDirtyNSEEnv() map[string]string {
+	return map[string]string{
+		"ADVERTISE_NSE_NAME":   "dirty",
+		"ADVERTISE_NSE_LABELS": "app=dirty",
+		"IP_ADDRESS":           "10.30.1.0/24",
+	}
+}
+
+func defaultDirtyNSECommand() []string {
+	return []string{"/bin/icmp-responder-nse", "--dirty"}
+}
+
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
 		"OUTGOING_NSC_LABELS": "app=icmp",
 		"OUTGOING_NSC_NAME":   "icmp-responder",
 	}
 }
+
 func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
@@ -177,6 +206,19 @@ func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 
 	logrus.Printf("ICMP Responder %v started done: %v", name, time.Since(startTime))
 	return icmp
+}
+
+func deployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+	startTime := time.Now()
+
+	logrus.Infof("Starting dirty NSE on node: %s", node.Name)
+	dirty := k8s.CreatePod(template)
+	Expect(dirty.Name).To(Equal(name))
+
+	k8s.WaitLogsContains(dirty, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
+
+	logrus.Printf("Dirty NSE %v started done: %v", name, time.Since(startTime))
+	return dirty
 }
 
 func deployNSC(k8s *kube_testing.K8s, node *v1.Node, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
@@ -427,12 +469,23 @@ func printDataplaneLogs(k8s *kube_testing.K8s, dataplane *v1.Pod, k int) {
 }
 
 func printNSMDLogs(k8s *kube_testing.K8s, nsmdPod *v1.Pod, k int) {
-	nsmdLogs, _ := k8s.GetLogs(nsmdPod, "nsmd")
-	logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)
-	nsmdk8sLogs, _ := k8s.GetLogs(nsmdPod, "nsmd-k8s")
-	logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdk8sLogs)
-	nsmdpLogs, _ := k8s.GetLogs(nsmdPod, "nsmdp")
-	logrus.Errorf("===================== NSMD K8P %d output since test is failing %v\n=====================", k, nsmdpLogs)
+	nsmdUpdatedPod, err := k8s.GetPod(nsmdPod)
+	if err != nil {
+		logrus.Errorf("Failed to update POD details %v", err)
+		return
+	}
+	for _, cs := range nsmdUpdatedPod.Status.ContainerStatuses {
+		containerLogs, _ := k8s.GetLogs(nsmdPod, cs.Name)
+		if cs.RestartCount > 0 {
+			prevLogs, _ := k8s.GetLogsWithOptions(nsmdPod, &v1.PodLogOptions{
+				Container: cs.Name,
+				Previous:  true,
+			})
+			logrus.Errorf("===================== %s %d previous output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, prevLogs)
+		}
+		logrus.Errorf("===================== %s %d output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, containerLogs)
+	}
+
 }
 
 type NSCCheckInfo struct {
@@ -443,6 +496,9 @@ type NSCCheckInfo struct {
 }
 
 func (info *NSCCheckInfo) PrintLogs() {
+	if info == nil {
+		return
+	}
 	logrus.Errorf("===================== NSC IP Addr %v\n=====================", info.ipResponse)
 	logrus.Errorf("===================== NSC IP Route %v\n=====================", info.routeResponse)
 	logrus.Errorf("===================== NSC IP PING %v\n=====================", info.pingResponse)
@@ -501,6 +557,11 @@ func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.
 func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
+}
+func DefaultDataplaneVariables() map[string]string {
+	return map[string]string{
+		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
+	}
 }
 
 func GetVppAgentNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {

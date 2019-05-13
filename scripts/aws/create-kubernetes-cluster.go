@@ -40,6 +40,7 @@ func checkError(err error) {
 			case "ResourceInUseException":
 			case "InvalidKeyPair.Duplicate":
 			case "InvalidPermission.Duplicate":
+			case "Throttling":
 			default:
 				log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
 			}
@@ -114,6 +115,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    clusterStackName,
 		TemplateBody: &s,
+		DisableRollback: aws.Bool(true),
 	})
 	checkError(err)
 
@@ -128,7 +130,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 			log.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
 			return OutputsToMap(resp.Stacks[0].Outputs)
 		case "CREATE_IN_PROGRESS":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 		}
@@ -171,7 +173,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 			log.Printf("EKS Cluster \"%s\" successfully created!\n", *clusterName)
 			return resp.Cluster
 		case "CREATING":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
 		}
@@ -181,7 +183,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 func CreateKubeConfigFile(cluster *eks.Cluster) {
 	kubeconfigFile := os.Getenv("KUBECONFIG")
 	if len(kubeconfigFile) == 0 {
-		kubeconfigFile = os.Getenv("HOME") + "/.kube/config"
+		kubeconfigFile = path.Join(os.Getenv("HOME"), ".kube/config")
 	}
 	kc, err := ioutil.ReadFile(path.Join(currentPath, "kube-config-template"))
 	checkError(err)
@@ -192,6 +194,7 @@ func CreateKubeConfigFile(cluster *eks.Cluster) {
 	kubeconfig = strings.Replace(kubeconfig, "<SERVER_NAME>", *cluster.Arn, -1)
 	kubeconfig = strings.Replace(kubeconfig, "<CLUSTER_NAME>", *cluster.Name, -1)
 
+	err = os.Mkdir(path.Dir(kubeconfigFile), 0775)
 	err = ioutil.WriteFile(kubeconfigFile, []byte(kubeconfig), 0644)
 	checkError(err)
 
@@ -226,9 +229,16 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 
 	s := string(sf)
 
+	// Base image for Amazon EKS worker nodes
+	// with Kubernetes version 1.12.7
+	// for region us-east-2.
+	// Amazon EKS-Optimized AMI list: https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html
+	eksAmi := aws.String("ami-04ea7cb66af82ae4a")
+
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:    nodesStackName,
 		TemplateBody: &s,
+		DisableRollback: aws.Bool(true),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			{
@@ -236,8 +246,8 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 				ParameterValue: keyPairName,
 			},
 			{
-				ParameterKey: aws.String("NodeImageId"),
-				ParameterValue: aws.String("ami-0484545fe7d3da96f"),
+				ParameterKey:   aws.String("NodeImageId"),
+				ParameterValue: eksAmi,
 			},
 			{
 				ParameterKey: aws.String("ClusterName"),
@@ -290,7 +300,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			}
 			return sequrityGroup, instanceRole
 		case  "CREATE_IN_PROGRESS":
-			time.Sleep(time.Second)
+			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 		}

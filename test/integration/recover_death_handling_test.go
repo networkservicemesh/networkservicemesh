@@ -68,6 +68,7 @@ var NSENoHeal = &pods.NSMgrPodConfig{
 		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
 		nsm.NsmdHealEnabled:          "true",
 	},
+	DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
 }
 
 func testDie(t *testing.T, killSrc bool, nodesCount int) {

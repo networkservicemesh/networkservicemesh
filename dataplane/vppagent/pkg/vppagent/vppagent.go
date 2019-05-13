@@ -16,28 +16,22 @@ package vppagent
 
 import (
 	"context"
-	"net"
-	"os"
-	"time"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
+	"net"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -46,20 +40,27 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 // VPPAgent related constants
 const (
-	DataplaneNameKey           = "DATAPLANE_NAME"
-	DataplaneNameDefault       = "vppagent"
-	DataplaneSocketKey         = "DATAPLANE_SOCKET"
-	DataplaneSocketDefault     = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
-	DataplaneSocketTypeKey     = "DATAPLANE_SOCKET_TYPE"
-	DataplaneSocketTypeDefault = "unix"
-	DataplaneEndpointKey       = "VPPAGENT_ENDPOINT"
-	DataplaneEndpointDefault   = "localhost:9111"
-	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
-	ManagementInterface        = "mgmt"
+	DataplaneMetricsCollectorEnabledKey           = "METRICS_COLLECTOR_ENABLED"
+	DataplaneMetricsCollectorRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
+	DataplaneMetricsCollectorRequestPeriodDefault = time.Second * 2
+	DataplaneNameKey                              = "DATAPLANE_NAME"
+	DataplaneNameDefault                          = "vppagent"
+	DataplaneSocketKey                            = "DATAPLANE_SOCKET"
+	DataplaneSocketDefault                        = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketTypeKey                        = "DATAPLANE_SOCKET_TYPE"
+	DataplaneSocketTypeDefault                    = "unix"
+	DataplaneEndpointKey                          = "VPPAGENT_ENDPOINT"
+	DataplaneEndpointDefault                      = "localhost:9111"
+	SrcIPEnvKey                                   = "NSM_DATAPLANE_SRC_IP"
+	ManagementInterface                           = "mgmt"
 )
 
 type VPPAgent struct {
@@ -116,6 +117,9 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
 	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
+	if err != nil {
+		return nil, err
+	}
 	v.monitor.Update(xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
@@ -324,9 +328,33 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 	v.setDataplaneConfigVPPAgent(monitor)
 	v.reset()
 	v.programMgmtInterface()
-	v.metricsCollector = metrics.NewMetricsCollector()
-	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
+	v.setupMetricsCollector(monitor)
 	return nil
+}
+
+func (v *VPPAgent) setupMetricsCollector(monitor *crossconnect_monitor.CrossConnectMonitor) {
+	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabledKey)
+	if ok {
+		enabled, err := strconv.ParseBool(val)
+		if err != nil {
+			logrus.Errorf("Metrics collector using default value for %v, %v ", DataplaneMetricsCollectorEnabledKey, err)
+		} else if !enabled {
+			logrus.Info("Metics collector is disabled")
+			return
+		}
+	}
+	requestPeriod := DataplaneMetricsCollectorRequestPeriodDefault
+	if val, ok = os.LookupEnv(DataplaneMetricsCollectorRequestPeriodKey); ok {
+		parsedPeriod, err := time.ParseDuration(val)
+		if err != nil {
+			logrus.Errorf("Metrics collector using default request period, %v ", err)
+		} else {
+			requestPeriod = parsedPeriod
+		}
+	}
+	logrus.Infof("Metrics collector request period: %v ", requestPeriod)
+	v.metricsCollector = metrics.NewMetricsCollector(requestPeriod)
+	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
 }
 
 func (v *VPPAgent) setDataplaneConfigBase() {

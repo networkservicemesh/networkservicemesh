@@ -29,9 +29,9 @@ GOINSTALL=${GOCMD} install
 GOTEST=${GOCMD} test
 
 ORG=networkservicemesh
-BUILD_CONTAINERS=icmp-responder-nse nsc nsm-generate-sriov-configmap
+BUILD_CONTAINERS=test-nse nsc nsm-generate-sriov-configmap
 RUN_CONTAINERS=dataplane $(BUILD_CONTAINERS)
-KILL_CONTAINERS=$(BUILD_CONTAINERS) icmp-responder
+KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 
 # Export some of the above variables so they persist for the shell scripts
