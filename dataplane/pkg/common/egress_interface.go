@@ -28,7 +28,7 @@ import (
 
 type ARPEntry struct {
 	Interface   string
-	IpAddress   string
+	IPAddress   string
 	PhysAddress string
 }
 
@@ -133,7 +133,7 @@ func getArpEntries() ([]*ARPEntry, error) {
 		parts := strings.Fields(line)
 		arps = append(arps, &ARPEntry{
 			PhysAddress: strings.TrimSpace(parts[3]),
-			IpAddress:   strings.TrimSpace(parts[0]),
+			IPAddress:   strings.TrimSpace(parts[0]),
 			Interface:   strings.TrimSpace(parts[5]),
 		})
 	}

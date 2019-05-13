@@ -81,9 +81,12 @@ linters:
   disable:
     - lll
     - gofmt
+    - unused #deprecated
   enable-all: true
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude:
+    - should not use dot imports
