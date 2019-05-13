@@ -51,7 +51,6 @@ linters-settings:
       - github.com/davecgh/go-spew/spew
   misspell:
     locale: US
-    #ignore-words:
   unused:
     check-exported: true
   unparam:
