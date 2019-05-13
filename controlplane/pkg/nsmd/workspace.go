@@ -69,7 +69,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 		}
 	}
 	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
-	if err := os.MkdirAll(w.NsmDirectory(), folderMask); err != nil {
+	if err := os.MkdirAll(w.NsmDirectory(), os.ModePerm); err != nil {
 		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
 	}
