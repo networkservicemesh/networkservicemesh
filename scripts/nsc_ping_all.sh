@@ -1,6 +1,6 @@
 #!/bin/bash
 
-kubectl="kubectl -n ${NSM_NAMESPACE}"
+kubectl="kubectl -n nsm-system --kubeconfig /home/circleci/project/data/kubeconfig"
 
 #  Ping all the things!
 EXIT_VAL=0

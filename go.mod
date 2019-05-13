@@ -8,6 +8,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/fzipp/gocyclo v0.0.0-20150627053110-6acd4345c835 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/gogo/protobuf v1.2.0

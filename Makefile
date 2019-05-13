@@ -26,6 +26,7 @@ include .mk/skydive.mk
 include .mk/jaeger.mk
 include .mk/monitor.mk
 include .mk/integration.mk
+include .mk/helm.mk
 
 GOPATH?=$(shell go env GOPATH 2>/dev/null)
 GOCMD=go
