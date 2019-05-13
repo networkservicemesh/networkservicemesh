@@ -49,7 +49,7 @@ const (
 	initContainerDefault = "nsc"
 	tagDefault           = "latest"
 
-	initContainerName = "nsmInitContainer"
+	initContainerName = "nsm-init-container"
 
 	pathDeploymentInitContainers = "/spec/template/spec/initContainers"
 	pathPodInitContainers        = "/spec/initContainers"
