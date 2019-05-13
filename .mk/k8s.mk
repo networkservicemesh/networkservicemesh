@@ -20,7 +20,7 @@ DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_NSM = nsmgr vppagent-dataplane
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
-DEPLOY_ICMP_KERNEL = test-nse nsc
+DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
 DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
@@ -226,9 +226,7 @@ k8s-vppagent-passthrough-nse-build:
 k8s-vppagent-passthrough-nse-save:
 
 .PHONY: k8s-vppagent-passthrough-nse-load-images
-
 k8s-vppagent-passthrough-nse-load-images:
-
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
 
@@ -262,10 +260,10 @@ k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 .PHONY: k8s-nsc-save
 k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
 
-.PHONY: k8s-test-nse-build
+.PHONY: k8s-icmp-responder-nse-build
 k8s-test-nse-build:  ${CONTAINER_BUILD_PREFIX}-test-nse-build
 
-.PHONY: k8s-test-nse-save
+.PHONY: k8s-icmp-responder-nse-save
 k8s-test-nse-save:  ${CONTAINER_BUILD_PREFIX}-test-nse-save
 
 .PHONY: k8s-vppagent-icmp-responder-nse-build
