@@ -58,7 +58,8 @@ func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP utils
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes_setup, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	createICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

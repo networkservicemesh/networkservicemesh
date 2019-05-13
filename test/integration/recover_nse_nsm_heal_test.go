@@ -31,7 +31,8 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodes(k8s, 2, defaultTimeout)
+	nodes_setup, err := utils.SetupNodes(k8s, 2, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
@@ -104,7 +105,9 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse utils.Pod
 
 	Expect(err).To(BeNil())
 
-	nodes_setup := utils.SetupNodes(k8s, 1, defaultTimeout)
+	// Deploy open tracing to see what happening.
+	nodes_setup, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := deployNse(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)

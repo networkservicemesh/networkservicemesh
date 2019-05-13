@@ -48,6 +48,8 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 	}
 
 	_ = utils.SetupNodes(k8s, 2, defaultTimeout)
+	_, err = utils.SetupNodes(k8s, 2, defaultTimeout)
+	Expect(err).To(BeNil())
 	k8s.Cleanup()
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {

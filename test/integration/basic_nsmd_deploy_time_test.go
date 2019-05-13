@@ -28,7 +28,8 @@ func TestNSMDDeploy(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	st := time.Now()
-	_ = utils.SetupNodes(k8s, 1, defaultTimeout)
+	_, err = utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 	deploy := time.Now()
 	k8s.Cleanup()
 	destroy := time.Now()

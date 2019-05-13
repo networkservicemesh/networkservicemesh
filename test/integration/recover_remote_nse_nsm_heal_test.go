@@ -35,7 +35,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes_setup, err := utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables: map[string]string{
 				nsm.NsmdHealDSTWaitTimeout:   "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
@@ -50,6 +50,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 			DataplaneVariables: utils.DefaultDataplaneVariables(),
 		},
 	}, k8s.GetK8sNamespace())
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := utils.DeployICMPWithConfig(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout, 30)
@@ -105,7 +106,8 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodes(k8s, 2, defaultTimeout)
+	nodes_setup, err := utils.SetupNodes(k8s, 2, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)

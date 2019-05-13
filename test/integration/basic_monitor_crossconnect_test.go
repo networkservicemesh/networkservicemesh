@@ -31,9 +31,11 @@ func TestSingleCrossConnect(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -74,7 +76,10 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+
+	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
+
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -118,10 +123,13 @@ func TestSeveralCrossConnects(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+
+	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	utils.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
+
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -162,7 +170,9 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 
 	nodesCount := 2
 
-	nodes := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+
+	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	utils.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)

@@ -93,7 +93,8 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes_setup, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP
 	node := affinity["icmp-responder-nse-1"]

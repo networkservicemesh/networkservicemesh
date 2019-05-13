@@ -24,8 +24,9 @@ func TestNSMDDP(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	nodes := utils.SetupNodes(k8s, 1, defaultTimeout)
-	icmpPod := utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	nodes, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
+	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nsmdName := nodes[0].Nsmd.Name
 	k8s.DeletePods(nodes[0].Nsmd, icmpPod)
@@ -47,8 +48,8 @@ func TestNSMDRecoverNSE(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	nodes := utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-		{
+	nodes, err := utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
@@ -56,6 +57,7 @@ func TestNSMDRecoverNSE(t *testing.T) {
 			DataplaneVariables: utils.DefaultDataplaneVariables(),
 		},
 	}, k8s.GetK8sNamespace())
+	Expect(err).To(BeNil())
 	icmpPod := utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nsmdName := nodes[0].Nsmd.Name

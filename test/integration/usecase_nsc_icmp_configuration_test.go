@@ -138,7 +138,8 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 		}
 		config = append(config, cfg)
 	}
-	nodes_setup := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodes_setup, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	_ = utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

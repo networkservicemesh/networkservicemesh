@@ -230,7 +230,8 @@ func TestGetEndpoints(t *testing.T) {
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	nsmd := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nsmd, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
@@ -371,7 +372,8 @@ func TestClusterInfo(t *testing.T) {
 	}
 
 	k8s.Prepare("nsmgr")
-	nsmd := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nsmd, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 

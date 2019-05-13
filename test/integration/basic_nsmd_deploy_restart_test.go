@@ -37,7 +37,8 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 		return
 	}
 
-	pods := utils.SetupNodes(k8s, 1, defaultTimeout)
+	pods, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	result, result_err, err := k8s.Exec(pods[0].Nsmd, "nsmd", "kill", "-6", "1")
 	logrus.Infof("Kill status %v %v %v", result, result_err, err)
@@ -81,6 +82,5 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 		Expect(strings.Contains(prevLogs, "SIGABRT: abort")).To(Equal(true))
 
 	})
-
 	utils.PrintErrors(failures, k8s, pods, nil, t)
 }

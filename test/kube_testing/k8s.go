@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	podStartTimeout  = 3 * time.Minute
+	PodStartTimeout  = 3 * time.Minute
 	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
@@ -506,7 +506,7 @@ func (l *K8s) Prepare(noPods ...string) {
 
  */
 func (l *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
-	pods, _ := l.CreatePodsRaw(podStartTimeout, true, templates...)
+	pods, _ := l.CreatePodsRaw(PodStartTimeout, true, templates...)
 	return pods
 }
 func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
@@ -547,7 +547,7 @@ func (l *K8s) GetPod(pod *v1.Pod) (*v1.Pod, error) {
 }
 
 func (l *K8s) CreatePod(template *v1.Pod) *v1.Pod {
-	results, err := l.CreatePodsRaw(podStartTimeout, true, template)
+	results, err := l.CreatePodsRaw(PodStartTimeout, true, template)
 	if err != nil || len(results) == 0 {
 		return nil
 	} else {
@@ -676,7 +676,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			Expect(len(nodes)).To(Equal(requiredNumber))
 		}
 		if since > timeout/10 && !warnPrinted {
-			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", len(nodes), requiredNumber)
+			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", requiredNumber, len(nodes) )
 			warnPrinted = true
 		}
 		time.Sleep(50 * time.Millisecond)

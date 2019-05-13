@@ -44,16 +44,17 @@ type NsePinger = func(k8s *kube_testing.K8s, from *v1.Pod) bool
 type NscChecker = func(*kube_testing.K8s, *testing.T, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
 
-func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) []*NodeConf {
+func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
-func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) []*NodeConf {
+func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
+	var result_error error
 	for ii := 0; ii < nodesCount; ii++ {
 		wg.Add(1)
 		i := ii
@@ -77,7 +78,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, conf[i].DataplaneVariables)
 			}
-			corePods := k8s.CreatePods(corePod, dataplanePod)
+			corePods, err := k8s.CreatePodsRaw(kube_testing.PodStartTimeout, true, corePod, dataplanePod)
 			if debug {
 				podContainer := "nsmd"
 				if conf[i].Nsmd == pods.NSMgrContainerDebug {
@@ -90,7 +91,11 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 				logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
 			}
 			nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, &nodes[i], corePods, timeout)
-
+			if err != nil {
+				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				result_error = err
+				return
+			}
 			logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
 			Expect(err).To(BeNil())
 			confs[i] = &NodeConf{
@@ -101,7 +106,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 		}()
 	}
 	wg.Wait()
-	return confs
+	return confs, result_error
 }
 
 func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1.Pod, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {

@@ -78,10 +78,11 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	NSENoHeal.Namespace = k8s.GetK8sNamespace()
 
-	nodes := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		NSENoHeal,
 		NSENoHeal,
 	}, k8s.GetK8sNamespace())
+	Expect(err).To(BeNil())
 
 	failures := InterceptGomegaFailures(func() {
 		icmp := utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

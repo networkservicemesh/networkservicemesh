@@ -30,13 +30,14 @@ func TestExcludePrefixCheck(t *testing.T) {
 		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
-	nodes := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables:          variables,
 			DataplaneVariables: utils.DefaultDataplaneVariables(),
 			Namespace:          k8s.GetK8sNamespace(),
 		},
 	}, k8s.GetK8sNamespace())
+	Expect(err).To(BeNil())
 
 	defer utils.FailLogger(k8s, nodes, t)
 

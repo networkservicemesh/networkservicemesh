@@ -32,7 +32,7 @@ func TestSimpleMetrics(t *testing.T) {
 	nodesCount := 2
 	requestPeriod := time.Second
 
-	nodes := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			DataplaneVariables: map[string]string{
 				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
@@ -42,7 +42,9 @@ func TestSimpleMetrics(t *testing.T) {
 		},
 	}, k8s.GetK8sNamespace())
 
+	Expect(err).To(BeNil())
 	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
 

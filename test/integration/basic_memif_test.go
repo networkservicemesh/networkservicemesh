@@ -23,8 +23,10 @@ func TestSimpleMemifConnection(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	nodes := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nodes, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 	defer utils.FailLogger(k8s, nodes, t)
+
 
 	utils.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
 	vppagentNsc := utils.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
