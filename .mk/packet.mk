@@ -22,16 +22,16 @@ endif
 
 .ONESHELL:
 packet-init:
-	@pushd scripts/terraform
-	@terraform init
-	@popd
+	@pushd scripts/terraform && \
+	terraform init && \
+	popd
 
 .ONESHELL:
 .PHONY: packet-start
 packet-start:
-	@pushd scripts/terraform
-	@terraform apply ${TF_PACKET_VARS}
-	@popd
+	@pushd scripts/terraform && \
+	terraform apply ${TF_PACKET_VARS} && \
+	popd
 
 .ONESHELL:
 .PHONY: packet-restart
@@ -41,9 +41,9 @@ packet-restart: packet-stop packet-start
 .ONESHELL:
 .PHONY: packet-stop
 packet-stop:
-	@pushd scripts/terraform
-	@terraform destroy ${TF_PACKET_VARS}
-	@popd
+	@pushd scripts/terraform && \
+	terraform destroy ${TF_PACKET_VARS} && \
+	popd
 
 .PHONY: packet-%-load-images
 packet-%-load-images: 
@@ -52,13 +52,13 @@ packet-%-load-images:
 .ONESHELL:
 .PHONY: packet-get-kubeconfig
 packet-get-kubeconfig:
-	@pushd scripts/terraform
-	@scp ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:.kube/config ../../kubeconfig
-	@popd
+	@pushd scripts/terraform && \
+	scp ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:.kube/config ../../kubeconfig && \
+	popd
 
 .ONESHELL:
 .PHONY: packet-download-postmortem
 packet-download-postmortem:
-	@pushd scripts/terraform
-	@./download-postmortem-data.sh
-	@popd
+	@pushd scripts/terraform && \
+	./download-postmortem-data.sh && \
+	popd
