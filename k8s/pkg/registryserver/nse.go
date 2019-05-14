@@ -71,9 +71,11 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		}
 
 		request.NetworkserviceEndpoint = mapNseFromCustomResource(nseResponse, networkService.Spec.Payload)
-		if nsm := rs.cache.GetNetworkServiceManager(rs.nsmName); nsm != nil {
-			request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
+		nsm, err := rs.cache.GetNetworkServiceManager(rs.nsmName)
+		if err != nil {
+			return nil, err
 		}
+		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
 	}
 	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil

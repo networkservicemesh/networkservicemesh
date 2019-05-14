@@ -19,7 +19,7 @@ type RegistryCache interface {
 	GetNetworkService(name string) (*v1.NetworkService, error)
 
 	CreateOrUpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error)
-	GetNetworkServiceManager(name string) *v1.NetworkServiceManager
+	GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error)
 
 	AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error)
 	DeleteNetworkServiceEndpoint(endpointName string) error
@@ -137,24 +137,36 @@ func (rc *registryCacheImpl) GetEndpointsByNsm(nsmName string) []*v1.NetworkServ
 func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
 	existingNsm := rc.networkServiceManagerCache.Get(nsm.GetName())
 
-	if existingNsm != nil {
-		nsm.ObjectMeta = existingNsm.ObjectMeta
-		logrus.Infof("NSM with name %v already exist in cache, updating: %v", nsm.GetName(), nsm)
-		return rc.updateNetworkServiceManager(nsm)
-	}
+	attempt := 0
+	for {
+		logrus.Infof("CreateOrUpdateNSM attempt %d: ", attempt)
 
-	logrus.Infof("Creating NSM: %v", nsm)
-	createNsm, err := rc.addNetworkServiceManager(nsm)
-	if err != nil || apierrors.IsAlreadyExists(err) {
-		existingNsm, err = rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Get(nsm.Name, metav1.GetOptions{})
-		if err != nil {
-			return existingNsm, err
+		if existingNsm == nil {
+			logrus.Infof("Creating NSM: %v", nsm)
+			newNsm, err := rc.addNetworkServiceManager(nsm)
+			if err == nil || (err != nil && !apierrors.IsAlreadyExists(err)) {
+				return newNsm, err
+			}
+
+			logrus.Infof("NSM with name %v already exist", nsm.GetName())
+			existingNsm, err = rc.GetNetworkServiceManager(nsm.GetName())
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			logrus.Infof("Updating existing NSM: %v with %v", existingNsm, nsm)
+			updNsm := nsm.DeepCopy()
+			updNsm.ObjectMeta = existingNsm.ObjectMeta
+			updNsm, err := rc.updateNetworkServiceManager(updNsm)
+			if err == nil || (err != nil && !apierrors.IsConflict(err)) {
+				return updNsm, err
+			}
+
+			logrus.Infof("There is no NSM with name %v", nsm.GetName())
+			existingNsm = nil
 		}
-		nsm.ObjectMeta = existingNsm.ObjectMeta
-		logrus.Infof("NSM with name %v already exist on server, updating cache: %v", nsm.GetName(), nsm)
-		return rc.updateNetworkServiceManager(nsm)
+		attempt++
 	}
-	return createNsm, err
 }
 
 func (rc *registryCacheImpl) addNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
@@ -173,8 +185,11 @@ func (rc *registryCacheImpl) updateNetworkServiceManager(nsm *v1.NetworkServiceM
 	return updNsm, err
 }
 
-func (rc *registryCacheImpl) GetNetworkServiceManager(name string) *v1.NetworkServiceManager {
-	return rc.networkServiceManagerCache.Get(name)
+func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkServiceManager, error) {
+	if nsm := rc.networkServiceManagerCache.Get(name); nsm != nil {
+		return nsm, nil
+	}
+	return rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Get(name, metav1.GetOptions{})
 }
 
 func (rc *registryCacheImpl) Stop() {
