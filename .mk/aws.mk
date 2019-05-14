@@ -16,33 +16,33 @@ SSH_PARAMS=-i "scripts/aws/nsm-key-pair$(NSM_AWS_SERVICE_SUFFIX)" -F scripts/aws
 
 .PHONY: aws-init
 aws-init:
-	@pushd scripts/aws
-	@./aws-init.sh
-	@popd
+	@pushd scripts/aws && \
+	./aws-init.sh && \
+	popd
 
 .PHONY: aws-start
 aws-start:
-	@pushd scripts/aws
-	@AWS_REGION=us-east-2 go run ./... Create
-	@popd
+	@pushd scripts/aws && \
+	AWS_REGION=us-east-2 go run ./... Create && \
+	popd
 
 .PHONY: aws-restart
 aws-restart: aws-destroy aws-start
 
 .PHONY: aws-destroy
 aws-destroy:
-	@pushd scripts/aws
-	@AWS_REGION=us-east-2 go run ./... Delete
-	@popd
+	@pushd scripts/aws && \
+	AWS_REGION=us-east-2 go run ./... Delete && \
+	popd
 
 .PHONY: aws-%-load-images
 aws-%-load-images: ;
 
 .PHONY: aws-get-kubeconfig
 aws-get-kubeconfig:
-	@pushd scripts/aws
-	@aws eks update-kubeconfig --name nsm --kubeconfig ../../kubeconfig
-	@popd
+	@pushd scripts/aws && \
+	aws eks update-kubeconfig --name nsm --kubeconfig ../../kubeconfig && \
+	popd
 
 .PHONY: aws-upload-nsm
 aws-upload-nsm:
