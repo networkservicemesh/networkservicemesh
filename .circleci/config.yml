@@ -22,11 +22,6 @@ jobs:
           command: |
             ./scripts/go-mod-download.sh
       - run: "! go fmt ./... 2>&1 | read"
-      - run:
-          name: lint
-          command: |
-            go get github.com/golangci/golangci-lint/cmd/golangci-lint
-            golangci-lint run --new-from-rev=origin/master
 #      - run:
 #          name: gosec
 #          command: |
@@ -51,7 +46,22 @@ jobs:
     environment:
       GO111MODULE: "on"
 
-# packet
+  # code analysis
+  static-code-analysis:
+    resource_class: medium+
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: lint
+          command: |
+            go get github.com/golangci/golangci-lint/cmd/golangci-lint
+            golangci-lint run --new-from-rev=origin/master
+    environment:
+      GO111MODULE: "on"
+
+  # packet
   packet-deploy:
     docker:
       - image: circleci/golang
@@ -526,7 +536,10 @@ workflows:
   build-and-test:
     jobs:
       - sanity-check
-
+      - static-code-analysis:
+          name: "static-code-analysis"
+          requires:
+            - sanity-check
 # build
       - build-container:
           name: "build-nsmd"
