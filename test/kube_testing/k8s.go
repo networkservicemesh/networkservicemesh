@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -249,6 +251,7 @@ type K8s struct {
 	config             *rest.Config
 	roles              []nsmrbac.Role
 	namespace          string
+	apiServerHost      string
 }
 
 func NewK8s(prepare bool) (*K8s, error) {
@@ -275,6 +278,7 @@ func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
 	client.clientset, err = kubernetes.NewForConfig(config)
 	Expect(err).To(BeNil())
 
+	client.apiServerHost = config.Host
 	client.initNamespace()
 
 	client.versionedClientSet, err = versioned.NewForConfig(config)
@@ -315,10 +319,28 @@ func (o *K8s) deletePodForce(pod *v1.Pod) error {
 	return nil
 }
 
+func (o *K8s) checkAPIServerAvailable() {
+	u, err := url.Parse(o.apiServerHost)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	logrus.Infof("Checking availability of API server on %v", u.Hostname())
+	out, err := exec.Command("ping", u.Hostname(), "-c 5").Output()
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	logrus.Infof(string(out))
+}
+
 func (o *K8s) initNamespace() {
 	var err error
 	nsmNamespace := namespace.GetNamespace()
 	o.namespace, err = o.CreateTestNamespace(nsmNamespace)
+	if err != nil {
+		o.checkAPIServerAvailable()
+	}
 	Expect(err).To(BeNil())
 }
 
@@ -374,6 +396,9 @@ func (o *K8s) GetVersion() string {
 
 func (o *K8s) GetNodes() []v1.Node {
 	nodes, err := o.clientset.CoreV1().Nodes().List(metaV1.ListOptions{})
+	if err != nil {
+		o.checkAPIServerAvailable()
+	}
 	Expect(err).To(BeNil())
 	return nodes.Items
 }
@@ -504,7 +529,7 @@ func (l *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*
 	return pods, err
 }
 
-func (l *K8s) GetPod(pod *v1.Pod) (*v1.Pod,error) {
+func (l *K8s) GetPod(pod *v1.Pod) (*v1.Pod, error) {
 	return l.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
 }
 

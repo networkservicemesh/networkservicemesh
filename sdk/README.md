@@ -4,7 +4,7 @@
 The purpose of the SDK is to hide the lower level setup and communication details of Network Service Mesh (NSM). Using it eases the implemetation of Network Service Clients and Endpoints. Please refer to the [glossary](../docs/spec/glossary.md) for more detailed explanation of the terminology. 
 The current SDK targets Golang as the main Client and Endpoint implementation language. Other languages (C/C++, Python) might be considered for the future.
 
-NSM comes with an admission controller implementation, which will allow for simple init and sidecar container approach when migrating existing services. This is appraich is suitable for simpler solutions like web services, where no advanced interface knowledge is needed.
+NSM comes with an [admission controller](../docs/spec/admission.md) implementation, which will allow for simple init and sidecar container approach when migrating existing services. This is appraich is suitable for simpler solutions like web services, where no advanced interface knowledge is needed.
 
 ### The underlying gRPC communication
 As noted, the SDK is a higher laye abstraction of the underlying gRPC API.
@@ -87,7 +87,7 @@ A simple example will be:
 ```shell
 NS_NETWORKSERVICEMESH_IO=icmp?app=responder&version=v1,http?app=nginx
 ```
-Invoking the client list API with this environment set will intiate a connection to a service named `icmp` and the connection request will be labelled with `app=responder` and `version=v1`. Addtionally a second connection to a service `http` and its request will be labelled `app=nginx`. The [admission hook](TBD) leverages this configuration method.
+Invoking the client list API with this environment set will intiate a connection to a service named `icmp` and the connection request will be labelled with `app=responder` and `version=v1`. Addtionally a second connection to a service `http` and its request will be labelled `app=nginx`. The [admission hook](../docs/spec/admission.md) leverages this configuration method.
 
 A simplified example code which demonstrates the ClientList usage is shown below.
 

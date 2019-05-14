@@ -149,7 +149,7 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 				last = time.Now()
 			}
 			// Sleep to not overflow network
-			<- time.After(idleSleep)
+			<-time.After(idleSleep)
 		}
 	}
 }
@@ -207,14 +207,14 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 	return tracer, closer
 }
 
-type NsUrl struct {
+type NSUrl struct {
 	NsName string
 	Intf   string
 	Params url.Values
 }
 
-func parseNsUrl(urlString string) (*NsUrl, error) {
-	result := &NsUrl{}
+func parseNSUrl(urlString string) (*NSUrl, error) {
+	result := &NSUrl{}
 
 	url, err := url.Parse(urlString)
 	if err != nil {
@@ -222,7 +222,7 @@ func parseNsUrl(urlString string) (*NsUrl, error) {
 	}
 	path := strings.Split(url.Path, "/")
 	if len(path) > 2 {
-		return nil, fmt.Errorf("Invalid nsurl format")
+		return nil, fmt.Errorf("Invalid NSUrl format")
 	}
 	if len(path) == 2 {
 		if len(path[1]) > 15 {
@@ -235,11 +235,11 @@ func parseNsUrl(urlString string) (*NsUrl, error) {
 	return result, nil
 }
 
-func ParseAnnotationValue(value string) ([]*NsUrl, error) {
-	var result []*NsUrl
+func ParseAnnotationValue(value string) ([]*NSUrl, error) {
+	var result []*NSUrl
 	urls := strings.Split(value, ",")
 	for _, u := range urls {
-		nsurl, err := parseNsUrl(u)
+		nsurl, err := parseNSUrl(u)
 		if err != nil {
 			return nil, err
 		}

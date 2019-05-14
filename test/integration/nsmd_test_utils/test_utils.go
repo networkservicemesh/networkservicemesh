@@ -63,7 +63,7 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, defaultDataplaneVariables())
+				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, DefaultDataplaneVariables())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
@@ -172,7 +172,7 @@ func defaultICMPEnv() map[string]string {
 }
 
 func defaultICMPCommand() []string {
-	return []string{ "/bin/icmp-responder-nse" }
+	return []string{"/bin/icmp-responder-nse"}
 }
 
 func defaultDirtyNSEEnv() map[string]string {
@@ -184,7 +184,7 @@ func defaultDirtyNSEEnv() map[string]string {
 }
 
 func defaultDirtyNSECommand() []string {
-	return []string{ "/bin/icmp-responder-nse", "--dirty" }
+	return []string{"/bin/icmp-responder-nse", "--dirty"}
 }
 
 func defaultNSCEnv() map[string]string {
@@ -468,7 +468,7 @@ func printDataplaneLogs(k8s *kube_testing.K8s, dataplane *v1.Pod, k int) {
 }
 
 func printNSMDLogs(k8s *kube_testing.K8s, nsmdPod *v1.Pod, k int) {
-	nsmdUpdatedPod,err  := k8s.GetPod(nsmdPod)
+	nsmdUpdatedPod, err := k8s.GetPod(nsmdPod)
 	if err != nil {
 		logrus.Errorf("Failed to update POD details %v", err)
 		return
@@ -557,11 +557,12 @@ func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
 }
-func defaultDataplaneVariables() map[string]string {
+func DefaultDataplaneVariables() map[string]string {
 	return map[string]string{
 		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
 	}
 }
+
 func GetVppAgentNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {
 	return getNSEAddr(k8s, nsc, parseVppAgentAddr, "vppctl", "show int addr")
 }
