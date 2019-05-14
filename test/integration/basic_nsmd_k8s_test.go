@@ -461,7 +461,7 @@ func TestRegistryConcurrentModification(t *testing.T) {
 	nsmRegistryClient, err := sr1.NsmRegistryClient()
 	Expect(err).To(BeNil())
 
-	n := 100
+	n := 30
 	errorCh := make(chan error)
 
 	// concurrent modification of k8s registry

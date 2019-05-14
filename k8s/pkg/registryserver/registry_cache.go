@@ -134,11 +134,13 @@ func (rc *registryCacheImpl) GetEndpointsByNsm(nsmName string) []*v1.NetworkServ
 	return rc.networkServiceEndpointCache.GetByNetworkServiceManager(nsmName)
 }
 
+const maxAllowedAttempts = 10
+
 func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
 	existingNsm := rc.networkServiceManagerCache.Get(nsm.GetName())
 
 	attempt := 0
-	for {
+	for attempt < maxAllowedAttempts {
 		logrus.Infof("CreateOrUpdateNSM attempt %d: ", attempt)
 
 		if existingNsm == nil {
@@ -167,6 +169,8 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 		}
 		attempt++
 	}
+
+	return nil, fmt.Errorf("exceeded the amount of attempts %d", maxAllowedAttempts)
 }
 
 func (rc *registryCacheImpl) addNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
