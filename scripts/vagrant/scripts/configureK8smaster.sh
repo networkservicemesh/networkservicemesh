@@ -1,26 +1,26 @@
 #!/bin/bash
 
 # Set whether or not to use IPv6 enabled Kubernetes deployment
-ENABLE_IPV6=0
-POD_CIDR="10.32.0.0/12"
+ENABLE_IPV6=${ENABLE_IPV6:-0}
 
 # Setup Hugepages
 #echo "Copying /vagrant/10-kubeadm.conf to /etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
 #cp /vagrant/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 
-# Set up Kubernetes
-NODENAME=$(hostname -s)
-
 # Get the IP address that VirtualBox has given this VM
 if [ "$ENABLE_IPV6" -eq 1 ]; then
     echo "Deploying Kubernetes with IPv6..."
     IPADDR=$(ip -6 addr|awk '{print $2}'|grep -P '^(?!fe80)[[:alnum:]]{4}:.*/64'|cut -d '/' -f1)
+    POD_CIDR="fd2c:852b:74d1:4965::/64"
     sysctl -w net.ipv6.conf.all.forwarding=1
 else
     IPADDR=$(ifconfig eth1 | grep -i Mask | awk '{print $2}'| cut -f2 -d:)
+    POD_CIDR="10.32.0.0/12"
 fi
 echo This VM has IP address "$IPADDR"
 
+# Set up Kubernetes
+NODENAME=$(hostname -s)
 kubeadm init --apiserver-cert-extra-sans="$IPADDR" --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME" --pod-network-cidr="$POD_CIDR"
 
 echo "KUBELET_EXTRA_ARGS= --node-ip=${IPADDR}" > /etc/default/kubelet

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Set whether or not to use IPv6 enabled Kubernetes deployment
-ENABLE_IPV6=0  # temporary
+ENABLE_IPV6=${ENABLE_IPV6:-0}  # temporary
 
 # Get the IP address that VirtualBox has given this VM
 if [ "$ENABLE_IPV6" -eq 1 ]; then
