@@ -70,7 +70,19 @@ linters-settings:
       - paramTypeCombine
       - ptrToRefParam
       - rangeExprCopy
-
+      - captLocal
+      - caseOrder
+      - defaultCaseOrder
+      - dupBranchBody
+      - dupSubExpr
+      - elseif
+      - emptyFallthrough
+      - emptyStringTest
+      - equalFold
+      - indexAlloc
+      - nestingReduce
+      - nilValReturn
+      - yodaStyleExpr
     settings:
       captLocal:
         paramsOnly: true
