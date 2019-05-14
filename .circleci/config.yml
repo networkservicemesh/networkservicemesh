@@ -22,11 +22,6 @@ jobs:
           command: |
             ./scripts/go-mod-download.sh
       - run: "! go fmt ./... 2>&1 | read"
-#      - run:
-#          name: gosec
-#          command: |
-#            GO111MODULE=off go get github.com/securego/gosec/cmd/gosec/...
-#            gosec -quiet -severity low -no-fail ./...
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: go generate ./...
@@ -56,7 +51,7 @@ jobs:
       - run:
           name: lint
           command: |
-            go get github.com/golangci/golangci-lint/cmd/golangci-lint
+            go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
             golangci-lint run --new-from-rev=origin/master
     environment:
       GO111MODULE: "on"
