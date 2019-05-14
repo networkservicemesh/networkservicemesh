@@ -89,7 +89,7 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 	}
 }
 
-func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NsUrl) *NSConfiguration {
+func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *NSConfiguration {
 	var conf NSConfiguration
 	if configuration != nil {
 		conf = *configuration
