@@ -45,7 +45,8 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          command: "/bin/icmp-responder-nse"
+          command:
+          - "/bin/icmp-responder-nse"
 metadata:
   name: icmp-responder-nse
   namespace: {{ .Release.Namespace }}
