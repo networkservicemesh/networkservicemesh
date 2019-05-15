@@ -210,7 +210,7 @@ The [.circleci/config.yml](https://github.com/networkservicemesh/networkservicem
 ##Static analysis of code
 Get code static analyzer tool:
 ```bash
-go get github.com/golangci/golangci-lint/cmd/golangci-lint
+make lint-install
 ```
 Make sure that tools is installed and can be used from terminal:
 ```bash
@@ -220,10 +220,10 @@ If the command above doesn't work make sure the tool exists in `go/bin` director
 
 Checking changes:
 ```bash
-golangci-lint run --new-from-rev=origin/master
+make lint-check-diff
 ```
 Checking all code in the project:
 ```bash 
-golangci-lint run ./...
+make lint-check-all
 ```
 If you have any unsolvable problem with a concrete linter then consider updating `.golanci.yaml` 

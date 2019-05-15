@@ -51,8 +51,8 @@ jobs:
       - run:
           name: lint
           command: |
-            go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
-            golangci-lint run --new-from-rev=origin/master
+            make lint-install
+            make lint-check-diff
     environment:
       GO111MODULE: "on"
 
