@@ -198,7 +198,6 @@ jobs:
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
             make aws-start
-            cp ~/.kube/config data/kubeconfig
           no_output_timeout: 40m
       - save_cache:
           key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
@@ -212,6 +211,10 @@ jobs:
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
+    environment:
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
 
   aws-destroy:
     parameters:
@@ -222,16 +225,15 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install AWS Prerequisites
-          command: |
-            ./scripts/aws/aws-init.sh
-            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin
-      - run:
           name: Destroy AWS Cluster
           no_output_timeout: 40m
           command: |
-            export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
-            make aws-destroy
+            ./scripts/install-kubectl.sh
+            .circleci/cleanup-aws.sh
+    environment:
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
 
 # gke
   gke-create-cluster:
@@ -371,8 +373,8 @@ jobs:
               cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
               .circleci/cleanup-packet.sh
             elif [ "x<< parameters.cloud_provider >>" == "xaws" ]; then
-              export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
-              make aws-destroy
+              ./scripts/install-kubectl.sh
+              .circleci/cleanup-aws.sh
             elif [ "x<< parameters.cloud_provider >>" == "xgke" ]; then
               .circleci/gke/cleanup-gke.sh "$GCLOUD_SERVICE_KEY" "${CIRCLE_SHA1:8:8}" "<< parameters.gke_project_id >>" "${CIRCLE_PR_NUMBER}" "dev-testing-${CIRCLE_SHA1:8:8}-<< parameters.cluster_id >>"
             elif [ "x<< parameters.cloud_provider >>" == "xazure" ]; then

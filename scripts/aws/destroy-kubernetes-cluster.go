@@ -7,6 +7,7 @@ import (
 )
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -29,6 +30,7 @@ func checkDeferError(err error) bool {
 			case "NoSuchEntity":
 			case "ResourceNotFoundException":
 			case "ValidationError":
+			case "InvalidParameterValue":
 			default:
 				log.Printf("Error (%s): %s\n", aerr.Code(), aerr.Message())
 				deferError = true
@@ -69,6 +71,44 @@ func DeleteEksRole(iamClient *iam.IAM, eksRoleName *string) {
 	}
 
 	log.Printf("Role \"%s\" successfully deleted!\n", *eksRoleName)
+}
+
+func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.CloudFormation, nodesStackName *string) {
+	cfResp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: nodesStackName,
+	})
+	if checkDeferError(err) {
+		return
+	}
+
+	var sequrityGroup *string
+	for _, output := range cfResp.Stacks[0].Outputs {
+		if *output.OutputKey == "NodeSecurityGroup" {
+			sequrityGroup = output.OutputValue
+			break
+		}
+	}
+
+	ec2Resp, err := ec2Client.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter {
+			{
+				Name: aws.String("group-id"),
+				Values: []*string {sequrityGroup},
+			},
+		},
+	})
+
+	if checkDeferError(err) {
+		return
+	}
+
+	for _, networkInterface := range(ec2Resp.NetworkInterfaces) {
+		_, err := ec2Client.DeleteNetworkInterface(&ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: networkInterface.NetworkInterfaceId,
+		})
+
+		checkDeferError(err)
+	}
 }
 
 func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) {
@@ -212,13 +252,16 @@ func deleteAWSKubernetesCluster() {
 
 	serviceSuffix := os.Getenv("NSM_AWS_SERVICE_SUFFIX")
 
-	// Deleting Amazon EKS Worker Nodes
-	nodesStackName := "nsm-nodes" + serviceSuffix
-	DeleteEksWorkerNodes(cfClient, &nodesStackName)
-
 	// Deleting Amazon EKS Cluster
 	clusterName := "nsm" + serviceSuffix
 	DeleteEksCluster(eksClient, &clusterName)
+
+	nodesStackName := "nsm-nodes" + serviceSuffix
+	// Deleting EC2 Network Interfaces to allow instance to be properly released
+	DeleteEC2NetworkInterfaces(ec2Client, cfClient, &nodesStackName)
+
+	// Deleting Amazon EKS Worker Nodes
+	DeleteEksWorkerNodes(cfClient, &nodesStackName)
 
 	// Deleting Amazon EKS Cluster VPC
 	clusterStackName := "nsm-srv" + serviceSuffix
