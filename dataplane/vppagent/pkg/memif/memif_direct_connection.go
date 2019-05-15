@@ -5,9 +5,10 @@ import (
 	"path"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/memifproxy"
-	"github.com/sirupsen/logrus"
 )
 
 type DirectMemifConnector struct {

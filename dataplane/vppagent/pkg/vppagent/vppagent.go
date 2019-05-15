@@ -224,7 +224,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 	for _, arpEntry := range v.egressInterface.ArpEntries() {
 		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
 			Interface:   ManagementInterface,
-			IpAddress:   arpEntry.IpAddress,
+			IpAddress:   arpEntry.IPAddress,
 			PhysAddress: arpEntry.PhysAddress,
 		})
 	}

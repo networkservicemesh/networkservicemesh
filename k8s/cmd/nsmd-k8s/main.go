@@ -2,19 +2,21 @@ package main
 
 import (
 	"flag"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"net"
-	"os"
-	"path/filepath"
-	"strings"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func main() {

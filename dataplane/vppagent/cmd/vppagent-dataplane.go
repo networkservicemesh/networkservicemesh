@@ -15,10 +15,11 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {

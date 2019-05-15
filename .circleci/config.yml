@@ -22,16 +22,6 @@ jobs:
           command: |
             ./scripts/go-mod-download.sh
       - run: "! go fmt ./... 2>&1 | read"
-      - run:
-          name: golint
-          command: |
-            go get golang.org/x/lint/golint
-            golint ./...
-#      - run:
-#          name: gosec
-#          command: |
-#            GO111MODULE=off go get github.com/securego/gosec/cmd/gosec/...
-#            gosec -quiet -severity low -no-fail ./...
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: go generate ./...
@@ -51,7 +41,22 @@ jobs:
     environment:
       GO111MODULE: "on"
 
-# packet
+  # code analysis
+  static-code-analysis:
+    resource_class: medium+
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: lint
+          command: |
+            make lint-install
+            make lint-check-diff
+    environment:
+      GO111MODULE: "on"
+
+  # packet
   packet-deploy:
     docker:
       - image: circleci/golang
@@ -551,7 +556,10 @@ workflows:
   build-and-test:
     jobs:
       - sanity-check
-
+      - static-code-analysis:
+          name: "static-code-analysis"
+          requires:
+            - sanity-check
 # build
       - build-container:
           name: "build-nsmd"

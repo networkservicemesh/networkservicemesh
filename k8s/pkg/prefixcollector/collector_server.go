@@ -2,14 +2,16 @@ package prefixcollector
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"net"
+
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	"net"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
 
 type SubnetWatcher struct {

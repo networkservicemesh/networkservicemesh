@@ -2,18 +2,20 @@ package model
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"strconv"
 	"sync"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
 
+	"github.com/sirupsen/logrus"
+
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	"github.com/sirupsen/logrus"
 )
 
 type Dataplane struct {
@@ -137,7 +139,6 @@ type Model interface {
 
 	ConnectionId() string
 	CorrectIdGenerator(id string)
-
 
 	// After listener will be added it will be called for all existing dataplanes/endpoints
 	AddListener(listener ModelListener)
@@ -401,7 +402,7 @@ func (i *impl) CorrectIdGenerator(id string) {
 	defer i.Unlock()
 
 	value, err := strconv.ParseUint(id, 16, 64)
-	if err  != nil {
+	if err != nil {
 		logrus.Errorf("Failed to update id genrator %v", err)
 	}
 	if i.lastConnnectionId < value {

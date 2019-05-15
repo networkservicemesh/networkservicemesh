@@ -18,9 +18,10 @@ package selector
 import (
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/sirupsen/logrus"
 )
 
 type matchSelector struct {

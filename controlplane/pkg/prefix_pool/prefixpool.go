@@ -7,8 +7,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 )
 
 /**
@@ -401,7 +402,7 @@ func removeDuplicates(elements []string) []string {
 	result := []string{}
 
 	for v := range elements {
-		if encountered[elements[v]] != true {
+		if !encountered[elements[v]] {
 			encountered[elements[v]] = true
 			result = append(result, elements[v])
 		}
@@ -423,7 +424,7 @@ func reverse(values []string) []string {
 
 func ReleasePrefixes(prefixes []string, released ...string) (remaining []string, err error) {
 	result := []string{}
-	if released == nil || len(released) == 0 {
+	if len(released) == 0 {
 		return prefixes, nil
 	}
 	result = removeDuplicates(append(prefixes, released...))

@@ -1,10 +1,11 @@
 package nsm
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (

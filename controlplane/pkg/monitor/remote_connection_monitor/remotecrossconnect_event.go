@@ -2,6 +2,7 @@ package remote_connection_monitor
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )

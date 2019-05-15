@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -50,7 +51,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 }
 
 func (srv *networkServiceServer) updateMechanisms(request *networkservice.NetworkServiceRequest) {
-	// Update passed local mechanism paramaters to contains a workspace name
+	// Update passed local mechanism parameters to contains a workspace name
 	for _, mechanism := range request.MechanismPreferences {
 		if mechanism.Parameters == nil {
 			mechanism.Parameters = map[string]string{}

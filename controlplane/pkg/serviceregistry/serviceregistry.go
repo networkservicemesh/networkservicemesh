@@ -1,9 +1,12 @@
 package serviceregistry
 
 import (
-	"golang.org/x/net/context"
 	"net"
 	"time"
+
+	"golang.org/x/net/context"
+
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
@@ -12,7 +15,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"google.golang.org/grpc"
 )
 
 type ApiRegistry interface {

@@ -12,10 +12,7 @@ import (
 
 func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, dataplane *model.Dataplane, existingConnection *model.ClientConnection) *remote_networkservice.NetworkServiceRequest {
 	// We need to obtain parameters for remote mechanism
-	remoteM := []*remote_connection.Mechanism{}
-	for _, mechanism := range dataplane.RemoteMechanisms {
-		remoteM = append(remoteM, mechanism)
-	}
+	remoteM := append([]*remote_connection.Mechanism{}, dataplane.RemoteMechanisms...)
 	var message *remote_networkservice.NetworkServiceRequest
 
 	// Try Heal only if endpoint are same as for existing connection.
