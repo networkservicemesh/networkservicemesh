@@ -193,7 +193,6 @@ jobs:
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
             make aws-start
-            cp ~/.kube/config data/kubeconfig
           no_output_timeout: 40m
       - save_cache:
           key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
@@ -207,6 +206,10 @@ jobs:
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             make aws-destroy
+    environment:
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
 
   aws-destroy:
     parameters:
@@ -222,6 +225,10 @@ jobs:
           command: |
             ./scripts/install-kubectl.sh
             .circleci/cleanup-aws.sh
+    environment:
+      CLUSTER_ID: "<< parameters.cluster_id >>"
+      KUBECONFIG: /home/circleci/project/data/kubeconfig
+      GO111MODULE: "on"
 
 # gke
   gke-create-cluster:
