@@ -48,10 +48,12 @@ func TestNSMDRecoverNSE(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
+			Namespace:          k8s.GetK8sNamespace(),
+			DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
 		},
 	}, k8s.GetK8sNamespace())
 	icmpPod := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)

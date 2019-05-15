@@ -32,8 +32,9 @@ func TestExcludePrefixCheck(t *testing.T) {
 	}
 	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
-			Variables: variables,
-			Namespace: k8s.GetK8sNamespace(),
+			Variables:          variables,
+			DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
+			Namespace:          k8s.GetK8sNamespace(),
 		},
 	}, k8s.GetK8sNamespace())
 
