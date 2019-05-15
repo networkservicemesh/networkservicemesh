@@ -79,6 +79,7 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 			}
 			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
+				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -87,7 +88,8 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 
 			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				resultChan <- &PodDeployResult{updated_pod, err}
+				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod)
+				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
 			resultChan <- &PodDeployResult{updated_pod, nil}
