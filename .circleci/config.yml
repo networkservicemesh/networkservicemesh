@@ -472,6 +472,7 @@ jobs:
             kubectl -n $NSM_NAMESPACE get nodes
             kubectl -n $NSM_NAMESPACE get pods -o wide
             kubectl -n $NSM_NAMESPACE describe pods
+            make k8s-logs
       - run:
           when: on_fail
           command: |
