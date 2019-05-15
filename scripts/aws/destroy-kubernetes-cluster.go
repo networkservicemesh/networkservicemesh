@@ -202,14 +202,14 @@ func DeleteEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	log.Printf("Amazon EC2 key pair \"%s\" successfully Deleted!\n", *keyPairName)
 }
 
-func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string, hardError bool) bool {
+func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string) {
 	log.Printf("Deleting Amazon EKS Worker Nodes...\n")
 
 	resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: nodesStackName,
 	})
 	if checkDeferError(err) {
-		return false
+		return
 	}
 
 	stackId := resp.Stacks[0].StackId
@@ -218,7 +218,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 		StackName: nodesStackName,
 	})
 	if checkDeferError(err) {
-		return false
+		return
 	}
 
 	for {
@@ -226,29 +226,19 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			StackName: stackId,
 		})
 		if checkDeferError(err) {
-			return false
+			return
 		}
 
 		switch *resp.Stacks[0].StackStatus {
 		case "DELETE_COMPLETE":
 			log.Printf("EKS Worker Nodes \"%s\" successfully deleted!\n", *nodesStackName)
-			return false
+			return
 		case "DELETE_IN_PROGRESS":
 			time.Sleep(requestInterval)
-		case "DELETE_FAILED":
-			if hardError {
-				log.Printf("Warning: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			} else {
-				log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-				deferError = true
-			}
-
-			// Can try to remove stack again
-			return true
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 			deferError = true
-			return false
+			return
 		}
 	}
 }
@@ -262,19 +252,16 @@ func deleteAWSKubernetesCluster() {
 
 	serviceSuffix := os.Getenv("NSM_AWS_SERVICE_SUFFIX")
 
-	// Deleting Amazon EKS Worker Nodes
-	nodesStackName := "nsm-nodes" + serviceSuffix
-	deleteFailed := DeleteEksWorkerNodes(cfClient, &nodesStackName, false)
-
 	// Deleting Amazon EKS Cluster
 	clusterName := "nsm" + serviceSuffix
 	DeleteEksCluster(eksClient, &clusterName)
 
-	if deleteFailed  {
-		// If cannot delete worker nodes, try to delete cluster and network interfaces first
-		DeleteEC2NetworkInterfaces(ec2Client, cfClient, &nodesStackName)
-		DeleteEksWorkerNodes(cfClient, &nodesStackName, true)
-	}
+	nodesStackName := "nsm-nodes" + serviceSuffix
+	// Deleting EC2 Network Interfaces to allow instance to be properly released
+	DeleteEC2NetworkInterfaces(ec2Client, cfClient, &nodesStackName)
+
+	// Deleting Amazon EKS Worker Nodes
+	DeleteEksWorkerNodes(cfClient, &nodesStackName)
 
 	// Deleting Amazon EKS Cluster VPC
 	clusterStackName := "nsm-srv" + serviceSuffix
