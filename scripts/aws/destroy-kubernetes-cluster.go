@@ -7,6 +7,7 @@ import (
 )
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -29,6 +30,7 @@ func checkDeferError(err error) bool {
 			case "NoSuchEntity":
 			case "ResourceNotFoundException":
 			case "ValidationError":
+			case "InvalidParameterValue":
 			default:
 				log.Printf("Error (%s): %s\n", aerr.Code(), aerr.Message())
 				deferError = true
@@ -69,6 +71,44 @@ func DeleteEksRole(iamClient *iam.IAM, eksRoleName *string) {
 	}
 
 	log.Printf("Role \"%s\" successfully deleted!\n", *eksRoleName)
+}
+
+func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.CloudFormation, nodesStackName *string) {
+	cfResp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: nodesStackName,
+	})
+	if checkDeferError(err) {
+		return
+	}
+
+	var sequrityGroup *string
+	for _, output := range cfResp.Stacks[0].Outputs {
+		if *output.OutputKey == "NodeSecurityGroup" {
+			sequrityGroup = output.OutputValue
+			break
+		}
+	}
+
+	ec2Resp, err := ec2Client.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter {
+			{
+				Name: aws.String("group-id"),
+				Values: []*string {sequrityGroup},
+			},
+		},
+	})
+
+	if checkDeferError(err) {
+		return
+	}
+
+	for _, networkInterface := range(ec2Resp.NetworkInterfaces) {
+		_, err := ec2Client.DeleteNetworkInterface(&ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: networkInterface.NetworkInterfaceId,
+		})
+
+		checkDeferError(err)
+	}
 }
 
 func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) {
@@ -162,14 +202,14 @@ func DeleteEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	log.Printf("Amazon EC2 key pair \"%s\" successfully Deleted!\n", *keyPairName)
 }
 
-func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string) {
+func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string, hardError bool) bool {
 	log.Printf("Deleting Amazon EKS Worker Nodes...\n")
 
 	resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: nodesStackName,
 	})
 	if checkDeferError(err) {
-		return
+		return false
 	}
 
 	stackId := resp.Stacks[0].StackId
@@ -178,7 +218,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 		StackName: nodesStackName,
 	})
 	if checkDeferError(err) {
-		return
+		return false
 	}
 
 	for {
@@ -186,19 +226,29 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			StackName: stackId,
 		})
 		if checkDeferError(err) {
-			return
+			return false
 		}
 
 		switch *resp.Stacks[0].StackStatus {
 		case "DELETE_COMPLETE":
 			log.Printf("EKS Worker Nodes \"%s\" successfully deleted!\n", *nodesStackName)
-			return
+			return false
 		case "DELETE_IN_PROGRESS":
 			time.Sleep(requestInterval)
+		case "DELETE_FAILED":
+			if hardError {
+				log.Printf("Warning: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
+			} else {
+				log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
+				deferError = true
+			}
+
+			// Can try to remove stack again
+			return true
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 			deferError = true
-			return
+			return false
 		}
 	}
 }
@@ -214,11 +264,17 @@ func deleteAWSKubernetesCluster() {
 
 	// Deleting Amazon EKS Worker Nodes
 	nodesStackName := "nsm-nodes" + serviceSuffix
-	DeleteEksWorkerNodes(cfClient, &nodesStackName)
+	deleteFailed := DeleteEksWorkerNodes(cfClient, &nodesStackName, false)
 
 	// Deleting Amazon EKS Cluster
 	clusterName := "nsm" + serviceSuffix
 	DeleteEksCluster(eksClient, &clusterName)
+
+	if deleteFailed  {
+		// If cannot delete worker nodes, try to delete cluster and network interfaces first
+		DeleteEC2NetworkInterfaces(ec2Client, cfClient, &nodesStackName)
+		DeleteEksWorkerNodes(cfClient, &nodesStackName, true)
+	}
 
 	// Deleting Amazon EKS Cluster VPC
 	clusterStackName := "nsm-srv" + serviceSuffix
