@@ -99,5 +99,9 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - golint
   exclude:
     - should not use dot imports
