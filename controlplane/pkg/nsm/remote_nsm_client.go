@@ -2,13 +2,15 @@ package nsm
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
+
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 //// Remote NSM Connection Client

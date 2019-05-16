@@ -2,7 +2,9 @@ package networkservice
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 )

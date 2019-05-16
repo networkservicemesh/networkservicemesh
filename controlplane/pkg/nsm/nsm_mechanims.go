@@ -2,15 +2,17 @@ package nsm
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 func (srv *networkServiceManager) updateMechanism(requestId string, nsmConnection nsm.NSMConnection, request nsm.NSMRequest, dataplane *model.Dataplane) error {

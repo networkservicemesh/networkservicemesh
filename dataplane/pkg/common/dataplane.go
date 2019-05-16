@@ -22,13 +22,14 @@ import (
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type NSMDataplane interface {

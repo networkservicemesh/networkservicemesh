@@ -186,6 +186,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 			"IP_ADDRESS":           "10.60.1.0/24",
 		},
 	))
+	Expect(vpnGatewayPodNode).ToNot(BeNil())
 	Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse-1"))
 
 	k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)

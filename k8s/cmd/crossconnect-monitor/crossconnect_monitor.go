@@ -4,22 +4,24 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 )
 
 var closing = false
@@ -36,7 +38,7 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 	defer conn.Close()
 	dataplaneClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
-	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
+	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplaneClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 
 	if err != nil {

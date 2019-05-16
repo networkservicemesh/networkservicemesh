@@ -1,11 +1,13 @@
 package resource_cache
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"reflect"
+
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
-	"reflect"
+
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 )
 
 const (

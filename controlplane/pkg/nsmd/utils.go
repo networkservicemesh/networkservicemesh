@@ -1,9 +1,11 @@
 package nsmd
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"golang.org/x/sys/unix"
 	"net"
+
+	"golang.org/x/sys/unix"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 type customListener struct {

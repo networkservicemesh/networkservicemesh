@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -23,6 +21,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kube_testing/rbac"
 )
@@ -78,6 +79,7 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 			}
 			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
+				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -86,7 +88,8 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 
 			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				resultChan <- &PodDeployResult{updated_pod, err}
+				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod)
+				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
 			resultChan <- &PodDeployResult{updated_pod, nil}

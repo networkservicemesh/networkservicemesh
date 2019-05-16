@@ -1,11 +1,13 @@
 package tests
 
 import (
-	"github.com/golang/protobuf/proto"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
 const (

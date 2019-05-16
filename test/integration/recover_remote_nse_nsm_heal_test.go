@@ -35,14 +35,16 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables: map[string]string{
-				nsm.NsmdHealDSTWaitTimeout: "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
+				nsm.NsmdHealDSTWaitTimeout:   "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
 				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
-			Namespace: k8s.GetK8sNamespace(),
+			Namespace:          k8s.GetK8sNamespace(),
+			DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
 		},
 		{
-			Namespace: k8s.GetK8sNamespace(),
-			Variables: pods.DefaultNSMD,
+			Namespace:          k8s.GetK8sNamespace(),
+			Variables:          pods.DefaultNSMD,
+			DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
 		},
 	}, k8s.GetK8sNamespace())
 

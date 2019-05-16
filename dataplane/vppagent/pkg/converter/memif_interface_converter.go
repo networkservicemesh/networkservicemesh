@@ -16,13 +16,15 @@ package converter
 
 import (
 	"fmt"
-	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"os"
 	"path"
+
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
 type MemifInterfaceConverter struct {
@@ -56,7 +58,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	}
 
 	if isMaster {
-		if err := os.MkdirAll(SocketDir, 0777); err != nil {
+		if err := os.MkdirAll(SocketDir, os.ModePerm); err != nil {
 			return nil, err
 		}
 	}

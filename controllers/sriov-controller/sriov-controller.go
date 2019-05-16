@@ -23,7 +23,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -38,7 +38,7 @@ const (
 	// containersConfigPath specifies location where sriov controller stores per POD network service
 	// configuration file.
 	// TODO (sbezverk) 1. how to clean up after POD which is using this file is gone? The controller could cleanup
-	// this folder during a boot up, but how to detect which one is used and whcih one not?
+	// this folder during a boot up, but how to detect which one is used and which one not?
 	containersConfigPath = "/var/lib/networkservicemesh/sriov-controller/config"
 )
 

@@ -18,13 +18,15 @@ package endpoint
 import (
 	"context"
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/sirupsen/logrus"
 )
 
 // MonitorEndpoint is a monitoring composite

@@ -20,6 +20,9 @@ WORKER_COUNT ?= 1
 .PHONY: default
 default: all
 
+# Static code analysis
+include .mk/code_analysis.mk
+
 # Pull in k8s targets
 include .mk/k8s.mk
 include .mk/skydive.mk

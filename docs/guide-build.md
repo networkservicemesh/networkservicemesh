@@ -206,3 +206,24 @@ If you want to run it locally, you need to [install shellcheck](https://github.c
 ## Canonical source on how to build
 
 The [.circleci/config.yml](https://github.com/networkservicemesh/networkservicemesh/blob/master/.circleci/config.yml) file is the canonical source of how to build Network Service Mesh in case this file becomes out of date.
+
+##Static analysis of code
+Get code static analyzer tool:
+```bash
+make lint-install
+```
+Make sure that tools is installed and can be used from terminal:
+```bash
+golangci-lint --version
+```
+If the command above doesn't work make sure the tool exists in `go/bin` directory.
+
+Checking changes:
+```bash
+make lint-check-diff
+```
+Checking all code in the project:
+```bash 
+make lint-check-all
+```
+If you have any unsolvable problem with a concrete linter then consider updating `.golanci.yaml` 

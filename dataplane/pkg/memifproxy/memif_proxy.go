@@ -2,10 +2,11 @@ package memifproxy
 
 import (
 	"errors"
-	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (

@@ -2,11 +2,12 @@ package tests
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest/fake"
-	"net/http"
-	"strings"
 )
 
 type MethodHandler = func(r *http.Request, resource string) (response *http.Response, e error)

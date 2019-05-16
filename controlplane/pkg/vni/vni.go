@@ -56,7 +56,6 @@ func (a *vniAllocator) Restore(local_ip string, remote_ip string, vniId uint32) 
 	a.lastVni[remote_ip] = vniId
 }
 
-
 func compareIps(ip1 net.IP, ip2 net.IP) int {
 	for index, value := range ip1 {
 		if value < ip2[index] {

@@ -180,7 +180,7 @@ func (s *serviceInstanceController) startServer() error {
 
 	go s.server.Serve(sock)
 
-	// Wait for server to start by launching a blocking connexion
+	// Wait for server to start by launching a blocking connection
 	conn, err := dial(s.socket, 5*time.Second)
 	if err != nil {
 		return err
@@ -332,7 +332,7 @@ func (s *serviceInstanceController) Allocate(ctx context.Context, reqs *pluginap
 			deviceSpec.Permissions = "rw"
 			response.Devices = append(response.Devices, &deviceSpec)
 			// Getting vfio device specific specifications and storing it in the slice. The slice
-			// will be marshalled into json and passed to requesting POD as a mount.
+			// will be marshaled into json and passed to requesting POD as a mount.
 			vfioDev, err := s.getVFIODevSpecs(id)
 			if err != nil {
 				return nil, fmt.Errorf("allocation request failure, unable to get device %s specs with error: %+v", id, err)
