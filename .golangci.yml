@@ -63,7 +63,7 @@ linters-settings:
     for-loops: false
   gocritic:
     enabled-checks:
-      - rangevalcopy
+      - rangeValCopy
       - boolExprSimplify
       - badCond
       - methodExprCall
