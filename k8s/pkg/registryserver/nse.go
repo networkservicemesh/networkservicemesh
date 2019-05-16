@@ -64,8 +64,8 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			}
 		} else {
 			objectMeta = metav1.ObjectMeta{
-				Name: request.GetNetworkserviceEndpoint().EndpointName,
-				Labels:       labels,
+				Name:   request.GetNetworkserviceEndpoint().EndpointName,
+				Labels: labels,
 			}
 		}
 

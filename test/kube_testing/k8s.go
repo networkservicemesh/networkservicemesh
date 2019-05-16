@@ -450,11 +450,11 @@ func (l *K8s) DescribePod(pod *v1.Pod) {
 	}
 }
 
-func (o *K8s) CleanupEndpointsCRDs() {
-	// Clean up Network Service Endpoints
-	endpoints, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints(o.namespace).List(metaV1.ListOptions{})
-	for _, ep := range endpoints.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints(o.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
+// CleanupEndpointsCRDs clean Network Service Endpoints from registry
+func (l *K8s) CleanupEndpointsCRDs() {
+	endpoints, _ := l.versionedClientSet.NetworkservicemeshV1().NetworkServiceEndpoints(l.namespace).List(metaV1.ListOptions{})
+	for i := range endpoints.Items {
+		_ = l.versionedClientSet.NetworkservicemeshV1().NetworkServiceEndpoints(l.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
 	}
 }
 

@@ -842,7 +842,7 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 	}()
 }
 
-func (srv *networkServiceManager) NotifyRenamedEndpoint(nseOldName string, nseNewName string) {
+func (srv *networkServiceManager) NotifyRenamedEndpoint(nseOldName, nseNewName string) {
 	logrus.Infof("Notified about renamed endpoint %v => %v", nseOldName, nseNewName)
 	srv.renamedEndpoints[nseOldName] = nseNewName
 }

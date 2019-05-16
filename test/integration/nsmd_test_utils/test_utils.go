@@ -6,14 +6,15 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 
@@ -666,6 +667,7 @@ func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	return
 }
 
+// PrepareRegistryClients prepare nse and nsm registry clients
 func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, *kube_testing.PortForward) {
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
 	Expect(err).To(BeNil())

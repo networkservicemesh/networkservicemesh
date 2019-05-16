@@ -180,7 +180,7 @@ func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.C
 	m.manager.RestoreConnections(xcons, dataplane.RegisteredName)
 }
 
-func (m *ClientConnectionManager) NotifyRenamedEndpoint(nseOldName string, nseNewName string) {
+// NotifyRenamedEndpoint notifies nsm that endpoint was registered with different name
+func (m *ClientConnectionManager) NotifyRenamedEndpoint(nseOldName, nseNewName string) {
 	m.manager.NotifyRenamedEndpoint(nseOldName, nseNewName)
 }
-
