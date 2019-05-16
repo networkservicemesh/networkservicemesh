@@ -1,7 +1,7 @@
 package connection
 
 import (
-	fmt "fmt"
+	"fmt"
 	"path"
 	"strconv"
 
@@ -9,7 +9,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
-func NewMechanism(t MechanismType, name string, description string) (*Mechanism, error) {
+// NewMechanism creates a new mechanism with passed type and description.
+func NewMechanism(t MechanismType, name, description string) (*Mechanism, error) {
 	inodeNum, err := tools.GetCurrentNS()
 	if err != nil {
 		return nil, err

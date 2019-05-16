@@ -401,7 +401,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMC
 	return srv.close(ctx, connection.(*model.ClientConnection), true, true)
 }
 
-func (srv *networkServiceManager) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool, modelRemove bool) error {
+func (srv *networkServiceManager) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane, modelRemove bool) error {
 	logrus.Infof("NSM: Closing connection %v", clientConnection)
 	if clientConnection.ConnectionState == model.ClientConnection_Closing {
 		return nil

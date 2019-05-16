@@ -261,7 +261,7 @@ func (p *nsmHealProcessor) waitSpecificNSE(ctx context.Context, clientConnection
 	}
 }
 
-func (p *nsmHealProcessor) waitNSE(ctx context.Context, clientConnection *model.ClientConnection, ignoreEndpoint string, networkService string) bool {
+func (p *nsmHealProcessor) waitNSE(ctx context.Context, clientConnection *model.ClientConnection, ignoreEndpoint, networkService string) bool {
 	discoveryClient, err := p.serviceRegistry.DiscoveryClient()
 	if err != nil {
 		logrus.Errorf("Failed to connect to Registry... %v", err)

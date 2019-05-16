@@ -124,7 +124,8 @@ func dial(ctx context.Context, endpoint net.Addr) (*grpc.ClientConn, error) {
 	return c, err
 }
 
-func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress string, idleSleep time.Duration) error {
+// WaitForPortAvailable waits while the port will is available. Throws exception if the context is done.
+func WaitForPortAvailable(ctx context.Context, protoType, registryAddress string, idleSleep time.Duration) error {
 	if idleSleep < 0 {
 		return errors.New("idleSleep must be positive")
 	}
@@ -144,7 +145,7 @@ func WaitForPortAvailable(ctx context.Context, protoType string, registryAddress
 			if err == nil {
 				return nil
 			}
-			if time.Since(last) > 60*time.Second {
+			if time.Since(last) > time.Minute {
 				logrus.Infof("Waiting for liveness probe: %s:%s", protoType, registryAddress)
 				last = time.Now()
 			}

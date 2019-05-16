@@ -70,7 +70,8 @@ func init() {
 func getAnnotationValue(ignoredNamespaceList []string, metadata *metav1.ObjectMeta, spec *corev1.PodSpec) (string, bool) {
 
 	// check if InitContainer already injected
-	for _, c := range spec.InitContainers {
+	for i := range spec.InitContainers {
+		c := &spec.InitContainers[i]
 		if c.Name == initContainerName {
 			return "", false
 		}
@@ -99,7 +100,7 @@ func validateAnnotationValue(value string) error {
 	return err
 }
 
-func createPatch(annotationValue string, path string) ([]byte, error) {
+func createPatch(annotationValue, path string) ([]byte, error) {
 	var patch []patchOperation
 
 	value := []interface{}{

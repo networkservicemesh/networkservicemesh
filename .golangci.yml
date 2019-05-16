@@ -63,7 +63,7 @@ linters-settings:
     for-loops: false
   gocritic:
     enabled-checks:
-      - rangeValCopy
+      - rangevalcopy
       - boolExprSimplify
       - badCond
       - methodExprCall
@@ -87,7 +87,7 @@ linters-settings:
       captLocal:
         paramsOnly: true
       rangeValCopy:
-        sizeThreshold: 32
+        sizeThreshold: 100
 
 linters:
   disable:
@@ -95,7 +95,6 @@ linters:
     - gofmt
     - unused #deprecated
   enable-all: true
-
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0

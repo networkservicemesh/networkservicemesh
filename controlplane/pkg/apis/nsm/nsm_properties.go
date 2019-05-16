@@ -44,7 +44,7 @@ func NewNsmProperties() *NsmProperties {
 	}
 
 	// Parse few Environment variables.
-	if "false" == os.Getenv(NsmdHealEnabled) {
+	if os.Getenv(NsmdHealEnabled) == "false" {
 		values.HealEnabled = false
 	}
 	dstWaitTimeout := os.Getenv(NsmdHealDSTWaitTimeout)
