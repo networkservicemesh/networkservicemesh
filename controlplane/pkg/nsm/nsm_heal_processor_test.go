@@ -3,6 +3,13 @@ package nsm
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
+	. "github.com/onsi/gomega"
+	net_context "golang.org/x/net/context"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -14,11 +21,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	test_utils "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/utils"
-	. "github.com/onsi/gomega"
-	net_context "golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"testing"
-	"time"
 )
 
 const (
@@ -28,7 +30,6 @@ const (
 	remoteNSMName = "nsm-remote"
 
 	dataplane1Name = "dataplane-1"
-	dataplane2Name = "dataplane-2"
 
 	nse1Name = "nse-1"
 	nse2Name = "nse-2"
@@ -299,7 +300,7 @@ func (stub *connectionManagerStub) request(ctx context.Context, request nsm.NSMR
 	return nsmConnection, nil
 }
 
-func (stub *connectionManagerStub) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool, modelRemove bool) error {
+func (stub *connectionManagerStub) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane, modelRemove bool) error {
 	if stub.closeError != nil {
 		return stub.closeError
 	}
@@ -339,7 +340,7 @@ type nseManagerStub struct {
 	nses []*registry.NSERegistration
 }
 
-func (stub *nseManagerStub) getEndpoint(ctx context.Context, requestConnection nsm.NSMConnection, ignore_endpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (stub *nseManagerStub) getEndpoint(ctx context.Context, requestConnection nsm.NSMConnection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	panic("implement me")
 }
 
@@ -450,13 +451,14 @@ func (data *healTestData) createRequest(isRemote bool) nsm.NSMRequest {
 				NetworkService: networkServiceName,
 			},
 		}
-	} else {
-		return &local_networkservice.NetworkServiceRequest{
-			Connection: &local_connection.Connection{
-				NetworkService: networkServiceName,
-			},
-		}
 	}
+
+	return &local_networkservice.NetworkServiceRequest{
+		Connection: &local_connection.Connection{
+			NetworkService: networkServiceName,
+		},
+	}
+
 }
 
 func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, dataplane string, request nsm.NSMRequest) *model.ClientConnection {

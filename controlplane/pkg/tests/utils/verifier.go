@@ -1,42 +1,37 @@
 package utils
 
 import (
+	"testing"
+
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	. "github.com/onsi/gomega"
-	"testing"
 )
 
+// Verifier is a common verifier interface to be used in tests
 type Verifier interface {
 	Verify(t *testing.T)
 }
 
-type ModelVerifier interface {
-	EndpointNotExists(name string) ModelVerifier
-	EndpointExists(name string, nsm string) ModelVerifier
-
-	ClientConnectionNotExists(connectionID string) ModelVerifier
-	ClientConnectionExists(connectionID string, srcID, dstID string, remoteNSM, nse, dataplane string) ModelVerifier
-
-	DataplaneNotExists(name string) ModelVerifier
-	DataplaneExists(name string) ModelVerifier
-
-	Verifier
-}
-
-type modelVerifier struct {
+// ModelVerifier is a Verifier to check model.Model state
+type ModelVerifier struct {
 	model     model.Model
 	verifiers []Verifier
 }
 
-func NewModelVerifier(model model.Model) ModelVerifier {
-	return &modelVerifier{
+// NewModelVerifier is a constructor for ModelVerifier
+func NewModelVerifier(model model.Model) *ModelVerifier {
+	return &ModelVerifier{
 		model:     model,
 		verifiers: []Verifier{},
 	}
 }
 
-func (v *modelVerifier) EndpointNotExists(name string) ModelVerifier {
+// EndpointNotExists is a builder method to add check if model.Endpoint with
+//   Endpoint.NetworkServiceEndpoint.EndpointName == name
+// doesn't exist in v.model
+func (v *ModelVerifier) EndpointNotExists(name string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &endpointVerifier{
 		exists: false,
 		name:   name,
@@ -47,7 +42,11 @@ func (v *modelVerifier) EndpointNotExists(name string) ModelVerifier {
 	return v
 }
 
-func (v *modelVerifier) EndpointExists(name string, nsm string) ModelVerifier {
+// EndpointExists is a builder method to add check if model.Endpoint with
+//   Endpoint.NetworkServiceEndpoint.EndpointName == name
+//   Endpoint.NetworkServiceManager.Name == nsm
+// exists in v.model
+func (v *ModelVerifier) EndpointExists(name, nsm string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &endpointVerifier{
 		exists: true,
 		name:   name,
@@ -59,7 +58,10 @@ func (v *modelVerifier) EndpointExists(name string, nsm string) ModelVerifier {
 	return v
 }
 
-func (v *modelVerifier) ClientConnectionNotExists(connectionID string) ModelVerifier {
+// ClientConnectionNotExists is a builder method to add check if model.ClientConnection with
+//   ConnectionId == connectionID
+// doesn't exist in v.model
+func (v *ModelVerifier) ClientConnectionNotExists(connectionID string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &clientConnectionVerifier{
 		exists:       false,
 		connectionID: connectionID,
@@ -70,7 +72,15 @@ func (v *modelVerifier) ClientConnectionNotExists(connectionID string) ModelVeri
 	return v
 }
 
-func (v *modelVerifier) ClientConnectionExists(connectionID, srcID, dstID string, remoteNSM, nse, dataplane string) ModelVerifier {
+// ClientConnectionExists is a builder method to add check if model.ClientConnection with
+//   ConnectionId == connectionID
+//   Xcon.Source.Id = srcID
+//   Xcon.Destination.Id = dst.ID
+//   RemoteNsm.Name = remoteNSM
+//   Endpoint.NetworkServiceEndpoint.EndpointName = nse
+//   Dataplane.RegisteredName = dataplane
+// exists in v.model
+func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remoteNSM, nse, dataplane string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &clientConnectionVerifier{
 		exists:       true,
 		connectionID: connectionID,
@@ -86,7 +96,10 @@ func (v *modelVerifier) ClientConnectionExists(connectionID, srcID, dstID string
 	return v
 }
 
-func (v *modelVerifier) DataplaneNotExists(name string) ModelVerifier {
+// DataplaneNotExists is a builder method to add check if model.Dataplane with
+//   RegisteredName = name
+// doesn't exist in v.model
+func (v *ModelVerifier) DataplaneNotExists(name string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &dataplaneVerifier{
 		exists: false,
 		name:   name,
@@ -97,7 +110,10 @@ func (v *modelVerifier) DataplaneNotExists(name string) ModelVerifier {
 	return v
 }
 
-func (v *modelVerifier) DataplaneExists(name string) ModelVerifier {
+// DataplaneExists is a builder method to add check if model.Dataplane with
+//   RegisteredName = name
+// exists in v.model
+func (v *ModelVerifier) DataplaneExists(name string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &dataplaneVerifier{
 		exists: true,
 		name:   name,
@@ -108,7 +124,8 @@ func (v *modelVerifier) DataplaneExists(name string) ModelVerifier {
 	return v
 }
 
-func (v *modelVerifier) Verify(t *testing.T) {
+// Verify invokes all stored checks
+func (v *ModelVerifier) Verify(t *testing.T) {
 	for _, verifier := range v.verifiers {
 		verifier.Verify(t)
 	}
