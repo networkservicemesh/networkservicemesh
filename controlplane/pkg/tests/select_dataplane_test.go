@@ -1,12 +1,13 @@
 package tests
 
 import (
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	localConnection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	localNetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	remoteConnection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	. "github.com/onsi/gomega"
 )
 
 import (
@@ -16,10 +17,10 @@ import (
 
 func createTestDataplane(name string, localMechanisms []*localConnection.Mechanism, RemoteMechanisms []*remoteConnection.Mechanism) *model.Dataplane {
 	return &model.Dataplane{
-		RegisteredName:   name,
-		SocketLocation:   "tcp:some_addr",
-		LocalMechanisms:  localMechanisms,
-		RemoteMechanisms: RemoteMechanisms,
+		RegisteredName:       name,
+		SocketLocation:       "tcp:some_addr",
+		LocalMechanisms:      localMechanisms,
+		RemoteMechanisms:     RemoteMechanisms,
 		MechanismsConfigured: true,
 	}
 }

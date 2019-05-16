@@ -1,10 +1,12 @@
 package tests
 
 import (
+	"testing"
+
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func newModel() model.Model {

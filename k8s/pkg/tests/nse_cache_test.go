@@ -1,16 +1,18 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	"testing"
+	"time"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
-	"testing"
-	"time"
+
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 )
 
 type fakeRegistry struct {

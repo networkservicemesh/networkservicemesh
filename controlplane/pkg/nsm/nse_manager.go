@@ -3,12 +3,14 @@ package nsm
 import (
 	"context"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
+
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/sirupsen/logrus"
 )
 
 type networkServiceEndpointManager interface {
