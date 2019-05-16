@@ -371,9 +371,6 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
 	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
-	// Register CrossConnect monitorCrossConnectServer client as ModelListener
-	monitorCrossConnectClient := NewMonitorCrossConnectClient(nsm, nsm.xconManager)
-	nsm.model.AddListener(monitorCrossConnectClient)
 }
 
 func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
