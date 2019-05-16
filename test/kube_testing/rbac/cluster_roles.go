@@ -81,7 +81,8 @@ var RoleNames = map[string]string{
 	"binding": "nsm-role-binding",
 }
 
-func CreateRoleAdmin(name string, namespace string) Role {
+// CreateRoleAdmin creates a role with admin permissions.
+func CreateRoleAdmin(name, namespace string) Role {
 	roleAdmin := &ClusterRole{
 		ClusterRole: rbacv1.ClusterRole{
 			TypeMeta: metav1.TypeMeta{
@@ -93,6 +94,7 @@ func CreateRoleAdmin(name string, namespace string) Role {
 					"rbac.authorization.k8s.io/aggregate-to-admin": "true",
 					"rbac.authorization.k8s.io/aggregate-to-edit":  "true",
 				},
+				Namespace: namespace,
 			},
 			Rules: []rbacv1.PolicyRule{
 				{
@@ -125,7 +127,8 @@ func CreateRoleAdmin(name string, namespace string) Role {
 	return roleAdmin
 }
 
-func CreateRoleView(name string, namespace string) Role {
+// CreateRoleView creates a role with view permissions
+func CreateRoleView(name, namespace string) Role {
 	roleView := &ClusterRole{
 		ClusterRole: rbacv1.ClusterRole{
 			TypeMeta: metav1.TypeMeta{
@@ -136,6 +139,7 @@ func CreateRoleView(name string, namespace string) Role {
 				Labels: map[string]string{
 					"rbac.authorization.k8s.io/aggregate-to-view": "true",
 				},
+				Namespace: namespace,
 			},
 			Rules: []rbacv1.PolicyRule{
 				{
@@ -149,7 +153,8 @@ func CreateRoleView(name string, namespace string) Role {
 	return roleView
 }
 
-func CreateRoleBinding(name string, namespace string) Role {
+// CreateRoleBinding creates a role with binding permissions
+func CreateRoleBinding(name, namespace string) Role {
 	roleBinding := &ClusterRoleBinding{
 		ClusterRoleBinding: rbacv1.ClusterRoleBinding{
 			TypeMeta: metav1.TypeMeta{

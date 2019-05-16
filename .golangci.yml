@@ -87,7 +87,7 @@ linters-settings:
       captLocal:
         paramsOnly: true
       rangeValCopy:
-        sizeThreshold: 32
+        sizeThreshold: 100
 
 linters:
   disable:
@@ -95,10 +95,13 @@ linters:
     - gofmt
     - unused #deprecated
   enable-all: true
-
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - golint
   exclude:
     - should not use dot imports

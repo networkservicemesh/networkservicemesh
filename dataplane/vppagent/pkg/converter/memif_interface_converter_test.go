@@ -1,15 +1,17 @@
 package converter_test
 
 import (
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	. "github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
-	. "github.com/onsi/gomega"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	. "github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 )
 
 const (

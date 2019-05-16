@@ -15,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -484,9 +484,10 @@ func (l *K8s) Cleanup() {
 
 func (l *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
-		for _, lpod := range l.ListPods() {
+		for i := range l.ListPods() {
+			lpod := &l.ListPods()[i]
 			if strings.Contains(lpod.Name, podName) {
-				l.DeletePods(&lpod)
+				l.DeletePods(lpod)
 			}
 		}
 	}
@@ -632,7 +633,7 @@ func (k8s *K8s) GetConfig() *rest.Config {
 	return k8s.config
 }
 
-func isNodeReady(node v1.Node) bool {
+func isNodeReady(node *v1.Node) bool {
 	for _, c := range node.Status.Conditions {
 		if c.Type == v1.NodeReady {
 			resultValue := c.Status == v1.ConditionTrue
@@ -651,7 +652,8 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 	for {
 		nodes := k8s.GetNodes()
 		ready := 0
-		for _, node := range nodes {
+		for i := range nodes {
+			node := &nodes[i]
 			logrus.Infof("Checking node: %s", node.Name)
 			if isNodeReady(node) {
 				ready++
@@ -708,8 +710,12 @@ func (o *K8s) DeleteDeployment(deployment *appsv1.Deployment, namespace string) 
 
 func (o *K8s) CleanupDeployments() {
 	deployments, _ := o.clientset.AppsV1().Deployments(o.namespace).List(metaV1.ListOptions{})
-	for _, d := range deployments.Items {
-		_ = o.DeleteDeployment(&d, o.namespace)
+	for i := range deployments.Items {
+		d := &deployments.Items[i]
+		err := o.DeleteDeployment(d, o.namespace)
+		if err != nil {
+			logrus.Errorf("An error during deployment deleting %v", err)
+		}
 	}
 }
 

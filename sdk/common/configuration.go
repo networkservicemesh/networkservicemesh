@@ -50,37 +50,37 @@ type NSConfiguration struct {
 // CompleteNSConfiguration fills all unset options from the env variables
 func (configuration *NSConfiguration) CompleteNSConfiguration() {
 
-	if len(configuration.NsmServerSocket) == 0 {
+	if configuration.NsmServerSocket == "" {
 		configuration.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
 	}
 
-	if len(configuration.NsmClientSocket) == 0 {
+	if configuration.NsmClientSocket == "" {
 		configuration.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
 	}
 
-	if len(configuration.Workspace) == 0 {
+	if configuration.Workspace == "" {
 		configuration.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
 	}
 
-	if len(configuration.AdvertiseNseName) == 0 {
+	if configuration.AdvertiseNseName == "" {
 		configuration.AdvertiseNseName = getEnv(advertiseNseNameEnv, "Advertise Network Service Name", false)
 	}
 
-	if len(configuration.OutgoingNscName) == 0 {
+	if configuration.OutgoingNscName == "" {
 		configuration.OutgoingNscName = getEnv(outgoingNscNameEnv, "Outgoing Network Service Name", false)
 	}
 
-	if len(configuration.AdvertiseNseLabels) == 0 {
+	if configuration.AdvertiseNseLabels == "" {
 		configuration.AdvertiseNseLabels = getEnv(advertiseNseLabelsEnv, "Advertise labels", false)
 	}
 
-	if len(configuration.OutgoingNscLabels) == 0 {
+	if configuration.OutgoingNscLabels == "" {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
 
 	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabled, "Tracer enabled", false))
 
-	if len(configuration.MechanismType) == 0 {
+	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
 	}
 

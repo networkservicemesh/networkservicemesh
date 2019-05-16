@@ -2,10 +2,11 @@ package common
 
 import (
 	"bufio"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"strings"
 	"testing"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 func TestParseDefaultGateway(t *testing.T) {

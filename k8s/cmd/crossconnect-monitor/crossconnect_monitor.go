@@ -99,7 +99,8 @@ func lookForNSMServers() {
 		if err != nil {
 			logrus.Fatalln("Unable to find NSMs", err)
 		}
-		for _, mgr := range result.Items {
+		for i := range result.Items {
+			mgr := &result.Items[i]
 			if _, ok := managers[mgr.Status.URL]; !ok {
 				logrus.Printf("Found manager: %s at %s", mgr.Name, mgr.Status.URL)
 				managers[mgr.Status.URL] = "true"

@@ -2,14 +2,15 @@ package prefixcollector
 
 import (
 	"fmt"
+	"net"
+	"testing"
+	"time"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	"net"
-	"testing"
-	"time"
 )
 
 type dummyResource struct {

@@ -132,7 +132,7 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 	)
 }
 
-func initConfigController(cc *configController) error {
+func initConfigController(cc *configController) {
 
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 	cc.informer = cache.NewSharedIndexInformer(
@@ -166,12 +166,10 @@ func initConfigController(cc *configController) error {
 	logrus.Info("ConfigController's Informer cache is ready")
 
 	// Read forever from the work queue
-	go workforever(cc, queue, cc.informer, cc.stopCh)
-
-	return nil
+	go workforever(cc, queue, cc.stopCh)
 }
 
-func workforever(cc *configController, queue workqueue.RateLimitingInterface, informer cache.SharedIndexInformer, stopCh chan struct{}) {
+func workforever(cc *configController, queue workqueue.RateLimitingInterface, stopCh chan struct{}) {
 	for {
 		obj, shutdown := queue.Get()
 		msg := obj.(message)
@@ -242,7 +240,7 @@ func processConfigMapAdd(cc *configController, configMap *v1.ConfigMap) error {
 }
 
 // diffMap compares maps and returns a third map with missing keys/values
-func diffMap(m1 map[string]*VF, m2 map[string]*VF) map[string]*VF {
+func diffMap(m1, m2 map[string]*VF) map[string]*VF {
 	r := map[string]*VF{}
 	for k, v := range m1 {
 		if _, ok := m2[k]; !ok {

@@ -1,15 +1,17 @@
 package tests
 
 import (
+	"testing"
+	"time"
+
+	. "github.com/onsi/gomega"
+	"golang.org/x/net/context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
-	"testing"
-	"time"
 )
 
 func TestHealRemoteNSE(t *testing.T) {
