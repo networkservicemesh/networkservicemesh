@@ -167,10 +167,10 @@ func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Dur
 	return deployICMP(k8s, node, name, timeout, pod)
 }
 
-// DeployDirtyNSE - Setup ICMP responder NSE with dirty flag set
-func DeployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployDirtyNSE(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultDirtyNSEEnv(), defaultDirtyNSECommand(),
+// DeployDirtyICMP - Setup ICMP responder NSE with dirty flag set
+func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultICMPEnv(k8s.UseIPv6()), dirtyICMPCommand(),
 	))
 }
 
@@ -218,15 +218,7 @@ func defaultICMPCommand() []string {
 	return []string{"/bin/icmp-responder-nse", "-routes"}
 }
 
-func defaultDirtyNSEEnv() map[string]string {
-	return map[string]string{
-		"ADVERTISE_NSE_NAME":   "dirty",
-		"ADVERTISE_NSE_LABELS": "app=dirty",
-		"IP_ADDRESS":           "10.30.1.0/24",
-	}
-}
-
-func defaultDirtyNSECommand() []string {
+func dirtyICMPCommand() []string {
 	return []string{"/bin/icmp-responder-nse", "-dirty"}
 }
 
