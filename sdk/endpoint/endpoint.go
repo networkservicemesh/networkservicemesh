@@ -21,17 +21,16 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-
-	"github.com/opentracing/opentracing-go"
-
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -43,6 +42,12 @@ type nsmEndpoint struct {
 	registryClient registry.NetworkServiceRegistryClient
 	endpointName   string
 	tracerCloser   io.Closer
+
+	monitorServer local.MonitorServer
+}
+
+func (nsme *nsmEndpoint) MonitorServer() monitor.Server {
+	return nsme.monitorServer
 }
 
 func (nsme *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
@@ -86,6 +91,7 @@ func (nsme *nsmEndpoint) Start() error {
 
 	nsme.grpcServer = grpc.NewServer(grpcOptions...)
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
+	connection.RegisterMonitorConnectionServer(nsme.grpcServer, nsme.monitorServer)
 
 	listener, err := nsme.setupNSEServerConnection()
 
@@ -126,7 +132,7 @@ func (nsme *nsmEndpoint) Start() error {
 
 func (nsme *nsmEndpoint) Delete() error {
 	if nsme.Configuration.TracerEnabled {
-		nsme.tracerCloser.Close()
+		_ = nsme.tracerCloser.Close()
 	}
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
@@ -150,13 +156,18 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return nil, err
 	}
 
+	nsme.monitorServer.Update(incomingConnection)
+
 	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
 	return incomingConnection, nil
 }
 
 func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
-	nsme.service.Close(ctx, incomingConnection)
-	nsme.NsClient.Close(ctx, incomingConnection)
+	_, _ = nsme.service.Close(ctx, incomingConnection)
+	_, _ = nsme.NsClient.Close(ctx, incomingConnection)
+
+	nsme.monitorServer.Delete(incomingConnection)
+
 	return &empty.Empty{}, nil
 }
 
@@ -180,6 +191,8 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 	endpoint := &nsmEndpoint{
 		NsmConnection: nsmConnection,
 		service:       service,
+
+		monitorServer: local.NewMonitorServer(),
 	}
 
 	return endpoint, nil
