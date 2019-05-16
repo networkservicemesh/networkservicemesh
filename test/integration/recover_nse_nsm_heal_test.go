@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
@@ -146,17 +145,17 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
-func TestNSMHealLocalDieNSMDTwoNodesCleanedEndpoints(t *testing.T) {
+func TestNSMHealLocalDieNSMDOneNodeFakeEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDTwoNodes(t, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC, true)
+	testNSMHealLocalDieNSMDTwoNodes(t, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
 }
 
-func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker, cleanupEndpointsCRDs bool) {
+func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
@@ -177,54 +176,42 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse nsmd_tes
 	// Do dumping of container state to dig into what is happened.
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
+	// Remember nse name
+	_, nsm1RegistryClient, fwd1 := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
+	nseList, err := nsm1RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
+	fwd1.Stop()
+
+	Expect(err).To(BeNil())
+	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
+	nseName := nseList.NetworkServiceEndpoints[0].EndpointName
+
+	logrus.Info(nseName)
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
 
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
 
-	if cleanupEndpointsCRDs {
-		/*logrus.Infof("Cleanup Endpoints...")
-		k8s.CleanupEndpointsCRDs()*/
+	logrus.Infof("Cleanup Endpoints CRDs...")
+	k8s.CleanupEndpointsCRDs()
 
-		fwd, err := k8s.NewPortForwarder(nodes_setup[0].Nsmd, 5000)
-		Expect(err).To(BeNil())
-		defer fwd.Stop()
+	nse2RegistryClient, nsm2RegistryClient, fwd2 := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
+	defer fwd2.Stop()
 
-		e := fwd.Start()
-		if e != nil {
-			logrus.Printf("Error on forward: %v retrying", e)
-		}
-		serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-
-		nseRegistryClient, err := serviceRegistry.NseRegistryClient()
-		Expect(err).To(BeNil())
-
-		nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
-		Expect(err).To(BeNil())
-
-		url := "1.1.1.1:1"
-
-		responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
-			Url: url,
-		})
-		Expect(err).To(BeNil())
-		Expect(responseNsm.Url).To(Equal(url))
-
-		_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
-			NetworkService: &registry.NetworkService{
-				Name:    "icmp-resp",
-				Payload: "IP",
-			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-				NetworkServiceName: "icmp-resp",
-			},
-		})
-		Expect(err).To(BeNil())
-		nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-		Expect(err).To(BeNil())
-		Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
-	}
+	_, err = nse2RegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    "icmp-responder",
+			Payload: "IP",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: "icmp-responder",
+			EndpointName: nseName,
+		},
+	})
+	Expect(err).To(BeNil())
+	nseList2, err := nsm2RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
+	Expect(err).To(BeNil())
+	Expect(len(nseList2.NetworkServiceEndpoints)).To(Equal(1))
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
