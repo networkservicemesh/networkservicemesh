@@ -19,7 +19,6 @@ import (
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
-	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -236,9 +235,6 @@ func TestGetEndpoints(t *testing.T) {
 
 	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
-	// We need to wait unti it is started
-	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
-
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
@@ -322,9 +318,6 @@ func TestClusterInfo(t *testing.T) {
 
 	k8s.Prepare("nsmgr")
 	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
-
-	// We need to wait unti it is started
-	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
