@@ -1,4 +1,4 @@
-package remote_connection_monitor
+package remoteconnectionmonitor
 
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 
@@ -8,13 +8,14 @@ type monitorConnectionFilter struct {
 	selector *connection.MonitorScopeSelector
 }
 
-func NewMonitorConnectionFilter(selector *connection.MonitorScopeSelector, monitor connection.MonitorConnection_MonitorConnectionsServer) connection.MonitorConnection_MonitorConnectionsServer {
+func newMonitorConnectionFilter(selector *connection.MonitorScopeSelector, monitor connection.MonitorConnection_MonitorConnectionsServer) connection.MonitorConnection_MonitorConnectionsServer {
 	return &monitorConnectionFilter{
 		selector: selector,
 		MonitorConnection_MonitorConnectionsServer: monitor,
 	}
 }
 
+// Send filters event connections and pass it to the next sending layer
 func (d *monitorConnectionFilter) Send(in *connection.ConnectionEvent) error {
 	out := &connection.ConnectionEvent{
 		Type:        in.Type,

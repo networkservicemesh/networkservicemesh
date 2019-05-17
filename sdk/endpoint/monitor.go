@@ -19,7 +19,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/localconnectionmonitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -32,7 +32,7 @@ import (
 // MonitorEndpoint is a monitoring composite
 type MonitorEndpoint struct {
 	BaseCompositeEndpoint
-	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
+	monitorConnectionServer *localconnectionmonitor.Server
 }
 
 // Request implements the request handler
@@ -75,7 +75,7 @@ func NewMonitorEndpoint(configuration *common.NSConfiguration) *MonitorEndpoint 
 	configuration.CompleteNSConfiguration()
 
 	self := &MonitorEndpoint{
-		monitorConnectionServer: local_connection_monitor.NewLocalConnectionMonitor(),
+		monitorConnectionServer: localconnectionmonitor.NewServer(),
 	}
 
 	return self

@@ -1,4 +1,4 @@
-package crossconnect_monitor
+package crossconnectmonitor
 
 import (
 	"fmt"
@@ -7,31 +7,34 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )
 
-type CrossConnectEvent struct {
+type event struct {
 	monitor.EventImpl
 	statistics map[string]*crossconnect.Metrics
 }
 
-func CreateCrossConnectEvent(eventType string, entities map[string]monitor.Entity) monitor.Event {
-	return CrossConnectEvent{
+func createEvent(eventType string, entities map[string]monitor.Entity) monitor.Event {
+	return event{
 		EventImpl:  monitor.CrateEventImpl(eventType, entities),
 		statistics: make(map[string]*crossconnect.Metrics),
 	}
 }
 
-func (event CrossConnectEvent) Message() (interface{}, error) {
-	eventType, err := convertType(event.EventType())
+// Message converts event to CrossConnectEvent
+func (e event) Message() (interface{}, error) {
+	eventType, err := convertType(e.EventType())
 	if err != nil {
 		return nil, err
 	}
-	xcons, err := convertEntities(event.Entities())
+
+	xcons, err := convertEntities(e.Entities())
 	if err != nil {
 		return nil, err
 	}
+
 	return &crossconnect.CrossConnectEvent{
 		Type:          eventType,
 		CrossConnects: xcons,
-		Metrics:       event.statistics,
+		Metrics:       e.statistics,
 	}, nil
 }
 

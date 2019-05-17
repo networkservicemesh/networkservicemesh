@@ -21,7 +21,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/localconnectionmonitor"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
@@ -48,7 +48,7 @@ type Workspace struct {
 	listener                net.Listener
 	registryServer          NSERegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
-	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
+	monitorConnectionServer *localconnectionmonitor.Server
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
@@ -87,7 +87,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	w.registryServer = NewRegistryServer(nsm, w)
 
 	logrus.Infof("Creating new MonitorConnectionServer")
-	w.monitorConnectionServer = local_connection_monitor.NewLocalConnectionMonitor()
+	w.monitorConnectionServer = localconnectionmonitor.NewServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
 	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
@@ -150,7 +150,8 @@ func (w *Workspace) NsmClientSocket() string {
 	return w.NsmDirectory() + "/" + w.locationProvider.NsmClientSocket()
 }
 
-func (w *Workspace) MonitorConnectionServer() *local_connection_monitor.LocalConnectionMonitor {
+// MonitorConnectionServer returns workspace.monitorConnectionServer
+func (w *Workspace) MonitorConnectionServer() *localconnectionmonitor.Server {
 	if w == nil {
 		return nil
 	}

@@ -21,8 +21,8 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnectmonitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remoteconnectionmonitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -39,8 +39,8 @@ import (
 )
 
 type NsmMonitorCrossConnectClient struct {
-	crossConnectMonitor *crossconnect_monitor.CrossConnectMonitor
-	connectionMonitor   *remote_connection_monitor.RemoteConnectionMonitor
+	crossConnectMonitor *crossconnectmonitor.Server
+	connectionMonitor   *remoteconnectionmonitor.Server
 	remotePeers         map[string]*remotePeerDescriptor
 	dataplanes          map[string]context.CancelFunc
 	xconManager         *services.ClientConnectionManager
@@ -52,8 +52,9 @@ type remotePeerDescriptor struct {
 	cancel      context.CancelFunc
 }
 
-func NewMonitorCrossConnectClient(crossConnectMonitor *crossconnect_monitor.CrossConnectMonitor,
-	connectionMonitor *remote_connection_monitor.RemoteConnectionMonitor, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
+// NewMonitorCrossConnectClient creates a new NsmMonitorCrossConnectClient
+func NewMonitorCrossConnectClient(crossConnectMonitor *crossconnectmonitor.Server,
+	connectionMonitor *remoteconnectionmonitor.Server, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
 		crossConnectMonitor: crossConnectMonitor,
 		connectionMonitor:   connectionMonitor,

@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnectmonitor"
 )
 
 func startClient(target string) {
@@ -42,7 +42,7 @@ func TestSimple(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
-	monitor := crossconnect_monitor.NewCrossConnectMonitor()
+	monitor := crossconnectmonitor.NewServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	go func() {
@@ -68,7 +68,7 @@ func TestSeveralRecipient(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
-	monitor := crossconnect_monitor.NewCrossConnectMonitor()
+	monitor := crossconnectmonitor.NewServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	var waitServe sync.WaitGroup

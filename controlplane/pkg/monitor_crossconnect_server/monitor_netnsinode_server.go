@@ -10,18 +10,19 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnectmonitor"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
 type MonitorNetNsInodeServer struct {
 	monitor.Recipient
-	crossConnectServer  *crossconnect_monitor.CrossConnectMonitor
+	crossConnectServer  *crossconnectmonitor.Server
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
-func NewMonitorNetNsInodeServer(crossConnectServer *crossconnect_monitor.CrossConnectMonitor) *MonitorNetNsInodeServer {
+// NewMonitorNetNsInodeServer creates a new MonitorNetNsInodeServer
+func NewMonitorNetNsInodeServer(crossConnectServer *crossconnectmonitor.Server) *MonitorNetNsInodeServer {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
@@ -35,7 +36,7 @@ func NewMonitorNetNsInodeServer(crossConnectServer *crossconnect_monitor.CrossCo
 func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
 	event, ok := msg.(*crossconnect.CrossConnectEvent)
 	if !ok {
-		return fmt.Errorf("wrong type of msg, CrossConnectEvent is needed")
+		return fmt.Errorf("wrong type of msg, crossConnectEvent is needed")
 	}
 	m.crossConnectEventCh <- copyEvent(event)
 	return nil
