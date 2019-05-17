@@ -117,6 +117,7 @@ func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v
 		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
+		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
 		printNSMDLogs(k8s, nsmd, 0)
