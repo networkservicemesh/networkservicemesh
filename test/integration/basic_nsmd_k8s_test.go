@@ -74,9 +74,6 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	registryClient, err := serviceRegistry.NseRegistryClient()
 	Expect(err).To(BeNil())
 
-	// Cleanup all registered stuff
-	k8s.CleanupCRDs()
-
 	nses := []string{}
 	nme := "my-network-service"
 
@@ -442,4 +439,56 @@ func TestLostUpdate(t *testing.T) {
 	Expect(err).To(BeNil())
 	logrus.Info(nseResp)
 	Expect(getNsmUrl(discovery2)).ToNot(Equal(url1))
+}
+
+func TestRegistryConcurrentModification(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s(true)
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
+
+	sr1, closeFunc := serviceRegistryAt(k8s, nsmgr1)
+	defer closeFunc()
+
+	nsmRegistryClient, err := sr1.NsmRegistryClient()
+	Expect(err).To(BeNil())
+
+	n := 30
+	errorCh := make(chan error)
+
+	// concurrent modification of k8s registry
+	go func() {
+		for i := 0; i < n; i++ {
+			url := fmt.Sprintf("1.1.1.%d:1", i)
+			_, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+				Url: url,
+			})
+			if err != nil {
+				errorCh <- err
+				break
+			}
+			logrus.Infof("RegisterNSM(%v)", url)
+			<-time.After(100 * time.Millisecond)
+		}
+		close(errorCh)
+	}()
+
+	for {
+		select {
+		case <-time.Tick(10 * time.Millisecond):
+			k8s.CleanupCRDs()
+			logrus.Info("CleanupCRDs")
+		case err := <-errorCh:
+			Expect(err).To(BeNil())
+			return
+		}
+	}
 }
