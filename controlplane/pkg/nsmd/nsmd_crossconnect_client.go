@@ -64,7 +64,7 @@ func NewMonitorCrossConnectClient(crossConnectMonitor *crossconnect_monitor.Cros
 	return rv
 }
 
-func dial(ctx context.Context, network string, address string) (*grpc.ClientConn, error) {
+func dial(ctx context.Context, network, address string) (*grpc.ClientConn, error) {
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {

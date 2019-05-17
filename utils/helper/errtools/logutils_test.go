@@ -2,8 +2,9 @@ package errtools
 
 import (
 	stderrors "errors"
-	"github.com/go-errors/errors"
 	"testing"
+
+	"github.com/go-errors/errors"
 )
 
 func TestWrap(t *testing.T) {

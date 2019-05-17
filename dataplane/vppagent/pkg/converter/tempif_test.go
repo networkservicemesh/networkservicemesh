@@ -2,8 +2,9 @@ package converter_test
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )

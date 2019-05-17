@@ -5,13 +5,14 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 
@@ -116,6 +117,7 @@ func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v
 		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
+		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
 		printNSMDLogs(k8s, nsmd, 0)
@@ -649,6 +651,7 @@ func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeCo
 	}
 }
 
+// FailLogger prints logs from containers in case of fail or panic
 func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	if r := recover(); r != nil {
 		PrintLogs(k8s, nodes_setup)

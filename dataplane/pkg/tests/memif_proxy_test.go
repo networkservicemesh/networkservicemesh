@@ -1,12 +1,14 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/memifproxy"
-	. "github.com/onsi/gomega"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/memifproxy"
 )
 
 func TestClosingOpeningMemifProxy(t *testing.T) {

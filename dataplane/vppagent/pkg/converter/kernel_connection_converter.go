@@ -173,7 +173,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 func useVHostNet() bool {
 	vhostAllowed := os.Getenv(DataplaneAllowVHost)
-	if "false" == vhostAllowed {
+	if vhostAllowed == "false" {
 		return false
 	}
 	if _, err := os.Stat("/dev/vhost-net"); err == nil {

@@ -43,7 +43,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 		},
 		{
 			Namespace:          k8s.GetK8sNamespace(),
-			Variables:          pods.DefaultNSMD,
+			Variables:          pods.DefaultNSMD(),
 			DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
 		},
 	}, k8s.GetK8sNamespace())
