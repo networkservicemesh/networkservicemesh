@@ -227,7 +227,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 				close(exists)
 				break
 			}
-			<-time.Tick(time.Millisecond * time.Duration(50))
+			<-time.After(time.Millisecond * time.Duration(50))
 		}
 	}()
 
@@ -615,7 +615,7 @@ func (o *K8s) WaitLogsContains(pod *v1.Pod, container string, pattern string, ti
 			logrus.Printf("Error on get logs: %v retrying", error)
 		}
 		if !strings.Contains(logs, pattern) {
-			<-time.Tick(100 * time.Millisecond)
+			<-time.After(100 * time.Millisecond)
 		} else {
 			break
 		}

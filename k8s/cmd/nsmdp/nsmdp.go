@@ -271,7 +271,7 @@ func (n *nsmClientEndpoints) receiveWorkspaces() {
 		if err != nil {
 			logrus.Errorf("Error receive devices from NSM. %v", err)
 			// Make a fast delay to faster startup of NSMD.
-			<-time.Tick(100 * time.Millisecond)
+			<-time.After(100 * time.Millisecond)
 			continue
 		}
 		n.mutext.Lock()

@@ -301,7 +301,7 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 				delay, err := strconv.Atoi(val)
 				if err == nil {
 					logrus.Infof("Delaying Dataplane Request: %v", delay)
-					<-time.Tick(time.Duration(delay) * time.Second)
+					<-time.After(time.Duration(delay) * time.Second)
 				}
 			}
 		}

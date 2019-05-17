@@ -225,7 +225,7 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 		resultChan <- &Response{nsmResponse: nsmResponse, err: err}
 	}(context.Background(), request)
 
-	<-time.Tick(1 * time.Second)
+	<-time.After(1 * time.Second)
 
 	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
 	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms

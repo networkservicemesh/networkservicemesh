@@ -292,7 +292,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 
 			// Let's try again with a short delay
 			if dpRetry < DataplaneRetryCount-1 {
-				<-time.Tick(DataplaneRetryDelay)
+				<-time.After(DataplaneRetryDelay)
 
 				if dp_err := srv.closeDataplane(clientConnection); dp_err != nil {
 					logrus.Errorf("NSM:(10.2.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestId, dp_err)
@@ -655,7 +655,7 @@ func (srv *networkServiceManager) WaitForDataplane(timeout time.Duration) error 
 	select {
 	case <-srv.stateRestored:
 		return nil
-	case <-time.Tick(timeout):
+	case <-time.After(timeout):
 		return fmt.Errorf("Failed to wait for NSMD stare restore... timeout %v happened", timeout)
 	}
 }
@@ -830,7 +830,7 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 	connection.ConnectionState = model.ClientConnection_Healing
 	logrus.Infof("NSM: Remote opened connection is not monitored and put into Healing state %v", clientConnection)
 	go func() {
-		<-time.Tick(srv.properties.HealTimeout)
+		<-time.After(srv.properties.HealTimeout)
 
 		if connection.ConnectionState == model.ClientConnection_Healing {
 			logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)
