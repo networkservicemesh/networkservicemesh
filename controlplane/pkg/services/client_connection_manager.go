@@ -52,8 +52,8 @@ func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon
 	}
 }
 
-// RemoteDestinationDown handles case when remote destination down
-func (m *ClientConnectionManager) RemoteDestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
+// DestinationDown handles case when destination down
+func (m *ClientConnectionManager) DestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
 	if nsmdDie {
 		m.manager.Heal(cc, nsm.HealState_DstNmgrDown)
 	} else {
@@ -70,6 +70,26 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 			m.manager.Heal(cc, nsm.HealState_DataplaneDown)
 		}
 	}
+}
+
+// LocalDestinationUpdated handles case when local connection parameters changed
+func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnection, localConnection *local_connection.Connection) {
+	if cc.ConnectionState != model.ClientConnectionReady {
+		return
+	}
+
+	// Check if it update we already have
+	if proto.Equal(localConnection, cc.Xcon.GetLocalDestination()) {
+		// Since they are same, we do not need to do anything.
+		return
+	}
+
+	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+		cc.Xcon.Destination = &crossconnect.CrossConnect_LocalDestination{
+			LocalDestination: localConnection,
+		}
+	})
+	m.manager.Heal(cc, nsm.HealState_DstUpdate)
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
@@ -95,7 +115,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 			RemoteDestination: remoteConnection,
 		}
 	})
-	m.manager.Heal(cc, nsm.HealState_RemoteDataplaneDown)
+	m.manager.Heal(cc, nsm.HealState_DstUpdate)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {

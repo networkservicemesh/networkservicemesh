@@ -15,9 +15,11 @@
 package nsmd
 
 import (
+	"context"
 	"net"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
@@ -162,6 +164,19 @@ func (w *Workspace) Close() {
 	defer w.Unlock()
 	w.state = CLOSED
 	w.cleanup()
+}
+
+func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(w.NsmClientSocket()))
+	if err != nil {
+		return false
+	}
+	_ = nseConn.Close()
+
+	return true
 }
 
 func (w *Workspace) cleanup() {

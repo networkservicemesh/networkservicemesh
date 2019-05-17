@@ -16,10 +16,10 @@ package nsmd
 
 import (
 	"context"
-	"github.com/golang/protobuf/proto"
 	"net"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
@@ -29,21 +29,31 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+)
+
+const (
+	endpointLogFormat          = "NSM-EndpointMonitor(%v): %v"
+	endpointLogWithParamFormat = "NSM-EndpointMonitor(%v): %v: %v"
+
+	endpointConnectionTimeout = 10 * time.Second
 )
 
 type NsmMonitorCrossConnectClient struct {
+	model.ListenerImpl
+
 	monitorManager MonitorManager
 	xconManager    *services.ClientConnectionManager
 	endpoints      map[string]context.CancelFunc
 	remotePeers    map[string]*remotePeerDescriptor
 	dataplanes     map[string]context.CancelFunc
-	model.ListenerImpl
+
+	endpointManager EndpointManager
 }
 
 type remotePeerDescriptor struct {
@@ -58,14 +68,21 @@ type MonitorManager interface {
 	LocalConnectionMonitor(workspace string) monitor.Server
 }
 
+// EndpointManager is an interface to delete endpoints with broken connection
+type EndpointManager interface {
+	DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error
+}
+
 // NewMonitorCrossConnectClient creates a new NsmMonitorCrossConnectClient
-func NewMonitorCrossConnectClient(monitorManager MonitorManager, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
+func NewMonitorCrossConnectClient(monitorManager MonitorManager, xconManager *services.ClientConnectionManager,
+	endpointManager EndpointManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
-		monitorManager: monitorManager,
-		xconManager:    xconManager,
-		endpoints:      map[string]context.CancelFunc{},
-		remotePeers:    map[string]*remotePeerDescriptor{},
-		dataplanes:     map[string]context.CancelFunc{},
+		monitorManager:  monitorManager,
+		xconManager:     xconManager,
+		endpointManager: endpointManager,
+		endpoints:       map[string]context.CancelFunc{},
+		remotePeers:     map[string]*remotePeerDescriptor{},
+		dataplanes:      map[string]context.CancelFunc{},
 	}
 	return rv
 }
@@ -82,6 +99,21 @@ func dial(ctx context.Context, network, address string) (*grpc.ClientConn, error
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 
 	return conn, err
+}
+
+// EndpointAdded implements method from Listener
+func (client *NsmMonitorCrossConnectClient) EndpointAdded(endpoint *model.Endpoint) {
+	ctx, cancel := context.WithCancel(context.Background())
+	client.endpoints[endpoint.EndpointName()] = cancel
+	go client.endpointConnectionMonitor(ctx, endpoint)
+}
+
+// EndpointDeleted implements method from Listener
+func (client *NsmMonitorCrossConnectClient) EndpointDeleted(endpoint *model.Endpoint) {
+	if cancel, ok := client.endpoints[endpoint.EndpointName()]; ok {
+		cancel()
+		delete(client.endpoints, endpoint.EndpointName())
+	}
 }
 
 // DataplaneAdded implements method from Listener
@@ -156,6 +188,78 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnec
 		}
 	} else {
 		logrus.Errorf("Remote peer for NSM is already closed: %v", clientConnection)
+	}
+}
+
+func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx context.Context, endpoint *model.Endpoint) {
+	logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Added")
+
+	conn, err := client.connectToEndpoint(endpoint)
+	if err != nil {
+		logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to connect", err)
+		client.deleteEndpoint(endpoint)
+		return
+	}
+	logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Connected")
+	defer func() { _ = conn.Close() }()
+
+	monitorClient := local_connection.NewMonitorConnectionClient(conn)
+	stream, err := monitorClient.MonitorConnections(context.Background(), &empty.Empty{})
+	if err != nil {
+		logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to start monitor", err)
+		client.deleteEndpoint(endpoint)
+		return
+	}
+	logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Started monitor")
+
+	for {
+		select {
+		case <-ctx.Done():
+			logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Removed")
+			return
+		default:
+			event, err := stream.Recv()
+			if err != nil {
+				logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Connection closed", err)
+				client.deleteEndpoint(endpoint)
+				return
+			}
+			logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Received event", event)
+
+			for _, localConnection := range event.GetConnections() {
+				clientConnection := client.xconManager.GetClientConnectionByDst(localConnection.GetId())
+				if clientConnection == nil {
+					continue
+				}
+				switch event.GetType() {
+				case local_connection.ConnectionEventType_UPDATE:
+					// DST connection is updated, we most probable need to re-programm our data plane.
+					client.xconManager.LocalDestinationUpdated(clientConnection, localConnection)
+				case local_connection.ConnectionEventType_DELETE:
+					// DST is down, we need to choose new NSE in any case.
+					client.xconManager.DestinationDown(clientConnection, false)
+				}
+			}
+		}
+	}
+}
+
+func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.Endpoint) (*grpc.ClientConn, error) {
+	var conn *grpc.ClientConn
+	var err error
+
+	for st := time.Now(); time.Since(st) < endpointConnectionTimeout; <-time.After(100 * time.Millisecond) {
+		if conn, err = tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation)); err == nil {
+			break
+		}
+	}
+
+	return conn, err
+}
+
+func (client *NsmMonitorCrossConnectClient) deleteEndpoint(endpoint *model.Endpoint) {
+	if err := client.endpointManager.DeleteEndpointWithBrokenConnection(endpoint); err != nil {
+		logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to delete endpoint", err)
 	}
 }
 
@@ -259,7 +363,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 				connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
 				for _, c := range connections {
 					// Same as DST down case, we need to wait for same NSE and updated NSMD.
-					client.xconManager.RemoteDestinationDown(c, true)
+					client.xconManager.DestinationDown(c, true)
 				}
 				return
 			}
@@ -271,10 +375,10 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 					continue
 				}
 				switch event.GetType() {
-				case connection.ConnectionEventType_UPDATE:
+				case remote_connection.ConnectionEventType_UPDATE:
 					// DST connection is updated, we most probable need to re-programm our data plane.
 					client.xconManager.RemoteDestinationUpdated(clientConnection, remoteConnection)
-				case connection.ConnectionEventType_DELETE:
+				case remote_connection.ConnectionEventType_DELETE:
 					// DST is down, we need to choose new NSE in any case.
 					downConnection := proto.Clone(remoteConnection).(*remote_connection.Connection)
 					downConnection.State = remote_connection.State_DOWN
@@ -289,7 +393,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 					}
 
 					client.monitorManager.CrossConnectMonitor().Update(xconToSend)
-					client.xconManager.RemoteDestinationDown(clientConnection, false)
+					client.xconManager.DestinationDown(clientConnection, false)
 				}
 			}
 		}

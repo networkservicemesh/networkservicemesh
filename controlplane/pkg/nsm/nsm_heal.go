@@ -44,8 +44,8 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 		healed = srv.healProcessor.healDstDown(healID, cc)
 	case nsm.HealState_DataplaneDown:
 		healed = srv.healProcessor.healDataplaneDown(healID, cc)
-	case nsm.HealState_RemoteDataplaneDown:
-		healed = srv.healProcessor.healRemoteDataplaneDown(healID, cc)
+	case nsm.HealState_DstUpdate:
+		healed = srv.healProcessor.healDstUpdate(healID, cc)
 	case nsm.HealState_DstNmgrDown:
 		healed = srv.healProcessor.healDstNmgrDown(healID, cc)
 	}

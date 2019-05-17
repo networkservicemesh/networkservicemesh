@@ -549,7 +549,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	srv.nsmServer = nsmServer
 	Expect(err).To(BeNil())
 
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager())
+	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.testModel.AddListener(monitorCrossConnectClient)
 
 	// Start API Server

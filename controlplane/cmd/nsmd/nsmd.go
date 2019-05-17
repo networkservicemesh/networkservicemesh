@@ -43,7 +43,7 @@ func main() {
 	defer server.Stop()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager())
+	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
 	model.AddListener(monitorCrossConnectClient)
 
 	// Starting dataplane
