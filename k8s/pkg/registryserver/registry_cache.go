@@ -146,7 +146,7 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 		if existingNsm == nil {
 			logrus.Infof("Creating NSM: %v", nsm)
 			newNsm, err := rc.addNetworkServiceManager(nsm)
-			if err == nil || (err != nil && !apierrors.IsAlreadyExists(err)) {
+			if err == nil || !apierrors.IsAlreadyExists(err) {
 				return newNsm, err
 			}
 
@@ -160,7 +160,7 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 			updNsm := nsm.DeepCopy()
 			updNsm.ObjectMeta = existingNsm.ObjectMeta
 			updNsm, err := rc.updateNetworkServiceManager(updNsm)
-			if err == nil || (err != nil && !apierrors.IsConflict(err)) {
+			if err == nil || !apierrors.IsConflict(err) {
 				return updNsm, err
 			}
 
