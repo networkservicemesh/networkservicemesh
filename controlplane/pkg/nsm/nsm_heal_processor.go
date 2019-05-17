@@ -38,7 +38,7 @@ type connectionManager interface {
 
 func (p *nsmHealProcessor) healDstDown(healID string, connection *model.ClientConnection) bool {
 	logrus.Infof("NSM_Heal(1.1.1-%v) Checking if DST die is NSMD/DST die...", healID)
-	// Check if this is a really HealState_DstDown or HealState_DstNmgrDown
+	// Check if this is a really HealStateDstDown or HealStateDstNmgrDown
 	if !p.nseManager.isLocalEndpoint(connection.Endpoint) {
 		ctx, cancel := context.WithTimeout(context.Background(), p.properties.HealTimeout*3)
 		defer cancel()
@@ -48,12 +48,12 @@ func (p *nsmHealProcessor) healDstDown(healID string, connection *model.ClientCo
 		}
 		if err != nil {
 			// This is NSMD die case.
-			logrus.Infof("NSM_Heal(1.1.2-%v) Connection healing state is %v...", healID, nsm.HealState_DstNmgrDown)
+			logrus.Infof("NSM_Heal(1.1.2-%v) Connection healing state is %v...", healID, nsm.HealStateDstNmgrDown)
 			return p.healDstNmgrDown(healID, connection)
 		}
 	}
 
-	logrus.Infof("NSM_Heal(1.1.2-%v) Connection healing state is %v...", healID, nsm.HealState_DstDown)
+	logrus.Infof("NSM_Heal(1.1.2-%v) Connection healing state is %v...", healID, nsm.HealStateDstDown)
 
 	// Destination is down, we need to find it again.
 	if connection.Xcon.GetRemoteSource() != nil {

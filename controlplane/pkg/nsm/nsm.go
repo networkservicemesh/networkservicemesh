@@ -824,12 +824,12 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				clientConnection.Request = request
 
 				if dst := xcon.GetRemoteDestination(); dst != nil {
-					srv.Heal(clientConnection, nsm.HealState_DstNmgrDown)
+					srv.Heal(clientConnection, nsm.HealStateDstNmgrDown)
 				}
 				if dst := xcon.GetLocalDestination(); dst != nil {
 					// In this case if there is no NSE, we just need to close.
 					if endpoint != nil {
-						srv.Heal(clientConnection, nsm.HealState_DstNmgrDown)
+						srv.Heal(clientConnection, nsm.HealStateDstNmgrDown)
 					} else {
 						srv.closeLocalMissingNSE(clientConnection)
 					}

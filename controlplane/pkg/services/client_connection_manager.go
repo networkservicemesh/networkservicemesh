@@ -47,7 +47,7 @@ func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon
 
 	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
 		logrus.Info("ClientConnection dst state is down")
-		m.manager.Heal(cc, nsm.HealState_DstDown)
+		m.manager.Heal(cc, nsm.HealStateDstDown)
 		return
 	}
 }
@@ -55,9 +55,9 @@ func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon
 // DestinationDown handles case when destination down
 func (m *ClientConnectionManager) DestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
 	if nsmdDie {
-		m.manager.Heal(cc, nsm.HealState_DstNmgrDown)
+		m.manager.Heal(cc, nsm.HealStateDstNmgrDown)
 	} else {
-		m.manager.Heal(cc, nsm.HealState_DstDown)
+		m.manager.Heal(cc, nsm.HealStateDstDown)
 	}
 }
 
@@ -67,7 +67,7 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 
 	for _, cc := range ccs {
 		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
-			m.manager.Heal(cc, nsm.HealState_DataplaneDown)
+			m.manager.Heal(cc, nsm.HealStateDataplaneDown)
 		}
 	}
 }
@@ -89,7 +89,7 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnec
 			LocalDestination: localConnection,
 		}
 	})
-	m.manager.Heal(cc, nsm.HealState_DstUpdate)
+	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
@@ -115,7 +115,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 			RemoteDestination: remoteConnection,
 		}
 	})
-	m.manager.Heal(cc, nsm.HealState_DstUpdate)
+	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
