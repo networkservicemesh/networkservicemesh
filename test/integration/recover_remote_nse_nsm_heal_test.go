@@ -172,9 +172,9 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Remember nse name
-	_, nsm1RegistryClient, fwd1 := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
+	_, nsm1RegistryClient, fwd1Close := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
 	nseList, err := nsm1RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-	fwd1.Stop()
+	fwd1Close()
 
 	Expect(err).To(BeNil())
 	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
@@ -191,8 +191,8 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 	logrus.Infof("Cleanup Endpoints CRDs...")
 	k8s.CleanupEndpointsCRDs()
 
-	nse2RegistryClient, nsm2RegistryClient, fwd2 := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
-	defer fwd2.Stop()
+	nse2RegistryClient, nsm2RegistryClient, fwd2Close := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
+	defer fwd2Close()
 
 	_, err = nse2RegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{

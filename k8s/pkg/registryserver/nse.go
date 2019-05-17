@@ -1,7 +1,6 @@
 package registryserver
 
 import (
-	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -57,9 +56,8 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 		var objectMeta metav1.ObjectMeta
 		if request.GetNetworkserviceEndpoint().EndpointName == "" {
-			NSEPrefix := strings.Join([]string{rs.nsmName, request.GetNetworkService().GetName()}, "-")
 			objectMeta = metav1.ObjectMeta{
-				GenerateName: NSEPrefix,
+				GenerateName: request.GetNetworkService().GetName(),
 				Labels:       labels,
 			}
 		} else {

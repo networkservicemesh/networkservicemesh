@@ -179,8 +179,3 @@ func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerN
 func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane) {
 	m.manager.RestoreConnections(xcons, dataplane.RegisteredName)
 }
-
-// NotifyRenamedEndpoint notifies nsm that endpoint was registered with different name
-func (m *ClientConnectionManager) NotifyRenamedEndpoint(nseOldName, nseNewName string) {
-	m.manager.NotifyRenamedEndpoint(nseOldName, nseNewName)
-}

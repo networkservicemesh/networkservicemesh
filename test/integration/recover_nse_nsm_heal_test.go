@@ -104,7 +104,6 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test
 
 	Expect(err).To(BeNil())
 
-	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
 
 	// Run ICMP on latest node
@@ -122,7 +121,6 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse nsmd_test
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
 
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
 
 	if cleanupEndpointsCRDs {
@@ -161,7 +159,6 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse nsmd_tes
 
 	Expect(err).To(BeNil())
 
-	// Deploy open tracing to see what happening.
 	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 2, defaultTimeout)
 
 	// Run ICMP on latest node
@@ -177,9 +174,9 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse nsmd_tes
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Remember nse name
-	_, nsm1RegistryClient, fwd1 := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
+	_, nsm1RegistryClient, fwd1Close := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
 	nseList, err := nsm1RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-	fwd1.Stop()
+	fwd1Close()
 
 	Expect(err).To(BeNil())
 	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
@@ -189,14 +186,13 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse nsmd_tes
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
 
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
 
 	logrus.Infof("Cleanup Endpoints CRDs...")
 	k8s.CleanupEndpointsCRDs()
 
-	nse2RegistryClient, nsm2RegistryClient, fwd2 := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
-	defer fwd2.Stop()
+	nse2RegistryClient, nsm2RegistryClient, fwd2Close := nsmd_test_utils.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
+	defer fwd2Close()
 
 	_, err = nse2RegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{

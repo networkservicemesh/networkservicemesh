@@ -240,7 +240,9 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 						logrus.Infof("Try to register NSE with new name...")
 						nse.NseReg.NetworkserviceEndpoint.EndpointName = ""
 						newReg, err = ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
-						nsm.manager.NotifyRenamedEndpoint(endpointName, newReg.NetworkserviceEndpoint.EndpointName)
+						if err == nil {
+							nsm.manager.NotifyRenamedEndpoint(endpointName, newReg.NetworkserviceEndpoint.EndpointName)
+						}
 					}
 
 					if err != nil {

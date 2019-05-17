@@ -1,11 +1,11 @@
 package nsmd_test_utils
 
 import (
-	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"net"
 	"os"
 	"strings"
@@ -667,16 +667,20 @@ func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	return
 }
 
-// PrepareRegistryClients prepare nse and nsm registry clients
-func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, *kube_testing.PortForward) {
-	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
+func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
+	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
 	Expect(err).To(BeNil())
 
-	e := fwd.Start()
-	if e != nil {
-		logrus.Printf("Error on forward: %v retrying", e)
-	}
-	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	sr := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	return sr, fwd.Stop
+}
+
+// PrepareRegistryClients prepare nse and nsm registry clients
+func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
+	serviceRegistry, closeFunc:= ServiceRegistryAt(k8s, nsmd)
 
 	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
 	Expect(err).To(BeNil())
@@ -684,13 +688,5 @@ func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.Netwo
 	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
 	Expect(err).To(BeNil())
 
-	url := "1.1.1.1:1"
-
-	responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
-		Url: url,
-	})
-	Expect(err).To(BeNil())
-	Expect(responseNsm.Url).To(Equal(url))
-
-	return nseRegistryClient, nsmRegistryClient, fwd
+	return nseRegistryClient, nsmRegistryClient, closeFunc
 }

@@ -5,7 +5,6 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
 	"net"
@@ -235,22 +234,8 @@ func TestGetEndpoints(t *testing.T) {
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
-	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
-	Expect(err).To(BeNil())
-	defer fwd.Stop()
-
-	e := fwd.Start()
-	if e != nil {
-		logrus.Printf("Error on forward: %v retrying", e)
-	}
-
-	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-
-	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
-	Expect(err).To(BeNil())
-
-	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
-	Expect(err).To(BeNil())
+	nseRegistryClient, nsmRegistryClient, fwdClose := nsmd_test_utils.PrepareRegistryClients(k8s, nsmd[0].Nsmd)
+	defer fwdClose()
 
 	url := "1.1.1.1:1"
 
@@ -275,11 +260,9 @@ func TestGetEndpoints(t *testing.T) {
 		Expect(err).To(BeNil())
 	}
 
-	nodes := k8s.GetNodesWait(1, defaultTimeout)
 	nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
 	Expect(err).To(BeNil())
 	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(len(letters)))
-	Expect(nseList.NetworkServiceEndpoints[0].EndpointName).To(ContainSubstring(nodes[0].Name))
 
 	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
@@ -288,6 +271,66 @@ func TestGetEndpoints(t *testing.T) {
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
 			EndpointName: nseList.NetworkServiceEndpoints[0].EndpointName,
+		},
+	})
+	Expect(err).NotTo(BeNil())
+	Expect(err.Error()).To(ContainSubstring("already exists"))
+}
+
+
+func TestDuplicateEndpoint(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s(true)
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	nsmd := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+
+	// We need to wait unti it is started
+	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
+
+	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
+
+	nseRegistryClient, nsmRegistryClient, fwdClose := nsmd_test_utils.PrepareRegistryClients(k8s, nsmd[0].Nsmd)
+	defer fwdClose()
+
+	url := "1.1.1.1:1"
+
+	responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+		Url: url,
+	})
+	Expect(err).To(BeNil())
+	Expect(responseNsm.Url).To(Equal(url))
+
+	nsName := "icmp-responder"
+	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Payload: "IP",
+			Name:    "icmp-responder",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			EndpointName: nsName,
+		},
+	})
+	Expect(err).To(BeNil())
+
+	nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
+	Expect(err).To(BeNil())
+	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
+
+	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Payload: "IP",
+			Name:    "icmp-responder",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			EndpointName: nsName,
 		},
 	})
 	Expect(err).NotTo(BeNil())
@@ -358,16 +401,7 @@ func TestClusterInfo(t *testing.T) {
 	Expect(err).To(BeNil())
 }
 
-func serviceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
-	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
-	Expect(err).To(BeNil())
 
-	err = fwd.Start()
-	Expect(err).To(BeNil())
-
-	sr := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	return sr, fwd.Stop
-}
 
 func createSingleNsmgr(k8s *kube_testing.K8s, name string) *v1.Pod {
 	nsmgr := k8s.CreatePod(pods.NSMgrPod(name, nil, k8s.GetK8sNamespace()))
@@ -394,7 +428,7 @@ func TestLostUpdate(t *testing.T) {
 
 	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
 
-	sr1, closeFunc := serviceRegistryAt(k8s, nsmgr1)
+	sr1, closeFunc := nsmd_test_utils.ServiceRegistryAt(k8s, nsmgr1)
 
 	nsmRegistryClient, err := sr1.NsmRegistryClient()
 	Expect(err).To(BeNil())
@@ -432,7 +466,7 @@ func TestLostUpdate(t *testing.T) {
 
 	nsmgr2 := createSingleNsmgr(k8s, "nsmgr-2")
 
-	sr2, closeFunc2 := serviceRegistryAt(k8s, nsmgr2)
+	sr2, closeFunc2 := nsmd_test_utils.ServiceRegistryAt(k8s, nsmgr2)
 	defer closeFunc2()
 
 	discovery2, err := sr2.DiscoveryClient()
