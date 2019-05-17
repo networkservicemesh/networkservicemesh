@@ -503,7 +503,7 @@ func TestRegistryConcurrentModification(t *testing.T) {
 
 	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
 
-	sr1, closeFunc := serviceRegistryAt(k8s, nsmgr1)
+	sr1, closeFunc := nsmd_test_utils.ServiceRegistryAt(k8s, nsmgr1)
 	defer closeFunc()
 
 	nsmRegistryClient, err := sr1.NsmRegistryClient()

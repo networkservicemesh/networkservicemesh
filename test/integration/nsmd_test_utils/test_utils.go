@@ -5,13 +5,14 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
@@ -667,6 +668,7 @@ func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	return
 }
 
+// ServiceRegistryAt creates new service registry on 5000 port
 func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
 	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
 	Expect(err).To(BeNil())
@@ -680,7 +682,7 @@ func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.Se
 
 // PrepareRegistryClients prepare nse and nsm registry clients
 func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
-	serviceRegistry, closeFunc:= ServiceRegistryAt(k8s, nsmd)
+	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
 
 	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
 	Expect(err).To(BeNil())
