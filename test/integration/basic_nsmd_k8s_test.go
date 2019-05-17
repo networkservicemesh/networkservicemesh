@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
 	"net"
 	"testing"
