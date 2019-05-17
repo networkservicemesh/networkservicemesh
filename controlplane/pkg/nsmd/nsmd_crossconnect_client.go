@@ -274,6 +274,19 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 					client.xconManager.RemoteDestinationUpdated(clientConnection, remoteConnection)
 				case connection.ConnectionEventType_DELETE:
 					// DST is down, we need to choose new NSE in any case.
+					downConnection := proto.Clone(remoteConnection).(*remote_connection.Connection)
+					downConnection.State = remote_connection.State_DOWN
+
+					xconToSend := &crossconnect.CrossConnect{
+						Source: &crossconnect.CrossConnect_LocalSource{
+							LocalSource: clientConnection.Xcon.GetLocalSource(),
+						},
+						Destination: &crossconnect.CrossConnect_RemoteDestination{
+							RemoteDestination: downConnection,
+						},
+					}
+
+					client.monitorManager.CrossConnectMonitor().Update(xconToSend)
 					client.xconManager.RemoteDestinationDown(clientConnection, false)
 				}
 			}
