@@ -8,13 +8,18 @@ import (
 )
 
 // MonitorServer is a monitor.Server for local/connection GRPC API
-type MonitorServer struct {
+type MonitorServer interface {
+	monitor.Server
+	connection.MonitorConnectionServer
+}
+
+type monitorServer struct {
 	monitor.Server
 }
 
 // NewMonitorServer creates a new MonitorServer
-func NewMonitorServer() *MonitorServer {
-	rv := &MonitorServer{
+func NewMonitorServer() MonitorServer {
+	rv := &monitorServer{
 		Server: monitor.NewServer(createEvent),
 	}
 	go rv.Serve()
@@ -22,6 +27,6 @@ func NewMonitorServer() *MonitorServer {
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (m *MonitorServer) MonitorConnections(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (m *monitorServer) MonitorConnections(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	return m.MonitorEntities(recipient)
 }

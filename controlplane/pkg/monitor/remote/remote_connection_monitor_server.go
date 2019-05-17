@@ -7,14 +7,19 @@ import (
 )
 
 // MonitorServer is a monitor.Server for remote/connection GRPC API
-type MonitorServer struct {
+type MonitorServer interface {
+	monitor.Server
+	connection.MonitorConnectionServer
+}
+
+type monitorServer struct {
 	monitor.Server
 	manager *services.ClientConnectionManager
 }
 
 // NewMonitorServer creates a new MonitorServer
-func NewMonitorServer(manager *services.ClientConnectionManager) *MonitorServer {
-	rv := &MonitorServer{
+func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
+	rv := &monitorServer{
 		Server:  monitor.NewServer(createEvent),
 		manager: manager,
 	}
@@ -23,7 +28,7 @@ func NewMonitorServer(manager *services.ClientConnectionManager) *MonitorServer 
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (m *MonitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (m *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	filtered := newMonitorConnectionFilter(selector, recipient)
 	result := m.MonitorEntities(filtered)
 	m.manager.UpdateRemoteMonitorDone(selector.NetworkServiceManagerName)
