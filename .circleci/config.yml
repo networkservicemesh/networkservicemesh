@@ -121,6 +121,7 @@ jobs:
           key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
       - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
+      - run: make packet-print-kubelet-log
       - run: .circleci/destroy-cluster.sh
 
 # azure
@@ -224,6 +225,10 @@ jobs:
       - image: circleci/golang
     steps:
       - checkout
+      - run:
+          name: "Print kubelet log"
+          command: |
+            make aws-print-kubelet-log
       - run:
           name: Destroy AWS Cluster
           no_output_timeout: 40m
@@ -366,6 +371,16 @@ jobs:
             kubectl -n $NSM_NAMESPACE get nodes
             kubectl -n $NSM_NAMESPACE get pods -o wide
             kubectl -n $NSM_NAMESPACE describe pods
+      - run:
+          name: "Print kubelet log"
+          when: on_fail
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+              cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
+              make packet-print-kubelet-log
+            elif [ "x<< parameters.cloud_provider >>" == "xaws" ]; then
+              make aws-print-kubelet-log
+            fi
       - run:
           when: on_fail
           command: |
