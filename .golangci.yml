@@ -94,6 +94,7 @@ linters:
     - lll
     - gofmt
     - unused #deprecated
+    - goimports
   enable-all: true
 issues:
   exclude-use-default: false
