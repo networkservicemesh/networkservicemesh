@@ -20,7 +20,7 @@ type monitorServer struct {
 // NewMonitorServer creates a new MonitorServer
 func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
 	rv := &monitorServer{
-		Server:  monitor.NewServer(createEvent),
+		Server:  monitor.NewServer(&eventFactory{}),
 		manager: manager,
 	}
 	go rv.Serve()
@@ -28,9 +28,11 @@ func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (m *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (s *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	filtered := newMonitorConnectionFilter(selector, recipient)
-	result := m.MonitorEntities(filtered)
-	m.manager.UpdateRemoteMonitorDone(selector.NetworkServiceManagerName)
-	return result
+	s.MonitorEntities(filtered)
+
+	s.manager.UpdateRemoteMonitorDone(selector.NetworkServiceManagerName)
+
+	return nil
 }

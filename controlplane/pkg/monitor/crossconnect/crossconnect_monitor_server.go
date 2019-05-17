@@ -22,7 +22,7 @@ type monitorServer struct {
 // NewMonitorServer creates a new MonitorServer
 func NewMonitorServer() MonitorServer {
 	rv := &monitorServer{
-		Server:  monitor.NewServer(createEvent),
+		Server:  monitor.NewServer(&eventFactory{}),
 		statsCh: make(chan map[string]*crossconnect.Metrics, 10),
 	}
 	go rv.Serve()
@@ -30,21 +30,22 @@ func NewMonitorServer() MonitorServer {
 	return rv
 }
 
-func (m *monitorServer) serveMetrics() {
+func (s *monitorServer) serveMetrics() {
 	for {
-		m.SendAll(event{
-			EventImpl:  monitor.CrateEventImpl(monitor.UPDATE, m.Entities()),
-			statistics: <-m.statsCh,
+		s.SendAll(&Event{
+			BaseEvent:  monitor.NewBaseEvent(monitor.EventTypeUpdate, s.Entities()),
+			Statistics: <-s.statsCh,
 		})
 	}
 }
 
 // HandleMetrics updates MonitorServer recipients with new metrics
-func (m *monitorServer) HandleMetrics(statistics map[string]*crossconnect.Metrics) {
-	m.statsCh <- statistics
+func (s *monitorServer) HandleMetrics(statistics map[string]*crossconnect.Metrics) {
+	s.statsCh <- statistics
 }
 
 // MonitorCrossConnects adds recipient for MonitorServer events
-func (m *monitorServer) MonitorCrossConnects(_ *empty.Empty, recipient crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
-	return m.MonitorEntities(recipient)
+func (s *monitorServer) MonitorCrossConnects(_ *empty.Empty, recipient crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
+	s.MonitorEntities(recipient)
+	return nil
 }

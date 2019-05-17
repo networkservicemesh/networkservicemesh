@@ -20,13 +20,14 @@ type monitorServer struct {
 // NewMonitorServer creates a new MonitorServer
 func NewMonitorServer() MonitorServer {
 	rv := &monitorServer{
-		Server: monitor.NewServer(createEvent),
+		Server: monitor.NewServer(&eventFactory{}),
 	}
 	go rv.Serve()
 	return rv
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (m *monitorServer) MonitorConnections(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
-	return m.MonitorEntities(recipient)
+func (s *monitorServer) MonitorConnections(_ *empty.Empty, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+	s.MonitorEntities(recipient)
+	return nil
 }
