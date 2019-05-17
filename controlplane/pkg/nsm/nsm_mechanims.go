@@ -74,8 +74,8 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestId string, reques
 	return nil, fmt.Errorf("NSM:(5.1-%v) Failed to select mechanism. No matched mechanisms found...", requestId)
 }
 
-func findRemoteMechanism(MechanismPreferences []*remote_connection.Mechanism, mechanismType remote_connection.MechanismType) *remote_connection.Mechanism {
-	for _, m := range MechanismPreferences {
+func findRemoteMechanism(mechanismPreferences []*remote_connection.Mechanism, mechanismType remote_connection.MechanismType) *remote_connection.Mechanism {
+	for _, m := range mechanismPreferences {
 		if m.Type == mechanismType {
 			return m
 		}
@@ -83,8 +83,8 @@ func findRemoteMechanism(MechanismPreferences []*remote_connection.Mechanism, me
 	return nil
 }
 
-func findLocalMechanism(MechanismPreferences []*connection.Mechanism, mechanismType connection.MechanismType) *connection.Mechanism {
-	for _, m := range MechanismPreferences {
+func findLocalMechanism(mechanismPreferences []*connection.Mechanism, mechanismType connection.MechanismType) *connection.Mechanism {
+	for _, m := range mechanismPreferences {
 		if m.Type == mechanismType {
 			return m
 		}

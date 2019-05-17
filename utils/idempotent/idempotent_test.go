@@ -22,8 +22,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/utils/idempotent"
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/utils/idempotent"
 )
 
 type Plugin struct {
@@ -77,7 +78,7 @@ func testIdempotentImpl(t *testing.T, expectedInitErr error, expectedCloseErr er
 	Expect(err).To(expectedInitErrMatcher)
 	Expect(p.RefCount).To(Equal(1)) // See p.init() was called
 	if err == nil {
-		// If we didn't get an error (succesful init) state changes to RUNNING
+		// If we didn't get an error (successful init) state changes to RUNNING
 		state = idempotent.RUNNING
 	}
 	Expect(p.State()).To(Equal(state))

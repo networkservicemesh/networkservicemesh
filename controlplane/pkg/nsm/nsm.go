@@ -16,7 +16,13 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -27,10 +33,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
-	"sync"
-	"time"
 )
 
 const (
@@ -399,7 +401,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, connection nsm.NSMC
 	return srv.close(ctx, connection.(*model.ClientConnection), true, true)
 }
 
-func (srv *networkServiceManager) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool, modelRemove bool) error {
+func (srv *networkServiceManager) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane, modelRemove bool) error {
 	logrus.Infof("NSM: Closing connection %v", clientConnection)
 	if clientConnection.ConnectionState == model.ClientConnection_Closing {
 		return nil

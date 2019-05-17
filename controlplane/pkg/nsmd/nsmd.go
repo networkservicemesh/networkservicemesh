@@ -167,7 +167,7 @@ func (nsm *nsmServer) EnumConnection(context context.Context, request *nsmdapi.E
 
 func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServiceEndpointList) {
 
-	if "true" == os.Getenv(NsmdDeleteLocalRegistry) {
+	if os.Getenv(NsmdDeleteLocalRegistry) == "true" {
 		logrus.Errorf("Delete of local nse/client registry... by ENV VAR: %s", NsmdDeleteLocalRegistry)
 		nsm.localRegistry.Delete()
 	}
@@ -184,7 +184,7 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 		nsm.Lock()
 		defer nsm.Unlock()
 		for _, client := range clients {
-			if len(client) == 0 {
+			if client == "" {
 				continue
 			}
 			workspace, err := NewWorkSpace(nsm, client, true)
@@ -228,9 +228,8 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 						}
 					}
 					continue
-				} else {
-					logrus.Infof("NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
 				}
+				logrus.Infof("NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
 				_ = nseConn.Close()
 
 				if _, ok := existingEndpoints[endpointId]; !ok {

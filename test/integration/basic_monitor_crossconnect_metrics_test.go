@@ -38,7 +38,7 @@ func TestSimpleMetrics(t *testing.T) {
 				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
 				vppagent.DataplaneMetricsCollectorRequestPeriodKey: requestPeriod.String(),
 			},
-			Variables: pods.DefaultNSMD,
+			Variables: pods.DefaultNSMD(),
 		},
 	}, k8s.GetK8sNamespace())
 

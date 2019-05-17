@@ -5,13 +5,14 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 

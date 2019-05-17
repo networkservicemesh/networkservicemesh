@@ -84,7 +84,8 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 
 	addrs, err := net.Interfaces()
 	if err == nil {
-		for _, iface := range addrs {
+		for i := range addrs {
+			iface := &addrs[i]
 			adrs, err := iface.Addrs()
 			if err != nil {
 				continue

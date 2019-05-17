@@ -2,7 +2,14 @@ package tests
 
 import (
 	"context"
+	"net"
+	"testing"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -11,11 +18,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"net"
-	"testing"
 )
 
 func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor, net.Listener) {
@@ -83,7 +85,7 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 	defer conn.Close()
 	dataplaneClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
-	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
+	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplaneClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 	if err != nil {
 		logrus.Warningf("Error: %+v.", err)

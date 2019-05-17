@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +11,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
 const (
@@ -69,7 +70,8 @@ func init() {
 func getAnnotationValue(ignoredNamespaceList []string, metadata *metav1.ObjectMeta, spec *corev1.PodSpec) (string, bool) {
 
 	// check if InitContainer already injected
-	for _, c := range spec.InitContainers {
+	for i := range spec.InitContainers {
+		c := &spec.InitContainers[i]
 		if c.Name == initContainerName {
 			return "", false
 		}
@@ -98,7 +100,7 @@ func validateAnnotationValue(value string) error {
 	return err
 }
 
-func createPatch(annotationValue string, path string) ([]byte, error) {
+func createPatch(annotationValue, path string) ([]byte, error) {
 	var patch []patchOperation
 
 	value := []interface{}{
