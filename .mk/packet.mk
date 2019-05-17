@@ -62,3 +62,13 @@ packet-download-postmortem:
 	@pushd scripts/terraform && \
 	./download-postmortem-data.sh && \
 	popd
+
+.PHONY: packet-print-kubelet-log
+packet-print-kubelet-log:
+	@pushd scripts/terraform && \
+	echo "Master node kubelet log:" && \
+	scp ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip` "journalctl -u kubelet" && \
+	echo "Woker node kubelet log:" && \
+	scp ${SSH_OPTS} root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip` "journalctl -u kubelet" && \
+	popd
+
