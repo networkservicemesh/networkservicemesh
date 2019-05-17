@@ -8,6 +8,6 @@ const (
 	fastTimeout        = defaultTimeout / 5
 	nscDefaultName     = "nsc"
 	icmpDefaultName    = "icmp-responder"
-	nscCount           = 5
+	nscCount           = 2
 	nscMaxCount        = 10
 )
