@@ -39,7 +39,7 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          command: "/bin/icmp-responder-nse"
+          command: ["/bin/icmp-responder-nse"]
         - name: nginx
           image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}
 metadata:
