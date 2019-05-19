@@ -93,6 +93,7 @@ linters:
   disable:
     - lll
     - gofmt
+    - varcheck #deprecated
     - unused #deprecated
     - goimports
   enable-all: true
@@ -104,5 +105,8 @@ issues:
     - path: _test\.go
       linters:
         - golint
+    - path: test/integration/const.go
+      linters:
+        - deadcode
   exclude:
     - should not use dot imports
