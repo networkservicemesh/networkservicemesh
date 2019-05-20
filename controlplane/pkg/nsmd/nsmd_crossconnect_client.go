@@ -33,6 +33,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -203,41 +204,39 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 	logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Connected")
 	defer func() { _ = conn.Close() }()
 
-	monitorClient := local_connection.NewMonitorConnectionClient(conn)
-	stream, err := monitorClient.MonitorConnections(context.Background(), &empty.Empty{})
+	monitorClient, err := local.NewMonitorClient(conn)
 	if err != nil {
 		logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to start monitor", err)
 		client.deleteEndpoint(endpoint)
 		return
 	}
 	logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Started monitor")
+	defer monitorClient.Close()
 
 	for {
 		select {
 		case <-ctx.Done():
 			logrus.Infof(endpointLogFormat, endpoint.EndpointName(), "Removed")
 			return
-		default:
-			event, err := stream.Recv()
-			if err != nil {
-				logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Connection closed", err)
-				client.deleteEndpoint(endpoint)
-				return
-			}
+		case err = <-monitorClient.ErrorChannel():
+			logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Connection closed", err)
+			client.deleteEndpoint(endpoint)
+			return
+		case event := <-monitorClient.EventChannel():
 			logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Received event", event)
-
-			for _, localConnection := range event.GetConnections() {
-				clientConnection := client.xconManager.GetClientConnectionByDst(localConnection.GetId())
-				if clientConnection == nil {
+			for _, entity := range event.Entities() {
+				cc := client.xconManager.GetClientConnectionByDst(entity.GetId())
+				if cc == nil {
 					continue
 				}
-				switch event.GetType() {
-				case local_connection.ConnectionEventType_UPDATE:
+
+				switch event.EventType() {
+				case monitor.EventTypeUpdate:
 					// DST connection is updated, we most probable need to re-programm our data plane.
-					client.xconManager.LocalDestinationUpdated(clientConnection, localConnection)
-				case local_connection.ConnectionEventType_DELETE:
+					client.xconManager.LocalDestinationUpdated(cc, entity.(*local_connection.Connection))
+				case monitor.EventTypeDelete:
 					// DST is down, we need to choose new NSE in any case.
-					client.xconManager.DestinationDown(clientConnection, false)
+					client.xconManager.DestinationDown(cc, false)
 				}
 			}
 		}
