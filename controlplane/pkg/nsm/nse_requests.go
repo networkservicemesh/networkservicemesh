@@ -18,7 +18,7 @@ func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSER
 	if existingConnection != nil && endpoint == existingConnection.Endpoint {
 		remoteDst := existingConnection.Xcon.GetRemoteDestination()
 		if remoteDst == nil {
-			return nil, fmt.Errorf("can not create remotre nsm request: remote destination is nil")
+			return nil, fmt.Errorf("can not create remote nsm request: remote destination is nil")
 		}
 		return &remote_networkservice.NetworkServiceRequest{
 			Connection: &remote_connection.Connection{
