@@ -119,7 +119,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		k8s.WaitLogsContains(nsmdDataplanePodNode[k], "", "Sending MonitorMechanisms update", defaultTimeout)
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd", "Dataplane added", defaultTimeout)
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "ListAndWatch was called with", defaultTimeout)
+		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	}
 
 	var nodesConf []*nsmd_test_utils.NodeConf
