@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rs/xid v1.2.1
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.4.1
+	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.3.2
 	github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c
 	github.com/uber-go/atomic v1.3.2 // indirect
