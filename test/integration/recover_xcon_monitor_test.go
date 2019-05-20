@@ -1,3 +1,5 @@
+// +build recover
+
 package nsmd_integration_tests
 
 import (
@@ -153,6 +155,12 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
+	}
+
+	expectedCh0 <- kubetest.EventDescription{
+		EventType: crossconnect.CrossConnectEventType_UPDATE,
+		SrcUp:     true,
+		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
 	}
 
