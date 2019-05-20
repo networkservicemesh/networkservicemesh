@@ -75,7 +75,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	startTime := time.Now()
 	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
-	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmdp", "ListAndWatch was called with", defaultTimeout)
+	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
@@ -142,7 +142,6 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
-
 func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -201,7 +200,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 		},
 		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceName: "icmp-responder",
-			EndpointName: nseName,
+			EndpointName:       nseName,
 		},
 	})
 	Expect(err).To(BeNil())
