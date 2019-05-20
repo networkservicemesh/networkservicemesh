@@ -119,9 +119,16 @@ jobs:
       - checkout
       - restore_cache:
           key: terraform-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run: ssh-add terraform/sshkey
       - run: cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
       - run: cd ./scripts/terraform && terraform init && cd ../..
-      - run: .circleci/destroy-cluster.sh
+      - run: PACKET_CLUSTER_ID=1 make packet-print-kubelet-log
+      - run: PACKET_CLUSTER_ID=2 make packet-print-kubelet-log
+      - run:
+          when: always
+          name: Destroy cluster
+          command: |
+            .circleci/destroy-cluster.sh
 
 # azure
   azure-deploy:
@@ -203,6 +210,7 @@ jobs:
           key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
           paths:
             - data
+            - scripts/aws
             - ~/.aws
             - ~/.kube
       - run:
@@ -224,9 +232,17 @@ jobs:
       - image: circleci/golang
     steps:
       - checkout
+      - restore_cache:
+          key: cncf-data-aws-<< parameters.cluster_id >>-{{.Environment.CIRCLE_WORKFLOW_ID}}
+      - run:
+          name: "Print kubelet log"
+          command: |
+            export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+            make aws-print-kubelet-log
       - run:
           name: Destroy AWS Cluster
           no_output_timeout: 40m
+          when: always
           command: |
             ./scripts/install-kubectl.sh
             .circleci/cleanup-aws.sh
@@ -366,6 +382,19 @@ jobs:
             kubectl -n $NSM_NAMESPACE get nodes
             kubectl -n $NSM_NAMESPACE get pods -o wide
             kubectl -n $NSM_NAMESPACE describe pods
+      - run:
+          name: "Print kubelet log"
+          when: on_fail
+          command: |
+            if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
+              ssh-add terraform/sshkey
+              cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
+              cd ./scripts/terraform && terraform init && cd ../..
+              make packet-print-kubelet-log
+            elif [ "x<< parameters.cloud_provider >>" == "xaws" ]; then
+              export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
+              make aws-print-kubelet-log
+            fi
       - run:
           when: on_fail
           command: |

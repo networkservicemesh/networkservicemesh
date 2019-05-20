@@ -63,3 +63,14 @@ vagrant-%-load-images:
 		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
 	fi
+
+.PHONY: vagrant-print-kubelet-log
+vagrant-print-kubelet-log:
+	@echo "Master node kubelet log:"; \
+	cd scripts/vagrant; \
+	vagrant ssh master -c "journalctl -u kubelet"; \
+	number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
+		echo "Woker$$number node kubelet log:"; \
+		vagrant ssh worker$$number -c "journalctl -u kubelet"; \
+		((number++)) ; \
+	done;

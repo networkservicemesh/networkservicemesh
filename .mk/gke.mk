@@ -58,3 +58,7 @@ gke-push: $(addsuffix -push,$(addprefix gke-,$(BUILD_CONTAINERS)))
 .PHONY: gke-download-postmortem
 gke-download-postmortem:
 	@echo TODO: Download GKE postmortem data.
+
+.PHONY: gke-print-kubelet-log
+gke-print-kubelet-log:
+	@echo TODO: Print nodes kubelet log.

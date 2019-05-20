@@ -45,3 +45,7 @@ azure-group-check: azure-cli-check
 .PHONY: azure-download-postmortem
 azure-download-postmortem:
 	@echo "Not implemented yet."
+
+.PHONY: azure-print-kubelet-log
+azure-print-kubelet-log:
+	@echo TODO: Print nodes kubelet log.
