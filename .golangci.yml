@@ -93,6 +93,7 @@ linters:
   disable:
     - lll
     - gofmt
+    - varcheck #deprecated
     - unused #deprecated
     - goimports
   enable-all: true
@@ -104,6 +105,9 @@ issues:
     - path: _test\.go
       linters:
         - golint
+    - path: test/integration/const.go
+      linters:
+        - deadcode
     - path: local/local_connection_event\.go
       linters:
         - dupl
