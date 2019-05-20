@@ -1,4 +1,4 @@
-package remoteconnectionmonitor
+package remote
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -6,15 +6,15 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )
 
-// Server is a monitor.Server for remoteconnection GRPC API
-type Server struct {
+// MonitorServer is a monitor.Server for remote/connection GRPC API
+type MonitorServer struct {
 	monitor.Server
 	manager *services.ClientConnectionManager
 }
 
-// NewServer creates a new Server
-func NewServer(manager *services.ClientConnectionManager) *Server {
-	rv := &Server{
+// NewMonitorServer creates a new MonitorServer
+func NewMonitorServer(manager *services.ClientConnectionManager) *MonitorServer {
+	rv := &MonitorServer{
 		Server:  monitor.NewServer(createEvent),
 		manager: manager,
 	}
@@ -22,8 +22,8 @@ func NewServer(manager *services.ClientConnectionManager) *Server {
 	return rv
 }
 
-// MonitorConnections adds recipient for Server events
-func (m *Server) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+// MonitorConnections adds recipient for MonitorServer events
+func (m *MonitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	filtered := newMonitorConnectionFilter(selector, recipient)
 	result := m.MonitorEntities(filtered)
 	m.manager.UpdateRemoteMonitorDone(selector.NetworkServiceManagerName)

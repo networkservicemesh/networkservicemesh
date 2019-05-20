@@ -104,10 +104,10 @@ issues:
     - path: _test\.go
       linters:
         - golint
-    - path: localconnectionmonitor/local_connection_event\.go
+    - path: local/local_connection_event\.go
       linters:
         - dupl
-    - path: remoteconnectionmonitor/remote_connection_event\.go
+    - path: remote/remote_connection_event\.go
       linters:
         - dupl
   exclude:

@@ -1,9 +1,9 @@
-package remoteconnectionmonitor
+package local
 
 import (
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )
 
@@ -17,7 +17,7 @@ func createEvent(eventType string, entities map[string]monitor.Entity) monitor.E
 	}
 }
 
-// Message converts event to remote.Event
+// Message converts event to local.Event
 func (e event) Message() (interface{}, error) {
 	eventType, err := convertType(e.EventType())
 	if err != nil {
@@ -44,7 +44,7 @@ func convertType(eventType string) (connection.ConnectionEventType, error) {
 	case monitor.INITIAL_STATE_TRANSFER:
 		return connection.ConnectionEventType_INITIAL_STATE_TRANSFER, nil
 	default:
-		return 0, fmt.Errorf("unable to cast type %v to remote.ConnectionEventType", eventType)
+		return 0, fmt.Errorf("unable to cast type %v to local.ConnectionEventType", eventType)
 	}
 }
 
@@ -55,7 +55,7 @@ func convertEntities(entities map[string]monitor.Entity) (map[string]*connection
 		if xcon, ok := v.(*connection.Connection); ok {
 			rv[k] = xcon
 		} else {
-			return nil, fmt.Errorf("unable to cast Entity to remote.Connection")
+			return nil, fmt.Errorf("unable to cast Entity to local.Connection")
 		}
 	}
 	return rv, nil

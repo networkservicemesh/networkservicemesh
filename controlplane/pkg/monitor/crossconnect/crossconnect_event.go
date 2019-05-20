@@ -1,4 +1,4 @@
-package crossconnectmonitor
+package crossconnect
 
 import (
 	"fmt"
