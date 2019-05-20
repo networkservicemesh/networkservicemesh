@@ -12,6 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
@@ -19,6 +22,9 @@ import (
 	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 
+	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -26,9 +32,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 )
 
 type NodeConf struct {
@@ -663,4 +666,29 @@ func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	}
 
 	return
+}
+
+// ServiceRegistryAt creates new service registry on 5000 port
+func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
+	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
+	Expect(err).To(BeNil())
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	sr := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	return sr, fwd.Stop
+}
+
+// PrepareRegistryClients prepare nse and nsm registry clients
+func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
+	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
+
+	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
+	Expect(err).To(BeNil())
+
+	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
+	Expect(err).To(BeNil())
+
+	return nseRegistryClient, nsmRegistryClient, closeFunc
 }

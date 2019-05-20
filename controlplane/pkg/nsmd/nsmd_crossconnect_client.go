@@ -19,13 +19,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -35,12 +31,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )
 
 type NsmMonitorCrossConnectClient struct {
-	crossConnectMonitor *crossconnect_monitor.CrossConnectMonitor
-	connectionMonitor   *remote_connection_monitor.RemoteConnectionMonitor
+	crossConnectMonitor *monitor_crossconnect.MonitorServer
+	connectionMonitor   *remote.MonitorServer
 	remotePeers         map[string]*remotePeerDescriptor
 	dataplanes          map[string]context.CancelFunc
 	xconManager         *services.ClientConnectionManager
@@ -52,8 +50,9 @@ type remotePeerDescriptor struct {
 	cancel      context.CancelFunc
 }
 
-func NewMonitorCrossConnectClient(crossConnectMonitor *crossconnect_monitor.CrossConnectMonitor,
-	connectionMonitor *remote_connection_monitor.RemoteConnectionMonitor, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
+// NewMonitorCrossConnectClient creates a new NsmMonitorCrossConnectClient
+func NewMonitorCrossConnectClient(crossConnectMonitor *monitor_crossconnect.MonitorServer,
+	connectionMonitor *remote.MonitorServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
 		crossConnectMonitor: crossConnectMonitor,
 		connectionMonitor:   connectionMonitor,

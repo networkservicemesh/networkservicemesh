@@ -62,8 +62,10 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection nsm.N
 
 	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local_connection.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
 	}
+
 	return &registry.NSERegistration{
 		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
 		NetworkserviceEndpoint: endpoint,

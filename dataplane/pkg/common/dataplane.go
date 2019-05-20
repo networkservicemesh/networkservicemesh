@@ -27,14 +27,14 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 )
 
 type NSMDataplane interface {
 	dataplane.DataplaneServer
-	Init(*DataplaneConfigBase, *crossconnect_monitor.CrossConnectMonitor) error
+	Init(*DataplaneConfigBase, *monitor_crossconnect.MonitorServer) error
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -59,7 +59,7 @@ type DataplaneConfigBase struct {
 type dataplaneConfig struct {
 	common     *DataplaneConfigBase
 	gRPCserver *grpc.Server
-	monitor    *crossconnect_monitor.CrossConnectMonitor
+	monitor    *monitor_crossconnect.MonitorServer
 	listener   net.Listener
 }
 
@@ -97,7 +97,7 @@ func createDataplaneConfig() *dataplaneConfig {
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	dpConfig.monitor = crossconnect_monitor.NewCrossConnectMonitor()
+	dpConfig.monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(dpConfig.gRPCserver, dpConfig.monitor)
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(dpConfig.monitor)
 

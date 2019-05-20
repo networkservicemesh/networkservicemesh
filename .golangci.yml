@@ -104,5 +104,11 @@ issues:
     - path: _test\.go
       linters:
         - golint
+    - path: local/local_connection_event\.go
+      linters:
+        - dupl
+    - path: remote/remote_connection_event\.go
+      linters:
+        - dupl
   exclude:
     - should not use dot imports

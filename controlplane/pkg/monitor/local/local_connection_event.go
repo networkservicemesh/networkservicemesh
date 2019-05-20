@@ -1,4 +1,4 @@
-package local_connection_monitor
+package local
 
 import (
 	"fmt"
@@ -7,22 +7,24 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )
 
-type LocalConnectionEvent struct {
+type event struct {
 	monitor.EventImpl
 }
 
-func CreateLocalConnectionEvent(eventType string, entities map[string]monitor.Entity) monitor.Event {
-	return LocalConnectionEvent{
+func createEvent(eventType string, entities map[string]monitor.Entity) monitor.Event {
+	return event{
 		EventImpl: monitor.CrateEventImpl(eventType, entities),
 	}
 }
-func (c LocalConnectionEvent) Message() (interface{}, error) {
-	eventType, err := convertType(c.EventType())
+
+// Message converts event to local.Event
+func (e event) Message() (interface{}, error) {
+	eventType, err := convertType(e.EventType())
 	if err != nil {
 		return nil, err
 	}
 
-	connections, err := convertEntities(c.Entities())
+	connections, err := convertEntities(e.Entities())
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +44,7 @@ func convertType(eventType string) (connection.ConnectionEventType, error) {
 	case monitor.INITIAL_STATE_TRANSFER:
 		return connection.ConnectionEventType_INITIAL_STATE_TRANSFER, nil
 	default:
-		return 0, fmt.Errorf("unable to cast type %v to ConnectionEventType", eventType)
+		return 0, fmt.Errorf("unable to cast type %v to local.ConnectionEventType", eventType)
 	}
 }
 
@@ -53,7 +55,7 @@ func convertEntities(entities map[string]monitor.Entity) (map[string]*connection
 		if xcon, ok := v.(*connection.Connection); ok {
 			rv[k] = xcon
 		} else {
-			return nil, fmt.Errorf("unable to cast Entity to remote.Connection")
+			return nil, fmt.Errorf("unable to cast Entity to local.Connection")
 		}
 	}
 	return rv, nil

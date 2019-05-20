@@ -13,27 +13,26 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
-func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor, net.Listener) {
+func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, *monitor_crossconnect.MonitorServer, net.Listener, error) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
 	if err != nil {
-		return err, nil, nil, sock
+		return nil, nil, sock, err
 	}
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	serviceRegistry := nsmd.NewServiceRegistry()
 
 	// Start Cross connect monitor and server
-	monitor := crossconnect_monitor.NewCrossConnectMonitor()
+	monitor := monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	manager := services.NewClientConnectionManager(model, nil, serviceRegistry)
-	connectionMonitor := remote_connection_monitor.NewRemoteConnectionMonitor(manager)
+	connectionMonitor := remote.NewMonitorServer(manager)
 	connection.RegisterMonitorConnectionServer(grpcServer, connectionMonitor)
 
 	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, manager)
@@ -47,7 +46,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (error, *grpc.Serv
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
 
-	return nil, grpcServer, monitor, sock
+	return grpcServer, monitor, sock, nil
 }
 
 func TestCCServerEmpty(t *testing.T) {
@@ -57,7 +56,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 	crossConnectAddress := "127.0.0.1:0"
 
-	err, grpcServer, monitor, sock := startAPIServer(myModel, crossConnectAddress)
+	grpcServer, monitor, sock, err := startAPIServer(myModel, crossConnectAddress)
 	defer grpcServer.Stop()
 
 	crossConnectAddress = sock.Addr().String()
@@ -106,18 +105,4 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 			return result
 		}
 	}
-}
-
-func createCrossMonitorDataplaneMock(dataplaneSocket string) (net.Listener, *grpc.Server, *crossconnect_monitor.CrossConnectMonitor) {
-	tools.SocketCleanup(dataplaneSocket)
-	ln, err := net.Listen("unix", dataplaneSocket)
-	if err != nil {
-		logrus.Fatalf("Error listening on socket %s: %s ", dataplaneSocket, err)
-	}
-	server := grpc.NewServer()
-	monitor := crossconnect_monitor.NewCrossConnectMonitor()
-	crossconnect.RegisterMonitorCrossConnectServer(server, monitor)
-
-	go server.Serve(ln)
-	return ln, server, monitor
 }

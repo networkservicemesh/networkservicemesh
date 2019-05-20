@@ -50,6 +50,7 @@ type networkServiceManager struct {
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
 	errCh            chan error
+	renamedEndpoints map[string]string
 
 	healProcessor networkServiceHealProcessor
 	nseManager    networkServiceEndpointManager
@@ -87,6 +88,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		conManager: srv,
 		nseManager: nseManager,
 	}
+	srv.renamedEndpoints = make(map[string]string)
 
 	go srv.monitorExcludePrefixes()
 	return srv
@@ -290,7 +292,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 
 			// Let's try again with a short delay
 			if dpRetry < DataplaneRetryCount-1 {
-				<-time.Tick(DataplaneRetryDelay)
+				<-time.After(DataplaneRetryDelay)
 
 				if dp_err := srv.closeDataplane(clientConnection); dp_err != nil {
 					logrus.Errorf("NSM:(10.2.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestId, dp_err)
@@ -656,7 +658,7 @@ func (srv *networkServiceManager) WaitForDataplane(timeout time.Duration) error 
 	select {
 	case <-srv.stateRestored:
 		return nil
-	case <-time.Tick(timeout):
+	case <-time.After(timeout):
 		return fmt.Errorf("Failed to wait for NSMD stare restore... timeout %v happened", timeout)
 	}
 }
@@ -717,6 +719,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				}
 			}
 
+			endpointRenamed := false
 			if endpointName != "" {
 				logrus.Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
 
@@ -743,7 +746,17 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 					}
 				}
 				if endpoint == nil {
-					logrus.Errorf("Failed to find Endpoint %s", endpointName)
+					// Check if endpoint was renamed
+					if newEndpointName, ok := srv.renamedEndpoints[endpointName]; ok {
+						logrus.Infof("Endpoint was renamed %v => %v", endpointName, newEndpointName)
+						localEndpoint = srv.model.GetEndpoint(newEndpointName)
+						if localEndpoint != nil {
+							endpoint = localEndpoint.Endpoint
+							endpointRenamed = true
+						}
+					} else {
+						logrus.Errorf("Failed to find Endpoint %s", endpointName)
+					}
 				} else {
 					logrus.Infof("Endpoint found: %v", endpoint)
 				}
@@ -762,6 +775,13 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 			// Add healing timer, for connection to be headled from source side.
 			if src := xcon.GetRemoteSource(); src != nil {
 				if endpoint != nil {
+					if endpointRenamed {
+						// close current connection and wait for a new one
+						err := srv.Close(context.Background(), clientConnection)
+						if err != nil {
+							logrus.Errorf("Failed to close local NSE connection %v", err)
+						}
+					}
 					srv.RemoteConnectionLost(clientConnection)
 				} else {
 					srv.closeLocalMissingNSE(clientConnection)
@@ -813,7 +833,7 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 	connection.ConnectionState = model.ClientConnection_Healing
 	logrus.Infof("NSM: Remote opened connection is not monitored and put into Healing state %v", clientConnection)
 	go func() {
-		<-time.Tick(srv.properties.HealTimeout)
+		<-time.After(srv.properties.HealTimeout)
 
 		if connection.ConnectionState == model.ClientConnection_Healing {
 			logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)
@@ -823,6 +843,11 @@ func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.NSMC
 			}
 		}
 	}()
+}
+
+func (srv *networkServiceManager) NotifyRenamedEndpoint(nseOldName, nseNewName string) {
+	logrus.Infof("Notified about renamed endpoint %v => %v", nseOldName, nseNewName)
+	srv.renamedEndpoints[nseOldName] = nseNewName
 }
 
 func (srv *networkServiceManager) closeEndpoint(ctx context.Context, clientConnection *model.ClientConnection) error {
