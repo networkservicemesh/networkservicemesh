@@ -33,6 +33,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -43,6 +44,9 @@ const (
 
 	dataplaneLogFormat          = "NSM-DataplaneMonitor(%v): %v"
 	dataplaneLogWithParamFormat = "NSM-DataplaneMonitor(%v): %v: %v"
+
+	peerLogFormat          = "NSM-PeerMonitor(%v): %v"
+	peerLogWithParamFormat = "NSM-PeerMonitor(%v): %v: %v"
 
 	endpointConnectionTimeout = 10 * time.Second
 )
@@ -332,62 +336,61 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 }
 
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePeer *registry.NetworkServiceManager, ctx context.Context) {
-	logrus.Infof("NSM-PeerMonitor(%v): Connecting...", remotePeer.Name)
+	logrus.Infof(peerLogFormat, remotePeer.Name, "Added")
+
+	logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
 	conn, err := grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	if err != nil {
-		logrus.Errorf("NSM-PeerMonitor(%v): Failed to dial Network Service Registry at %s: %s", remotePeer.GetName(), remotePeer.Url, err)
+		logrus.Errorf(peerLogWithParamFormat, remotePeer.Name, "Failed to connect", err)
 		return
 	}
-	defer conn.Close()
+	logrus.Infof(peerLogFormat, remotePeer.Name, "Connected")
+	defer func() { _ = conn.Close() }()
 
-	defer func() {
-		logrus.Infof("NSM-PeerMonitor(%v): Remote monitor closed...", remotePeer.Name)
-	}()
-
-	monitorClient := remote_connection.NewMonitorConnectionClient(conn)
-	selector := &remote_connection.MonitorScopeSelector{NetworkServiceManagerName: client.xconManager.GetNsmName()}
-	stream, err := monitorClient.MonitorConnections(context.Background(), selector)
+	monitorClient, err := remote.NewMonitorClient(conn, &remote_connection.MonitorScopeSelector{
+		NetworkServiceManagerName: client.xconManager.GetNsmName(),
+	})
 	if err != nil {
-		logrus.Error(err)
+		logrus.Errorf(peerLogWithParamFormat, remotePeer.Name, "Failed to start monitor", err)
 		return
 	}
+	logrus.Infof(peerLogFormat, remotePeer.Name, "Started monitor")
+	defer monitorClient.Close()
 
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Infof("NSM-PeerMonitor(%v): Context timeout exceeded...", remotePeer.Name)
+			logrus.Infof(peerLogFormat, remotePeer.Name, "Removed")
 			return
-		default:
-			logrus.Infof("NSM-PeerMonitor(%v): Waiting for events...", remotePeer.Name)
-			event, err := stream.Recv()
-			if err != nil {
-				logrus.Errorf("NSM-PeerMonitor(%v) Unexpected error: %v", remotePeer.Name, err)
-				connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
-				for _, c := range connections {
-					// Same as DST down case, we need to wait for same NSE and updated NSMD.
-					client.xconManager.DestinationDown(c, true)
-				}
-				return
+		case err = <-monitorClient.ErrorChannel():
+			logrus.Errorf(peerLogWithParamFormat, remotePeer.Name, "Connection closed", err)
+			connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
+			for _, cc := range connections {
+				// Same as DST down case, we need to wait for same NSE and updated NSMD.
+				client.xconManager.DestinationDown(cc, true)
 			}
-			logrus.Infof("NSM-PeerMonitor(%v) Receive event %s %s", remotePeer.GetName(), event.Type, event.Connections)
-
-			for _, remoteConnection := range event.GetConnections() {
-				clientConnection := client.xconManager.GetClientConnectionByDst(remoteConnection.GetId())
-				if clientConnection == nil {
+			return
+		case event := <-monitorClient.EventChannel():
+			logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Received event", event)
+			for _, entity := range event.Entities() {
+				remoteConnection := entity.(*remote_connection.Connection)
+				cc := client.xconManager.GetClientConnectionByDst(remoteConnection.GetId())
+				if cc == nil {
 					continue
 				}
-				switch event.GetType() {
-				case remote_connection.ConnectionEventType_UPDATE:
+
+				switch event.EventType() {
+				case monitor.EventTypeUpdate:
 					// DST connection is updated, we most probable need to re-programm our data plane.
-					client.xconManager.RemoteDestinationUpdated(clientConnection, remoteConnection)
-				case remote_connection.ConnectionEventType_DELETE:
+					client.xconManager.RemoteDestinationUpdated(cc, remoteConnection)
+				case monitor.EventTypeDelete:
 					// DST is down, we need to choose new NSE in any case.
 					downConnection := proto.Clone(remoteConnection).(*remote_connection.Connection)
 					downConnection.State = remote_connection.State_DOWN
 
 					xconToSend := &crossconnect.CrossConnect{
 						Source: &crossconnect.CrossConnect_LocalSource{
-							LocalSource: clientConnection.Xcon.GetLocalSource(),
+							LocalSource: cc.Xcon.GetLocalSource(),
 						},
 						Destination: &crossconnect.CrossConnect_RemoteDestination{
 							RemoteDestination: downConnection,
@@ -395,7 +398,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 					}
 
 					client.monitorManager.CrossConnectMonitor().Update(xconToSend)
-					client.xconManager.DestinationDown(clientConnection, false)
+					client.xconManager.DestinationDown(cc, false)
 				}
 			}
 		}
