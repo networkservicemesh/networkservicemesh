@@ -492,8 +492,9 @@ func (l *K8s) Cleanup() {
 
 func (l *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
-		for i := range l.ListPods() {
-			lpod := &l.ListPods()[i]
+		pods := l.ListPods()
+		for i := range pods {
+			lpod := &pods[i]
 			if strings.Contains(lpod.Name, podName) {
 				l.DeletePods(lpod)
 			}
