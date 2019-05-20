@@ -56,7 +56,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection nsm.N
 	endpoints := filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignore_endpoints)
 
 	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("Failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
 	}
 
