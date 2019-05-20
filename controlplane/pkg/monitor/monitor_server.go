@@ -28,7 +28,8 @@ type Recipient interface {
 	SendMsg(msg interface{}) error
 }
 
-type MonitorServer interface {
+// Server is an unified interface for GRPC monitoring API server
+type Server interface {
 	Update(entity Entity)
 	Delete(entity Entity)
 
@@ -49,7 +50,8 @@ type monitorServerImpl struct {
 	recipients               []Recipient
 }
 
-func NewMonitorServer(eventSupplier EventSupplier) MonitorServer {
+// NewServer creates a new Server with given EventSupplier
+func NewServer(eventSupplier EventSupplier) Server {
 	return &monitorServerImpl{
 		eventSupplier:            eventSupplier,
 		eventCh:                  make(chan Event, defaultSize),

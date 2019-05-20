@@ -54,7 +54,7 @@ func (impl *testConnectionModelListener) EndpointDeleted(endpoint *model.Endpoin
 func (impl *testConnectionModelListener) WaitAdd(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(stepTimeout)
+		<-time.After(stepTimeout)
 		if impl.additions == count {
 			break
 		}
@@ -68,7 +68,7 @@ func (impl *testConnectionModelListener) WaitAdd(count int, duration time.Durati
 func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(stepTimeout)
+		<-time.After(stepTimeout)
 		if impl.updates == count {
 			break
 		}
@@ -83,7 +83,7 @@ func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Dur
 func (impl *testConnectionModelListener) WaitDelete(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(stepTimeout)
+		<-time.After(stepTimeout)
 		if impl.deletions == count {
 			break
 		}
@@ -97,7 +97,7 @@ func (impl *testConnectionModelListener) WaitDelete(count int, duration time.Dur
 func (impl *testConnectionModelListener) WaitEndpoints(count int, duration time.Duration, t *testing.T) {
 	st := time.Now()
 	for {
-		<-time.Tick(stepTimeout)
+		<-time.After(stepTimeout)
 		if impl.endpoints == count {
 			break
 		}
