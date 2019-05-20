@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -41,6 +40,9 @@ import (
 const (
 	endpointLogFormat          = "NSM-EndpointMonitor(%v): %v"
 	endpointLogWithParamFormat = "NSM-EndpointMonitor(%v): %v: %v"
+
+	dataplaneLogFormat          = "NSM-DataplaneMonitor(%v): %v"
+	dataplaneLogWithParamFormat = "NSM-DataplaneMonitor(%v): %v: %v"
 
 	endpointConnectionTimeout = 10 * time.Second
 )
@@ -267,62 +269,63 @@ func (client *NsmMonitorCrossConnectClient) deleteEndpoint(endpoint *model.Endpo
 // If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
 // monitor will remove all dataplane connections and will terminate itself.
 func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(dataplane *model.Dataplane, ctx context.Context) {
-	logrus.Infof("Connecting to Dataplane %s %s", dataplane.RegisteredName, dataplane.SocketLocation)
+	logrus.Infof(dataplaneLogFormat, dataplane.RegisteredName, "Added")
+
+	logrus.Infof(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connecting to Dataplane", dataplane.SocketLocation)
 	conn, err := dial(context.Background(), "unix", dataplane.SocketLocation)
 	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplane.SocketLocation, err)
+		logrus.Errorf(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Failed to connect", err)
 		return
 	}
-	defer conn.Close()
+	logrus.Infof(dataplaneLogFormat, dataplane.RegisteredName, "Connected")
+	defer func() { _ = conn.Close() }()
 
-	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
-	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
+	monitorClient, err := monitor_crossconnect.NewMonitorClient(conn)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Errorf(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Failed to start monitor", err)
 		return
 	}
-	logrus.Infof("Monitoring %v CrossConnections...", dataplane.RegisteredName)
+	logrus.Infof(dataplaneLogFormat, dataplane.RegisteredName, "Started monitor")
+	defer monitorClient.Close()
+
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Info("Context timeout exceeded...")
+			logrus.Infof(dataplaneLogFormat, dataplane.RegisteredName, "Removed")
 			return
-		default:
-			event, err := stream.Recv()
-			if err != nil {
-				logrus.Error(err)
-				return
-			}
-			logrus.Infof("Receive event from dataplane %s: %s %s", dataplane.RegisteredName, event.Type, event.CrossConnects)
-
-			for _, xcon := range event.GetCrossConnects() {
-				clientConnection := client.xconManager.GetClientConnectionByXcon(xcon)
-				if clientConnection == nil {
+		case err = <-monitorClient.ErrorChannel():
+			logrus.Errorf(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connection closed", err)
+			return
+		case event := <-monitorClient.EventChannel():
+			logrus.Infof(dataplaneLogFormat, dataplane.RegisteredName, "Received event", event)
+			xcons := []*crossconnect.CrossConnect{}
+			for _, entity := range event.Entities() {
+				xcon := entity.(*crossconnect.CrossConnect)
+				cc := client.xconManager.GetClientConnectionByXcon(xcon)
+				if cc == nil {
 					continue
 				}
 
-				switch event.GetType() {
-				case crossconnect.CrossConnectEventType_UPDATE:
+				switch event.EventType() {
+				case monitor.EventTypeUpdate:
 					client.monitorManager.CrossConnectMonitor().Update(xcon)
-					client.xconManager.UpdateXcon(clientConnection, xcon)
-				case crossconnect.CrossConnectEventType_DELETE:
-					if clientConnection.ConnectionState == model.ClientConnectionClosing {
+					client.xconManager.UpdateXcon(cc, xcon)
+				case monitor.EventTypeDelete:
+					if cc.ConnectionState == model.ClientConnectionClosing {
 						client.monitorManager.CrossConnectMonitor().Delete(xcon)
 					}
-				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
+				case monitor.EventTypeInitialStateTransfer:
+					xcons = append(xcons, xcon)
 					client.monitorManager.CrossConnectMonitor().Update(xcon)
 				}
 			}
-			if event.Metrics != nil {
-				client.monitorManager.CrossConnectMonitor().HandleMetrics(event.Metrics)
+
+			if statistics := event.(*monitor_crossconnect.Event).Statistics; len(statistics) > 0 {
+				client.monitorManager.CrossConnectMonitor().HandleMetrics(statistics)
 			}
-			// TODO: initial_state_transfer event is handled twice
-			if event.GetType() == crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER {
-				connects := []*crossconnect.CrossConnect{}
-				for _, xcon := range event.GetCrossConnects() {
-					connects = append(connects, xcon)
-				}
-				client.xconManager.UpdateFromInitialState(connects, dataplane)
+
+			if event.EventType() == monitor.EventTypeInitialStateTransfer {
+				client.xconManager.UpdateFromInitialState(xcons, dataplane)
 			}
 		}
 	}
