@@ -25,7 +25,7 @@ func VppagentICMPResponderPod(name string, node *v1.Node, env map[string]string)
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "icmp-responder-nse",
 					Image:           "networkservicemesh/vppagent-icmp-responder-nse:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -35,7 +35,7 @@ func VppagentICMPResponderPod(name string, node *v1.Node, env map[string]string)
 						},
 					},
 					Env: envVars,
-				},
+				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
