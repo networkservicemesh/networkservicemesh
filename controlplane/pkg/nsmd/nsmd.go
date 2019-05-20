@@ -235,6 +235,17 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 				if _, ok := existingEndpoints[endpointId]; !ok {
 					newReg, err := ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
 					if err != nil {
+						endpointName := nse.NseReg.NetworkserviceEndpoint.EndpointName
+						logrus.Warnf("Failed to register NSE with name %v: %v", endpointName, err)
+						logrus.Infof("Try to register NSE with new name...")
+						nse.NseReg.NetworkserviceEndpoint.EndpointName = ""
+						newReg, err = ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
+						if err == nil {
+							nsm.manager.NotifyRenamedEndpoint(endpointName, newReg.NetworkserviceEndpoint.EndpointName)
+						}
+					}
+
+					if err != nil {
 						logrus.Errorf("Failed to register NSE: %v", err)
 					} else {
 						updatedNSEs[newReg.NetworkserviceEndpoint.EndpointName] = nseregistry.NSEEntry{
