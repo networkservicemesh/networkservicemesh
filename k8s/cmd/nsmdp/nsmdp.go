@@ -318,5 +318,6 @@ func main() {
 		os.Exit(1)
 	}
 
+	logrus.Info("nsmdp: successfully started")
 	<-c
 }
