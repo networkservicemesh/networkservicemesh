@@ -449,7 +449,10 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 	if srv.nseManager.isLocalEndpoint(endpoint) {
 		message = srv.createLocalNSERequest(endpoint, requestConnection)
 	} else {
-		message = srv.createRemoteNSMRequest(endpoint, requestConnection, dp, existingConnection)
+		message, err = srv.createRemoteNSMRequest(endpoint, requestConnection, dp, existingConnection)
+		if err != nil {
+			return nil, err
+		}
 	}
 	logrus.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestId, message)
 	nseConnection, e := client.Request(ctx, message)
