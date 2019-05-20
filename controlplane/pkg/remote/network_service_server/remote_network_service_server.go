@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,11 +25,12 @@ const (
 type remoteNetworkServiceServer struct {
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
-	monitor         *remote_connection_monitor.RemoteConnectionMonitor
+	monitor         *remote.MonitorServer
 	manager         nsm.NetworkServiceManager
 }
 
-func NewRemoteNetworkServiceServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, connectionMonitor *remote_connection_monitor.RemoteConnectionMonitor) remote_networkservice.NetworkServiceServer {
+// NewRemoteNetworkServiceServer creates a new remote.NetworkServiceServer
+func NewRemoteNetworkServiceServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, connectionMonitor *remote.MonitorServer) remote_networkservice.NetworkServiceServer {
 	server := &remoteNetworkServiceServer{
 		model:           model,
 		serviceRegistry: serviceRegistry,

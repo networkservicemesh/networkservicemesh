@@ -16,34 +16,37 @@ package vppagent
 
 import (
 	"context"
-	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"net"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
+
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // VPPAgent related constants
@@ -72,7 +75,7 @@ type VPPAgent struct {
 	directMemifConnector *memif.DirectMemifConnector
 	srcIP                net.IP
 	egressInterface      common.EgressInterface
-	monitor              *crossconnect_monitor.CrossConnectMonitor
+	monitor              *monitor_crossconnect.MonitorServer
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -224,7 +227,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 	for _, arpEntry := range v.egressInterface.ArpEntries() {
 		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
 			Interface:   ManagementInterface,
-			IpAddress:   arpEntry.IpAddress,
+			IpAddress:   arpEntry.IPAddress,
 			PhysAddress: arpEntry.PhysAddress,
 		})
 	}
@@ -318,7 +321,8 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	return &empty.Empty{}, nil
 }
 
-func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnect_monitor.CrossConnectMonitor) error {
+// Init makes setup for the VPPAgent
+func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *monitor_crossconnect.MonitorServer) error {
 	tracer, closer := tools.InitJaeger("vppagent-dataplane")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -332,7 +336,7 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 	return nil
 }
 
-func (v *VPPAgent) setupMetricsCollector(monitor *crossconnect_monitor.CrossConnectMonitor) {
+func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {
 	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabledKey)
 	if ok {
 		enabled, err := strconv.ParseBool(val)
@@ -382,7 +386,7 @@ func (v *VPPAgent) setDataplaneConfigBase() {
 	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.CrossConnectMonitor) {
+func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *monitor_crossconnect.MonitorServer) {
 	var err error
 
 	v.monitor = monitor

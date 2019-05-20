@@ -1,10 +1,11 @@
 package nsm
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -43,7 +44,7 @@ func NewNsmProperties() *NsmProperties {
 	}
 
 	// Parse few Environment variables.
-	if "false" == os.Getenv(NsmdHealEnabled) {
+	if os.Getenv(NsmdHealEnabled) == "false" {
 		values.HealEnabled = false
 	}
 	dstWaitTimeout := os.Getenv(NsmdHealDSTWaitTimeout)

@@ -3,9 +3,6 @@ package tests
 import (
 	"context"
 	"fmt"
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"io/ioutil"
 	"net"
 	"os"
@@ -14,7 +11,15 @@ import (
 	"sync"
 	"time"
 
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -28,9 +33,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -299,7 +301,7 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 				delay, err := strconv.Atoi(val)
 				if err == nil {
 					logrus.Infof("Delaying Dataplane Request: %v", delay)
-					<-time.Tick(time.Duration(delay) * time.Second)
+					<-time.After(time.Duration(delay) * time.Second)
 				}
 			}
 		}

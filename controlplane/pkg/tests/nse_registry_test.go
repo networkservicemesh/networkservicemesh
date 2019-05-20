@@ -1,12 +1,14 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 )
 
 func TestNSEFileRegistry(t *testing.T) {

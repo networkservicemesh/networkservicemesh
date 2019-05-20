@@ -2,9 +2,11 @@ package registryserver
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 type discoveryService struct {
@@ -35,9 +37,11 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 	for i, endpoint := range endpointList {
 		NSEs[i] = mapNseFromCustomResource(endpoint, payload)
 		endpointIds = append(endpointIds, NSEs[i].EndpointName)
-		if nsm := d.cache.GetNetworkServiceManager(endpoint.Spec.NsmName); nsm != nil {
-			NSMs[endpoint.Spec.NsmName] = mapNsmFromCustomResource(nsm)
+		nsm, err := d.cache.GetNetworkServiceManager(endpoint.Spec.NsmName)
+		if err != nil {
+			return nil, err
 		}
+		NSMs[endpoint.Spec.NsmName] = mapNsmFromCustomResource(nsm)
 	}
 
 	var matches []*registry.Match

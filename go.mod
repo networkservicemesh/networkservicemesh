@@ -1,7 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh
 
 require (
-	github.com/aws/aws-sdk-go v1.19.20
+	github.com/aws/aws-sdk-go v1.19.30
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -47,5 +47,5 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190313124217-0fa624df11e9 // indirect
 	k8s.io/component-base v0.0.0-20190409093041-e34633071963 // indirect
 	k8s.io/klog v0.1.0 // indirect
-	k8s.io/kubernetes v1.14.1
+	k8s.io/kubernetes v1.14.2
 )

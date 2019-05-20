@@ -2,13 +2,14 @@ package fs
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"syscall"
 	"unicode"
+
+	"github.com/sirupsen/logrus"
 )
 
 func isDigits(s string) bool {

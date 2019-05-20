@@ -11,18 +11,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kube_testing/rbac"
 )
@@ -78,6 +79,7 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 			}
 			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
+				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -86,7 +88,8 @@ func (l *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, n
 
 			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				resultChan <- &PodDeployResult{updated_pod, err}
+				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod)
+				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
 			resultChan <- &PodDeployResult{updated_pod, nil}
@@ -224,7 +227,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 				close(exists)
 				break
 			}
-			<-time.Tick(time.Millisecond * time.Duration(50))
+			<-time.After(time.Millisecond * time.Duration(50))
 		}
 	}()
 
@@ -447,6 +450,14 @@ func (l *K8s) DescribePod(pod *v1.Pod) {
 	}
 }
 
+// CleanupEndpointsCRDs clean Network Service Endpoints from registry
+func (l *K8s) CleanupEndpointsCRDs() {
+	endpoints, _ := l.versionedClientSet.NetworkservicemeshV1().NetworkServiceEndpoints(l.namespace).List(metaV1.ListOptions{})
+	for i := range endpoints.Items {
+		_ = l.versionedClientSet.NetworkservicemeshV1().NetworkServiceEndpoints(l.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
+	}
+}
+
 func (l *K8s) Cleanup() {
 	st := time.Now()
 	var wg sync.WaitGroup
@@ -481,9 +492,10 @@ func (l *K8s) Cleanup() {
 
 func (l *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
-		for _, lpod := range l.ListPods() {
+		for i := range l.ListPods() {
+			lpod := &l.ListPods()[i]
 			if strings.Contains(lpod.Name, podName) {
-				l.DeletePods(&lpod)
+				l.DeletePods(lpod)
 			}
 		}
 	}
@@ -603,7 +615,7 @@ func (o *K8s) WaitLogsContains(pod *v1.Pod, container string, pattern string, ti
 			logrus.Printf("Error on get logs: %v retrying", error)
 		}
 		if !strings.Contains(logs, pattern) {
-			<-time.Tick(100 * time.Millisecond)
+			<-time.After(100 * time.Millisecond)
 		} else {
 			break
 		}
@@ -629,7 +641,7 @@ func (k8s *K8s) GetConfig() *rest.Config {
 	return k8s.config
 }
 
-func isNodeReady(node v1.Node) bool {
+func isNodeReady(node *v1.Node) bool {
 	for _, c := range node.Status.Conditions {
 		if c.Type == v1.NodeReady {
 			resultValue := c.Status == v1.ConditionTrue
@@ -648,7 +660,8 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 	for {
 		nodes := k8s.GetNodes()
 		ready := 0
-		for _, node := range nodes {
+		for i := range nodes {
+			node := &nodes[i]
 			logrus.Infof("Checking node: %s", node.Name)
 			if isNodeReady(node) {
 				ready++
@@ -705,8 +718,12 @@ func (o *K8s) DeleteDeployment(deployment *appsv1.Deployment, namespace string) 
 
 func (o *K8s) CleanupDeployments() {
 	deployments, _ := o.clientset.AppsV1().Deployments(o.namespace).List(metaV1.ListOptions{})
-	for _, d := range deployments.Items {
-		_ = o.DeleteDeployment(&d, o.namespace)
+	for i := range deployments.Items {
+		d := &deployments.Items[i]
+		err := o.DeleteDeployment(d, o.namespace)
+		if err != nil {
+			logrus.Errorf("An error during deployment deleting %v", err)
+		}
 	}
 }
 

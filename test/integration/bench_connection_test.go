@@ -8,7 +8,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
 )
@@ -139,7 +138,7 @@ type nscPingResult struct {
 
 func createNodes(k8s *kube_testing.K8s, count int) []*v1.Node {
 	Expect(count > 0 && count < 3).Should(Equal(true))
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, count, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
+	nodes := nsmd_test_utils.SetupNodes(k8s, count, defaultTimeout)
 	Expect(len(nodes), count)
 	result := make([]*v1.Node, count)
 	for i := 0; i < count; i++ {

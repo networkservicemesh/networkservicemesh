@@ -38,7 +38,7 @@ func TestSimpleMetrics(t *testing.T) {
 				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
 				vppagent.DataplaneMetricsCollectorRequestPeriodKey: requestPeriod.String(),
 			},
-			Variables: pods.DefaultNSMD,
+			Variables: pods.DefaultNSMD(),
 		},
 	}, k8s.GetK8sNamespace())
 
@@ -60,7 +60,7 @@ func TestSimpleMetrics(t *testing.T) {
 	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
 	logrus.Infof("response = %v", response)
 	Expect(err).To(BeNil())
-	<-time.Tick(requestPeriod * 5)
+	<-time.After(requestPeriod * 5)
 	k8s.DeletePods(nsc)
 	select {
 	case metrics := <-metricsCh:
@@ -68,7 +68,7 @@ func TestSimpleMetrics(t *testing.T) {
 		Expect(metrics["rx_error_packets"]).Should(Equal("0"))
 		Expect(metrics["tx_error_packets"]).Should(Equal("0"))
 		return
-	case <-time.Tick(defaultTimeout):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("Fail to get metrics during %v", defaultTimeout)
 	}
 }

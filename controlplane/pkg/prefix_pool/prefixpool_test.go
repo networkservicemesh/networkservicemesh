@@ -5,9 +5,10 @@ import (
 	"net"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 )
 
 func TestPrefixPoolSubnet1(t *testing.T) {

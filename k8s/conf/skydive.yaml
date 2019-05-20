@@ -33,7 +33,7 @@ data:
         driver: memory
 
     logging:
-      level: DEBUG
+      level: INFO
 
     agent:
       topology:
@@ -82,7 +82,7 @@ spec:
     spec:
       containers:
         - name: skydive-analyzer
-          image: matrohon/skydive
+          image: skydive/skydive:0.23.0
           imagePullPolicy: IfNotPresent
           args:
             - analyzer
@@ -128,7 +128,7 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: matrohon/skydive
+          image: skydive/skydive:0.23.0
           imagePullPolicy: IfNotPresent
           args:
             - agent

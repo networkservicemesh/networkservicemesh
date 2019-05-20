@@ -3,10 +3,11 @@ package pods
 import (
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 )
 
 const (
@@ -14,8 +15,11 @@ const (
 	NSMDHostRootEnv    = "NSMD_HOST_ROOT" // A host path for all sources.
 )
 
-var DefaultNSMD = map[string]string{
-	nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+// DefaultNSMD creates default variables for NSMD.
+func DefaultNSMD() map[string]string {
+	return map[string]string{
+		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+	}
 }
 
 func newNSMMount() v1.VolumeMount {
@@ -68,7 +72,7 @@ func NSMgrDevConfig(nsmd NSMgrContainerMode, nsmdp NSMgrContainerMode, nsmdk8s N
 
 func NSMgrPod(name string, node *v1.Node, namespace string) *v1.Pod {
 	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
-		Variables: DefaultNSMD,
+		Variables: DefaultNSMD(),
 		Namespace: namespace,
 	})
 }
@@ -76,7 +80,7 @@ func NSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Pod {
 	return NSMgrPodWithConfig(name, node, &NSMgrPodConfig{
 		liveness:  createProbe("/liveness"),
 		readiness: createProbe("/readiness"),
-		Variables: DefaultNSMD,
+		Variables: DefaultNSMD(),
 		Namespace: namespace})
 }
 

@@ -16,12 +16,15 @@ package nsmd
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 type NSERegistryServer interface {

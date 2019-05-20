@@ -3,13 +3,15 @@ package nseregistry
 import (
 	"bufio"
 	"encoding/base64"
-	"github.com/gogo/protobuf/proto"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 const (
@@ -38,8 +40,8 @@ func store(values ...string) string {
 			res += "\t"
 		}
 		ss := strings.Replace(s, "\t", "\\t,", -1)
-		ss = strings.Replace(s, "\n", "\\n,", -1) // Just in case
-		ss = strings.Replace(s, "\r", "\\r,", -1) // Just in case
+		ss = strings.Replace(ss, "\n", "\\n,", -1) // Just in case
+		ss = strings.Replace(ss, "\r", "\\r,", -1) // Just in case
 		res += ss
 	}
 	return res

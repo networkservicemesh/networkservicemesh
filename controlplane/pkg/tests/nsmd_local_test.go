@@ -2,19 +2,21 @@ package tests
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	context2 "golang.org/x/net/context"
-	"google.golang.org/grpc"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	context2 "golang.org/x/net/context"
+	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 type nseWithOptions struct {
@@ -33,7 +35,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 			delay, err := strconv.Atoi(val)
 			if err == nil {
 				logrus.Infof("Delaying NSE init: %v", delay)
-				<-time.Tick(time.Duration(delay) * time.Second)
+				<-time.After(time.Duration(delay) * time.Second)
 			}
 		}
 	}
@@ -368,7 +370,7 @@ func TestSlowNSE(t *testing.T) {
 	ctx, canceOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer canceOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<-time.Tick(1 * time.Second)
+	<-time.After(1 * time.Second)
 	println(err.Error())
 	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())
@@ -401,7 +403,7 @@ func TestSlowDP(t *testing.T) {
 	ctx, cancelOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancelOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<-time.Tick(1 * time.Second)
+	<-time.After(1 * time.Second)
 	println(err.Error())
 	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())

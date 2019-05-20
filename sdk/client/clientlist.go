@@ -20,9 +20,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -39,7 +40,8 @@ type NsmClientList struct {
 
 // Connect will create new interfaces with the specified name and mechanism
 func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
-	for idx, entry := range nsmcl.clients {
+	for idx := range nsmcl.clients {
+		entry := &nsmcl.clients[idx]
 		conn, err := entry.client.Connect(name+strconv.Itoa(idx), mechanism, description)
 		if err != nil {
 			return err
@@ -51,7 +53,8 @@ func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
 
 // Close terminates all connections establised by Connect
 func (nsmcl *NsmClientList) Close() error {
-	for _, entry := range nsmcl.clients {
+	for i := range nsmcl.clients {
+		entry := &nsmcl.clients[i]
 		for _, connection := range entry.connections {
 			err := entry.client.Close(connection)
 			if err != nil {
@@ -64,7 +67,8 @@ func (nsmcl *NsmClientList) Close() error {
 
 // Destroy terminates all clients
 func (nsmcl *NsmClientList) Destroy() error {
-	for _, entry := range nsmcl.clients {
+	for i := range nsmcl.clients {
+		entry := &nsmcl.clients[i]
 		err := entry.client.Destroy()
 		if err != nil {
 			return err
@@ -76,7 +80,7 @@ func (nsmcl *NsmClientList) Destroy() error {
 // NewNSMClientList creates a new list of clients
 func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration) (*NsmClientList, error) {
 	annotationValue := os.Getenv(AnnotationEnv)
-	if len(annotationValue) == 0 {
+	if annotationValue == "" {
 		client, err := NewNSMClient(ctx, configuration)
 		if err != nil {
 			return nil, err

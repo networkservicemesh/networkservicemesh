@@ -1,12 +1,14 @@
 package registryserver
 
 import (
+	"time"
+
 	"github.com/golang/protobuf/ptypes"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 )
 
 func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServiceManager {

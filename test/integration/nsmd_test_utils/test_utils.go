@@ -5,7 +5,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"net"
 	"os"
 	"strings"
@@ -13,11 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 
 	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 
+	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
@@ -115,6 +120,7 @@ func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v
 		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmdp", "ListAndWatch was called with", timeout)
+		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
 		printNSMDLogs(k8s, nsmd, 0)
@@ -648,6 +654,7 @@ func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeCo
 	}
 }
 
+// FailLogger prints logs from containers in case of fail or panic
 func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	if r := recover(); r != nil {
 		PrintLogs(k8s, nodes_setup)
@@ -659,4 +666,29 @@ func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
 	}
 
 	return
+}
+
+// ServiceRegistryAt creates new service registry on 5000 port
+func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
+	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
+	Expect(err).To(BeNil())
+
+	err = fwd.Start()
+	Expect(err).To(BeNil())
+
+	sr := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	return sr, fwd.Stop
+}
+
+// PrepareRegistryClients prepare nse and nsm registry clients
+func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
+	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
+
+	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
+	Expect(err).To(BeNil())
+
+	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
+	Expect(err).To(BeNil())
+
+	return nseRegistryClient, nsmRegistryClient, closeFunc
 }

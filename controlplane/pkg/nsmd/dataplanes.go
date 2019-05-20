@@ -23,15 +23,16 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	dataplaneregistrarapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	dataplaneregistrarapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
@@ -71,7 +72,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 	defer conn.Close()
 	dataplaneClient := dataplaneapi.NewDataplaneClient(conn)
 
-	// Looping indefinetly or until grpc returns an error indicating the other end closed connection.
+	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &empty.Empty{})
 	if err != nil {
 		logrus.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)

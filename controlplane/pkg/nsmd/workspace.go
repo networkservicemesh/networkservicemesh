@@ -15,22 +15,24 @@
 package nsmd
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"net"
 	"os"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local_connection_monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type WorkspaceState int
@@ -46,7 +48,7 @@ type Workspace struct {
 	listener                net.Listener
 	registryServer          NSERegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
-	monitorConnectionServer *local_connection_monitor.LocalConnectionMonitor
+	monitorConnectionServer *local.MonitorServer
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
@@ -69,7 +71,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 		}
 	}
 	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
-	if err := os.MkdirAll(w.NsmDirectory(), folderMask); err != nil {
+	if err := os.MkdirAll(w.NsmDirectory(), os.ModePerm); err != nil {
 		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
 	}
@@ -85,12 +87,12 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	w.registryServer = NewRegistryServer(nsm, w)
 
 	logrus.Infof("Creating new MonitorConnectionServer")
-	w.monitorConnectionServer = local_connection_monitor.NewLocalConnectionMonitor()
+	w.monitorConnectionServer = local.NewMonitorServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
 	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
 
-	logrus.Infof("Creating new GRPC Server")
+	logrus.Infof("Creating new GRPC MonitorServer")
 	tracer := opentracing.GlobalTracer()
 	w.grpcServer = grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -148,7 +150,8 @@ func (w *Workspace) NsmClientSocket() string {
 	return w.NsmDirectory() + "/" + w.locationProvider.NsmClientSocket()
 }
 
-func (w *Workspace) MonitorConnectionServer() *local_connection_monitor.LocalConnectionMonitor {
+// MonitorConnectionServer returns workspace.monitorConnectionServer
+func (w *Workspace) MonitorConnectionServer() *local.MonitorServer {
 	if w == nil {
 		return nil
 	}

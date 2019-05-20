@@ -3,19 +3,21 @@ package nsm
 import (
 	"context"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
+
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/sirupsen/logrus"
 )
 
 type networkServiceEndpointManager interface {
 	getEndpoint(ctx context.Context, requestConnection nsm.NSMConnection, ignore_endpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
 	createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error)
 	isLocalEndpoint(endpoint *registry.NSERegistration) bool
-	checkUpdateNSE(ctx context.Context, clientConnection *model.ClientConnection, ep *registry.NetworkServiceEndpoint, endpointResponse *registry.FindNetworkServiceResponse) bool
+	checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool
 }
 
 type nseManager struct {
@@ -54,14 +56,16 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection nsm.N
 	endpoints := filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignore_endpoints)
 
 	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("Failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
 	}
 
 	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local_connection.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
 	}
+
 	return &registry.NSERegistration{
 		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
 		NetworkserviceEndpoint: endpoint,
@@ -100,23 +104,16 @@ func (nsem *nseManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool
 	return nsem.model.GetNsm().GetName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
 }
 
-func (nsem *nseManager) checkUpdateNSE(ctx context.Context, clientConnection *model.ClientConnection, ep *registry.NetworkServiceEndpoint, endpointResponse *registry.FindNetworkServiceResponse) bool {
+func (nsem *nseManager) checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
 	pingCtx, pingCancel := context.WithTimeout(ctx, nsem.properties.HealRequestConnectCheckTimeout)
 	defer pingCancel()
-	reg := &registry.NSERegistration{
-		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[ep.GetNetworkServiceManagerName()],
-		NetworkserviceEndpoint: ep,
-		NetworkService:         endpointResponse.GetNetworkService(),
-	}
 
 	client, err := nsem.createNSEClient(pingCtx, reg)
 	if err == nil && client != nil {
 		_ = client.Cleanup()
-
-		// Update endpoint to connect new one.
-		clientConnection.Endpoint = reg
 		return true
 	}
+
 	return false
 }
 

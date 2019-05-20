@@ -1,12 +1,14 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
 func TestNSMDRestart1(t *testing.T) {

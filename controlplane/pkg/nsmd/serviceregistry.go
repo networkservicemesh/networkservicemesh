@@ -10,6 +10,11 @@ import (
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
@@ -19,16 +24,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 )
 
 const (
 	ServerSock             = "/var/lib/networkservicemesh/nsm.io.sock"
 	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
-	folderMask             = 0777
 	NsmdApiAddressEnv      = "NSMD_API_ADDRESS"
 	NsmdApiAddressDefaults = "0.0.0.0:5001"
 )

@@ -21,10 +21,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var (
@@ -44,7 +45,7 @@ type dataplaneRegistration struct {
 	onConnect       OnConnectFunc
 	onDisconnect    OnDisConnectFunc
 	client          dataplaneregistrar.DataplaneRegistrationClient
-	wasRegistered bool
+	wasRegistered   bool
 }
 
 type OnConnectFunc func() error

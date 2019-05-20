@@ -2,15 +2,17 @@ package nsm
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 func (srv *networkServiceManager) updateMechanism(requestId string, nsmConnection nsm.NSMConnection, request nsm.NSMRequest, dataplane *model.Dataplane) error {
@@ -72,8 +74,8 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestId string, reques
 	return nil, fmt.Errorf("NSM:(5.1-%v) Failed to select mechanism. No matched mechanisms found...", requestId)
 }
 
-func findRemoteMechanism(MechanismPreferences []*remote_connection.Mechanism, mechanismType remote_connection.MechanismType) *remote_connection.Mechanism {
-	for _, m := range MechanismPreferences {
+func findRemoteMechanism(mechanismPreferences []*remote_connection.Mechanism, mechanismType remote_connection.MechanismType) *remote_connection.Mechanism {
+	for _, m := range mechanismPreferences {
 		if m.Type == mechanismType {
 			return m
 		}
@@ -81,8 +83,8 @@ func findRemoteMechanism(MechanismPreferences []*remote_connection.Mechanism, me
 	return nil
 }
 
-func findLocalMechanism(MechanismPreferences []*connection.Mechanism, mechanismType connection.MechanismType) *connection.Mechanism {
-	for _, m := range MechanismPreferences {
+func findLocalMechanism(mechanismPreferences []*connection.Mechanism, mechanismType connection.MechanismType) *connection.Mechanism {
+	for _, m := range mechanismPreferences {
 		if m.Type == mechanismType {
 			return m
 		}

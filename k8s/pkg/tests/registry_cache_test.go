@@ -2,14 +2,16 @@ package tests
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"time"
+
+	. "github.com/onsi/gomega"
+
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/scheme"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-	. "github.com/onsi/gomega"
-	"io"
-	"io/ioutil"
-	"time"
 
 	"net/http"
 	"sync"

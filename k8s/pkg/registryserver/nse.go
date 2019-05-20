@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -52,11 +53,22 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			logrus.Errorf("Failed to register nsm: %s", err)
 			return nil, err
 		}
-		nseResponse, err := rs.cache.AddNetworkServiceEndpoint(&v1.NetworkServiceEndpoint{
-			ObjectMeta: metav1.ObjectMeta{
+
+		var objectMeta metav1.ObjectMeta
+		if request.GetNetworkserviceEndpoint().EndpointName == "" {
+			objectMeta = metav1.ObjectMeta{
 				GenerateName: request.GetNetworkService().GetName(),
 				Labels:       labels,
-			},
+			}
+		} else {
+			objectMeta = metav1.ObjectMeta{
+				Name:   request.GetNetworkserviceEndpoint().EndpointName,
+				Labels: labels,
+			}
+		}
+
+		nseResponse, err := rs.cache.AddNetworkServiceEndpoint(&v1.NetworkServiceEndpoint{
+			ObjectMeta: objectMeta,
 			Spec: v1.NetworkServiceEndpointSpec{
 				NetworkServiceName: request.GetNetworkService().GetName(),
 				NsmName:            rs.nsmName,
@@ -70,9 +82,11 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		}
 
 		request.NetworkserviceEndpoint = mapNseFromCustomResource(nseResponse, networkService.Spec.Payload)
-		if nsm := rs.cache.GetNetworkServiceManager(rs.nsmName); nsm != nil {
-			request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
+		nsm, err := rs.cache.GetNetworkServiceManager(rs.nsmName)
+		if err != nil {
+			return nil, err
 		}
+		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
 	}
 	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil

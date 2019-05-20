@@ -17,14 +17,16 @@ package converter
 
 import (
 	"fmt"
+
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
-// RemoteConnectionConverter descibed the remote connection
+// RemoteConnectionConverter described the remote connection
 type RemoteConnectionConverter struct {
 	*connection.Connection
 	name string

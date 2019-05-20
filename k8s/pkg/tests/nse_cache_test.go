@@ -1,16 +1,18 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	"testing"
+	"time"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
-	"testing"
-	"time"
+
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 )
 
 type fakeRegistry struct {
@@ -147,7 +149,7 @@ func TestRegistryDelete(t *testing.T) {
 func getEndpoints(nseCache *resource_cache.NetworkServiceEndpointCache,
 	networkServiceName string, expectedLength int) []*v1.NetworkServiceEndpoint {
 	var endpointList []*v1.NetworkServiceEndpoint
-	for attempt := 0; attempt < 10; <-time.Tick(300 * time.Millisecond) {
+	for attempt := 0; attempt < 10; <-time.After(300 * time.Millisecond) {
 		attempt++
 		endpointList = nseCache.GetByNetworkService(networkServiceName)
 		if len(endpointList) == expectedLength {

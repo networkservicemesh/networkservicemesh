@@ -23,12 +23,13 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/sirupsen/logrus"
 )
 
 type IpamEndpoint struct {
@@ -83,7 +84,8 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 
 	addrs, err := net.Interfaces()
 	if err == nil {
-		for _, iface := range addrs {
+		for i := range addrs {
+			iface := &addrs[i]
 			adrs, err := iface.Addrs()
 			if err != nil {
 				continue

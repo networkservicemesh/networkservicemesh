@@ -4,6 +4,7 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
 	"strconv"
 	"strings"
 	"testing"
@@ -121,6 +122,17 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "ListAndWatch was called with", defaultTimeout)
 	}
 
+	var nodesConf []*nsmd_test_utils.NodeConf
+	for i := 0; i < len(nsmdPodNode); i++ {
+		nodesConf = append(nodesConf, &nsmd_test_utils.NodeConf{
+			Nsmd:      nsmdPodNode[i],
+			Dataplane: nsmdDataplanePodNode[i],
+			Node:      &nodes[i],
+		})
+	}
+
+	defer nsmd_test_utils.FailLogger(k8s, nodesConf, t)
+
 	{
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
@@ -186,6 +198,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 			"IP_ADDRESS":           "10.60.1.0/24",
 		},
 	))
+	Expect(vpnGatewayPodNode).ToNot(BeNil())
 	Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse-1"))
 
 	k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)

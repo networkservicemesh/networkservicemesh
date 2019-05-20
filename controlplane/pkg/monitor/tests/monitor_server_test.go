@@ -3,15 +3,17 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"net"
 	"sync"
 	"testing"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 )
 
 func startClient(target string) {
@@ -40,7 +42,7 @@ func TestSimple(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
-	monitor := crossconnect_monitor.NewCrossConnectMonitor()
+	monitor := monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	go func() {
@@ -66,7 +68,7 @@ func TestSeveralRecipient(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
-	monitor := crossconnect_monitor.NewCrossConnectMonitor()
+	monitor := monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	var waitServe sync.WaitGroup

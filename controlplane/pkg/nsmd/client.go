@@ -2,11 +2,13 @@ package nsmd
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"google.golang.org/grpc"
 	"os"
 	"time"
+
+	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func NewNetworkServiceClient() (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
