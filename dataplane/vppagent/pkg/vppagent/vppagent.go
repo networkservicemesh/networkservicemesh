@@ -42,7 +42,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
@@ -75,7 +75,7 @@ type VPPAgent struct {
 	directMemifConnector *memif.DirectMemifConnector
 	srcIP                net.IP
 	egressInterface      common.EgressInterface
-	monitor              *crossconnect_monitor.CrossConnectMonitor
+	monitor              *monitor_crossconnect.MonitorServer
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -321,7 +321,8 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	return &empty.Empty{}, nil
 }
 
-func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnect_monitor.CrossConnectMonitor) error {
+// Init makes setup for the VPPAgent
+func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *monitor_crossconnect.MonitorServer) error {
 	tracer, closer := tools.InitJaeger("vppagent-dataplane")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -335,7 +336,7 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *crossconnec
 	return nil
 }
 
-func (v *VPPAgent) setupMetricsCollector(monitor *crossconnect_monitor.CrossConnectMonitor) {
+func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {
 	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabledKey)
 	if ok {
 		enabled, err := strconv.ParseBool(val)
@@ -385,7 +386,7 @@ func (v *VPPAgent) setDataplaneConfigBase() {
 	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *crossconnect_monitor.CrossConnectMonitor) {
+func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *monitor_crossconnect.MonitorServer) {
 	var err error
 
 	v.monitor = monitor

@@ -306,6 +306,6 @@ func (p *nsmHealProcessor) waitNSE(ctx context.Context, clientConnection *model.
 			return false
 		}
 		// Wait a bit
-		<-time.Tick(p.properties.HealDSTNSEWaitTick)
+		<-time.After(p.properties.HealDSTNSEWaitTick)
 	}
 }

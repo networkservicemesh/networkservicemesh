@@ -73,7 +73,7 @@ func checkSubnetWatcher(t *testing.T, subnetSequence, expectedSequence []string)
 		select {
 		case e := <-sw.ResultChan():
 			Expect(e.String()).To(Equal(expectedSequence[i]))
-		case <-time.Tick(1 * time.Second):
+		case <-time.After(1 * time.Second):
 			if expectedSequence[i] != "-" {
 				logrus.Error("Timeout waiting for next subnet")
 				t.Fail()

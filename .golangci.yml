@@ -108,5 +108,11 @@ issues:
     - path: test/integration/const.go
       linters:
         - deadcode
+    - path: local/local_connection_event\.go
+      linters:
+        - dupl
+    - path: remote/remote_connection_event\.go
+      linters:
+        - dupl
   exclude:
     - should not use dot imports

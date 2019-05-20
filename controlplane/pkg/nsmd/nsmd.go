@@ -21,8 +21,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect_monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote_connection_monitor"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -40,8 +40,8 @@ type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
 	XconManager() *services.ClientConnectionManager
-	MonitorCrossConnectServer() *crossconnect_monitor.CrossConnectMonitor
-	MonitorConnectionServer() *remote_connection_monitor.RemoteConnectionMonitor
+	MonitorCrossConnectServer() *monitor_crossconnect.MonitorServer
+	MonitorConnectionServer() *remote.MonitorServer
 	Model() model.Model
 	Manager() nsm.NetworkServiceManager
 	ServiceRegistry() serviceregistry.ServiceRegistry
@@ -60,18 +60,18 @@ type nsmServer struct {
 	regServer        *dataplaneRegistrarServer
 
 	xconManager               *services.ClientConnectionManager
-	monitorCrossConnectServer *crossconnect_monitor.CrossConnectMonitor
-	monitorConnectionServer   *remote_connection_monitor.RemoteConnectionMonitor
+	monitorCrossConnectServer *monitor_crossconnect.MonitorServer
+	monitorConnectionServer   *remote.MonitorServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
 	return nsm.xconManager
 }
 
-func (nsm *nsmServer) MonitorCrossConnectServer() *crossconnect_monitor.CrossConnectMonitor {
+func (nsm *nsmServer) MonitorCrossConnectServer() *monitor_crossconnect.MonitorServer {
 	return nsm.monitorCrossConnectServer
 }
-func (nsm *nsmServer) MonitorConnectionServer() *remote_connection_monitor.RemoteConnectionMonitor {
+func (nsm *nsmServer) MonitorConnectionServer() *remote.MonitorServer {
 	return nsm.monitorConnectionServer
 }
 func (nsm *nsmServer) Model() model.Model {
@@ -235,6 +235,17 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 				if _, ok := existingEndpoints[endpointId]; !ok {
 					newReg, err := ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
 					if err != nil {
+						endpointName := nse.NseReg.NetworkserviceEndpoint.EndpointName
+						logrus.Warnf("Failed to register NSE with name %v: %v", endpointName, err)
+						logrus.Infof("Try to register NSE with new name...")
+						nse.NseReg.NetworkserviceEndpoint.EndpointName = ""
+						newReg, err = ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
+						if err == nil {
+							nsm.manager.NotifyRenamedEndpoint(endpointName, newReg.NetworkserviceEndpoint.EndpointName)
+						}
+					}
+
+					if err != nil {
 						logrus.Errorf("Failed to register NSE: %v", err)
 					} else {
 						updatedNSEs[newReg.NetworkserviceEndpoint.EndpointName] = nseregistry.NSEEntry{
@@ -353,9 +364,9 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 func (nsm *nsmServer) initMonitorServers() {
 	nsm.xconManager = services.NewClientConnectionManager(nsm.model, nsm.manager, nsm.serviceRegistry)
 	// Start CrossConnect monitor server
-	nsm.monitorCrossConnectServer = crossconnect_monitor.NewCrossConnectMonitor()
+	nsm.monitorCrossConnectServer = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
-	nsm.monitorConnectionServer = remote_connection_monitor.NewRemoteConnectionMonitor(nsm.xconManager)
+	nsm.monitorConnectionServer = remote.NewMonitorServer(nsm.xconManager)
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
 	monitorCrossConnectClient := NewMonitorCrossConnectClient(nsm.monitorCrossConnectServer, nsm.monitorConnectionServer, nsm.xconManager)
 	nsm.model.AddListener(monitorCrossConnectClient)

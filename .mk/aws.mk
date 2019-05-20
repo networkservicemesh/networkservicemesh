@@ -73,3 +73,10 @@ aws-%-save: aws-%-build ;
 .PHONY: aws-download-postmortem
 aws-download-postmortem:
 	@echo "Not implemented yet."
+
+.PHONY: aws-print-kubelet-log
+aws-print-kubelet-log:
+	@echo "Master node kubelet log:" ; \
+	ssh ${SSH_PARAMS} aws-master "journalctl -u kubelet" ; \
+	echo "Woker node kubelet log:" ; \
+	ssh ${SSH_PARAMS} aws-worker "journalctl -u kubelet"
