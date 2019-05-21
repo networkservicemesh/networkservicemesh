@@ -128,24 +128,34 @@ func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.C
 	return m.model.GetClientConnection(connectionId)
 }
 
-func (m *ClientConnectionManager) GetClientConnectionByDst(dstId string) *model.ClientConnection {
+// GetClientConnectionByLocalDst returns a ClientConnection with `Xcon.GetLocalDestination().GetID() == dstID`
+// or `null` if there is no such connection
+func (m *ClientConnectionManager) GetClientConnectionByLocalDst(dstID string) *model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
 
 	for _, clientConnection := range clientConnections {
-		var destinationId string
-		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
-			destinationId = dst.GetId()
-		} else {
-			destinationId = clientConnection.Xcon.GetRemoteDestination().GetId()
-		}
-
-		if destinationId == dstId {
+		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil && dst.GetId() == dstID {
 			return clientConnection
 		}
 	}
 
 	return nil
 }
+
+// GetClientConnectionByRemoteDst returns a ClientConnection with `Xcon.GetRemoteDestination().GetId() == dstID`
+// or `null` if there is no such connection
+func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID string) *model.ClientConnection {
+	clientConnections := m.model.GetAllClientConnections()
+
+	for _, clientConnection := range clientConnections {
+		if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil && dst.GetId() == dstID {
+			return clientConnection
+		}
+	}
+
+	return nil
+}
+
 func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.NetworkServiceManager) []*model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
 	var result []*model.ClientConnection

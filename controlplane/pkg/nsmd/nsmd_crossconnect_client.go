@@ -292,7 +292,7 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 		return fmt.Errorf("unable to cast %v to local.Connection", entity)
 	}
 
-	if cc := client.xconManager.GetClientConnectionByDst(localConnection.GetId()); cc != nil {
+	if cc := client.xconManager.GetClientConnectionByLocalDst(localConnection.GetId()); cc != nil {
 		switch eventType {
 		case monitor.EventTypeUpdate:
 			// DST connection is updated, we most probable need to re-programm our data plane.
@@ -404,7 +404,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 		return fmt.Errorf("unable to cast %v to remote.Connection", entity)
 	}
 
-	if cc := client.xconManager.GetClientConnectionByDst(remoteConnection.GetId()); cc != nil {
+	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId()); cc != nil {
 		switch eventType {
 		case monitor.EventTypeUpdate:
 			// DST connection is updated, we most probable need to re-programm our data plane.
