@@ -28,35 +28,30 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc()
 
-	expectedCh := make(chan kubetest.EventDescription, 10)
-	waitCh := make(chan struct{})
-
-	go kubetest.CheckEventsCh(t, eventCh, expectedCh, waitCh)
-
+	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
 	k8s.DeletePods(icmpPod)
 
-	expectedCh <- kubetest.EventDescription{
+	expectedFunc(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-	}
+	})
 
-	expectedCh <- kubetest.EventDescription{
+	expectedFunc(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
-	}
+	})
 
-	expectedCh <- kubetest.EventDescription{
+	expectedFunc(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_DELETE,
 		SrcUp:     true,
 		DstUp:     false,
 		LastEvent: true,
-	}
+	})
 
-	<-waitCh
-	close(expectedCh)
+	waitFunc()
 }
 
 func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
@@ -78,38 +73,34 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc()
 
-	expectedCh := make(chan kubetest.EventDescription, 10)
-	waitCh := make(chan struct{})
-
-	go kubetest.CheckEventsCh(t, eventCh, expectedCh, waitCh)
+	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
 
 	icmp1 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-1", defaultTimeout)
 	Expect(icmp1).ToNot(BeNil())
 
 	k8s.DeletePods(icmp0)
 
-	expectedCh <- kubetest.EventDescription{
+	expectedFunc(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-	}
+	})
 
-	expectedCh <- kubetest.EventDescription{
+	expectedFunc(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
-	}
+	})
 
-	expectedCh <- kubetest.EventDescription{
+	expectedFunc(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     true,
 		LastEvent: true,
-	}
+	})
 
-	<-waitCh
-	close(expectedCh)
+	waitFunc()
 }
 
 func TestXconMonitorMultiNodeHealFail(t *testing.T) {
@@ -137,66 +128,57 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	defer closeFunc1()
 
 	// checking goroutine for node0
-	expectedCh0 := make(chan kubetest.EventDescription, 10)
-	waitCh0 := make(chan struct{})
-
-	go kubetest.CheckEventsCh(t, eventCh0, expectedCh0, waitCh0)
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
 
 	// checking goroutine for node1
-	expectedCh1 := make(chan kubetest.EventDescription, 10)
-	waitCh1 := make(chan struct{})
-
-	go kubetest.CheckEventsCh(t, eventCh1, expectedCh1, waitCh1)
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
 	k8s.DeletePods(icmp)
 
 	// expected events for node0
-	expectedCh0 <- kubetest.EventDescription{
+	expectedFunc0(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-	}
+	})
 
-	expectedCh0 <- kubetest.EventDescription{
+	expectedFunc0(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
-	}
+	})
 
-	expectedCh0 <- kubetest.EventDescription{
+	expectedFunc0(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_DELETE,
 		SrcUp:     true,
 		DstUp:     false,
 		LastEvent: true,
-	}
+	})
 
 	// expected events for node1
-	expectedCh1 <- kubetest.EventDescription{
+	expectedFunc1(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-	}
+	})
 
-	expectedCh1 <- kubetest.EventDescription{
+	expectedFunc1(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
-	}
+	})
 
-	expectedCh1 <- kubetest.EventDescription{
+	expectedFunc1(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_DELETE,
 		SrcUp:     true,
 		DstUp:     false,
 		LastEvent: true,
-	}
+	})
 
-	<-waitCh0
-	close(expectedCh0)
-
-	<-waitCh1
-	close(expectedCh1)
+	waitFunc0()
+	waitFunc1()
 }
 
 func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
@@ -224,66 +206,104 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	defer closeFunc1()
 
 	// checking goroutine for node0
-	expectedCh0 := make(chan kubetest.EventDescription, 10)
-	waitCh0 := make(chan struct{})
-
-	go kubetest.CheckEventsCh(t, eventCh0, expectedCh0, waitCh0)
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
 
 	// checking goroutine for node1
-	expectedCh1 := make(chan kubetest.EventDescription, 10)
-	waitCh1 := make(chan struct{})
-
-	go kubetest.CheckEventsCh(t, eventCh1, expectedCh1, waitCh1)
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
 	icmp1 := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-1", defaultTimeout)
 	Expect(icmp1).ToNot(BeNil())
 	k8s.DeletePods(icmp0)
 
 	// expected events for node0
-	expectedCh0 <- kubetest.EventDescription{
+	expectedFunc0(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-	}
+	})
 
-	expectedCh0 <- kubetest.EventDescription{
+	expectedFunc0(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
-	}
+	})
 
-	expectedCh0 <- kubetest.EventDescription{
+	expectedFunc0(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     true,
 		LastEvent: true,
-	}
+	})
 
 	// expected events for node1
-	expectedCh1 <- kubetest.EventDescription{
+	expectedFunc1(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-	}
+	})
 
-	expectedCh1 <- kubetest.EventDescription{
+	expectedFunc1(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_UPDATE,
 		SrcUp:     true,
 		DstUp:     false,
 		TillNext:  defaultTimeout, // waiting while heal finishes work
-	}
+	})
 
-	expectedCh1 <- kubetest.EventDescription{
+	expectedFunc1(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_DELETE,
 		SrcUp:     true,
 		DstUp:     false,
 		LastEvent: true,
-	}
+	})
 
-	<-waitCh0
-	close(expectedCh0)
+	waitFunc0()
+	waitFunc1()
+}
 
-	<-waitCh1
-	close(expectedCh1)
+func TestXconMonitorNsmgrRestart(t *testing.T) {
+	RegisterTestingT(t)
+
+	k8s, err := kubetest.NewK8s(true)
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+
+	nodes_setup := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+
+	icmp0 := kubetest.DeployICMP(k8s, nodes_setup[0].Node, "icmp-0", defaultTimeout)
+	Expect(icmp0).ToNot(BeNil())
+
+	nsc := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-0", defaultTimeout)
+	Expect(nsc).ToNot(BeNil())
+
+	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodes_setup[0].Nsmd)
+	expectFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
+
+	expectFunc(kubetest.EventDescription{
+		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
+		SrcUp:     true,
+		DstUp:     true,
+		LastEvent: true,
+	})
+
+	k8s.DeletePods(nodes_setup[0].Nsmd)
+	waitFunc()
+	closeFunc()
+
+	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig("recovered-nsmgr", nodes_setup[0].Node,
+		&pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "All connections are recovered...", defaultTimeout)
+
+	eventChR, closeFuncR := CrossConnectClientAt(k8s, nodes_setup[0].Nsmd)
+	defer closeFuncR()
+	expectFuncR, waitFuncR := NewEventChecker(t, eventChR)
+
+	expectFuncR(EventDescription{
+		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
+		SrcUp:     true,
+		DstUp:     true,
+		LastEvent: true,
+	})
+
+	waitFuncR()
 }

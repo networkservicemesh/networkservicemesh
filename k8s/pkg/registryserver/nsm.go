@@ -51,6 +51,7 @@ func (n *nsmRegistryService) GetEndpoints(context.Context, *empty.Empty) (*regis
 		response = append(response, mapNseFromCustomResource(endpoint, ns.Spec.Payload))
 	}
 
+	logrus.Infof("GetEndpoints return: %v", response)
 	return &registry.NetworkServiceEndpointList{
 		NetworkServiceEndpoints: response,
 	}, nil

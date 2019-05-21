@@ -14,16 +14,19 @@ import (
 	"time"
 )
 
+// MonitorClient is shorter name for crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
 type MonitorClient crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
 
+// EventDescription describes expected event
 type EventDescription struct {
+	TillNext  time.Duration
 	EventType crossconnect.CrossConnectEventType
 	SrcUp     bool
 	DstUp     bool
-	TillNext  time.Duration
 	LastEvent bool
 }
 
+// CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
 	fwd, err := k8s.NewPortForwarder(pod, 5001)
 	Expect(err).To(BeNil())
@@ -47,7 +50,27 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 
 const defaultNextTimeout = 5 * time.Second
 
-func CheckEventsCh(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent,
+// NewEventChecker starts goroutine that read events from actualCh and
+// compare it with EventDescription passed to expectedFunc
+func NewEventChecker(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent) (expectedFunc func(EventDescription), waitFunc func()) {
+	expectedCh := make(chan EventDescription, 10)
+	waitCh := make(chan struct{})
+
+	go checkEventsCh(t, actualCh, expectedCh, waitCh)
+
+	expectedFunc = func(d EventDescription) {
+		expectedCh <- d
+	}
+
+	waitFunc = func() {
+		<-waitCh
+		close(expectedCh)
+	}
+
+	return
+}
+
+func checkEventsCh(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent,
 	expectedCh <-chan EventDescription, waitCh chan struct{}) {
 	defer close(waitCh)
 	var nextTimeout time.Duration
@@ -58,7 +81,10 @@ func CheckEventsCh(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent
 		}
 
 		select {
-		case e := <-actualCh:
+		case e, ok := <-actualCh:
+			if !ok {
+				return
+			}
 			logrus.Infof("New %v event:", e.Type)
 			for _, v := range e.CrossConnects {
 				logrus.Infof(XconToString(v))
@@ -148,6 +174,7 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 	return eventCh
 }
 
+// CreateCrossConnectClient returns CrossConnectMonitorClient to passed address
 func CreateCrossConnectClient(address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
@@ -174,6 +201,7 @@ func CreateCrossConnectClient(address string) (MonitorClient, func(), context.Ca
 	return stream, closeFunc, cancel
 }
 
+// XconToString converts CrossConnect to string
 func XconToString(xcon *crossconnect.CrossConnect) string {
 	return fmt.Sprintf("%s - %s", srcConnToString(xcon), dstConnToString(xcon))
 }
@@ -219,6 +247,7 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 	return fmt.Sprintf("[DST:%s:%s:%s:%s]", endpoint, distance, ip, state)
 }
 
+// GetCrossConnectsFromMonitor returns xconAmount events from stream
 func GetCrossConnectsFromMonitor(stream MonitorClient, cancel context.CancelFunc,
 	xconAmount int, timeout time.Duration) (map[string]*crossconnect.CrossConnect, error) {
 
