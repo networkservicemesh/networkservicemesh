@@ -78,6 +78,12 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnec
 		return
 	}
 
+	// NSE is not aware of 'Workspace' and 'WorkspaceNSEName' connection mechanism parameters
+	localConnection.GetMechanism().GetParameters()[local_connection.Workspace] =
+		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local_connection.Workspace]
+	localConnection.GetMechanism().GetParameters()[local_connection.WorkspaceNSEName] =
+		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local_connection.WorkspaceNSEName]
+
 	// Check if it update we already have
 	if proto.Equal(localConnection, cc.Xcon.GetLocalDestination()) {
 		// Since they are same, we do not need to do anything.
