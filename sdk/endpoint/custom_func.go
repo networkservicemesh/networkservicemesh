@@ -9,14 +9,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ConnectionMutator is function that accepts connection and modify it
 type ConnectionMutator func(*connection.Connection) error
 
+// CustomFuncEndpoint is endpoint that apply passed ConnectionMutator to connection that accepts from next endpoint
 type CustomFuncEndpoint struct {
 	BaseCompositeEndpoint
 	connectionMutator ConnectionMutator
 	name              string
 }
 
+// Request implements Request method from NetworkServiceServer
 func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	if cf.GetNext() == nil {
 		err := fmt.Errorf("%v endpoint needs next", cf.name)
@@ -39,13 +42,15 @@ func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservi
 	return newConnection, nil
 }
 
-func (re *CustomFuncEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if re.GetNext() != nil {
-		return re.GetNext().Close(ctx, connection)
+// Close implements Close method from NetworkServiceServer
+func (cf *CustomFuncEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if cf.GetNext() != nil {
+		return cf.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
+// NewCustomFuncEndpoint create CustomFuncEndpoint
 func NewCustomFuncEndpoint(name string, mutator ConnectionMutator) *CustomFuncEndpoint {
 	return &CustomFuncEndpoint{
 		name:              name,

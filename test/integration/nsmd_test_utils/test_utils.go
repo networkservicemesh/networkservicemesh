@@ -156,6 +156,7 @@ func DeployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout t
 	))
 }
 
+// DeployNeighborNSE deploys icmp with flag -neighbors
 func DeployNeighborNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
 		defaultICMPEnv(), defaultNeighborNSECommand(),
