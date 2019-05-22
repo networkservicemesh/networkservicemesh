@@ -172,17 +172,16 @@ k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 .PHONY: k8s-build
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-jaeger-build
-k8s-jaeger-build:
-
-.PHONY: k8s-jaeger-save
-k8s-jaeger-save:
-
-.PHONY: k8s-jaeger-load-images
-k8s-jaeger-load-images:
+.PHONY: k8s-%-build
+k8s-%-build: $(CONTAINER_BUILD_PREFIX)-%-build
+	@echo "Delegated to $(CONTAINER_BUILD_PREFIX)-$*-build"
 
 .PHONY: k8s-save
 k8s-save: $(addsuffix -save,$(addprefix k8s-,$(DEPLOYS)))
+
+.PHONY: k8s-%-save
+k8s-%-save: $(CONTAINER_BUILD_PREFIX)-%-save
+	@echo "Delegated to $(CONTAINER_BUILD_PREFIX)-$*-save"
 
 .PHONY: k8s-save-deploy
 k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)))
@@ -191,7 +190,9 @@ k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)
 k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
 	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
+
 NSMGR_CONTAINERS = nsmd nsmdp nsmd-k8s
+
 .PHONY: k8s-nsmgr-build
 k8s-nsmgr-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMGR_CONTAINERS)))
 
@@ -201,110 +202,45 @@ k8s-nsmgr-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMG
 .PHONY: k8s-nsmgr-load-images
 k8s-nsmgr-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMGR_CONTAINERS)))
 
+
 VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane vppagent-dataplane-dev
+
 .PHONY: k8s-vppagent-dataplane-build
 k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+
  .PHONY: k8s-vppagent-dataplane-save
 k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+
  .PHONY: k8s-vppagent-dataplane-load-images
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
 
-.PHONY: k8s-secure-intranet-connectivity-build
-k8s-secure-intranet-connectivity-build:
-
-.PHONY: k8s-secure-intranet-connectivity-save
-k8s-secure-intranet-connectivity-save:
-
-.PHONY: k8s-secure-intranet-connectivity-load-images
-
-k8s-secure-intranet-connectivity-load-images: 
-
-.PHONY: k8s-vppagent-passthrough-nse-build
-k8s-vppagent-passthrough-nse-build:
-
-.PHONY: k8s-vppagent-passthrough-nse-save
-k8s-vppagent-passthrough-nse-save:
-
-.PHONY: k8s-vppagent-passthrough-nse-load-images
-k8s-vppagent-passthrough-nse-load-images:
-.PHONY: k8s-skydive-build
-k8s-skydive-build:
-
-.PHONY: k8s-skydive-save
-k8s-skydive-save: k8s-skydive-build
-
-.PHONY: k8s-skydive-load-images
-k8s-skydive-load-images:
-
-.PHONY: k8s-vpn-gateway-nse-build
-k8s-vpn-gateway-nse-build:
-
-.PHONY: k8s-vpn-gateway-nse-save
-k8s-vpn-gateway-nse-save:
-
-.PHONY: k8s-vpn-gateway-nse-load-images
-k8s-vpn-gateway-nse-load-images: k8s-test-nse-load-images
-
-.PHONY: k8s-vpn-gateway-nsc-build
-k8s-vpn-gateway-nsc-build:
-
-.PHONY: k8s-vpn-gateway-nsc-save
-k8s-vpn-gateway-nsc-save:
-
-.PHONY: k8s-vpn-gateway-nsc-load-images
-k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
-
-.PHONY: k8s-nsc-build
-k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
-
-.PHONY: k8s-nsc-save
-k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
 
 .PHONY: k8s-icmp-responder-nse-build
-k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-nse-build
+k8s-icmp-responder-nse-build: k8s-test-nse-build
 
 .PHONY: k8s-icmp-responder-nse-save
-k8s-icmp-responder-nse-save: ${CONTAINER_BUILD_PREFIX}-test-nse-save
+k8s-icmp-responder-nse-save: k8s-test-nse-save
 
 .PHONY: k8s-icmp-responder-nse-load-images
 k8s-icmp-responder-nse-load-images: k8s-test-nse-load-images
 
-.PHONY: k8s-vppagent-icmp-responder-nse-build
-k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-build
+.PHONY: k8s-vpn-gateway-nse-build
+k8s-vpn-gateway-nse-build: k8s-icmp-responder-nse-build
 
-.PHONY: k8s-vppagent-icmp-responder-nse-save
-k8s-vppagent-icmp-responder-nse-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-save
+.PHONY: k8s-vpn-gateway-nse-save
+k8s-vpn-gateway-nse-save: k8s-icmp-responder-nse-save
 
-.PHONY: k8s-vppagent-firewall-nse-build
-k8s-vppagent-firewall-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-firewall-nse-build
+.PHONY: k8s-vpn-gateway-nse-load-images
+k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
 
-.PHONY: k8s-vppagent-firewall-nse-save
-k8s-vppagent-firewall-nse-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-firewall-nse-save
+.PHONY: k8s-vpn-gateway-nsc-build
+k8s-vpn-gateway-nsc-build: k8s-nsc-build
 
-.PHONY: k8s-vppagent-nsc-build
-k8s-vppagent-nsc-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-build
+.PHONY: k8s-vpn-gateway-nsc-save
+k8s-vpn-gateway-nsc-save: k8s-nsc-save
 
-.PHONY: k8s-vppagent-nsc-save
-k8s-vppagent-nsc-save:  ${CONTAINER_BUILD_PREFIX}-vppagent-nsc-save
-
-
-.PHONY: k8s-crossconnect-monitor-build
-k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-build
-
-.PHONY: k8s-crossconnect-monitor-save
-k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
-
-.PHONY: k8s-crossconnect-load-images
-k8s-crossconnect-monitor-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,crossconnect-monitor))
-
-.PHONY: k8s-admission-webhook-build
-k8s-admission-webhook-build: ${CONTAINER_BUILD_PREFIX}-admission-webhook-build
-
-.PHONY: k8s-admission-webhook-save
-k8s-admission-webhook-save: ${CONTAINER_BUILD_PREFIX}-admission-webhook-save
-
-.PHONY: k8s-admission-webhook-load-images
-k8s-admission-webhook-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,admission-webhook))
+.PHONY: k8s-vpn-gateway-nsc-load-images
+k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
 
 .PHONY: k8s-admission-webhook-create-cert
 k8s-admission-webhook-create-cert:
@@ -314,33 +250,6 @@ k8s-admission-webhook-create-cert:
 k8s-admission-webhook-delete-cert:
 	@echo "Deleting nsm-admission-webhook-certs secret..."
 	@$(kubectl) delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
-
-.PHONY: k8s-skydive-build
-k8s-skydive-build:
-
-.PHONY: k8s-skydive-save
-k8s-skydive-save: k8s-skydive-build
-
-.PHONY: k8s-skydive-load-images
-k8s-skydive-load-images:
-
-.PHONY: k8s-vpn-gateway-nse-build
-k8s-vpn-gateway-nse-build:
-
-.PHONY: k8s-vpn-gateway-nse-save
-k8s-vpn-gateway-nse-save:
-
-.PHONY: k8s-vpn-gateway-nse-load-images
-k8s-vpn-gateway-nse-load-images: k8s-test-nse-load-images
-
-.PHONY: k8s-vpn-gateway-nsc-build
-k8s-vpn-gateway-nsc-build:
-
-.PHONY: k8s-vpn-gateway-nsc-save
-k8s-vpn-gateway-nsc-save:
-
-.PHONY: k8s-vpn-gateway-nsc-load-images
-k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
 
 # TODO add k8s-%-logs and k8s-logs to capture all the logs from k8s
 
@@ -422,7 +331,40 @@ k8s-nsmgr-master-tlogs:
 k8s-nsmgr-worker-tlogs:
 	@$(kubectl) logs -f $$($(kubectl) get pods -o wide | grep kube-worker | grep nsmgr | cut -d\  -f1) -c nsmd
 
+# Empty targets
 
+.PHONY: k8s-jaeger-build
+k8s-jaeger-build:
 
+.PHONY: k8s-jaeger-save
+k8s-jaeger-save:
 
+.PHONY: k8s-jaeger-load-images
+k8s-jaeger-load-images:
 
+.PHONY: k8s-secure-intranet-connectivity-build
+k8s-secure-intranet-connectivity-build:
+
+.PHONY: k8s-secure-intranet-connectivity-save
+k8s-secure-intranet-connectivity-save:
+
+.PHONY: k8s-secure-intranet-connectivity-load-images
+k8s-secure-intranet-connectivity-load-images:
+
+.PHONY: k8s-skydive-build
+k8s-skydive-build:
+
+.PHONY: k8s-skydive-save
+k8s-skydive-save:
+
+.PHONY: k8s-skydive-load-images
+k8s-skydive-load-images:
+
+.PHONY: k8s-vppagent-passthrough-nse-build
+k8s-vppagent-passthrough-nse-build:
+
+.PHONY: k8s-vppagent-passthrough-nse-save
+k8s-vppagent-passthrough-nse-save:
+
+.PHONY: k8s-vppagent-passthrough-nse-load-images
+k8s-vppagent-passthrough-nse-load-images:
