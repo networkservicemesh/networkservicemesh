@@ -12,6 +12,13 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 
@@ -20,13 +27,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type NodeConf struct {
@@ -151,33 +151,31 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	return
 }
 
-// DeployICMP - Setup ICMP responder NSE
+// DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6()), defaultICMPCommand(),
+	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
+		false, false, true,
 	))
 }
 
-// DeployICMPWithConfig - Setup ICMP responder NSE with parameters
+// DeployICMPWithConfig deploys 'icmp-responder-nse' pod with '-routes' flag set and given grace period
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
-	pod := pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6()), defaultICMPCommand(),
-	)
-	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
-	return deployICMP(k8s, node, name, timeout, pod)
-}
-
-// DeployDirtyICMP - Setup ICMP responder NSE with dirty flag set
-func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6()), dirtyICMPCommand(),
+	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), gracePeriod,
+		false, false, true,
 	))
 }
 
-// DeployNeighborNSE deploys icmp with flag -neighbors
+// DeployDirtyICMP deploys 'icmp-responder-nse' pod with '-dirty' flag set
+func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
+		true, false, false,
+	))
+}
+
+// DeployNeighborNSE deploys 'icmp-responder-nse' pod with '-neighbors' flag set
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6()), defaultNeighborNSECommand(),
+	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
+		false, true, false,
 	))
 }
 
@@ -212,18 +210,6 @@ func defaultICMPEnv(useIPv6 bool) map[string]string {
 		"ADVERTISE_NSE_LABELS": "app=icmp",
 		"IP_ADDRESS":           "100::/64",
 	}
-}
-
-func defaultICMPCommand() []string {
-	return []string{"/bin/icmp-responder-nse", "-routes"}
-}
-
-func dirtyICMPCommand() []string {
-	return []string{"/bin/icmp-responder-nse", "-dirty"}
-}
-
-func defaultNeighborNSECommand() []string {
-	return []string{"/bin/icmp-responder-nse", "-neighbors"}
 }
 
 func defaultNSCEnv() map[string]string {

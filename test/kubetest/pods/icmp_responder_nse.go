@@ -6,9 +6,9 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestNSEPod(name string, node *v1.Node, env map[string]string, command []string) *v1.Pod {
-	ht := new(v1.HostPathType)
-	*ht = v1.HostPathDirectoryOrCreate
+// ICMPResponderPod creates a new 'icmp-responder-nse' pod
+func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePeriod int64,
+	dirty, neighbors, routes bool) *v1.Pod {
 
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
@@ -17,6 +17,17 @@ func TestNSEPod(name string, node *v1.Node, env map[string]string, command []str
 				Name:  k,
 				Value: v,
 			})
+	}
+
+	command := []string{"/bin/icmp-responder-nse"}
+	if dirty {
+		command = append(command, "-dirty")
+	}
+	if neighbors {
+		command = append(command, "-neighbors")
+	}
+	if routes {
+		command = append(command, "-routes")
 	}
 
 	pod := &v1.Pod{
@@ -41,7 +52,7 @@ func TestNSEPod(name string, node *v1.Node, env map[string]string, command []str
 					Command: command,
 				}),
 			},
-			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
+			TerminationGracePeriodSeconds: &gracePeriod,
 		},
 	}
 
