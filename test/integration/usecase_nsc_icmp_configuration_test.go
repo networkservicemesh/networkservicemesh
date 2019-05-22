@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"strings"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -79,6 +80,36 @@ func TestNSCAndICMPRemoteVeth(t *testing.T) {
 	}
 
 	testNSCAndICMP(t, 2, false, true)
+}
+
+func TestNSCAndICMPNeighbors(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kube_testing.NewK8s(true)
+	defer k8s.Cleanup()
+
+	Expect(err).To(BeNil())
+
+	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+	_ = nsmd_test_utils.DeployNeighborNSE(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	nsc := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+
+	pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
+	Expect(err).To(BeNil())
+	Expect(errOut).To(Equal(""))
+	Expect(strings.Contains(pingResponse, "100% packet loss")).To(Equal(false))
+
+	nsc2 := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-2", defaultTimeout)
+	arpResponse, errOut, err := k8s.Exec(nsc2, nsc.Spec.Containers[0].Name, "arp", "-a")
+	Expect(err).To(BeNil())
+	Expect(errOut).To(Equal(""))
+	Expect(strings.Contains(arpResponse, "172.16.1.2")).To(Equal(true))
+
 }
 
 /**

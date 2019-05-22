@@ -29,7 +29,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -156,6 +156,13 @@ func DeployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout t
 	))
 }
 
+// DeployNeighborNSE deploys icmp with flag -neighbors
+func DeployNeighborNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
+		defaultICMPEnv(), defaultNeighborNSECommand(),
+	))
+}
+
 func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
@@ -178,7 +185,7 @@ func defaultICMPEnv() map[string]string {
 }
 
 func defaultICMPCommand() []string {
-	return []string{"/bin/icmp-responder-nse"}
+	return []string{"/bin/icmp-responder-nse", "-routes"}
 }
 
 func defaultDirtyNSEEnv() map[string]string {
@@ -190,7 +197,11 @@ func defaultDirtyNSEEnv() map[string]string {
 }
 
 func defaultDirtyNSECommand() []string {
-	return []string{"/bin/icmp-responder-nse", "--dirty"}
+	return []string{"/bin/icmp-responder-nse", "-dirty"}
+}
+
+func defaultNeighborNSECommand() []string {
+	return []string{"/bin/icmp-responder-nse", "-neighbors"}
 }
 
 func defaultNSCEnv() map[string]string {

@@ -16,7 +16,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 const (
@@ -238,7 +238,6 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		Expect(errOut).To(Equal(""))
 		logrus.Printf("NSC Route status, Ok")
 
-		Expect(strings.Contains(routeResponse, "8.8.8.8")).To(Equal(true))
 		Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
 		for i := 1; i <= 1; i++ {
 			pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "10.60.1.2", "-A", "-c", "10")

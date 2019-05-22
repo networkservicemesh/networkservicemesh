@@ -16,27 +16,51 @@
 package main
 
 import (
+	"flag"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
-	"os"
+	"net"
+)
+
+var (
+	dirty = flag.Bool("dirty", false,
+		"will not delete itself from registry at the end")
+	neighbors = flag.Bool("neighbors", false,
+		"will set all available IpNeighbors to connection.Context")
+	routes = flag.Bool("routes", false,
+		"will set route 8.8.8.8/30 to connection.Context")
 )
 
 func main() {
-	dirty := false
-	for _, arg := range os.Args[:1] {
-		if arg == "--dirty" {
-			dirty = true
-		}
-	}
+	flag.Parse()
 
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	composite := endpoint.NewCompositeEndpoint(
+	endpoints := []endpoint.ChainedEndpoint{
 		endpoint.NewMonitorEndpoint(nil),
+	}
+
+	if *neighbors {
+		logrus.Infof("Adding neighbors endpoint to chain")
+		endpoints = append(endpoints,
+			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
+	}
+
+	if *routes {
+		logrus.Infof("Adding routes endpoint to chain")
+		endpoints = append(endpoints,
+			endpoint.NewCustomFuncEndpoint("route", makeRouteMutator([]string{"8.8.8.8/30"})))
+	}
+
+	endpoints = append(endpoints,
 		endpoint.NewIpamEndpoint(nil),
 		endpoint.NewConnectionEndpoint(nil))
+
+	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
 	if err != nil {
@@ -44,10 +68,49 @@ func main() {
 	}
 
 	_ = nsmEndpoint.Start()
-	if !dirty {
+	if !*dirty {
 		defer func() { _ = nsmEndpoint.Delete() }()
 	}
 
 	// Capture signals to cleanup before exiting
 	<-c
+}
+
+func makeRouteMutator(routes []string) endpoint.ConnectionMutator {
+	return func(c *connection.Connection) error {
+		for _, r := range routes {
+			c.Context.Routes = append(c.Context.Routes, &connectioncontext.Route{
+				Prefix: r,
+			})
+		}
+		return nil
+	}
+}
+
+func ipNeighborMutator(c *connection.Connection) error {
+	addrs, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+
+	for _, iface := range addrs {
+		adrs, err := iface.Addrs()
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+
+		for _, a := range adrs {
+			addr, _, _ := net.ParseCIDR(a.String())
+			if !addr.IsLoopback() {
+				c.Context.IpNeighbors = append(c.Context.IpNeighbors,
+					&connectioncontext.IpNeighbor{
+						Ip:              addr.String(),
+						HardwareAddress: iface.HardwareAddr.String(),
+					},
+				)
+			}
+		}
+	}
+	return nil
 }
