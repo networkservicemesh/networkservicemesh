@@ -4,7 +4,7 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"strconv"
 	"strings"
 	"testing"
@@ -122,16 +122,16 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	}
 
-	var nodesConf []*nsmd_test_utils.NodeConf
+	var nodesConf []*utils.NodeConf
 	for i := 0; i < len(nsmdPodNode); i++ {
-		nodesConf = append(nodesConf, &nsmd_test_utils.NodeConf{
+		nodesConf = append(nodesConf, &utils.NodeConf{
 			Nsmd:      nsmdPodNode[i],
 			Dataplane: nsmdDataplanePodNode[i],
 			Node:      &nodes[i],
 		})
 	}
 
-	defer nsmd_test_utils.FailLogger(k8s, nodesConf, t)
+	defer utils.FailLogger(k8s, nodesConf, t)
 
 	{
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
