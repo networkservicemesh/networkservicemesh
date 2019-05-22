@@ -1,4 +1,4 @@
-package nsmd_test_utils
+package utils
 
 import (
 	"crypto/x509"

@@ -10,7 +10,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -95,16 +95,16 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
-	_ = nsmd_test_utils.DeployNeighborNSE(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
-	nsc := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+	nodes_setup := utils.SetupNodes(k8s, 1, defaultTimeout)
+	_ = utils.DeployNeighborNSE(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	nsc := utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 
 	pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
 	Expect(strings.Contains(pingResponse, "100% packet loss")).To(Equal(false))
 
-	nsc2 := nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-2", defaultTimeout)
+	nsc2 := utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-2", defaultTimeout)
 	arpResponse, errOut, err := k8s.Exec(nsc2, nsc.Spec.Containers[0].Name, "arp", "-a")
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
@@ -122,8 +122,8 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	Expect(err).To(BeNil())
 
 	if useWebhook {
-		awc, awDeployment, awService := nsmd_test_utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())
-		defer nsmd_test_utils.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
+		awc, awDeployment, awService := utils.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())
+		defer utils.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 	}
 
 	config := []*pods.NSMgrPodConfig{}
@@ -132,32 +132,32 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = nsmd_test_utils.DefaultDataplaneVariables()
+		cfg.DataplaneVariables = utils.DefaultDataplaneVariables()
 		if disableVHost {
 			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
 		}
 		config = append(config, cfg)
 	}
-	nodes_setup := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodes_setup := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 
 	// Run ICMP on latest node
-	_ = nsmd_test_utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = utils.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	var nscPodNode *v1.Pod
 	if useWebhook {
-		nscPodNode = nsmd_test_utils.DeployNSCWebhook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+		nscPodNode = utils.DeployNSCWebhook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	} else {
-		nscPodNode = nsmd_test_utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+		nscPodNode = utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	}
-	var nscInfo *nsmd_test_utils.NSCCheckInfo
+	var nscInfo *utils.NSCCheckInfo
 
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = nsmd_test_utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = utils.CheckNSC(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		nsmd_test_utils.PrintLogs(k8s, nodes_setup)
+		utils.PrintLogs(k8s, nodes_setup)
 		nscInfo.PrintLogs()
 
 		t.Fail()

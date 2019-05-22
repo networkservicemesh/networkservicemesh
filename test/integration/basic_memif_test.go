@@ -5,7 +5,7 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 )
@@ -23,10 +23,10 @@ func TestSimpleMemifConnection(t *testing.T) {
 
 	Expect(err).To(BeNil())
 
-	nodes := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
-	defer nsmd_test_utils.FailLogger(k8s, nodes, t)
+	nodes := utils.SetupNodes(k8s, 1, defaultTimeout)
+	defer utils.FailLogger(k8s, nodes, t)
 
-	nsmd_test_utils.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
-	vppagentNsc := nsmd_test_utils.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
-	Expect(true, nsmd_test_utils.IsVppAgentNsePinged(k8s, vppagentNsc))
+	utils.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
+	vppagentNsc := utils.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
+	Expect(true, utils.IsVppAgentNsePinged(k8s, vppagentNsc))
 }

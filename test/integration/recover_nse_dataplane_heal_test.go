@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
@@ -23,7 +23,7 @@ func TestDataplaneHealLocal(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testDataplaneHeal(t, 1, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
 }
 
 func TestDataplaneHealLocalMemif(t *testing.T) {
@@ -34,7 +34,7 @@ func TestDataplaneHealLocalMemif(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC)
+	testDataplaneHeal(t, 1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.CheckVppAgentNSC)
 }
 
 func TestDataplaneHealRemote(t *testing.T) {
@@ -45,31 +45,31 @@ func TestDataplaneHealRemote(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testDataplaneHeal(t, 2, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP nsmd_test_utils.PodSupplier, checkNsc nsmd_test_utils.NscChecker) {
+func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP utils.PodSupplier, checkNsc utils.NscChecker) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes_setup := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	// Run ICMP on latest node
 	createICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nscPodNode := createNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *nsmd_test_utils.NSCCheckInfo
+	var nscInfo *utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = checkNsc(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Selected dataplane")
 	k8s.DeletePods(nodes_setup[nodesCount-1].Dataplane)
@@ -98,5 +98,5 @@ func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP nsmd_
 	failures = InterceptGomegaFailures(func() {
 		nscInfo = checkNsc(k8s, t, nscPodNode)
 	})
-	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }

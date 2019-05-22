@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
@@ -47,7 +47,7 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 		return
 	}
 
-	_ = nsmd_test_utils.SetupNodes(k8s, 2, defaultTimeout)
+	_ = utils.SetupNodes(k8s, 2, defaultTimeout)
 	k8s.Cleanup()
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -28,12 +28,12 @@ func TestNSMDDeploy(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	st := time.Now()
-	_ = nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+	_ = utils.SetupNodes(k8s, 1, defaultTimeout)
 	deploy := time.Now()
 	k8s.Cleanup()
 	destroy := time.Now()
 	logrus.Infof("Pods Start time: %v", deploy.Sub(st))
-	Expect(deploy.Sub(st) < time.Second * 15).To(Equal(true))
+	Expect(deploy.Sub(st) < time.Second*15).To(Equal(true))
 	logrus.Infof("Pods Cleanup time: %v", destroy.Sub(deploy))
-	Expect(destroy.Sub(deploy) < time.Second * 25).To(Equal(true))
+	Expect(destroy.Sub(deploy) < time.Second*25).To(Equal(true))
 }

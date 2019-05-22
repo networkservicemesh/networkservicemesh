@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -37,7 +37,7 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 		return
 	}
 
-	pods := nsmd_test_utils.SetupNodes(k8s, 1, defaultTimeout)
+	pods := utils.SetupNodes(k8s, 1, defaultTimeout)
 
 	result, result_err, err := k8s.Exec(pods[0].Nsmd, "nsmd", "kill", "-6", "1")
 	logrus.Infof("Kill status %v %v %v", result, result_err, err)
@@ -66,7 +66,7 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 			logrus.Errorf("Failed to have NSmgr restarted")
 			t.Fail()
 		}
-		<- time.After(100 * time.Millisecond)
+		<-time.After(100 * time.Millisecond)
 	}
 	k8s.WaitLogsContains(pods[0].Nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
 
@@ -82,5 +82,5 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 
 	})
 
-	nsmd_test_utils.PrintErrors(failures, k8s, pods, nil, t)
+	utils.PrintErrors(failures, k8s, pods, nil, t)
 }
