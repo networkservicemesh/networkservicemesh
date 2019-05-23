@@ -18,13 +18,17 @@ package main
 import (
 	"flag"
 	"net"
+	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -34,6 +38,8 @@ var (
 		"will set all available IpNeighbors to connection.Context")
 	routes = flag.Bool("routes", false,
 		"will set route 8.8.8.8/30 to connection.Context")
+	update = flag.Bool("update", false,
+		"will send update to local.Connection after some time")
 )
 
 func main() {
@@ -80,6 +86,11 @@ func main() {
 		defer func() { _ = nsmEndpoint.Delete() }()
 	}
 
+	if *update {
+		<-time.After(10 * time.Second)
+		updateConnections(nsmEndpoint.MonitorServer())
+	}
+
 	// Capture signals to cleanup before exiting
 	<-c
 }
@@ -121,4 +132,14 @@ func ipNeighborMutator(c *connection.Connection) error {
 		}
 	}
 	return nil
+}
+
+func updateConnections(monitorServer monitor.Server) {
+	for _, entity := range monitorServer.Entities() {
+		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
+		localConnection.GetContext().ExcludedPrefixes =
+			append(localConnection.GetContext().ExcludedPrefixes, "255.255.255.255/32")
+
+		monitorServer.Update(localConnection)
+	}
 }

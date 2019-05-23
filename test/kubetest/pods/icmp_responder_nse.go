@@ -8,7 +8,7 @@ import (
 
 // ICMPResponderPod creates a new 'icmp-responder-nse' pod
 func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePeriod int64,
-	dirty, neighbors, routes bool) *v1.Pod {
+	dirty, neighbors, routes, update bool) *v1.Pod {
 
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
@@ -28,6 +28,9 @@ func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePe
 	}
 	if routes {
 		command = append(command, "-routes")
+	}
+	if update {
+		command = append(command, "-update")
 	}
 
 	pod := &v1.Pod{

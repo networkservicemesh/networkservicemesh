@@ -154,28 +154,35 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
-		false, false, true,
+		false, false, true, false,
 	))
 }
 
 // DeployICMPWithConfig deploys 'icmp-responder-nse' pod with '-routes' flag set and given grace period
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), gracePeriod,
-		false, false, true,
+		false, false, true, false,
 	))
 }
 
 // DeployDirtyICMP deploys 'icmp-responder-nse' pod with '-dirty' flag set
 func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
-		true, false, false,
+		true, false, false, false,
 	))
 }
 
 // DeployNeighborNSE deploys 'icmp-responder-nse' pod with '-neighbors' flag set
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
-		false, true, false,
+		false, true, false, false,
+	))
+}
+
+// DeployUpdatingNSE deploys 'icmp-responder-nse' pod with 0 grace period and '-update' flag set
+func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployICMP(k8s, node, name, timeout, pods.ICMPResponderPod(name, node, defaultICMPEnv(k8s.UseIPv6()), 0,
+		false, false, false, true,
 	))
 }
 
