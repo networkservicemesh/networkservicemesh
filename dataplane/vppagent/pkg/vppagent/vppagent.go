@@ -75,7 +75,7 @@ type VPPAgent struct {
 	directMemifConnector *memif.DirectMemifConnector
 	srcIP                net.IP
 	egressInterface      common.EgressInterface
-	monitor              *monitor_crossconnect.MonitorServer
+	monitor              monitor_crossconnect.MonitorServer
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -322,7 +322,7 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 }
 
 // Init makes setup for the VPPAgent
-func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor *monitor_crossconnect.MonitorServer) error {
+func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor monitor_crossconnect.MonitorServer) error {
 	tracer, closer := tools.InitJaeger("vppagent-dataplane")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -386,7 +386,7 @@ func (v *VPPAgent) setDataplaneConfigBase() {
 	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor *monitor_crossconnect.MonitorServer) {
+func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.MonitorServer) {
 	var err error
 
 	v.monitor = monitor

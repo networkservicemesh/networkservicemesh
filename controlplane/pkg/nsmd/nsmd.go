@@ -40,8 +40,8 @@ type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
 	XconManager() *services.ClientConnectionManager
-	MonitorCrossConnectServer() *monitor_crossconnect.MonitorServer
-	MonitorConnectionServer() *remote.MonitorServer
+	MonitorCrossConnectServer() monitor_crossconnect.MonitorServer
+	MonitorConnectionServer() remote.MonitorServer
 	Model() model.Model
 	Manager() nsm.NetworkServiceManager
 	ServiceRegistry() serviceregistry.ServiceRegistry
@@ -60,18 +60,18 @@ type nsmServer struct {
 	regServer        *dataplaneRegistrarServer
 
 	xconManager               *services.ClientConnectionManager
-	monitorCrossConnectServer *monitor_crossconnect.MonitorServer
-	monitorConnectionServer   *remote.MonitorServer
+	monitorCrossConnectServer monitor_crossconnect.MonitorServer
+	monitorConnectionServer   remote.MonitorServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
 	return nsm.xconManager
 }
 
-func (nsm *nsmServer) MonitorCrossConnectServer() *monitor_crossconnect.MonitorServer {
+func (nsm *nsmServer) MonitorCrossConnectServer() monitor_crossconnect.MonitorServer {
 	return nsm.monitorCrossConnectServer
 }
-func (nsm *nsmServer) MonitorConnectionServer() *remote.MonitorServer {
+func (nsm *nsmServer) MonitorConnectionServer() remote.MonitorServer {
 	return nsm.monitorConnectionServer
 }
 func (nsm *nsmServer) Model() model.Model {

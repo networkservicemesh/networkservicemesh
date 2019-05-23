@@ -6,24 +6,10 @@ import (
 )
 
 const (
-	defaultSize            = 10
-	UPDATE                 = "UPDATE"
-	DELETE                 = "DELETE"
-	INITIAL_STATE_TRANSFER = "INITIAL_STATE_TRANSFER"
+	defaultSize = 10
 )
 
-type EventSupplier func(eventType string, entities map[string]Entity) Event
-
-type Entity interface {
-	GetId() string
-}
-
-type Event interface {
-	Message() (interface{}, error)
-	EventType() string
-	Entities() map[string]Entity
-}
-
+// Recipient is an unified interface for receiving stream
 type Recipient interface {
 	SendMsg(msg interface{}) error
 }
@@ -35,14 +21,14 @@ type Server interface {
 
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
-	MonitorEntities(stream grpc.ServerStream) error
+	MonitorEntities(stream grpc.ServerStream)
 	SendAll(event Event)
 	Serve()
 	Entities() map[string]Entity
 }
 
-type monitorServerImpl struct {
-	eventSupplier            EventSupplier
+type server struct {
+	eventFactory             EventFactory
 	eventCh                  chan Event
 	newMonitorRecipientCh    chan Recipient
 	closedMonitorRecipientCh chan Recipient
@@ -50,10 +36,10 @@ type monitorServerImpl struct {
 	recipients               []Recipient
 }
 
-// NewServer creates a new Server with given EventSupplier
-func NewServer(eventSupplier EventSupplier) Server {
-	return &monitorServerImpl{
-		eventSupplier:            eventSupplier,
+// NewServer creates a new Server with given EventFactory
+func NewServer(eventFactory EventFactory) Server {
+	return &server{
+		eventFactory:             eventFactory,
 		eventCh:                  make(chan Event, defaultSize),
 		newMonitorRecipientCh:    make(chan Recipient, defaultSize),
 		closedMonitorRecipientCh: make(chan Recipient, defaultSize),
@@ -62,76 +48,79 @@ func NewServer(eventSupplier EventSupplier) Server {
 	}
 }
 
-func (m monitorServerImpl) Entities() map[string]Entity {
-	return m.entities
+// Update sends EventTypeUpdate event for entity to all server recipients
+func (s *server) Update(entity Entity) {
+	s.eventCh <- s.eventFactory.NewEvent(EventTypeUpdate, map[string]Entity{entity.GetId(): entity})
 }
 
-func (m *monitorServerImpl) Update(entity Entity) {
-	m.eventCh <- m.eventSupplier(UPDATE, map[string]Entity{entity.GetId(): entity})
+// Delete sends EventTypeDelete event for entity to all server recipients
+func (s *server) Delete(entity Entity) {
+	s.eventCh <- s.eventFactory.NewEvent(EventTypeDelete, map[string]Entity{entity.GetId(): entity})
 }
 
-func (m *monitorServerImpl) Delete(entity Entity) {
-	m.eventCh <- m.eventSupplier(DELETE, map[string]Entity{entity.GetId(): entity})
-}
-
-func (m *monitorServerImpl) AddRecipient(recipient Recipient) {
+// AddRecipient adds server recipient
+func (s *server) AddRecipient(recipient Recipient) {
 	logrus.Infof("MonitorServerImpl.AddRecipient: %v", recipient)
-	m.newMonitorRecipientCh <- recipient
+	s.newMonitorRecipientCh <- recipient
 }
 
-func (m *monitorServerImpl) DeleteRecipient(recipient Recipient) {
+// DeleteRecipient deletes server recipient
+func (s *server) DeleteRecipient(recipient Recipient) {
 	logrus.Infof("MonitorServerImpl.DeleteRecipient: %v", recipient)
-	m.closedMonitorRecipientCh <- recipient
+	s.closedMonitorRecipientCh <- recipient
 }
 
-func (m *monitorServerImpl) MonitorEntities(stream grpc.ServerStream) error {
-	m.AddRecipient(stream)
+// MonitorEntities adds stream as server recipient and blocks until it get closed
+func (s *server) MonitorEntities(stream grpc.ServerStream) {
+	s.AddRecipient(stream)
+	defer s.DeleteRecipient(stream)
 
 	// We need to wait until it will be done and do not exit
-	for {
-		select {
-		case <-stream.Context().Done():
-			m.DeleteRecipient(stream)
-			return nil
-		}
-	}
+	<-stream.Context().Done()
 }
 
-func (m *monitorServerImpl) Serve() {
+// SendAll sends event to all server recipients
+func (s *server) SendAll(event Event) {
+	s.send(event, s.recipients...)
+}
+
+// Serve starts a main loop for server
+func (s *server) Serve() {
 	logrus.Infof("Serve starting...")
 	for {
 		select {
-		case newRecipient := <-m.newMonitorRecipientCh:
-			initialStateTransferEvent := m.eventSupplier(INITIAL_STATE_TRANSFER, m.entities)
-			m.send(initialStateTransferEvent, newRecipient)
-			m.recipients = append(m.recipients, newRecipient)
-		case closedRecipient := <-m.closedMonitorRecipientCh:
-			for j, r := range m.recipients {
+		case newRecipient := <-s.newMonitorRecipientCh:
+			initialStateTransferEvent := s.eventFactory.NewEvent(EventTypeInitialStateTransfer, s.entities)
+			s.send(initialStateTransferEvent, newRecipient)
+			s.recipients = append(s.recipients, newRecipient)
+		case closedRecipient := <-s.closedMonitorRecipientCh:
+			for j, r := range s.recipients {
 				if r == closedRecipient {
-					m.recipients = append(m.recipients[:j], m.recipients[j+1:]...)
+					s.recipients = append(s.recipients[:j], s.recipients[j+1:]...)
 					break
 				}
 			}
-		case event := <-m.eventCh:
+		case event := <-s.eventCh:
 			logrus.Infof("New event: %v", event)
 			for _, entity := range event.Entities() {
-				if event.EventType() == UPDATE {
-					m.entities[entity.GetId()] = entity
+				if event.EventType() == EventTypeUpdate {
+					s.entities[entity.GetId()] = entity
 				}
-				if event.EventType() == DELETE {
-					delete(m.entities, entity.GetId())
+				if event.EventType() == EventTypeDelete {
+					delete(s.entities, entity.GetId())
 				}
 			}
-			m.SendAll(event)
+			s.SendAll(event)
 		}
 	}
 }
 
-func (m *monitorServerImpl) SendAll(event Event) {
-	m.send(event, m.recipients...)
+// Entities returns server entities
+func (s *server) Entities() map[string]Entity {
+	return s.entities
 }
 
-func (m *monitorServerImpl) send(event Event, recipients ...Recipient) {
+func (s *server) send(event Event, recipients ...Recipient) {
 	for _, recipient := range recipients {
 		msg, err := event.Message()
 		logrus.Infof("Try to send message %v", msg)

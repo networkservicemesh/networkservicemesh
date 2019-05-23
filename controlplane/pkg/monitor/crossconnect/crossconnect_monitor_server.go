@@ -3,19 +3,26 @@ package crossconnect
 import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 )
 
 // MonitorServer is a monitor.Server for crossconnect GRPC API
-type MonitorServer struct {
+type MonitorServer interface {
+	monitor.Server
+	metrics.MetricsMonitor
+	crossconnect.MonitorCrossConnectServer
+}
+
+type monitorServer struct {
 	monitor.Server
 	statsCh chan map[string]*crossconnect.Metrics
 }
 
 // NewMonitorServer creates a new MonitorServer
-func NewMonitorServer() *MonitorServer {
-	rv := &MonitorServer{
-		Server:  monitor.NewServer(createEvent),
+func NewMonitorServer() MonitorServer {
+	rv := &monitorServer{
+		Server:  monitor.NewServer(&eventFactory{}),
 		statsCh: make(chan map[string]*crossconnect.Metrics, 10),
 	}
 	go rv.Serve()
@@ -23,21 +30,22 @@ func NewMonitorServer() *MonitorServer {
 	return rv
 }
 
-func (m *MonitorServer) serveMetrics() {
+func (s *monitorServer) serveMetrics() {
 	for {
-		m.SendAll(event{
-			EventImpl:  monitor.CrateEventImpl(monitor.UPDATE, m.Entities()),
-			statistics: <-m.statsCh,
+		s.SendAll(&Event{
+			BaseEvent:  monitor.NewBaseEvent(monitor.EventTypeUpdate, s.Entities()),
+			Statistics: <-s.statsCh,
 		})
 	}
 }
 
 // HandleMetrics updates MonitorServer recipients with new metrics
-func (m *MonitorServer) HandleMetrics(statistics map[string]*crossconnect.Metrics) {
-	m.statsCh <- statistics
+func (s *monitorServer) HandleMetrics(statistics map[string]*crossconnect.Metrics) {
+	s.statsCh <- statistics
 }
 
 // MonitorCrossConnects adds recipient for MonitorServer events
-func (m *MonitorServer) MonitorCrossConnects(_ *empty.Empty, recipient crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
-	return m.MonitorEntities(recipient)
+func (s *monitorServer) MonitorCrossConnects(_ *empty.Empty, recipient crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
+	s.MonitorEntities(recipient)
+	return nil
 }

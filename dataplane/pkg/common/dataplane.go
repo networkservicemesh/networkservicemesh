@@ -34,7 +34,7 @@ import (
 
 type NSMDataplane interface {
 	dataplane.DataplaneServer
-	Init(*DataplaneConfigBase, *monitor_crossconnect.MonitorServer) error
+	Init(*DataplaneConfigBase, monitor_crossconnect.MonitorServer) error
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -59,7 +59,7 @@ type DataplaneConfigBase struct {
 type dataplaneConfig struct {
 	common     *DataplaneConfigBase
 	gRPCserver *grpc.Server
-	monitor    *monitor_crossconnect.MonitorServer
+	monitor    monitor_crossconnect.MonitorServer
 	listener   net.Listener
 }
 

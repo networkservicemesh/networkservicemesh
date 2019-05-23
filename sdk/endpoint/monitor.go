@@ -32,7 +32,7 @@ import (
 // MonitorEndpoint is a monitoring composite
 type MonitorEndpoint struct {
 	BaseCompositeEndpoint
-	monitorConnectionServer *local.MonitorServer
+	monitorConnectionServer local.MonitorServer
 }
 
 // Request implements the request handler

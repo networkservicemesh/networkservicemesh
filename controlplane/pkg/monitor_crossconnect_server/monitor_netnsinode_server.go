@@ -16,13 +16,13 @@ import (
 
 type MonitorNetNsInodeServer struct {
 	monitor.Recipient
-	crossConnectServer  *monitor_crossconnect.MonitorServer
+	crossConnectServer  monitor_crossconnect.MonitorServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
 // NewMonitorNetNsInodeServer creates a new MonitorNetNsInodeServer
-func NewMonitorNetNsInodeServer(crossConnectServer *monitor_crossconnect.MonitorServer) *MonitorNetNsInodeServer {
+func NewMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer) *MonitorNetNsInodeServer {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
