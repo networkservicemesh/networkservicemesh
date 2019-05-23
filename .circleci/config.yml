@@ -636,6 +636,11 @@ workflows:
           requires:
             - sanity-check
       - build-container:
+          name: "build-monitoring-nsc"
+          container: "monitoring-nsc"
+          requires:
+            - sanity-check
+      - build-container:
           name: "build-vppagent-dataplane"
           container: "vppagent-dataplane"
           requires:
@@ -661,6 +666,7 @@ workflows:
             - build-vppagent-icmp-responder-nse
             - build-vppagent-nsc
             - build-nsc
+            - build-monitoring-nsc
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
             - build-vppagent-firewall-nse
