@@ -17,8 +17,8 @@ type EventStreamConstructor func(ctx context.Context, cc *grpc.ClientConn) (Even
 
 // Client is an unified interface for GRPC monitoring API client
 type Client interface {
-	EventChannel() chan Event
 	ErrorChannel() chan error
+	EventChannel() chan Event
 
 	Context() context.Context
 	Close()
@@ -42,9 +42,12 @@ func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor
 		return nil, err
 	}
 
-	eventChannel := make(chan Event, 1)
 	errorChannel := make(chan error, 1)
+	eventChannel := make(chan Event, 1)
 	go func() {
+		defer close(eventChannel)
+		defer close(errorChannel)
+
 		for {
 			message, err := stream.Recv()
 			if err != nil {
@@ -61,21 +64,21 @@ func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor
 	}()
 
 	return &client{
-		eventCh: eventChannel,
 		errorCh: errorChannel,
+		eventCh: eventChannel,
 		ctx:     ctx,
 		cancel:  cancel,
 	}, nil
 }
 
-// EventChannel returns client eventChannel
-func (c *client) EventChannel() chan Event {
-	return c.eventCh
-}
-
 // ErrorChannel returns client errorChannel
 func (c *client) ErrorChannel() chan error {
 	return c.errorCh
+}
+
+// EventChannel returns client eventChannel
+func (c *client) EventChannel() chan Event {
+	return c.eventCh
 }
 
 // Context returns client context
