@@ -154,6 +154,13 @@ k8s-%-delete:
 	@echo "Deleting ${K8S_CONF_DIR}/$*.yaml"
 	@$(kubectl) delete -f ${K8S_CONF_DIR}/$*.yaml > /dev/null 2>&1 || echo "$* does not exist and thus cannot be deleted"
 
+.PHONY: k8s-icmp-responder-nse-delete
+k8s-icmp-responder-nse-delete:
+	@echo "Deleting ${K8S_CONF_DIR}/icmp-responder-nse.yaml"
+	@$(kubectl) delete -f ${K8S_CONF_DIR}/icmp-responder-nse.yaml > /dev/null 2>&1 || echo "icmp-responder-nse does not exist and thus cannot be deleted"
+	@echo "Deleting networkservice icmp-responder"
+	@$(kubectl) delete networkservice icmp-responder > /dev/null 2>&1 || echo "icmp-responder does not exist and thus cannot be deleted"
+
 .PHONY: k8s-load-images
 k8s-load-images: $(addsuffix -load-images,$(addprefix k8s-,$(DEPLOYS)))
 
