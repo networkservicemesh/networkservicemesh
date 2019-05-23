@@ -242,7 +242,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 
 	// 7. do a Request() on NSE and select it.
 	if existingConnection == nil || requestNSEOnUpdate {
-		//7.1 try find NSE and do a Request to it.
+		// 7.1 try find NSE and do a Request to it.
 		cc, err = srv.findConnectNSE(requestId, ctx, ignore_endpoints, request, nsmConnection, existingConnection, dp)
 		if err != nil {
 			if closeDataplaneOnNSEFailed {
@@ -256,22 +256,28 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 			}
 			return nil, err
 		}
-		// replace currently existing clientConnection or create new if it is absent
-		srv.model.UpdateClientConnection(cc)
-	} else if existingConnection != nil {
+	} else {
 		// 7.2 We do not need to access NSE, since all parameters are same.
-		cc = srv.model.ApplyClientConnectionChanges(existingConnection.GetID(), func(cc *model.ClientConnection) {
-			if request.IsRemote() {
-				// 7.2.1 We are called from remote NSM so just copy.
-				cc.Xcon.GetRemoteSource().Mechanism = nsmConnection.(*remote_connection.Connection).Mechanism
-				cc.Xcon.GetRemoteSource().State = remote_connection.State_UP
-			} else {
-				// 7.2.2 It is local connection from NSC, so just copy values.
-				cc.Xcon.GetLocalSource().Mechanism = nsmConnection.(*local_connection.Connection).Mechanism
-				cc.Xcon.GetLocalSource().State = local_connection.State_UP
-			}
-		})
+		if request.IsRemote() {
+			// 7.2.1 We are called from remote NSM so just copy.
+			cc.Xcon.GetRemoteSource().Mechanism = nsmConnection.(*remote_connection.Connection).Mechanism
+			cc.Xcon.GetRemoteSource().State = remote_connection.State_UP
+		} else {
+			// 7.2.2 It is local connection from NSC, so just copy values.
+			cc.Xcon.GetLocalSource().Mechanism = nsmConnection.(*local_connection.Connection).Mechanism
+			cc.Xcon.GetLocalSource().State = local_connection.State_UP
+		}
+
+		// 7.3 Destination context probably has been changed, so we need to update source context.
+		if err = srv.updateConnectionContext(cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
+			err = fmt.Errorf("NSM:(7.3-%v) Failed to update source connection context: %v", requestId, err)
+			srv.model.DeleteClientConnection(existingConnection.ConnectionID)
+			return nil, err
+		}
 	}
+
+	// 7.4 replace currently existing clientConnection or create new if it is absent
+	srv.model.UpdateClientConnection(cc)
 
 	// 8. Remember original Request for Heal cases.
 	cc = srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
@@ -488,21 +494,15 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 	}
 
 	// 7.2.6.2.2
-	err = srv.validateNSEConnection(requestId, nseConnection)
-	if err != nil {
+	if err = srv.updateConnectionContext(requestConnection, nseConnection); err != nil {
+		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
 		return nil, err
 	}
 
-	// 7.2.6.2.3
-	err = requestConnection.UpdateContext(nseConnection.GetContext())
-	if err != nil {
-		err = fmt.Errorf("NSM:(7.2.6.2.3-%v) failure Validating NSE Connection: %s", requestId, err)
-		return nil, err
-	}
-	// 7.2.6.2.4 update connection parameters, add workspace if local nse
+	// 7.2.6.2.3 update connection parameters, add workspace if local nse
 	srv.updateConnectionParameters(requestId, nseConnection, endpoint)
 
-	// 7.2.6.2.5 create cross connection
+	// 7.2.6.2.4 create cross connection
 	dpApiConnection := srv.createCrossConnect(requestConnection, endpoint, request, nseConnection)
 	var dpState model.DataplaneState
 	if existingConnection != nil {
@@ -516,7 +516,7 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 		ConnectionState:         model.ClientConnectionRequesting,
 		DataplaneState:          dpState,
 	}
-	// 7.2.6.2.6 - It not a local NSE put remote NSM name in request
+	// 7.2.6.2.5 - It not a local NSE put remote NSM name in request
 	if !srv.nseManager.isLocalEndpoint(endpoint) {
 		clientConnection.RemoteNsm = endpoint.GetNetworkServiceManager()
 	}
@@ -553,34 +553,30 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 	}
 	return dpApiConnection
 }
-func (srv *networkServiceManager) validateNSEConnection(requestId string, nseConnection nsm.NSMConnection) error {
-	errorFormatter := func(err error) error {
-		return fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
-	}
-
+func (srv *networkServiceManager) validateNSEConnection(nseConnection nsm.NSMConnection) error {
 	err := nseConnection.IsComplete()
 	if err != nil {
-		return errorFormatter(err)
+		return err
 	}
 
 	prefixes := srv.GetExcludePrefixes()
 	if srcIp := nseConnection.GetContext().GetSrcIpAddr(); srcIp != "" {
 		intersect, err := prefixes.Intersect(srcIp)
 		if err != nil {
-			return errorFormatter(err)
+			return err
 		}
 		if intersect {
-			return errorFormatter(fmt.Errorf("srcIp intersects excludedPrefix"))
+			return fmt.Errorf("srcIp intersects excludedPrefix")
 		}
 	}
 
 	if dstIp := nseConnection.GetContext().GetDstIpAddr(); dstIp != "" {
 		intersect, err := prefixes.Intersect(dstIp)
 		if err != nil {
-			return errorFormatter(err)
+			return err
 		}
 		if intersect {
-			return errorFormatter(fmt.Errorf("dstIp intersects excludedPrefix"))
+			return fmt.Errorf("dstIp intersects excludedPrefix")
 		}
 	}
 
@@ -620,6 +616,18 @@ func (srv *networkServiceManager) closeDataplane(cc *model.ClientConnection) err
 
 func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
+}
+
+func (srv *networkServiceManager) updateConnectionContext(source, destination nsm.NSMConnection) error {
+	if err := srv.validateNSEConnection(destination); err != nil {
+		return err
+	}
+
+	if err := source.UpdateContext(destination.GetContext()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (srv *networkServiceManager) updateConnectionParameters(requestId string, nseConnection nsm.NSMConnection, endpoint *registry.NSERegistration) {
