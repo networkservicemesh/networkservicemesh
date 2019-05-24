@@ -585,10 +585,10 @@ workflows:
   build-and-test:
     jobs:
       - sanity-check
-      - static-code-analysis:
-          name: "static-code-analysis"
-          requires:
-            - sanity-check
+#      - static-code-analysis:
+#          name: "static-code-analysis"
+#          requires:
+#            - sanity-check
 # build
       - build-container:
           name: "build-nsmd"
@@ -674,136 +674,136 @@ workflows:
           cluster_id: "1"
           requires:
             - packet-deploy
-      - packet-deploy-k8s:
-          name: "packet-deploy-k8s-2"
-          cluster_id: "2"
-          requires:
-            - packet-deploy
+#      - packet-deploy-k8s:
+#          name: "packet-deploy-k8s-2"
+#          cluster_id: "2"
+#          requires:
+#            - packet-deploy
       - integration-tests:
-          name: "packet-test-basic-usecase"
+          name: "packet-test-usecase"
           namespace: "nsm-system-integration"
           cloud_provider: "packet"
           cluster_id: "1"
-          test_tags: "basic usecase"
+          test_tags: "usecase"
           requires:
             - packet-deploy-k8s-1
             - build-container-success
-      - integration-tests:
-          name: "packet-test-recover"
-          namespace: "nsm-system-integration"
-          cloud_provider: "packet"
-          cluster_id: "2"
-          test_tags: "recover"
-          requires:
-            - packet-deploy-k8s-2
-            - build-container-success
-      - integration-tests:
-          name: "packet-test-bench"
-          namespace: "nsm-system-integration"
-          cloud_provider: "packet"
-          cluster_id: "2"
-          test_tags: "bench"
-          requires:
-            - "packet-test-recover"
-      - example-test:
-          name: "packet-test-example-icmp"
-          namespace: "nsm-system"
-          cloud_provider: "packet"
-          cluster_id: "2"
-          example: "icmp"
-          requires:
-            - "packet-test-bench"
-      - example-test:
-          name: "packet-test-example-vpn"
-          namespace: "nsm-system"
-          cloud_provider: "packet"
-          cluster_id: "2"
-          example: "vpn"
-          requires:
-            - "packet-test-example-icmp"
+#      - integration-tests:
+#          name: "packet-test-recover"
+#          namespace: "nsm-system-integration"
+#          cloud_provider: "packet"
+#          cluster_id: "2"
+#          test_tags: "recover"
+#          requires:
+#            - packet-deploy-k8s-2
+#            - build-container-success
+#      - integration-tests:
+#          name: "packet-test-bench"
+#          namespace: "nsm-system-integration"
+#          cloud_provider: "packet"
+#          cluster_id: "2"
+#          test_tags: "bench"
+#          requires:
+#            - "packet-test-recover"
+#      - example-test:
+#          name: "packet-test-example-icmp"
+#          namespace: "nsm-system"
+#          cloud_provider: "packet"
+#          cluster_id: "2"
+#          example: "icmp"
+#          requires:
+#            - "packet-test-bench"
+#      - example-test:
+#          name: "packet-test-example-vpn"
+#          namespace: "nsm-system"
+#          cloud_provider: "packet"
+#          cluster_id: "2"
+#          example: "vpn"
+#          requires:
+#            - "packet-test-example-icmp"
       - packet-destroy:
           requires:
-            - "packet-test-basic-usecase"
-            - "packet-test-recover"
-            - "packet-test-bench"
-            - "packet-test-example-icmp"
-            - "packet-test-example-vpn"
+            - "packet-test-usecase"
+#            - "packet-test-recover"
+#            - "packet-test-bench"
+#            - "packet-test-example-icmp"
+#            - "packet-test-example-vpn"
 
 # azure
-      - azure-deploy:
-          name: "azure-deploy-k8s-1"
-          cluster_id: "1"
-          requires:
-            - sanity-check
-      - azure-deploy:
-          name: "azure-deploy-k8s-2"
-          cluster_id: "2"
-          requires:
-            - sanity-check
-      - integration-tests:
-          name: "azure-test-basic-usecase"
-          cloud_provider: "azure"
-          cluster_id: "1"
-          test_tags: "basic usecase azure"
-          requires:
-            - azure-deploy-k8s-1
-            - build-container-success
-      - integration-tests:
-          name: "azure-test-recover"
-          cloud_provider: "azure"
-          cluster_id: "2"
-          test_tags: "recover azure"
-          requires:
-            - azure-deploy-k8s-2
-            - build-container-success
-      - azure-destroy:
-          name: "azure-destroy-1"
-          cluster_id: "1"
-          requires:
-            - azure-test-basic-usecase
-      - azure-destroy:
-          name: "azure-destroy-2"
-          cluster_id: "2"
-          requires:
-            - azure-test-recover
+#      - azure-deploy:
+#          name: "azure-deploy-k8s-1"
+#          cluster_id: "1"
+#          requires:
+#            - sanity-check
+#      - azure-deploy:
+#          name: "azure-deploy-k8s-2"
+#          cluster_id: "2"
+#          requires:
+#            - sanity-check
+#      - integration-tests:
+#          name: "azure-test-basic-usecase"
+#          cloud_provider: "azure"
+#          cluster_id: "1"
+#          test_tags: "basic usecase azure"
+#          requires:
+#            - azure-deploy-k8s-1
+#            - build-container-success
+#      - integration-tests:
+#          name: "azure-test-recover"
+#          cloud_provider: "azure"
+#          cluster_id: "2"
+#          test_tags: "recover azure"
+#          requires:
+#            - azure-deploy-k8s-2
+#            - build-container-success
+#      - azure-destroy:
+#          name: "azure-destroy-1"
+#          cluster_id: "1"
+#          requires:
+#            - azure-test-basic-usecase
+#      - azure-destroy:
+#          name: "azure-destroy-2"
+#          cluster_id: "2"
+#          requires:
+#            - azure-test-recover
 
 # aws
-      - aws-deploy:
-          name: "aws-deploy-k8s-1"
-          cluster_id: "1"
-          requires:
-            - sanity-check
-      - aws-deploy:
-          name: "aws-deploy-k8s-2"
-          cluster_id: "2"
-          requires:
-            - sanity-check
-      - aws-destroy:
-          name: "aws-destroy-1"
-          cluster_id: "1"
-          requires:
-            - aws-test-basic-usecase
-      - aws-destroy:
-          name: "aws-destroy-2"
-          cluster_id: "2"
-          requires:
-            - aws-test-recover
-      - integration-tests:
-          name: "aws-test-basic-usecase"
-          cloud_provider: "aws"
-          cluster_id: "1"
-          test_tags: "basic usecase aws"
-          requires:
-            - aws-deploy-k8s-1
-            - build-container-success
-      - integration-tests:
-          name: "aws-test-recover"
-          cloud_provider: "aws"
-          cluster_id: "2"
-          test_tags: "recover aws"
-          requires:
-            - aws-deploy-k8s-2
-            - build-container-success
+#      - aws-deploy:
+#          name: "aws-deploy-k8s-1"
+#          cluster_id: "1"
+#          requires:
+#            - sanity-check
+#      - aws-deploy:
+#          name: "aws-deploy-k8s-2"
+#          cluster_id: "2"
+#          requires:
+#            - sanity-check
+#      - aws-destroy:
+#          name: "aws-destroy-1"
+#          cluster_id: "1"
+#          requires:
+#            - aws-test-basic-usecase
+#      - aws-destroy:
+#          name: "aws-destroy-2"
+#          cluster_id: "2"
+#          requires:
+#            - aws-test-recover
+#      - integration-tests:
+#          name: "aws-test-basic-usecase"
+#          cloud_provider: "aws"
+#          cluster_id: "1"
+#          test_tags: "basic usecase aws"
+#          requires:
+#            - aws-deploy-k8s-1
+#            - build-container-success
+#      - integration-tests:
+#          name: "aws-test-recover"
+#          cloud_provider: "aws"
+#          cluster_id: "2"
+#          test_tags: "recover aws"
+#          requires:
+#            - aws-deploy-k8s-2
+#            - build-container-success
 
 # gke
       - gke-create-cluster:
@@ -811,47 +811,47 @@ workflows:
           name: "gke-cluster1"
           requires:
             - sanity-check
-      - gke-create-cluster:
-          cluster_id: "2"
-          name: "gke-cluster2"
-          requires:
-            - sanity-check
+#      - gke-create-cluster:
+#          cluster_id: "2"
+#          name: "gke-cluster2"
+#          requires:
+#            - sanity-check
       - integration-tests:
-          name: "gke-test-basic-usecase"
+          name: "gke-test-usecase"
           cloud_provider: "gke"
           cluster_id: "1"
-          test_tags: "basic usecase gke"
+          test_tags: "usecase gke"
           requires:
             - sanity-check
             - "gke-cluster1"
             - build-container-success
-      - integration-tests:
-          name: "gke-test-recover"
-          cloud_provider: "gke"
-          cluster_id: "2"
-          test_tags: "recover gke"
-          requires:
-            - sanity-check
-            - "gke-cluster2"
-            - build-container-success
+#      - integration-tests:
+#          name: "gke-test-recover"
+#          cloud_provider: "gke"
+#          cluster_id: "2"
+#          test_tags: "recover gke"
+#          requires:
+#            - sanity-check
+#            - "gke-cluster2"
+#            - build-container-success
       - gke-destroy-cluster:
           name: "gke-destroy-cluster1"
           cluster_id: "1"
           requires:
             - "gke-cluster1"
-            - "gke-test-basic-usecase"
-      - gke-destroy-cluster:
-          name: "gke-destroy-cluster2"
-          cluster_id: "2"
-          requires:
-            - "gke-cluster2"
-            - "gke-test-recover"
+            - "gke-test-usecase"
+#      - gke-destroy-cluster:
+#          name: "gke-destroy-cluster2"
+#          cluster_id: "2"
+#          requires:
+#            - "gke-cluster2"
+#            - "gke-test-recover"
 
 # helm
-      - helm-chart-tests:
-          name: "helm-chart-tests"
-          requires:
-            - sanity-check
+#      - helm-chart-tests:
+#          name: "helm-chart-tests"
+#          requires:
+#            - sanity-check
 
 # push
       - docker-push-latest:
