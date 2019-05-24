@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
+	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 )
 
 func TestNSEHealLocal(t *testing.T) {
@@ -21,10 +21,13 @@ func TestNSEHealLocal(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 1, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testNSEHeal(t, 1, map[string]int{
+		"icmp-responder-nse-1": 0,
+		"icmp-responder-nse-2": 0,
+	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
 }
 
-func TestNSEHealLocalMemif(t *testing.T) {
+func TestNSEHealLocalToRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -32,7 +35,24 @@ func TestNSEHealLocalMemif(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.CheckVppAgentNSC)
+	testNSEHeal(t, 2, map[string]int{
+		"icmp-responder-nse-1": 0,
+		"icmp-responder-nse-2": 1,
+	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+}
+
+func TestNSEHealRemoteToLocal(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSEHeal(t, 2, map[string]int{
+		"icmp-responder-nse-1": 1,
+		"icmp-responder-nse-2": 0,
+	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
 }
 
 func TestNSEHealRemote(t *testing.T) {
@@ -43,33 +63,53 @@ func TestNSEHealRemote(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.CheckNSC)
+	testNSEHeal(t, 2, map[string]int{
+		"icmp-responder-nse-1": 1,
+		"icmp-responder-nse-2": 1,
+	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+}
+
+func TestNSEHealLocalMemif(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSEHeal(t, 1, map[string]int{
+		"icmp-responder-nse-1": 0,
+		"icmp-responder-nse-2": 0,
+	}, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.CheckVppAgentNSC)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, nscCheck nsmd_test_utils.NscChecker) {
+func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
+	nscDeploy, icmpDeploy utils.PodSupplier, nscCheck utils.NscChecker) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := nsmd_test_utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes_setup := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
 
-	// Run ICMP on latest node
-	nse1 := icmpDeploy(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	// Run ICMP
+	node := affinity["icmp-responder-nse-1"]
+	nse1 := icmpDeploy(k8s, nodes_setup[node].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nscPodNode := nscDeploy(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *nsmd_test_utils.NSCCheckInfo
+	var nscInfo *utils.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
 		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.Heal: Connection recovered
-	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	icmpDeploy(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-2", defaultTimeout)
+	node = affinity["icmp-responder-nse-2"]
+	icmpDeploy(k8s, nodes_setup[node].Node, "icmp-responder-nse-2", defaultTimeout)
 
 	logrus.Infof("Delete first NSE")
 	k8s.DeletePods(nse1)
@@ -79,7 +119,7 @@ func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_u
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	})
 	if len(failures) > 0 {
-		nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+		utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 	}
 
 	if len(nodes_setup) > 1 {
@@ -93,5 +133,5 @@ func testNSEHeal(t *testing.T, nodesCount int, nscDeploy, icmpDeploy nsmd_test_u
 	failures = InterceptGomegaFailures(func() {
 		nscInfo = nscCheck(k8s, t, nscPodNode)
 	})
-	nsmd_test_utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }

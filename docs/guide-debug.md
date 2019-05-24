@@ -120,7 +120,7 @@ or do not pass this env variable to use vagrant mapped default value in case of 
 In integration test please create NSMD with following options:
 
 ```go
-nodes := nsmd_test_utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+nodes := utils.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
     &pods.NSMgrPodConfig{Nsmd:pods.NSMgrContainerRun, Namespace: k8s.GetK8sNamespace()},
 })
 ```

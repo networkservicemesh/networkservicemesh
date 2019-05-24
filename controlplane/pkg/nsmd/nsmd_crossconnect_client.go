@@ -37,8 +37,8 @@ import (
 )
 
 type NsmMonitorCrossConnectClient struct {
-	crossConnectMonitor *monitor_crossconnect.MonitorServer
-	connectionMonitor   *remote.MonitorServer
+	crossConnectMonitor monitor_crossconnect.MonitorServer
+	connectionMonitor   remote.MonitorServer
 	remotePeers         map[string]*remotePeerDescriptor
 	dataplanes          map[string]context.CancelFunc
 	xconManager         *services.ClientConnectionManager
@@ -51,8 +51,8 @@ type remotePeerDescriptor struct {
 }
 
 // NewMonitorCrossConnectClient creates a new NsmMonitorCrossConnectClient
-func NewMonitorCrossConnectClient(crossConnectMonitor *monitor_crossconnect.MonitorServer,
-	connectionMonitor *remote.MonitorServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
+func NewMonitorCrossConnectClient(crossConnectMonitor monitor_crossconnect.MonitorServer,
+	connectionMonitor remote.MonitorServer, xconManager *services.ClientConnectionManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
 		crossConnectMonitor: crossConnectMonitor,
 		connectionMonitor:   connectionMonitor,

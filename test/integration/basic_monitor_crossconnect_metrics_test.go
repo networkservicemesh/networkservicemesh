@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
@@ -32,7 +32,7 @@ func TestSimpleMetrics(t *testing.T) {
 	nodesCount := 2
 	requestPeriod := time.Second
 
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			DataplaneVariables: map[string]string{
 				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
@@ -42,7 +42,7 @@ func TestSimpleMetrics(t *testing.T) {
 		},
 	}, k8s.GetK8sNamespace())
 
-	nsmd_test_utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
 
@@ -55,7 +55,7 @@ func TestSimpleMetrics(t *testing.T) {
 	defer close()
 	metricsCh := make(chan map[string]string)
 	monitorCrossConnectsMetrics(nsmdMonitor, metricsCh)
-	nsc := nsmd_test_utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nsc := utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
 	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
 	logrus.Infof("response = %v", response)

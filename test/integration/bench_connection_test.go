@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
@@ -18,7 +18,7 @@ func TestOneTimeConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeConnection(1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.IsVppAgentNsePinged)
+	testOneTimeConnection(1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.IsVppAgentNsePinged)
 }
 func TestOneTimeConnection(t *testing.T) {
 	RegisterTestingT(t)
@@ -26,7 +26,7 @@ func TestOneTimeConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeConnection(2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.IsNsePinged)
+	testOneTimeConnection(2, utils.DeployNSC, utils.DeployICMP, utils.IsNsePinged)
 }
 
 func TestMovingConnection(t *testing.T) {
@@ -35,7 +35,7 @@ func TestMovingConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testMovingConnection(2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.IsNsePinged)
+	testMovingConnection(t, 2, utils.DeployNSC, utils.DeployICMP, utils.IsNsePinged)
 }
 
 func TestMovingConnectionMemif(t *testing.T) {
@@ -44,7 +44,7 @@ func TestMovingConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testMovingConnection(1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.IsVppAgentNsePinged)
+	testMovingConnection(t, 1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.IsVppAgentNsePinged)
 }
 
 func TestOneToOneConnection(t *testing.T) {
@@ -53,7 +53,7 @@ func TestOneToOneConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneToOneConnection(2, nsmd_test_utils.DeployNSC, nsmd_test_utils.DeployICMP, nsmd_test_utils.IsNsePinged)
+	testOneToOneConnection(2, utils.DeployNSC, utils.DeployICMP, utils.IsNsePinged)
 }
 
 func TestOneToOneConnectionMemif(t *testing.T) {
@@ -62,23 +62,23 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneToOneConnection(1, nsmd_test_utils.DeployVppAgentNSC, nsmd_test_utils.DeployVppAgentICMP, nsmd_test_utils.IsVppAgentNsePinged)
+	testOneToOneConnection(1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.IsVppAgentNsePinged)
 }
 
-func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, nsePing nsmd_test_utils.NsePinger) {
+func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy utils.PodSupplier, nsePing utils.NsePinger) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	nodes := createNodes(k8s, nodeCount)
-	icmpDeploy(k8s, nodes[nodeCount-1], icmpDefaultName, defaultTimeout)
+	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 
 	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
 
 	for count := nscCount; count > 0; count-- {
-		go createNscAndPingIcmp(k8s, count, nodes[0], doneChannel, nscDeploy, nsePing)
+		go createNscAndPingIcmp(k8s, count, nodes[0].Node, doneChannel, nscDeploy, nsePing)
 	}
 
 	for count := nscCount; count > 0; count-- {
@@ -87,21 +87,22 @@ func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.
 	}
 }
 
-func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
+func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy utils.PodSupplier, pingNse utils.NsePinger) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	nodes := createNodes(k8s, nodeCount)
+	defer utils.FailLogger(k8s, nodes, t)
 
-	icmpDeploy(k8s, nodes[nodeCount-1], icmpDefaultName, defaultTimeout)
+	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		for count := nscCount; count > 0; count-- {
-			go createNscAndPingIcmp(k8s, count, nodes[0], doneChannel, nscDeploy, pingNse)
+			go createNscAndPingIcmp(k8s, count, nodes[0].Node, doneChannel, nscDeploy, pingNse)
 		}
 
 		for count := nscCount; count > 0; count-- {
@@ -112,7 +113,7 @@ func testMovingConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.P
 	}
 }
 
-func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
+func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy utils.PodSupplier, pingNse utils.NsePinger) {
 	k8s, err := kube_testing.NewK8s(true)
 	defer k8s.Cleanup()
 
@@ -123,8 +124,8 @@ func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy nsmd_test_utils
 	defer close(doneChannel)
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
-		icmp := icmpDeploy(k8s, nodes[nodeCount-1], icmpDefaultName, defaultTimeout)
-		createNscAndPingIcmp(k8s, 1, nodes[0], doneChannel, nscDeploy, pingNse)
+		icmp := icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
+		createNscAndPingIcmp(k8s, 1, nodes[0].Node, doneChannel, nscDeploy, pingNse)
 		result := <-doneChannel
 		Expect(result.success).To(Equal(true))
 		k8s.DeletePods(icmp, result.nsc)
@@ -136,18 +137,14 @@ type nscPingResult struct {
 	nsc     *v1.Pod
 }
 
-func createNodes(k8s *kube_testing.K8s, count int) []*v1.Node {
+func createNodes(k8s *kube_testing.K8s, count int) []*utils.NodeConf {
 	Expect(count > 0 && count < 3).Should(Equal(true))
-	nodes := nsmd_test_utils.SetupNodes(k8s, count, defaultTimeout)
+	nodes := utils.SetupNodes(k8s, count, defaultTimeout)
 	Expect(len(nodes), count)
-	result := make([]*v1.Node, count)
-	for i := 0; i < count; i++ {
-		result[i] = nodes[i].Node
-	}
-	return result
+	return nodes
 }
 
-func createNscAndPingIcmp(k8s *kube_testing.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy nsmd_test_utils.PodSupplier, pingNse nsmd_test_utils.NsePinger) {
+func createNscAndPingIcmp(k8s *kube_testing.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy utils.PodSupplier, pingNse utils.NsePinger) {
 	nsc := nscDeploy(k8s, node, nscDefaultName+strconv.Itoa(id), defaultTimeout)
 	Expect(nsc.Name).To(Equal(nscDefaultName + strconv.Itoa(id)))
 	done <- nscPingResult{

@@ -19,10 +19,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
-
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -31,6 +27,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -48,7 +46,7 @@ type Workspace struct {
 	listener                net.Listener
 	registryServer          NSERegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
-	monitorConnectionServer *local.MonitorServer
+	monitorConnectionServer local.MonitorServer
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
@@ -151,7 +149,7 @@ func (w *Workspace) NsmClientSocket() string {
 }
 
 // MonitorConnectionServer returns workspace.monitorConnectionServer
-func (w *Workspace) MonitorConnectionServer() *local.MonitorServer {
+func (w *Workspace) MonitorConnectionServer() local.MonitorServer {
 	if w == nil {
 		return nil
 	}

@@ -93,6 +93,7 @@ linters:
   disable:
     - lll
     - gofmt
+    - varcheck #deprecated
     - unused #deprecated
     - goimports
   enable-all: true
@@ -104,10 +105,10 @@ issues:
     - path: _test\.go
       linters:
         - golint
-    - path: local/local_connection_event\.go
+    - path: test/integration/const.go
       linters:
-        - dupl
-    - path: remote/remote_connection_event\.go
+        - deadcode
+    - path: controlplane/pkg/monitor/
       linters:
         - dupl
   exclude:

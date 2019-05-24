@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
@@ -30,17 +30,17 @@ func TestExcludePrefixCheck(t *testing.T) {
 		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
-	nodes := nsmd_test_utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables:          variables,
-			DataplaneVariables: nsmd_test_utils.DefaultDataplaneVariables(),
+			DataplaneVariables: utils.DefaultDataplaneVariables(),
 			Namespace:          k8s.GetK8sNamespace(),
 		},
 	}, k8s.GetK8sNamespace())
 
-	defer nsmd_test_utils.FailLogger(k8s, nodes, t)
+	defer utils.FailLogger(k8s, nodes, t)
 
-	icmp := nsmd_test_utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmp := utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	clientset, err := k8s.GetClientSet()
 	Expect(err).To(BeNil())

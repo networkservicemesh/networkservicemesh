@@ -19,7 +19,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )
 
-func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, *monitor_crossconnect.MonitorServer, net.Listener, error) {
+func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
 	if err != nil {
 		return nil, nil, sock, err

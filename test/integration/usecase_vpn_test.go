@@ -4,7 +4,7 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/nsmd_test_utils"
+	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,7 +16,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 const (
@@ -119,19 +119,19 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		k8s.WaitLogsContains(nsmdDataplanePodNode[k], "", "Sending MonitorMechanisms update", defaultTimeout)
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd", "Dataplane added", defaultTimeout)
 		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "ListAndWatch was called with", defaultTimeout)
+		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	}
 
-	var nodesConf []*nsmd_test_utils.NodeConf
+	var nodesConf []*utils.NodeConf
 	for i := 0; i < len(nsmdPodNode); i++ {
-		nodesConf = append(nodesConf, &nsmd_test_utils.NodeConf{
+		nodesConf = append(nodesConf, &utils.NodeConf{
 			Nsmd:      nsmdPodNode[i],
 			Dataplane: nsmdDataplanePodNode[i],
 			Node:      &nodes[i],
 		})
 	}
 
-	defer nsmd_test_utils.FailLogger(k8s, nodesConf, t)
+	defer utils.FailLogger(k8s, nodesConf, t)
 
 	{
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
@@ -238,7 +238,6 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		Expect(errOut).To(Equal(""))
 		logrus.Printf("NSC Route status, Ok")
 
-		Expect(strings.Contains(routeResponse, "8.8.8.8")).To(Equal(true))
 		Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
 		for i := 1; i <= 1; i++ {
 			pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "10.60.1.2", "-A", "-c", "10")

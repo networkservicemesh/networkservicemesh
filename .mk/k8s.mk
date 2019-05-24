@@ -261,10 +261,13 @@ k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
 k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
 
 .PHONY: k8s-icmp-responder-nse-build
-k8s-test-nse-build:  ${CONTAINER_BUILD_PREFIX}-test-nse-build
+k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-nse-build
 
 .PHONY: k8s-icmp-responder-nse-save
-k8s-test-nse-save:  ${CONTAINER_BUILD_PREFIX}-test-nse-save
+k8s-icmp-responder-nse-save: ${CONTAINER_BUILD_PREFIX}-test-nse-save
+
+.PHONY: k8s-icmp-responder-nse-load-images
+k8s-icmp-responder-nse-load-images: k8s-test-nse-load-images
 
 .PHONY: k8s-vppagent-icmp-responder-nse-build
 k8s-vppagent-icmp-responder-nse-build:  ${CONTAINER_BUILD_PREFIX}-vppagent-icmp-responder-nse-build
