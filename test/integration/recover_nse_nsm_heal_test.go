@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -25,26 +24,26 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup, err := utils.SetupNodes(k8s, 2, defaultTimeout)
+	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
-	icmpPod := utils.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmpPod := kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 
-	nscPodNode := utils.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *utils.NSCCheckInfo
+	nscPodNode := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+	var nscInfo *kubetest.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
@@ -64,9 +63,9 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = utils.CheckNSC(k8s, t, nscPodNode)
+		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
 	})
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
 func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
@@ -76,7 +75,7 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDOneNode(t, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC, false)
+	testNSMHealLocalDieNSMDOneNode(t, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC, false)
 }
 
 func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
@@ -86,7 +85,7 @@ func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDOneNode(t, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.CheckVppAgentNSC, false)
+	testNSMHealLocalDieNSMDOneNode(t, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.CheckVppAgentNSC, false)
 }
 
 func TestNSMHealLocalDieNSMDOneNodeCleanedEndpoints(t *testing.T) {
@@ -96,17 +95,17 @@ func TestNSMHealLocalDieNSMDOneNodeCleanedEndpoints(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDOneNode(t, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC, true)
+	testNSMHealLocalDieNSMDOneNode(t, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC, true)
 }
 
-func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse utils.PodSupplier, nscCheck utils.NscChecker, cleanupEndpointsCRDs bool) {
-	k8s, err := kube_testing.NewK8s(true)
+func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse kubetest.PodSupplier, nscCheck kubetest.NscChecker, cleanupEndpointsCRDs bool) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup, err := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
@@ -114,12 +113,12 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse utils.Pod
 	Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := deployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *utils.NSCCheckInfo
+	var nscInfo *kubetest.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = nscCheck(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
@@ -141,9 +140,9 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse utils.Pod
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = nscCheck(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, nscPodNode)
 	})
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
 
 func TestNSMHealLocalDieNSMDOneNodeFakeEndpoint(t *testing.T) {
@@ -153,31 +152,32 @@ func TestNSMHealLocalDieNSMDOneNodeFakeEndpoint(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testNSMHealLocalDieNSMDTwoNodes(t, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	testNSMHealLocalDieNSMDTwoNodes(t, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
-func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse utils.PodSupplier, nscCheck utils.NscChecker) {
-	k8s, err := kube_testing.NewK8s(true)
+func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse kubetest.PodSupplier, nscCheck kubetest.NscChecker) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
-	nodes_setup := utils.SetupNodes(k8s, 2, defaultTimeout)
+	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := deployNse(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := deployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *utils.NSCCheckInfo
+	var nscInfo *kubetest.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = nscCheck(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Remember nse name
-	_, nsm1RegistryClient, fwd1Close := utils.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
+	_, nsm1RegistryClient, fwd1Close := kubetest.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
 	nseList, err := nsm1RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
 	fwd1Close()
 
@@ -194,7 +194,7 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse utils.Po
 	logrus.Infof("Cleanup Endpoints CRDs...")
 	k8s.CleanupEndpointsCRDs()
 
-	nse2RegistryClient, nsm2RegistryClient, fwd2Close := utils.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
+	nse2RegistryClient, nsm2RegistryClient, fwd2Close := kubetest.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
 	defer fwd2Close()
 
 	_, err = nse2RegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
@@ -222,7 +222,7 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse utils.Po
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = nscCheck(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, nscPodNode)
 	})
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }

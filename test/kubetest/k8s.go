@@ -1,4 +1,4 @@
-package kube_testing
+package kubetest
 
 import (
 	"context"
@@ -25,10 +25,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 
-	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kube_testing/rbac"
+	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
 )
 
 const (
+	// PodStartTimeout - Default pod startup time
 	PodStartTimeout  = 3 * time.Minute
 	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute

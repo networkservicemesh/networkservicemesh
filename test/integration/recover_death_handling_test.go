@@ -9,10 +9,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
@@ -68,25 +67,25 @@ var NSENoHeal = &pods.NSMgrPodConfig{
 		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
 		nsm.NsmdHealEnabled:          "true",
 	},
-	DataplaneVariables: utils.DefaultDataplaneVariables(),
+	DataplaneVariables: kubetest.DefaultDataplaneVariables(),
 }
 
 func testDie(t *testing.T, killSrc bool, nodesCount int) {
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	NSENoHeal.Namespace = k8s.GetK8sNamespace()
 
-	nodes, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		NSENoHeal,
 		NSENoHeal,
 	}, k8s.GetK8sNamespace())
 	Expect(err).To(BeNil())
 
 	failures := InterceptGomegaFailures(func() {
-		icmp := utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-		nsc := utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+		icmp := kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+		nsc := kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
 		ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")
 		Expect(err).To(BeNil())

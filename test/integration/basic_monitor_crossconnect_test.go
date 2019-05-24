@@ -10,8 +10,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -25,16 +24,16 @@ func TestSingleCrossConnect(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	nodesCount := 2
 
-	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
-	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
@@ -70,14 +69,14 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 
-	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
 
 
@@ -100,8 +99,8 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	nsmdMonitor2, close2, cancel2 := createCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
 	defer close2()
 
-	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
 	_, err = getCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, fastTimeout)
 	Expect(err).To(BeNil())
@@ -117,18 +116,18 @@ func TestSeveralCrossConnects(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 
-	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
-	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
-	utils.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
+	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
 
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
@@ -164,18 +163,18 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 
-	nodes, err := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
-	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	utils.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
-	utils.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
+	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())

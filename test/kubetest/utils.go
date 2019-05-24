@@ -1,10 +1,11 @@
-package utils
+package kubetest
 
 import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 	"net"
 	"os"
 	"strings"
@@ -20,11 +21,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 
 	"k8s.io/client-go/util/cert"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -39,22 +38,27 @@ type NodeConf struct {
 	Dataplane *v1.Pod
 	Node      *v1.Node
 }
-type PodSupplier = func(*kube_testing.K8s, *v1.Node, string, time.Duration) *v1.Pod
-type NsePinger = func(k8s *kube_testing.K8s, from *v1.Pod) bool
-type NscChecker = func(*kube_testing.K8s, *testing.T, *v1.Pod) *NSCCheckInfo
+// PodSupplier - Type to pass supplier of pod
+type PodSupplier = func(*K8s, *v1.Node, string, time.Duration) *v1.Pod
+// NsePinger - Type to pass pinger for pod
+type NsePinger = func(k8s *K8s, from *v1.Pod) bool
+// NscChecker - Type to pass checked for pod
+type NscChecker = func(*K8s, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
 
-func SetupNodes(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
+// SetupNodes - Setup NSMgr and Dataplane for particular number of nodes in cluster
+func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
-func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
+// SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
+func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
-	var result_error error
+	var resultError error
 	for ii := 0; ii < nodesCount; ii++ {
 		wg.Add(1)
 		i := ii
@@ -78,7 +82,12 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, conf[i].DataplaneVariables)
 			}
-			corePods, err := k8s.CreatePodsRaw(kube_testing.PodStartTimeout, true, corePod, dataplanePod)
+			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, dataplanePod)
+			if err != nil {
+				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				resultError = err
+				return
+			}
 			if debug {
 				podContainer := "nsmd"
 				if conf[i].Nsmd == pods.NSMgrContainerDebug {
@@ -90,14 +99,13 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 				k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
 				logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
 			}
-			nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, &nodes[i], corePods, timeout)
+			nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, corePods, timeout)
 			if err != nil {
 				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
-				result_error = err
+				resultError = err
 				return
 			}
 			logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
-			Expect(err).To(BeNil())
 			confs[i] = &NodeConf{
 				Nsmd:      nsmd,
 				Dataplane: dataplane,
@@ -106,10 +114,10 @@ func SetupNodesConfig(k8s *kube_testing.K8s, nodesCount int, timeout time.Durati
 		}()
 	}
 	wg.Wait()
-	return confs, result_error
+	return confs, resultError
 }
 
-func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v1.Pod, timeout time.Duration) (nsmd *v1.Pod, dataplane *v1.Pod, err error) {
+func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, dataplane *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
 			return nil, nil, fmt.Errorf("Pod %v is not ready...", pod.Name)
@@ -134,20 +142,22 @@ func deployNSMgrAndDataplane(k8s *kube_testing.K8s, node *v1.Node, corePods []*v
 	err = nil
 	return
 }
-
-func DeployVppAgentICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+// DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
+func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
 		defaultICMPEnv(),
 	))
 }
 
-func DeployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+// DeployICMP - etup ICMP responder NSE
+func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
 		defaultICMPEnv(), defaultICMPCommand(),
 	))
 }
 
-func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
+// DeployICMPWithConfig - Setup ICMP responder NSE with parameters
+func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
 	pod := pods.TestNSEPod(name, node,
 		defaultICMPEnv(), defaultICMPCommand(),
 	)
@@ -155,29 +165,33 @@ func DeployICMPWithConfig(k8s *kube_testing.K8s, node *v1.Node, name string, tim
 	return deployICMP(k8s, node, name, timeout, pod)
 }
 
-func DeployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+// DeployDirtyNSE - Setup ICMP responder NSE with dirty flag set
+func DeployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployDirtyNSE(k8s, node, name, timeout, pods.TestNSEPod(name, node,
 		defaultDirtyNSEEnv(), defaultDirtyNSECommand(),
 	))
 }
 
 // DeployNeighborNSE deploys icmp with flag -neighbors
-func DeployNeighborNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
 		defaultICMPEnv(), defaultNeighborNSECommand(),
 	))
 }
 
-func DeployNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+// DeployNSC - Setup Default Client
+func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
 
-func DeployNSCWebhook(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+// DeployNSCWebhook - Setup Default Client with webhook
+func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsm-init-container", timeout, pods.NSCPodWebhook(name, node))
 }
 
-func DeployVppAgentNSC(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+// DeployVppAgentNSC - Setup Default VPP Based Client
+func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
 
@@ -216,7 +230,7 @@ func defaultNSCEnv() map[string]string {
 	}
 }
 
-func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+func deployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
 	logrus.Infof("Starting ICMP Responder NSE on node: %s", node.Name)
@@ -229,7 +243,7 @@ func deployICMP(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.
 	return icmp
 }
 
-func deployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+func deployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
 	logrus.Infof("Starting dirty NSE on node: %s", node.Name)
@@ -242,7 +256,7 @@ func deployDirtyNSE(k8s *kube_testing.K8s, node *v1.Node, name string, timeout t
 	return dirty
 }
 
-func deployNSC(k8s *kube_testing.K8s, node *v1.Node, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+func deployNSC(k8s *K8s, node *v1.Node, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 	Expect(template).ShouldNot(BeNil())
 
@@ -257,7 +271,8 @@ func deployNSC(k8s *kube_testing.K8s, node *v1.Node, name, container string, tim
 	return nsc
 }
 
-func DeployAdmissionWebhook(k8s *kube_testing.K8s, name string, image string, namespace string) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
+// DeployAdmissionWebhook - Setup Admission Webhook
+func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
 	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
 	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
 
@@ -267,7 +282,8 @@ func DeployAdmissionWebhook(k8s *kube_testing.K8s, name string, image string, na
 	return awc, awDeployment, awService
 }
 
-func DeleteAdmissionWebhook(k8s *kube_testing.K8s, secretName string,
+// DeleteAdmissionWebhook - Delete admission webhook
+func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
 
 	err := k8s.DeleteService(awService, namespace)
@@ -283,7 +299,8 @@ func DeleteAdmissionWebhook(k8s *kube_testing.K8s, secretName string,
 	Expect(err).To(BeNil())
 }
 
-func CreateAdmissionWebhookSecret(k8s *kube_testing.K8s, name string, namespace string) (*v1.Secret, []byte) {
+// CreateAdmissionWebhookSecret - Create admission webhook secret
+func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret, []byte) {
 
 	caCertSpec := &cert.Config{
 		CommonName: "admission-controller-ca",
@@ -344,7 +361,8 @@ func CreateAdmissionWebhookSecret(k8s *kube_testing.K8s, name string, namespace 
 	return awSecret, caCertPem
 }
 
-func CreateMutatingWebhookConfiguration(k8s *kube_testing.K8s, certPem []byte, name string, namespace string) *arv1beta1.MutatingWebhookConfiguration {
+// CreateMutatingWebhookConfiguration - Setup Mutating webhook configuration
+func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespace string) *arv1beta1.MutatingWebhookConfiguration {
 	servicePath := "/mutate"
 
 	mutatingWebhookConf := &arv1beta1.MutatingWebhookConfiguration{
@@ -390,7 +408,8 @@ func CreateMutatingWebhookConfiguration(k8s *kube_testing.K8s, certPem []byte, n
 	return awc
 }
 
-func CreateAdmissionWebhookDeployment(k8s *kube_testing.K8s, name string, image string, namespace string) *appsv1.Deployment {
+// CreateAdmissionWebhookDeployment - Setup Admission Webhook deoloyment
+func CreateAdmissionWebhookDeployment(k8s *K8s, name, image, namespace string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -446,7 +465,8 @@ func CreateAdmissionWebhookDeployment(k8s *kube_testing.K8s, name string, image 
 	return awDeployment
 }
 
-func CreateAdmissionWebhookService(k8s *kube_testing.K8s, name string, namespace string) *v1.Service {
+// CreateAdmissionWebhookService - Create Admission Webhook Service
+func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service {
 	service := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Service",
@@ -475,7 +495,8 @@ func CreateAdmissionWebhookService(k8s *kube_testing.K8s, name string, namespace
 	return awService
 }
 
-func PrintLogs(k8s *kube_testing.K8s, nodesSetup []*NodeConf) {
+// PrintLogs - Print deployed pod logs
+func PrintLogs(k8s *K8s, nodesSetup []*NodeConf) {
 	for k := 0; k < len(nodesSetup); k++ {
 		nsmdPod := nodesSetup[k].Nsmd
 		printNSMDLogs(k8s, nsmdPod, k)
@@ -484,12 +505,12 @@ func PrintLogs(k8s *kube_testing.K8s, nodesSetup []*NodeConf) {
 	}
 }
 
-func printDataplaneLogs(k8s *kube_testing.K8s, dataplane *v1.Pod, k int) {
+func printDataplaneLogs(k8s *K8s, dataplane *v1.Pod, k int) {
 	dataplaneLogs, _ := k8s.GetLogs(dataplane, "")
 	logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
 }
 
-func printNSMDLogs(k8s *kube_testing.K8s, nsmdPod *v1.Pod, k int) {
+func printNSMDLogs(k8s *K8s, nsmdPod *v1.Pod, k int) {
 	nsmdUpdatedPod, err := k8s.GetPod(nsmdPod)
 	if err != nil {
 		logrus.Errorf("Failed to update POD details %v", err)
@@ -509,6 +530,7 @@ func printNSMDLogs(k8s *kube_testing.K8s, nsmdPod *v1.Pod, k int) {
 
 }
 
+// NSCCheckInfo - Structure to hold client ping information
 type NSCCheckInfo struct {
 	ipResponse    string
 	routeResponse string
@@ -516,6 +538,7 @@ type NSCCheckInfo struct {
 	errOut        string
 }
 
+// PrintLogs - Print Client print information
 func (info *NSCCheckInfo) PrintLogs() {
 	if info == nil {
 		return
@@ -526,13 +549,15 @@ func (info *NSCCheckInfo) PrintLogs() {
 	logrus.Errorf("===================== NSC errOut %v\n=====================", info.errOut)
 }
 
-func CheckNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return checkNSCConfig(k8s, t, nscPodNode, "172.16.1.1", "172.16.1.2")
+// CheckNSC - Perform default check for client to NSE operations
+func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
+	return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
 }
-func CheckVppAgentNSC(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return checkVppAgentNSCConfig(k8s, t, nscPodNode, "172.16.1.1")
+// CheckVppAgentNSC - Perform check of VPP based agent operations.
+func CheckVppAgentNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
+	return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
 }
-func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string, pingIP string) *NSCCheckInfo {
+func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCheckInfo {
 	var err error
 	info := &NSCCheckInfo{}
 	info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
@@ -560,7 +585,7 @@ func checkNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, che
 	return info
 }
 
-func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
+func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
 	info := &NSCCheckInfo{}
 	response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
 	if strings.Contains(response, checkIP) {
@@ -575,17 +600,20 @@ func checkVppAgentNSCConfig(k8s *kube_testing.K8s, t *testing.T, nscPodNode *v1.
 	return info
 }
 
+// IsBrokeTestsEnabled - Check if broken tests are enabled
 func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
 }
+
+// DefaultDataplaneVariables - Default variabels for dataplane deployment
 func DefaultDataplaneVariables() map[string]string {
 	return map[string]string{
 		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
 	}
 }
-
-func GetVppAgentNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod) (net.IP, error) {
+// GetVppAgentNSEAddr - GetVppAgentNSEAddr - Return vpp agent NSE address
+func GetVppAgentNSEAddr(k8s *K8s, nsc *v1.Pod) (net.IP, error) {
 	return getNSEAddr(k8s, nsc, parseVppAgentAddr, "vppctl", "show int addr")
 }
 
@@ -612,29 +640,30 @@ func parseAddr(ipReponse string) (string, error) {
 	return ip, nil
 }
 
-func getNSEAddr(k8s *kube_testing.K8s, nsc *v1.Pod, parseIp ipParser, showIpCommand ...string) (net.IP, error) {
-	response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, showIpCommand...)
+func getNSEAddr(k8s *K8s, nsc *v1.Pod, parseIP ipParser, showIPCommand ...string) (net.IP, error) {
+	response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, showIPCommand...)
 	response = strings.TrimSpace(response)
 	if response == "" {
-		return nil, errors.New(fmt.Sprintf("exec [%v] returned empty response", showIpCommand))
+		return nil, fmt.Errorf("exec [%v] returned empty response", showIPCommand)
 	}
-	addr, err := parseIp(response)
+	addr, err := parseIP(response)
 	if err != nil {
 		return nil, err
 	}
-	ip, net, err := net.ParseCIDR(addr)
+	ip, ipNet, err := net.ParseCIDR(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	ip, err = prefix_pool.IncrementIP(ip, net)
+	ip, err = prefix_pool.IncrementIP(ip, ipNet)
 	if err != nil {
 		return nil, err
 	}
 	return ip, nil
 }
 
-func IsVppAgentNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
+// IsVppAgentNsePinged - Checvk if vpp agent NSE is pinable
+func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	nseIp, err := GetVppAgentNSEAddr(k8s, from)
 	Expect(err).Should(BeNil())
 	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIp)
@@ -647,7 +676,9 @@ func IsVppAgentNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 
 	return result
 }
-func IsNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
+
+// IsNsePinged - Check if NSE is pinged
+func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	nseIp, err := getNSEAddr(k8s, from, parseAddr, "ip", "addr")
 	Expect(err).Should(BeNil())
 	logrus.Infof("%v trying ping to %v", from.Name, nseIp)
@@ -660,10 +691,11 @@ func IsNsePinged(k8s *kube_testing.K8s, from *v1.Pod) (result bool) {
 
 	return result
 }
-func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
+// PrintErrors - Print errors for system NSMgr pods
+func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		PrintLogs(k8s, nodes_setup)
+		PrintLogs(k8s, nodesSetup)
 		nscInfo.PrintLogs()
 
 		t.Fail()
@@ -671,21 +703,21 @@ func PrintErrors(failures []string, k8s *kube_testing.K8s, nodes_setup []*NodeCo
 }
 
 // FailLogger prints logs from containers in case of fail or panic
-func FailLogger(k8s *kube_testing.K8s, nodes_setup []*NodeConf, t *testing.T) {
+func FailLogger(k8s *K8s, nodesSetup []*NodeConf, t *testing.T) {
 	if r := recover(); r != nil {
-		PrintLogs(k8s, nodes_setup)
+		PrintLogs(k8s, nodesSetup)
 		panic(r)
 	}
 
 	if t.Failed() {
-		PrintLogs(k8s, nodes_setup)
+		PrintLogs(k8s, nodesSetup)
 	}
 
 	return
 }
 
 // ServiceRegistryAt creates new service registry on 5000 port
-func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
+func ServiceRegistryAt(k8s *K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
 	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
 	Expect(err).To(BeNil())
 
@@ -697,7 +729,7 @@ func ServiceRegistryAt(k8s *kube_testing.K8s, nsmgr *v1.Pod) (serviceregistry.Se
 }
 
 // PrepareRegistryClients prepare nse and nsm registry clients
-func PrepareRegistryClients(k8s *kube_testing.K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
+func PrepareRegistryClients(k8s *K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
 	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
 
 	nseRegistryClient, err := serviceRegistry.NseRegistryClient()

@@ -6,9 +6,8 @@ import (
 	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 )
 
@@ -20,7 +19,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
@@ -30,18 +29,18 @@ func TestExcludePrefixCheck(t *testing.T) {
 		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
-	nodes, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables:          variables,
-			DataplaneVariables: utils.DefaultDataplaneVariables(),
+			DataplaneVariables: kubetest.DefaultDataplaneVariables(),
 			Namespace:          k8s.GetK8sNamespace(),
 		},
 	}, k8s.GetK8sNamespace())
 	Expect(err).To(BeNil())
 
-	defer utils.FailLogger(k8s, nodes, t)
+	defer kubetest.FailLogger(k8s, nodes, t)
 
-	icmp := utils.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmp := kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	clientset, err := k8s.GetClientSet()
 	Expect(err).To(BeNil())

@@ -8,9 +8,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -24,7 +23,7 @@ func TestSimpleMetrics(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	Expect(err).To(BeNil())
 
 	defer k8s.Cleanup()
@@ -32,7 +31,7 @@ func TestSimpleMetrics(t *testing.T) {
 	nodesCount := 2
 	requestPeriod := time.Second
 
-	nodes, err := utils.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
+	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			DataplaneVariables: map[string]string{
 				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
@@ -43,7 +42,7 @@ func TestSimpleMetrics(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 
 	Expect(err).To(BeNil())
-	utils.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -57,7 +56,7 @@ func TestSimpleMetrics(t *testing.T) {
 	defer close()
 	metricsCh := make(chan map[string]string)
 	monitorCrossConnectsMetrics(nsmdMonitor, metricsCh)
-	nsc := utils.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
+	nsc := kubetest.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
 	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
 	logrus.Infof("response = %v", response)

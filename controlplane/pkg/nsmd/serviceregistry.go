@@ -236,26 +236,19 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	}
 }
 
-func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error {
+func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(mdl model.Model, timeout time.Duration) error {
 	logrus.Info("Waiting for dataplane available...")
 	st := time.Now()
+	checkConfigured := func(dp *model.Dataplane) bool  {
+		return dp.MechanismsConfigured
+	}
 	for ; true; <-time.After(100 * time.Millisecond) {
-		if dp, _ := model.SelectDataplane(nil); dp != nil {
-
-			// Wait for mechanisms configuration
-			if !dp.MechanismsConfigured {
-				logrus.Info("Waiting for dataplane mechanisms configured...")
-				for ; !dp.MechanismsConfigured; <-time.After(100 * time.Millisecond) {
-					if time.Since(st) > timeout {
-						break
-					}
-				}
-			}
-
-			break
+		if dp, _ := mdl.SelectDataplane(checkConfigured); dp != nil {
+			// We have configured monitor
+			return nil
 		}
 		if time.Since(st) > timeout {
-			break
+			return fmt.Errorf("error waiting for dataplane... timeout happened")
 		}
 	}
 	return nil

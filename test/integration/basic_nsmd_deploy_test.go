@@ -6,11 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -34,7 +33,7 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -47,8 +46,7 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 		return
 	}
 
-	_ = utils.SetupNodes(k8s, 2, defaultTimeout)
-	_, err = utils.SetupNodes(k8s, 2, defaultTimeout)
+	_, err = kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	Expect(err).To(BeNil())
 	k8s.Cleanup()
 	var count int = 0

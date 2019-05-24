@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -22,13 +21,13 @@ func TestNSMDDeploy(t *testing.T) {
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	st := time.Now()
-	_, err = utils.SetupNodes(k8s, 1, defaultTimeout)
+	_, err = kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 	deploy := time.Now()
 	k8s.Cleanup()

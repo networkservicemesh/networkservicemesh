@@ -35,7 +35,7 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890 // indirect
-	golang.org/x/sys v0.0.0-20190312061237-fead79001313
+	golang.org/x/sys v0.0.0-20190422165155-953cdadca894
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
 	google.golang.org/grpc v1.21.0
