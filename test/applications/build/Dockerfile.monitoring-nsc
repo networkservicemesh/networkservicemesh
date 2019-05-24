@@ -10,7 +10,7 @@ WORKDIR /root/networkservicemesh/
 RUN ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/monitoring-nsc ./examples/cmd/monitoring-nsc/nsc.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/monitoring-nsc ./test/applications/cmd/monitoring-nsc/nsc.go
 
 FROM alpine as runtime
 COPY --from=build /go/bin/monitoring-nsc /bin/monitoring-nsc
