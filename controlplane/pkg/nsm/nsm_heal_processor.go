@@ -113,6 +113,7 @@ func (p *nsmHealProcessor) healDataplaneDown(healID string, connection *model.Cl
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
 
 	// We could send connection is down now.
+	// TODO: call to monitor instead of model updating
 	p.model.UpdateClientConnection(connection)
 
 	if connection.Xcon.GetRemoteSource() != nil {

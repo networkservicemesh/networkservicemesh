@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
 	"sync"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -75,6 +76,16 @@ func (d *dataplaneDomain) DeleteDataplane(name string) {
 	d.resourceDeleted(v)
 }
 
+func (d *dataplaneDomain) UpdateDataplane(dp *Dataplane) {
+	v := d.GetDataplane(dp.RegisteredName)
+	if v == nil {
+		d.AddDataplane(dp)
+		return
+	}
+	d.inner.Store(dp.RegisteredName, dp.Clone())
+	d.resourceUpdated(v, dp.Clone())
+}
+
 func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error) {
 	var rv *Dataplane
 	d.inner.Range(func(key, value interface{}) bool {
@@ -100,6 +111,11 @@ func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) 
 	return rv.Clone(), nil
 }
 
-func (d *dataplaneDomain) SetDataplaneModificationHandler(h *ModificationHandler) {
-	d.addHandler(h)
+func (d *dataplaneDomain) SetDataplaneModificationHandler(h *ModificationHandler) func() {
+	deleteFunc := d.addHandler(h)
+	d.inner.Range(func(key, value interface{}) bool {
+		d.resourceAdded(value.(*Dataplane).Clone())
+		return true
+	})
+	return deleteFunc
 }

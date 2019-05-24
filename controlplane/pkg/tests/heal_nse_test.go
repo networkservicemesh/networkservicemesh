@@ -88,10 +88,8 @@ func TestHealRemoteNSE(t *testing.T) {
 		t.Fatal("Err must be nil")
 	}
 
-	err = srv2.testModel.DeleteEndpoint(epName)
-	if err != nil {
-		t.Fatal("Err must be nil")
-	}
+	srv2.testModel.DeleteEndpoint(epName)
+
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1

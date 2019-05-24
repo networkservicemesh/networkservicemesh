@@ -95,6 +95,10 @@ func (m *ClientConnectionManager) markSourceConnectionDown(clientConnection *mod
 	} else if clientConnection.Xcon.GetLocalSource() != nil {
 		clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
 	}
+
+	// TODO: now we are not tracking changes until dataplane becomes available (or die)
+	// decouple model changes and writing to monitor and call
+	// m.model.UpdateClientConnection(clientConnection) here
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
@@ -129,7 +133,7 @@ func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.Netw
 	clientConnections := m.model.GetAllClientConnections()
 	var result []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.RemoteNsm == nsm {
+		if clientConnection.RemoteNsm.GetName() == nsm.GetName() {
 			result = append(result, clientConnection)
 		}
 	}

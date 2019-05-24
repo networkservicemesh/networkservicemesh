@@ -30,10 +30,11 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 
 	defer func() {
 		logrus.Infof("NSM_Heal(1.1-%v) Connection %v healing state is finished...", healID, clientConnection.GetId())
-		clientConnection.ConnectionState = model.ClientConnection_Ready
 	}()
 
 	clientConnection.ConnectionState = model.ClientConnection_Healing
+	// TODO: now we are not tracking changes until dataplane becomes available (or die)
+	// need to call srv.model.UpdateClientConnection(clientConnection) here
 
 	healed := false
 
@@ -50,6 +51,8 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	}
 
 	if healed {
+		clientConnection.ConnectionState = model.ClientConnection_Ready
+		srv.model.UpdateClientConnection(clientConnection)
 		return
 	}
 

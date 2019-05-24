@@ -1,6 +1,8 @@
 package model
 
-import "sync"
+import (
+	"sync"
+)
 
 type ModificationHandler struct {
 	AddFunc    func(new interface{})
@@ -14,8 +16,8 @@ type baseDomain struct {
 }
 
 func (b *baseDomain) resourceAdded(new interface{}) {
-	b.mtx.Lock()
-	defer b.mtx.Unlock()
+	b.mtx.RLock()
+	defer b.mtx.RUnlock()
 
 	for _, h := range b.handlers {
 		if h.AddFunc != nil {
@@ -46,9 +48,24 @@ func (b *baseDomain) resourceDeleted(del interface{}) {
 	}
 }
 
-func (b *baseDomain) addHandler(h *ModificationHandler) {
+func (b *baseDomain) addHandler(h *ModificationHandler) func() {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
 	b.handlers = append(b.handlers, h)
+	return func() {
+		b.deleteHandler(h)
+	}
+}
+
+func (b *baseDomain) deleteHandler(h *ModificationHandler) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+
+	for i := 0; i < len(b.handlers); i++ {
+		if h == b.handlers[i] {
+			b.handlers = append(b.handlers[:i], b.handlers[i+1:]...)
+			return
+		}
+	}
 }

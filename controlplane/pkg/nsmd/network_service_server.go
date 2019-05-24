@@ -62,9 +62,12 @@ func (srv *networkServiceServer) updateMechanisms(request *networkservice.Networ
 
 func (srv *networkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("Closing connection: %v", *connection)
+	// TODO: check carefully  id of closing connection (need dst connection id)
 	clientConnection := srv.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
-		return nil, fmt.Errorf("There is no such client connection %v", connection)
+		err := fmt.Errorf("There is no such client connection %v", connection)
+		logrus.Error(err)
+		return nil, err
 	}
 	err := srv.manager.Close(ctx, clientConnection)
 	if err != nil {

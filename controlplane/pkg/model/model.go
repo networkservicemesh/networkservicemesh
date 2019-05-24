@@ -42,6 +42,7 @@ type Model interface {
 
 	GetDataplane(name string) *Dataplane
 	AddDataplane(dataplane *Dataplane)
+	UpdateDataplane(dataplane *Dataplane)
 	DeleteDataplane(name string)
 	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
 
@@ -55,6 +56,7 @@ type Model interface {
 	CorrectIdGenerator(id string)
 
 	AddListener(listener ModelListener)
+	RemoveListener(listener ModelListener)
 
 	SetNsm(nsm *registry.NetworkServiceManager)
 	GetNsm() *registry.NetworkServiceManager
@@ -71,10 +73,11 @@ type model struct {
 	mtx              sync.RWMutex
 	selector         selector.Selector
 	nsm              *registry.NetworkServiceManager
+	listeners        map[ModelListener]func()
 }
 
 func (m *model) AddListener(listener ModelListener) {
-	m.SetEndpointModificationHandler(&ModificationHandler{
+	endpListenerDelete := m.SetEndpointModificationHandler(&ModificationHandler{
 		AddFunc: func(new interface{}) {
 			listener.EndpointAdded(new.(*Endpoint))
 		},
@@ -86,7 +89,7 @@ func (m *model) AddListener(listener ModelListener) {
 		},
 	})
 
-	m.SetDataplaneModificationHandler(&ModificationHandler{
+	dpListenerDelete := m.SetDataplaneModificationHandler(&ModificationHandler{
 		AddFunc: func(new interface{}) {
 			listener.DataplaneAdded(new.(*Dataplane))
 		},
@@ -95,7 +98,7 @@ func (m *model) AddListener(listener ModelListener) {
 		},
 	})
 
-	m.SetClientConnectionModificationHandler(&ModificationHandler{
+	ccListenerDelete := m.SetClientConnectionModificationHandler(&ModificationHandler{
 		AddFunc: func(new interface{}) {
 			listener.ClientConnectionAdded(new.(*ClientConnection))
 		},
@@ -106,11 +109,27 @@ func (m *model) AddListener(listener ModelListener) {
 			listener.ClientConnectionDeleted(del.(*ClientConnection))
 		},
 	})
+
+	m.listeners[listener] = func() {
+		endpListenerDelete()
+		dpListenerDelete()
+		ccListenerDelete()
+	}
+}
+
+func (m *model) RemoveListener(listener ModelListener) {
+	deleter, ok := m.listeners[listener]
+	if !ok {
+		logrus.Info("No such listener")
+	}
+	deleter()
+	delete(m.listeners, listener)
 }
 
 func NewModel() Model {
 	return &model{
-		selector: selector.NewMatchSelector(),
+		selector:  selector.NewMatchSelector(),
+		listeners: make(map[ModelListener]func()),
 	}
 }
 

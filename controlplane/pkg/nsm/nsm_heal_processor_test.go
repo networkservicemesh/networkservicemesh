@@ -307,7 +307,7 @@ func (stub *connectionManagerStub) close(ctx context.Context, clientConnection *
 
 	clientConnection.ConnectionState = model.ClientConnection_Closing
 
-	_ = stub.model.DeleteEndpoint(clientConnection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+	stub.model.DeleteEndpoint(clientConnection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
 
 	if closeDataplane {
 		stub.model.DeleteDataplane(clientConnection.Dataplane.RegisteredName)

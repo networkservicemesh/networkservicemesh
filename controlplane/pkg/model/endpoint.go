@@ -87,6 +87,11 @@ func (d *endpointDomain) UpdateEndpoint(endpoint *Endpoint) {
 	d.resourceUpdated(v, endpoint.Clone())
 }
 
-func (d *endpointDomain) SetEndpointModificationHandler(h *ModificationHandler) {
-	d.addHandler(h)
+func (d *endpointDomain) SetEndpointModificationHandler(h *ModificationHandler) func() {
+	deleteFunc := d.addHandler(h)
+	d.inner.Range(func(key, value interface{}) bool {
+		d.resourceAdded(value.(*Endpoint).Clone())
+		return true
+	})
+	return deleteFunc
 }

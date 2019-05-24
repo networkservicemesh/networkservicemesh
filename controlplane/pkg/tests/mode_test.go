@@ -62,7 +62,7 @@ func TestModelAddEndpoint(t *testing.T) {
 	mdl.AddEndpoint(ep1)
 	Expect(mdl.GetEndpoint("ep1")).To(Equal(ep1))
 
-	Expect(mdl.GetNetworkServiceEndpoints("golden-network")[0]).To(Equal(ep1))
+	Expect(mdl.GetEndpointsByNetworkService("golden-network")[0]).To(Equal(ep1))
 }
 
 func createNSERegistration(networkServiceName string, endpointName string) *model.Endpoint {
@@ -92,7 +92,7 @@ func TestModelTwoEndpoint(t *testing.T) {
 	Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
 	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
-	Expect(len(model.GetNetworkServiceEndpoints("golden-network"))).To(Equal(2))
+	Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(2))
 }
 
 func TestModelAddDeleteEndpoint(t *testing.T) {
@@ -108,21 +108,13 @@ func TestModelAddDeleteEndpoint(t *testing.T) {
 	Expect(model.GetEndpoint("ep1")).To(BeNil())
 	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
-	Expect(len(model.GetNetworkServiceEndpoints("golden-network"))).To(Equal(1))
+	Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(1))
 }
 
 type ListenerImpl struct {
+	model.ModelListenerImpl
 	endpoints  int
 	dataplanes int
-}
-
-func (impl *ListenerImpl) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
-}
-
-func (impl *ListenerImpl) ClientConnectionAdded(clientConnection *model.ClientConnection) {
-}
-
-func (impl *ListenerImpl) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
 }
 
 func (impl *ListenerImpl) EndpointAdded(endpoint *model.Endpoint) {
@@ -188,7 +180,7 @@ func TestModelListenEndpoint(t *testing.T) {
 	Expect(listener.dataplanes).To(Equal(0))
 	Expect(listener.endpoints).To(Equal(1))
 
-	_ = mdl.DeleteEndpoint("ep1")
+	mdl.DeleteEndpoint("ep1")
 
 	Expect(listener.dataplanes).To(Equal(0))
 	Expect(listener.endpoints).To(Equal(0))
@@ -210,7 +202,7 @@ func TestModelListenExistingEndpoint(t *testing.T) {
 	Expect(listener.dataplanes).To(Equal(0))
 	Expect(listener.endpoints).To(Equal(1))
 
-	_ = mdl.DeleteEndpoint("ep1")
+	mdl.DeleteEndpoint("ep1")
 
 	Expect(listener.dataplanes).To(Equal(0))
 	Expect(listener.endpoints).To(Equal(0))

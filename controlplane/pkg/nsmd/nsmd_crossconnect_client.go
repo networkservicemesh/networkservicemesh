@@ -192,10 +192,13 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 				case crossconnect.CrossConnectEventType_UPDATE:
 					if src := xcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
 						client.xconManager.UpdateClientConnectionSrcStateDown(clientConnection)
+						continue
 					}
 					if dst := xcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
 						client.xconManager.UpdateClientConnectionDstStateDown(clientConnection, false)
+						continue
 					}
+
 					clientConnection.Xcon = xcon
 					client.xconManager.UpdateClientConnection(clientConnection)
 					client.monitorManager.CrossConnectMonitor().Update(xcon)
@@ -249,7 +252,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(remotePe
 			logrus.Infof("NSM-PeerMonitor(%v): Waiting for events...", remotePeer.Name)
 			event, err := stream.Recv()
 			if err != nil {
-				logrus.Errorf("NSM-PeerMonitor(%v) Uexpected error: %v", remotePeer.Name, err)
+				logrus.Errorf("NSM-PeerMonitor(%v) Unexpected error: %v", remotePeer.Name, err)
 				connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
 				for _, c := range connections {
 					// Same as DST down case, we need to wait for same NSE and updated NSMD.

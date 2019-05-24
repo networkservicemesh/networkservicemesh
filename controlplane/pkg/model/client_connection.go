@@ -134,6 +134,11 @@ func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
 	d.resourceUpdated(v, cc.Clone())
 }
 
-func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) {
-	d.addHandler(h)
+func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) func() {
+	deleteFunc := d.addHandler(h)
+	d.inner.Range(func(key, value interface{}) bool {
+		d.resourceAdded(value.(*ClientConnection).Clone())
+		return true
+	})
+	return deleteFunc
 }

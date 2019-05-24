@@ -323,9 +323,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 	// 11. Send update for client connection
 	clientConnection.ConnectionState = model.ClientConnection_Ready
 	clientConnection.DataplaneState = model.DataplaneState_Ready
-	if existingConnection != nil {
-		srv.model.UpdateClientConnection(clientConnection)
-	}
+	srv.model.UpdateClientConnection(clientConnection)
 
 	// 11. We are done with configuration here.
 	if request.IsRemote() {
@@ -409,10 +407,10 @@ func (srv *networkServiceManager) close(ctx context.Context, clientConnection *m
 		return nil
 	}
 	clientConnection.ConnectionState = model.ClientConnection_Closing
-	var nseClientError error
-	var nseCloseError error
+	srv.model.UpdateClientConnection(clientConnection)
 
-	srv.closeEndpoint(ctx, clientConnection)
+	var nseClientError error
+	nseCloseError := srv.closeEndpoint(ctx, clientConnection)
 
 	var dpCloseError error = nil
 	if closeDataplane {
@@ -585,6 +583,7 @@ func (srv *networkServiceManager) closeDataplane(clientConnection *model.ClientC
 	}
 	logrus.Info("NSM.Dataplane: Cross connection successfully closed on dataplane")
 	clientConnection.DataplaneState = model.DataplaneState_None
+	srv.model.UpdateClientConnection(clientConnection)
 	return nil
 }
 
