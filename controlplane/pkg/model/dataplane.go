@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/sirupsen/logrus"
 	"sync"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
