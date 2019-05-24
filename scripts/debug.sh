@@ -31,12 +31,12 @@ if [ "$1" = "nsmd-k8s" ]; then
 fi
 
 if [ "$1" = "nsc" ]; then
-    go_file=./examples/cmd/nsc
+    go_file=./test/applications/cmd/nsc
     output=/bin/$1
 fi
 
 if [ "$1" = "icmp-responder-nse" ]; then
-    go_file=./examples/cmd/nse/icmp-responder-nse
+    go_file=./test/applications/cmd/nse/icmp-responder-nse
     output=/bin/$1
 fi
 

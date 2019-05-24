@@ -75,7 +75,7 @@ For example:
 
 ```bash
 make docker-nsc-debug
-Compile and start debug of ./examples/cmd/nsc/nsc.go at port 40001
+Compile and start debug of ./test/applications/cmd/nsc/nsc.go at port 40001
 ```
 
 This way we can connect via remote debugger to local port 40001.
@@ -83,8 +83,8 @@ This way we can connect via remote debugger to local port 40001.
 Another examples are:
 
 * `make docker-nsmd-debug` - debug *controlplane/cmd/nsmd*
-* `make docker-nsc-debug` - debug *examples/cmd/nsc*
-* `make docker-icmp-responder-nse-debug` - debug *examples/cmd/nse/icmp-responder-nse*
+* `make docker-nsc-debug` - debug *test/applications/cmd/nsc*
+* `make docker-icmp-responder-nse-debug` - debug *test/applications/cmd/nse/icmp-responder-nse*
 
 ### Stopping a debug container
 

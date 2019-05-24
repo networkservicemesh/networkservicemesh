@@ -6,7 +6,6 @@
 !controlplane
 !dataplane
 !docker
-!examples
 !test/applications
 !go.mod
 !go.sum
