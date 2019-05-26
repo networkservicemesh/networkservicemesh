@@ -11,14 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,7 +29,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -137,7 +135,7 @@ func TestUpdateNSM(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
@@ -226,15 +224,16 @@ func TestGetEndpoints(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	nsmd := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
-	nseRegistryClient, nsmRegistryClient, fwdClose := utils.PrepareRegistryClients(k8s, nsmd[0].Nsmd)
+	nseRegistryClient, nsmRegistryClient, fwdClose := kubetest.PrepareRegistryClients(k8s, nsmd[0].Nsmd)
 	defer fwdClose()
 
 	url := "1.1.1.1:1"
@@ -285,18 +284,19 @@ func TestDuplicateEndpoint(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	nsmd := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// We need to wait unti it is started
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
-	nseRegistryClient, nsmRegistryClient, fwdClose := utils.PrepareRegistryClients(k8s, nsmd[0].Nsmd)
+	nseRegistryClient, nsmRegistryClient, fwdClose := kubetest.PrepareRegistryClients(k8s, nsmd[0].Nsmd)
 	defer fwdClose()
 
 	url := "1.1.1.1:1"
@@ -357,7 +357,7 @@ func TestClusterInfo(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
@@ -371,7 +371,8 @@ func TestClusterInfo(t *testing.T) {
 	}
 
 	k8s.Prepare("nsmgr")
-	nsmd := utils.SetupNodes(k8s, 1, defaultTimeout)
+	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
@@ -400,7 +401,7 @@ func TestClusterInfo(t *testing.T) {
 	Expect(err).To(BeNil())
 }
 
-func createSingleNsmgr(k8s *kube_testing.K8s, name string) *v1.Pod {
+func createSingleNsmgr(k8s *kubetest.K8s, name string) *v1.Pod {
 	nsmgr := k8s.CreatePod(pods.NSMgrPod(name, nil, k8s.GetK8sNamespace()))
 
 	// We need to wait until it is started
@@ -419,13 +420,13 @@ func TestLostUpdate(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
 
-	sr1, closeFunc := utils.ServiceRegistryAt(k8s, nsmgr1)
+	sr1, closeFunc := kubetest.ServiceRegistryAt(k8s, nsmgr1)
 
 	nsmRegistryClient, err := sr1.NsmRegistryClient()
 	Expect(err).To(BeNil())
@@ -463,7 +464,7 @@ func TestLostUpdate(t *testing.T) {
 
 	nsmgr2 := createSingleNsmgr(k8s, "nsmgr-2")
 
-	sr2, closeFunc2 := utils.ServiceRegistryAt(k8s, nsmgr2)
+	sr2, closeFunc2 := kubetest.ServiceRegistryAt(k8s, nsmgr2)
 	defer closeFunc2()
 
 	discovery2, err := sr2.DiscoveryClient()
@@ -494,13 +495,13 @@ func TestRegistryConcurrentModification(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
 
-	sr1, closeFunc := utils.ServiceRegistryAt(k8s, nsmgr1)
+	sr1, closeFunc := kubetest.ServiceRegistryAt(k8s, nsmgr1)
 	defer closeFunc()
 
 	nsmRegistryClient, err := sr1.NsmRegistryClient()

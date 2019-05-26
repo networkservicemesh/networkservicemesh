@@ -51,7 +51,7 @@ func main() {
 
 	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(nsmd.DataplaneTimeout); err != nil {
-		logrus.Errorf("Error waiting for dataplane")
+		logrus.Errorf("Error waiting for dataplane..")
 	}
 
 	// Choose a public API listener

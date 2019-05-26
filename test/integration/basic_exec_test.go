@@ -5,8 +5,8 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +19,7 @@ func TestExec(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8sWithoutRoles(false)
+	k8s, err := kubetest.NewK8sWithoutRoles(false)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())

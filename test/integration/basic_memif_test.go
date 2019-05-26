@@ -5,8 +5,7 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 )
 
@@ -18,15 +17,17 @@ func TestSimpleMemifConnection(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
-	nodes := utils.SetupNodes(k8s, 1, defaultTimeout)
-	defer utils.FailLogger(k8s, nodes, t)
+	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
+	defer kubetest.FailLogger(k8s, nodes, t)
 
-	utils.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
-	vppagentNsc := utils.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
-	Expect(true, utils.IsVppAgentNsePinged(k8s, vppagentNsc))
+
+	kubetest.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
+	vppagentNsc := kubetest.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
+	Expect(true, kubetest.IsVppAgentNsePinged(k8s, vppagentNsc))
 }

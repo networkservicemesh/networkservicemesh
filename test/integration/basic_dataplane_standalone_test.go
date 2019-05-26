@@ -18,8 +18,8 @@ import (
 	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -116,12 +116,12 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 // deployed on a single node.
 type standaloneDataplaneFixture struct {
 	timeout         time.Duration
-	k8s             *kube_testing.K8s
+	k8s             *kubetest.K8s
 	node            *v1.Node
 	dataplanePod    *v1.Pod
 	sourcePod       *v1.Pod
 	destPod         *v1.Pod
-	forwarding      *kube_testing.PortForward
+	forwarding      *kubetest.PortForward
 	dataplaneClient dataplaneapi.DataplaneClient
 	test            *testing.T
 }
@@ -139,7 +139,7 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 		test:    test,
 	}
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	Expect(err).To(BeNil())
 
 	// prepare node

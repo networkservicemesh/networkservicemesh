@@ -6,8 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
 )
@@ -18,7 +17,7 @@ func TestOneTimeConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeConnection(1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.IsVppAgentNsePinged)
+	testOneTimeConnection(1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 func TestOneTimeConnection(t *testing.T) {
 	RegisterTestingT(t)
@@ -26,7 +25,7 @@ func TestOneTimeConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeConnection(2, utils.DeployNSC, utils.DeployICMP, utils.IsNsePinged)
+	testOneTimeConnection(2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
 }
 
 func TestMovingConnection(t *testing.T) {
@@ -35,7 +34,7 @@ func TestMovingConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testMovingConnection(t, 2, utils.DeployNSC, utils.DeployICMP, utils.IsNsePinged)
+	testMovingConnection(t, 2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
 }
 
 func TestMovingConnectionMemif(t *testing.T) {
@@ -44,7 +43,7 @@ func TestMovingConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testMovingConnection(t, 1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.IsVppAgentNsePinged)
+	testMovingConnection(t, 1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 
 func TestOneToOneConnection(t *testing.T) {
@@ -53,7 +52,7 @@ func TestOneToOneConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneToOneConnection(2, utils.DeployNSC, utils.DeployICMP, utils.IsNsePinged)
+	testOneToOneConnection(2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
 }
 
 func TestOneToOneConnectionMemif(t *testing.T) {
@@ -62,11 +61,11 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneToOneConnection(1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.IsVppAgentNsePinged)
+	testOneToOneConnection(1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 
-func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy utils.PodSupplier, nsePing utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s(true)
+func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, nsePing kubetest.NsePinger) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -87,14 +86,14 @@ func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy utils.PodSupplie
 	}
 }
 
-func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy utils.PodSupplier, pingNse utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s(true)
+func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	nodes := createNodes(k8s, nodeCount)
-	defer utils.FailLogger(k8s, nodes, t)
+	defer kubetest.FailLogger(k8s, nodes, t)
 
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 	doneChannel := make(chan nscPingResult, nscCount)
@@ -113,8 +112,8 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy uti
 	}
 }
 
-func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy utils.PodSupplier, pingNse utils.NsePinger) {
-	k8s, err := kube_testing.NewK8s(true)
+func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -137,14 +136,16 @@ type nscPingResult struct {
 	nsc     *v1.Pod
 }
 
-func createNodes(k8s *kube_testing.K8s, count int) []*utils.NodeConf {
+func createNodes(k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
 	Expect(count > 0 && count < 3).Should(Equal(true))
-	nodes := utils.SetupNodes(k8s, count, defaultTimeout)
+	nodes, err := kubetest.SetupNodes(k8s, count, defaultTimeout)
+	Expect(err).To(BeNil())
+
 	Expect(len(nodes), count)
 	return nodes
 }
 
-func createNscAndPingIcmp(k8s *kube_testing.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy utils.PodSupplier, pingNse utils.NsePinger) {
+func createNscAndPingIcmp(k8s *kubetest.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
 	nsc := nscDeploy(k8s, node, nscDefaultName+strconv.Itoa(id), defaultTimeout)
 	Expect(nsc.Name).To(Equal(nscDefaultName + strconv.Itoa(id)))
 	done <- nscPingResult{

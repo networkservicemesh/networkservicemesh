@@ -8,8 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +23,7 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	//defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -37,7 +36,8 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 		return
 	}
 
-	pods := utils.SetupNodes(k8s, 1, defaultTimeout)
+	pods, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	result, result_err, err := k8s.Exec(pods[0].Nsmd, "nsmd", "kill", "-6", "1")
 	logrus.Infof("Kill status %v %v %v", result, result_err, err)
@@ -81,6 +81,5 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 		Expect(strings.Contains(prevLogs, "SIGABRT: abort")).To(Equal(true))
 
 	})
-
-	utils.PrintErrors(failures, k8s, pods, nil, t)
+	kubetest.PrintErrors(failures, k8s, pods, nil, t)
 }

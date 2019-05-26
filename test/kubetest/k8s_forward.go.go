@@ -1,4 +1,4 @@
-package kube_testing
+package kubetest
 
 import (
 	"fmt"
