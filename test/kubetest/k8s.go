@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -609,24 +610,51 @@ func (k8s *K8s) GetLogsWithOptions(pod *v1.Pod, options *v1.PodLogOptions) (stri
 	return fmt.Sprintf("%s", result), nil
 }
 
-func (o *K8s) WaitLogsContains(pod *v1.Pod, container string, pattern string, timeout time.Duration) {
-	st := time.Now()
-	for {
-		logs, error := o.GetLogs(pod, container)
-		if error != nil {
-			logrus.Printf("Error on get logs: %v retrying", error)
+// WaitLogsContains waits with timeout for pod::container logs to contain pattern as substring
+func (l *K8s) WaitLogsContains(pod *v1.Pod, container, pattern string, timeout time.Duration) {
+	matcher := func(s string) bool {
+		return strings.Contains(s, pattern)
+	}
+	description := fmt.Sprintf("Timeout waiting for logs pattern %v in %v::%v.", pattern, pod.Name, container)
+
+	l.waitLogsMatch(pod, container, matcher, timeout, description)
+}
+
+// WaitLogsContainsRegex waits with timeout for pod::contained logs to contain substring matching regexp pattern
+func (l *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, timeout time.Duration) error {
+	r, err := regexp.Compile(pattern)
+	if err != nil {
+		return err
+	}
+
+	matcher := func(s string) bool {
+		return r.FindStringSubmatch(s) != nil
+	}
+	description := fmt.Sprintf("Timeout waiting for logs matching regexp %v in %v::%v.", pattern, pod.Name, container)
+
+	l.waitLogsMatch(pod, container, matcher, timeout, description)
+
+	return nil
+}
+
+func (l *K8s) waitLogsMatch(pod *v1.Pod, container string, matcher func(string) bool, timeout time.Duration, description string) {
+	var logs string
+	var err error
+
+	for st := time.Now(); time.Since(st) < timeout; <-time.After(100 * time.Millisecond) {
+		logs, err = l.GetLogs(pod, container)
+		if err != nil {
+			logrus.Printf("Error on get logs: %v retrying", err)
+			continue
 		}
-		if !strings.Contains(logs, pattern) {
-			<-time.After(100 * time.Millisecond)
-		} else {
-			break
-		}
-		if time.Since(st) > timeout {
-			logrus.Errorf("Timeout waiting for logs pattern %s in pod %s. Last logs: %s", pattern, pod.Name, logs)
-			Expect(strings.Contains(logs, pattern)).To(Equal(true))
+
+		if matcher(logs) {
 			return
 		}
 	}
+
+	logrus.Errorf("%v Last logs: %s", description, logs)
+	Expect(false).To(BeTrue())
 }
 
 func (o *K8s) UpdatePod(pod *v1.Pod) *v1.Pod {
@@ -677,7 +705,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			Expect(len(nodes)).To(Equal(requiredNumber))
 		}
 		if since > timeout/10 && !warnPrinted {
-			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", requiredNumber, len(nodes) )
+			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", requiredNumber, len(nodes))
 			warnPrinted = true
 		}
 		time.Sleep(50 * time.Millisecond)
