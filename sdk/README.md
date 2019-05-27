@@ -61,7 +61,7 @@ The following code snippet illustrates its usage.
 ```go
 import "github.com/networkservicemesh/networkservicemesh/sdk/client"
 ...
-client, err := client.NewNSMClient(nil, nil)
+client, err := client.NewNSMClient(context.Background(), nil)
 if err != nil {
    // Handle the error
 }

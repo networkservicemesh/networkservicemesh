@@ -15,13 +15,15 @@
 package main
 
 import (
+	"context"
+
 	"github.com/gogo/protobuf/proto"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -39,7 +41,7 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer func() { _ = closer.Close() }()
 
-	nsc, err := client.NewNSMClient(nil, nil)
+	nsc, err := client.NewNSMClient(context.Background(), nil)
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
