@@ -185,7 +185,6 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
-		ClientConnectionNotExists("id").
 		DataplaneExists(dataplane1Name).
 		Verify(t)
 }
@@ -284,7 +283,15 @@ func (stub *connectionManagerStub) request(ctx context.Context, request nsm.NSMR
 	}
 
 	nsmConnection := newConnection(request)
-	if nsmConnection.GetNetworkService() != existingConnection.GetNetworkService() {
+	var dstId string
+	if conn := existingConnection.Xcon.GetLocalDestination(); conn != nil {
+		dstId = conn.GetId()
+	}
+	if conn := existingConnection.Xcon.GetRemoteDestination(); conn != nil {
+		dstId = conn.GetId()
+	}
+
+	if dstId == "-" {
 		if stub.nse != nil {
 			existingConnection.Endpoint = stub.nse
 		} else {
