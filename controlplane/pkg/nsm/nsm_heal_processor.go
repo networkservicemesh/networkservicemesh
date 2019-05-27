@@ -82,6 +82,7 @@ func (p *nsmHealProcessor) healDstDown(healID string, connection *model.ClientCo
 		requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
 		defer requestCancel()
 		logrus.Errorf("NSM_Heal(2.3.0-%v) Starting Heal by calling request: %v", healID, connection.Request)
+
 		recoveredConnection, err := p.conManager.request(requestCtx, connection.Request, connection)
 		if err != nil {
 			logrus.Errorf("NSM_Heal(2.3.1-%v) Failed to heal connection: %v", healID, err)
@@ -91,8 +92,6 @@ func (p *nsmHealProcessor) healDstDown(healID string, connection *model.ClientCo
 			return true
 		}
 	}
-	// Let's Close remote connection and re-create new one.
-	return false
 }
 
 func (p *nsmHealProcessor) healDataplaneDown(healID string, cc *model.ClientConnection) bool {
