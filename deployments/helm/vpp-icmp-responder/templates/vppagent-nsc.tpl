@@ -16,9 +16,11 @@ spec:
       hostPID: true
       containers:
         - name: vppagent-nsc
-          image: {{ .Values.registry }}/networkservicemesh/vppagent-nsc:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
+            - name: VPP_APP
+              value: "vppagent-nsc"
             - name: OUTGOING_NSC_LABELS
               value: "app=icmp"
             - name: OUTGOING_NSC_NAME

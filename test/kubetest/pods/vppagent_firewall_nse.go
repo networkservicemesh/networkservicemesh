@@ -52,7 +52,7 @@ func VppAgentFirewallNSEPod(name string, node *v1.Node, env map[string]string) *
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	var envVars []v1.EnvVar
+	envVars := []v1.EnvVar{{Name: "VPP_APP", Value: "vppagent-firewall-nse"}}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{
@@ -72,7 +72,7 @@ func VppAgentFirewallNSEPod(name string, node *v1.Node, env map[string]string) *
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "firewall-nse",
-					Image:           "networkservicemesh/vppagent-firewall-nse:latest",
+					Image:           "networkservicemesh/vpp-test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{

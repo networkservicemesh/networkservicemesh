@@ -30,17 +30,17 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "vpn-gateway",
-					Image:           "networkservicemesh/test-nse:latest",
+					Image:           "networkservicemesh/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
+					Command: []string{
+						"/bin/icmp-responder-nse",
+					},
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
 					Env: envVars,
-					Command: []string{
-						"/bin/icmp-responder-nse",
-					},
 				}),
 				{
 					Name:  "nginx",

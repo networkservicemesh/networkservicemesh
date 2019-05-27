@@ -15,9 +15,11 @@ spec:
     spec:
       containers:
         - name: passthrough-nse
-          image: networkservicemesh/vppagent-firewall-nse:latest
+          image: networkservicemesh/vpp-test-common:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: VPP_APP
+              value: "vppagent-firewall-nse"
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
@@ -51,9 +53,11 @@ spec:
     spec:
       containers:
         - name: passthrough-nse
-          image: networkservicemesh/vppagent-firewall-nse:latest
+          image: networkservicemesh/vpp-test-common:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: VPP_APP
+              value: "vppagent-firewall-nse"
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
@@ -87,9 +91,11 @@ spec:
     spec:
       containers:
         - name: passthrough-nse
-          image: networkservicemesh/vppagent-firewall-nse:latest
+          image: networkservicemesh/vpp-test-common:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: VPP_APP
+              value: "vppagent-firewall-nse"
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS

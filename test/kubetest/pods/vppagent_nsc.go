@@ -7,7 +7,7 @@ import (
 )
 
 func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
-	envVars := []v1.EnvVar{}
+	envVars := []v1.EnvVar{{Name: "VPP_APP", Value: "vppagent-nsc"}}
 	for k, v := range env {
 		envVars = append(envVars, v1.EnvVar{
 			Name:  k,
@@ -27,7 +27,7 @@ func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "vppagent-nsc",
-					Image:           "networkservicemesh/vppagent-nsc:latest",
+					Image:           "networkservicemesh/vpp-test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Env:             envVars,
 					Resources: v1.ResourceRequirements{

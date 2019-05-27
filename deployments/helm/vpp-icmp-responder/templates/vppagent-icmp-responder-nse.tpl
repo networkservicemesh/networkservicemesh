@@ -29,9 +29,11 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: icmp-responder-nse
-          image: {{ .Values.registry }}/networkservicemesh/vppagent-icmp-responder-nse:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
+            - name: VPP_APP
+              value: "vppagent-icmp-responder-nse"
             - name: ADVERTISE_NSE_NAME
               value: "icmp-responder"
             - name: ADVERTISE_NSE_LABELS

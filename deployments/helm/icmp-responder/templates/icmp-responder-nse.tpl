@@ -29,7 +29,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: icmp-responder-nse
-          image: {{ .Values.registry }}/networkservicemesh/test-nse:{{ .Values.tag}}
+          image: {{ .Values.registry }}/networkservicemesh/test-common:{{ .Values.tag}}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: NSE_IMAGE

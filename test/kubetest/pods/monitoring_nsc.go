@@ -28,8 +28,11 @@ func MonitoringNSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            name,
-					Image:           "networkservicemesh/monitoring-nsc:latest",
+					Image:           "networkservicemesh/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
+					Command: []string{
+						"/bin/monitoring-nsc",
+					},
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
