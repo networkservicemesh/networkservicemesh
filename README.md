@@ -1,4 +1,4 @@
-# Network Service Mesh .
+# Network Service Mesh
 
 [![CircleCI Build Status](https://circleci.com/gh/networkservicemesh/networkservicemesh/tree/master.svg?style=svg)](https://circleci.com/gh/networkservicemesh/networkservicemesh/tree/master)
 [![Weekly minutes](https://img.shields.io/badge/Weekly%20Meeting%20Minutes-Tue%208am%20PT-blue.svg?style=plastic")](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
