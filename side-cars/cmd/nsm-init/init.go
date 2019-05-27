@@ -25,17 +25,16 @@ import (
 )
 
 func main() {
-
 	tracer, closer := tools.InitJaeger("nsc")
 	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
+	defer func() { _ = closer.Close() }()
 
-	client, err := client.NewNSMClientList(context.Background(), nil)
+	clientList, err := client.NewNSMClientList(context.Background(), nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	if err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
+	if err := clientList.Connect("nsm", "kernel", "Primary interface"); err != nil {
 		logrus.Fatalf("Client connect failed with error: %v", err)
 	}
 	logrus.Info("nsm client: initialization is completed successfully")

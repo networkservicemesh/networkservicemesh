@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ] ; then
     echo ""
-    echo "Please use ./scripts/run.sh and one of application names nsmd/nsc/vppagent/icmp-responder-nse to compile and run application inside dev container."
+    echo "Please use ./scripts/run.sh and one of application names nsmd/nsm-init/vppagent/icmp-responder-nse to compile and run application inside dev container."
     echo ""
     exit
 fi
@@ -27,8 +27,8 @@ if [ "$1" = "nsmd-k8s" ]; then
     output=/bin/$1
 fi
 
-if [ "$1" = "nsc" ]; then
-    go_file=./test/applications/cmd/nsc
+if [ "$1" = "nsm-init" ]; then
+    go_file=./side-cars/cmd/nsm-init/init.go
     output=/bin/$1
 fi
 

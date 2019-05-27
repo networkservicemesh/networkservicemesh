@@ -255,10 +255,13 @@ k8s-vpn-gateway-nsc-save:
 k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
 
 .PHONY: k8s-nsc-build
-k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
+k8s-nsc-build: ${CONTAINER_BUILD_PREFIX}-nsm-init-build
 
 .PHONY: k8s-nsc-save
-k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
+k8s-nsc-save: ${CONTAINER_BUILD_PREFIX}-nsm-init-save
+
+.PHONY: k8s-nsc-load-images
+k8s-nsc-load-images: k8s-nsm-init-load-images
 
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-nse-build

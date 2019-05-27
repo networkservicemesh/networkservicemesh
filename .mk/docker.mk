@@ -14,7 +14,7 @@
 
 BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane vppagent-dataplane-dev
 BUILD_CONTAINERS+=devenv crossconnect-monitor
-BUILD_CONTAINERS+=nsc test-nse monitoring-nsc
+BUILD_CONTAINERS+=nsm-init test-nse monitoring-nsc
 BUILD_CONTAINERS+=vppagent-firewall-nse
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)

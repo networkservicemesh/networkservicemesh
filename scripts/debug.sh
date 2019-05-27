@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ] ; then
     echo ""
-    echo "Please use ./scripts/debug.sh and one of application names nsmd/nsc/vppagent/icmp-responder-nse"
+    echo "Please use ./scripts/debug.sh and one of application names nsmd/nsm-init/vppagent/icmp-responder-nse"
     echo ""
     exit
 fi
@@ -30,8 +30,8 @@ if [ "$1" = "nsmd-k8s" ]; then
     output=/bin/$1
 fi
 
-if [ "$1" = "nsc" ]; then
-    go_file=./test/applications/cmd/nsc
+if [ "$1" = "nsm-init" ]; then
+    go_file=./side-cars/cmd/nsm-init
     output=/bin/$1
 fi
 

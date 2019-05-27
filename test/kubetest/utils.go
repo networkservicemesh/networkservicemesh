@@ -183,7 +183,7 @@ func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 
 // DeployNSC - Setup Default Client
 func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
+	return deployNSC(k8s, node, name, "nsm-init", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
 
