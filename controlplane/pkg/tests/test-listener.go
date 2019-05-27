@@ -38,10 +38,10 @@ func (impl *testConnectionModelListener) ClientConnectionDeleted(clientConnectio
 	delete(impl.connections, clientConnection.GetId())
 }
 
-func (impl *testConnectionModelListener) ClientConnectionUpdated(clientConnection *model.ClientConnection) {
+func (impl *testConnectionModelListener) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	impl.updates++
-	impl.connections[clientConnection.GetId()] = clientConnection
-	logrus.Infof("ClientConnectionUpdated: %s %v", clientConnection.GetId(), impl.textMarshaler.Text(clientConnection.Xcon))
+	impl.connections[new.GetId()] = new
+	logrus.Infof("ClientConnectionUpdated: %s %v", new.GetId(), impl.textMarshaler.Text(new.Xcon))
 }
 
 func (impl *testConnectionModelListener) EndpointAdded(endpoint *model.Endpoint) {

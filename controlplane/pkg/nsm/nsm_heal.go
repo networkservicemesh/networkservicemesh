@@ -12,8 +12,8 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	healID := create_logid()
 	logrus.Infof("NSM_Heal(1-%v) %v", healID, connection)
 
-	clientConnection := connection.(*model.ClientConnection)
-	if clientConnection.ConnectionState != model.ClientConnection_Ready {
+	cc := connection.(*model.ClientConnection)
+	if cc.ConnectionState != model.ClientConnection_Ready {
 		//means that we already closing/healing
 		return
 	}
@@ -21,7 +21,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	if !srv.properties.HealEnabled {
 		logrus.Infof("NSM_Heal Is Disabled/Closing connection %v", connection)
 
-		err := srv.Close(context.Background(), clientConnection)
+		err := srv.Close(context.Background(), cc)
 		if err != nil {
 			logrus.Errorf("NSM_Heal Error in Close: %v", err)
 		}
@@ -29,35 +29,36 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	}
 
 	defer func() {
-		logrus.Infof("NSM_Heal(1.1-%v) Connection %v healing state is finished...", healID, clientConnection.GetId())
+		logrus.Infof("NSM_Heal(1.1-%v) Connection %v healing state is finished...", healID, cc.GetId())
 	}()
 
-	clientConnection.ConnectionState = model.ClientConnection_Healing
-	// TODO: now we are not tracking changes until dataplane becomes available (or die)
-	// need to call srv.model.UpdateClientConnection(clientConnection) here
+	srv.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
+		cc.ConnectionState = model.ClientConnection_Healing
+	})
 
 	healed := false
 
 	// 2 Choose heal style
 	switch healState {
 	case nsm.HealState_DstDown:
-		healed = srv.healProcessor.healDstDown(healID, clientConnection)
+		healed = srv.healProcessor.healDstDown(healID, cc)
 	case nsm.HealState_DataplaneDown:
-		healed = srv.healProcessor.healDataplaneDown(healID, clientConnection)
+		healed = srv.healProcessor.healDataplaneDown(healID, cc)
 	case nsm.HealState_RemoteDataplaneDown:
-		healed = srv.healProcessor.healRemoteDataplaneDown(healID, clientConnection)
+		healed = srv.healProcessor.healRemoteDataplaneDown(healID, cc)
 	case nsm.HealState_DstNmgrDown:
-		healed = srv.healProcessor.healDstNmgrDown(healID, clientConnection)
+		healed = srv.healProcessor.healDstNmgrDown(healID, cc)
 	}
 
 	if healed {
-		clientConnection.ConnectionState = model.ClientConnection_Ready
-		srv.model.UpdateClientConnection(clientConnection)
+		cc = srv.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
+			cc.ConnectionState = model.ClientConnection_Ready
+		})
 		return
 	}
 
 	// Close both connection and dataplane
-	err := srv.Close(context.Background(), clientConnection)
+	err := srv.Close(context.Background(), cc)
 	if err != nil {
 		logrus.Errorf("NSM_Heal(4-%v) Error in Recovery: %v", healID, err)
 	}

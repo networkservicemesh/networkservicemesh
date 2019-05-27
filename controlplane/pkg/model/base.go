@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -18,34 +19,43 @@ type baseDomain struct {
 func (b *baseDomain) resourceAdded(new interface{}) {
 	b.mtx.RLock()
 	defer b.mtx.RUnlock()
+	logrus.Infof("resourceAdded started: %v", new)
 
 	for _, h := range b.handlers {
 		if h.AddFunc != nil {
 			h.AddFunc(new)
 		}
 	}
+	logrus.Infof("resourceAdded finished: %v", new)
+
 }
 
 func (b *baseDomain) resourceUpdated(old interface{}, new interface{}) {
-	b.mtx.Lock()
-	defer b.mtx.Unlock()
+	b.mtx.RLock()
+	defer b.mtx.RUnlock()
+	logrus.Infof("resourceUpdated started: %v", new)
 
 	for _, h := range b.handlers {
 		if h.UpdateFunc != nil {
 			h.UpdateFunc(old, new)
 		}
 	}
+	logrus.Infof("resourceUpdated finished: %v", new)
+
 }
 
 func (b *baseDomain) resourceDeleted(del interface{}) {
-	b.mtx.Lock()
-	defer b.mtx.Unlock()
+	b.mtx.RLock()
+	defer b.mtx.RUnlock()
+	logrus.Infof("resourceDeleted started: %v", del)
 
 	for _, h := range b.handlers {
 		if h.DeleteFunc != nil {
 			h.DeleteFunc(del)
 		}
 	}
+	logrus.Infof("resourceDeleted finished: %v", del)
+
 }
 
 func (b *baseDomain) addHandler(h *ModificationHandler) func() {

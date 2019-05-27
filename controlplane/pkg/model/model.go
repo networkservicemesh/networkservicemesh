@@ -18,7 +18,7 @@ type ModelListener interface {
 
 	ClientConnectionAdded(clientConnection *ClientConnection)
 	ClientConnectionDeleted(clientConnection *ClientConnection)
-	ClientConnectionUpdated(clientConnection *ClientConnection)
+	ClientConnectionUpdated(old, new *ClientConnection)
 }
 
 type ModelListenerImpl struct{}
@@ -30,7 +30,7 @@ func (ModelListenerImpl) DataplaneAdded(dataplane *Dataplane)                   
 func (ModelListenerImpl) DataplaneDeleted(dataplane *Dataplane)                      {}
 func (ModelListenerImpl) ClientConnectionAdded(clientConnection *ClientConnection)   {}
 func (ModelListenerImpl) ClientConnectionDeleted(clientConnection *ClientConnection) {}
-func (ModelListenerImpl) ClientConnectionUpdated(clientConnection *ClientConnection) {}
+func (ModelListenerImpl) ClientConnectionUpdated(old, new *ClientConnection)         {}
 
 type Model interface {
 	GetEndpointsByNetworkService(nsName string) []*Endpoint
@@ -51,6 +51,7 @@ type Model interface {
 	GetAllClientConnections() []*ClientConnection
 	UpdateClientConnection(clientConnection *ClientConnection)
 	DeleteClientConnection(connectionId string)
+	ApplyClientConnectionChanges(connectionId string, changeFunc func(*ClientConnection)) *ClientConnection
 
 	ConnectionId() string
 	CorrectIdGenerator(id string)
@@ -103,7 +104,7 @@ func (m *model) AddListener(listener ModelListener) {
 			listener.ClientConnectionAdded(new.(*ClientConnection))
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
-			listener.ClientConnectionUpdated(new.(*ClientConnection))
+			listener.ClientConnectionUpdated(old.(*ClientConnection), new.(*ClientConnection))
 		},
 		DeleteFunc: func(del interface{}) {
 			listener.ClientConnectionDeleted(del.(*ClientConnection))

@@ -97,7 +97,7 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	// First update, is delete
 	// Second update is update
-	l1.WaitUpdate(2, timeout, t)
+	l1.WaitUpdate(7, timeout, t)
 
 	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
 	Expect(clientConnection1_1.GetId()).To(Equal("1"))

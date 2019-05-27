@@ -251,3 +251,44 @@ func TestUpdateNotExistingСс(t *testing.T) {
 	Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal("2.2.2.2"))
 	Expect(updated.Dataplane.RegisteredName).To(Equal("dp1"))
 }
+
+func TestApplyChanges(t *testing.T) {
+	RegisterTestingT(t)
+
+	ccd := clientConnectionDomain{}
+	ccd.AddClientConnection(&ClientConnection{
+		ConnectionId: "1",
+		Xcon: &crossconnect.CrossConnect{
+			Id: "1",
+		},
+		RemoteNsm: &registry.NetworkServiceManager{
+			Name: "master",
+			Url:  "1.1.1.1",
+		},
+		Endpoint: &registry.NSERegistration{
+			NetworkService: &registry.NetworkService{
+				Name: "ns1",
+			},
+			NetworkServiceManager: &registry.NetworkServiceManager{
+				Name: "worker",
+				Url:  "2.2.2.2",
+			},
+			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+				NetworkServiceName: "ns1",
+				EndpointName:       "endp1",
+			},
+		},
+		Dataplane: &Dataplane{
+			RegisteredName: "dp1",
+		},
+		ConnectionState: ClientConnection_Healing,
+		Request:         nil,
+		DataplaneState:  DataplaneState_Ready,
+	})
+
+	ccd.ApplyClientConnectionChanges("1", func(cc *ClientConnection) {
+		cc.RemoteNsm.Name = "updatedMaster"
+	})
+	upd := ccd.GetClientConnection("1")
+	Expect(upd.RemoteNsm.Name).To(Equal("updatedMaster"))
+}

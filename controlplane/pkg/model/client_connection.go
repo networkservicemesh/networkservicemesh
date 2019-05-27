@@ -134,6 +134,26 @@ func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
 	d.resourceUpdated(v, cc.Clone())
 }
 
+func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string,
+	changeFunc func(*ClientConnection)) *ClientConnection {
+	d.mtx.Lock()
+
+	old := d.GetClientConnection(id)
+	if old == nil {
+		return nil
+	}
+
+	new := old.Clone()
+	changeFunc(new)
+
+	d.inner.Store(id, new.Clone())
+
+	d.mtx.Unlock()
+
+	d.resourceUpdated(old, new)
+	return new
+}
+
 func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) func() {
 	deleteFunc := d.addHandler(h)
 	d.inner.Range(func(key, value interface{}) bool {
