@@ -9,6 +9,10 @@ type testListener struct {
 	calls map[string]int
 }
 
+func (t *testListener) ClientConnectionUpdated(old, new *ClientConnection) {
+	t.calls["ClientConnectionUpdated"]++
+}
+
 func (t *testListener) EndpointAdded(endpoint *Endpoint) {
 	t.calls["EndpointAdded"]++
 }
@@ -35,10 +39,6 @@ func (t *testListener) ClientConnectionAdded(clientConnection *ClientConnection)
 
 func (t *testListener) ClientConnectionDeleted(clientConnection *ClientConnection) {
 	t.calls["ClientConnectionDeleted"]++
-}
-
-func (t *testListener) ClientConnectionUpdated(clientConnection *ClientConnection) {
-	t.calls["ClientConnectionUpdated"]++
 }
 
 func TestModelListener(t *testing.T) {
