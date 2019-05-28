@@ -15,14 +15,17 @@
 package main
 
 import (
+	"context"
+	"os"
+	"sync"
+
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"os"
-	"sync"
 )
 
 const (
@@ -69,7 +72,7 @@ func main() {
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
 
-	client, err := client.NewNSMClient(nil, nil)
+	client, err := client.NewNSMClient(context.Background(), nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}

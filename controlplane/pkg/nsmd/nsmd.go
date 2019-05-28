@@ -21,6 +21,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
@@ -39,12 +40,12 @@ const (
 type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
+	StartAPIServerAt(sock net.Listener) error
+
 	XconManager() *services.ClientConnectionManager
-	MonitorCrossConnectServer() monitor_crossconnect.MonitorServer
-	MonitorConnectionServer() remote.MonitorServer
-	Model() model.Model
 	Manager() nsm.NetworkServiceManager
-	ServiceRegistry() serviceregistry.ServiceRegistry
+
+	MonitorManager
 }
 
 type nsmServer struct {
@@ -59,30 +60,33 @@ type nsmServer struct {
 	registerSock     net.Listener
 	regServer        *dataplaneRegistrarServer
 
-	xconManager               *services.ClientConnectionManager
-	monitorCrossConnectServer monitor_crossconnect.MonitorServer
-	monitorConnectionServer   remote.MonitorServer
+	xconManager             *services.ClientConnectionManager
+	crossConnectMonitor     monitor_crossconnect.MonitorServer
+	remoteConnectionMonitor remote.MonitorServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
 	return nsm.xconManager
 }
 
-func (nsm *nsmServer) MonitorCrossConnectServer() monitor_crossconnect.MonitorServer {
-	return nsm.monitorCrossConnectServer
-}
-func (nsm *nsmServer) MonitorConnectionServer() remote.MonitorServer {
-	return nsm.monitorConnectionServer
-}
-func (nsm *nsmServer) Model() model.Model {
-	return nsm.model
-}
-
 func (nsm *nsmServer) Manager() nsm.NetworkServiceManager {
 	return nsm.manager
 }
-func (nsm *nsmServer) ServiceRegistry() serviceregistry.ServiceRegistry {
-	return nsm.serviceRegistry
+
+func (nsm *nsmServer) LocalConnectionMonitor(workspace string) monitor.Server {
+	if ws := nsm.workspaces[workspace]; ws != nil {
+		return ws.MonitorConnectionServer()
+	}
+
+	return nil
+}
+
+func (nsm *nsmServer) CrossConnectMonitor() monitor_crossconnect.MonitorServer {
+	return nsm.crossConnectMonitor
+}
+
+func (nsm *nsmServer) RemoteConnectionMonitor() monitor.Server {
+	return nsm.remoteConnectionMonitor
 }
 
 func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
@@ -364,11 +368,11 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 func (nsm *nsmServer) initMonitorServers() {
 	nsm.xconManager = services.NewClientConnectionManager(nsm.model, nsm.manager, nsm.serviceRegistry)
 	// Start CrossConnect monitor server
-	nsm.monitorCrossConnectServer = monitor_crossconnect.NewMonitorServer()
+	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
-	nsm.monitorConnectionServer = remote.NewMonitorServer(nsm.xconManager)
+	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
-	monitorCrossConnectClient := NewMonitorCrossConnectClient(nsm.monitorCrossConnectServer, nsm.monitorConnectionServer, nsm.xconManager)
+	monitorCrossConnectClient := NewMonitorCrossConnectClient(nsm, nsm.xconManager)
 	nsm.model.AddListener(monitorCrossConnectClient)
 }
 
@@ -405,7 +409,8 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 	return endpoints, nil
 }
 
-func StartAPIServerAt(server NSMServer, sock net.Listener) error {
+// StartAPIServerAt starts GRPC API server at sock
+func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) error {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -413,11 +418,11 @@ func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, server.MonitorCrossConnectServer())
-	connection.RegisterMonitorConnectionServer(grpcServer, server.MonitorConnectionServer())
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
 
 	// Register Remote NetworkServiceManager
-	remoteServer := network_service_server.NewRemoteNetworkServiceServer(server.Model(), server.Manager(), server.ServiceRegistry(), server.MonitorConnectionServer())
+	remoteServer := network_service_server.NewRemoteNetworkServiceServer(nsm.model, nsm.manager, nsm.serviceRegistry, nsm.remoteConnectionMonitor)
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	// TODO: Add more public API services here.

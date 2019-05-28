@@ -61,7 +61,7 @@ func main() {
 		nsmd.SetPublicListenerFailed()
 	}
 
-	if err := nsmd.StartAPIServerAt(server, sock); err != nil {
+	if err := server.StartAPIServerAt(sock); err != nil {
 		logrus.Errorf("Error starting NSMD API service: %+v", err)
 		nsmd.SetAPIServerFailed()
 	}

@@ -93,7 +93,7 @@ func NewClientEndpoint(configuration *common.NSConfiguration) *ClientEndpoint {
 	}
 	configuration.CompleteNSConfiguration()
 
-	nsmClient, err := client.NewNSMClient(nil, configuration)
+	nsmClient, err := client.NewNSMClient(context.Background(), configuration)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 		return nil

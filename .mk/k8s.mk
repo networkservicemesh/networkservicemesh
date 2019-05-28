@@ -217,7 +217,7 @@ k8s-secure-intranet-connectivity-save:
 
 .PHONY: k8s-secure-intranet-connectivity-load-images
 
-k8s-secure-intranet-connectivity-load-images: 
+k8s-secure-intranet-connectivity-load-images:
 
 .PHONY: k8s-vppagent-passthrough-nse-build
 k8s-vppagent-passthrough-nse-build:
