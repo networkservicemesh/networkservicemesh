@@ -362,7 +362,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests-basic.xml -f standard-verbose ./test/... -timeout 30m -tags="<<parameters.test_tags>>"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout 30m -tags="<<parameters.test_tags>>"
           no_output_timeout: 40m
       - run:
           when: always
@@ -680,7 +680,7 @@ workflows:
           requires:
             - packet-deploy
       - integration-tests:
-          name: "packet-test-basic-usecase"
+          name: "test-packet-basic-usecase"
           namespace: "nsm-system-integration"
           cloud_provider: "packet"
           cluster_id: "1"
@@ -689,7 +689,7 @@ workflows:
             - packet-deploy-k8s-1
             - build-container-success
       - integration-tests:
-          name: "packet-test-recover"
+          name: "test-packet-recover"
           namespace: "nsm-system-integration"
           cloud_provider: "packet"
           cluster_id: "2"
@@ -698,36 +698,36 @@ workflows:
             - packet-deploy-k8s-2
             - build-container-success
       - integration-tests:
-          name: "packet-test-bench"
+          name: "test-packet-bench"
           namespace: "nsm-system-integration"
           cloud_provider: "packet"
           cluster_id: "2"
           test_tags: "bench"
           requires:
-            - "packet-test-recover"
+            - "test-packet-recover"
       - example-test:
-          name: "packet-test-example-icmp"
+          name: "test-packet-example-icmp"
           namespace: "nsm-system"
           cloud_provider: "packet"
           cluster_id: "2"
           example: "icmp"
           requires:
-            - "packet-test-bench"
+            - "test-packet-bench"
       - example-test:
-          name: "packet-test-example-vpn"
+          name: "test-packet-example-vpn"
           namespace: "nsm-system"
           cloud_provider: "packet"
           cluster_id: "2"
           example: "vpn"
           requires:
-            - "packet-test-example-icmp"
+            - "test-packet-example-icmp"
       - packet-destroy:
           requires:
-            - "packet-test-basic-usecase"
-            - "packet-test-recover"
-            - "packet-test-bench"
-            - "packet-test-example-icmp"
-            - "packet-test-example-vpn"
+            - "test-packet-basic-usecase"
+            - "test-packet-recover"
+            - "test-packet-bench"
+            - "test-packet-example-icmp"
+            - "test-packet-example-vpn"
 
 # azure
       - azure-deploy:
@@ -741,7 +741,7 @@ workflows:
           requires:
             - sanity-check
       - integration-tests:
-          name: "azure-test-basic-usecase"
+          name: "test-azure-basic-usecase"
           cloud_provider: "azure"
           cluster_id: "1"
           test_tags: "basic usecase azure"
@@ -749,7 +749,7 @@ workflows:
             - azure-deploy-k8s-1
             - build-container-success
       - integration-tests:
-          name: "azure-test-recover"
+          name: "test-azure-recover"
           cloud_provider: "azure"
           cluster_id: "2"
           test_tags: "recover azure"
@@ -760,12 +760,12 @@ workflows:
           name: "azure-destroy-1"
           cluster_id: "1"
           requires:
-            - azure-test-basic-usecase
+            - test-azure-basic-usecase
       - azure-destroy:
           name: "azure-destroy-2"
           cluster_id: "2"
           requires:
-            - azure-test-recover
+            - test-azure-recover
 
 # aws
       - aws-deploy:
@@ -782,14 +782,14 @@ workflows:
           name: "aws-destroy-1"
           cluster_id: "1"
           requires:
-            - aws-test-basic-usecase
+            - test-aws-basic-usecase
       - aws-destroy:
           name: "aws-destroy-2"
           cluster_id: "2"
           requires:
-            - aws-test-recover
+            - test-aws-recover
       - integration-tests:
-          name: "aws-test-basic-usecase"
+          name: "test-aws-basic-usecase"
           cloud_provider: "aws"
           cluster_id: "1"
           test_tags: "basic usecase aws"
@@ -797,7 +797,7 @@ workflows:
             - aws-deploy-k8s-1
             - build-container-success
       - integration-tests:
-          name: "aws-test-recover"
+          name: "test-aws-recover"
           cloud_provider: "aws"
           cluster_id: "2"
           test_tags: "recover aws"
@@ -817,7 +817,7 @@ workflows:
           requires:
             - sanity-check
       - integration-tests:
-          name: "gke-test-basic-usecase"
+          name: "test-gke-basic-usecase"
           cloud_provider: "gke"
           cluster_id: "1"
           test_tags: "basic usecase gke"
@@ -826,7 +826,7 @@ workflows:
             - "gke-cluster1"
             - build-container-success
       - integration-tests:
-          name: "gke-test-recover"
+          name: "test-gke-recover"
           cloud_provider: "gke"
           cluster_id: "2"
           test_tags: "recover gke"
@@ -839,13 +839,13 @@ workflows:
           cluster_id: "1"
           requires:
             - "gke-cluster1"
-            - "gke-test-basic-usecase"
+            - "test-gke-basic-usecase"
       - gke-destroy-cluster:
           name: "gke-destroy-cluster2"
           cluster_id: "2"
           requires:
             - "gke-cluster2"
-            - "gke-test-recover"
+            - "test-gke-recover"
 
 # helm
       - helm-chart-tests:
