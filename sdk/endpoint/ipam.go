@@ -56,8 +56,13 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return nil, err
 	}
 
-	//TODO: We need to somehow support IPv6.
-	srcIP, dstIP, prefixes, err := ice.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
+	/* Determine whether the pool is IPv4 or IPv6 */
+	currentIPFamily := connectioncontext.IpFamily_IPV4
+	if common.IsIPv6(ice.prefixPool.GetPrefixes()[0]) {
+		currentIPFamily = connectioncontext.IpFamily_IPV6
+	}
+
+	srcIP, dstIP, prefixes, err := ice.prefixPool.Extract(request.Connection.Id, currentIPFamily, request.Connection.Context.ExtraPrefixRequest...)
 	if err != nil {
 		return nil, err
 	}
