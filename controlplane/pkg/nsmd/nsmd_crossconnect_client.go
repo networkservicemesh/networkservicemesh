@@ -84,6 +84,7 @@ func dial(ctx context.Context, network, address string) (*grpc.ClientConn, error
 	return conn, err
 }
 
+// DataplaneAdded implements method from ModelListener
 func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dp *model.Dataplane) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client.dataplanes[dp.RegisteredName] = cancel
@@ -91,6 +92,7 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dp *model.Dataplane) 
 	go client.dataplaneCrossConnectMonitor(dp, ctx)
 }
 
+// DataplaneDeleted implements method from ModelListener
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dp *model.Dataplane) {
 	client.xconManager.DataplaneDown(dp)
 	client.dataplanes[dp.RegisteredName]()
@@ -111,6 +113,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 	go client.remotePeerConnectionMonitor(clientConnection.RemoteNsm, ctx)
 }
 
+// ClientConnectionUpdated implements method from ModelListener
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 

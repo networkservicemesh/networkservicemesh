@@ -13,7 +13,7 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	logrus.Infof("NSM_Heal(1-%v) %v", healID, connection)
 
 	cc := connection.(*model.ClientConnection)
-	if cc.ConnectionState != model.ClientConnection_Ready {
+	if cc.ConnectionState != model.ClientConnectionReady {
 		//means that we already closing/healing
 		return
 	}
@@ -29,11 +29,11 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	}
 
 	defer func() {
-		logrus.Infof("NSM_Heal(1.1-%v) Connection %v healing state is finished...", healID, cc.GetId())
+		logrus.Infof("NSM_Heal(1.1-%v) Connection %v healing state is finished...", healID, cc.GetID())
 	}()
 
-	srv.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
-		cc.ConnectionState = model.ClientConnection_Healing
+	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+		cc.ConnectionState = model.ClientConnectionHealing
 	})
 
 	healed := false
@@ -51,8 +51,8 @@ func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healS
 	}
 
 	if healed {
-		cc = srv.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
-			cc.ConnectionState = model.ClientConnection_Ready
+		cc = srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+			cc.ConnectionState = model.ClientConnectionReady
 		})
 		return
 	}

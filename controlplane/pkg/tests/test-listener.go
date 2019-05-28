@@ -28,20 +28,20 @@ type testConnectionModelListener struct {
 
 func (impl *testConnectionModelListener) ClientConnectionAdded(clientConnection *model.ClientConnection) {
 	impl.additions++
-	impl.connections[clientConnection.GetId()] = clientConnection
+	impl.connections[clientConnection.GetID()] = clientConnection
 	logrus.Infof("ClientConnectionAdded: %v", clientConnection)
 }
 
 func (impl *testConnectionModelListener) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
 	impl.deletions++
 	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
-	delete(impl.connections, clientConnection.GetId())
+	delete(impl.connections, clientConnection.GetID())
 }
 
 func (impl *testConnectionModelListener) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	impl.updates++
-	impl.connections[new.GetId()] = new
-	logrus.Infof("ClientConnectionUpdated: %s %v", new.GetId(), impl.textMarshaler.Text(new.Xcon))
+	impl.connections[new.GetID()] = new
+	logrus.Infof("ClientConnectionUpdated: %s %v", new.GetID(), impl.textMarshaler.Text(new.Xcon))
 }
 
 func (impl *testConnectionModelListener) EndpointAdded(endpoint *model.Endpoint) {

@@ -214,10 +214,10 @@ func TestModelRestoreIds(t *testing.T) {
 	RegisterTestingT(t)
 
 	mdl := newModel()
-	Expect(mdl.ConnectionId()).To(Equal("1"))
-	Expect(mdl.ConnectionId()).To(Equal("2"))
+	Expect(mdl.ConnectionID()).To(Equal("1"))
+	Expect(mdl.ConnectionID()).To(Equal("2"))
 	mdl2 := newModel()
-	mdl2.CorrectIdGenerator(mdl.ConnectionId())
-	Expect(mdl2.ConnectionId()).To(Equal("4"))
+	mdl2.CorrectIDGenerator(mdl.ConnectionID())
+	Expect(mdl2.ConnectionID()).To(Equal("4"))
 
 }

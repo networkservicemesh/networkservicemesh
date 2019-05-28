@@ -23,14 +23,29 @@ type ModelListener interface {
 
 type ModelListenerImpl struct{}
 
-func (ModelListenerImpl) EndpointAdded(endpoint *Endpoint)                           {}
-func (ModelListenerImpl) EndpointUpdated(endpoint *Endpoint)                         {}
-func (ModelListenerImpl) EndpointDeleted(endpoint *Endpoint)                         {}
-func (ModelListenerImpl) DataplaneAdded(dataplane *Dataplane)                        {}
-func (ModelListenerImpl) DataplaneDeleted(dataplane *Dataplane)                      {}
-func (ModelListenerImpl) ClientConnectionAdded(clientConnection *ClientConnection)   {}
+// EndpointAdded will be called when Endpoint is added to model, accept pointer to copy
+func (ModelListenerImpl) EndpointAdded(endpoint *Endpoint) {}
+
+// EndpointUpdated will be called when Endpoint in model is updated
+func (ModelListenerImpl) EndpointUpdated(endpoint *Endpoint) {}
+
+// EndpointDeleted will be called when Endpoint in model is deleted
+func (ModelListenerImpl) EndpointDeleted(endpoint *Endpoint) {}
+
+// DataplaneAdded will be called when Dataplane is added to model, accept pointer to copy
+func (ModelListenerImpl) DataplaneAdded(dataplane *Dataplane) {}
+
+// DataplaneDeleted will be called when Dataplane in model is deleted
+func (ModelListenerImpl) DataplaneDeleted(dataplane *Dataplane) {}
+
+// ClientConnectionAdded will be called when ClientConnection is added to model, accept pointer to copy
+func (ModelListenerImpl) ClientConnectionAdded(clientConnection *ClientConnection) {}
+
+// ClientConnectionUpdated will be called when ClientConnection in model is updated
+func (ModelListenerImpl) ClientConnectionUpdated(old, new *ClientConnection) {}
+
+// ClientConnectionDeleted will be called when ClientConnection in model is deleted
 func (ModelListenerImpl) ClientConnectionDeleted(clientConnection *ClientConnection) {}
-func (ModelListenerImpl) ClientConnectionUpdated(old, new *ClientConnection)         {}
 
 type Model interface {
 	GetEndpointsByNetworkService(nsName string) []*Endpoint
@@ -47,14 +62,14 @@ type Model interface {
 	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
 
 	AddClientConnection(clientConnection *ClientConnection)
-	GetClientConnection(connectionId string) *ClientConnection
+	GetClientConnection(connectionID string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
 	UpdateClientConnection(clientConnection *ClientConnection)
 	DeleteClientConnection(connectionId string)
-	ApplyClientConnectionChanges(connectionId string, changeFunc func(*ClientConnection)) *ClientConnection
+	ApplyClientConnectionChanges(connectionID string, changeFunc func(*ClientConnection)) *ClientConnection
 
-	ConnectionId() string
-	CorrectIdGenerator(id string)
+	ConnectionID() string
+	CorrectIDGenerator(id string)
 
 	AddListener(listener ModelListener)
 	RemoveListener(listener ModelListener)
@@ -70,7 +85,7 @@ type model struct {
 	dataplaneDomain
 	clientConnectionDomain
 
-	lastConnectionId uint64
+	lastConnectionID uint64
 	mtx              sync.RWMutex
 	selector         selector.Selector
 	nsm              *registry.NetworkServiceManager
@@ -127,6 +142,7 @@ func (m *model) RemoveListener(listener ModelListener) {
 	delete(m.listeners, listener)
 }
 
+// NewModel returns new instance of Model
 func NewModel() Model {
 	return &model{
 		selector:  selector.NewMatchSelector(),
@@ -134,15 +150,15 @@ func NewModel() Model {
 	}
 }
 
-func (m *model) ConnectionId() string {
+func (m *model) ConnectionID() string {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
-	m.lastConnectionId++
-	return strconv.FormatUint(m.lastConnectionId, 16)
+	m.lastConnectionID++
+	return strconv.FormatUint(m.lastConnectionID, 16)
 }
 
-func (m *model) CorrectIdGenerator(id string) {
+func (m *model) CorrectIDGenerator(id string) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -150,8 +166,8 @@ func (m *model) CorrectIdGenerator(id string) {
 	if err != nil {
 		logrus.Errorf("Failed to update id genrator %v", err)
 	}
-	if m.lastConnectionId < value {
-		m.lastConnectionId = value
+	if m.lastConnectionID < value {
+		m.lastConnectionID = value
 	}
 }
 

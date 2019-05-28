@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// ModificationHandler aggregates handlers for particular events
 type ModificationHandler struct {
 	AddFunc    func(new interface{})
 	UpdateFunc func(old interface{}, new interface{})
@@ -30,7 +31,7 @@ func (b *baseDomain) resourceAdded(new interface{}) {
 
 }
 
-func (b *baseDomain) resourceUpdated(old interface{}, new interface{}) {
+func (b *baseDomain) resourceUpdated(old, new interface{}) {
 	b.mtx.RLock()
 	defer b.mtx.RUnlock()
 	logrus.Infof("resourceUpdated started: %v", new)

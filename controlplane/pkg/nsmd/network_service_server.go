@@ -65,7 +65,7 @@ func (srv *networkServiceServer) Close(ctx context.Context, connection *connecti
 	// TODO: check carefully  id of closing connection (need dst connection id)
 	clientConnection := srv.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
-		err := fmt.Errorf("There is no such client connection %v", connection)
+		err := fmt.Errorf("there is no such client connection %v", connection)
 		logrus.Error(err)
 		return nil, err
 	}

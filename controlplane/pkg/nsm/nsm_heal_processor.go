@@ -107,7 +107,7 @@ func (p *nsmHealProcessor) healDataplaneDown(healID string, cc *model.ClientConn
 	}
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
 
-	p.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
+	p.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		if cc.Xcon.GetRemoteSource() != nil {
 			cc.Xcon.GetRemoteSource().State = remote_connection.State_DOWN
 		} else if cc.Xcon.GetLocalSource() != nil {
@@ -195,7 +195,7 @@ func (p *nsmHealProcessor) healDstNmgrDown(healID string, connection *model.Clie
 
 		logrus.Errorf("NSM_Heal(6.4.1-%v) Failed to heal connection: %v", healID, err)
 		// We need to delete connection, since we are not able to Heal it
-		p.model.DeleteClientConnection(connection.ConnectionId)
+		p.model.DeleteClientConnection(connection.ConnectionID)
 		if err != nil {
 			logrus.Errorf("NSM_Heal(6.4.2-%v) Error in Recovery Close: %v", healID, err)
 		}

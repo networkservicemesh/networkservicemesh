@@ -9,13 +9,18 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
+// DataplaneState describes state of dataplane
 type DataplaneState int8
 
 const (
-	DataplaneState_None  DataplaneState = 0 // In case dataplane is not yet configured for connection
-	DataplaneState_Ready DataplaneState = 1 // In case dataplane is configured for connection.
+	// DataplaneStateNone means there is no active connection in dataplane
+	DataplaneStateNone DataplaneState = 0 // In case dataplane is not yet configured for connection
+
+	// DataplaneStateReady means there is an active connection in dataplane
+	DataplaneStateReady DataplaneState = 1 // In case dataplane is configured for connection.
 )
 
+// Dataplane structure in Model that describes dataplane
 type Dataplane struct {
 	RegisteredName       string
 	SocketLocation       string
@@ -24,17 +29,18 @@ type Dataplane struct {
 	MechanismsConfigured bool
 }
 
+// Clone returns pointer to copy of Dataplane
 func (d *Dataplane) Clone() *Dataplane {
 	if d == nil {
 		return nil
 	}
 
-	var lm []*local.Mechanism
+	lm := make([]*local.Mechanism, len(d.LocalMechanisms))
 	for _, m := range d.LocalMechanisms {
 		lm = append(lm, proto.Clone(m).(*local.Mechanism))
 	}
 
-	var rm []*remote.Mechanism
+	rm := make([]*remote.Mechanism, len(d.RemoteMechanisms))
 	for _, m := range d.RemoteMechanisms {
 		rm = append(rm, proto.Clone(m).(*remote.Mechanism))
 	}

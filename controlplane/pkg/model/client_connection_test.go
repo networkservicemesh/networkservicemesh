@@ -13,7 +13,7 @@ func TestAddAndGetСс(t *testing.T) {
 	RegisterTestingT(t)
 
 	cc := &ClientConnection{
-		ConnectionId: "1",
+		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",
 		},
@@ -37,22 +37,22 @@ func TestAddAndGetСс(t *testing.T) {
 		Dataplane: &Dataplane{
 			RegisteredName: "dp1",
 		},
-		ConnectionState: ClientConnection_Healing,
+		ConnectionState: ClientConnectionHealing,
 		Request:         nil,
-		DataplaneState:  DataplaneState_Ready,
+		DataplaneState:  DataplaneStateReady,
 	}
 
 	ccd := clientConnectionDomain{}
 	ccd.AddClientConnection(cc)
 	getConn := ccd.GetClientConnection("1")
 
-	Expect(getConn.ConnectionId).To(Equal(cc.ConnectionId))
+	Expect(getConn.ConnectionID).To(Equal(cc.ConnectionID))
 	Expect(getConn.ConnectionState).To(Equal(cc.ConnectionState))
 	Expect(getConn.DataplaneState).To(Equal(cc.DataplaneState))
 	Expect(getConn.Request).To(BeNil())
 
 	Expect(getConn.GetNetworkService()).To(Equal(cc.GetNetworkService()))
-	Expect(getConn.GetId()).To(Equal(cc.GetId()))
+	Expect(getConn.GetID()).To(Equal(cc.GetID()))
 	Expect(getConn.GetConnectionSource()).To(Equal(cc.GetConnectionSource()))
 
 	Expect(fmt.Sprintf("%p", getConn.RemoteNsm)).ToNot(Equal(fmt.Sprintf("%p", cc.RemoteNsm)))
@@ -70,7 +70,7 @@ func TestGetAllСс(t *testing.T) {
 
 	for i := 0; i < amount; i++ {
 		ccd.AddClientConnection(&ClientConnection{
-			ConnectionId: fmt.Sprintf("%d", i),
+			ConnectionID: fmt.Sprintf("%d", i),
 			Xcon: &crossconnect.CrossConnect{
 				Id: "1",
 			},
@@ -94,9 +94,9 @@ func TestGetAllСс(t *testing.T) {
 			Dataplane: &Dataplane{
 				RegisteredName: "dp1",
 			},
-			ConnectionState: ClientConnection_Healing,
+			ConnectionState: ClientConnectionHealing,
 			Request:         nil,
-			DataplaneState:  DataplaneState_Ready,
+			DataplaneState:  DataplaneStateReady,
 		})
 	}
 
@@ -105,7 +105,7 @@ func TestGetAllСс(t *testing.T) {
 
 	expected := make([]bool, amount)
 	for i := 0; i < amount; i++ {
-		index, _ := strconv.ParseInt(all[i].ConnectionId, 10, 64)
+		index, _ := strconv.ParseInt(all[i].ConnectionID, 10, 64)
 		expected[index] = true
 	}
 
@@ -119,7 +119,7 @@ func TestDeleteСс(t *testing.T) {
 
 	ccd := clientConnectionDomain{}
 	ccd.AddClientConnection(&ClientConnection{
-		ConnectionId: "1",
+		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",
 		},
@@ -143,9 +143,9 @@ func TestDeleteСс(t *testing.T) {
 		Dataplane: &Dataplane{
 			RegisteredName: "dp1",
 		},
-		ConnectionState: ClientConnection_Healing,
+		ConnectionState: ClientConnectionHealing,
 		Request:         nil,
-		DataplaneState:  DataplaneState_Ready,
+		DataplaneState:  DataplaneStateReady,
 	})
 
 	cc := ccd.GetClientConnection("1")
@@ -164,7 +164,7 @@ func TestUpdateExistingСс(t *testing.T) {
 	RegisterTestingT(t)
 
 	cc := &ClientConnection{
-		ConnectionId: "1",
+		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",
 		},
@@ -188,9 +188,9 @@ func TestUpdateExistingСс(t *testing.T) {
 		Dataplane: &Dataplane{
 			RegisteredName: "dp1",
 		},
-		ConnectionState: ClientConnection_Healing,
+		ConnectionState: ClientConnectionHealing,
 		Request:         nil,
-		DataplaneState:  DataplaneState_Ready,
+		DataplaneState:  DataplaneStateReady,
 	}
 
 	ccd := clientConnectionDomain{}
@@ -215,7 +215,7 @@ func TestUpdateNotExistingСс(t *testing.T) {
 	RegisterTestingT(t)
 
 	cc := &ClientConnection{
-		ConnectionId: "1",
+		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",
 		},
@@ -239,9 +239,9 @@ func TestUpdateNotExistingСс(t *testing.T) {
 		Dataplane: &Dataplane{
 			RegisteredName: "dp1",
 		},
-		ConnectionState: ClientConnection_Healing,
+		ConnectionState: ClientConnectionHealing,
 		Request:         nil,
-		DataplaneState:  DataplaneState_Ready,
+		DataplaneState:  DataplaneStateReady,
 	}
 
 	ccd := clientConnectionDomain{}
@@ -257,7 +257,7 @@ func TestApplyChanges(t *testing.T) {
 
 	ccd := clientConnectionDomain{}
 	ccd.AddClientConnection(&ClientConnection{
-		ConnectionId: "1",
+		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",
 		},
@@ -281,9 +281,9 @@ func TestApplyChanges(t *testing.T) {
 		Dataplane: &Dataplane{
 			RegisteredName: "dp1",
 		},
-		ConnectionState: ClientConnection_Healing,
+		ConnectionState: ClientConnectionHealing,
 		Request:         nil,
-		DataplaneState:  DataplaneState_Ready,
+		DataplaneState:  DataplaneStateReady,
 	})
 
 	ccd.ApplyClientConnectionChanges("1", func(cc *ClientConnection) {

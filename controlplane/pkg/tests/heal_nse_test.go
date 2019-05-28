@@ -72,10 +72,10 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	// We need to check for cross connections.
 	clientConnection1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
-	Expect(clientConnection1.GetId()).To(Equal("1"))
+	Expect(clientConnection1.GetID()).To(Equal("1"))
 
 	clientConnection2 := srv2.testModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
-	Expect(clientConnection2.GetId()).To(Equal("1"))
+	Expect(clientConnection2.GetID()).To(Equal("1"))
 
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	l1.WaitAdd(1, timeout, t)
@@ -100,6 +100,6 @@ func TestHealRemoteNSE(t *testing.T) {
 	l1.WaitUpdate(7, timeout, t)
 
 	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
-	Expect(clientConnection1_1.GetId()).To(Equal("1"))
+	Expect(clientConnection1_1.GetID()).To(Equal("1"))
 	Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("3"))
 }

@@ -6,12 +6,14 @@ import (
 	"sync"
 )
 
+// Endpoint structure in Model that describes NetworkServiceEndpoint
 type Endpoint struct {
 	Endpoint       *registry.NSERegistration
 	SocketLocation string
 	Workspace      string
 }
 
+// Clone returns pointer to copy of Endpoint
 func (ep *Endpoint) Clone() *Endpoint {
 	if ep == nil {
 		return nil
@@ -29,10 +31,12 @@ func (ep *Endpoint) Clone() *Endpoint {
 	}
 }
 
+// EndpointName returns name of Endpoint
 func (ep *Endpoint) EndpointName() string {
 	return ep.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
 }
 
+// NetworkServiceName returns name of NetworkService of that Endpoint
 func (ep *Endpoint) NetworkServiceName() string {
 	return ep.Endpoint.GetNetworkService().GetName()
 }

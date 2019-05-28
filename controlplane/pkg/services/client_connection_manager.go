@@ -33,14 +33,15 @@ func (m *ClientConnectionManager) GetNsmName() string {
 	return m.model.GetNsm().Name
 }
 
-func (m *ClientConnectionManager) UpdateXcon(cc *model.ClientConnection, newXcon *crossconnect.CrossConnect) {
-	m.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
+// UpdateXcon handles case when xcon has been changed for NSMClientConnection
+func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon *crossconnect.CrossConnect) {
+	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon = newXcon
 	})
 
 	if src := newXcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
 		logrus.Info("ClientConnection src state is down")
-		m.manager.Close(context.Background(), cc)
+		_ = m.manager.Close(context.Background(), cc)
 		return
 	}
 
@@ -51,7 +52,8 @@ func (m *ClientConnectionManager) UpdateXcon(cc *model.ClientConnection, newXcon
 	}
 }
 
-func (m *ClientConnectionManager) RemoteDestinationDown(cc *model.ClientConnection, nsmdDie bool) {
+// RemoteDestinationDown handles case when remote destination down
+func (m *ClientConnectionManager) RemoteDestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
 	if nsmdDie {
 		m.manager.Heal(cc, nsm.HealState_DstNmgrDown)
 	} else {
@@ -59,6 +61,7 @@ func (m *ClientConnectionManager) RemoteDestinationDown(cc *model.ClientConnecti
 	}
 }
 
+// DataplaneDown handles case of local dp down
 func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 	ccs := m.model.GetAllClientConnections()
 
@@ -69,8 +72,9 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 	}
 }
 
+// RemoteDestinationUpdated handles case when remote connection parameters changed
 func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConnection, remoteConnection *remote_connection.Connection) {
-	if cc.ConnectionState != model.ClientConnection_Ready {
+	if cc.ConnectionState != model.ClientConnectionReady {
 		return
 	}
 
@@ -86,7 +90,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 		return
 	}
 
-	m.model.ApplyClientConnectionChanges(cc.GetId(), func(cc *model.ClientConnection) {
+	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
 			RemoteDestination: remoteConnection,
 		}

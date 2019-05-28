@@ -8,34 +8,44 @@ import (
 	"sync"
 )
 
+// ClientConnectionState describes state of ClientConnection
 type ClientConnectionState int8
 
 const (
-	ClientConnection_Ready      ClientConnectionState = 0
-	ClientConnection_Requesting ClientConnectionState = 1
-	ClientConnection_Healing    ClientConnectionState = 2
-	ClientConnection_Closing    ClientConnectionState = 3
-	ClientConnection_Closed     ClientConnectionState = 4
+	// ClientConnectionReady means connection is in state 'ready'
+	ClientConnectionReady ClientConnectionState = 0
+
+	// ClientConnectionRequesting means connection waits answer from NSE or Dp
+	ClientConnectionRequesting ClientConnectionState = 1
+
+	// ClientConnectionHealing means connection is in 'healing' state
+	ClientConnectionHealing ClientConnectionState = 2
+
+	// ClientConnectionClosing means connection is started closing process
+	ClientConnectionClosing ClientConnectionState = 3
 )
 
+// ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint
 type ClientConnection struct {
-	ConnectionId    string
+	ConnectionID    string
+	Request         nsm.NSMRequest
 	Xcon            *crossconnect.CrossConnect
 	RemoteNsm       *registry.NetworkServiceManager
 	Endpoint        *registry.NSERegistration
 	Dataplane       *Dataplane
 	ConnectionState ClientConnectionState
-	Request         nsm.NSMRequest
 	DataplaneState  DataplaneState
 }
 
-func (cc *ClientConnection) GetId() string {
+// GetID returns id of clientConnection
+func (cc *ClientConnection) GetID() string {
 	if cc == nil {
 		return ""
 	}
-	return cc.ConnectionId
+	return cc.ConnectionID
 }
 
+// GetNetworkService returns name of networkService of clientConnection
 func (cc *ClientConnection) GetNetworkService() string {
 	if cc == nil {
 		return ""
@@ -43,14 +53,15 @@ func (cc *ClientConnection) GetNetworkService() string {
 	return cc.Endpoint.GetNetworkService().GetName()
 }
 
+// GetConnectionSource returns source part of connection
 func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
 	if cc.Xcon.GetLocalSource() != nil {
 		return cc.Xcon.GetLocalSource()
-	} else {
-		return cc.Xcon.GetRemoteSource()
 	}
+	return cc.Xcon.GetRemoteSource()
 }
 
+// Clone return pointer to copy of ClientConnection
 func (cc *ClientConnection) Clone() *ClientConnection {
 	if cc == nil {
 		return nil
@@ -77,7 +88,7 @@ func (cc *ClientConnection) Clone() *ClientConnection {
 	}
 
 	return &ClientConnection{
-		ConnectionId:    cc.ConnectionId,
+		ConnectionID:    cc.ConnectionID,
 		Xcon:            xcon,
 		RemoteNsm:       remoteNsm,
 		Endpoint:        endpoint,
@@ -94,7 +105,7 @@ type clientConnectionDomain struct {
 }
 
 func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) {
-	d.inner.Store(cc.ConnectionId, cc.Clone())
+	d.inner.Store(cc.ConnectionID, cc.Clone())
 	d.resourceAdded(cc.Clone())
 }
 
@@ -125,12 +136,12 @@ func (d *clientConnectionDomain) DeleteClientConnection(id string) {
 }
 
 func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
-	v := d.GetClientConnection(cc.ConnectionId)
+	v := d.GetClientConnection(cc.ConnectionID)
 	if v == nil {
 		d.AddClientConnection(cc)
 		return
 	}
-	d.inner.Store(cc.ConnectionId, cc.Clone())
+	d.inner.Store(cc.ConnectionID, cc.Clone())
 	d.resourceUpdated(v, cc.Clone())
 }
 
