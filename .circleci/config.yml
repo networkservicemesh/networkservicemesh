@@ -314,6 +314,9 @@ jobs:
       namespace:
         type: string
         default: "default"
+      use_ipv6:
+        type: string
+        default: "false"
     docker:
       - image: circleci/golang
     steps:
@@ -419,6 +422,7 @@ jobs:
       KUBECONFIG: /home/circleci/project/data/kubeconfig
       GO111MODULE: "on"
       NSM_NAMESPACE: "<< parameters.namespace >>"
+      USE_IPV6: "<< parameters.use_ipv6 >>"
 
 # example
   example-test:
@@ -695,6 +699,15 @@ workflows:
             - packet-deploy-k8s-1
             - build-container-success
       - integration-tests:
+          name: "test-packet-usecase-ipv6"
+          namespace: "nsm-system-integration"
+          cloud_provider: "packet"
+          cluster_id: "1"
+          test_tags: "usecase"
+          use_ipv6: "true"
+          requires:
+            - packet-test-basic-usecase
+      - integration-tests:
           name: "packet-test-recover"
           namespace: "nsm-system-integration"
           cloud_provider: "packet"
@@ -730,6 +743,7 @@ workflows:
       - packet-destroy:
           requires:
             - "packet-test-basic-usecase"
+            - "test-packet-usecase-ipv6"
             - "packet-test-recover"
             - "packet-test-bench"
             - "packet-test-example-icmp"
