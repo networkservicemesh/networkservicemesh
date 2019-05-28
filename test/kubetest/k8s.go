@@ -1,6 +1,7 @@
 package kubetest
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -583,41 +584,70 @@ func (l *K8s) DeletePodsForce(pods ...*v1.Pod) {
 	}
 }
 
-func (k8s *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
-	getLogsOpt := &v1.PodLogOptions{}
-	if len(container) > 0 {
-		getLogsOpt.Container = container
-	}
-	return k8s.GetLogsWithOptions(pod, getLogsOpt)
-}
-func (k8s *K8s) GetLogsWithOptions(pod *v1.Pod, options *v1.PodLogOptions) (string, error) {
-	var wg sync.WaitGroup
-	var result []byte
-	var err error
-	wg.Add(1)
+// GetLogsChannel returns logs channel from pod with the given options
+func (l *K8s) GetLogsChannel(ctx context.Context, pod *v1.Pod, options *v1.PodLogOptions) (chan string, chan error) {
+	linesChan := make(chan string, 1)
+	errChan := make(chan error, 1)
 	go func() {
-		defer wg.Done()
-		response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, options)
-		result, err = response.DoRaw()
-	}()
-	if !waitTimeout(fmt.Sprintf("GetLogs %v:%v", pod.Name, options), &wg, podGetLogTimeout) {
-		logrus.Errorf("Failed to get logs from: %v.%v", pod.Name, options)
-	}
+		defer close(linesChan)
+		defer close(errChan)
 
-	if err != nil {
-		return "", err
+		reader, err := l.clientset.CoreV1().Pods(l.namespace).GetLogs(pod.Name, options).Stream()
+		if err != nil {
+			logrus.Errorf("Failed to get logs from %v", pod.Name)
+			errChan <- err
+			return
+		}
+		defer func() { _ = reader.Close() }()
+
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return
+			case linesChan <- scanner.Text():
+			}
+		}
+		errChan <- scanner.Err()
+	}()
+
+	return linesChan, errChan
+}
+
+// GetLogsWithOptions returns logs collected from pod with the given options
+func (l *K8s) GetLogsWithOptions(pod *v1.Pod, options *v1.PodLogOptions) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), podGetLogTimeout)
+	defer cancel()
+
+	linesChan, errChan := l.GetLogsChannel(ctx, pod, options)
+	for logs := ""; ; {
+		select {
+		case line := <-linesChan:
+			logs = fmt.Sprintf("%v%v\n", logs, line)
+		case err := <-errChan:
+			return logs, err
+		}
 	}
-	return fmt.Sprintf("%s", result), nil
+}
+
+// GetLogs returns logs collected from pod::container
+func (l *K8s) GetLogs(pod *v1.Pod, container string) (string, error) {
+	return l.GetLogsWithOptions(pod, &v1.PodLogOptions{
+		Container: container,
+	})
 }
 
 // WaitLogsContains waits with timeout for pod::container logs to contain pattern as substring
 func (l *K8s) WaitLogsContains(pod *v1.Pod, container, pattern string, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	matcher := func(s string) bool {
 		return strings.Contains(s, pattern)
 	}
 	description := fmt.Sprintf("Timeout waiting for logs pattern %v in %v::%v.", pattern, pod.Name, container)
 
-	l.waitLogsMatch(pod, container, matcher, timeout, description)
+	l.waitLogsMatch(ctx, pod, container, matcher, description)
 }
 
 // WaitLogsContainsRegex waits with timeout for pod::contained logs to contain substring matching regexp pattern
@@ -627,34 +657,45 @@ func (l *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, time
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	matcher := func(s string) bool {
 		return r.FindStringSubmatch(s) != nil
 	}
 	description := fmt.Sprintf("Timeout waiting for logs matching regexp %v in %v::%v.", pattern, pod.Name, container)
 
-	l.waitLogsMatch(pod, container, matcher, timeout, description)
+	l.waitLogsMatch(ctx, pod, container, matcher, description)
 
 	return nil
 }
 
-func (l *K8s) waitLogsMatch(pod *v1.Pod, container string, matcher func(string) bool, timeout time.Duration, description string) {
-	var logs string
-	var err error
+func (l *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, matcher func(string) bool, description string) {
+	options := &v1.PodLogOptions{
+		Container: container,
+		Follow:    true,
+	}
 
-	for st := time.Now(); time.Since(st) < timeout; <-time.After(100 * time.Millisecond) {
-		logs, err = l.GetLogs(pod, container)
-		if err != nil {
-			logrus.Printf("Error on get logs: %v retrying", err)
-			continue
-		}
-
-		if matcher(logs) {
+	linesChan, errChan := l.GetLogsChannel(ctx, pod, options)
+	for logs := ""; ; {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				logrus.Warnf("Error on get logs: %v retrying", err)
+				linesChan, errChan = l.GetLogsChannel(ctx, pod, options)
+				continue
+			}
+		case line := <-linesChan:
+			logs = fmt.Sprintf("%v%v\n", logs, line)
+			if matcher(line) {
+				return
+			}
+		case <-ctx.Done():
+			logrus.Errorf("%v Last logs: %v", description, logs)
+			Expect(false).To(BeTrue())
 			return
 		}
 	}
-
-	logrus.Errorf("%v Last logs: %s", description, logs)
-	Expect(false).To(BeTrue())
 }
 
 func (o *K8s) UpdatePod(pod *v1.Pod) *v1.Pod {
