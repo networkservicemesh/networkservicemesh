@@ -4,7 +4,7 @@ version: 2.1
 jobs:
 
 # sanity
-  sanity-check:
+  test-sanity-check:
     resource_class: medium+
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
@@ -41,8 +41,8 @@ jobs:
     environment:
       GO111MODULE: "on"
 
-  # code analysis
-  static-code-analysis:
+# code analysis
+  test-static-code-analysis:
     resource_class: medium+
     docker:
       - image: circleci/golang
@@ -56,7 +56,7 @@ jobs:
     environment:
       GO111MODULE: "on"
 
-  # packet
+# packet
   create-packet:
     docker:
       - image: circleci/golang
@@ -569,7 +569,7 @@ jobs:
             done
 
 # helm
-  helm-chart-tests:
+  test-helm-charts:
     docker:
       - image: quay.io/helmpack/chart-testing:v2.3.0
     steps:
@@ -584,72 +584,72 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - sanity-check
-      - static-code-analysis:
-          name: "static-code-analysis"
+      - test-sanity-check
+      - test-static-code-analysis:
+          name: "test-static-code-analysis"
           requires:
-            - sanity-check
+            - test-sanity-check
 # build
       - build-container:
           name: "build-nsmd"
           container: "nsmd"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-nsmd-k8s"
           container: "nsmd-k8s"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-nsmdp"
           container: "nsmdp"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-admission-webhook"
           container: "admission-webhook"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-crossconnect-monitor"
           container: "crossconnect-monitor"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-test-nse"
           container: "test-nse"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-vppagent-icmp-responder-nse"
           container: "vppagent-icmp-responder-nse"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-vppagent-nsc"
           container: "vppagent-nsc"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-nsc"
           container: "nsc"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-vppagent-dataplane"
           container: "vppagent-dataplane"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-vppagent-dataplane-dev"
           container: "vppagent-dataplane-dev"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-vppagent-firewall-nse"
           container: "vppagent-firewall-nse"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container-success:
           requires:
             - build-nsmd
@@ -668,7 +668,7 @@ workflows:
 # packet
       - create-packet:
           requires:
-            - sanity-check
+            - test-sanity-check
       - deploy-packet:
           name: "deploy-packet-1"
           cluster_id: "1"
@@ -734,12 +734,12 @@ workflows:
           name: "deploy-azure-1"
           cluster_id: "1"
           requires:
-            - sanity-check
+            - test-sanity-check
       - deploy-azure:
           name: "deploy-azure-2"
           cluster_id: "2"
           requires:
-            - sanity-check
+            - test-sanity-check
       - integration-tests:
           name: "test-azure-basic-usecase"
           cloud_provider: "azure"
@@ -772,12 +772,12 @@ workflows:
           name: "deploy-aws-1"
           cluster_id: "1"
           requires:
-            - sanity-check
+            - test-sanity-check
       - deploy-aws:
           name: "deploy-aws-2"
           cluster_id: "2"
           requires:
-            - sanity-check
+            - test-sanity-check
       - destroy-aws:
           name: "destroy-aws-1"
           cluster_id: "1"
@@ -810,19 +810,19 @@ workflows:
           cluster_id: "1"
           name: "deploy-gke-1"
           requires:
-            - sanity-check
+            - test-sanity-check
       - deploy-gke:
           cluster_id: "2"
           name: "deploy-gke-2"
           requires:
-            - sanity-check
+            - test-sanity-check
       - integration-tests:
           name: "test-gke-basic-usecase"
           cloud_provider: "gke"
           cluster_id: "1"
           test_tags: "basic usecase gke"
           requires:
-            - sanity-check
+            - test-sanity-check
             - "deploy-gke-1"
             - build-container-success
       - integration-tests:
@@ -831,7 +831,7 @@ workflows:
           cluster_id: "2"
           test_tags: "recover gke"
           requires:
-            - sanity-check
+            - test-sanity-check
             - "deploy-gke-2"
             - build-container-success
       - destroy-gke:
@@ -848,10 +848,10 @@ workflows:
             - "test-gke-recover"
 
 # helm
-      - helm-chart-tests:
-          name: "helm-chart-tests"
+      - test-helm-charts:
+          name: "test-helm-charts"
           requires:
-            - sanity-check
+            - test-sanity-check
 
 # push
       - docker-push-latest:
