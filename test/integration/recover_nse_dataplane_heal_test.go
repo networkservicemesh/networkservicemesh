@@ -7,10 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +22,7 @@ func TestDataplaneHealLocal(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	testDataplaneHeal(t, 1, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
 func TestDataplaneHealLocalMemif(t *testing.T) {
@@ -34,7 +33,7 @@ func TestDataplaneHealLocalMemif(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.CheckVppAgentNSC)
+	testDataplaneHeal(t, 1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.CheckVppAgentNSC)
 }
 
 func TestDataplaneHealRemote(t *testing.T) {
@@ -45,31 +44,32 @@ func TestDataplaneHealRemote(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 2, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	testDataplaneHeal(t, 2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP utils.PodSupplier, checkNsc utils.NscChecker) {
-	k8s, err := kube_testing.NewK8s(true)
+func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP kubetest.PodSupplier, checkNsc kubetest.NscChecker) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes_setup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	createICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nscPodNode := createNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *utils.NSCCheckInfo
+	var nscInfo *kubetest.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = checkNsc(k8s, t, nscPodNode)
+		nscInfo = checkNsc(k8s, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	logrus.Infof("Delete Selected dataplane")
 	k8s.DeletePods(nodes_setup[nodesCount-1].Dataplane)
@@ -96,7 +96,7 @@ func testDataplaneHeal(t *testing.T, nodesCount int, createNSC, createICMP utils
 	logrus.Infof("Waiting for connection recovery Done...")
 
 	failures = InterceptGomegaFailures(func() {
-		nscInfo = checkNsc(k8s, t, nscPodNode)
+		nscInfo = checkNsc(k8s, nscPodNode)
 	})
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }

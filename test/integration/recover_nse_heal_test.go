@@ -9,8 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestNSEHealLocal(t *testing.T) {
@@ -24,7 +23,7 @@ func TestNSEHealLocal(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	}, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
@@ -38,7 +37,7 @@ func TestNSEHealLocalToRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 1,
-	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	}, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
 func TestNSEHealRemoteToLocal(t *testing.T) {
@@ -52,7 +51,7 @@ func TestNSEHealRemoteToLocal(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	}, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
 func TestNSEHealRemote(t *testing.T) {
@@ -66,7 +65,7 @@ func TestNSEHealRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, utils.DeployNSC, utils.DeployICMP, utils.CheckNSC)
+	}, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
 }
 
 func TestNSEHealLocalMemif(t *testing.T) {
@@ -80,32 +79,33 @@ func TestNSEHealLocalMemif(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, utils.DeployVppAgentNSC, utils.DeployVppAgentICMP, utils.CheckVppAgentNSC)
+	}, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.CheckVppAgentNSC)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
 func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
-	nscDeploy, icmpDeploy utils.PodSupplier, nscCheck utils.NscChecker) {
-	k8s, err := kube_testing.NewK8s(true)
+	nscDeploy, icmpDeploy kubetest.PodSupplier, nscCheck kubetest.NscChecker) {
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup := utils.SetupNodes(k8s, nodesCount, defaultTimeout)
+	nodes_setup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
 
 	// Run ICMP
 	node := affinity["icmp-responder-nse-1"]
 	nse1 := icmpDeploy(k8s, nodes_setup[node].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nscPodNode := nscDeploy(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *utils.NSCCheckInfo
+	var nscInfo *kubetest.NSCCheckInfo
 	failures := InterceptGomegaFailures(func() {
-		nscInfo = nscCheck(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, nscPodNode)
 	})
 	// Do dumping of container state to dig into what is happened.Heal: Connection recovered
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
 	node = affinity["icmp-responder-nse-2"]
@@ -119,7 +119,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	})
 	if len(failures) > 0 {
-		utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+		kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 	}
 
 	if len(nodes_setup) > 1 {
@@ -131,7 +131,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
 	}
 
 	failures = InterceptGomegaFailures(func() {
-		nscInfo = nscCheck(k8s, t, nscPodNode)
+		nscInfo = nscCheck(k8s, nscPodNode)
 	})
-	utils.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }

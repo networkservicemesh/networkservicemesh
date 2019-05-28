@@ -5,7 +5,7 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"k8s.io/api/core/v1"
 
 	. "github.com/onsi/gomega"
@@ -14,7 +14,7 @@ import (
 func Test_createNSMNamespace(t *testing.T) {
 	RegisterTestingT(t)
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	namespaceName := k8s.GetK8sNamespace()

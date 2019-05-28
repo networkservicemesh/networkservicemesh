@@ -3,20 +3,17 @@
 package nsmd_integration_tests
 
 import (
-	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/integration/utils"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/crds"
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing/pods"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/crds"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
 )
 
 const (
@@ -90,7 +87,7 @@ func TestVPNNSCRemote(t *testing.T) {
 func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbose bool) {
 	RegisterTestingT(t)
 
-	k8s, err := kube_testing.NewK8s(true)
+	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
@@ -101,37 +98,11 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		Expect(len(nodes)).To(Equal(nodesCount))
 		return
 	}
-	nsmdPodNode := []*v1.Pod{}
-	nsmdDataplanePodNode := []*v1.Pod{}
-
 	s1 := time.Now()
-	for k := 0; k < nodesCount; k++ {
-		corePodName := fmt.Sprintf("nsmgr-%d", k)
-		dataPlanePodName := fmt.Sprintf("nsmd-dataplane-%d", k)
-		corePods := k8s.CreatePods(pods.NSMgrPod(corePodName, &nodes[k], k8s.GetK8sNamespace()), pods.VPPDataplanePod(dataPlanePodName, &nodes[k]))
-		logrus.Printf("Started NSMD/Dataplane: %v on node %d", time.Since(s1), k)
-		nsmdPodNode = append(nsmdPodNode, corePods[0])
-		nsmdDataplanePodNode = append(nsmdDataplanePodNode, corePods[1])
 
-		Expect(corePods[0].Name).To(Equal(corePodName))
-		Expect(corePods[1].Name).To(Equal(dataPlanePodName))
-
-		k8s.WaitLogsContains(nsmdDataplanePodNode[k], "", "Sending MonitorMechanisms update", defaultTimeout)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd", "Dataplane added", defaultTimeout)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
-		k8s.WaitLogsContains(nsmdPodNode[k], "nsmdp", "nsmdp: successfully started", defaultTimeout)
-	}
-
-	var nodesConf []*utils.NodeConf
-	for i := 0; i < len(nsmdPodNode); i++ {
-		nodesConf = append(nodesConf, &utils.NodeConf{
-			Nsmd:      nsmdPodNode[i],
-			Dataplane: nsmdDataplanePodNode[i],
-			Node:      &nodes[i],
-		})
-	}
-
-	defer utils.FailLogger(k8s, nodesConf, t)
+	nsmdNodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
+	Expect(err).To(BeNil())
+	defer kubetest.FailLogger(k8s, nsmdNodes, t)
 
 	{
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
@@ -222,62 +193,35 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	var pingResponse = ""
 	var errOut = ""
 	var wgetResponse string
-	var failures []string
 
-	failures = InterceptGomegaFailures(func() {
-		ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+	ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+	Expect(err).To(BeNil())
+	Expect(errOut).To(Equal(""))
+	logrus.Printf("NSC IP status Ok")
+
+	Expect(strings.Contains(ipResponse, "10.60.1.1")).To(Equal(true))
+	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
+
+	routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+	Expect(err).To(BeNil())
+	Expect(errOut).To(Equal(""))
+	logrus.Printf("NSC Route status, Ok")
+
+	Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
+	for i := 1; i <= 1; i++ {
+		pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "10.60.1.2", "-A", "-c", "10")
 		Expect(err).To(BeNil())
-		Expect(errOut).To(Equal(""))
-		logrus.Printf("NSC IP status Ok")
+		Expect(strings.Contains(pingResponse, "10 packets received")).To(Equal(true))
+		logrus.Printf("VPN NSC Ping succeeded:%s", pingResponse)
 
-		Expect(strings.Contains(ipResponse, "10.60.1.1")).To(Equal(true))
-		Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
-
-		routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+		_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://10.60.1.2:80")
 		Expect(err).To(BeNil())
-		Expect(errOut).To(Equal(""))
-		logrus.Printf("NSC Route status, Ok")
+		Expect(strings.Contains(wgetResponse, "100% |***")).To(Equal(true))
+		logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
 
-		Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
-		for i := 1; i <= 1; i++ {
-			pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "10.60.1.2", "-A", "-c", "10")
-			Expect(err).To(BeNil())
-			Expect(strings.Contains(pingResponse, "10 packets received")).To(Equal(true))
-			logrus.Printf("VPN NSC Ping succeeded:%s", pingResponse)
-
-			_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://10.60.1.2:80")
-			Expect(err).To(BeNil())
-			Expect(strings.Contains(wgetResponse, "100% |***")).To(Equal(true))
-			logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
-
-			_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://10.60.1.2:8080")
-			Expect(err).To(Not(BeNil()))
-			Expect(strings.Contains(wgetResponse, "download timed out")).To(Equal(true))
-			logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
-		}
-	})
-
-	// Do dumping of container state to dig into what is happened.
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-
-		if verbose {
-			for k := 0; k < nodesCount; k++ {
-				nsmdLogs, _ := k8s.GetLogs(nsmdPodNode[k], "nsmd")
-				logrus.Errorf("===================== NSMD %d output since test is failing %v\n=====================", k, nsmdLogs)
-
-				nsmdk8sLogs, _ := k8s.GetLogs(nsmdPodNode[k], "nsmd-k8s")
-				logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdk8sLogs)
-
-				nsmdpLogs, _ := k8s.GetLogs(nsmdPodNode[k], "nsmdp")
-				logrus.Errorf("===================== NSMD K8S %d output since test is failing %v\n=====================", k, nsmdpLogs)
-
-				dataplaneLogs, _ := k8s.GetLogs(nsmdDataplanePodNode[k], "")
-				logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
-			}
-		}
-		logrus.Errorf("===================== VPN NSC WGET %v\n=====================", wgetResponse)
-
-		t.Fail()
+		_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://10.60.1.2:8080")
+		Expect(err).To(Not(BeNil()))
+		Expect(strings.Contains(wgetResponse, "download timed out")).To(Equal(true))
+		logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
 	}
 }

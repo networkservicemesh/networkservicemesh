@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kube_testing"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 )
 
@@ -18,7 +18,7 @@ func TestKubernetesAreOk(t *testing.T) {
 		return
 	}
 
-	k8s, err := kube_testing.NewK8sWithoutRoles(false)
+	k8s, err := kubetest.NewK8sWithoutRoles(false)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
