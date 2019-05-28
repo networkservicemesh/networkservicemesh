@@ -29,6 +29,14 @@ func TestExcludePrefixCheck(t *testing.T) {
 		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
+
+	if k8s.UseIPv6 {
+		variables = map[string]string{
+			nsmd.ExcludedPrefixesEnv:     "100::/64",
+			nsmd.NsmdDeleteLocalRegistry: "true",
+		}
+	}
+
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables:          variables,
