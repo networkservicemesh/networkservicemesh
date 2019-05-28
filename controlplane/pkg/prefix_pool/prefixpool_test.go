@@ -48,7 +48,7 @@ func TestPrefixPoolSubnet1(t *testing.T) {
 	Expect(addressCount(sn2.String())).To(Equal(uint64(128)))
 }
 
-func TestNetExtract1(t *testing.T) {
+func TestNetExtractIPv4(t *testing.T) {
 	RegisterTestingT(t)
 
 	pool, err := NewPrefixPool("10.10.1.0/24")
@@ -60,6 +60,23 @@ func TestNetExtract1(t *testing.T) {
 
 	Expect(srcIP.String()).To(Equal("10.10.1.1/30"))
 	Expect(dstIP.String()).To(Equal("10.10.1.2/30"))
+
+	err = pool.Release("c1")
+	Expect(err).To(BeNil())
+}
+
+func TestNetExtractIPv6(t *testing.T) {
+	RegisterTestingT(t)
+
+	pool, err := NewPrefixPool("100::/64")
+	Expect(err).To(BeNil())
+
+	srcIP, dstIP, requested, err := pool.Extract("c1", connectioncontext.IpFamily_IPV6)
+	Expect(err).To(BeNil())
+	Expect(requested).To(BeNil())
+
+	Expect(srcIP.String()).To(Equal("100::1/126"))
+	Expect(dstIP.String()).To(Equal("100::2/126"))
 
 	err = pool.Release("c1")
 	Expect(err).To(BeNil())
