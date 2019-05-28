@@ -35,12 +35,12 @@ func (d *Dataplane) Clone() *Dataplane {
 		return nil
 	}
 
-	lm := make([]*local.Mechanism, len(d.LocalMechanisms))
+	lm := make([]*local.Mechanism, 0, len(d.LocalMechanisms))
 	for _, m := range d.LocalMechanisms {
 		lm = append(lm, proto.Clone(m).(*local.Mechanism))
 	}
 
-	rm := make([]*remote.Mechanism, len(d.RemoteMechanisms))
+	rm := make([]*remote.Mechanism, 0, len(d.RemoteMechanisms))
 	for _, m := range d.RemoteMechanisms {
 		rm = append(rm, proto.Clone(m).(*remote.Mechanism))
 	}
