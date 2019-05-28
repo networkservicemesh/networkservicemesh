@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	nscrd "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 )
 
@@ -93,7 +93,7 @@ func NewNSCRD(namespace string) (*NSCRD, error) {
 func SecureIntranetConnectivity(ptnum int) *nsapiv1.NetworkService {
 	ns := &nsapiv1.NetworkService{
 		TypeMeta: v12.TypeMeta{
-			APIVersion: "networkservicemesh.io/v1",
+			APIVersion: "networkservicemesh.io/v1alpha1",
 			Kind:       "NetworkService",
 		},
 		ObjectMeta: v12.ObjectMeta{

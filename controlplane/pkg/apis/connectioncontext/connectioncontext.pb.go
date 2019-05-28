@@ -3,9 +3,11 @@
 
 package connectioncontext
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type IpFamily_Family int32
 
@@ -29,6 +31,7 @@ var IpFamily_Family_name = map[int32]string{
 	0: "IPV4",
 	1: "IPV6",
 }
+
 var IpFamily_Family_value = map[string]int32{
 	"IPV4": 0,
 	"IPV6": 1,
@@ -37,8 +40,9 @@ var IpFamily_Family_value = map[string]int32{
 func (x IpFamily_Family) String() string {
 	return proto.EnumName(IpFamily_Family_name, int32(x))
 }
+
 func (IpFamily_Family) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{2, 0}
+	return fileDescriptor_c30b3f1555e8b686, []int{2, 0}
 }
 
 type IpNeighbor struct {
@@ -53,16 +57,17 @@ func (m *IpNeighbor) Reset()         { *m = IpNeighbor{} }
 func (m *IpNeighbor) String() string { return proto.CompactTextString(m) }
 func (*IpNeighbor) ProtoMessage()    {}
 func (*IpNeighbor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{0}
+	return fileDescriptor_c30b3f1555e8b686, []int{0}
 }
+
 func (m *IpNeighbor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IpNeighbor.Unmarshal(m, b)
 }
 func (m *IpNeighbor) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IpNeighbor.Marshal(b, m, deterministic)
 }
-func (dst *IpNeighbor) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IpNeighbor.Merge(dst, src)
+func (m *IpNeighbor) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IpNeighbor.Merge(m, src)
 }
 func (m *IpNeighbor) XXX_Size() int {
 	return xxx_messageInfo_IpNeighbor.Size(m)
@@ -98,16 +103,17 @@ func (m *Route) Reset()         { *m = Route{} }
 func (m *Route) String() string { return proto.CompactTextString(m) }
 func (*Route) ProtoMessage()    {}
 func (*Route) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{1}
+	return fileDescriptor_c30b3f1555e8b686, []int{1}
 }
+
 func (m *Route) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Route.Unmarshal(m, b)
 }
 func (m *Route) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Route.Marshal(b, m, deterministic)
 }
-func (dst *Route) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Route.Merge(dst, src)
+func (m *Route) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Route.Merge(m, src)
 }
 func (m *Route) XXX_Size() int {
 	return xxx_messageInfo_Route.Size(m)
@@ -136,16 +142,17 @@ func (m *IpFamily) Reset()         { *m = IpFamily{} }
 func (m *IpFamily) String() string { return proto.CompactTextString(m) }
 func (*IpFamily) ProtoMessage()    {}
 func (*IpFamily) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{2}
+	return fileDescriptor_c30b3f1555e8b686, []int{2}
 }
+
 func (m *IpFamily) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IpFamily.Unmarshal(m, b)
 }
 func (m *IpFamily) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IpFamily.Marshal(b, m, deterministic)
 }
-func (dst *IpFamily) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IpFamily.Merge(dst, src)
+func (m *IpFamily) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IpFamily.Merge(m, src)
 }
 func (m *IpFamily) XXX_Size() int {
 	return xxx_messageInfo_IpFamily.Size(m)
@@ -177,16 +184,17 @@ func (m *ExtraPrefixRequest) Reset()         { *m = ExtraPrefixRequest{} }
 func (m *ExtraPrefixRequest) String() string { return proto.CompactTextString(m) }
 func (*ExtraPrefixRequest) ProtoMessage()    {}
 func (*ExtraPrefixRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{3}
+	return fileDescriptor_c30b3f1555e8b686, []int{3}
 }
+
 func (m *ExtraPrefixRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExtraPrefixRequest.Unmarshal(m, b)
 }
 func (m *ExtraPrefixRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ExtraPrefixRequest.Marshal(b, m, deterministic)
 }
-func (dst *ExtraPrefixRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ExtraPrefixRequest.Merge(dst, src)
+func (m *ExtraPrefixRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ExtraPrefixRequest.Merge(m, src)
 }
 func (m *ExtraPrefixRequest) XXX_Size() int {
 	return xxx_messageInfo_ExtraPrefixRequest.Size(m)
@@ -244,16 +252,17 @@ func (m *ConnectionContext) Reset()         { *m = ConnectionContext{} }
 func (m *ConnectionContext) String() string { return proto.CompactTextString(m) }
 func (*ConnectionContext) ProtoMessage()    {}
 func (*ConnectionContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_connectioncontext_05440d8eaa7bf48e, []int{4}
+	return fileDescriptor_c30b3f1555e8b686, []int{4}
 }
+
 func (m *ConnectionContext) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectionContext.Unmarshal(m, b)
 }
 func (m *ConnectionContext) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ConnectionContext.Marshal(b, m, deterministic)
 }
-func (dst *ConnectionContext) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ConnectionContext.Merge(dst, src)
+func (m *ConnectionContext) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectionContext.Merge(m, src)
 }
 func (m *ConnectionContext) XXX_Size() int {
 	return xxx_messageInfo_ConnectionContext.Size(m)
@@ -328,19 +337,17 @@ func (m *ConnectionContext) GetExtraPrefixes() []string {
 }
 
 func init() {
+	proto.RegisterEnum("connectioncontext.IpFamily_Family", IpFamily_Family_name, IpFamily_Family_value)
 	proto.RegisterType((*IpNeighbor)(nil), "connectioncontext.IpNeighbor")
 	proto.RegisterType((*Route)(nil), "connectioncontext.Route")
 	proto.RegisterType((*IpFamily)(nil), "connectioncontext.IpFamily")
 	proto.RegisterType((*ExtraPrefixRequest)(nil), "connectioncontext.ExtraPrefixRequest")
 	proto.RegisterType((*ConnectionContext)(nil), "connectioncontext.ConnectionContext")
-	proto.RegisterEnum("connectioncontext.IpFamily_Family", IpFamily_Family_name, IpFamily_Family_value)
 }
 
-func init() {
-	proto.RegisterFile("connectioncontext.proto", fileDescriptor_connectioncontext_05440d8eaa7bf48e)
-}
+func init() { proto.RegisterFile("connectioncontext.proto", fileDescriptor_c30b3f1555e8b686) }
 
-var fileDescriptor_connectioncontext_05440d8eaa7bf48e = []byte{
+var fileDescriptor_c30b3f1555e8b686 = []byte{
 	// 473 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x53, 0xdf, 0x8b, 0xd3, 0x40,
 	0x10, 0xb6, 0x3f, 0x2e, 0x36, 0x13, 0xfb, 0x6b, 0x15, 0x5d, 0xd0, 0xd3, 0x12, 0x38, 0xad, 0x08,

@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"

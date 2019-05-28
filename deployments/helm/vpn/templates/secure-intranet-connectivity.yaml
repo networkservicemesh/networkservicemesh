@@ -1,5 +1,5 @@
 ---
-apiVersion: networkservicemesh.io/v1
+apiVersion: networkservicemesh.io/v1alpha1
 kind: NetworkService
 metadata:
   name: secure-intranet-connectivity

@@ -20,7 +20,7 @@ package v1
 import (
 	time "time"
 
-	networkservicev1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	networkservicev1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	versioned "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	internalinterfaces "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions/internalinterfaces"
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/listers/networkservice/v1"
