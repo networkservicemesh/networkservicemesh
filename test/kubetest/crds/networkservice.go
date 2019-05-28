@@ -17,11 +17,9 @@ package crds
 
 import (
 	"os"
-	"strconv"
 
 	. "github.com/onsi/gomega"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -88,66 +86,4 @@ func NewNSCRD(namespace string) (*NSCRD, error) {
 	Expect(err).To(BeNil())
 
 	return &client, nil
-}
-
-func SecureIntranetConnectivity(ptnum int) *nsapiv1.NetworkService {
-	ns := &nsapiv1.NetworkService{
-		TypeMeta: v12.TypeMeta{
-			APIVersion: "networkservicemesh.io/v1alpha1",
-			Kind:       "NetworkService",
-		},
-		ObjectMeta: v12.ObjectMeta{
-			Name: "secure-intranet-connectivity",
-		},
-		Spec: nsapiv1.NetworkServiceSpec{
-			Payload: "IP",
-			Matches: []*nsapiv1.Match{
-				&nsapiv1.Match{
-					SourceSelector: map[string]string{
-						"app": "firewall",
-					},
-					Routes: []*nsapiv1.Destination{
-						&nsapiv1.Destination{
-							DestinationSelector: map[string]string{
-								"app": "vpn-gateway",
-							},
-						},
-					},
-				},
-				&nsapiv1.Match{
-					Routes: []*nsapiv1.Destination{
-						&nsapiv1.Destination{
-							DestinationSelector: map[string]string{
-								"app": "firewall",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	matches := ns.Spec.Matches
-	for i := 0; i < ptnum; i++ {
-		id := strconv.Itoa(i + 1)
-		dest := matches[i].Routes[0].DestinationSelector["app"]
-		matches[i].Routes[0].DestinationSelector["app"] = "passthrough-" + id
-
-		m := &nsapiv1.Match{
-			SourceSelector: map[string]string{
-				"app": "passthrough-" + id,
-			},
-			Routes: []*nsapiv1.Destination{
-				&nsapiv1.Destination{
-					DestinationSelector: map[string]string{
-						"app": dest,
-					},
-				},
-			},
-		}
-
-		t := append([]*nsapiv1.Match{m}, matches[i+1:]...)
-		matches = append(matches[:i+1], t...)
-	}
-	ns.Spec.Matches = matches
-	return ns
 }
