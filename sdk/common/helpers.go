@@ -60,3 +60,8 @@ func MechanismFromString(mechanismName string) connection.MechanismType {
 	logrus.Infof("%s is not a valid MechanismType. Using Kernel Interface.", mechanismName)
 	return connection.MechanismType_KERNEL_INTERFACE
 }
+
+/* Function to check whether an IP is IPv6 or IPv4 */
+func IsIPv6(address string) bool {
+	return strings.Count(address, ":") >= 2
+}
