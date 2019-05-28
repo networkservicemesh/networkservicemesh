@@ -5,6 +5,7 @@ package nsmd_integration_tests
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"testing"
 )
@@ -268,15 +269,16 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	nodes_setup := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
 
-	icmp0 := kubetest.DeployICMP(k8s, nodes_setup[0].Node, "icmp-0", defaultTimeout)
+	icmp0 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	Expect(icmp0).ToNot(BeNil())
 
-	nsc := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-0", defaultTimeout)
+	nsc := kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-0", defaultTimeout)
 	Expect(nsc).ToNot(BeNil())
 
-	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodes_setup[0].Nsmd)
+	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	expectFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
 
 	expectFunc(kubetest.EventDescription{
@@ -286,19 +288,19 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 		LastEvent: true,
 	})
 
-	k8s.DeletePods(nodes_setup[0].Nsmd)
+	k8s.DeletePods(nodesConf[0].Nsmd)
 	waitFunc()
 	closeFunc()
 
-	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig("recovered-nsmgr", nodes_setup[0].Node,
+	nodesConf[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig("recovered-nsmgr", nodesConf[0].Node,
 		&pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "All connections are recovered...", defaultTimeout)
+	k8s.WaitLogsContains(nodesConf[0].Nsmd, "nsmd", "All connections are recovered...", defaultTimeout)
 
-	eventChR, closeFuncR := CrossConnectClientAt(k8s, nodes_setup[0].Nsmd)
+	eventChR, closeFuncR := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFuncR()
-	expectFuncR, waitFuncR := NewEventChecker(t, eventChR)
+	expectFuncR, waitFuncR := kubetest.NewEventChecker(t, eventChR)
 
-	expectFuncR(EventDescription{
+	expectFuncR(kubetest.EventDescription{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
