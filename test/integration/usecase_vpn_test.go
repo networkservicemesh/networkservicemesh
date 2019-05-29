@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	ptNum = 5 // Number of Passthrought Endpoints to deploy
+	ptNum = 5 // Number of Passthrough Endpoints to deploy
 )
 
 func TestVPNLocal(t *testing.T) {
@@ -119,6 +119,19 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		logrus.Printf("Registered CRD is: %v", result)
 	}
 
+	ipVersionSuffix := ""
+	pingCommand := "ping"
+	addressPool := "10.60.1.0/24"
+	srcIP, dstIP := "10.60.1.1", "10.60.1.2"
+
+	/* Change stuff related to IPv6 */
+	if k8s.UseIPv6 {
+		ipVersionSuffix = "-6"
+		pingCommand = "ping6"
+		addressPool = "100::/64"
+		srcIP, dstIP = "100::1", "100::2"
+	}
+
 	s1 = time.Now()
 	node := affinity["vppagent-firewall-nse-1"]
 	logrus.Infof("Starting VPPAgent Firewall NSE on node: %d", node)
@@ -166,7 +179,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		map[string]string{
 			"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
 			"ADVERTISE_NSE_LABELS": "app=vpn-gateway",
-			"IP_ADDRESS":           "10.60.1.0/24",
+			"IP_ADDRESS":           addressPool,
 		},
 	))
 	Expect(vpnGatewayPodNode).ToNot(BeNil())
@@ -194,32 +207,32 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	var errOut = ""
 	var wgetResponse string
 
-	ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+	ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", ipVersionSuffix, "addr")
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
 	logrus.Printf("NSC IP status Ok")
 
-	Expect(strings.Contains(ipResponse, "10.60.1.1")).To(Equal(true))
+	Expect(strings.Contains(ipResponse, srcIP)).To(Equal(true))
 	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
-	routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+	routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", ipVersionSuffix, "route")
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
 	logrus.Printf("NSC Route status, Ok")
 
 	Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
 	for i := 1; i <= 1; i++ {
-		pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "10.60.1.2", "-A", "-c", "10")
+		pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, pingCommand, dstIP, "-A", "-c", "10")
 		Expect(err).To(BeNil())
 		Expect(strings.Contains(pingResponse, "10 packets received")).To(Equal(true))
 		logrus.Printf("VPN NSC Ping succeeded:%s", pingResponse)
 
-		_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://10.60.1.2:80")
+		_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://"+dstIP+":80")
 		Expect(err).To(BeNil())
 		Expect(strings.Contains(wgetResponse, "100% |***")).To(Equal(true))
 		logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
 
-		_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://10.60.1.2:8080")
+		_, wgetResponse, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "wget", "-O", "/dev/null", "--timeout", "3", "http://"+dstIP+":8080")
 		Expect(err).To(Not(BeNil()))
 		Expect(strings.Contains(wgetResponse, "download timed out")).To(Equal(true))
 		logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
