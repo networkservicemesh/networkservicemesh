@@ -34,7 +34,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )
 
@@ -134,7 +133,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *mo
 		return
 	}
 
-	client.monitorManager.CrossConnectMonitor().Update(new.Xcon.GetRemoteSource())
+	client.monitorManager.RemoteConnectionMonitor().Update(new.Xcon.GetRemoteSource())
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
