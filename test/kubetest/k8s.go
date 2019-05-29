@@ -619,13 +619,14 @@ func (l *K8s) GetLogsWithOptions(pod *v1.Pod, options *v1.PodLogOptions) (string
 	ctx, cancel := context.WithTimeout(context.Background(), podGetLogTimeout)
 	defer cancel()
 
-	linesChan, errChan := l.GetLogsChannel(ctx, pod, options)
-	for logs := ""; ; {
+	var builder strings.Builder
+	for linesChan, errChan := l.GetLogsChannel(ctx, pod, options); ; {
 		select {
 		case line := <-linesChan:
-			logs = fmt.Sprintf("%v%v\n", logs, line)
+			_, _ = builder.WriteString(line)
+			_, _ = builder.WriteString("\n")
 		case err := <-errChan:
-			return logs, err
+			return builder.String(), err
 		}
 	}
 }
@@ -676,8 +677,8 @@ func (l *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, 
 		Follow:    true,
 	}
 
-	linesChan, errChan := l.GetLogsChannel(ctx, pod, options)
-	for logs := ""; ; {
+	var builder strings.Builder
+	for linesChan, errChan := l.GetLogsChannel(ctx, pod, options); ; {
 		select {
 		case err := <-errChan:
 			if err != nil {
@@ -686,12 +687,13 @@ func (l *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, 
 				continue
 			}
 		case line := <-linesChan:
-			logs = fmt.Sprintf("%v%v\n", logs, line)
+			_, _ = builder.WriteString(line)
+			_, _ = builder.WriteString("\n")
 			if matcher(line) {
 				return
 			}
 		case <-ctx.Done():
-			logrus.Errorf("%v Last logs: %v", description, logs)
+			logrus.Errorf("%v Last logs: %v", description, builder.String())
 			Expect(false).To(BeTrue())
 			return
 		}
