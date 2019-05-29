@@ -50,15 +50,15 @@ func TestPrefixPoolSubnet1(t *testing.T) {
 
 func TestNetExtractIPv4(t *testing.T) {
 	RegisterTestingT(t)
-	testNetExtract(t, "10.10.1.0/24", "10.10.1.1/30", "10.10.1.2/30", connectioncontext.IpFamily_IPV4)
+	testNetExtract("10.10.1.0/24", "10.10.1.1/30", "10.10.1.2/30", connectioncontext.IpFamily_IPV4)
 }
 
 func TestNetExtractIPv6(t *testing.T) {
 	RegisterTestingT(t)
-	testNetExtract(t, "100::/64", "100::1/126", "100::2/126", connectioncontext.IpFamily_IPV6)
+	testNetExtract("100::/64", "100::1/126", "100::2/126", connectioncontext.IpFamily_IPV6)
 }
 
-func testNetExtract(t *testing.T, inPool string, srcDesired string, dstDesired string, family connectioncontext.IpFamily_Family) {
+func testNetExtract(inPool, srcDesired, dstDesired string, family connectioncontext.IpFamily_Family) {
 	pool, err := NewPrefixPool(inPool)
 	Expect(err).To(BeNil())
 

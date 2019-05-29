@@ -946,8 +946,8 @@ func (l *K8s) setIPVersion() {
 	useIPv6, ok := os.LookupEnv(envUseIPv6)
 	if !ok {
 		logrus.Infof("%s not set, using default %t", envUseIPv6, envUseIPv6Default)
-		o.UseIPv6 = envUseIPv6Default
+		l.UseIPv6 = envUseIPv6Default
 	} else {
-		o.UseIPv6, _ = strconv.ParseBool(useIPv6)
+		l.UseIPv6, _ = strconv.ParseBool(useIPv6)
 	}
 }
