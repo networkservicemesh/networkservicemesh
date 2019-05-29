@@ -3,14 +3,14 @@
 package nsmd_integration_tests
 
 import (
-	"k8s.io/api/core/v1"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestNSMgrRestartDeploy(t *testing.T) {
@@ -24,62 +24,71 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 	logrus.Print("Running NSMgr Deploy test")
 
 	k8s, err := kubetest.NewK8s(true)
-	//defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+	defer k8s.Cleanup()
 
+	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 
-	nodes := k8s.GetNodesWait(2, defaultTimeout)
+	prevLogsChan, errChan := readLogsFully(k8s, nodesConf[0].Nsmd, "nsmd")
 
-	if len(nodes) < 2 {
-		logrus.Printf("At least two Kubernetes nodes are required for this test")
-		Expect(len(nodes)).To(Equal(2))
-		return
-	}
+	result, resultErr, err := k8s.Exec(nodesConf[0].Nsmd, "nsmd", "kill", "-6", "1")
+	logrus.Infof("Kill status %v %v %v", result, resultErr, err)
 
-	pods, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
-
-	result, result_err, err := k8s.Exec(pods[0].Nsmd, "nsmd", "kill", "-6", "1")
-	logrus.Infof("Kill status %v %v %v", result, result_err, err)
-
-	st := time.Now()
-	restarts := int32(0)
-	for {
-		pod, err := k8s.GetPod(pods[0].Nsmd)
-		if err != nil {
-			logrus.Printf("error during recieve pod information %v %v", err, pod)
+	var restarts int32
+	for st := time.Now(); ; <-time.After(100 * time.Millisecond) {
+		if time.Since(st) > fastTimeout {
+			t.Fatal("Failed to have NSmgr restarted")
 		}
+
+		pod, err := k8s.GetPod(nodesConf[0].Nsmd)
+		if err != nil {
+			logrus.Infof("error during recieve pod information %v %v", err, pod)
+			continue
+		}
+
 		restarts = 0
 		alive := 0
 		for _, cs := range pod.Status.ContainerStatuses {
 			if !cs.Ready {
-				continue
+				break
 			}
 			restarts += cs.RestartCount
 			alive += 1
 		}
+
 		if alive == len(pod.Status.ContainerStatuses) && restarts > 0 {
 			// All are alive and we have restart
 			break
 		}
-		if time.Since(st) > fastTimeout {
-			logrus.Errorf("Failed to have NSmgr restarted")
-			t.Fail()
-		}
-		<-time.After(100 * time.Millisecond)
 	}
-	k8s.WaitLogsContains(pods[0].Nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
+
+	_ = k8s.WaitLogsContainsRegex(nodesConf[0].Nsmd, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
 
 	failures := InterceptGomegaFailures(func() {
 		Expect(restarts).To(Equal(int32(1)))
-		prevLogs, err := k8s.GetLogsWithOptions(pods[0].Nsmd, &v1.PodLogOptions{
-			Container: "nsmd",
-			Previous:  true,
-		})
-		Expect(err).To(BeNil())
-		//logrus.Infof("Previous logs: %v", prevLogs)
-		Expect(strings.Contains(prevLogs, "SIGABRT: abort")).To(Equal(true))
-
+		Expect(<-errChan).To(BeNil())
+		Expect(<-prevLogsChan).To(ContainSubstring("SIGABRT: abort"))
 	})
-	kubetest.PrintErrors(failures, k8s, pods, nil, t)
+	kubetest.PrintErrors(failures, k8s, nodesConf, nil, t)
+}
+
+func readLogsFully(k8s *kubetest.K8s, pod *v1.Pod, container string) (chan string, chan error) {
+	options := &v1.PodLogOptions{
+		Container: container,
+		Follow:    true,
+	}
+
+	logsChan := make(chan string, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		defer close(logsChan)
+		defer close(errChan)
+
+		logs, err := k8s.GetLogsWithOptions(pod, options)
+		logsChan <- logs
+		errChan <- err
+	}()
+
+	return logsChan, errChan
 }
