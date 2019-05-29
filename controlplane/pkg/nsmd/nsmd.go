@@ -405,6 +405,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 	return endpoints, nil
 }
 
+// StartAPIServerAt starts the API server
 func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
@@ -418,6 +419,9 @@ func StartAPIServerAt(server NSMServer, sock net.Listener) error {
 
 	// Register Remote NetworkServiceManager
 	remoteServer := network_service_server.NewRemoteNetworkServiceServer(server.Model(), server.Manager(), server.ServiceRegistry(), server.MonitorConnectionServer())
+	if remoteServer == nil {
+		return fmt.Errorf("error creating the remote server")
+	}
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	// TODO: Add more public API services here.

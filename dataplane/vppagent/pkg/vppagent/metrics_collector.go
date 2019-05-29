@@ -21,12 +21,14 @@ type MetricsCollector struct {
 	requestPeriod time.Duration
 }
 
+// NewMetricsCollector creates a new metrics collector instance
 func NewMetricsCollector(requestPeriod time.Duration) *MetricsCollector {
 	return &MetricsCollector{
 		requestPeriod: requestPeriod,
 	}
 }
 
+// CollectAsync starts ago routine for asynchronous metrics collection
 func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint string) {
 	go m.collect(monitor, endpoint)
 }
