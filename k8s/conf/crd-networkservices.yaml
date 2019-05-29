@@ -14,8 +14,8 @@ spec:
       - netsvcs
     singular: networkservice
   scope: Cluster
-  version: v1
+  version: v1alpha1
   versions:
-    - name: v1
+    - name: v1alpha1
       served: true
       storage: true
