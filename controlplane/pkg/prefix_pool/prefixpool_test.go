@@ -50,35 +50,26 @@ func TestPrefixPoolSubnet1(t *testing.T) {
 
 func TestNetExtractIPv4(t *testing.T) {
 	RegisterTestingT(t)
-
-	pool, err := NewPrefixPool("10.10.1.0/24")
-	Expect(err).To(BeNil())
-
-	srcIP, dstIP, requested, err := pool.Extract("c1", connectioncontext.IpFamily_IPV4)
-	Expect(err).To(BeNil())
-	Expect(requested).To(BeNil())
-
-	Expect(srcIP.String()).To(Equal("10.10.1.1/30"))
-	Expect(dstIP.String()).To(Equal("10.10.1.2/30"))
-
-	err = pool.Release("c1")
-	Expect(err).To(BeNil())
+	testNetExtract(t, "10.10.1.0/24", "10.10.1.1/30", "10.10.1.2/30", connectioncontext.IpFamily_IPV4)
 }
 
 func TestNetExtractIPv6(t *testing.T) {
 	RegisterTestingT(t)
+	testNetExtract(t, "100::/64", "100::1/126", "100::2/126", connectioncontext.IpFamily_IPV6)
+}
 
-	pool, err := NewPrefixPool("100::/64")
+func testNetExtract(t *testing.T, inPool string, srcDesired string, dstDesired string, family connectioncontext.IpFamily_Family) {
+	pool, err := NewPrefixPool(inPool)
 	Expect(err).To(BeNil())
 
-	srcIP, dstIP, requested, err := pool.Extract("c2", connectioncontext.IpFamily_IPV6)
+	srcIP, dstIP, requested, err := pool.Extract("c1", family)
 	Expect(err).To(BeNil())
 	Expect(requested).To(BeNil())
 
-	Expect(srcIP.String()).To(Equal("100::1/126"))
-	Expect(dstIP.String()).To(Equal("100::2/126"))
+	Expect(srcIP.String()).To(Equal(srcDesired))
+	Expect(dstIP.String()).To(Equal(dstDesired))
 
-	err = pool.Release("c2")
+	err = pool.Release("c1")
 	Expect(err).To(BeNil())
 }
 

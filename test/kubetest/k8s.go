@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"strconv"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -941,8 +941,8 @@ func (o *K8s) DeleteRoles(rolesList []nsmrbac.Role) error {
 	return nil
 }
 
-/* Choose whether or not to use IPv6 in testing */
-func (o *K8s) setIPVersion() {
+/* setIPVersion choose whether or not to use IPv6 in testing */
+func (l *K8s) setIPVersion() {
 	useIPv6, ok := os.LookupEnv(envUseIPv6)
 	if !ok {
 		logrus.Infof("%s not set, using default %t", envUseIPv6, envUseIPv6Default)
