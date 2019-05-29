@@ -1,4 +1,4 @@
-package metrics
+package vppagent
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 )
 
 type MetricsCollector struct {
@@ -27,11 +27,11 @@ func NewMetricsCollector(requestPeriod time.Duration) *MetricsCollector {
 	}
 }
 
-func (m *MetricsCollector) CollectAsync(monitor MetricsMonitor, endpoint string) {
+func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint string) {
 	go m.collect(monitor, endpoint)
 }
 
-func (m *MetricsCollector) collect(monitor MetricsMonitor, endpoint string) {
+func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
 	tracer := opentracing.GlobalTracer()
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
@@ -47,7 +47,7 @@ func (m *MetricsCollector) collect(monitor MetricsMonitor, endpoint string) {
 	m.startListenNotifications(monitor, notificationClient)
 }
 
-func (m *MetricsCollector) startListenNotifications(monitor MetricsMonitor, client rpc.ConfiguratorClient) {
+func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client rpc.ConfiguratorClient) {
 	var nextIdx uint32 = 0
 	for {
 		logrus.Infof("Metrics collector: request %v", nextIdx)
@@ -67,7 +67,7 @@ func (m *MetricsCollector) startListenNotifications(monitor MetricsMonitor, clie
 		time.Sleep(m.requestPeriod)
 	}
 }
-func (m *MetricsCollector) handleNotifications(monitor MetricsMonitor, stream rpc.Configurator_NotifyClient, nextIndex *uint32) error {
+func (m *MetricsCollector) handleNotifications(monitor metrics.MetricsMonitor, stream rpc.Configurator_NotifyClient, nextIndex *uint32) error {
 	for {
 		notification, err := stream.Recv()
 		if err != nil {
