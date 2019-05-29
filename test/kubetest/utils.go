@@ -132,7 +132,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 
 	failures := InterceptGomegaFailures(func() {
 		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
-		k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
+		_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
