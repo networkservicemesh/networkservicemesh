@@ -71,14 +71,14 @@ func TestNetExtractIPv6(t *testing.T) {
 	pool, err := NewPrefixPool("100::/64")
 	Expect(err).To(BeNil())
 
-	srcIP, dstIP, requested, err := pool.Extract("c1", connectioncontext.IpFamily_IPV6)
+	srcIP, dstIP, requested, err := pool.Extract("c2", connectioncontext.IpFamily_IPV6)
 	Expect(err).To(BeNil())
 	Expect(requested).To(BeNil())
 
 	Expect(srcIP.String()).To(Equal("100::1/126"))
 	Expect(dstIP.String()).To(Equal("100::2/126"))
 
-	err = pool.Release("c1")
+	err = pool.Release("c2")
 	Expect(err).To(BeNil())
 }
 

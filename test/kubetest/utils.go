@@ -204,8 +204,8 @@ func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
 
-func defaultICMPEnv(UseIPv6 bool) map[string]string {
-	if !UseIPv6 {
+func defaultICMPEnv(useIPv6 bool) map[string]string {
+	if !useIPv6 {
 		return map[string]string{
 			"ADVERTISE_NSE_NAME":   "icmp-responder",
 			"ADVERTISE_NSE_LABELS": "app=icmp",
