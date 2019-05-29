@@ -70,6 +70,19 @@ func main() {
 		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
 	}
 
+	var monitorServer monitor.Server
+	if *update {
+		logrus.Infof("Adding updating endpoint to chain")
+		endpoints = append(endpoints,
+			endpoint.NewCustomFuncEndpoint("update", func(*connection.Connection) error {
+				go func() {
+					<-time.After(10 * time.Second)
+					updateConnections(monitorServer)
+				}()
+				return nil
+			}))
+	}
+
 	endpoints = append(endpoints,
 		ipamEndpoint,
 		endpoint.NewConnectionEndpoint(nil))
@@ -81,14 +94,11 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 
+	monitorServer = nsmEndpoint.MonitorServer()
+
 	_ = nsmEndpoint.Start()
 	if !*dirty {
 		defer func() { _ = nsmEndpoint.Delete() }()
-	}
-
-	if *update {
-		<-time.After(10 * time.Second)
-		updateConnections(nsmEndpoint.MonitorServer())
 	}
 
 	// Capture signals to cleanup before exiting
