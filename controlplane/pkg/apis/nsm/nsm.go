@@ -38,7 +38,7 @@ type NSMConnection interface {
 }
 
 type NSMClientConnection interface {
-	GetId() string
+	GetID() string
 	GetConnectionSource() NSMConnection
 	GetNetworkService() string
 }

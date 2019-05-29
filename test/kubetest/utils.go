@@ -5,7 +5,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 	"net"
 	"os"
 	"strings"
@@ -13,22 +12,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"k8s.io/client-go/util/cert"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
-
-	"k8s.io/client-go/util/cert"
-
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -38,10 +35,13 @@ type NodeConf struct {
 	Dataplane *v1.Pod
 	Node      *v1.Node
 }
+
 // PodSupplier - Type to pass supplier of pod
 type PodSupplier = func(*K8s, *v1.Node, string, time.Duration) *v1.Pod
+
 // NsePinger - Type to pass pinger for pod
 type NsePinger = func(k8s *K8s, from *v1.Pod) bool
+
 // NscChecker - Type to pass checked for pod
 type NscChecker = func(*K8s, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
@@ -50,6 +50,7 @@ type ipParser = func(string) (string, error)
 func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
+
 // SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
@@ -131,7 +132,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 
 	failures := InterceptGomegaFailures(func() {
 		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
-		k8s.WaitLogsContains(nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", timeout)
+		_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
@@ -142,6 +143,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	err = nil
 	return
 }
+
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
@@ -188,6 +190,13 @@ func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.
 // DeployNSCWebhook - Setup Default Client with webhook
 func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, node, name, "nsm-init-container", timeout, pods.NSCPodWebhook(name, node))
+}
+
+// DeployMonitoringNSC deploys 'monitoring-nsc' pod
+func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployNSC(k8s, node, name, "monitoring-nsc", timeout, pods.MonitoringNSCPod(name, node,
+		defaultNSCEnv(),
+	))
 }
 
 // DeployVppAgentNSC - Setup Default VPP Based Client
@@ -553,6 +562,7 @@ func (info *NSCCheckInfo) PrintLogs() {
 func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 	return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
 }
+
 // CheckVppAgentNSC - Perform check of VPP based agent operations.
 func CheckVppAgentNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 	return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
@@ -585,6 +595,26 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	return info
 }
 
+// HealNscChecker checks that heal worked properly
+func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
+	var err error
+	const attempts = 10
+	success := false
+	var rv *NSCCheckInfo
+	for i := 0; i < attempts; i++ {
+		info := &NSCCheckInfo{}
+		info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
+		if err == nil && !strings.Contains(info.pingResponse, "100% packet loss") {
+			success = true
+			rv = info
+			break
+		}
+		<-time.After(300 * time.Millisecond)
+	}
+	Expect(success).To(BeTrue())
+	return rv
+}
+
 func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
 	info := &NSCCheckInfo{}
 	response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
@@ -612,6 +642,7 @@ func DefaultDataplaneVariables() map[string]string {
 		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
 	}
 }
+
 // GetVppAgentNSEAddr - GetVppAgentNSEAddr - Return vpp agent NSE address
 func GetVppAgentNSEAddr(k8s *K8s, nsc *v1.Pod) (net.IP, error) {
 	return getNSEAddr(k8s, nsc, parseVppAgentAddr, "vppctl", "show int addr")
@@ -691,6 +722,7 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 
 	return result
 }
+
 // PrintErrors - Print errors for system NSMgr pods
 func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {

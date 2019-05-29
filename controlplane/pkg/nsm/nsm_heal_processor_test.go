@@ -185,7 +185,6 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
-		ClientConnectionNotExists("id").
 		DataplaneExists(dataplane1Name).
 		Verify(t)
 }
@@ -284,17 +283,25 @@ func (stub *connectionManagerStub) request(ctx context.Context, request nsm.NSMR
 	}
 
 	nsmConnection := newConnection(request)
-	if nsmConnection.GetNetworkService() != existingConnection.GetNetworkService() {
+	var dstId string
+	if conn := existingConnection.Xcon.GetLocalDestination(); conn != nil {
+		dstId = conn.GetId()
+	}
+	if conn := existingConnection.Xcon.GetRemoteDestination(); conn != nil {
+		dstId = conn.GetId()
+	}
+
+	if dstId == "-" {
 		if stub.nse != nil {
 			existingConnection.Endpoint = stub.nse
 		} else {
-			stub.model.DeleteClientConnection(existingConnection.GetId())
+			stub.model.DeleteClientConnection(existingConnection.GetID())
 			return nil, fmt.Errorf("no NSE available")
 		}
 	}
 
-	existingConnection.ConnectionState = model.ClientConnection_Ready
-	existingConnection.DataplaneState = model.DataplaneState_Ready
+	existingConnection.ConnectionState = model.ClientConnectionReady
+	existingConnection.DataplaneState = model.DataplaneStateReady
 	stub.model.UpdateClientConnection(existingConnection)
 
 	return nsmConnection, nil
@@ -305,15 +312,15 @@ func (stub *connectionManagerStub) close(ctx context.Context, clientConnection *
 		return stub.closeError
 	}
 
-	clientConnection.ConnectionState = model.ClientConnection_Closing
+	clientConnection.ConnectionState = model.ClientConnectionClosing
 
-	_ = stub.model.DeleteEndpoint(clientConnection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+	stub.model.DeleteEndpoint(clientConnection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
 
 	if closeDataplane {
-		stub.model.DeleteDataplane(clientConnection.Dataplane.RegisteredName)
-		clientConnection.DataplaneState = model.DataplaneState_None
+		stub.model.DeleteDataplane(clientConnection.DataplaneRegisteredName)
+		clientConnection.DataplaneState = model.DataplaneStateNone
 		if modelRemove {
-			stub.model.DeleteClientConnection(clientConnection.ConnectionId)
+			stub.model.DeleteClientConnection(clientConnection.ConnectionID)
 		}
 	}
 
@@ -463,24 +470,24 @@ func (data *healTestData) createRequest(isRemote bool) nsm.NSMRequest {
 
 func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, dataplane string, request nsm.NSMRequest) *model.ClientConnection {
 	return &model.ClientConnection{
-		ConnectionId: id,
+		ConnectionID: id,
 		Xcon:         xcon,
 		RemoteNsm: &registry.NetworkServiceManager{
 			Name: nsm,
 		},
-		Endpoint:       nse,
-		Dataplane:      data.model.GetDataplane(dataplane),
-		Request:        request,
-		DataplaneState: model.DataplaneState_Ready,
+		Endpoint:                nse,
+		DataplaneRegisteredName: dataplane,
+		Request:                 request,
+		DataplaneState:          model.DataplaneStateReady,
 	}
 }
 
 func (data *healTestData) cloneClientConnection(connection *model.ClientConnection) *model.ClientConnection {
-	id := connection.GetId()
+	id := connection.GetID()
 	xcon := data.cloneCrossConnection(connection.Xcon)
 	nse := data.createEndpoint(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName(), connection.Endpoint.GetNetworkServiceManager().GetName())
 	nsm := connection.RemoteNsm.GetName()
-	dataplane := connection.Dataplane.RegisteredName
+	dataplane := connection.DataplaneRegisteredName
 	request := data.createRequest(connection.Request.IsRemote())
 
 	return data.createClientConnection(id, xcon, nse, nsm, dataplane, request)

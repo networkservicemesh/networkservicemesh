@@ -230,6 +230,7 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
 	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms
 	testDataplane2_2.MechanismsConfigured = true
+	srv2.testModel.UpdateDataplane(testDataplane2_2)
 
 	res := <-resultChan
 	Expect(res.err).To(BeNil())
