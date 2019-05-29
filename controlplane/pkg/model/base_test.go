@@ -2,8 +2,9 @@ package model
 
 import (
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
+	"sync"
 	"testing"
+	"time"
 )
 
 type testResource struct {
@@ -24,27 +25,22 @@ func TestModificationHandler(t *testing.T) {
 	updResource := &testResource{"updated"}
 
 	amountHandlers := 5
-	addCalledTimes := make([]bool, amountHandlers)
-	updateCalledTimes := make([]bool, amountHandlers)
-	deleteCalledTimes := make([]bool, amountHandlers)
 
+	var wg sync.WaitGroup
 	for i := 0; i < amountHandlers; i++ {
-		logrus.Info(addCalledTimes[i])
-		addPtr := &addCalledTimes[i]
-		updPtr := &updateCalledTimes[i]
-		delPtr := &deleteCalledTimes[i]
+		wg.Add(3)
 		bd.addHandler(&ModificationHandler{
 			AddFunc: func(new interface{}) {
-				*addPtr = true
+				defer wg.Done()
 				Expect(new.(*testResource).value).To(Equal(resource.value))
 			},
 			UpdateFunc: func(old interface{}, new interface{}) {
-				*updPtr = true
+				defer wg.Done()
 				Expect(old.(*testResource).value).To(Equal(resource.value))
 				Expect(new.(*testResource).value).To(Equal(updResource.value))
 			},
 			DeleteFunc: func(del interface{}) {
-				*delPtr = true
+				defer wg.Done()
 				Expect(del.(*testResource).value).To(Equal(resource.value))
 			},
 		})
@@ -53,10 +49,17 @@ func TestModificationHandler(t *testing.T) {
 	bd.resourceAdded(resource)
 	bd.resourceUpdated(resource, updResource)
 	bd.resourceDeleted(resource)
+	doneCh := make(chan struct{})
 
-	for i := 0; i < amountHandlers; i++ {
-		Expect(addCalledTimes[i]).To(BeTrue())
-		Expect(updateCalledTimes[i]).To(BeTrue())
-		Expect(deleteCalledTimes[i]).To(BeTrue())
+	go func() {
+		wg.Wait()
+		close(doneCh)
+	}()
+
+	select {
+	case <-time.After(5 * time.Second):
+		t.Fatal("not all listeners have been emitted ")
+	case <-doneCh:
+		return
 	}
 }
