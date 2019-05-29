@@ -119,6 +119,6 @@ func (nsem *nseManager) checkUpdateNSE(ctx context.Context, reg *registry.NSEReg
 
 func (nsem *nseManager) cleanupNSE(endpoint *model.Endpoint) {
 	// Remove endpoint from model and put workspace into BAD state.
-	_ = nsem.model.DeleteEndpoint(endpoint.EndpointName())
+	nsem.model.DeleteEndpoint(endpoint.EndpointName())
 	logrus.Infof("NSM: Remove Endpoint since it is not available... %v", endpoint)
 }

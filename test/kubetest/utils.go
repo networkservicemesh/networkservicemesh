@@ -645,6 +645,26 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	return info
 }
 
+// HealNscChecker checks that heal worked properly
+func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
+	var err error
+	const attempts = 10
+	success := false
+	var rv *NSCCheckInfo
+	for i := 0; i < attempts; i++ {
+		info := &NSCCheckInfo{}
+		info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
+		if err == nil && !strings.Contains(info.pingResponse, "100% packet loss") {
+			success = true
+			rv = info
+			break
+		}
+		<-time.After(300 * time.Millisecond)
+	}
+	Expect(success).To(BeTrue())
+	return rv
+}
+
 func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
 	info := &NSCCheckInfo{}
 	response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
