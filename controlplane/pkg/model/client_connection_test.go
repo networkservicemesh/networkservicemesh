@@ -34,15 +34,13 @@ func TestAddAndGetСс(t *testing.T) {
 				EndpointName:       "endp1",
 			},
 		},
-		Dataplane: &Dataplane{
-			RegisteredName: "dp1",
-		},
-		ConnectionState: ClientConnectionHealing,
-		Request:         nil,
-		DataplaneState:  DataplaneStateReady,
+		DataplaneRegisteredName: "dp1",
+		ConnectionState:         ClientConnectionHealing,
+		Request:                 nil,
+		DataplaneState:          DataplaneStateReady,
 	}
 
-	ccd := clientConnectionDomain{}
+	ccd := newClientConnectionDomain()
 	ccd.AddClientConnection(cc)
 	getConn := ccd.GetClientConnection("1")
 
@@ -56,7 +54,6 @@ func TestAddAndGetСс(t *testing.T) {
 	Expect(getConn.GetConnectionSource()).To(Equal(cc.GetConnectionSource()))
 
 	Expect(fmt.Sprintf("%p", getConn.RemoteNsm)).ToNot(Equal(fmt.Sprintf("%p", cc.RemoteNsm)))
-	Expect(fmt.Sprintf("%p", getConn.Dataplane)).ToNot(Equal(fmt.Sprintf("%p", cc.Dataplane)))
 	Expect(fmt.Sprintf("%p", getConn.Endpoint)).ToNot(Equal(fmt.Sprintf("%p", cc.Endpoint)))
 	Expect(fmt.Sprintf("%p", getConn.Endpoint.NetworkServiceManager)).
 		ToNot(Equal(fmt.Sprintf("%p", cc.Endpoint.NetworkServiceManager)))
@@ -65,7 +62,7 @@ func TestAddAndGetСс(t *testing.T) {
 func TestGetAllСс(t *testing.T) {
 	RegisterTestingT(t)
 
-	ccd := clientConnectionDomain{}
+	ccd := newClientConnectionDomain()
 	amount := 5
 
 	for i := 0; i < amount; i++ {
@@ -91,12 +88,10 @@ func TestGetAllСс(t *testing.T) {
 					EndpointName:       "endp1",
 				},
 			},
-			Dataplane: &Dataplane{
-				RegisteredName: "dp1",
-			},
-			ConnectionState: ClientConnectionHealing,
-			Request:         nil,
-			DataplaneState:  DataplaneStateReady,
+			DataplaneRegisteredName: "dp1",
+			ConnectionState:         ClientConnectionHealing,
+			Request:                 nil,
+			DataplaneState:          DataplaneStateReady,
 		})
 	}
 
@@ -117,7 +112,7 @@ func TestGetAllСс(t *testing.T) {
 func TestDeleteСс(t *testing.T) {
 	RegisterTestingT(t)
 
-	ccd := clientConnectionDomain{}
+	ccd := newClientConnectionDomain()
 	ccd.AddClientConnection(&ClientConnection{
 		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
@@ -140,12 +135,10 @@ func TestDeleteСс(t *testing.T) {
 				EndpointName:       "endp1",
 			},
 		},
-		Dataplane: &Dataplane{
-			RegisteredName: "dp1",
-		},
-		ConnectionState: ClientConnectionHealing,
-		Request:         nil,
-		DataplaneState:  DataplaneStateReady,
+		DataplaneRegisteredName: "dp1",
+		ConnectionState:         ClientConnectionHealing,
+		Request:                 nil,
+		DataplaneState:          DataplaneStateReady,
 	})
 
 	cc := ccd.GetClientConnection("1")
@@ -185,30 +178,28 @@ func TestUpdateExistingСс(t *testing.T) {
 				EndpointName:       "endp1",
 			},
 		},
-		Dataplane: &Dataplane{
-			RegisteredName: "dp1",
-		},
-		ConnectionState: ClientConnectionHealing,
-		Request:         nil,
-		DataplaneState:  DataplaneStateReady,
+		DataplaneRegisteredName: "dp1",
+		ConnectionState:         ClientConnectionHealing,
+		Request:                 nil,
+		DataplaneState:          DataplaneStateReady,
 	}
 
-	ccd := clientConnectionDomain{}
+	ccd := newClientConnectionDomain()
 	ccd.AddClientConnection(cc)
 
 	newUrl := "3.3.3.3"
 	newDpName := "updatedName"
 	cc.Endpoint.NetworkServiceManager.Url = newUrl
-	cc.Dataplane.RegisteredName = newDpName
+	cc.DataplaneRegisteredName = newDpName
 
 	notUpdated := ccd.GetClientConnection("1")
 	Expect(notUpdated.Endpoint.NetworkServiceManager.Url).ToNot(Equal(newUrl))
-	Expect(notUpdated.Dataplane.RegisteredName).ToNot(Equal(newDpName))
+	Expect(notUpdated.DataplaneRegisteredName).ToNot(Equal(newDpName))
 
 	ccd.UpdateClientConnection(cc)
 	updated := ccd.GetClientConnection("1")
 	Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal(newUrl))
-	Expect(updated.Dataplane.RegisteredName).To(Equal(newDpName))
+	Expect(updated.DataplaneRegisteredName).To(Equal(newDpName))
 }
 
 func TestUpdateNotExistingСс(t *testing.T) {
@@ -236,26 +227,24 @@ func TestUpdateNotExistingСс(t *testing.T) {
 				EndpointName:       "endp1",
 			},
 		},
-		Dataplane: &Dataplane{
-			RegisteredName: "dp1",
-		},
-		ConnectionState: ClientConnectionHealing,
-		Request:         nil,
-		DataplaneState:  DataplaneStateReady,
+		DataplaneRegisteredName: "dp1",
+		ConnectionState:         ClientConnectionHealing,
+		Request:                 nil,
+		DataplaneState:          DataplaneStateReady,
 	}
 
-	ccd := clientConnectionDomain{}
+	ccd := newClientConnectionDomain()
 
 	ccd.UpdateClientConnection(cc)
 	updated := ccd.GetClientConnection("1")
 	Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal("2.2.2.2"))
-	Expect(updated.Dataplane.RegisteredName).To(Equal("dp1"))
+	Expect(updated.DataplaneRegisteredName).To(Equal("dp1"))
 }
 
 func TestApplyChanges(t *testing.T) {
 	RegisterTestingT(t)
 
-	ccd := clientConnectionDomain{}
+	ccd := newClientConnectionDomain()
 	ccd.AddClientConnection(&ClientConnection{
 		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
@@ -278,12 +267,10 @@ func TestApplyChanges(t *testing.T) {
 				EndpointName:       "endp1",
 			},
 		},
-		Dataplane: &Dataplane{
-			RegisteredName: "dp1",
-		},
-		ConnectionState: ClientConnectionHealing,
-		Request:         nil,
-		DataplaneState:  DataplaneStateReady,
+		DataplaneRegisteredName: "dp1",
+		ConnectionState:         ClientConnectionHealing,
+		Request:                 nil,
+		DataplaneState:          DataplaneStateReady,
 	})
 
 	ccd.ApplyClientConnectionChanges("1", func(cc *ClientConnection) {

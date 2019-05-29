@@ -498,12 +498,12 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 		dpState = existingConnection.DataplaneState
 	}
 	clientConnection := &model.ClientConnection{
-		ConnectionID:    requestConnection.GetId(),
-		Xcon:            dpApiConnection,
-		Endpoint:        endpoint,
-		Dataplane:       dp,
-		ConnectionState: model.ClientConnectionRequesting,
-		DataplaneState:  dpState,
+		ConnectionID:            requestConnection.GetId(),
+		Xcon:                    dpApiConnection,
+		Endpoint:                endpoint,
+		DataplaneRegisteredName: dp.RegisteredName,
+		ConnectionState:         model.ClientConnectionRequesting,
+		DataplaneState:          dpState,
 	}
 	// 7.2.6.2.6 - It not a local NSE put remote NSM name in request
 	if !srv.nseManager.isLocalEndpoint(endpoint) {
@@ -588,7 +588,8 @@ func (srv *networkServiceManager) closeDataplane(cc *model.ClientConnection) err
 		return nil
 	}
 	logrus.Info("NSM.Dataplane: Closing cross connection on dataplane...")
-	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(cc.Dataplane)
+	dp := srv.model.GetDataplane(cc.DataplaneRegisteredName)
+	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(dp)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -783,12 +784,12 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 			}
 
 			clientConnection := &model.ClientConnection{
-				ConnectionID:    xcon.GetId(),
-				Xcon:            xcon,
-				Endpoint:        endpoint, // We do not have endpoint here.
-				Dataplane:       dp,
-				ConnectionState: connectionState,
-				DataplaneState:  model.DataplaneStateReady, // It is configured already.
+				ConnectionID:            xcon.GetId(),
+				Xcon:                    xcon,
+				Endpoint:                endpoint, // We do not have endpoint here.
+				DataplaneRegisteredName: dp.RegisteredName,
+				ConnectionState:         connectionState,
+				DataplaneState:          model.DataplaneStateReady, // It is configured already.
 			}
 			srv.model.AddClientConnection(clientConnection)
 

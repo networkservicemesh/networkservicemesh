@@ -30,7 +30,7 @@ type Dataplane struct {
 }
 
 // Clone returns pointer to copy of Dataplane
-func (d *Dataplane) Clone() *Dataplane {
+func (d *Dataplane) clone() cloneable {
 	if d == nil {
 		return nil
 	}
@@ -59,41 +59,35 @@ type dataplaneDomain struct {
 	inner sync.Map
 }
 
+func newDataplaneDomain() dataplaneDomain {
+	return dataplaneDomain{
+		baseDomain: newBase(),
+	}
+}
+
 func (d *dataplaneDomain) AddDataplane(dp *Dataplane) {
-	d.inner.Store(dp.RegisteredName, dp.Clone())
-	d.resourceAdded(dp.Clone())
+	d.store(dp.RegisteredName, dp)
 }
 
 func (d *dataplaneDomain) GetDataplane(name string) *Dataplane {
-	v, _ := d.inner.Load(name)
+	v, _ := d.load(name)
 	if v != nil {
-		return v.(*Dataplane).Clone()
+		return v.(*Dataplane)
 	}
 	return nil
 }
 
 func (d *dataplaneDomain) DeleteDataplane(name string) {
-	v := d.GetDataplane(name)
-	if v == nil {
-		return
-	}
-	d.inner.Delete(name)
-	d.resourceDeleted(v)
+	d.delete(name)
 }
 
 func (d *dataplaneDomain) UpdateDataplane(dp *Dataplane) {
-	v := d.GetDataplane(dp.RegisteredName)
-	if v == nil {
-		d.AddDataplane(dp)
-		return
-	}
-	d.inner.Store(dp.RegisteredName, dp.Clone())
-	d.resourceUpdated(v, dp.Clone())
+	d.store(dp.RegisteredName, dp)
 }
 
 func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error) {
 	var rv *Dataplane
-	d.inner.Range(func(key, value interface{}) bool {
+	d.kvRange(func(key string, value interface{}) bool {
 		dp := value.(*Dataplane)
 
 		if dataplaneSelector == nil {
@@ -113,14 +107,9 @@ func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) 
 		return nil, fmt.Errorf("no appropriate dataplanes found")
 	}
 
-	return rv.Clone(), nil
+	return rv, nil
 }
 
 func (d *dataplaneDomain) SetDataplaneModificationHandler(h *ModificationHandler) func() {
-	deleteFunc := d.addHandler(h)
-	d.inner.Range(func(key, value interface{}) bool {
-		d.resourceAdded(value.(*Dataplane).Clone())
-		return true
-	})
-	return deleteFunc
+	return d.addHandler(h)
 }

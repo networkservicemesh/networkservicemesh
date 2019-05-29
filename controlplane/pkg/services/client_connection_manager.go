@@ -66,7 +66,7 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 	ccs := m.model.GetAllClientConnections()
 
 	for _, cc := range ccs {
-		if cc.Dataplane.RegisteredName == dataplane.RegisteredName {
+		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
 			m.manager.Heal(cc, nsm.HealState_DataplaneDown)
 		}
 	}
@@ -142,7 +142,7 @@ func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) [
 
 	var rv []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.Dataplane.RegisteredName == name {
+		if clientConnection.DataplaneRegisteredName == name {
 			rv = append(rv, clientConnection)
 		}
 	}

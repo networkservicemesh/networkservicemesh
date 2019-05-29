@@ -6,12 +6,22 @@ import (
 	"testing"
 )
 
+type testResource struct {
+	value string
+}
+
+func (r *testResource) clone() cloneable {
+	return &testResource{
+		value: r.value,
+	}
+}
+
 func TestModificationHandler(t *testing.T) {
 	RegisterTestingT(t)
 
 	bd := baseDomain{}
-	resource := "test"
-	updResource := "updated"
+	resource := &testResource{"test"}
+	updResource := &testResource{"updated"}
 
 	amountHandlers := 5
 	addCalledTimes := make([]bool, amountHandlers)
@@ -26,16 +36,16 @@ func TestModificationHandler(t *testing.T) {
 		bd.addHandler(&ModificationHandler{
 			AddFunc: func(new interface{}) {
 				*addPtr = true
-				Expect(new.(string)).To(Equal(resource))
+				Expect(new.(*testResource).value).To(Equal(resource.value))
 			},
 			UpdateFunc: func(old interface{}, new interface{}) {
 				*updPtr = true
-				Expect(old.(string)).To(Equal(resource))
-				Expect(new.(string)).To(Equal(updResource))
+				Expect(old.(*testResource).value).To(Equal(resource.value))
+				Expect(new.(*testResource).value).To(Equal(updResource.value))
 			},
 			DeleteFunc: func(del interface{}) {
 				*delPtr = true
-				Expect(del.(string)).To(Equal(resource))
+				Expect(del.(*testResource).value).To(Equal(resource.value))
 			},
 		})
 	}

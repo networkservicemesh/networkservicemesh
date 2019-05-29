@@ -5,7 +5,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"sync"
 )
 
 // ClientConnectionState describes state of ClientConnection
@@ -27,14 +26,14 @@ const (
 
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint
 type ClientConnection struct {
-	ConnectionID    string
-	Request         nsm.NSMRequest
-	Xcon            *crossconnect.CrossConnect
-	RemoteNsm       *registry.NetworkServiceManager
-	Endpoint        *registry.NSERegistration
-	Dataplane       *Dataplane
-	ConnectionState ClientConnectionState
-	DataplaneState  DataplaneState
+	ConnectionID            string
+	Request                 nsm.NSMRequest
+	Xcon                    *crossconnect.CrossConnect
+	RemoteNsm               *registry.NetworkServiceManager
+	Endpoint                *registry.NSERegistration
+	DataplaneRegisteredName string
+	ConnectionState         ClientConnectionState
+	DataplaneState          DataplaneState
 }
 
 // GetID returns id of clientConnection
@@ -62,7 +61,7 @@ func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
 }
 
 // Clone return pointer to copy of ClientConnection
-func (cc *ClientConnection) Clone() *ClientConnection {
+func (cc *ClientConnection) clone() cloneable {
 	if cc == nil {
 		return nil
 	}
@@ -87,89 +86,66 @@ func (cc *ClientConnection) Clone() *ClientConnection {
 		request = cc.Request.Clone()
 	}
 
+	//var dataplane *Dataplane
+	//if cc.Dataplane != nil {
+	//	dataplane = cc.Dataplane.clone().(*Dataplane)
+	//}
+
 	return &ClientConnection{
-		ConnectionID:    cc.ConnectionID,
-		Xcon:            xcon,
-		RemoteNsm:       remoteNsm,
-		Endpoint:        endpoint,
-		Dataplane:       cc.Dataplane.Clone(),
-		Request:         request,
-		ConnectionState: cc.ConnectionState,
-		DataplaneState:  cc.DataplaneState,
+		ConnectionID:            cc.ConnectionID,
+		Xcon:                    xcon,
+		RemoteNsm:               remoteNsm,
+		Endpoint:                endpoint,
+		DataplaneRegisteredName: cc.DataplaneRegisteredName,
+		Request:                 request,
+		ConnectionState:         cc.ConnectionState,
+		DataplaneState:          cc.DataplaneState,
 	}
 }
 
 type clientConnectionDomain struct {
 	baseDomain
-	inner sync.Map
+}
+
+func newClientConnectionDomain() clientConnectionDomain {
+	return clientConnectionDomain{
+		baseDomain: newBase(),
+	}
 }
 
 func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) {
-	d.inner.Store(cc.ConnectionID, cc.Clone())
-	d.resourceAdded(cc.Clone())
+	d.store(cc.ConnectionID, cc)
 }
 
 func (d *clientConnectionDomain) GetClientConnection(id string) *ClientConnection {
-	v, _ := d.inner.Load(id)
+	v, _ := d.load(id)
 	if v != nil {
-		return v.(*ClientConnection).Clone()
+		return v.(*ClientConnection)
 	}
 	return nil
 }
 
 func (d *clientConnectionDomain) GetAllClientConnections() []*ClientConnection {
 	var rv []*ClientConnection
-	d.inner.Range(func(_, value interface{}) bool {
-		rv = append(rv, value.(*ClientConnection).Clone())
+	d.kvRange(func(_ string, value interface{}) bool {
+		rv = append(rv, value.(*ClientConnection))
 		return true
 	})
 	return rv
 }
 
 func (d *clientConnectionDomain) DeleteClientConnection(id string) {
-	v := d.GetClientConnection(id)
-	if v == nil {
-		return
-	}
-	d.inner.Delete(id)
-	d.resourceDeleted(v)
+	d.delete(id)
 }
 
 func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
-	v := d.GetClientConnection(cc.ConnectionID)
-	if v == nil {
-		d.AddClientConnection(cc)
-		return
-	}
-	d.inner.Store(cc.ConnectionID, cc.Clone())
-	d.resourceUpdated(v, cc.Clone())
+	d.store(cc.ConnectionID, cc)
 }
 
-func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string,
-	changeFunc func(*ClientConnection)) *ClientConnection {
-	d.mtx.Lock()
-
-	old := d.GetClientConnection(id)
-	if old == nil {
-		return nil
-	}
-
-	new := old.Clone()
-	changeFunc(new)
-
-	d.inner.Store(id, new.Clone())
-
-	d.mtx.Unlock()
-
-	d.resourceUpdated(old, new)
-	return new
+func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string, f func(*ClientConnection)) *ClientConnection {
+	return d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) }).(*ClientConnection)
 }
 
 func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) func() {
-	deleteFunc := d.addHandler(h)
-	d.inner.Range(func(key, value interface{}) bool {
-		d.resourceAdded(value.(*ClientConnection).Clone())
-		return true
-	})
-	return deleteFunc
+	return d.addHandler(h)
 }

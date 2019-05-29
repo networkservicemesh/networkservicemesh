@@ -175,7 +175,7 @@ func (v *clientConnectionVerifier) Verify(t *testing.T) {
 	v.verifyXcon(connection.Xcon, t)
 	Expect(connection.RemoteNsm.GetName()).To(Equal(v.remoteNSM))
 	Expect(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()).To(Equal(v.nse))
-	Expect(connection.Dataplane.RegisteredName).To(Equal(v.dataplane))
+	Expect(connection.DataplaneRegisteredName).To(Equal(v.dataplane))
 }
 
 func (v *clientConnectionVerifier) verifyXcon(xcon *crossconnect.CrossConnect, t *testing.T) {

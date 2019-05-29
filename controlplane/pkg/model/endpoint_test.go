@@ -29,7 +29,7 @@ func TestAddAndGetEndpoint(t *testing.T) {
 		Workspace:      "ws",
 	}
 
-	ed := endpointDomain{}
+	ed := newEndpointDomain()
 	ed.AddEndpoint(endp)
 	getEndp := ed.GetEndpoint("endp1")
 
@@ -49,7 +49,7 @@ func TestAddAndGetEndpoint(t *testing.T) {
 func TestGetEndpointsByNs(t *testing.T) {
 	RegisterTestingT(t)
 
-	ed := endpointDomain{}
+	ed := newEndpointDomain()
 	amount := 5
 
 	for i := 0; i < amount; i++ {
@@ -104,7 +104,7 @@ func TestGetEndpointsByNs(t *testing.T) {
 func TestDeleteEndpoint(t *testing.T) {
 	RegisterTestingT(t)
 
-	ed := endpointDomain{}
+	ed := newEndpointDomain()
 	ed.AddEndpoint(&Endpoint{
 		Endpoint: &registry.NSERegistration{
 			NetworkService: &registry.NetworkService{
@@ -155,7 +155,7 @@ func TestUpdateExistingEndpoint(t *testing.T) {
 		Workspace:      "ws",
 	}
 
-	ed := endpointDomain{}
+	ed := newEndpointDomain()
 	ed.AddEndpoint(endp)
 
 	newUrl := "3.3.3.3"
@@ -194,7 +194,7 @@ func TestUpdateNotExisting(t *testing.T) {
 		Workspace:      "ws",
 	}
 
-	ed := endpointDomain{}
+	ed := newEndpointDomain()
 
 	ed.UpdateEndpoint(endp)
 	updated := ed.GetEndpoint("endp1")

@@ -33,7 +33,7 @@ func TestAddAndGetDp(t *testing.T) {
 		MechanismsConfigured: true,
 	}
 
-	dd := dataplaneDomain{}
+	dd := newDataplaneDomain()
 	dd.AddDataplane(dp)
 	getDp := dd.GetDataplane("dp1")
 
@@ -50,7 +50,7 @@ func TestAddAndGetDp(t *testing.T) {
 func TestDeleteDp(t *testing.T) {
 	RegisterTestingT(t)
 
-	dd := dataplaneDomain{}
+	dd := newDataplaneDomain()
 	dd.AddDataplane(&Dataplane{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
@@ -88,7 +88,7 @@ func TestSelectDp(t *testing.T) {
 	RegisterTestingT(t)
 
 	amount := 5
-	dd := dataplaneDomain{}
+	dd := newDataplaneDomain()
 	for i := 0; i < amount; i++ {
 		dd.AddDataplane(&Dataplane{
 			RegisteredName: fmt.Sprintf("dp%d", i),

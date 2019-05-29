@@ -3,7 +3,6 @@ package model
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"sync"
 )
 
 // Endpoint structure in Model that describes NetworkServiceEndpoint
@@ -14,7 +13,7 @@ type Endpoint struct {
 }
 
 // Clone returns pointer to copy of Endpoint
-func (ep *Endpoint) Clone() *Endpoint {
+func (ep *Endpoint) clone() cloneable {
 	if ep == nil {
 		return nil
 	}
@@ -43,29 +42,31 @@ func (ep *Endpoint) NetworkServiceName() string {
 
 type endpointDomain struct {
 	baseDomain
-	inner sync.Map
 }
 
+func newEndpointDomain() endpointDomain {
+	return endpointDomain{
+		baseDomain: newBase(),
+	}
+}
 func (d *endpointDomain) AddEndpoint(endpoint *Endpoint) {
-	d.inner.Store(endpoint.EndpointName(), endpoint.Clone())
-	d.resourceAdded(endpoint.Clone())
+	d.store(endpoint.EndpointName(), endpoint)
 }
 
 func (d *endpointDomain) GetEndpoint(name string) *Endpoint {
-	v, _ := d.inner.Load(name)
+	v, _ := d.load(name)
 	if v != nil {
-		return v.(*Endpoint).Clone()
+		return v.(*Endpoint)
 	}
 	return nil
-
 }
 
 func (d *endpointDomain) GetEndpointsByNetworkService(nsName string) []*Endpoint {
 	var rv []*Endpoint
-	d.inner.Range(func(key, value interface{}) bool {
+	d.kvRange(func(key string, value interface{}) bool {
 		endp := value.(*Endpoint)
 		if endp.NetworkServiceName() == nsName {
-			rv = append(rv, endp.Clone())
+			rv = append(rv, endp)
 		}
 		return true
 	})
@@ -73,29 +74,13 @@ func (d *endpointDomain) GetEndpointsByNetworkService(nsName string) []*Endpoint
 }
 
 func (d *endpointDomain) DeleteEndpoint(name string) {
-	v := d.GetEndpoint(name)
-	if v == nil {
-		return
-	}
-	d.inner.Delete(name)
-	d.resourceDeleted(v)
+	d.delete(name)
 }
 
 func (d *endpointDomain) UpdateEndpoint(endpoint *Endpoint) {
-	v := d.GetEndpoint(endpoint.EndpointName())
-	if v == nil {
-		d.AddEndpoint(endpoint)
-		return
-	}
-	d.inner.Store(endpoint.EndpointName(), endpoint.Clone())
-	d.resourceUpdated(v, endpoint.Clone())
+	d.store(endpoint.EndpointName(), endpoint)
 }
 
 func (d *endpointDomain) SetEndpointModificationHandler(h *ModificationHandler) func() {
-	deleteFunc := d.addHandler(h)
-	d.inner.Range(func(key, value interface{}) bool {
-		d.resourceAdded(value.(*Endpoint).Clone())
-		return true
-	})
-	return deleteFunc
+	return d.addHandler(h)
 }
