@@ -61,10 +61,7 @@ func main() {
 		nsmd.SetPublicListenerFailed()
 	}
 
-	if err := server.StartAPIServerAt(sock); err != nil {
-		logrus.Errorf("Error starting NSMD API service: %+v", err)
-		nsmd.SetAPIServerFailed()
-	}
+	server.StartAPIServerAt(sock)
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting NSMD took: %s", elapsed)

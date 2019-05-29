@@ -44,7 +44,7 @@ func TestDataplaneHealRemote(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
+	testDataplaneHeal(t, 2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.HealNscChecker)
 }
 
 /**

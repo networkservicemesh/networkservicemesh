@@ -85,7 +85,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
+		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
 	})
 	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
@@ -137,7 +137,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
+		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
 	})
 	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
 }
@@ -219,7 +219,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 		k8s.WaitLogsContains(nodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
+		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
 	})
 	kubetest.PrintErrors(failures, k8s, nodesSetup, nscInfo, t)
 }

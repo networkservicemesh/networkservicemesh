@@ -550,8 +550,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	Expect(err).To(BeNil())
 
 	// Start API Server
-	err = nsmServer.StartAPIServerAt(sock)
-	Expect(err).To(BeNil())
+	nsmServer.StartAPIServerAt(sock)
 
 	return srv
 }
