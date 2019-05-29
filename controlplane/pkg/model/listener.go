@@ -1,6 +1,7 @@
 package model
 
-type ModelListener interface {
+// Listener represent an interface for listening model changes
+type Listener interface {
 	EndpointAdded(endpoint *Endpoint)
 	EndpointUpdated(endpoint *Endpoint)
 	EndpointDeleted(endpoint *Endpoint)
@@ -13,28 +14,29 @@ type ModelListener interface {
 	ClientConnectionUpdated(old, new *ClientConnection)
 }
 
-type ModelListenerImpl struct{}
+// ListenerImpl is empty implementation of Listener
+type ListenerImpl struct{}
 
 // EndpointAdded will be called when Endpoint is added to model, accept pointer to copy
-func (ModelListenerImpl) EndpointAdded(endpoint *Endpoint) {}
+func (ListenerImpl) EndpointAdded(endpoint *Endpoint) {}
 
 // EndpointUpdated will be called when Endpoint in model is updated
-func (ModelListenerImpl) EndpointUpdated(endpoint *Endpoint) {}
+func (ListenerImpl) EndpointUpdated(endpoint *Endpoint) {}
 
 // EndpointDeleted will be called when Endpoint in model is deleted
-func (ModelListenerImpl) EndpointDeleted(endpoint *Endpoint) {}
+func (ListenerImpl) EndpointDeleted(endpoint *Endpoint) {}
 
 // DataplaneAdded will be called when Dataplane is added to model, accept pointer to copy
-func (ModelListenerImpl) DataplaneAdded(dataplane *Dataplane) {}
+func (ListenerImpl) DataplaneAdded(dataplane *Dataplane) {}
 
 // DataplaneDeleted will be called when Dataplane in model is deleted
-func (ModelListenerImpl) DataplaneDeleted(dataplane *Dataplane) {}
+func (ListenerImpl) DataplaneDeleted(dataplane *Dataplane) {}
 
 // ClientConnectionAdded will be called when ClientConnection is added to model, accept pointer to copy
-func (ModelListenerImpl) ClientConnectionAdded(clientConnection *ClientConnection) {}
+func (ListenerImpl) ClientConnectionAdded(clientConnection *ClientConnection) {}
 
 // ClientConnectionUpdated will be called when ClientConnection in model is updated
-func (ModelListenerImpl) ClientConnectionUpdated(old, new *ClientConnection) {}
+func (ListenerImpl) ClientConnectionUpdated(old, new *ClientConnection) {}
 
 // ClientConnectionDeleted will be called when ClientConnection in model is deleted
-func (ModelListenerImpl) ClientConnectionDeleted(clientConnection *ClientConnection) {}
+func (ListenerImpl) ClientConnectionDeleted(clientConnection *ClientConnection) {}

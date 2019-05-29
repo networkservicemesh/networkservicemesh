@@ -15,7 +15,7 @@ const (
 )
 
 type testConnectionModelListener struct {
-	model.ModelListenerImpl
+	model.ListenerImpl
 	additions int
 	updates   int
 	deletions int

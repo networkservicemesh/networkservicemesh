@@ -3,8 +3,6 @@ package model
 import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"sync"
-
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
@@ -56,7 +54,6 @@ func (d *Dataplane) clone() cloneable {
 
 type dataplaneDomain struct {
 	baseDomain
-	inner sync.Map
 }
 
 func newDataplaneDomain() dataplaneDomain {

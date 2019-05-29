@@ -32,8 +32,8 @@ type Model interface {
 	ConnectionID() string
 	CorrectIDGenerator(id string)
 
-	AddListener(listener ModelListener)
-	RemoveListener(listener ModelListener)
+	AddListener(listener Listener)
+	RemoveListener(listener Listener)
 
 	SetNsm(nsm *registry.NetworkServiceManager)
 	GetNsm() *registry.NetworkServiceManager
@@ -50,10 +50,10 @@ type model struct {
 	mtx              sync.RWMutex
 	selector         selector.Selector
 	nsm              *registry.NetworkServiceManager
-	listeners        map[ModelListener]func()
+	listeners        map[Listener]func()
 }
 
-func (m *model) AddListener(listener ModelListener) {
+func (m *model) AddListener(listener Listener) {
 	endpListenerDelete := m.SetEndpointModificationHandler(&ModificationHandler{
 		AddFunc: func(new interface{}) {
 			listener.EndpointAdded(new.(*Endpoint))
@@ -94,7 +94,7 @@ func (m *model) AddListener(listener ModelListener) {
 	}
 }
 
-func (m *model) RemoveListener(listener ModelListener) {
+func (m *model) RemoveListener(listener Listener) {
 	deleter, ok := m.listeners[listener]
 	if !ok {
 		logrus.Info("No such listener")
@@ -110,7 +110,7 @@ func NewModel() Model {
 		endpointDomain:         newEndpointDomain(),
 		dataplaneDomain:        newDataplaneDomain(),
 		selector:               selector.NewMatchSelector(),
-		listeners:              make(map[ModelListener]func()),
+		listeners:              make(map[Listener]func()),
 	}
 }
 

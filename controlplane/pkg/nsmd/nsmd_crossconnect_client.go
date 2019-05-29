@@ -34,6 +34,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )
 
@@ -43,7 +44,7 @@ type NsmMonitorCrossConnectClient struct {
 	endpoints      map[string]context.CancelFunc
 	remotePeers    map[string]*remotePeerDescriptor
 	dataplanes     map[string]context.CancelFunc
-	model.ModelListenerImpl
+	model.ListenerImpl
 }
 
 type remotePeerDescriptor struct {
@@ -84,7 +85,7 @@ func dial(ctx context.Context, network, address string) (*grpc.ClientConn, error
 	return conn, err
 }
 
-// DataplaneAdded implements method from ModelListener
+// DataplaneAdded implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dp *model.Dataplane) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client.dataplanes[dp.RegisteredName] = cancel
@@ -92,7 +93,7 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dp *model.Dataplane) 
 	go client.dataplaneCrossConnectMonitor(dp, ctx)
 }
 
-// DataplaneDeleted implements method from ModelListener
+// DataplaneDeleted implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dp *model.Dataplane) {
 	client.xconManager.DataplaneDown(dp)
 	client.dataplanes[dp.RegisteredName]()
@@ -113,7 +114,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 	go client.remotePeerConnectionMonitor(clientConnection.RemoteNsm, ctx)
 }
 
-// ClientConnectionUpdated implements method from ModelListener
+// ClientConnectionUpdated implements method from Listener
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 

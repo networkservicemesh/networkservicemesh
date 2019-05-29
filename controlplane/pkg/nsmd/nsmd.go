@@ -40,7 +40,7 @@ const (
 type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
-	StartAPIServerAt(sock net.Listener) error
+	StartAPIServerAt(sock net.Listener)
 
 	XconManager() *services.ClientConnectionManager
 	Manager() nsm.NetworkServiceManager
@@ -410,7 +410,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 }
 
 // StartAPIServerAt starts GRPC API server at sock
-func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) error {
+func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -433,6 +433,4 @@ func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) error {
 		}
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
-
-	return nil
 }
