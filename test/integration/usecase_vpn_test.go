@@ -119,14 +119,12 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		logrus.Printf("Registered CRD is: %v", result)
 	}
 
-	ipVersionSuffix := ""
 	pingCommand := "ping"
 	addressPool := "10.60.1.0/24"
 	srcIP, dstIP := "10.60.1.1", "10.60.1.2"
 
 	/* Change stuff related to IPv6 */
 	if k8s.UseIPv6 {
-		ipVersionSuffix = "-6"
 		pingCommand = "ping6"
 		addressPool = "100::/64"
 		srcIP, dstIP = "100::1", "100::2"
@@ -207,7 +205,11 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	var errOut = ""
 	var wgetResponse string
 
-	ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", ipVersionSuffix, "addr")
+	if !k8s.UseIPv6 {
+		ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+	} else {
+		ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "addr")
+	}
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
 	logrus.Printf("NSC IP status Ok")
@@ -215,7 +217,11 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	Expect(strings.Contains(ipResponse, srcIP)).To(Equal(true))
 	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
-	routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", ipVersionSuffix, "route")
+	if !k8s.UseIPv6 {
+		routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+	} else {
+		routeResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "route")
+	}
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
 	logrus.Printf("NSC Route status, Ok")

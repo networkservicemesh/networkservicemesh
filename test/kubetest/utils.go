@@ -585,18 +585,20 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	var err error
 	info := &NSCCheckInfo{}
 
-	ipVersionSuffix := ""
 	pingCommand := "ping"
 	publicDNSAddress := "8.8.8.8"
 
 	if k8s.UseIPv6 {
-		ipVersionSuffix = "-6"
 		pingCommand = "ping6"
 		publicDNSAddress = "2001:4860:4860::8888"
 	}
 
 	/* Check IP address */
-	info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", ipVersionSuffix, "addr")
+	if !k8s.UseIPv6 {
+		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+	} else {
+		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "addr")
+	}
 	Expect(err).To(BeNil())
 	Expect(info.errOut).To(Equal(""))
 	Expect(strings.Contains(info.ipResponse, checkIP)).To(Equal(true))
@@ -612,7 +614,11 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	}
 
 	/* Check route */
-	info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", ipVersionSuffix, "route")
+	if !k8s.UseIPv6 {
+		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+	} else {
+		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "route")
+	}
 	Expect(err).To(BeNil())
 	Expect(info.errOut).To(Equal(""))
 	Expect(strings.Contains(info.routeResponse, publicDNSAddress)).To(Equal(true))
