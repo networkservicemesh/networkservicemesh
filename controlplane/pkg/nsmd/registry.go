@@ -116,9 +116,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 		logrus.Error(err)
 		return nil, err
 	}
-	if err := es.nsm.model.DeleteEndpoint(request.EndpointName); err != nil {
-		return &empty.Empty{}, err
-	}
+	es.nsm.model.DeleteEndpoint(request.EndpointName)
 	return &empty.Empty{}, nil
 }
 

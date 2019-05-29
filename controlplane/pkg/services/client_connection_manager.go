@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -33,68 +33,69 @@ func (m *ClientConnectionManager) GetNsmName() string {
 	return m.model.GetNsm().Name
 }
 
-func (m *ClientConnectionManager) UpdateClientConnection(clientConnection *model.ClientConnection) {
-	m.model.UpdateClientConnection(clientConnection)
-}
+// UpdateXcon handles case when xcon has been changed for NSMClientConnection
+func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon *crossconnect.CrossConnect) {
+	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+		cc.Xcon = newXcon
+	})
 
-func (m *ClientConnectionManager) UpdateClientConnectionSrcStateDown(clientConnection *model.ClientConnection) {
-	logrus.Info("ClientConnection src state is down")
-	clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
-	m.model.UpdateClientConnection(clientConnection)
-	_ = m.manager.Close(context.Background(), clientConnection)
-}
-
-func (m *ClientConnectionManager) UpdateClientConnectionDataplaneStateDown(clientConnections []*model.ClientConnection) {
-	logrus.Info("ClientConnection src state is down because of Dataplane down.")
-	for _, clientConnection := range clientConnections {
-		m.markSourceConnectionDown(clientConnection)
+	if src := newXcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
+		logrus.Info("ClientConnection src state is down")
+		_ = m.manager.Close(context.Background(), cc)
+		return
 	}
-	for _, clientConnection := range clientConnections {
-		m.manager.Heal(clientConnection, nsm.HealState_DataplaneDown)
+
+	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
+		logrus.Info("ClientConnection dst state is down")
+		m.manager.Heal(cc, nsm.HealState_DstDown)
+		return
 	}
 }
 
-func (m *ClientConnectionManager) UpdateClientConnectionDstStateDown(clientConnection *model.ClientConnection, nsmdDie bool) {
-	logrus.Info("ClientConnection dst state is down")
-	if clientConnection.Xcon.GetLocalDestination() != nil {
-		clientConnection.Xcon.GetLocalDestination().State = connection.State_DOWN
-	} else if clientConnection.Xcon.GetRemoteDestination() != nil {
-		clientConnection.Xcon.GetRemoteDestination().State = remote_connection.State_DOWN
-	}
-	m.model.UpdateClientConnection(clientConnection)
+// RemoteDestinationDown handles case when remote destination down
+func (m *ClientConnectionManager) RemoteDestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
 	if nsmdDie {
-		m.manager.Heal(clientConnection, nsm.HealState_DstNmgrDown)
+		m.manager.Heal(cc, nsm.HealState_DstNmgrDown)
 	} else {
-		m.manager.Heal(clientConnection, nsm.HealState_DstDown)
+		m.manager.Heal(cc, nsm.HealState_DstDown)
 	}
 }
-func (m *ClientConnectionManager) UpdateClientConnectionDstUpdated(clientConnection *model.ClientConnection, remoteConnection *remote_connection.Connection) {
-	if clientConnection.ConnectionState != model.ClientConnection_Ready {
+
+// DataplaneDown handles case of local dp down
+func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
+	ccs := m.model.GetAllClientConnections()
+
+	for _, cc := range ccs {
+		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
+			m.manager.Heal(cc, nsm.HealState_DataplaneDown)
+		}
+	}
+}
+
+// RemoteDestinationUpdated handles case when remote connection parameters changed
+func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConnection, remoteConnection *remote_connection.Connection) {
+	if cc.ConnectionState != model.ClientConnectionReady {
 		return
 	}
 
 	if remoteConnection.State == remote_connection.State_UP {
+		// TODO: in order to update connection parameters we need to update model here
 		// We do not need to heal in case DST state is UP, remote NSM will try to recover and only when will send Update, Delete of connection.
 		return
 	}
 
 	// Check if it update we already have
-	if proto.Equal(remoteConnection, clientConnection.Xcon.GetRemoteDestination()) {
+	if proto.Equal(remoteConnection, cc.Xcon.GetRemoteDestination()) {
 		// Since they are same, we do not need to do anything.
 		return
 	}
-	clientConnection.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
-		RemoteDestination: remoteConnection,
-	}
-	m.manager.Heal(clientConnection, nsm.HealState_RemoteDataplaneDown)
-}
 
-func (m *ClientConnectionManager) markSourceConnectionDown(clientConnection *model.ClientConnection) {
-	if clientConnection.Xcon.GetRemoteSource() != nil {
-		clientConnection.Xcon.GetRemoteSource().State = remote_connection.State_DOWN
-	} else if clientConnection.Xcon.GetLocalSource() != nil {
-		clientConnection.Xcon.GetLocalSource().State = connection.State_DOWN
-	}
+	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+		cc.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
+			RemoteDestination: remoteConnection,
+		}
+	})
+	m.manager.Heal(cc, nsm.HealState_RemoteDataplaneDown)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
@@ -129,7 +130,7 @@ func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.Netw
 	clientConnections := m.model.GetAllClientConnections()
 	var result []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.RemoteNsm == nsm {
+		if clientConnection.RemoteNsm.GetName() == nsm.GetName() {
 			result = append(result, clientConnection)
 		}
 	}
@@ -141,16 +142,12 @@ func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) [
 
 	var rv []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.Dataplane.RegisteredName == name {
+		if clientConnection.DataplaneRegisteredName == name {
 			rv = append(rv, clientConnection)
 		}
 	}
 
 	return rv
-}
-
-func (m *ClientConnectionManager) DeleteClientConnection(clientConnection *model.ClientConnection) {
-	m.model.DeleteClientConnection(clientConnection.ConnectionId)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceName string) []*model.ClientConnection {

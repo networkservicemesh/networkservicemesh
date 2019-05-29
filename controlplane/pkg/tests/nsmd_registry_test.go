@@ -48,7 +48,7 @@ func TestNSMDRestart1(t *testing.T) {
 	// Wait for at least one NSE is available.
 	l1.WaitEndpoints(1, time.Second*30, t)
 
-	endpoints1 := srv.testModel.GetNetworkServiceEndpoints("test_nse")
+	endpoints1 := srv.testModel.GetEndpointsByNetworkService("test_nse")
 	Expect(len(endpoints1)).To(Equal(1))
 	srv.StopNoClean()
 
@@ -56,7 +56,7 @@ func TestNSMDRestart1(t *testing.T) {
 	storage2 := newSharedStorage()
 	srv = newNSMDFullServerAt("nsm2", storage2, srv.rootDir, nil)
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	endpoints2 := srv.testModel.GetNetworkServiceEndpoints("test_nse")
+	endpoints2 := srv.testModel.GetEndpointsByNetworkService("test_nse")
 
 	Expect(len(endpoints2)).To(Equal(1))
 	Expect(endpoints1[0].SocketLocation).To(Equal(endpoints2[0].SocketLocation))

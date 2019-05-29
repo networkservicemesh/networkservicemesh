@@ -13,11 +13,30 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )
+
+type monitorManager struct {
+	crossConnectMonitor     monitor_crossconnect.MonitorServer
+	remoteConnectionMonitor remote.MonitorServer
+	localConnectionMonitors map[string]monitor.Server
+}
+
+func (m *monitorManager) CrossConnectMonitor() monitor_crossconnect.MonitorServer {
+	return m.crossConnectMonitor
+}
+
+func (m *monitorManager) RemoteConnectionMonitor() monitor.Server {
+	return m.remoteConnectionMonitor
+}
+
+func (m *monitorManager) LocalConnectionMonitor(workspace string) monitor.Server {
+	return m.localConnectionMonitors[workspace]
+}
 
 func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {
 	sock, err := net.Listen("tcp", nsmdApiAddress)
@@ -27,15 +46,18 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	serviceRegistry := nsmd.NewServiceRegistry()
 
-	// Start Cross connect monitor and server
-	monitor := monitor_crossconnect.NewMonitorServer()
-	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
+	xconManager := services.NewClientConnectionManager(model, nil, serviceRegistry)
 
-	manager := services.NewClientConnectionManager(model, nil, serviceRegistry)
-	connectionMonitor := remote.NewMonitorServer(manager)
-	connection.RegisterMonitorConnectionServer(grpcServer, connectionMonitor)
+	monitorManager := &monitorManager{
+		crossConnectMonitor:     monitor_crossconnect.NewMonitorServer(),
+		remoteConnectionMonitor: remote.NewMonitorServer(xconManager),
+		localConnectionMonitors: map[string]monitor.Server{},
+	}
 
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitor, connectionMonitor, manager)
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
+
+	monitorClient := nsmd.NewMonitorCrossConnectClient(monitorManager, xconManager)
 	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 
@@ -46,7 +68,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
 
-	return grpcServer, monitor, sock, nil
+	return grpcServer, monitorManager.crossConnectMonitor, sock, nil
 }
 
 func TestCCServerEmpty(t *testing.T) {

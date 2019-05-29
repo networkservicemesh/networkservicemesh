@@ -91,6 +91,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		dataplane.RemoteMechanisms = updates.RemoteMechanisms
 		dataplane.LocalMechanisms = updates.LocalMechanisms
 		dataplane.MechanismsConfigured = true
+		model.UpdateDataplane(dataplane)
 	}
 }
 

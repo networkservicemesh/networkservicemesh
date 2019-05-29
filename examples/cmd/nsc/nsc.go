@@ -15,10 +15,13 @@
 package main
 
 import (
+	"context"
+
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
-	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -27,7 +30,7 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	client, err := client.NewNSMClientList(nil, nil)
+	client, err := client.NewNSMClientList(context.Background(), nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
