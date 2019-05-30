@@ -706,7 +706,7 @@ workflows:
           test_tags: "usecase"
           use_ipv6: "true"
           requires:
-            - packet-test-basic-usecase
+            - test-packet-basic-usecase
       - integration-tests:
           name: "test-packet-recover"
           namespace: "nsm-system-integration"
