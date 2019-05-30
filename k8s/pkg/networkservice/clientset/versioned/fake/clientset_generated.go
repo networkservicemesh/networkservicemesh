@@ -1,5 +1,6 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 // Copyright (c) 2019 Red Hat Inc. and/or its affiliates.
+// Copyright (c) 2019 VMware, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	networkservicemeshv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1"
-	fakenetworkservicemeshv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1/fake"
+	networkservicemeshv1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1"
+	fakenetworkservicemeshv1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -40,7 +41,7 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 		}
 	}
 
-	cs := &Clientset{}
+	cs := &Clientset{tracker: o}
 	cs.discovery = &fakediscovery.FakeDiscovery{Fake: &cs.Fake}
 	cs.AddReactor("*", "*", testing.ObjectReaction(o))
 	cs.AddWatchReactor("*", func(action testing.Action) (handled bool, ret watch.Interface, err error) {
@@ -62,20 +63,20 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 type Clientset struct {
 	testing.Fake
 	discovery *fakediscovery.FakeDiscovery
+	tracker   testing.ObjectTracker
 }
 
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	return c.discovery
 }
 
-var _ clientset.Interface = &Clientset{}
-
-// NetworkservicemeshV1 retrieves the NetworkservicemeshV1Client
-func (c *Clientset) NetworkservicemeshV1() networkservicemeshv1.NetworkservicemeshV1Interface {
-	return &fakenetworkservicemeshv1.FakeNetworkservicemeshV1{Fake: &c.Fake}
+func (c *Clientset) Tracker() testing.ObjectTracker {
+	return c.tracker
 }
 
-// Networkservicemesh retrieves the NetworkservicemeshV1Client
-func (c *Clientset) Networkservicemesh() networkservicemeshv1.NetworkservicemeshV1Interface {
-	return &fakenetworkservicemeshv1.FakeNetworkservicemeshV1{Fake: &c.Fake}
+var _ clientset.Interface = &Clientset{}
+
+// NetworkservicemeshV1alpha1 retrieves the NetworkservicemeshV1alpha1Client
+func (c *Clientset) NetworkservicemeshV1alpha1() networkservicemeshv1alpha1.NetworkservicemeshV1alpha1Interface {
+	return &fakenetworkservicemeshv1alpha1.FakeNetworkservicemeshV1alpha1{Fake: &c.Fake}
 }

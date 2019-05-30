@@ -1,4 +1,4 @@
-package v1
+package v1alpha1
 
 import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,7 +10,7 @@ import (
 
 var SchemeGroupVersion = schema.GroupVersion{
 	Group:   networkservice.GroupName,
-	Version: "v1",
+	Version: "v1alpha1",
 }
 
 var scheme = runtime.NewSchemeBuilder(addKnownTypes)

@@ -7,7 +7,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
@@ -82,7 +82,7 @@ func (rc *registryCacheImpl) AddNetworkService(ns *v1.NetworkService) (*v1.Netwo
 		return existingNs, nil
 	}
 
-	nsResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServices(rc.nsmNamespace).Create(ns)
+	nsResponse, err := rc.clientset.NetworkservicemeshV1alpha1().NetworkServices(rc.nsmNamespace).Create(ns)
 	if err == nil {
 		rc.networkServiceCache.Add(nsResponse)
 		return nsResponse, nil
@@ -104,7 +104,7 @@ func (rc *registryCacheImpl) GetNetworkService(name string) (*v1.NetworkService,
 }
 
 func (rc *registryCacheImpl) AddNetworkServiceEndpoint(nse *v1.NetworkServiceEndpoint) (*v1.NetworkServiceEndpoint, error) {
-	nseResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints(rc.nsmNamespace).Create(nse)
+	nseResponse, err := rc.clientset.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(rc.nsmNamespace).Create(nse)
 	if err == nil {
 		rc.networkServiceEndpointCache.Add(nseResponse)
 		return nseResponse, nil
@@ -115,7 +115,7 @@ func (rc *registryCacheImpl) AddNetworkServiceEndpoint(nse *v1.NetworkServiceEnd
 
 func (rc *registryCacheImpl) DeleteNetworkServiceEndpoint(endpointName string) error {
 	rc.networkServiceEndpointCache.Delete(endpointName)
-	return rc.clientset.NetworkservicemeshV1().NetworkServiceEndpoints(rc.nsmNamespace).Delete(endpointName, &metav1.DeleteOptions{})
+	return rc.clientset.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(rc.nsmNamespace).Delete(endpointName, &metav1.DeleteOptions{})
 }
 
 func (rc *registryCacheImpl) GetEndpointsByNs(networkServiceName string) []*v1.NetworkServiceEndpoint {
@@ -166,7 +166,7 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 }
 
 func (rc *registryCacheImpl) addNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
-	nsmResponse, err := rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Create(nsm)
+	nsmResponse, err := rc.clientset.NetworkservicemeshV1alpha1().NetworkServiceManagers(rc.nsmNamespace).Create(nsm)
 	if err == nil {
 		rc.networkServiceManagerCache.Add(nsmResponse)
 	}
@@ -174,7 +174,7 @@ func (rc *registryCacheImpl) addNetworkServiceManager(nsm *v1.NetworkServiceMana
 }
 
 func (rc *registryCacheImpl) updateNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {
-	updNsm, err := rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Update(nsm)
+	updNsm, err := rc.clientset.NetworkservicemeshV1alpha1().NetworkServiceManagers(rc.nsmNamespace).Update(nsm)
 	if err == nil {
 		rc.networkServiceManagerCache.Update(updNsm)
 	}
@@ -185,7 +185,7 @@ func (rc *registryCacheImpl) GetNetworkServiceManager(name string) (*v1.NetworkS
 	if nsm := rc.networkServiceManagerCache.Get(name); nsm != nil {
 		return nsm, nil
 	}
-	return rc.clientset.NetworkservicemeshV1().NetworkServiceManagers(rc.nsmNamespace).Get(name, metav1.GetOptions{})
+	return rc.clientset.NetworkservicemeshV1alpha1().NetworkServiceManagers(rc.nsmNamespace).Get(name, metav1.GetOptions{})
 }
 
 func (rc *registryCacheImpl) Stop() {

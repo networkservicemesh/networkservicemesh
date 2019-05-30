@@ -176,7 +176,7 @@ the cluster.
 
 ## Regenerating code
 
-If you change [types.go](https://github.com/networkservicemesh/networkservicemesh/blob/master/k8s/pkg/apis/networkservice/v1/types.go) or any of the .proto files you will need to be able to run ```go generate ./...``` to regenerate the code.
+If you change [types.go](https://github.com/networkservicemesh/networkservicemesh/blob/master/k8s/pkg/apis/networkservice/v1alpha1/types.go) or any of the .proto files you will need to be able to run ```go generate ./...``` to regenerate the code.
 
 In order to be able to do that, you need to have installed:
 

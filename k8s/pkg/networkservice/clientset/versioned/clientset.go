@@ -1,5 +1,6 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 // Copyright (c) 2019 Red Hat Inc. and/or its affiliates.
+// Copyright (c) 2019 VMware, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +19,7 @@
 package versioned
 
 import (
-	networkservicemeshv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1"
+	networkservicemeshv1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -26,27 +27,19 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	NetworkservicemeshV1() networkservicemeshv1.NetworkservicemeshV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Networkservicemesh() networkservicemeshv1.NetworkservicemeshV1Interface
+	NetworkservicemeshV1alpha1() networkservicemeshv1alpha1.NetworkservicemeshV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	networkservicemeshV1 *networkservicemeshv1.NetworkservicemeshV1Client
+	networkservicemeshV1alpha1 *networkservicemeshv1alpha1.NetworkservicemeshV1alpha1Client
 }
 
-// NetworkservicemeshV1 retrieves the NetworkservicemeshV1Client
-func (c *Clientset) NetworkservicemeshV1() networkservicemeshv1.NetworkservicemeshV1Interface {
-	return c.networkservicemeshV1
-}
-
-// Deprecated: Networkservicemesh retrieves the default version of NetworkservicemeshClient.
-// Please explicitly pick a version.
-func (c *Clientset) Networkservicemesh() networkservicemeshv1.NetworkservicemeshV1Interface {
-	return c.networkservicemeshV1
+// NetworkservicemeshV1alpha1 retrieves the NetworkservicemeshV1alpha1Client
+func (c *Clientset) NetworkservicemeshV1alpha1() networkservicemeshv1alpha1.NetworkservicemeshV1alpha1Interface {
+	return c.networkservicemeshV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -65,7 +58,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.networkservicemeshV1, err = networkservicemeshv1.NewForConfig(&configShallowCopy)
+	cs.networkservicemeshV1alpha1, err = networkservicemeshv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +74,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.networkservicemeshV1 = networkservicemeshv1.NewForConfigOrDie(c)
+	cs.networkservicemeshV1alpha1 = networkservicemeshv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -90,7 +83,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.networkservicemeshV1 = networkservicemeshv1.New(c)
+	cs.networkservicemeshV1alpha1 = networkservicemeshv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

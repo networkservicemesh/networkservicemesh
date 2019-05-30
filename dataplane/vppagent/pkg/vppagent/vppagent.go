@@ -69,7 +69,7 @@ const (
 type VPPAgent struct {
 	vppAgentEndpoint     string
 	common               *common.DataplaneConfigBase
-	metricsCollector     *metrics.MetricsCollector
+	metricsCollector     *MetricsCollector
 	mechanisms           *Mechanisms
 	updateCh             chan *Mechanisms
 	directMemifConnector *memif.DirectMemifConnector
@@ -357,7 +357,7 @@ func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {
 		}
 	}
 	logrus.Infof("Metrics collector request period: %v ", requestPeriod)
-	v.metricsCollector = metrics.NewMetricsCollector(requestPeriod)
+	v.metricsCollector = NewMetricsCollector(requestPeriod)
 	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
 }
 
