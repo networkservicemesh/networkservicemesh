@@ -22,6 +22,7 @@ export TF_VAR_worker2_1_hostname="ci-${CIRCLE_BUILD_NUM}-worker2-1"
 export TF_VAR_project_id="${PACKET_PROJECT_ID}"
 export TF_VAR_public_key="${PWD}/terraform/sshkey.pub"
 export TF_VAR_public_key_name="key-${CIRCLE_BUILD_NUM}"
+export TF_LOG=DEBUG
 
 echo "workdir: ${PWD}"
 make packet-init
