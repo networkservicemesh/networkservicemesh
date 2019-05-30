@@ -97,6 +97,9 @@ func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Conne
 		logrus.Errorf("Error: %v", err)
 	}
 	err = ice.PrefixPool.Release(connection.GetId())
+	if err != nil {
+		logrus.Error("Release error: ", err)
+	}
 	if ice.GetNext() != nil {
 		return ice.GetNext().Close(ctx, connection)
 	}
