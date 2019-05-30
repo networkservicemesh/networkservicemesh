@@ -17,12 +17,14 @@ package main
 
 import (
 	"flag"
+	"net"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
-	"net"
 )
 
 var (
@@ -50,14 +52,20 @@ func main() {
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
 	}
 
+	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
+
+	routeAddr := makeRouteMutator([]string{"8.8.8.8/30"})
+	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
+		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
+	}
+
 	if *routes {
 		logrus.Infof("Adding routes endpoint to chain")
-		endpoints = append(endpoints,
-			endpoint.NewCustomFuncEndpoint("route", makeRouteMutator([]string{"8.8.8.8/30"})))
+		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
 	}
 
 	endpoints = append(endpoints,
-		endpoint.NewIpamEndpoint(nil),
+		ipamEndpoint,
 		endpoint.NewConnectionEndpoint(nil))
 
 	composite := endpoint.NewCompositeEndpoint(endpoints...)
