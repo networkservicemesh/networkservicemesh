@@ -143,7 +143,11 @@ func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
 }
 
 func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string, f func(*ClientConnection)) *ClientConnection {
-	return d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) }).(*ClientConnection)
+	upd := d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) })
+	if upd != nil {
+		return upd.(*ClientConnection)
+	}
+	return nil
 }
 
 func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) func() {
