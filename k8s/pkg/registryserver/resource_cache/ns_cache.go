@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	. "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
@@ -55,7 +55,7 @@ func (c *NetworkServiceCache) Start(f SharedInformerFactory, init ...v1.NetworkS
 }
 
 func (c *NetworkServiceCache) StartWithResync(f SharedInformerFactory, cs *versioned.Clientset) (func(), error) {
-	l, err := cs.NetworkservicemeshV1().NetworkServices(namespace.GetNamespace()).List(v12.ListOptions{})
+	l, err := cs.NetworkservicemeshV1alpha1().NetworkServices(namespace.GetNamespace()).List(v12.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to list NSs for cache initialization: %v", err)
 	}

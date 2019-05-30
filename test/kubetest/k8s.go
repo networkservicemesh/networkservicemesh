@@ -418,21 +418,21 @@ func (o *K8s) ListPods() []v1.Pod {
 func (o *K8s) CleanupCRDs() {
 
 	// Clean up Network Services
-	services, _ := o.versionedClientSet.Networkservicemesh().NetworkServices(o.namespace).List(metaV1.ListOptions{})
+	services, _ := o.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(o.namespace).List(metaV1.ListOptions{})
 	for _, service := range services.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServices(o.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
+		_ = o.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(o.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
 	}
 
 	// Clean up Network Service Endpoints
-	endpoints, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints(o.namespace).List(metaV1.ListOptions{})
+	endpoints, _ := o.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(o.namespace).List(metaV1.ListOptions{})
 	for _, ep := range endpoints.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceEndpoints(o.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
+		_ = o.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(o.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
 	}
 
 	// Clean up Network Service Managers
-	managers, _ := o.versionedClientSet.Networkservicemesh().NetworkServiceManagers(o.namespace).List(metaV1.ListOptions{})
+	managers, _ := o.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(o.namespace).List(metaV1.ListOptions{})
 	for _, mgr := range managers.Items {
-		_ = o.versionedClientSet.Networkservicemesh().NetworkServiceManagers(o.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
+		_ = o.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(o.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
 	}
 }
 
@@ -455,9 +455,9 @@ func (l *K8s) DescribePod(pod *v1.Pod) {
 
 // CleanupEndpointsCRDs clean Network Service Endpoints from registry
 func (l *K8s) CleanupEndpointsCRDs() {
-	endpoints, _ := l.versionedClientSet.NetworkservicemeshV1().NetworkServiceEndpoints(l.namespace).List(metaV1.ListOptions{})
+	endpoints, _ := l.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(l.namespace).List(metaV1.ListOptions{})
 	for i := range endpoints.Items {
-		_ = l.versionedClientSet.NetworkservicemeshV1().NetworkServiceEndpoints(l.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
+		_ = l.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(l.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
 	}
 }
 

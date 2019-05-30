@@ -1,5 +1,6 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 // Copyright (c) 2019 Red Hat Inc. and/or its affiliates.
+// Copyright (c) 2019 VMware, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +21,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,13 +52,13 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=networkservicemesh.io, Version=v1
-	case v1.SchemeGroupVersion.WithResource("networkservices"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1().NetworkServices().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("networkserviceendpoints"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1().NetworkServiceEndpoints().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("networkservicemanagers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1().NetworkServiceManagers().Informer()}, nil
+	// Group=networkservicemesh.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("networkservices"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1alpha1().NetworkServices().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("networkserviceendpoints"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1alpha1().NetworkServiceEndpoints().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("networkservicemanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1alpha1().NetworkServiceManagers().Informer()}, nil
 
 	}
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1"
+	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/crds"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"

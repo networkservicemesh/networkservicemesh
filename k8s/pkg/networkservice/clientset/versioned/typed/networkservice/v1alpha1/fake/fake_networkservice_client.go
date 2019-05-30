@@ -1,5 +1,6 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 // Copyright (c) 2019 Red Hat Inc. and/or its affiliates.
+// Copyright (c) 2019 VMware, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,30 +19,30 @@
 package fake
 
 import (
-	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1"
+	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeNetworkservicemeshV1 struct {
+type FakeNetworkservicemeshV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeNetworkservicemeshV1) NetworkServices(namespace string) v1.NetworkServiceInterface {
+func (c *FakeNetworkservicemeshV1alpha1) NetworkServices(namespace string) v1alpha1.NetworkServiceInterface {
 	return &FakeNetworkServices{c, namespace}
 }
 
-func (c *FakeNetworkservicemeshV1) NetworkServiceEndpoints(namespace string) v1.NetworkServiceEndpointInterface {
+func (c *FakeNetworkservicemeshV1alpha1) NetworkServiceEndpoints(namespace string) v1alpha1.NetworkServiceEndpointInterface {
 	return &FakeNetworkServiceEndpoints{c, namespace}
 }
 
-func (c *FakeNetworkservicemeshV1) NetworkServiceManagers(namespace string) v1.NetworkServiceManagerInterface {
+func (c *FakeNetworkservicemeshV1alpha1) NetworkServiceManagers(namespace string) v1alpha1.NetworkServiceManagerInterface {
 	return &FakeNetworkServiceManagers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeNetworkservicemeshV1) RESTClient() rest.Interface {
+func (c *FakeNetworkservicemeshV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }
