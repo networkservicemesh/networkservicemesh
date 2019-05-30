@@ -203,7 +203,9 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(datapla
 					client.monitorManager.CrossConnectMonitor().Update(xcon)
 					client.xconManager.UpdateXcon(clientConnection, xcon)
 				case crossconnect.CrossConnectEventType_DELETE:
-					client.monitorManager.CrossConnectMonitor().Delete(xcon)
+					if clientConnection.ConnectionState == model.ClientConnectionClosing {
+						client.monitorManager.CrossConnectMonitor().Delete(xcon)
+					}
 				case crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER:
 					client.monitorManager.CrossConnectMonitor().Update(xcon)
 				}
