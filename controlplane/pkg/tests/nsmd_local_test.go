@@ -219,7 +219,7 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 		Subnet: "10.96.0.0/12",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"}, 5*time.Second)
+	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	ds.addResponse(&registry.SubnetExtendingResponse{
 		Type:   registry.SubnetExtendingResponse_POD,
@@ -230,7 +230,7 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 		Subnet: "10.96.0.0/10",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"}, 5*time.Second)
+	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
 }
 
 func waitForExcludePrefixes(srv *nsmdFullServerImpl, expected []string, timeout time.Duration) bool {
@@ -261,12 +261,12 @@ func waitForExcludePrefixes(srv *nsmdFullServerImpl, expected []string, timeout 
 	}
 }
 
-func checkPrefixes(srv *nsmdFullServerImpl, expected []string, timeout time.Duration) {
-	success := waitForExcludePrefixes(srv, expected, timeout)
+func checkPrefixes(srv *nsmdFullServerImpl, expected []string) {
+	success := waitForExcludePrefixes(srv, expected, 5*time.Second)
 	Expect(success).To(BeTrue())
 
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	request := createRequest(false)
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
@@ -298,11 +298,11 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 		Subnet: "10.96.0.0/12",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"}, 5*time.Second)
+	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	ds.dummyKill()
 
-	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"}, 5*time.Second)
+	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	newDs := srv.serviceRegistry.nseRegistry.getNextSubnetStream()
 
@@ -315,7 +315,7 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 		Subnet: "10.96.0.0/10",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"}, 5*time.Second)
+	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
 }
 
 func TestNSEIPNeghtbours(t *testing.T) {
