@@ -18,7 +18,7 @@ resource "packet_ssh_key" "key" {
 
 resource "packet_device" "master1" {
   hostname         = "${var.master1_hostname}"
-  facilities       = ["sjc1"]
+  facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
@@ -28,7 +28,7 @@ resource "packet_device" "master1" {
 
 resource "packet_device" "worker1_1" {
   hostname         = "${var.worker1_1_hostname}"
-  facilities       = ["sjc1"]
+  facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
@@ -46,7 +46,7 @@ output "worker1_1.public_ip" {
 
 resource "packet_device" "master2" {
   hostname         = "${var.master2_hostname}"
-  facilities       = ["sjc1"]
+  facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
@@ -56,7 +56,7 @@ resource "packet_device" "master2" {
 
 resource "packet_device" "worker2_1" {
   hostname         = "${var.worker2_1_hostname}"
-  facilities       = ["sjc1"]
+  facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
