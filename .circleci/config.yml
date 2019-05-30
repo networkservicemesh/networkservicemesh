@@ -643,7 +643,7 @@ workflows:
           name: "build-monitoring-nsc"
           container: "monitoring-nsc"
           requires:
-            - sanity-check
+            - test-sanity-check
       - build-container:
           name: "build-vppagent-dataplane"
           container: "vppagent-dataplane"
