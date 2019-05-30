@@ -604,6 +604,10 @@ func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 	for i := 0; i < attempts; i++ {
 		info := &NSCCheckInfo{}
 		info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
+		if err != nil {
+			logrus.Error(err)
+		}
+
 		if err == nil && !strings.Contains(info.pingResponse, "100% packet loss") {
 			success = true
 			rv = info
