@@ -30,7 +30,7 @@ packet-init:
 .PHONY: packet-start
 packet-start:
 	@pushd scripts/terraform && \
-	terraform apply ${TF_PACKET_VARS} && \
+	terraform apply ${TF_PACKET_VARS} -parallelism=2 && \
 	popd
 
 .ONESHELL:
