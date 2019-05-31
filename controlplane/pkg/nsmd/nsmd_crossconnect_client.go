@@ -157,7 +157,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 
-	if conn := new.Xcon.GetLocalSource(); conn != nil {
+	if conn := new.Xcon.GetLocalSource(); conn != nil && !proto.Equal(old.Xcon.GetLocalSource(), conn) {
 		if workspace, ok := conn.GetMechanism().GetParameters()[local_connection.Workspace]; ok {
 			if localConnectionMonitor := client.monitorManager.LocalConnectionMonitor(workspace); localConnectionMonitor != nil {
 				localConnectionMonitor.Update(conn)
@@ -165,15 +165,9 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *mo
 		}
 	}
 
-	if new.Xcon.GetRemoteSource() == nil {
-		return
+	if conn := new.Xcon.GetRemoteSource(); conn != nil && !proto.Equal(old.Xcon.GetRemoteSource(), conn) {
+		client.monitorManager.RemoteConnectionMonitor().Update(conn)
 	}
-
-	if proto.Equal(old.Xcon.GetRemoteSource(), new.Xcon.GetRemoteSource()) {
-		return
-	}
-
-	client.monitorManager.RemoteConnectionMonitor().Update(new.Xcon.GetRemoteSource())
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
