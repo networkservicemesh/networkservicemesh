@@ -2,14 +2,16 @@ package model
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	. "github.com/onsi/gomega"
 	"strconv"
 	"testing"
+
+	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
-func TestAddAndGetСс(t *testing.T) {
+func TestAddAndGetCc(t *testing.T) {
 	RegisterTestingT(t)
 
 	cc := &ClientConnection{
@@ -41,7 +43,10 @@ func TestAddAndGetСс(t *testing.T) {
 	}
 
 	ccd := newClientConnectionDomain()
-	ccd.AddClientConnection(cc)
+
+	err := ccd.AddClientConnection(cc)
+	Expect(err).To(BeNil())
+
 	getConn := ccd.GetClientConnection("1")
 
 	Expect(getConn.ConnectionID).To(Equal(cc.ConnectionID))
@@ -56,16 +61,19 @@ func TestAddAndGetСс(t *testing.T) {
 	Expect(fmt.Sprintf("%p", getConn.Endpoint)).ToNot(Equal(fmt.Sprintf("%p", cc.Endpoint)))
 	Expect(fmt.Sprintf("%p", getConn.Endpoint.NetworkServiceManager)).
 		ToNot(Equal(fmt.Sprintf("%p", cc.Endpoint.NetworkServiceManager)))
+
+	err = ccd.AddClientConnection(cc)
+	Expect(err).NotTo(BeNil())
 }
 
-func TestGetAllСс(t *testing.T) {
+func TestGetAllCc(t *testing.T) {
 	RegisterTestingT(t)
 
 	ccd := newClientConnectionDomain()
 	amount := 5
 
 	for i := 0; i < amount; i++ {
-		ccd.AddClientConnection(&ClientConnection{
+		ccd.AddOrUpdateClientConnection(&ClientConnection{
 			ConnectionID: fmt.Sprintf("%d", i),
 			Xcon: &crossconnect.CrossConnect{
 				Id: "1",
@@ -108,11 +116,11 @@ func TestGetAllСс(t *testing.T) {
 	}
 }
 
-func TestDeleteСс(t *testing.T) {
+func TestDeleteCc(t *testing.T) {
 	RegisterTestingT(t)
 
 	ccd := newClientConnectionDomain()
-	ccd.AddClientConnection(&ClientConnection{
+	ccd.AddOrUpdateClientConnection(&ClientConnection{
 		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",
@@ -143,16 +151,17 @@ func TestDeleteСс(t *testing.T) {
 	cc := ccd.GetClientConnection("1")
 	Expect(cc).ToNot(BeNil())
 
-	ccd.DeleteClientConnection("1")
+	err := ccd.DeleteClientConnection("1")
+	Expect(err).To(BeNil())
 
 	ccDel := ccd.GetClientConnection("1")
 	Expect(ccDel).To(BeNil())
 
-	ccd.DeleteClientConnection("NotExistingId")
-
+	err = ccd.DeleteClientConnection("1")
+	Expect(err).NotTo(BeNil())
 }
 
-func TestUpdateExistingСс(t *testing.T) {
+func TestAddOrUpdateExistingCc(t *testing.T) {
 	RegisterTestingT(t)
 
 	cc := &ClientConnection{
@@ -184,7 +193,7 @@ func TestUpdateExistingСс(t *testing.T) {
 	}
 
 	ccd := newClientConnectionDomain()
-	ccd.AddClientConnection(cc)
+	ccd.AddOrUpdateClientConnection(cc)
 
 	newUrl := "3.3.3.3"
 	newDpName := "updatedName"
@@ -195,13 +204,13 @@ func TestUpdateExistingСс(t *testing.T) {
 	Expect(notUpdated.Endpoint.NetworkServiceManager.Url).ToNot(Equal(newUrl))
 	Expect(notUpdated.DataplaneRegisteredName).ToNot(Equal(newDpName))
 
-	ccd.UpdateClientConnection(cc)
+	ccd.AddOrUpdateClientConnection(cc)
 	updated := ccd.GetClientConnection("1")
 	Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal(newUrl))
 	Expect(updated.DataplaneRegisteredName).To(Equal(newDpName))
 }
 
-func TestUpdateNotExistingСс(t *testing.T) {
+func TestAddOrUpdateNotExistingCc(t *testing.T) {
 	RegisterTestingT(t)
 
 	cc := &ClientConnection{
@@ -234,7 +243,7 @@ func TestUpdateNotExistingСс(t *testing.T) {
 
 	ccd := newClientConnectionDomain()
 
-	ccd.UpdateClientConnection(cc)
+	ccd.AddOrUpdateClientConnection(cc)
 	updated := ccd.GetClientConnection("1")
 	Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal("2.2.2.2"))
 	Expect(updated.DataplaneRegisteredName).To(Equal("dp1"))
@@ -244,7 +253,7 @@ func TestApplyChanges(t *testing.T) {
 	RegisterTestingT(t)
 
 	ccd := newClientConnectionDomain()
-	ccd.AddClientConnection(&ClientConnection{
+	ccd.AddOrUpdateClientConnection(&ClientConnection{
 		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",

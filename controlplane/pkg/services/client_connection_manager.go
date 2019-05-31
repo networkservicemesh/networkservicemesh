@@ -34,15 +34,8 @@ func (m *ClientConnectionManager) GetNsmName() string {
 }
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
-func (m *ClientConnectionManager) UpdateXcon(cc nsm.ClientConnection, newXcon *crossconnect.CrossConnect) {
-	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
-		cc.Xcon = newXcon
-	}); upd != nil {
-		cc = upd
-	} else {
-		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
-		return
-	}
+func (m *ClientConnectionManager) UpdateXcon(cc *model.ClientConnection, newXcon *crossconnect.CrossConnect) {
+	cc.Xcon = newXcon
 
 	if src := newXcon.GetLocalSource(); src != nil && src.State == local.State_DOWN {
 		logrus.Info("ClientConnection src state is down")
@@ -79,10 +72,6 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 
 // LocalDestinationUpdated handles case when local connection parameters changed
 func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnection, localDst *local.Connection) {
-	if cc.ConnectionState != model.ClientConnectionReady {
-		return
-	}
-
 	// NSE is not aware of 'Workspace' and 'WorkspaceNSEName' connection mechanism parameters
 	localDst.GetMechanism().GetParameters()[local.Workspace] =
 		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local.Workspace]
@@ -94,10 +83,6 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnec
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
 func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConnection, remoteDst *remote.Connection) {
-	if cc.ConnectionState != model.ClientConnectionReady {
-		return
-	}
-
 	if remoteDst.State == remote.State_UP {
 		// TODO: in order to update connection parameters we need to update model here
 		// We do not need to heal in case DST state is UP, remote NSM will try to recover and only when will send Update, Delete of connection.
@@ -107,21 +92,14 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 	m.destinationUpdated(cc, remoteDst)
 }
 
-func (m *ClientConnectionManager) destinationUpdated(cc nsm.ClientConnection, dst connection.Connection) {
+func (m *ClientConnectionManager) destinationUpdated(cc *model.ClientConnection, dst connection.Connection) {
 	// Check if it update we already have
 	if dst.Equals(cc.GetConnectionDestination()) {
 		// Since they are same, we do not need to do anything.
 		return
 	}
 
-	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
-		cc.Xcon.SetDestinationConnection(dst)
-	}); upd != nil {
-		cc = upd
-	} else {
-		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
-		return
-	}
+	cc.Xcon.SetDestinationConnection(dst)
 
 	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }

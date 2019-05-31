@@ -66,6 +66,14 @@ func (p *healProcessor) Heal(clientConnection nsm.ClientConnection, healState ns
 	healID := create_logid()
 	logrus.Infof("NSM_Heal(%v) %v", healID, cc)
 
+	cc.ConnectionState = model.ClientConnectionHealing
+	if ok := p.model.CompareAndSwapClientConnection(cc, func(modelCC *model.ClientConnection) bool {
+		return modelCC.ConnectionState == model.ClientConnectionReady
+	}); !ok {
+		logrus.Warnf("NSM_Heal Trying to heal connection not in Ready state: %v", cc)
+		return
+	}
+
 	if !p.properties.HealEnabled {
 		logrus.Infof("NSM_Heal(%v) Is Disabled/Closing connection %v", healID, cc)
 
@@ -75,18 +83,6 @@ func (p *healProcessor) Heal(clientConnection nsm.ClientConnection, healState ns
 		}
 		return
 	}
-
-	if modelCC := p.model.GetClientConnection(cc.GetID()); modelCC == nil {
-		logrus.Errorf("NSM_Heal(%v) Trying to heal not existing connection", healID)
-		return
-	} else if modelCC.ConnectionState != model.ClientConnectionReady {
-		logrus.Errorf("NSM_Heal(%v) Trying to heal connection in bad state", healID)
-		return
-	}
-
-	p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
-		modelCC.ConnectionState = model.ClientConnectionHealing
-	})
 
 	p.eventCh <- healEvent{
 		healID:    healID,
@@ -265,10 +261,12 @@ func (p *healProcessor) healDstNmgrDown(healID string, cc *model.ClientConnectio
 	if _, err := p.conManager.request(requestCtx, cc.Request, cc); err != nil {
 		logrus.Warnf("NSM_Heal(6.2.1-%v) Failed to heal connection with same NSE from registry: %v", healID, err)
 
-		// 6.2.2. We are still healing
-		p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
-			modelCC.ConnectionState = model.ClientConnectionHealing
-		})
+		cc.ConnectionState = model.ClientConnectionHealing
+		if ok := p.model.CompareAndSwapClientConnection(cc, func(modelCC *model.ClientConnection) bool {
+			return modelCC.ConnectionState == model.ClientConnectionBroken
+		}); !ok {
+			logrus.Errorf("NSM_Heal(6.2.2-%v) Trying to heal connection not in broken state: %v", healID, cc.GetID())
+		}
 
 		// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
 		if endpointName == "" || !p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsNewAndAvailable) {

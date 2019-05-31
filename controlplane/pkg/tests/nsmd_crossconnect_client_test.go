@@ -43,8 +43,7 @@ type endpointManager struct {
 }
 
 func (stub *endpointManager) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
-	stub.model.DeleteEndpoint(endpoint.EndpointName())
-	return nil
+	return stub.model.DeleteEndpoint(endpoint.EndpointName())
 }
 
 func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {

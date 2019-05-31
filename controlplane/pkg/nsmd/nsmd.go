@@ -315,7 +315,7 @@ func (nsm *nsmServer) restoreRegisteredEndpoint(nse nseregistry.NSEEntry, ws *Wo
 	nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
 	nse.NseReg.NetworkserviceEndpoint.NetworkServiceManagerName = nse.NseReg.NetworkServiceManager.Name
 
-	nsm.model.AddEndpoint(&model.Endpoint{
+	nsm.model.AddOrUpdateEndpoint(&model.Endpoint{
 		Endpoint:       nse.NseReg,
 		Workspace:      nse.Workspace,
 		SocketLocation: ws.NsmClientSocket(),
@@ -353,9 +353,7 @@ func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.Netw
 		return err
 	}
 
-	nsm.model.DeleteEndpoint(name)
-
-	return nil
+	return nsm.model.DeleteEndpoint(name)
 }
 
 // DeleteEndpointWithBrokenConnection deletes endpoint if it has no active connections

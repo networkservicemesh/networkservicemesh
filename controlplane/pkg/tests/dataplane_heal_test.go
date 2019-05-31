@@ -23,14 +23,14 @@ func TestHealLocalDataplane(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.testModel.AddDataplane(testDataplane1)
-	srv2.testModel.AddDataplane(testDataplane2)
+	srv.testModel.AddOrUpdateDataplane(testDataplane1)
+	srv2.testModel.AddOrUpdateDataplane(testDataplane2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
 
 	// Add to local endpoints for Server2
-	srv2.testModel.AddEndpoint(nseReg)
+	srv2.testModel.AddOrUpdateEndpoint(nseReg)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()
@@ -87,8 +87,8 @@ func TestHealLocalDataplane(t *testing.T) {
 	}
 
 	// Simlate dataplane dead
-	srv.testModel.AddDataplane(testDataplane1_1)
-	srv.testModel.DeleteDataplane(testDataplane1.RegisteredName)
+	srv.testModel.AddOrUpdateDataplane(testDataplane1_1)
+	_ = srv.testModel.DeleteDataplane(testDataplane1.RegisteredName)
 
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	// First update is with down state

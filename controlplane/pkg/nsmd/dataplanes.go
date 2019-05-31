@@ -16,7 +16,6 @@ package nsmd
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"path"
 	"time"
@@ -56,42 +55,45 @@ type dataplaneRegistrarServer struct {
 // All changes are reflected in the corresponding dataplane object in the object store.
 // If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
 // dataplaneMonitor will remove dataplane object from the object store and will terminate itself.
-func dataplaneMonitor(model model.Model, dataplaneName string) {
-	var err error
-	dataplane := model.GetDataplane(dataplaneName)
+func dataplaneMonitor(m model.Model, dataplaneName string) {
+	dataplane := m.GetDataplane(dataplaneName)
 	if dataplane == nil {
 		logrus.Errorf("Dataplane object store does not have registered plugin %s", dataplaneName)
 		return
 	}
+
 	conn, err := tools.SocketOperationCheck(tools.SocketPath(dataplane.SocketLocation))
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplane.SocketLocation, err)
-		model.DeleteDataplane(dataplaneName)
+		_ = m.DeleteDataplane(dataplaneName)
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
+
 	dataplaneClient := dataplaneapi.NewDataplaneClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &empty.Empty{})
 	if err != nil {
 		logrus.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
-		model.DeleteDataplane(dataplaneName)
+		_ = m.DeleteDataplane(dataplaneName)
 		return
 	}
+
 	for {
 		updates, err := stream.Recv()
 		if err != nil {
 			logrus.Errorf("fail to receive on update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
-			model.DeleteDataplane(dataplaneName)
+			_ = m.DeleteDataplane(dataplaneName)
 			return
 		}
+
 		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", dataplaneName, updates.RemoteMechanisms)
-		// TODO: this is not good -- direct model changes
-		dataplane.SetRemoteMechanisms(updates.RemoteMechanisms)
-		dataplane.SetLocalMechanisms(updates.LocalMechanisms)
-		dataplane.MechanismsConfigured = true
-		model.UpdateDataplane(dataplane)
+		dataplane = m.ApplyDataplaneChanges(dataplaneName, func(dp *model.Dataplane) {
+			dp.SetRemoteMechanisms(updates.RemoteMechanisms)
+			dp.SetLocalMechanisms(updates.LocalMechanisms)
+			dp.MechanismsConfigured = true
+		})
 	}
 }
 
@@ -111,19 +113,18 @@ func (r *dataplaneRegistrarServer) RequestLiveness(liveness dataplaneregistrarap
 
 func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneRegistrationRequest) (*dataplaneregistrarapi.DataplaneRegistrationReply, error) {
 	logrus.Infof("Received new dataplane registration requests from %s", req.DataplaneName)
-	// Need to check if name of dataplane already exists in the object store
-	if r.model.GetDataplane(req.DataplaneName) != nil {
-		logrus.Errorf("dataplane with name %s already exist", req.DataplaneName)
-		// TODO (sbezverk) Need to decide the right action, fail or not, failing for now
-		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: false}, fmt.Errorf("dataplane with name %s already registered", req.DataplaneName)
-	}
+
 	// Instantiating dataplane object with parameters from the request and creating a new object in the Object store
 	dataplane := &model.Dataplane{
 		RegisteredName: req.DataplaneName,
 		SocketLocation: req.DataplaneSocket,
 	}
 
-	r.model.AddDataplane(dataplane)
+	if err := r.model.AddDataplane(dataplane); err != nil {
+		logrus.Error(err)
+		// TODO (sbezverk) Need to decide the right action, fail or not, failing for now
+		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: false}, err
+	}
 
 	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket
 	// and will listen for operational parameters/constraints changes and reflecting these changes in the dataplane
@@ -137,7 +138,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Co
 	logrus.Infof("Received dataplane un-registration requests from %s", req.DataplaneName)
 
 	// Removing dataplane from the store, if it does not exists, it does not matter as long as it is no longer there.
-	r.model.DeleteDataplane(req.DataplaneName)
+	_ = r.model.DeleteDataplane(req.DataplaneName)
 
 	return &dataplaneregistrarapi.DataplaneUnRegistrationReply{UnRegistered: true}, nil
 }

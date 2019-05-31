@@ -1,33 +1,37 @@
 package model
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
-	"github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
 )
 
 type Model interface {
 	GetEndpointsByNetworkService(nsName string) []*Endpoint
 
-	AddEndpoint(endpoint *Endpoint)
+	AddEndpoint(endpoint *Endpoint) error
+	AddOrUpdateEndpoint(endpoint *Endpoint)
 	GetEndpoint(name string) *Endpoint
-	UpdateEndpoint(endpoint *Endpoint)
-	DeleteEndpoint(name string)
+	DeleteEndpoint(name string) error
 
+	AddDataplane(dataplane *Dataplane) error
+	AddOrUpdateDataplane(dataplane *Dataplane)
 	GetDataplane(name string) *Dataplane
-	AddDataplane(dataplane *Dataplane)
-	UpdateDataplane(dataplane *Dataplane)
-	DeleteDataplane(name string)
+	DeleteDataplane(name string) error
 	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
+	ApplyDataplaneChanges(name string, changeFunc func(*Dataplane)) *Dataplane
 
-	AddClientConnection(clientConnection *ClientConnection)
+	AddClientConnection(clientConnection *ClientConnection) error
+	AddOrUpdateClientConnection(clientConnection *ClientConnection)
 	GetClientConnection(connectionID string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
-	UpdateClientConnection(clientConnection *ClientConnection)
-	DeleteClientConnection(connectionId string)
+	DeleteClientConnection(connectionID string) error
 	ApplyClientConnectionChanges(connectionID string, changeFunc func(*ClientConnection)) *ClientConnection
+	CompareAndSwapClientConnection(clientConnection *ClientConnection, compareFunc func(*ClientConnection) bool) bool
 
 	ConnectionID() string
 	CorrectIDGenerator(id string)

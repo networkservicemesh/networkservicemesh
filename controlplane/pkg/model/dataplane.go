@@ -83,24 +83,29 @@ func newDataplaneDomain() dataplaneDomain {
 	}
 }
 
-func (d *dataplaneDomain) AddDataplane(dp *Dataplane) {
-	d.store(dp.RegisteredName, dp)
+func (d *dataplaneDomain) AddDataplane(dp *Dataplane) error {
+	if ok := d.store(dp.RegisteredName, dp, false); ok {
+		return nil
+	}
+	return fmt.Errorf("trying to add dataplane by existing name: %v", dp.RegisteredName)
+}
+
+func (d *dataplaneDomain) AddOrUpdateDataplane(dp *Dataplane) {
+	d.store(dp.RegisteredName, dp, true)
 }
 
 func (d *dataplaneDomain) GetDataplane(name string) *Dataplane {
-	v, _ := d.load(name)
-	if v != nil {
+	if v, ok := d.load(name); ok {
 		return v.(*Dataplane)
 	}
 	return nil
 }
 
-func (d *dataplaneDomain) DeleteDataplane(name string) {
-	d.delete(name)
-}
-
-func (d *dataplaneDomain) UpdateDataplane(dp *Dataplane) {
-	d.store(dp.RegisteredName, dp)
+func (d *dataplaneDomain) DeleteDataplane(name string) error {
+	if ok := d.delete(name); ok {
+		return nil
+	}
+	return fmt.Errorf("trying to delete dataplane by not existing name: %v", name)
 }
 
 func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error) {
@@ -126,6 +131,13 @@ func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) 
 	}
 
 	return rv, nil
+}
+
+func (d *dataplaneDomain) ApplyDataplaneChanges(name string, f func(*Dataplane)) *Dataplane {
+	if upd := d.applyChanges(name, func(v interface{}) { f(v.(*Dataplane)) }); upd != nil {
+		return upd.(*Dataplane)
+	}
+	return nil
 }
 
 func (d *dataplaneDomain) SetDataplaneModificationHandler(h *ModificationHandler) func() {

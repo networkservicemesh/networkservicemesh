@@ -1,7 +1,10 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/golang/protobuf/proto"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
@@ -49,13 +52,20 @@ func newEndpointDomain() endpointDomain {
 		baseDomain: newBase(),
 	}
 }
-func (d *endpointDomain) AddEndpoint(endpoint *Endpoint) {
-	d.store(endpoint.EndpointName(), endpoint)
+
+func (d *endpointDomain) AddEndpoint(endpoint *Endpoint) error {
+	if ok := d.store(endpoint.EndpointName(), endpoint, false); ok {
+		return nil
+	}
+	return fmt.Errorf("trying to add endpoint by existing name: %v", endpoint.EndpointName())
+}
+
+func (d *endpointDomain) AddOrUpdateEndpoint(endpoint *Endpoint) {
+	d.store(endpoint.EndpointName(), endpoint, true)
 }
 
 func (d *endpointDomain) GetEndpoint(name string) *Endpoint {
-	v, _ := d.load(name)
-	if v != nil {
+	if v, ok := d.load(name); ok {
 		return v.(*Endpoint)
 	}
 	return nil
@@ -73,12 +83,11 @@ func (d *endpointDomain) GetEndpointsByNetworkService(nsName string) []*Endpoint
 	return rv
 }
 
-func (d *endpointDomain) DeleteEndpoint(name string) {
-	d.delete(name)
-}
-
-func (d *endpointDomain) UpdateEndpoint(endpoint *Endpoint) {
-	d.store(endpoint.EndpointName(), endpoint)
+func (d *endpointDomain) DeleteEndpoint(name string) error {
+	if ok := d.delete(name); ok {
+		return nil
+	}
+	return fmt.Errorf("trying to delete endpoint by not existing name: %v", name)
 }
 
 func (d *endpointDomain) SetEndpointModificationHandler(h *ModificationHandler) func() {

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/golang/protobuf/proto"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -115,13 +117,19 @@ func newClientConnectionDomain() clientConnectionDomain {
 	}
 }
 
-func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc)
+func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) error {
+	if ok := d.store(cc.ConnectionID, cc, false); ok {
+		return nil
+	}
+	return fmt.Errorf("trying to add client connection by existing id: %v", cc.ConnectionID)
+}
+
+func (d *clientConnectionDomain) AddOrUpdateClientConnection(cc *ClientConnection) {
+	d.store(cc.ConnectionID, cc, true)
 }
 
 func (d *clientConnectionDomain) GetClientConnection(id string) *ClientConnection {
-	v, _ := d.load(id)
-	if v != nil {
+	if v, ok := d.load(id); ok {
 		return v.(*ClientConnection)
 	}
 	return nil
@@ -136,20 +144,22 @@ func (d *clientConnectionDomain) GetAllClientConnections() []*ClientConnection {
 	return rv
 }
 
-func (d *clientConnectionDomain) DeleteClientConnection(id string) {
-	d.delete(id)
-}
-
-func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc)
+func (d *clientConnectionDomain) DeleteClientConnection(id string) error {
+	if ok := d.delete(id); ok {
+		return nil
+	}
+	return fmt.Errorf("trying to delete client connection by not existing id: %v", id)
 }
 
 func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string, f func(*ClientConnection)) *ClientConnection {
-	upd := d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) })
-	if upd != nil {
+	if upd := d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) }); upd != nil {
 		return upd.(*ClientConnection)
 	}
 	return nil
+}
+
+func (d *clientConnectionDomain) CompareAndSwapClientConnection(cc *ClientConnection, f func(*ClientConnection) bool) bool {
+	return d.compareAndSwap(cc.ConnectionID, cc, func(v interface{}) bool { return f(v.(*ClientConnection)) })
 }
 
 func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) func() {

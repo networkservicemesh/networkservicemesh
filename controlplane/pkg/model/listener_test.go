@@ -51,16 +51,16 @@ func TestModelListener(t *testing.T) {
 	ln.Add(8)
 	m.AddListener(&ln)
 
-	m.AddEndpoint(&Endpoint{})
-	m.UpdateEndpoint(&Endpoint{})
-	m.DeleteEndpoint("")
+	_ = m.AddEndpoint(&Endpoint{})
+	m.AddOrUpdateEndpoint(&Endpoint{})
+	_ = m.DeleteEndpoint("")
 
-	m.AddDataplane(&Dataplane{})
-	m.DeleteDataplane("")
+	_ = m.AddDataplane(&Dataplane{})
+	_ = m.DeleteDataplane("")
 
-	m.AddClientConnection(&ClientConnection{})
-	m.UpdateClientConnection(&ClientConnection{})
-	m.DeleteClientConnection("")
+	_ = m.AddClientConnection(&ClientConnection{})
+	m.AddOrUpdateClientConnection(&ClientConnection{})
+	_ = m.DeleteClientConnection("")
 
 	doneCh := make(chan struct{})
 	go func() {

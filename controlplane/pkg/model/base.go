@@ -1,8 +1,9 @@
 package model
 
 import (
-	"github.com/sirupsen/logrus"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ModificationHandler aggregates handlers for particular events
@@ -39,7 +40,7 @@ func (b *baseDomain) load(key string) (interface{}, bool) {
 	return v.clone(), true
 }
 
-func (b *baseDomain) store(key string, value cloneable) {
+func (b *baseDomain) store(key string, value cloneable, update bool) bool {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
@@ -47,22 +48,30 @@ func (b *baseDomain) store(key string, value cloneable) {
 	if !exist {
 		b.innerMap[key] = value.clone()
 		b.resourceAdded(value)
-		return
+		return true
+	}
+
+	if !update {
+		return false
 	}
 
 	b.innerMap[key] = value.clone()
 	b.resourceUpdated(old, value)
+	return true
 }
 
-func (b *baseDomain) delete(key string) {
+func (b *baseDomain) delete(key string) bool {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
+
 	v, exist := b.innerMap[key]
 	if !exist {
-		return
+		return false
 	}
+
 	delete(b.innerMap, key)
 	b.resourceDeleted(v)
+	return true
 }
 
 func (b *baseDomain) applyChanges(key string, changeFunc func(interface{})) interface{} {
@@ -80,6 +89,20 @@ func (b *baseDomain) applyChanges(key string, changeFunc func(interface{})) inte
 	b.innerMap[key] = upd.clone()
 	b.resourceUpdated(old, upd)
 	return upd
+}
+
+func (b *baseDomain) compareAndSwap(key string, value cloneable, compareFunc func (interface{}) bool) bool {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+
+	old, exists := b.innerMap[key]
+	if !exists || !compareFunc(old) {
+		return false
+	}
+
+	b.innerMap[key] = value.clone()
+	b.resourceUpdated(old, value)
+	return true
 }
 
 func (b *baseDomain) kvRange(f func(key string, v interface{}) bool) {

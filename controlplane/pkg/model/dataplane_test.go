@@ -37,7 +37,10 @@ func TestAddAndGetDp(t *testing.T) {
 	}
 
 	dd := newDataplaneDomain()
-	dd.AddDataplane(dp)
+
+	err := dd.AddDataplane(dp)
+	Expect(err).To(BeNil())
+
 	getDp := dd.GetDataplane("dp1")
 
 	Expect(getDp.RegisteredName).To(Equal(dp.RegisteredName))
@@ -48,13 +51,16 @@ func TestAddAndGetDp(t *testing.T) {
 
 	Expect(fmt.Sprintf("%p", getDp.LocalMechanisms)).ToNot(Equal(fmt.Sprintf("%p", dp.LocalMechanisms)))
 	Expect(fmt.Sprintf("%p", getDp.RemoteMechanisms)).ToNot(Equal(fmt.Sprintf("%p", dp.RemoteMechanisms)))
+
+	err = dd.AddDataplane(dp)
+	Expect(err).NotTo(BeNil())
 }
 
 func TestDeleteDp(t *testing.T) {
 	RegisterTestingT(t)
 
 	dd := newDataplaneDomain()
-	dd.AddDataplane(&Dataplane{
+	dd.AddOrUpdateDataplane(&Dataplane{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
 		LocalMechanisms: []connection.Mechanism{
@@ -79,12 +85,14 @@ func TestDeleteDp(t *testing.T) {
 	cc := dd.GetDataplane("dp1")
 	Expect(cc).ToNot(BeNil())
 
-	dd.DeleteDataplane("dp1")
+	err := dd.DeleteDataplane("dp1")
+	Expect(err).To(BeNil())
 
 	dpDel := dd.GetDataplane("dp1")
 	Expect(dpDel).To(BeNil())
 
-	dd.DeleteDataplane("NotExistingId")
+	err = dd.DeleteDataplane("NotExistingId")
+	Expect(err).NotTo(BeNil())
 }
 
 func TestSelectDp(t *testing.T) {
@@ -93,7 +101,7 @@ func TestSelectDp(t *testing.T) {
 	amount := 5
 	dd := newDataplaneDomain()
 	for i := 0; i < amount; i++ {
-		dd.AddDataplane(&Dataplane{
+		dd.AddOrUpdateDataplane(&Dataplane{
 			RegisteredName: fmt.Sprintf("dp%d", i),
 			SocketLocation: fmt.Sprintf("/socket-%d", i),
 			LocalMechanisms: []connection.Mechanism{
