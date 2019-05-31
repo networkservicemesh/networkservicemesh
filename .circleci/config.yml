@@ -308,6 +308,9 @@ jobs:
         type: string
       test_tags:
         type: string
+      test_timeout:
+        type: string
+        default: "30m"
       gke_project_id:
         type: string
         default: "ci-management"
@@ -358,11 +361,11 @@ jobs:
             ./scripts/go-mod-download.sh
           no_output_timeout: 40m
       - run:
-          name: Running integration tests - <<parameters.test_tags>>
+          name: Running integration tests - <<parameters.test_tags>> with timeout - <<parameters.test_timeout>>
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout 30m -tags="<<parameters.test_tags>>"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout "<<parameters.test_timeout>>" -tags="<<parameters.test_tags>>"
           no_output_timeout: 40m
       - run:
           when: always
@@ -700,6 +703,7 @@ workflows:
           cloud_provider: "packet"
           cluster_id: "2"
           test_tags: "recover"
+          test_timeout: "40m"
           requires:
             - deploy-packet-2
             - build-container-success
@@ -759,6 +763,7 @@ workflows:
           cloud_provider: "azure"
           cluster_id: "2"
           test_tags: "recover azure"
+          test_timeout: "40m"
           requires:
             - deploy-azure-2
             - build-container-success
@@ -807,6 +812,7 @@ workflows:
           cloud_provider: "aws"
           cluster_id: "2"
           test_tags: "recover aws"
+          test_timeout: "40m"
           requires:
             - deploy-aws-2
             - build-container-success
@@ -836,6 +842,7 @@ workflows:
           cloud_provider: "gke"
           cluster_id: "2"
           test_tags: "recover gke"
+          test_timeout: "40m"
           requires:
             - test-sanity-check
             - "deploy-gke-2"
