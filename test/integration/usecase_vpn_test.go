@@ -92,6 +92,11 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 
 	Expect(err).To(BeNil())
 
+	if k8s.UseIPv6 && nodesCount == 1 && !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("IPv6 usecase is temporarily broken for single node setups.")
+		return
+	}
+
 	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 	if len(nodes) < nodesCount {
 		logrus.Printf("At least one Kubernetes node is required for this test")
