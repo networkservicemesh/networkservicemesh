@@ -28,7 +28,7 @@ resource "packet_device" "master1" {
 
 resource "packet_device" "worker1_1" {
   hostname         = "${var.worker1_1_hostname}"
-  facilities       = ["ewr1", "ams1", "sjc1"]
+  facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
@@ -46,7 +46,7 @@ output "worker1_1.public_ip" {
 
 resource "packet_device" "master2" {
   hostname         = "${var.master2_hostname}"
-  facilities       = ["ams1", "sjc1", "ewr1"]
+  facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
   billing_cycle    = "hourly"
