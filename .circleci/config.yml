@@ -67,6 +67,9 @@ jobs:
       - run: wget https://releases.hashicorp.com/terraform/0.12.0/terraform_0.12.0_linux_amd64.zip
       - run: unzip terraform_0.12.0_linux_amd64.zip
       - run: mv terraform /go/bin/
+      - run: wget https://releases.hashicorp.com/terraform-provider-packet/2.1.0/terraform-provider-packet_2.1.0_linux_amd64.zip
+      - run: unzip terraform-provider-packet_2.1.0_linux_amd64.zip
+      - run: mv terraform-provider-packet_v2.1.0_x4 /go/bin
       - run: mkdir terraform
       - run: ssh-keygen -t rsa -f terraform/sshkey -q -N ""
       - run: ssh-add terraform/sshkey
@@ -735,123 +738,123 @@ workflows:
             - "test-packet-example-icmp"
             - "test-packet-example-vpn"
 
-# azure
-      - deploy-azure:
-          name: "deploy-azure-1"
-          cluster_id: "1"
-          requires:
-            - test-sanity-check
-      - deploy-azure:
-          name: "deploy-azure-2"
-          cluster_id: "2"
-          requires:
-            - test-sanity-check
-      - integration-tests:
-          name: "test-azure-basic-usecase"
-          cloud_provider: "azure"
-          cluster_id: "1"
-          test_tags: "basic usecase azure"
-          requires:
-            - deploy-azure-1
-            - build-container-success
-      - integration-tests:
-          name: "test-azure-recover"
-          cloud_provider: "azure"
-          cluster_id: "2"
-          test_tags: "recover azure"
-          requires:
-            - deploy-azure-2
-            - build-container-success
-      - destroy-azure:
-          name: "destroy-azure-1"
-          cluster_id: "1"
-          requires:
-            - test-azure-basic-usecase
-      - destroy-azure:
-          name: "destroy-azure-2"
-          cluster_id: "2"
-          requires:
-            - test-azure-recover
+## azure
+#      - deploy-azure:
+#          name: "deploy-azure-1"
+#          cluster_id: "1"
+#          requires:
+#            - test-sanity-check
+#      - deploy-azure:
+#          name: "deploy-azure-2"
+#          cluster_id: "2"
+#          requires:
+#            - test-sanity-check
+#      - integration-tests:
+#          name: "test-azure-basic-usecase"
+#          cloud_provider: "azure"
+#          cluster_id: "1"
+#          test_tags: "basic usecase azure"
+#          requires:
+#            - deploy-azure-1
+#            - build-container-success
+#      - integration-tests:
+#          name: "test-azure-recover"
+#          cloud_provider: "azure"
+#          cluster_id: "2"
+#          test_tags: "recover azure"
+#          requires:
+#            - deploy-azure-2
+#            - build-container-success
+#      - destroy-azure:
+#          name: "destroy-azure-1"
+#          cluster_id: "1"
+#          requires:
+#            - test-azure-basic-usecase
+#      - destroy-azure:
+#          name: "destroy-azure-2"
+#          cluster_id: "2"
+#          requires:
+#            - test-azure-recover
 
 # aws
-      - deploy-aws:
-          name: "deploy-aws-1"
-          cluster_id: "1"
-          requires:
-            - test-sanity-check
-      - deploy-aws:
-          name: "deploy-aws-2"
-          cluster_id: "2"
-          requires:
-            - test-sanity-check
-      - destroy-aws:
-          name: "destroy-aws-1"
-          cluster_id: "1"
-          requires:
-            - test-aws-basic-usecase
-      - destroy-aws:
-          name: "destroy-aws-2"
-          cluster_id: "2"
-          requires:
-            - test-aws-recover
-      - integration-tests:
-          name: "test-aws-basic-usecase"
-          cloud_provider: "aws"
-          cluster_id: "1"
-          test_tags: "basic usecase aws"
-          requires:
-            - deploy-aws-1
-            - build-container-success
-      - integration-tests:
-          name: "test-aws-recover"
-          cloud_provider: "aws"
-          cluster_id: "2"
-          test_tags: "recover aws"
-          requires:
-            - deploy-aws-2
-            - build-container-success
+#      - deploy-aws:
+#          name: "deploy-aws-1"
+#          cluster_id: "1"
+#          requires:
+#            - test-sanity-check
+#      - deploy-aws:
+#          name: "deploy-aws-2"
+#          cluster_id: "2"
+#          requires:
+#            - test-sanity-check
+#      - destroy-aws:
+#          name: "destroy-aws-1"
+#          cluster_id: "1"
+#          requires:
+#            - test-aws-basic-usecase
+#      - destroy-aws:
+#          name: "destroy-aws-2"
+#          cluster_id: "2"
+#          requires:
+#            - test-aws-recover
+#      - integration-tests:
+#          name: "test-aws-basic-usecase"
+#          cloud_provider: "aws"
+#          cluster_id: "1"
+#          test_tags: "basic usecase aws"
+#          requires:
+#            - deploy-aws-1
+#            - build-container-success
+#      - integration-tests:
+#          name: "test-aws-recover"
+#          cloud_provider: "aws"
+#          cluster_id: "2"
+#          test_tags: "recover aws"
+#          requires:
+#            - deploy-aws-2
+#            - build-container-success
 
 # gke
-      - deploy-gke:
-          cluster_id: "1"
-          name: "deploy-gke-1"
-          requires:
-            - test-sanity-check
-      - deploy-gke:
-          cluster_id: "2"
-          name: "deploy-gke-2"
-          requires:
-            - test-sanity-check
-      - integration-tests:
-          name: "test-gke-basic-usecase"
-          cloud_provider: "gke"
-          cluster_id: "1"
-          test_tags: "basic usecase gke"
-          requires:
-            - test-sanity-check
-            - "deploy-gke-1"
-            - build-container-success
-      - integration-tests:
-          name: "test-gke-recover"
-          cloud_provider: "gke"
-          cluster_id: "2"
-          test_tags: "recover gke"
-          requires:
-            - test-sanity-check
-            - "deploy-gke-2"
-            - build-container-success
-      - destroy-gke:
-          name: "destroy-gke-1"
-          cluster_id: "1"
-          requires:
-            - "deploy-gke-1"
-            - "test-gke-basic-usecase"
-      - destroy-gke:
-          name: "destroy-gke-2"
-          cluster_id: "2"
-          requires:
-            - "deploy-gke-2"
-            - "test-gke-recover"
+#      - deploy-gke:
+#          cluster_id: "1"
+#          name: "deploy-gke-1"
+#          requires:
+#            - test-sanity-check
+#      - deploy-gke:
+#          cluster_id: "2"
+#          name: "deploy-gke-2"
+#          requires:
+#            - test-sanity-check
+#      - integration-tests:
+#          name: "test-gke-basic-usecase"
+#          cloud_provider: "gke"
+#          cluster_id: "1"
+#          test_tags: "basic usecase gke"
+#          requires:
+#            - test-sanity-check
+#            - "deploy-gke-1"
+#            - build-container-success
+#      - integration-tests:
+#          name: "test-gke-recover"
+#          cloud_provider: "gke"
+#          cluster_id: "2"
+#          test_tags: "recover gke"
+#          requires:
+#            - test-sanity-check
+#            - "deploy-gke-2"
+#            - build-container-success
+#      - destroy-gke:
+#          name: "destroy-gke-1"
+#          cluster_id: "1"
+#          requires:
+#            - "deploy-gke-1"
+#            - "test-gke-basic-usecase"
+#      - destroy-gke:
+#          name: "destroy-gke-2"
+#          cluster_id: "2"
+#          requires:
+#            - "deploy-gke-2"
+#            - "test-gke-recover"
 
 # helm
       - test-helm-charts:
