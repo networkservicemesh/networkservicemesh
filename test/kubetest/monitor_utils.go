@@ -113,6 +113,11 @@ func checkSingleXconEvent(actual *crossconnect.CrossConnectEvent, expected Event
 		return fmt.Errorf("event type %v expected to be %v", actual.GetType(), expected.EventType)
 	}
 
+	if actual.GetType() == crossconnect.CrossConnectEventType_DELETE {
+		// we don't care about state of connections since event is DELETE
+		return nil
+	}
+
 	if len(actual.GetCrossConnects()) != 1 {
 		return fmt.Errorf("expected event with 1 cross-connect, actual - %v", len(actual.GetCrossConnects()))
 	}
