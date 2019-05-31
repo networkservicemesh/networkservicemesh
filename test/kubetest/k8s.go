@@ -683,9 +683,11 @@ func (l *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, 
 		case err := <-errChan:
 			if err != nil {
 				logrus.Warnf("Error on get logs: %v retrying", err)
-				linesChan, errChan = l.GetLogsChannel(ctx, pod, options)
-				continue
+			} else {
+				logrus.Warnf("Reached end of logs for %v::%v", pod.GetName(), container)
 			}
+			<-time.After(100 * time.Millisecond)
+			linesChan, errChan = l.GetLogsChannel(ctx, pod, options)
 		case line := <-linesChan:
 			_, _ = builder.WriteString(line)
 			_, _ = builder.WriteString("\n")
