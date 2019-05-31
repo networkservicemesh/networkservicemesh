@@ -29,9 +29,9 @@ packet-init:
 .ONESHELL:
 .PHONY: packet-start
 packet-start:
-	@pushd scripts/terraform
-	@terraform apply ${TF_PACKET_VARS}
-	@popd
+	@pushd scripts/terraform && \
+	terraform apply ${TF_PACKET_VARS} && \
+	popd
 
 .ONESHELL:
 .PHONY: packet-restart
