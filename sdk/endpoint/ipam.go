@@ -32,7 +32,7 @@ import (
 
 type IpamEndpoint struct {
 	BaseCompositeEndpoint
-	prefixPool prefix_pool.PrefixPool
+	PrefixPool prefix_pool.PrefixPool
 }
 
 // Request implements the request handler
@@ -51,19 +51,24 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	/* Exclude the prefixes from the pool of available prefixes */
-	excludedPrefixes, err := ice.prefixPool.ExcludePrefixes(request.Connection.Context.ExcludedPrefixes)
+	excludedPrefixes, err := ice.PrefixPool.ExcludePrefixes(request.Connection.Context.ExcludedPrefixes)
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO: We need to somehow support IPv6.
-	srcIP, dstIP, prefixes, err := ice.prefixPool.Extract(request.Connection.Id, connectioncontext.IpFamily_IPV4, request.Connection.Context.ExtraPrefixRequest...)
+	/* Determine whether the pool is IPv4 or IPv6 */
+	currentIPFamily := connectioncontext.IpFamily_IPV4
+	if common.IsIPv6(ice.PrefixPool.GetPrefixes()[0]) {
+		currentIPFamily = connectioncontext.IpFamily_IPV6
+	}
+
+	srcIP, dstIP, prefixes, err := ice.PrefixPool.Extract(request.Connection.Id, currentIPFamily, request.Connection.Context.ExtraPrefixRequest...)
 	if err != nil {
 		return nil, err
 	}
 
 	/* Release the actual prefixes that were excluded during IPAM */
-	err = ice.prefixPool.ReleaseExcludedPrefixes(excludedPrefixes)
+	err = ice.PrefixPool.ReleaseExcludedPrefixes(excludedPrefixes)
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +91,15 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 
 // Close implements the close handler
 func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	prefix, requests, err := ice.prefixPool.GetConnectionInformation(connection.GetId())
+	prefix, requests, err := ice.PrefixPool.GetConnectionInformation(connection.GetId())
 	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
 	if err != nil {
 		logrus.Errorf("Error: %v", err)
 	}
-	err = ice.prefixPool.Release(connection.GetId())
+	err = ice.PrefixPool.Release(connection.GetId())
+	if err != nil {
+		logrus.Error("Release error: ", err)
+	}
 	if ice.GetNext() != nil {
 		return ice.GetNext().Close(ctx, connection)
 	}
@@ -114,7 +122,7 @@ func NewIpamEndpoint(configuration *common.NSConfiguration) *IpamEndpoint {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	self := &IpamEndpoint{
-		prefixPool: pool,
+		PrefixPool: pool,
 	}
 
 	return self

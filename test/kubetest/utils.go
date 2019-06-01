@@ -147,21 +147,21 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
-		defaultICMPEnv(),
+		defaultICMPEnv(k8s.UseIPv6),
 	))
 }
 
-// DeployICMP - etup ICMP responder NSE
+// DeployICMP - Setup ICMP responder NSE
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(), defaultICMPCommand(),
+		defaultICMPEnv(k8s.UseIPv6), defaultICMPCommand(),
 	))
 }
 
 // DeployICMPWithConfig - Setup ICMP responder NSE with parameters
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
 	pod := pods.TestNSEPod(name, node,
-		defaultICMPEnv(), defaultICMPCommand(),
+		defaultICMPEnv(k8s.UseIPv6), defaultICMPCommand(),
 	)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, node, name, timeout, pod)
@@ -177,7 +177,7 @@ func DeployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration)
 // DeployNeighborNSE deploys icmp with flag -neighbors
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(), defaultNeighborNSECommand(),
+		defaultICMPEnv(k8s.UseIPv6), defaultNeighborNSECommand(),
 	))
 }
 
@@ -204,11 +204,18 @@ func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
 
-func defaultICMPEnv() map[string]string {
+func defaultICMPEnv(useIPv6 bool) map[string]string {
+	if !useIPv6 {
+		return map[string]string{
+			"ADVERTISE_NSE_NAME":   "icmp-responder",
+			"ADVERTISE_NSE_LABELS": "app=icmp",
+			"IP_ADDRESS":           "172.16.1.0/24",
+		}
+	}
 	return map[string]string{
 		"ADVERTISE_NSE_NAME":   "icmp-responder",
 		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "172.16.1.0/24",
+		"IP_ADDRESS":           "100::/64",
 	}
 }
 
@@ -560,38 +567,87 @@ func (info *NSCCheckInfo) PrintLogs() {
 
 // CheckNSC - Perform default check for client to NSE operations
 func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
+	if !k8s.UseIPv6 {
+		return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
+	}
+	return checkNSCConfig(k8s, nscPodNode, "100::1", "100::2")
 }
 
 // CheckVppAgentNSC - Perform check of VPP based agent operations.
 func CheckVppAgentNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
+	if !k8s.UseIPv6 {
+		return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
+	}
+	return checkVppAgentNSCConfig(k8s, nscPodNode, "100::1")
 }
+
 func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCheckInfo {
 	var err error
 	info := &NSCCheckInfo{}
-	info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+
+	pingCommand := "ping"
+	publicDNSAddress := "8.8.8.8"
+
+	if k8s.UseIPv6 {
+		pingCommand = "ping6"
+		publicDNSAddress = "2001:4860:4860::8888"
+	}
+
+	/* Check IP address */
+	if !k8s.UseIPv6 {
+		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
+	} else {
+		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "addr")
+	}
 	Expect(err).To(BeNil())
 	Expect(info.errOut).To(Equal(""))
-	logrus.Printf("NSC IP status Ok")
-
 	Expect(strings.Contains(info.ipResponse, checkIP)).To(Equal(true))
 	Expect(strings.Contains(info.ipResponse, "nsm")).To(Equal(true))
 
-	info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+	if err != nil || info.errOut != "" {
+		logrus.Println("NSC IP status, NOK")
+		logrus.Println("ipResponse:", info.ipResponse)
+		logrus.Println("err:", err)
+		logrus.Println("info.errOut:", info.errOut)
+	} else {
+		logrus.Println("NSC IP status, OK")
+	}
+
+	/* Check route */
+	if !k8s.UseIPv6 {
+		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
+	} else {
+		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "route")
+	}
 	Expect(err).To(BeNil())
 	Expect(info.errOut).To(Equal(""))
-	logrus.Printf("NSC Route status, Ok")
-
-	Expect(strings.Contains(info.routeResponse, "8.8.8.8")).To(Equal(true))
+	Expect(strings.Contains(info.routeResponse, publicDNSAddress)).To(Equal(true))
 	Expect(strings.Contains(info.routeResponse, "nsm")).To(Equal(true))
 
-	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", pingIP, "-A", "-c", "5")
+	if err != nil || info.errOut != "" {
+		logrus.Println("NSC Route status, NOK")
+		logrus.Println("routeResponse:", info.routeResponse)
+		logrus.Println("err:", err)
+		logrus.Println("info.errOut:", info.errOut)
+	} else {
+		logrus.Println("NSC Route status, OK")
+	}
+
+	/* Check ping */
+	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, pingCommand, pingIP, "-A", "-c", "5")
 	Expect(err).To(BeNil())
 	Expect(info.errOut).To(Equal(""))
-	Expect(strings.Contains(info.pingResponse, "100% packet loss")).To(Equal(false))
 
-	logrus.Printf("NSC Ping is success:%s", info.pingResponse)
+	pingNOK := strings.Contains(info.pingResponse, "100% packet loss")
+	Expect(pingNOK).To(Equal(false))
+	if err != nil || info.errOut != "" || pingNOK {
+		logrus.Printf("NSC Ping, NOK")
+		logrus.Println("pingResponse:", info.pingResponse)
+		logrus.Println("err:", err)
+		logrus.Println("info.errOut:", info.errOut)
+	} else {
+		logrus.Printf("NSC Ping, OK")
+	}
 	return info
 }
 

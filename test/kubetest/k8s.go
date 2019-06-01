@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,11 @@ const (
 	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
+)
+
+const (
+	envUseIPv6        = "USE_IPV6"
+	envUseIPv6Default = false
 )
 
 type PodDeployResult struct {
@@ -258,6 +264,7 @@ type K8s struct {
 	roles              []nsmrbac.Role
 	namespace          string
 	apiServerHost      string
+	UseIPv6            bool
 }
 
 func NewK8s(prepare bool) (*K8s, error) {
@@ -286,6 +293,7 @@ func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
 
 	client.apiServerHost = config.Host
 	client.initNamespace()
+	client.setIPVersion()
 
 	client.versionedClientSet, err = versioned.NewForConfig(config)
 	Expect(err).To(BeNil())
@@ -933,4 +941,15 @@ func (o *K8s) DeleteRoles(rolesList []nsmrbac.Role) error {
 		}
 	}
 	return nil
+}
+
+/* setIPVersion choose whether or not to use IPv6 in testing */
+func (l *K8s) setIPVersion() {
+	useIPv6, ok := os.LookupEnv(envUseIPv6)
+	if !ok {
+		logrus.Infof("%s not set, using default %t", envUseIPv6, envUseIPv6Default)
+		l.UseIPv6 = envUseIPv6Default
+	} else {
+		l.UseIPv6, _ = strconv.ParseBool(useIPv6)
+	}
 }
