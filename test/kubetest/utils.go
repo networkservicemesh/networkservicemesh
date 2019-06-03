@@ -665,6 +665,7 @@ func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 		}
 
 		if err == nil && !strings.Contains(info.pingResponse, "100% packet loss") {
+			logrus.Print(info.pingResponse)
 			success = true
 			rv = info
 			break

@@ -43,7 +43,7 @@ func TestDataplaneHealMultiNodesLocal(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 0, 2, kubetest.DefaultTestingPodFixture())
+	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture())
 }
 func TestDataplaneHealMultiNodesRemote(t *testing.T) {
 	RegisterTestingT(t)
@@ -53,7 +53,7 @@ func TestDataplaneHealMultiNodesRemote(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, 2, kubetest.DefaultTestingPodFixture())
+	testDataplaneHeal(t, 1, 2, kubetest.HealTestingPodFixture())
 }
 
 /**
@@ -98,8 +98,8 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 	// Check NSMd goint into HEAL state.
 
 	logrus.Infof("Waiting for connection recovery...")
-	if nodesCount > 1 {
-		k8s.WaitLogsContains(nodes_setup[killDataplaneIndex].Nsmd, "nsmd", "Healing will be continued on source side...", defaultTimeout)
+	if nodesCount > 1 && killDataplaneIndex != 0 {
+		k8s.WaitLogsContains(nodes_setup[nodesCount-1].Nsmd, "nsmd", "Healing will be continued on source side...", defaultTimeout)
 		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	} else {
 		k8s.WaitLogsContains(nodes_setup[killDataplaneIndex].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)

@@ -23,6 +23,11 @@ func DefaultTestingPodFixture() TestingPodFixture {
 	return NewCustomTestingPodFixture(DeployNSC, DeployICMP, CheckNSC)
 }
 
+// HealTestingPodFixture - Creates a testing tool specific for healing
+func HealTestingPodFixture() TestingPodFixture {
+	return NewCustomTestingPodFixture(DeployNSC, DeployICMP, HealNscChecker)
+}
+
 // NewCustomTestingPodFixture - Creates a custom testing tool
 func NewCustomTestingPodFixture(deployNscFunc, deployNseFunc PodSupplier, checkNscFunc NscChecker) TestingPodFixture {
 	gomega.Expect(deployNscFunc).ShouldNot(gomega.BeNil())
