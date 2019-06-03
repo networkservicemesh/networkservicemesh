@@ -73,7 +73,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
 	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
-	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmd", "NSM gRPC API Server: [::]:5001 is operational", defaultTimeout)
+	_ = k8s.WaitLogsContainsRegex(nodes_setup[1].Nsmd, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
 	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
