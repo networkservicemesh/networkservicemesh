@@ -554,9 +554,12 @@ jobs:
             echo "SUCCESS"
 
 # docker push
-  docker-push-latest:
+  docker-push-tag:
     docker:
       - image: circleci/golang
+    parameters:
+      tag:
+        type: string
     steps:
       - checkout
       - setup_remote_docker:
@@ -565,7 +568,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export PULL_TAG="${COMMIT}"
-            export TAG="latest"
+            export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
             export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor test-nse vppagent-icmp-responder-nse vppagent-nsc nsc monitoring-nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook vppagent-firewall-nse)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
@@ -881,7 +884,8 @@ workflows:
             - test-sanity-check
 
 # push
-      - docker-push-latest:
+      - docker-push-tag:
+          tag: "latest"
           requires:
             - destroy-packet
           filters:
