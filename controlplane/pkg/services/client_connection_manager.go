@@ -35,9 +35,14 @@ func (m *ClientConnectionManager) GetNsmName() string {
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
 func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon *crossconnect.CrossConnect) {
-	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon = newXcon
-	})
+	}); upd != nil {
+		cc = upd
+	} else {
+		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		return
+	}
 
 	if src := newXcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
 		logrus.Info("ClientConnection src state is down")
@@ -90,11 +95,17 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnec
 		return
 	}
 
-	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon.Destination = &crossconnect.CrossConnect_LocalDestination{
 			LocalDestination: localConnection,
 		}
-	})
+	}); upd != nil {
+		cc = upd
+	} else {
+		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		return
+	}
+
 	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }
 
@@ -116,11 +127,17 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 		return
 	}
 
-	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
 			RemoteDestination: remoteConnection,
 		}
-	})
+	}); upd != nil {
+		cc = upd
+	} else {
+		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		return
+	}
+
 	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }
 
