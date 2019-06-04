@@ -14,10 +14,16 @@
 
 K8S_CONF_DIR = k8s/conf
 
+# Set the configured forwarding plane
+ifeq (${FORWARDING_PLANE}, vpp)
+  DEPLOY_FORWARDING_PLANE = vppagent-dataplane
+else ifeq (${FORWARDING_PLANE}, kernel-forwarder)
+  DEPLOY_FORWARDING_PLANE = kernel-forwarder
+endif
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_TRACING = jaeger
 DEPLOY_WEBHOOK = admission-webhook
-DEPLOY_NSM = nsmgr vppagent-dataplane
+DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
@@ -208,6 +214,15 @@ k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_
 k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
  .PHONY: k8s-vppagent-dataplane-load-images
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+
+KERNEL_FORWARDER_CONTAINERS = kernel-forwarder
+.PHONY: k8s-kernel-forwarder-build
+k8s-kernel-forwarder-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(KERNEL_FORWARDER_CONTAINERS)))
+ .PHONY: k8s-kernel-forwarder-save
+k8s-kernel-forwarder-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(KERNEL_FORWARDER_CONTAINERS)))
+ .PHONY: k8s-kernel-forwarder-load-images
+k8s-kernel-forwarder-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(KERNEL_FORWARDER_CONTAINERS)))
+
 
 .PHONY: k8s-secure-intranet-connectivity-build
 k8s-secure-intranet-connectivity-build:
