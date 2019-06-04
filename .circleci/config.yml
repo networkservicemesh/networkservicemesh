@@ -403,6 +403,7 @@ jobs:
             fi
       - run:
           when: on_fail
+          no_output_timeout: 40m
           command: |
             if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
               cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
