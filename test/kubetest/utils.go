@@ -665,6 +665,7 @@ func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 		}
 
 		if err == nil && !strings.Contains(info.pingResponse, "100% packet loss") {
+			logrus.Print(info.pingResponse)
 			success = true
 			rv = info
 			break
@@ -753,7 +754,7 @@ func getNSEAddr(k8s *K8s, nsc *v1.Pod, parseIP ipParser, showIPCommand ...string
 	return ip, nil
 }
 
-// IsVppAgentNsePinged - Checvk if vpp agent NSE is pinable
+// IsVppAgentNsePinged - Check if vpp agent NSE is pinged
 func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	nseIp, err := GetVppAgentNSEAddr(k8s, from)
 	Expect(err).Should(BeNil())
