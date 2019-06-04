@@ -81,14 +81,14 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, DefaultDataplaneVariables())
+				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, DefaultDataplaneVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
-				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, conf[i].DataplaneVariables)
+				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, conf[i].DataplaneVariables, k8s.GetForwardingPlane())
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, dataplanePod)
 			if err != nil {

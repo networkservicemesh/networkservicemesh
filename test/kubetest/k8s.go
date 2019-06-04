@@ -40,8 +40,10 @@ const (
 )
 
 const (
-	envUseIPv6        = "USE_IPV6"
-	envUseIPv6Default = false
+	envUseIPv6                = "USE_IPV6"
+	envUseIPv6Default         = false
+	envForwardingPlane        = "FORWARDING_PLANE"
+	envForwardingPlaneDefault = "vpp"
 )
 
 type PodDeployResult struct {
@@ -265,6 +267,7 @@ type K8s struct {
 	namespace          string
 	apiServerHost      string
 	UseIPv6            bool
+	forwardingPlane    string
 }
 
 func NewK8s(prepare bool) (*K8s, error) {
@@ -287,6 +290,7 @@ func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
 	client := K8s{
 		pods: []*v1.Pod{},
 	}
+	client.setForwardingPlane()
 	client.config = config
 	client.clientset, err = kubernetes.NewForConfig(config)
 	Expect(err).To(BeNil())
@@ -944,12 +948,28 @@ func (o *K8s) DeleteRoles(rolesList []nsmrbac.Role) error {
 }
 
 /* setIPVersion choose whether or not to use IPv6 in testing */
-func (l *K8s) setIPVersion() {
+func (o *K8s) setIPVersion() {
 	useIPv6, ok := os.LookupEnv(envUseIPv6)
 	if !ok {
 		logrus.Infof("%s not set, using default %t", envUseIPv6, envUseIPv6Default)
-		l.UseIPv6 = envUseIPv6Default
+		o.UseIPv6 = envUseIPv6Default
 	} else {
-		l.UseIPv6, _ = strconv.ParseBool(useIPv6)
+		o.UseIPv6, _ = strconv.ParseBool(useIPv6)
 	}
+}
+
+/* setForwardingPlane sets which forwarding plane to be used in testing */
+func (o *K8s) setForwardingPlane() {
+	plane, ok := os.LookupEnv(envForwardingPlane)
+	if !ok {
+		logrus.Infof("%s not set, using default dataplane - %s", envForwardingPlane, envForwardingPlaneDefault)
+		o.forwardingPlane = envForwardingPlaneDefault
+	} else {
+		o.forwardingPlane = plane
+	}
+}
+
+/* GetForwardingPlane gets which forwarding plane is going to be used in testing */
+func (o *K8s) GetForwardingPlane() string {
+	return o.forwardingPlane
 }

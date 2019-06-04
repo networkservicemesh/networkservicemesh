@@ -139,7 +139,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables()
+		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
 		if disableVHost {
 			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
 		}

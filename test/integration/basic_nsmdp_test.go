@@ -53,7 +53,7 @@ func TestNSMDRecoverNSE(t *testing.T) {
 				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
 			Namespace:          k8s.GetK8sNamespace(),
-			DataplaneVariables: kubetest.DefaultDataplaneVariables(),
+			DataplaneVariables: kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane()),
 		},
 	}, k8s.GetK8sNamespace())
 	Expect(err).To(BeNil())
