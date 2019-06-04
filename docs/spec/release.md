@@ -16,9 +16,9 @@ Included features and progress tracking will be using a dedicated GitHub project
 Release procedure
 The primary NSM git repo is https://github.com/networkservicemesh/networkservicemesh. All the git operations described here are applied on it. Consequently, if the main repo is split into smaller repos, git operations will be applied to all of them simultaneously.
 
-The project will set a designated release date **D**. One calendar week before that date **D-7** a git release branch will be created. The branch name is in the format: `nsm-v<MAJOR>.<MINOR>`.
+The project will set a designated release date **D**. One calendar week before that date **D-7** a git release branch will be created. The branch name is in the format: `release-<MAJOR>.<MINOR>`.
 
-On the designated date, the release with patchlevel `0` is released and tagged as `nsm-v<MAJOR>.<MINOR>.<PATCH>`. The next 2 calendar weeks will accommodate bug, performance and issue fixes. Then a new release patchlevel `1` is tagged and declared as stable on **D+14**.
+On the designated date, the release with patchlevel `0` is released and tagged as `v<MAJOR>.<MINOR>.<PATCH>`. The next 2 calendar weeks will accommodate bug, performance and issue fixes. Then a new release patchlevel `1` is tagged and declared as stable on **D+14**.
 
 Stable release transitions
 --------------------------
@@ -27,8 +27,8 @@ The highest numbered release branch holds the stable release after it gets at le
 
 |  Timeline | T0  | T0+1  | T0+2  | T0+3  | T0+4  | T0+5  |
 |---|---|---|---|---|---|---|
-| nsm  | `1.2.3 stable`  |  `1.2.3 stable` | `1.2.4 stable`  |   |  `1.2.5 maint` |   |
-| nsm  |   | `1.3.0 pre`  |   | `1.3.1 stable`  |   | `1.3.2 stable`  |
+|   | `v1.2.3 stable`  |  `v1.2.3 stable` | `v1.2.4 stable`  |   |  `v1.2.5 maint` |   |
+|   |   | `v1.3.0 pre`  |   | `v1.3.1 stable`  |   | `v1.3.2 stable`  |
 
 Release materials
 -----------------
@@ -60,9 +60,7 @@ The subject of the release are the following items:
 Image publishing
 ----------------
 
-The NSM container images are published at [Dockerhub’s networkservicemesh workspace](https://hub.docker.com/u/networkservicemesh). The images published from the git branch master are tagged `latest`.  The images from the release branch get the same git tag i.e. `nsm-v<MAJOR>.<MINOR>.<PATCH>`. The last released image from that branch is tagged `stable`.
-
-
+The NSM container images are published at [Dockerhub’s networkservicemesh workspace](https://hub.docker.com/u/networkservicemesh). The images published from the git branch master are tagged `latest`.  The images from the release branch get the same git tag i.e. `v<MAJOR>.<MINOR>.<PATCH>`. The last released image from that branch is tagged `stable`.
 
 References
 ----------
