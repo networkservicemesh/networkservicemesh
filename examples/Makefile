@@ -59,10 +59,7 @@ endif
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
 .PHONY: all docker-build
-#
-# The all target is what is used by the travis-ci system to build the Docker images
-# which are used to run the code in each run.
-#
+
 all: docker-build
 
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
