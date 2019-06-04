@@ -19,7 +19,6 @@ import (
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -34,6 +33,14 @@ type NodeConf struct {
 	Nsmd      *v1.Pod
 	Dataplane *v1.Pod
 	Node      *v1.Node
+}
+
+// NSCCheckInfo - Structure to hold client ping information
+type NSCCheckInfo struct {
+	ipResponse    string
+	routeResponse string
+	pingResponse  string
+	errOut        string
 }
 
 // PodSupplier - Type to pass supplier of pod
@@ -74,14 +81,14 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, DefaultDataplaneVariables())
+				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, DefaultDataplaneVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
-				dataplanePod = pods.VPPDataplanePodConfig(dataplaneName, node, conf[i].DataplaneVariables)
+				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, conf[i].DataplaneVariables, k8s.GetForwardingPlane())
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, dataplanePod)
 			if err != nil {
@@ -144,13 +151,6 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	return
 }
 
-// DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
-func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6),
-	))
-}
-
 // DeployICMP - Setup ICMP responder NSE
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
@@ -197,11 +197,6 @@ func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Dura
 	return deployNSC(k8s, node, name, "monitoring-nsc", timeout, pods.MonitoringNSCPod(name, node,
 		defaultNSCEnv(),
 	))
-}
-
-// DeployVppAgentNSC - Setup Default VPP Based Client
-func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
 }
 
 func defaultICMPEnv(useIPv6 bool) map[string]string {
@@ -546,14 +541,6 @@ func printNSMDLogs(k8s *K8s, nsmdPod *v1.Pod, k int) {
 
 }
 
-// NSCCheckInfo - Structure to hold client ping information
-type NSCCheckInfo struct {
-	ipResponse    string
-	routeResponse string
-	pingResponse  string
-	errOut        string
-}
-
 // PrintLogs - Print Client print information
 func (info *NSCCheckInfo) PrintLogs() {
 	if info == nil {
@@ -571,14 +558,6 @@ func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 		return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
 	}
 	return checkNSCConfig(k8s, nscPodNode, "100::1", "100::2")
-}
-
-// CheckVppAgentNSC - Perform check of VPP based agent operations.
-func CheckVppAgentNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	if !k8s.UseIPv6 {
-		return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
-	}
-	return checkVppAgentNSCConfig(k8s, nscPodNode, "100::1")
 }
 
 func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCheckInfo {
@@ -676,45 +655,10 @@ func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 	return rv
 }
 
-func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
-	info := &NSCCheckInfo{}
-	response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
-	if strings.Contains(response, checkIP) {
-		info.ipResponse = response
-		info.errOut = errOut
-	}
-	Expect(info.ipResponse).ShouldNot(Equal(""))
-	Expect(info.errOut).Should(Equal(""))
-	logrus.Printf("NSC IP status Ok")
-	Expect(true, IsVppAgentNsePinged(k8s, nscPodNode))
-
-	return info
-}
-
 // IsBrokeTestsEnabled - Check if broken tests are enabled
 func IsBrokeTestsEnabled() bool {
 	_, ok := os.LookupEnv("BROKEN_TESTS_ENABLED")
 	return ok
-}
-
-// DefaultDataplaneVariables - Default variabels for dataplane deployment
-func DefaultDataplaneVariables() map[string]string {
-	return map[string]string{
-		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
-	}
-}
-
-// GetVppAgentNSEAddr - GetVppAgentNSEAddr - Return vpp agent NSE address
-func GetVppAgentNSEAddr(k8s *K8s, nsc *v1.Pod) (net.IP, error) {
-	return getNSEAddr(k8s, nsc, parseVppAgentAddr, "vppctl", "show int addr")
-}
-
-func parseVppAgentAddr(ipReponse string) (string, error) {
-	spitedResponse := strings.Split(ipReponse, "L3 ")
-	if len(spitedResponse) < 2 {
-		return "", errors.New(fmt.Sprintf("bad ip response %v", ipReponse))
-	}
-	return spitedResponse[1], nil
 }
 
 func parseAddr(ipReponse string) (string, error) {
@@ -752,21 +696,6 @@ func getNSEAddr(k8s *K8s, nsc *v1.Pod, parseIP ipParser, showIPCommand ...string
 		return nil, err
 	}
 	return ip, nil
-}
-
-// IsVppAgentNsePinged - Check if vpp agent NSE is pinged
-func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
-	nseIp, err := GetVppAgentNSEAddr(k8s, from)
-	Expect(err).Should(BeNil())
-	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIp)
-	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
-	logrus.Infof("ping result: %s", response)
-	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
-		result = true
-		logrus.Info("Ping successful")
-	}
-
-	return result
 }
 
 // IsNsePinged - Check if NSE is pinged

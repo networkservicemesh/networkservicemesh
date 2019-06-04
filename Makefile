@@ -16,6 +16,9 @@
 SHELL:=/bin/bash
 WORKER_COUNT ?= 1
 
+# Set a default forwarding plane
+FORWARDING_PLANE ?= vpp
+
 # Default target, no other targets should be before default
 .PHONY: default
 default: all
