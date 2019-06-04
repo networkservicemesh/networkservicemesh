@@ -300,7 +300,7 @@ func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
 
 	if prepare {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
+		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsm-init", "source", "dest")
 		client.CleanupCRDs()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()

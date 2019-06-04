@@ -42,9 +42,9 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
-	nsc_container := containerMod(&v1.Container{
-		Name:            "nsc",
-		Image:           "networkservicemesh/nsc:latest",
+	initContainer := containerMod(&v1.Container{
+		Name:            "nsm-init",
+		Image:           "networkservicemesh/nsm-init:latest",
 		ImagePullPolicy: v1.PullIfNotPresent,
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
@@ -53,7 +53,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		},
 	})
 	for k, v := range env {
-		nsc_container.Env = append(nsc_container.Env,
+		initContainer.Env = append(initContainer.Env,
 			v1.EnvVar{
 				Name:  k,
 				Value: v,
@@ -79,7 +79,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 				},
 			},
 			InitContainers: []v1.Container{
-				nsc_container,
+				initContainer,
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
