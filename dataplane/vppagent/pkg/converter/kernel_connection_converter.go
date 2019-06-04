@@ -109,7 +109,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Name:        c.conversionParameters.Name + "-veth",
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
-			IpAddresses: ipAddresses,
 			HostIfName:  c.conversionParameters.Name + "-veth",
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
