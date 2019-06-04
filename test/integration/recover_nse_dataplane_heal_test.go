@@ -92,7 +92,7 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 
 	logrus.Infof("Starting recovered dataplane...")
 	startTime := time.Now()
-	nodes_setup[killDataplaneIndex].Dataplane = k8s.CreatePod(pods.VPPDataplanePod(dpName, nodes_setup[killDataplaneIndex].Node))
+	nodes_setup[killDataplaneIndex].Dataplane = k8s.CreatePod(pods.ForwardingPlane(dpName, nodes_setup[killDataplaneIndex].Node))
 	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), nodes_setup[killDataplaneIndex].Node.Name)
 
 	// Check NSMd goint into HEAL state.

@@ -345,7 +345,7 @@ func localPort(network string, port int) net.Addr {
 
 func dataplanePodTemplate(node *v1.Node) *v1.Pod {
 	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
-	dataplane := pods.VPPDataplanePod(dataplaneName, node)
+	dataplane := pods.ForwardingPlane(dataplaneName, node)
 	setupEnvVariables(dataplane, map[string]string{
 		"DATAPLANE_SOCKET_TYPE": dataplaneSocketType,
 		"DATAPLANE_SOCKET":      fmt.Sprintf("0.0.0.0:%d", dataplanePort),
