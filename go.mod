@@ -35,7 +35,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890 // indirect
 	golang.org/x/sys v0.0.0-20190422165155-953cdadca894
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
-	google.golang.org/grpc v1.21.0
+	google.golang.org/grpc v1.21.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
 	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
