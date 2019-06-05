@@ -31,19 +31,23 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
-var (
-	dirty = flag.Bool("dirty", false,
+func parseFlags() (bool, bool, bool, bool) {
+	dirty := flag.Bool("dirty", false,
 		"will not delete itself from registry at the end")
-	neighbors = flag.Bool("neighbors", false,
+	neighbors := flag.Bool("neighbors", false,
 		"will set all available IpNeighbors to connection.Context")
-	routes = flag.Bool("routes", false,
+	routes := flag.Bool("routes", false,
 		"will set route 8.8.8.8/30 to connection.Context")
-	update = flag.Bool("update", false,
+	update := flag.Bool("update", false,
 		"will send update to local.Connection after some time")
-)
+
+	flag.Parse()
+
+	return *dirty, *neighbors, *routes, *update
+}
 
 func main() {
-	flag.Parse()
+	dirty, neighbors, routes, update := parseFlags()
 
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
@@ -52,7 +56,7 @@ func main() {
 		endpoint.NewMonitorEndpoint(nil),
 	}
 
-	if *neighbors {
+	if neighbors {
 		logrus.Infof("Adding neighbors endpoint to chain")
 		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
@@ -65,13 +69,13 @@ func main() {
 		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 
-	if *routes {
+	if routes {
 		logrus.Infof("Adding routes endpoint to chain")
 		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
 	}
 
 	var monitorServer monitor.Server
-	if *update {
+	if update {
 		logrus.Infof("Adding updating endpoint to chain")
 		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("update", func(*connection.Connection) error {
@@ -97,7 +101,7 @@ func main() {
 	monitorServer = nsmEndpoint.MonitorServer()
 
 	_ = nsmEndpoint.Start()
-	if !*dirty {
+	if !dirty {
 		defer func() { _ = nsmEndpoint.Delete() }()
 	}
 
