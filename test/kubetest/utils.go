@@ -652,19 +652,15 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 }
 
 // HealNscChecker checks that heal worked properly
-func HealNscChecker(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	var err error
+func HealNscChecker(k8s *K8s, nscPod *v1.Pod) *NSCCheckInfo {
 	const attempts = 10
 	success := false
 	var rv *NSCCheckInfo
 	for i := 0; i < attempts; i++ {
 		info := &NSCCheckInfo{}
-		info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
-		if err != nil {
-			logrus.Error(err)
-		}
+		info.pingResponse = pingNse(k8s, nscPod)
 
-		if err == nil && !strings.Contains(info.pingResponse, "100% packet loss") {
+		if !strings.Contains(info.pingResponse, "100% packet loss") {
 			success = true
 			rv = info
 			break
@@ -768,13 +764,18 @@ func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	return result
 }
 
-// IsNsePinged - Check if NSE is pinged
-func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
+func pingNse(k8s *K8s, from *v1.Pod) string {
 	nseIp, err := getNSEAddr(k8s, from, parseAddr, "ip", "addr")
 	Expect(err).Should(BeNil())
 	logrus.Infof("%v trying ping to %v", from.Name, nseIp)
-	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
+	response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
 	logrus.Infof("ping result: %s", response)
+	return response
+}
+
+// IsNsePinged - Checks if the interface to NSE exists and NSE is pinged
+func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
+	response := pingNse(k8s, from)
 	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
 		result = true
 		logrus.Info("Ping successful")

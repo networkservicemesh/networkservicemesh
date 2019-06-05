@@ -22,7 +22,7 @@ func TestDataplaneHealLocal(t *testing.T) {
 		return
 	}
 
-	testDataplaneHeal(t, 1, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
+	testDataplaneHeal(t, 1, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.HealNscChecker)
 }
 
 func TestDataplaneHealLocalMemif(t *testing.T) {

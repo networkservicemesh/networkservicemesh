@@ -3,11 +3,10 @@
 package nsmd_integration_tests
 
 import (
-	"strings"
-	"testing"
-
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"strings"
+	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
@@ -23,7 +22,7 @@ func TestNSEHealLocal(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.CheckNSC)
+	}, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.HealNscChecker)
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
