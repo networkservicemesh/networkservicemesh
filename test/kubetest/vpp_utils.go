@@ -17,7 +17,7 @@ import (
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6),
+		defaultICMPEnv(k8s.UseIPv6()),
 	))
 }
 
@@ -28,7 +28,7 @@ func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 
 // CheckVppAgentNSC - Perform check of VPP based agent operations.
 func CheckVppAgentNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	if !k8s.UseIPv6 {
+	if !k8s.UseIPv6() {
 		return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
 	}
 	return checkVppAgentNSCConfig(k8s, nscPodNode, "100::1")
@@ -64,10 +64,10 @@ func parseVppAgentAddr(ipReponse string) (string, error) {
 
 // IsVppAgentNsePinged - Check if vpp agent NSE is pinged
 func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
-	nseIp, err := GetVppAgentNSEAddr(k8s, from)
+	nseIP, err := GetVppAgentNSEAddr(k8s, from)
 	Expect(err).Should(BeNil())
-	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIp)
-	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIp.String())
+	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIP)
+	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIP.String())
 	logrus.Infof("ping result: %s", response)
 	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
 		result = true
