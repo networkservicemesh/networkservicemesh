@@ -1,12 +1,14 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
-	EnvForwardingPlane        = "FORWARDING_PLANE"
+	// EnvForwardingPlane is the environment variable for configuring the forwarding plane
+	EnvForwardingPlane = "FORWARDING_PLANE"
+	// EnvForwardingPlaneDefault is the default forwarding plane
 	EnvForwardingPlaneDefault = "vpp"
 )
 

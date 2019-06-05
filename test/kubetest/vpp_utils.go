@@ -1,7 +1,6 @@
 package kubetest
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -57,7 +56,7 @@ func GetVppAgentNSEAddr(k8s *K8s, nsc *v1.Pod) (net.IP, error) {
 func parseVppAgentAddr(ipReponse string) (string, error) {
 	spitedResponse := strings.Split(ipReponse, "L3 ")
 	if len(spitedResponse) < 2 {
-		return "", errors.New(fmt.Sprintf("bad ip response %v", ipReponse))
+		return "", fmt.Errorf("bad ip response %v", ipReponse)
 	}
 	return spitedResponse[1], nil
 }

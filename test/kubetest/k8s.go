@@ -40,8 +40,8 @@ const (
 )
 
 const (
-	envUseIPv6                = "USE_IPV6"
-	envUseIPv6Default         = false
+	envUseIPv6        = "USE_IPV6"
+	envUseIPv6Default = false
 )
 
 type PodDeployResult struct {
@@ -64,7 +64,7 @@ func waitTimeout(logPrefix string, wg *sync.WaitGroup, timeout time.Duration) bo
 	}
 }
 
-func (k8s *K8s) createAndBlock(client kubernetes.Interface, config *rest.Config, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
+func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
 
 	var wg sync.WaitGroup
 
@@ -364,7 +364,7 @@ func (k8s *K8s) initNamespace() {
 // Make force delete on timeout
 func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 	var wg sync.WaitGroup
-
+	var err error
 	for _, my_pod := range pods {
 		wg.Add(1)
 		pod := my_pod
@@ -373,7 +373,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 			delOpt := &metaV1.DeleteOptions{}
 			st := time.Now()
 			logrus.Infof("Deleting %v", pod.Name)
-			err := k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
+			err = k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 			if err != nil {
 				logrus.Warnf(`The POD "%s" may continue to run on the cluster, %v`, pod.Name, err)
 				return
@@ -392,24 +392,27 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 		}()
 	}
 	wg.Wait()
-	return nil
+	return err
 }
 func (k8s *K8s) deletePodsForce(pods ...*v1.Pod) error {
+	var err error
 	for _, pod := range pods {
-		err := k8s.deletePodForce(pod)
+		err = k8s.deletePodForce(pod)
 		if err != nil {
 			logrus.Warnf(`The POD "%s" may continue to run on the cluster %v`, pod.Name, err)
 		}
 	}
-	return nil
+	return err
 }
 
+// GetVersion returns the k8s version
 func (k8s *K8s) GetVersion() string {
 	version, err := k8s.clientset.Discovery().ServerVersion()
 	Expect(err).To(BeNil())
 	return fmt.Sprintf("%s", version)
 }
 
+// GetNodes returns the nodes
 func (k8s *K8s) GetNodes() []v1.Node {
 	nodes, err := k8s.clientset.CoreV1().Nodes().List(metaV1.ListOptions{})
 	if err != nil {
@@ -419,12 +422,14 @@ func (k8s *K8s) GetNodes() []v1.Node {
 	return nodes.Items
 }
 
+// ListPods lists the pods
 func (k8s *K8s) ListPods() []v1.Pod {
 	podList, err := k8s.clientset.CoreV1().Pods(k8s.namespace).List(metaV1.ListOptions{})
 	Expect(err).To(BeNil())
 	return podList.Items
 }
 
+// CleanupCRDs cleans up CRDs
 func (k8s *K8s) CleanupCRDs() {
 
 	// Clean up Network Services
@@ -446,6 +451,7 @@ func (k8s *K8s) CleanupCRDs() {
 	}
 }
 
+// DescribePod describes a pod
 func (k8s *K8s) DescribePod(pod *v1.Pod) {
 	eventsInterface := k8s.clientset.CoreV1().Events(k8s.namespace)
 
@@ -471,6 +477,7 @@ func (k8s *K8s) CleanupEndpointsCRDs() {
 	}
 }
 
+// Cleanup cleans up
 func (k8s *K8s) Cleanup() {
 	st := time.Now()
 	var wg sync.WaitGroup
@@ -494,15 +501,17 @@ func (k8s *K8s) Cleanup() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		k8s.DeleteRoles(k8s.roles)
+		_ = k8s.DeleteRoles(k8s.roles)
 	}()
 
 	wg.Wait()
 	k8s.pods = nil
-	k8s.DeleteTestNamespace(k8s.namespace)
+	_ = k8s.DeleteTestNamespace(k8s.namespace)
+
 	logrus.Infof("Cleanup time: %v", time.Since(st))
 }
 
+// Prepare prepares the pods
 func (k8s *K8s) Prepare(noPods ...string) {
 	for _, podName := range noPods {
 		pods := k8s.ListPods()
@@ -515,15 +524,15 @@ func (k8s *K8s) Prepare(noPods ...string) {
 	}
 }
 
-/**
-
- */
+// CreatePods create pods
 func (k8s *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
 	pods, _ := k8s.CreatePodsRaw(PodStartTimeout, true, templates...)
 	return pods
 }
+
+// CreatePodsRaw create raw pods
 func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
-	results := k8s.createAndBlock(k8s.clientset, k8s.config, k8s.namespace, timeout, templates...)
+	results := k8s.createAndBlock(k8s.clientset, k8s.namespace, timeout, templates...)
 	pods := []*v1.Pod{}
 
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
@@ -555,10 +564,12 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	return pods, err
 }
 
+// GetPod gets a pod
 func (k8s *K8s) GetPod(pod *v1.Pod) (*v1.Pod, error) {
 	return k8s.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
 }
 
+// CreatePod creates a pod
 func (k8s *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 	results, err := k8s.CreatePodsRaw(PodStartTimeout, true, template)
 	if err != nil || len(results) == 0 {
@@ -568,6 +579,7 @@ func (k8s *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 	}
 }
 
+// DeletePods delete pods
 func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 	err := k8s.deletePods(pods...)
 	Expect(err).To(BeNil())
@@ -581,6 +593,7 @@ func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 	}
 }
 
+// DeletePodsForce delete pods forcefully
 func (k8s *K8s) DeletePodsForce(pods ...*v1.Pod) {
 	err := k8s.deletePodsForce(pods...)
 	Expect(err).To(BeNil())
@@ -712,16 +725,19 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 	}
 }
 
+// UpdatePod updates a pod
 func (k8s *K8s) UpdatePod(pod *v1.Pod) *v1.Pod {
 	pod, error := k8s.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
 	Expect(error).To(BeNil())
 	return pod
 }
 
+// GetClientSet returns a clientset
 func (k8s *K8s) GetClientSet() (kubernetes.Interface, error) {
 	return k8s.clientset, nil
 }
 
+// GetConfig returns config
 func (k8s *K8s) GetConfig() *rest.Config {
 	return k8s.config
 }
@@ -736,9 +752,7 @@ func isNodeReady(node *v1.Node) bool {
 	return false
 }
 
-/**
-Wait for required number of nodes are up and running fine.
-*/
+// GetNodesWait wait for required number of nodes are up and running fine
 func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Node {
 	st := time.Now()
 	warnPrinted := false
@@ -768,6 +782,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 
 }
 
+// CreateService creates a service
 func (k8s *K8s) CreateService(service *v1.Service, namespace string) (*v1.Service, error) {
 	_ = k8s.clientset.CoreV1().Services(namespace).Delete(service.Name, &metaV1.DeleteOptions{})
 	s, err := k8s.clientset.CoreV1().Services(namespace).Create(service)
@@ -778,16 +793,19 @@ func (k8s *K8s) CreateService(service *v1.Service, namespace string) (*v1.Servic
 	return s, err
 }
 
+// DeleteService deletes a service
 func (k8s *K8s) DeleteService(service *v1.Service, namespace string) error {
 	return k8s.clientset.CoreV1().Services(namespace).Delete(service.GetName(), &metaV1.DeleteOptions{})
 }
 
+// CleanupServices cleans up services
 func (k8s *K8s) CleanupServices(services ...string) {
 	for _, s := range services {
 		_ = k8s.clientset.CoreV1().Services(k8s.namespace).Delete(s, &metaV1.DeleteOptions{})
 	}
 }
 
+// CreateDeployment creates deployment
 func (k8s *K8s) CreateDeployment(deployment *appsv1.Deployment, namespace string) (*appsv1.Deployment, error) {
 	d, err := k8s.clientset.AppsV1().Deployments(namespace).Create(deployment)
 	if err != nil {
@@ -797,10 +815,12 @@ func (k8s *K8s) CreateDeployment(deployment *appsv1.Deployment, namespace string
 	return d, err
 }
 
+// DeleteDeployment deletes deployment
 func (k8s *K8s) DeleteDeployment(deployment *appsv1.Deployment, namespace string) error {
 	return k8s.clientset.AppsV1().Deployments(namespace).Delete(deployment.GetName(), &metaV1.DeleteOptions{})
 }
 
+// CleanupDeployments cleans up deployment
 func (k8s *K8s) CleanupDeployments() {
 	deployments, _ := k8s.clientset.AppsV1().Deployments(k8s.namespace).List(metaV1.ListOptions{})
 	for i := range deployments.Items {
@@ -812,6 +832,7 @@ func (k8s *K8s) CleanupDeployments() {
 	}
 }
 
+// CreateMutatingWebhookConfiguration creates mutating webhook with configuration
 func (k8s *K8s) CreateMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta1.MutatingWebhookConfiguration) (*arv1beta1.MutatingWebhookConfiguration, error) {
 	awc, err := k8s.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(mutatingWebhookConf)
 	if err != nil {
@@ -821,17 +842,24 @@ func (k8s *K8s) CreateMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta
 	return awc, err
 }
 
+// DeleteMutatingWebhookConfiguration deletes mutating webhook with configuration
 func (k8s *K8s) DeleteMutatingWebhookConfiguration(mutatingWebhookConf *arv1beta1.MutatingWebhookConfiguration) error {
 	return k8s.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(mutatingWebhookConf.GetName(), &metaV1.DeleteOptions{})
 }
 
+// CleanupMutatingWebhookConfigurations cleans mutating webhook with configuration
 func (k8s *K8s) CleanupMutatingWebhookConfigurations() {
 	mwConfigs, _ := k8s.clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(metaV1.ListOptions{})
 	for _, mwConfig := range mwConfigs.Items {
-		_ = k8s.DeleteMutatingWebhookConfiguration(&mwConfig)
+		mwConfig := mwConfig
+		err := k8s.DeleteMutatingWebhookConfiguration(&mwConfig)
+		if err != nil {
+			logrus.Errorf("Error cleaning up mutating webhook configurations: %v", err)
+		}
 	}
 }
 
+// CreateSecret creates a secret
 func (k8s *K8s) CreateSecret(secret *v1.Secret, namespace string) (*v1.Secret, error) {
 	s, err := k8s.clientset.CoreV1().Secrets(namespace).Create(secret)
 	if err != nil {
@@ -841,24 +869,29 @@ func (k8s *K8s) CreateSecret(secret *v1.Secret, namespace string) (*v1.Secret, e
 	return s, err
 }
 
-func (k8s *K8s) DeleteSecret(name string, namespace string) error {
+// DeleteSecret deletes a secret
+func (k8s *K8s) DeleteSecret(name, namespace string) error {
 	return k8s.clientset.CoreV1().Secrets(namespace).Delete(name, &metaV1.DeleteOptions{})
 }
 
+// CleanupSecrets cleans a secret
 func (k8s *K8s) CleanupSecrets(secrets ...string) {
 	for _, s := range secrets {
 		_ = k8s.DeleteSecret(s, k8s.namespace)
 	}
 }
 
+// IsPodReady returns if a pod is ready
 func (k8s *K8s) IsPodReady(pod *v1.Pod) bool {
 	return isPodReady(pod)
 }
 
+// CreateConfigMap creates a configmap
 func (k8s *K8s) CreateConfigMap(cm *v1.ConfigMap) (*v1.ConfigMap, error) {
 	return k8s.clientset.CoreV1().ConfigMaps(cm.Namespace).Create(cm)
 }
 
+// CleanupConfigMaps cleans a configmap
 func (k8s *K8s) CleanupConfigMaps() {
 	// Clean up Network Service Endpoints
 	configMaps, _ := k8s.clientset.CoreV1().ConfigMaps(k8s.namespace).List(metaV1.ListOptions{})
@@ -867,6 +900,7 @@ func (k8s *K8s) CleanupConfigMaps() {
 	}
 }
 
+// CreateTestNamespace creates a test namespace
 func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 	if len(namespace) == 0 || namespace == "default" {
 		return "default", nil
@@ -890,6 +924,7 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 	return nsNamespace.GetName(), nil
 }
 
+// DeleteTestNamespace deletes a test namespace
 func (k8s *K8s) DeleteTestNamespace(namespace string) error {
 	if namespace == "default" {
 		return nil
@@ -906,6 +941,7 @@ func (k8s *K8s) DeleteTestNamespace(namespace string) error {
 	return nil
 }
 
+// GetNamespace returns a namespace
 func (k8s *K8s) GetNamespace(namespace string) (*v1.Namespace, error) {
 	ns, err := k8s.clientset.CoreV1().Namespaces().Get(namespace, metaV1.GetOptions{})
 	if err != nil {
@@ -914,10 +950,12 @@ func (k8s *K8s) GetNamespace(namespace string) (*v1.Namespace, error) {
 	return ns, err
 }
 
+// GetK8sNamespace returns a namespace
 func (k8s *K8s) GetK8sNamespace() string {
 	return k8s.namespace
 }
 
+// CreateRoles create roles
 func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 	createdRoles := []nsmrbac.Role{}
 	for _, kind := range rolesList {
@@ -934,6 +972,7 @@ func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 	return createdRoles, nil
 }
 
+// DeleteRoles delete roles
 func (k8s *K8s) DeleteRoles(rolesList []nsmrbac.Role) error {
 	for i := range rolesList {
 		err := rolesList[i].Delete(k8s.clientset, rolesList[i].GetName())
