@@ -108,10 +108,21 @@ func (srv *networkServiceManager) monitorExcludePrefixes() {
 			return
 		}
 
-		srv.Lock()
-		srv.excludedPrefixes = pool
-		srv.Unlock()
+		srv.SetExcludePrefixes(pool)
 	}
+}
+
+func (srv *networkServiceManager) GetExcludePrefixes() prefix_pool.PrefixPool {
+	srv.RLock()
+	defer srv.RUnlock()
+
+	return srv.excludedPrefixes
+}
+
+func (srv *networkServiceManager) SetExcludePrefixes(prefixes prefix_pool.PrefixPool) {
+	srv.Lock()
+	defer srv.Unlock()
+	srv.excludedPrefixes = prefixes
 }
 
 func (srv *networkServiceManager) Request(ctx context.Context, request nsm.NSMRequest) (nsm.NSMConnection, error) {
@@ -543,9 +554,6 @@ func (srv *networkServiceManager) createCrossConnect(requestConnection nsm.NSMCo
 	return dpApiConnection
 }
 func (srv *networkServiceManager) validateNSEConnection(requestId string, nseConnection nsm.NSMConnection) error {
-	srv.RLock()
-	defer srv.RUnlock()
-
 	errorFormatter := func(err error) error {
 		return fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestId, err)
 	}
@@ -555,8 +563,9 @@ func (srv *networkServiceManager) validateNSEConnection(requestId string, nseCon
 		return errorFormatter(err)
 	}
 
+	prefixes := srv.GetExcludePrefixes()
 	if srcIp := nseConnection.GetContext().GetSrcIpAddr(); srcIp != "" {
-		intersect, err := srv.excludedPrefixes.Intersect(srcIp)
+		intersect, err := prefixes.Intersect(srcIp)
 		if err != nil {
 			return errorFormatter(err)
 		}
@@ -566,7 +575,7 @@ func (srv *networkServiceManager) validateNSEConnection(requestId string, nseCon
 	}
 
 	if dstIp := nseConnection.GetContext().GetDstIpAddr(); dstIp != "" {
-		intersect, err := srv.excludedPrefixes.Intersect(dstIp)
+		intersect, err := prefixes.Intersect(dstIp)
 		if err != nil {
 			return errorFormatter(err)
 		}
@@ -629,8 +638,7 @@ func (srv *networkServiceManager) updateExcludePrefixes(requestConnection nsm.NS
 	if c == nil {
 		c = &connectioncontext.ConnectionContext{}
 	}
-	c.ExcludedPrefixes = append(c.ExcludedPrefixes, srv.excludedPrefixes.GetPrefixes()...)
-
+	c.ExcludedPrefixes = append(c.ExcludedPrefixes, srv.GetExcludePrefixes().GetPrefixes()...)
 	// Since we do not worry about validation, just
 	requestConnection.SetContext(c)
 }

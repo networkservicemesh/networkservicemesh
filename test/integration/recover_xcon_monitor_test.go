@@ -20,6 +20,8 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 
+	defer kubetest.FailLogger(k8s, nodesConf, t)
+
 	icmpPod := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	Expect(icmpPod).ToNot(BeNil())
 
