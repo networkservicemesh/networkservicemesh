@@ -368,7 +368,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
-            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout "<<parameters.test_timeout>>" -tags="<<parameters.test_tags>>"
+            gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/integration/... -timeout "<<parameters.test_timeout>>" -tags="<<parameters.test_tags>>"
           no_output_timeout: 40m
       - run:
           when: always
