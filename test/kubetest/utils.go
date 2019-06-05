@@ -768,7 +768,7 @@ func pingNse(k8s *K8s, from *v1.Pod) string {
 	nseIp, err := getNSEAddr(k8s, from, parseAddr, "ip", "addr")
 	Expect(err).Should(BeNil())
 	logrus.Infof("%v trying ping to %v", from.Name, nseIp)
-	response, _, err := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
+	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
 	logrus.Infof("ping result: %s", response)
 	return response
 }
