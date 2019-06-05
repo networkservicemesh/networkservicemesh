@@ -183,7 +183,7 @@ func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 
 // DeployNSC - Setup Default Client
 func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
+	return deployNSC(k8s, node, name, "nsm-init", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
 
@@ -749,7 +749,7 @@ func getNSEAddr(k8s *K8s, nsc *v1.Pod, parseIP ipParser, showIPCommand ...string
 	return ip, nil
 }
 
-// IsVppAgentNsePinged - Checvk if vpp agent NSE is pinable
+// IsVppAgentNsePinged - Check if vpp agent NSE is pinged
 func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	nseIp, err := GetVppAgentNSEAddr(k8s, from)
 	Expect(err).Should(BeNil())

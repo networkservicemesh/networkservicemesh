@@ -19,6 +19,9 @@ spec:
         - name: nsm-admission-webhook
           image: networkservicemesh/admission-webhook
           imagePullPolicy: IfNotPresent
+          env:
+            - name: TAG
+              value: "latest"
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

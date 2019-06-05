@@ -65,10 +65,7 @@ endif
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
 .PHONY: all check verify # docker-build docker-push
-#
-# The all target is what is used by the travis-ci system to build the Docker images
-# which are used to run the code in each run.
-#
+
 all: check verify docker-build
 
 check:
@@ -98,21 +95,6 @@ test-race:
 
 vet:
 	@${GOVET} ./...
-
-# Travis
-.PHONY: travis
-travis:
-	@echo "=> TRAVIS: $$TRAVIS_BUILD_STAGE_NAME"
-	@echo "Build: #$$TRAVIS_BUILD_NUMBER ($$TRAVIS_BUILD_ID)"
-	@echo "Job: #$$TRAVIS_JOB_NUMBER ($$TRAVIS_JOB_ID)"
-	@echo "AllowFailure: $$TRAVIS_ALLOW_FAILURE TestResult: $$TRAVIS_TEST_RESULT"
-	@echo "Type: $$TRAVIS_EVENT_TYPE PullRequest: $$TRAVIS_PULL_REQUEST"
-	@echo "Repo: $$TRAVIS_REPO_SLUG Branch: $$TRAVIS_BRANCH"
-	@echo "Commit: $$TRAVIS_COMMIT"
-	@echo "$$TRAVIS_COMMIT_MESSAGE"
-	@echo "Range: $$TRAVIS_COMMIT_RANGE"
-	@echo "Files:"
-	@echo "$$(git diff --name-only $$TRAVIS_COMMIT_RANGE)"
 
 # Get dependency manager tool
 get-dep:

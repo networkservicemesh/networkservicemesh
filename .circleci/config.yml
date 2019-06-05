@@ -403,6 +403,7 @@ jobs:
             fi
       - run:
           when: on_fail
+          no_output_timeout: 40m
           command: |
             if [ "x<< parameters.cloud_provider >>" == "xpacket" ]; then
               cp -a /home/circleci/project/terraform/terraform/* ./scripts/terraform/
@@ -570,7 +571,7 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor test-nse vppagent-icmp-responder-nse vppagent-nsc nsc monitoring-nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook vppagent-firewall-nse)
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor test-nse vppagent-icmp-responder-nse vppagent-nsc nsm-init monitoring-nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook vppagent-firewall-nse)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}
@@ -641,8 +642,8 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-nsc"
-          container: "nsc"
+          name: "build-nsm-init"
+          container: "nsm-init"
           requires:
             - test-sanity-check
       - build-container:
@@ -675,7 +676,7 @@ workflows:
             - build-test-nse
             - build-vppagent-icmp-responder-nse
             - build-vppagent-nsc
-            - build-nsc
+            - build-nsm-init
             - build-monitoring-nsc
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev

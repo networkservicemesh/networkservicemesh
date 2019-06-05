@@ -6,8 +6,8 @@
 !controlplane/**
 !dataplane/**
 !docker/**
-!examples/**
 !test/applications/**
+!side-cars/**
 !go.mod
 !go.sum
 !k8s/**

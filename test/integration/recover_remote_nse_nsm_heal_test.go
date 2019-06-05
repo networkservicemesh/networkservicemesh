@@ -5,17 +5,16 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	. "github.com/onsi/gomega"
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
 
@@ -66,7 +65,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	k8s.DeletePods(icmpPod)
 	//k8s.DeletePods(nodes_setup[1].Nsmd, icmpPod)
 	logrus.Infof("Waiting for NSE with network service")
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", 60*time.Second)
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", time.Minute)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 
@@ -82,7 +81,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 		icmpPod = kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-2", defaultTimeout)
 
 		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", 60*time.Second)
+		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", time.Minute)
 		logrus.Infof("Waiting for connection recovery Done...")
 
 		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
