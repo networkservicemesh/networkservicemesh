@@ -40,10 +40,8 @@ const (
 )
 
 const (
-	envUseIPv6                = "USE_IPV6"
-	envUseIPv6Default         = false
-	envForwardingPlane        = "FORWARDING_PLANE"
-	envForwardingPlaneDefault = "vpp"
+	envUseIPv6        = "USE_IPV6"
+	envUseIPv6Default = false
 )
 
 type PodDeployResult struct {
