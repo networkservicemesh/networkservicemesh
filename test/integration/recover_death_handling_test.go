@@ -23,7 +23,6 @@ var nseNoHeal = &pods.NSMgrPodConfig{
 		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
 		nsm.NsmdHealEnabled:          "true",
 	},
-	DataplaneVariables: kubetest.DefaultDataplaneVariables(),
 }
 
 func TestNSCDiesSingleNode(t *testing.T) {
@@ -76,6 +75,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	Expect(err).To(BeNil())
 
 	nseNoHeal.Namespace = k8s.GetK8sNamespace()
+	nseNoHeal.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
 
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		nseNoHeal,

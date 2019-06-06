@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s vppagent-dataplane vppagent-dataplane-dev
+BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s
 BUILD_CONTAINERS+=devenv crossconnect-monitor
 BUILD_CONTAINERS+=nsm-init test-nse monitoring-nsc
 BUILD_CONTAINERS+=vppagent-firewall-nse
+
+# Set the configured forwarding plane
+ifeq (${FORWARDING_PLANE}, vpp)
+  BUILD_CONTAINERS+=vppagent-dataplane vppagent-dataplane-dev
+endif
+
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
@@ -31,13 +37,6 @@ docker-%-build:
 	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
-	fi
-
-.PHONY: docker-vppagent-dataplane-dev-build
-docker-vppagent-dataplane-dev-build: docker-vppagent-dataplane-build
-	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VPP_DEV=${VPP_AGENT_DEV} --build-arg REPO=${ORG} -t ${ORG}/vppagent-dataplane-dev -f docker/Dockerfile.vppagent-dataplane-dev . && \
-	if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag ${ORG}/vppagent-dataplane-dev ${ORG}/vppagent-dataplane-dev:${COMMIT} ;\
 	fi
 
 .PHONY: docker-save

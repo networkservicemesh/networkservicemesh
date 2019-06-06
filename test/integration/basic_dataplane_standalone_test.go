@@ -148,7 +148,7 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 
 	fixture.k8s = k8s
 	fixture.node = &nodes[0]
-	fixture.dataplanePod = fixture.k8s.CreatePod(dataplanePodTemplate(fixture.node))
+	fixture.dataplanePod = fixture.k8s.CreatePod(dataplanePodTemplate(k8s.GetForwardingPlane(), fixture.node))
 	fixture.k8s.WaitLogsContains(fixture.dataplanePod, fixture.dataplanePod.Spec.Containers[0].Name, "Serve starting...", timeout)
 
 	// deploy source and destination pods
@@ -343,9 +343,9 @@ func localPort(network string, port int) net.Addr {
 	}
 }
 
-func dataplanePodTemplate(node *v1.Node) *v1.Pod {
+func dataplanePodTemplate(plane string, node *v1.Node) *v1.Pod {
 	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
-	dataplane := pods.VPPDataplanePod(dataplaneName, node)
+	dataplane := pods.ForwardingPlane(dataplaneName, node, plane)
 	setupEnvVariables(dataplane, map[string]string{
 		"DATAPLANE_SOCKET_TYPE": dataplaneSocketType,
 		"DATAPLANE_SOCKET":      fmt.Sprintf("0.0.0.0:%d", dataplanePort),

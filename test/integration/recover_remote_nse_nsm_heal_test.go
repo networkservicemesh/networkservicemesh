@@ -39,12 +39,12 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
 			Namespace:          k8s.GetK8sNamespace(),
-			DataplaneVariables: kubetest.DefaultDataplaneVariables(),
+			DataplaneVariables: kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane()),
 		},
 		{
 			Namespace:          k8s.GetK8sNamespace(),
 			Variables:          pods.DefaultNSMD(),
-			DataplaneVariables: kubetest.DefaultDataplaneVariables(),
+			DataplaneVariables: kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane()),
 		},
 	}, k8s.GetK8sNamespace())
 	Expect(err).To(BeNil())
