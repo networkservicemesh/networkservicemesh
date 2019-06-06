@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -53,6 +53,11 @@ func WrongNSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
+				{
+					Name:            "cert-sidecar",
+					Image:           "networkservicemesh/cert-sidecar",
+					ImagePullPolicy: v1.PullIfNotPresent,
+				},
 				{
 					Name:            "alpine-img",
 					Image:           "alpine:latest",

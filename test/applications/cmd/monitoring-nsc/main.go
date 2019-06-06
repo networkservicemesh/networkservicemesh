@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/security/manager"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
@@ -40,6 +41,7 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+	security.NewCertificateManager()
 
 	tracer, closer := tools.InitJaeger("nsc")
 	opentracing.SetGlobalTracer(tracer)

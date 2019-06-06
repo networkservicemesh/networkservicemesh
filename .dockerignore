@@ -4,6 +4,7 @@
 # ... except these
 !controllers
 !controlplane
+!security
 !dataplane
 !docker
 !test/applications

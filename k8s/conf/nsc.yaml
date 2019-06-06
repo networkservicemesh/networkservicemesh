@@ -15,6 +15,9 @@ spec:
         - name: alpine-img
           image: alpine:latest
           command: ['tail', '-f', '/dev/null']
+        - name: cert-sidecar
+          image: networkservicemesh/cert-sidecar
+          imagePullPolicy: IfNotPresent
 metadata:
   name: alpine-nsc
   namespace: nsm-system
