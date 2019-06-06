@@ -48,3 +48,31 @@ func TestUpdateConnectionOnNSEChange(t *testing.T) {
 	logrus.Infof("Waiting for NSMD to update NSC connection")
 	k8s.WaitLogsContains(nsc, "monitoring-nsc", "Connection updated", defaultTimeout)
 }
+
+func TestUpdateConnectionOnNSEUpdate(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kubetest.NewK8s(true)
+	Expect(err).To(BeNil())
+	defer k8s.Cleanup()
+
+	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	Expect(err).To(BeNil())
+	defer kubetest.FailLogger(k8s, nodesConf, t)
+
+	kubetest.DeployUpdatingNSE(k8s, nodesConf[0].Node, "icmp-responder-nse", defaultTimeout)
+
+	nsc := kubetest.DeployMonitoringNSC(k8s, nodesConf[0].Node, "monitoring-nsc", defaultTimeout)
+	k8s.WaitLogsContains(nsc, "monitoring-nsc", "Monitor started", defaultTimeout)
+
+	logrus.Info("Waiting for NSMD to heal updated NSE connection")
+	k8s.WaitLogsContains(nodesConf[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+
+	logrus.Infof("Waiting for NSMD to update NSC connection")
+	k8s.WaitLogsContains(nsc, "monitoring-nsc", "Connection updated", defaultTimeout)
+}

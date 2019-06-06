@@ -35,9 +35,14 @@ func (m *ClientConnectionManager) GetNsmName() string {
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
 func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon *crossconnect.CrossConnect) {
-	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon = newXcon
-	})
+	}); upd != nil {
+		cc = upd
+	} else {
+		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		return
+	}
 
 	if src := newXcon.GetLocalSource(); src != nil && src.State == local_connection.State_DOWN {
 		logrus.Info("ClientConnection src state is down")
@@ -47,17 +52,17 @@ func (m *ClientConnectionManager) UpdateXcon(cc nsm.NSMClientConnection, newXcon
 
 	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == local_connection.State_DOWN {
 		logrus.Info("ClientConnection dst state is down")
-		m.manager.Heal(cc, nsm.HealState_DstDown)
+		m.manager.Heal(cc, nsm.HealStateDstDown)
 		return
 	}
 }
 
-// RemoteDestinationDown handles case when remote destination down
-func (m *ClientConnectionManager) RemoteDestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
+// DestinationDown handles case when destination down
+func (m *ClientConnectionManager) DestinationDown(cc nsm.NSMClientConnection, nsmdDie bool) {
 	if nsmdDie {
-		m.manager.Heal(cc, nsm.HealState_DstNmgrDown)
+		m.manager.Heal(cc, nsm.HealStateDstNmgrDown)
 	} else {
-		m.manager.Heal(cc, nsm.HealState_DstDown)
+		m.manager.Heal(cc, nsm.HealStateDstDown)
 	}
 }
 
@@ -67,9 +72,41 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 
 	for _, cc := range ccs {
 		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
-			m.manager.Heal(cc, nsm.HealState_DataplaneDown)
+			m.manager.Heal(cc, nsm.HealStateDataplaneDown)
 		}
 	}
+}
+
+// LocalDestinationUpdated handles case when local connection parameters changed
+func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnection, localConnection *local_connection.Connection) {
+	if cc.ConnectionState != model.ClientConnectionReady {
+		return
+	}
+
+	// NSE is not aware of 'Workspace' and 'WorkspaceNSEName' connection mechanism parameters
+	localConnection.GetMechanism().GetParameters()[local_connection.Workspace] =
+		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local_connection.Workspace]
+	localConnection.GetMechanism().GetParameters()[local_connection.WorkspaceNSEName] =
+		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local_connection.WorkspaceNSEName]
+
+	// Check if it update we already have
+	if proto.Equal(localConnection, cc.Xcon.GetLocalDestination()) {
+		// Since they are same, we do not need to do anything.
+		return
+	}
+
+	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+		cc.Xcon.Destination = &crossconnect.CrossConnect_LocalDestination{
+			LocalDestination: localConnection,
+		}
+	}); upd != nil {
+		cc = upd
+	} else {
+		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		return
+	}
+
+	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
@@ -90,12 +127,18 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 		return
 	}
 
-	m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
 			RemoteDestination: remoteConnection,
 		}
-	})
-	m.manager.Heal(cc, nsm.HealState_RemoteDataplaneDown)
+	}); upd != nil {
+		cc = upd
+	} else {
+		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		return
+	}
+
+	m.manager.Heal(cc, nsm.HealStateDstUpdate)
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
@@ -108,24 +151,34 @@ func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.C
 	return m.model.GetClientConnection(connectionId)
 }
 
-func (m *ClientConnectionManager) GetClientConnectionByDst(dstId string) *model.ClientConnection {
+// GetClientConnectionByLocalDst returns a ClientConnection with `Xcon.GetLocalDestination().GetID() == dstID`
+// or `null` if there is no such connection
+func (m *ClientConnectionManager) GetClientConnectionByLocalDst(dstID string) *model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
 
 	for _, clientConnection := range clientConnections {
-		var destinationId string
-		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil {
-			destinationId = dst.GetId()
-		} else {
-			destinationId = clientConnection.Xcon.GetRemoteDestination().GetId()
-		}
-
-		if destinationId == dstId {
+		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil && dst.GetId() == dstID {
 			return clientConnection
 		}
 	}
 
 	return nil
 }
+
+// GetClientConnectionByRemoteDst returns a ClientConnection with `Xcon.GetRemoteDestination().GetId() == dstID`
+// or `null` if there is no such connection
+func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID string) *model.ClientConnection {
+	clientConnections := m.model.GetAllClientConnections()
+
+	for _, clientConnection := range clientConnections {
+		if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil && dst.GetId() == dstID {
+			return clientConnection
+		}
+	}
+
+	return nil
+}
+
 func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.NetworkServiceManager) []*model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
 	var result []*model.ClientConnection

@@ -69,7 +69,6 @@ func main() {
 		case event := <-monitorClient.EventChannel():
 			if event.EventType() == monitor.EventTypeInitialStateTransfer {
 				logrus.Infof(nscLogFormat, "Monitor started")
-				continue
 			}
 
 			for _, entity := range event.Entities() {
@@ -79,7 +78,7 @@ func main() {
 				}
 
 				switch event.EventType() {
-				case monitor.EventTypeUpdate:
+				case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
 					if !proto.Equal(conn, currentConn) {
 						logrus.Infof(nscLogWithParamFormat, "Connection updated", conn)
 						currentConn = conn

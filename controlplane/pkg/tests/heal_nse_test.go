@@ -93,7 +93,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
-	srv2.manager.Heal(clientConnection2, nsm.HealState_DstDown)
+	srv2.manager.Heal(clientConnection2, nsm.HealStateDstDown)
 
 	// First update, is delete
 	// Second update is update

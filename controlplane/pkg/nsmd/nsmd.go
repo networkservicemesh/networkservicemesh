@@ -46,6 +46,7 @@ type NSMServer interface {
 	Manager() nsm.NetworkServiceManager
 
 	MonitorManager
+	EndpointManager
 }
 
 type nsmServer struct {
@@ -217,24 +218,15 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 		for endpointId, nse := range nses {
 			if ws, ok := nsm.workspaces[nse.Workspace]; ok {
 				logrus.Infof("Checking NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
-				ctx, cancelCtx := context.WithTimeout(context.Background(), NSEAliveTimeout)
-				defer cancelCtx()
-				nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(ws.NsmClientSocket()))
-				if err != nil {
+				if !ws.isConnectionAlive(NSEAliveTimeout) {
 					logrus.Errorf("Unable to connect to local nse %v. Skipping", nse.NseReg)
-
-					// Just remove NSE from registry if already registered inside it.
-					if _, ok := existingEndpoints[endpointId]; ok {
-						if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-							EndpointName: endpointId,
-						}); err != nil {
-							logrus.Errorf("Remove NSE: NSE %v", err)
-						}
+					if err = nsm.deleteEndpointWithClient(endpointId, client); err != nil {
+						logrus.Errorf("Remove NSE: NSE %v", err)
 					}
 					continue
 				}
+
 				logrus.Infof("NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
-				_ = nseConn.Close()
 
 				if _, ok := existingEndpoints[endpointId]; !ok {
 					newReg, err := ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
@@ -292,6 +284,35 @@ func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServic
 		}
 	}
 	logrus.Infof("NSMD: Restore of NSE/Clients Complete...")
+}
+
+func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.NetworkServiceRegistryClient) error {
+	if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
+		EndpointName: name,
+	}); err != nil {
+		return err
+	}
+
+	nsm.model.DeleteEndpoint(name)
+
+	return nil
+}
+
+// DeleteEndpointWithBrokenConnection deletes endpoint if it has no active connections
+func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
+	// If endpoint has active client connection, it should be handled by MonitorNetNsInodeServer
+	for _, clientConnection := range nsm.model.GetAllClientConnections() {
+		if endpoint.EndpointName() == clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName {
+			return nil
+		}
+	}
+
+	client, err := nsm.serviceRegistry.NseRegistryClient()
+	if err != nil {
+		return err
+	}
+
+	return nsm.deleteEndpointWithClient(endpoint.EndpointName(), client)
 }
 
 func (nsm *nsmServer) Stop() {
@@ -371,9 +392,6 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
 	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
-	// Register CrossConnect monitorCrossConnectServer client as ModelListener
-	monitorCrossConnectClient := NewMonitorCrossConnectClient(nsm, nsm.xconManager)
-	nsm.model.AddListener(monitorCrossConnectClient)
 }
 
 func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
