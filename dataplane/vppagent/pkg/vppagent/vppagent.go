@@ -318,7 +318,7 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 		logrus.Warn(err)
 	}
 	v.monitor.Delete(xcon)
-	return &empty.Empty{}, nil
+	return &empty.Empty{}, err
 }
 
 // Init makes setup for the VPPAgent
