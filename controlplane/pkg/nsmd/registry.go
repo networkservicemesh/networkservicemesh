@@ -16,9 +16,8 @@ package nsmd
 
 import (
 	"fmt"
-
 	"github.com/golang/protobuf/ptypes/empty"
-
+	"github.com/google/uuid"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
 	"github.com/sirupsen/logrus"
@@ -69,7 +68,21 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	}
 	return reg, nil
 }
+
 func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error) {
+	name := fmt.Sprintf("%s-%s", request.GetNetworkService().GetName(), uuid.New().String())
+	newEndpoint := &model.Endpoint{
+		SocketLocation: es.workspace.NsmClientSocket(),
+		Workspace:      es.workspace.Name(),
+		Endpoint: &registry.NSERegistration{
+			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+				EndpointName:              name,
+				NetworkServiceManagerName: es.nsm.model.GetNsm().GetName(),
+			},
+			NetworkService: request.NetworkService,
+		},
+	}
+	es.nsm.model.AddEndpoint(newEndpoint)
 	// Some notes here:
 	// 1)  Yes, we are overwriting anything we get for NetworkServiceManager
 	//     from the NSE.  NSE's shouldn't specify NetworkServiceManager
@@ -78,6 +91,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 	request.NetworkServiceManager = &registry.NetworkServiceManager{
 		Url: es.nsm.serviceRegistry.GetPublicAPI(),
 	}
+	request.NetworkserviceEndpoint.EndpointName = name
 
 	registration, err := client.RegisterNSE(context.Background(), request)
 	if err != nil {
@@ -86,15 +100,9 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 		return nil, err
 	}
 
-	ep := es.nsm.model.GetEndpoint(registration.GetNetworkserviceEndpoint().GetEndpointName())
-	modelEndpoint := &model.Endpoint{
-		SocketLocation: es.workspace.NsmClientSocket(),
-		Endpoint:       registration,
-		Workspace:      es.workspace.Name(),
-	}
-	if ep == nil {
-		es.nsm.model.AddEndpoint(modelEndpoint)
-	}
+	es.nsm.model.ApplyEndpointChanges(name, func(endp *model.Endpoint) {
+		endp.Endpoint = registration
+	})
 	logrus.Infof("Received upstream NSERegitration: %v", registration)
 
 	return registration, nil

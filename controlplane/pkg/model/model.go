@@ -15,6 +15,7 @@ type Model interface {
 	GetEndpoint(name string) *Endpoint
 	UpdateEndpoint(endpoint *Endpoint)
 	DeleteEndpoint(name string)
+	ApplyEndpointChanges(name string, changeFunc func(*Endpoint)) *Endpoint
 
 	GetDataplane(name string) *Dataplane
 	AddDataplane(dataplane *Dataplane)

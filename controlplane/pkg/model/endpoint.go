@@ -77,6 +77,14 @@ func (d *endpointDomain) DeleteEndpoint(name string) {
 	d.delete(name)
 }
 
+func (d *endpointDomain) ApplyEndpointChanges(name string, f func(*Endpoint)) *Endpoint {
+	upd := d.applyChanges(name, func(v interface{}) { f(v.(*Endpoint)) })
+	if upd != nil {
+		return upd.(*Endpoint)
+	}
+	return nil
+}
+
 func (d *endpointDomain) UpdateEndpoint(endpoint *Endpoint) {
 	d.store(endpoint.EndpointName(), endpoint)
 }
