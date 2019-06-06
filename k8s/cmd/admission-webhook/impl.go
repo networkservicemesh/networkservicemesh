@@ -47,7 +47,7 @@ const (
 	tagEnv           = "TAG"
 
 	repoDefault          = "networkservicemesh"
-	initContainerDefault = "nsc"
+	initContainerDefault = "nsm-init"
 	tagDefault           = "latest"
 
 	initContainerName = "nsm-init-container"

@@ -30,7 +30,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
 
-	if k8s.UseIPv6 {
+	if k8s.UseIPv6() {
 		variables = map[string]string{
 			nsmd.ExcludedPrefixesEnv:     "100::/64",
 			nsmd.NsmdDeleteLocalRegistry: "true",

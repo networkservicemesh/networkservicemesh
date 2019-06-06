@@ -154,14 +154,14 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 // DeployICMP - Setup ICMP responder NSE
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6), defaultICMPCommand(),
+		defaultICMPEnv(k8s.UseIPv6()), defaultICMPCommand(),
 	))
 }
 
 // DeployICMPWithConfig - Setup ICMP responder NSE with parameters
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
 	pod := pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6), defaultICMPCommand(),
+		defaultICMPEnv(k8s.UseIPv6()), defaultICMPCommand(),
 	)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, node, name, timeout, pod)
@@ -177,13 +177,13 @@ func DeployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration)
 // DeployNeighborNSE deploys icmp with flag -neighbors
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, node, name, timeout, pods.TestNSEPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6), defaultNeighborNSECommand(),
+		defaultICMPEnv(k8s.UseIPv6()), defaultNeighborNSECommand(),
 	))
 }
 
 // DeployNSC - Setup Default Client
 func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "nsc", timeout, pods.NSCPod(name, node,
+	return deployNSC(k8s, node, name, "nsm-init", timeout, pods.NSCPod(name, node,
 		defaultNSCEnv()))
 }
 
@@ -554,7 +554,7 @@ func (info *NSCCheckInfo) PrintLogs() {
 
 // CheckNSC - Perform default check for client to NSE operations
 func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	if !k8s.UseIPv6 {
+	if !k8s.UseIPv6() {
 		return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
 	}
 	return checkNSCConfig(k8s, nscPodNode, "100::1", "100::2")
@@ -567,13 +567,13 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	pingCommand := "ping"
 	publicDNSAddress := "8.8.8.8"
 
-	if k8s.UseIPv6 {
+	if k8s.UseIPv6() {
 		pingCommand = "ping6"
 		publicDNSAddress = "2001:4860:4860::8888"
 	}
 
 	/* Check IP address */
-	if !k8s.UseIPv6 {
+	if !k8s.UseIPv6() {
 		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "addr")
 	} else {
 		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "addr")
@@ -593,7 +593,7 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	}
 
 	/* Check route */
-	if !k8s.UseIPv6 {
+	if !k8s.UseIPv6() {
 		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "route")
 	} else {
 		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "route")

@@ -102,7 +102,7 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 	pingCommand := "ping"
 	pingIP := "172.16.1.2"
 	arpCommand := []string{"arp", "-a"}
-	if k8s.UseIPv6 {
+	if k8s.UseIPv6() {
 		pingCommand = "ping6"
 		pingIP = "100::2"
 		arpCommand = []string{"ip", "-6", "neigh", "show"}

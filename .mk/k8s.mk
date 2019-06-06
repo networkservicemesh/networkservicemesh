@@ -109,7 +109,9 @@ k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
 .PHONY: k8s-admission-webhook-deploy
 k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete k8s-admission-webhook-load-images k8s-admission-webhook-create-cert
 	@until ! $$($(kubectl) get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml | $(kubectl) apply -f -
+	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml \
+		| sed "N; s/\(name:[ \t]*TAG\n[ \t]*value:[ \t]*\).*/\1\"${COMMIT}\"/" \
+		| $(kubectl) apply -f -
 	@echo "Installing webhook..."
 	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) apply -f -
 
@@ -270,10 +272,13 @@ k8s-vpn-gateway-nsc-save:
 k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
 
 .PHONY: k8s-nsc-build
-k8s-nsc-build:  ${CONTAINER_BUILD_PREFIX}-nsc-build
+k8s-nsc-build: ${CONTAINER_BUILD_PREFIX}-nsm-init-build
 
 .PHONY: k8s-nsc-save
-k8s-nsc-save:  ${CONTAINER_BUILD_PREFIX}-nsc-save
+k8s-nsc-save: ${CONTAINER_BUILD_PREFIX}-nsm-init-save
+
+.PHONY: k8s-nsc-load-images
+k8s-nsc-load-images: k8s-nsm-init-load-images
 
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-nse-build

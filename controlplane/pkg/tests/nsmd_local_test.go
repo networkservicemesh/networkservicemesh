@@ -219,17 +219,7 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 		Subnet: "10.96.0.0/12",
 	})
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
-
-	request := createRequest(false)
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
-
-	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
+	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	ds.addResponse(&registry.SubnetExtendingResponse{
 		Type:   registry.SubnetExtendingResponse_POD,
@@ -240,16 +230,52 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 		Subnet: "10.96.0.0/10",
 	})
 
-	nsmClient, conn = srv.requestNSMConnection("nsm-1")
+	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
+}
 
-	request = createRequest(false)
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
+func waitForExcludePrefixes(srv *nsmdFullServerImpl, expected []string, timeout time.Duration) bool {
+
+	st := time.Now()
+
+	for ; ; <-time.After(50 * time.Millisecond) {
+		if time.Since(st) > timeout {
+			return false
+		}
+
+		actual := srv.manager.GetExcludePrefixes().GetPrefixes()
+		if len(actual) != len(expected) {
+			continue
+		}
+
+		equal := true
+		for i, e := range expected {
+			if e != actual[i] {
+				equal = false
+				break
+			}
+		}
+
+		if equal {
+			return true
+		}
+	}
+}
+
+func checkPrefixes(srv *nsmdFullServerImpl, expected []string) {
+	success := waitForExcludePrefixes(srv, expected, 5*time.Second)
+	Expect(success).To(BeTrue())
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer func() { _ = conn.Close() }()
+
+	request := createRequest(false)
+	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	Expect(err).To(BeNil())
 	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
-	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
+	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/22", "10.96.0.0/10"}))
+	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal(expected))
 }
 
 func TestExcludePrefixesMonitorFails(t *testing.T) {
@@ -272,25 +298,11 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 		Subnet: "10.96.0.0/12",
 	})
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
-
-	request := createRequest(false)
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
-
-	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
+	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	ds.dummyKill()
 
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
-
-	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/24", "10.96.0.0/12"}))
+	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	newDs := srv.serviceRegistry.nseRegistry.getNextSubnetStream()
 
@@ -302,11 +314,8 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 		Type:   registry.SubnetExtendingResponse_SERVICE,
 		Subnet: "10.96.0.0/10",
 	})
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
 
-	originl, ok = srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.ExcludedPrefixes).To(Equal([]string{"10.32.1.0/22", "10.96.0.0/10"}))
+	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
 }
 
 func TestNSEIPNeghtbours(t *testing.T) {

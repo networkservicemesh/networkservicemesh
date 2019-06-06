@@ -1,6 +1,7 @@
 package nsm
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"time"
 
 	"golang.org/x/net/context"
@@ -69,4 +70,6 @@ type NetworkServiceManager interface {
 	WaitForDataplane(duration time.Duration) error
 	RemoteConnectionLost(clientConnection NSMClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
+	GetExcludePrefixes() prefix_pool.PrefixPool
+	SetExcludePrefixes(prefix_pool.PrefixPool)
 }
