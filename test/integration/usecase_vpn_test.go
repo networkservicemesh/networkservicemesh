@@ -138,7 +138,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	s1 = time.Now()
 	node := affinity["vppagent-firewall-nse-1"]
 	logrus.Infof("Starting VPPAgent Firewall NSE on node: %d", node)
-	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapIcmpHttp("vppagent-firewall-nse-1", k8s.GetK8sNamespace()))
+	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapICMPHTTP("vppagent-firewall-nse-1", k8s.GetK8sNamespace()))
 	Expect(err).To(BeNil())
 	vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", &nodes[node],
 		map[string]string{

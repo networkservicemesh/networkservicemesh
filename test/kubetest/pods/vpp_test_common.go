@@ -6,13 +6,15 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
-	envVars := []v1.EnvVar{{Name: "VPP_APP", Value: "vppagent-nsc"}}
+// VppTestCommonPod creates a new vpp-based testing pod
+func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string) *v1.Pod {
+	envVars := []v1.EnvVar{{Name: "VPP_APP", Value: app}}
 	for k, v := range env {
-		envVars = append(envVars, v1.EnvVar{
-			Name:  k,
-			Value: v,
-		})
+		envVars = append(envVars,
+			v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
 	}
 
 	pod := &v1.Pod{
@@ -23,22 +25,28 @@ func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			HostPID: true,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
-					Name:            "vppagent-nsc",
+					Name:            container,
 					Image:           "networkservicemesh/vpp-test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Env:             envVars,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
+					Env: envVars,
 				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
+
+	if node != nil {
+		pod.Spec.NodeSelector = map[string]string{
+			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
+		}
+	}
+
 	return pod
 }

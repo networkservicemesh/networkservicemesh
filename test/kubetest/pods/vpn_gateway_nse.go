@@ -6,6 +6,7 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// VPNGatewayNSEPod creates a new 'vpn-gateway-nse' pod
 func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate

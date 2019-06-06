@@ -6,10 +6,8 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ICMPResponderPod creates a new 'icmp-responder-nse' pod
-func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePeriod int64,
-	dirty, neighbors, routes, update bool) *v1.Pod {
-
+// TestCommonPod creates a new alpine-based testing pod
+func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string) *v1.Pod {
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -17,20 +15,6 @@ func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePe
 				Name:  k,
 				Value: v,
 			})
-	}
-
-	command := []string{"/bin/icmp-responder-nse"}
-	if dirty {
-		command = append(command, "-dirty")
-	}
-	if neighbors {
-		command = append(command, "-neighbors")
-	}
-	if routes {
-		command = append(command, "-routes")
-	}
-	if update {
-		command = append(command, "-update")
 	}
 
 	pod := &v1.Pod{
@@ -55,7 +39,7 @@ func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePe
 					Env: envVars,
 				}),
 			},
-			TerminationGracePeriodSeconds: &gracePeriod,
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 
