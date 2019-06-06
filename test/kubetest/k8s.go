@@ -484,8 +484,7 @@ func (k8s *K8s) Cleanup() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := k8s.deletePods(k8s.pods...)
-		Expect(err).To(BeNil())
+		_ = k8s.deletePods(k8s.pods...)
 	}()
 
 	wg.Add(1)
