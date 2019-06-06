@@ -14,10 +14,14 @@
 
 K8S_CONF_DIR = k8s/conf
 
+# Set the configured forwarding plane
+ifeq (${FORWARDING_PLANE}, vpp)
+  DEPLOY_FORWARDING_PLANE = vppagent-dataplane
+endif
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_TRACING = jaeger
 DEPLOY_WEBHOOK = admission-webhook
-DEPLOY_NSM = nsmgr vppagent-dataplane
+DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc

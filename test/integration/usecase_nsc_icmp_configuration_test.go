@@ -102,7 +102,7 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 	pingCommand := "ping"
 	pingIP := "172.16.1.2"
 	arpCommand := []string{"arp", "-a"}
-	if k8s.UseIPv6 {
+	if k8s.UseIPv6() {
 		pingCommand = "ping6"
 		pingIP = "100::2"
 		arpCommand = []string{"ip", "-6", "neigh", "show"}
@@ -139,7 +139,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables()
+		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
 		if disableVHost {
 			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
 		}
