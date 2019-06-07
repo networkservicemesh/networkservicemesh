@@ -26,6 +26,7 @@ spec:
       containers:
         - name: vpn-gateway
           image: {{ .Values.registry }}/networkservicemesh/test-common:{{ .Values.tag }}
+          command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: ADVERTISE_NSE_NAME
@@ -39,7 +40,6 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          command: ["/bin/icmp-responder-nse"]
         - name: nginx
           image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}
 metadata:
