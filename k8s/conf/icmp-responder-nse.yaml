@@ -6,7 +6,7 @@ spec:
     matchLabels:
       networkservicemesh.io/app: "icmp-responder"
       networkservicemesh.io/impl: "icmp-responder"
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:

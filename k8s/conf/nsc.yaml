@@ -5,7 +5,7 @@ spec:
   selector:
     matchLabels:
       networkservicemesh.io/app: "icmp-responder-nsc"
-  replicas: 4
+  replicas: 1
   template:
     metadata:
       labels:
