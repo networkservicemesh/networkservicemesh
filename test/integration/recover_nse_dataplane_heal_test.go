@@ -42,8 +42,9 @@ func TestDataplaneHealMultiNodesLocal(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture())
+	for i := 0; i < 10; i++ {
+		testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture())
+	}
 }
 func TestDataplaneHealMultiNodesRemote(t *testing.T) {
 	RegisterTestingT(t)
@@ -64,7 +65,6 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 	Expect(killDataplaneIndex >= 0 && killDataplaneIndex < nodesCount).Should(BeTrue())
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
-
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
