@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
@@ -1014,4 +1015,13 @@ func (k8s *K8s) setForwardingPlane() {
 // GetForwardingPlane gets which forwarding plane is going to be used in testing
 func (k8s *K8s) GetForwardingPlane() string {
 	return k8s.forwardingPlane
+}
+
+// GetNSEs returns existing nse resources
+func (k8s *K8s) GetNSEs() ([]v1alpha1.NetworkServiceEndpoint, error) {
+	nseList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints("default").List(metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return nseList.Items, err
 }

@@ -25,7 +25,7 @@ func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		Spec: v1.PodSpec{
 			HostPID: true,
 			Containers: []v1.Container{
-				{
+				containerMod(&v1.Container{
 					Name:            "vppagent-nsc",
 					Image:           "networkservicemesh/vppagent-nsc:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -35,7 +35,7 @@ func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
-				},
+				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},

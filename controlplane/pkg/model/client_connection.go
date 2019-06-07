@@ -60,6 +60,14 @@ func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
 	return cc.Xcon.GetRemoteSource()
 }
 
+// GetConnectionDestination returns connection destination as nsm.NSMConnection
+func (cc *ClientConnection) GetConnectionDestination() nsm.NSMConnection {
+	if cc.Xcon.GetLocalDestination() != nil {
+		return cc.Xcon.GetLocalDestination()
+	}
+	return cc.Xcon.GetRemoteDestination()
+}
+
 // Clone return pointer to copy of ClientConnection
 func (cc *ClientConnection) clone() cloneable {
 	if cc == nil {
