@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cat "/tmp/vpp/$VPP_APP/grpc.conf" > /opt/vpp-agent/dev/grpc.conf
+cat "/tmp/vpp/$TEST_APPLICATION/grpc.conf" > /opt/vpp-agent/dev/grpc.conf
 
-echo "Starting $VPP_APP"
-exec "/bin/$VPP_APP"
+echo "Starting $TEST_APPLICATION"
+exec "/bin/$TEST_APPLICATION"

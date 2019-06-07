@@ -32,7 +32,7 @@ spec:
           image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: VPP_APP
+            - name: TEST_APPLICATION
               value: "vppagent-icmp-responder-nse"
             - name: ADVERTISE_NSE_NAME
               value: "icmp-responder"

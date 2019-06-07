@@ -18,7 +18,7 @@ spec:
           image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: VPP_APP
+            - name: TEST_APPLICATION
               value: "vppagent-firewall-nse"
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"

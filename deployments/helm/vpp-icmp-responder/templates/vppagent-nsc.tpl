@@ -19,7 +19,7 @@ spec:
           image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: VPP_APP
+            - name: TEST_APPLICATION
               value: "vppagent-nsc"
             - name: OUTGOING_NSC_LABELS
               value: "app=icmp"

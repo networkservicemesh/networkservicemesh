@@ -8,7 +8,7 @@ import (
 
 // VppTestCommonPod creates a new vpp-based testing pod
 func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string) *v1.Pod {
-	envVars := []v1.EnvVar{{Name: "VPP_APP", Value: app}}
+	envVars := []v1.EnvVar{{Name: "TEST_APPLICATION", Value: app}}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{
