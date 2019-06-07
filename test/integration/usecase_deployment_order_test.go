@@ -102,12 +102,33 @@ func TestDeploymentOrderServiceClientEndpoint(t *testing.T) {
 		DeployEndpoint})
 }
 
+func TestDeploymentOrderService2ClientEndpoint(t *testing.T) {
+	testDeploymentOrder(t, []Deployment{
+		DeployService,
+		DeployClient, DeployClient,
+		DeployEndpoint})
+}
+
 func TestDeploymentOrderServiceClientEndpointClient(t *testing.T) {
 	testDeploymentOrder(t, []Deployment{
 		DeployService,
 		DeployClient,
 		DeployEndpoint,
 		DeployClient})
+}
+
+func TestDeploymentOrderServiceClientWebhookEndpoint(t *testing.T) {
+	testDeploymentOrder(t, []Deployment{
+		DeployService,
+		DeployClientWebhook,
+		DeployEndpoint})
+}
+
+func TestDeploymentOrderService4ClientWebhook2Endpoint(t *testing.T) {
+	testDeploymentOrder(t, []Deployment{
+		DeployService,
+		DeployClientWebhook, DeployClientWebhook, DeployClientWebhook, DeployClientWebhook,
+		DeployEndpoint, DeployEndpoint})
 }
 
 func testDeploymentOrder(t *testing.T, order []Deployment) {
