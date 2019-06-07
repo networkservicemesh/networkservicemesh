@@ -282,18 +282,24 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 	return client, err
 }
 
+func NewK8sForConfig(g *WithT, prepare bool, kubeconfig string) (*K8s, error) {
+	client, err := NewK8sWithoutRolesForConfig(g, prepare, kubeconfig)
+	client.roles, _ = client.CreateRoles("admin", "view", "binding")
+	return client, err
+}
+
 // NewK8sWithoutRoles - Creates a new K8s Clientset for the default config
 func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
-
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
 		path = os.Getenv("HOME") + "/.kube/config"
 	}
+	return NewK8sWithoutRolesForConfig(g, prepare, path)
+}
 
-	config, err := clientcmd.BuildConfigFromFlags("", path)
-	if err != nil {
-		return nil, err
-	}
+func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) (*K8s, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	Expect(err).To(BeNil())
 
 	client := K8s{
 		pods: []*v1.Pod{},

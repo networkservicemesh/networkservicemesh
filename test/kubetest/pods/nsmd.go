@@ -178,6 +178,12 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						},
 					},
 					Resources: createDefaultResources(),
+					Ports: []v1.ContainerPort{
+						{
+							HostPort: 5000,
+							ContainerPort: 5000,
+						},
+					},
 				}),
 			},
 		},
