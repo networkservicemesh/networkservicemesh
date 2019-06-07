@@ -70,7 +70,11 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 }
 
 func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error) {
-	name := fmt.Sprintf("%s-%s", request.GetNetworkService().GetName(), uuid.New().String())
+	name := request.GetNetworkserviceEndpoint().GetEndpointName()
+	if name == "" {
+		name = fmt.Sprintf("%s-%s", request.GetNetworkService().GetName(), uuid.New().String())
+	}
+
 	newEndpoint := &model.Endpoint{
 		SocketLocation: es.workspace.NsmClientSocket(),
 		Workspace:      es.workspace.Name(),
