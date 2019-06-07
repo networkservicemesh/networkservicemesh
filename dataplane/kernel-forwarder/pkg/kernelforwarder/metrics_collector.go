@@ -1,4 +1,4 @@
-package vppagent
+package kernelforwarder
 
 import (
 	"context"

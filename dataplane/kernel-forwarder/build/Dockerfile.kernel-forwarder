@@ -12,7 +12,7 @@ WORKDIR /root/networkservicemesh/
 RUN ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd/vppagent-dataplane.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/vppagent-dataplane ./dataplane/kernel-forwarder/cmd/vppagent-dataplane.go
 
 FROM ${VPP_AGENT} as runtime
 COPY --from=build /go/bin/vppagent-dataplane /bin/vppagent-dataplane

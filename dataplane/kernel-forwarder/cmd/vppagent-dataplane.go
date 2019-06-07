@@ -17,18 +17,19 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/kernelforwarder"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func main() {
 	// Capture signals to cleanup before exiting
+	logrus.Info("Starting Kernel Forwarding plane!")
 	c := tools.NewOSSignalChannel()
 
 	go common.BeginHealthCheck()
 
-	agent := vppagent.CreateVPPAgent()
+	agent := kernelforwarder.CreateVPPAgent()
 
 	registration := common.CreateDataplane(agent)
 

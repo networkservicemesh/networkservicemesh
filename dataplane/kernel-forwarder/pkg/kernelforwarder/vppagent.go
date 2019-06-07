@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vppagent
+package kernelforwarder
 
 import (
 	"context"
@@ -44,8 +44,8 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/converter"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/memif"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 

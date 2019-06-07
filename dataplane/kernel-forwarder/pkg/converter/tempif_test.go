@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/converter"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
