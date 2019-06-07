@@ -1,7 +1,7 @@
 package nsm
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
@@ -47,25 +47,18 @@ func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSER
 
 }
 
-func (srv *networkServiceManager) createLocalNSERequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection) *networkservice.NetworkServiceRequest {
+func (srv *networkServiceManager) createLocalNSERequest(endpoint *registry.NSERegistration, dataplane *model.Dataplane, requestConnection nsm.NSMConnection) *networkservice.NetworkServiceRequest {
+	// We need to obtain parameters for local mechanism
+	localM := append([]*local_connection.Mechanism{}, dataplane.LocalMechanisms...)
 
 	message := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &local_connection.Connection{
 			Id:             srv.createConnectionId(),
 			NetworkService: endpoint.GetNetworkService().GetName(),
 			Context:        requestConnection.GetContext(),
 			Labels:         requestConnection.GetLabels(),
 		},
-		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type:       connection.MechanismType_MEM_INTERFACE,
-				Parameters: map[string]string{},
-			},
-			{
-				Type:       connection.MechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{},
-			},
-		},
+		MechanismPreferences: localM,
 	}
 	return message
 }

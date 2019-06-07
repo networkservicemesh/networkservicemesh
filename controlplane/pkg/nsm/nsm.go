@@ -478,7 +478,7 @@ func (srv *networkServiceManager) performNSERequest(requestId string, ctx contex
 
 	var message nsm.NSMRequest
 	if srv.nseManager.isLocalEndpoint(endpoint) {
-		message = srv.createLocalNSERequest(endpoint, requestConnection)
+		message = srv.createLocalNSERequest(endpoint, dp, requestConnection)
 	} else {
 		message, err = srv.createRemoteNSMRequest(endpoint, requestConnection, dp, existingConnection)
 		if err != nil {
