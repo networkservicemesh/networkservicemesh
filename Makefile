@@ -14,10 +14,15 @@
 
 # We want to use bash
 SHELL:=/bin/bash
+
+# Set number of VM workers to be spawned
 WORKER_COUNT ?= 1
 
 # Set a default forwarding plane
 FORWARDING_PLANE ?= vpp
+
+# Set target architecture
+BUILD_ARCH ?= amd64
 
 # Default target, no other targets should be before default
 .PHONY: default
