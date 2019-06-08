@@ -28,6 +28,7 @@ LOG_CONTAINERS=$(KILL_CONTAINERS)
 ORG=networkservicemesh
 
 include .mk/vpp_agent.mk
+include .mk/docker_arm64.mk
 
 .PHONY: docker-build
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))

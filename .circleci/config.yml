@@ -544,6 +544,8 @@ jobs:
             export TAG="${COMMIT}"
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
+            BUILD_ARCH=arm64 make docker-<< parameters.container >>-build-arm64
+            BUILD_ARCH=arm64 make docker-<< parameters.container >>-push-arm64
 
 # build ready - empty job
   build-container-success:
