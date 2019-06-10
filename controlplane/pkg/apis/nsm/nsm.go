@@ -75,7 +75,6 @@ type NetworkServiceManager interface {
 	GetHealProperties() *NsmProperties
 	WaitForDataplane(duration time.Duration) error
 	RemoteConnectionLost(clientConnection NSMClientConnection)
-	NotifyRenamedEndpoint(nseOldName, nseNewName string)
 	GetExcludePrefixes() prefix_pool.PrefixPool
 	SetExcludePrefixes(prefix_pool.PrefixPool)
 }
