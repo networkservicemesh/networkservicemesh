@@ -25,13 +25,13 @@ type Model interface {
 	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
 	ApplyDataplaneChanges(name string, changeFunc func(*Dataplane)) *Dataplane
 
-	AddClientConnection(clientConnection *ClientConnection) error
-	AddOrUpdateClientConnection(clientConnection *ClientConnection)
+	AddClientConnection(id string, connectionState ClientConnectionState, cc *ClientConnection) (*ClientConnectionEditor, error)
 	GetClientConnection(connectionID string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
 	DeleteClientConnection(connectionID string) error
-	ApplyClientConnectionChanges(connectionID string, changeFunc func(*ClientConnection)) *ClientConnection
-	CompareAndSwapClientConnection(clientConnection *ClientConnection, compareFunc func(*ClientConnection) bool) bool
+	ChangeClientConnectionState(id string, connectionState ClientConnectionState) (*ClientConnectionEditor, error)
+	ResetClientConnectionChanges(editor *ClientConnectionEditor)
+	CommitClientConnectionChanges(editor *ClientConnectionEditor) error
 
 	ConnectionID() string
 	CorrectIDGenerator(id string)
@@ -48,7 +48,7 @@ type Model interface {
 type model struct {
 	endpointDomain
 	dataplaneDomain
-	clientConnectionDomain
+	clientConnectionEditorManager
 
 	lastConnectionID uint64
 	mtx              sync.RWMutex
@@ -110,11 +110,11 @@ func (m *model) RemoveListener(listener Listener) {
 // NewModel returns new instance of Model
 func NewModel() Model {
 	return &model{
-		clientConnectionDomain: newClientConnectionDomain(),
-		endpointDomain:         newEndpointDomain(),
-		dataplaneDomain:        newDataplaneDomain(),
-		selector:               selector.NewMatchSelector(),
-		listeners:              make(map[Listener]func()),
+		endpointDomain:                newEndpointDomain(),
+		dataplaneDomain:               newDataplaneDomain(),
+		clientConnectionEditorManager: newClientConnectionEditorManager(),
+		selector:                      selector.NewMatchSelector(),
+		listeners:                     make(map[Listener]func()),
 	}
 }
 

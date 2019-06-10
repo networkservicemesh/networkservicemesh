@@ -33,14 +33,15 @@ const (
 
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint
 type ClientConnection struct {
-	ConnectionID            string
 	Request                 networkservice.Request
 	Xcon                    *crossconnect.CrossConnect
 	RemoteNsm               *registry.NetworkServiceManager
 	Endpoint                *registry.NSERegistration
 	DataplaneRegisteredName string
-	ConnectionState         ClientConnectionState
 	DataplaneState          DataplaneState
+
+	id              string
+	connectionState ClientConnectionState
 }
 
 // GetID returns id of clientConnection
@@ -48,7 +49,12 @@ func (cc *ClientConnection) GetID() string {
 	if cc == nil {
 		return ""
 	}
-	return cc.ConnectionID
+	return cc.id
+}
+
+// GetConnectionState returns state of clientConnection
+func (cc *ClientConnection) GetConnectionState() ClientConnectionState {
+	return cc.connectionState
 }
 
 // GetNetworkService returns name of networkService of clientConnection
@@ -96,13 +102,13 @@ func (cc *ClientConnection) clone() cloneable {
 	}
 
 	return &ClientConnection{
-		ConnectionID:            cc.ConnectionID,
+		id:                      cc.id,
 		Xcon:                    xcon,
 		RemoteNsm:               remoteNsm,
 		Endpoint:                endpoint,
 		DataplaneRegisteredName: cc.DataplaneRegisteredName,
 		Request:                 request,
-		ConnectionState:         cc.ConnectionState,
+		connectionState:         cc.connectionState,
 		DataplaneState:          cc.DataplaneState,
 	}
 }
@@ -118,14 +124,14 @@ func newClientConnectionDomain() clientConnectionDomain {
 }
 
 func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) error {
-	if ok := d.store(cc.ConnectionID, cc, false); ok {
+	if ok := d.store(cc.id, cc, false); ok {
 		return nil
 	}
-	return fmt.Errorf("trying to add client connection by existing id: %v", cc.ConnectionID)
+	return fmt.Errorf("trying to add client connection by existing id: %v", cc.id)
 }
 
 func (d *clientConnectionDomain) AddOrUpdateClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc, true)
+	d.store(cc.id, cc, true)
 }
 
 func (d *clientConnectionDomain) GetClientConnection(id string) *ClientConnection {
@@ -159,7 +165,7 @@ func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string, f func(
 }
 
 func (d *clientConnectionDomain) CompareAndSwapClientConnection(cc *ClientConnection, f func(*ClientConnection) bool) bool {
-	return d.compareAndSwap(cc.ConnectionID, cc, func(v interface{}) bool { return f(v.(*ClientConnection)) })
+	return d.compareAndSwap(cc.id, cc, func(v interface{}) bool { return f(v.(*ClientConnection)) })
 }
 
 func (d *clientConnectionDomain) SetClientConnectionModificationHandler(h *ModificationHandler) func() {

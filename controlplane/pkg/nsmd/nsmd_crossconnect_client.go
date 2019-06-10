@@ -341,7 +341,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 			client.monitorManager.CrossConnectMonitor().Update(xcon)
 			client.xconManager.UpdateXcon(cc, xcon)
 		case monitor.EventTypeDelete:
-			if cc.ConnectionState == model.ClientConnectionClosing {
+			if cc.GetConnectionState() == model.ClientConnectionClosing {
 				client.monitorManager.CrossConnectMonitor().Delete(xcon)
 			}
 		}

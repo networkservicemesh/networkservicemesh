@@ -59,7 +59,7 @@ func (v *ModelVerifier) EndpointExists(name, nsm string) *ModelVerifier {
 }
 
 // ClientConnectionNotExists is a builder method to add check if model.ClientConnection with
-//   ConnectionID == connectionID
+//   GetID() == connectionID
 // doesn't exist in v.model
 func (v *ModelVerifier) ClientConnectionNotExists(connectionID string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &clientConnectionVerifier{
@@ -73,12 +73,12 @@ func (v *ModelVerifier) ClientConnectionNotExists(connectionID string) *ModelVer
 }
 
 // ClientConnectionExists is a builder method to add check if model.ClientConnection with
-//   ConnectionID == connectionID
-//   Xcon.Source.Id = srcID
-//   Xcon.Destination.Id = dst.ID
+//   GetID() == connectionID
+//   GetSource().Id = srcID
+//   GetDestination().Id = dst.ID
 //   RemoteNsm.Name = remoteNSM
 //   Endpoint.NetworkServiceEndpoint.EndpointName = nse
-//   Dataplane.RegisteredName = dataplane
+//   DataplaneRegisteredName = dataplane
 // exists in v.model
 func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remoteNSM, nse, dataplane string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &clientConnectionVerifier{

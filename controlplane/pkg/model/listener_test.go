@@ -58,8 +58,8 @@ func TestModelListener(t *testing.T) {
 	_ = m.AddDataplane(&Dataplane{})
 	_ = m.DeleteDataplane("")
 
-	_ = m.AddClientConnection(&ClientConnection{})
-	m.AddOrUpdateClientConnection(&ClientConnection{})
+	editor, _ := m.AddClientConnection("", ClientConnectionRequesting, &ClientConnection{})
+	_ = m.CommitClientConnectionChanges(editor)
 	_ = m.DeleteClientConnection("")
 
 	doneCh := make(chan struct{})
