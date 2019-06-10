@@ -15,6 +15,7 @@
 package nsmd
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/security/manager"
 	"context"
 	"net"
 	"os"
@@ -32,7 +33,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 type WorkspaceState int
@@ -94,7 +94,14 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 
 	logrus.Infof("Creating new GRPC MonitorServer")
 	tracer := opentracing.GlobalTracer()
+	cm := security.NewCertificateManager()
+	cred, err := cm.ServerCredentials()
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
 	w.grpcServer = grpc.NewServer(
+		grpc.Creds(cred),
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
@@ -115,12 +122,12 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 			return
 		}
 	}()
-	conn, err := tools.SocketOperationCheck(tools.SocketPath(socket))
-	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
-		return nil, err
-	}
-	conn.Close()
+	//conn, err := tools.SocketOperationCheck(tools.SocketPath(socket))
+	//if err != nil {
+	//	logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
+	//	return nil, err
+	//}
+	//conn.Close()
 	logrus.Infof("grpcserver for workspace %+v is operational", w)
 	logrus.Infof("Created new workspace: %+v", w)
 	return w, nil

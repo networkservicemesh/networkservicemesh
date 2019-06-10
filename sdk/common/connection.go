@@ -17,6 +17,7 @@ package common
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/security/manager"
 	"os"
 	"sync"
 
@@ -58,9 +59,14 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	// logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
 	// NSE connection server is ready and now endpoints can be advertised to NSM
-
+	cm := security.NewCertificateManager()
+	cred, err := cm.ClientCredentials()
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
 	// Check if the socket of Endpoint Connection Server is operable
-	testSocket, err := tools.SocketOperationCheck(tools.SocketPath(configuration.NsmServerSocket))
+	testSocket, err := tools.SocketOperationCheckSecure("unix:"+tools.SocketPath(configuration.NsmServerSocket), cred)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the nsm on socket %s with error: %v", configuration.NsmServerSocket, err)
 		return nil, err
@@ -72,7 +78,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 		return nil, err
 	}
 
-	conn.GrpcClient, err = tools.SocketOperationCheck(tools.SocketPath(configuration.NsmServerSocket))
+	conn.GrpcClient, err = tools.SocketOperationCheckSecure("unix:"+tools.SocketPath(configuration.NsmServerSocket), cred)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err

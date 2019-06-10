@@ -54,11 +54,6 @@ func WrongNSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{
-					Name:            "cert-sidecar",
-					Image:           "networkservicemesh/cert-sidecar",
-					ImagePullPolicy: v1.PullIfNotPresent,
-				},
-				{
 					Name:            "alpine-img",
 					Image:           "alpine:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -96,6 +91,13 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 			},
 		},
+		VolumeMounts: []v1.VolumeMount{
+			{
+				Name:      "certs",
+				MountPath: "/etc/certs",
+				ReadOnly:  true,
+			},
+		},
 	})
 	for k, v := range env {
 		initContainer.Env = append(initContainer.Env,
@@ -120,6 +122,16 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Command: []string{
 						"tail", "-f", "/dev/null",
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: "certs",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "nsc-cert-secret",
+						},
 					},
 				},
 			},

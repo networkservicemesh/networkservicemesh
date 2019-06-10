@@ -1,26 +1,24 @@
 package security
 
 import (
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/security/manager/apis"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"io/ioutil"
-	"net"
 	"sync"
 )
 
 const (
-	certFile = "/tmp/cert.pem"
-	keyFile  = "/tmp/key.pem"
-	caFile   = "/tmp/ca.pem"
+	certFile = "/etc/certs/cert.pem"
+	keyFile  = "/etc/certs/key.pem"
+	caFile   = "/etc/certs/ca.pem"
 )
 
 type CertificateManager interface {
-	ClientCredentials() credentials.TransportCredentials
-	ServerCredentials() credentials.TransportCredentials
+	ClientCredentials() (credentials.TransportCredentials, error)
+	ServerCredentials() (credentials.TransportCredentials, error)
 }
 
 type certs struct {
@@ -34,21 +32,40 @@ type certificateManager struct {
 	certs *certs
 }
 
-func (m *certificateManager) ClientCredentials() credentials.TransportCredentials {
-	panic("implement me")
-}
-
-func (m *certificateManager) ServerCredentials() credentials.TransportCredentials {
-	panic("implement me")
-}
-
-func (m *certificateManager) CertificatesUpdated(context.Context, *empty.Empty) (*empty.Empty, error) {
-	logrus.Info("CertificatesUpdate request")
-	if err := m.readCertificates(); err != nil {
-		logrus.Error(err)
-		return &empty.Empty{}, err
+func (m *certificateManager) ClientCredentials() (credentials.TransportCredentials, error) {
+	cert, err := tls.X509KeyPair(m.certs.cert, m.certs.key)
+	if err != nil {
+		return nil, err
 	}
-	return &empty.Empty{}, nil
+
+	caPool := x509.NewCertPool()
+	if ok := caPool.AppendCertsFromPEM(m.certs.ca); !ok {
+		return nil, errors.New("failed to append ca cert to pool")
+	}
+
+	return credentials.NewTLS(&tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caPool,
+	}), nil
+}
+
+func (m *certificateManager) ServerCredentials() (credentials.TransportCredentials, error) {
+	cert, err := tls.X509KeyPair(m.certs.cert, m.certs.key)
+	if err != nil {
+		return nil, err
+	}
+
+	caPool := x509.NewCertPool()
+	if ok := caPool.AppendCertsFromPEM(m.certs.ca); !ok {
+		return nil, errors.New("failed to append ca cert to pool")
+	}
+
+	return credentials.NewTLS(&tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{cert},
+		ClientCAs:    caPool,
+	}), nil
 }
 
 func (m *certificateManager) readCertificates() error {
@@ -84,27 +101,10 @@ func (m *certificateManager) setCertificates(c *certs) {
 	m.certs = c
 }
 
-func (m *certificateManager) start(errorCh chan error) {
-	ln, err := net.Listen("tcp", "localhost:3232")
-	if err != nil {
-		errorCh <- err
-		return
-	}
-	defer ln.Close()
-
-	s := grpc.NewServer()
-	manager.RegisterManagerServer(s, m)
-
-	if err := s.Serve(ln); err != nil {
-		errorCh <- err
-		return
-	}
-}
-
 func NewCertificateManager() CertificateManager {
 	cm := &certificateManager{}
-	errorCh := make(chan error, 1)
-	go cm.start(errorCh)
-
+	if err := cm.readCertificates(); err != nil {
+		logrus.Error(err)
+	}
 	return cm
 }

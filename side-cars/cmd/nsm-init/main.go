@@ -16,7 +16,6 @@ package main
 
 import (
 	"context"
-
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
@@ -30,6 +29,7 @@ func main() {
 	logrus.Info("Starting nsm-init...")
 	logrus.Infof("Version: %v", version)
 	tracer, closer := tools.InitJaeger("nsc")
+
 	opentracing.SetGlobalTracer(tracer)
 	defer func() { _ = closer.Close() }()
 

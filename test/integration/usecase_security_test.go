@@ -1,4 +1,5 @@
 // +build usecase
+
 package nsmd_integration_tests
 
 import (
@@ -11,12 +12,13 @@ func TestCertSidecar(t *testing.T) {
 	RegisterTestingT(t)
 
 	k8s, err := kubetest.NewK8s(true)
-	Expect(err).To(BeNil())
 	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 
-	nsc := kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-1", defaultTimeout)
-
+	kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-1", defaultTimeout)
+	return
 }

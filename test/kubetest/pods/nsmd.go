@@ -3,7 +3,7 @@ package pods
 import (
 	"os"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -122,6 +122,14 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						},
 					},
 				},
+				{
+					Name: "certs",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "nsmd-cert-secret",
+						},
+					},
+				},
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
@@ -135,10 +143,17 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					Name:            "nsmd",
 					Image:           "networkservicemesh/nsmd",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					VolumeMounts:    []v1.VolumeMount{newNSMMount()},
-					LivenessProbe:   config.liveness,
-					ReadinessProbe:  config.readiness,
-					Resources:       createDefaultResources(),
+					VolumeMounts: []v1.VolumeMount{
+						newNSMMount(),
+						{
+							Name:      "certs",
+							MountPath: "/etc/certs",
+							ReadOnly:  true,
+						},
+					},
+					LivenessProbe:  config.liveness,
+					ReadinessProbe: config.readiness,
+					Resources:      createDefaultResources(),
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",

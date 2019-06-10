@@ -17,6 +17,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/credentials"
 	"io"
 	"net"
 	"net/url"
@@ -101,6 +102,13 @@ func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
 	defer cancel()
 	return SocketOperationCheckContext(ctx, endpoint)
 }
+
+func SocketOperationCheckSecure(endpoint net.Addr, cred credentials.TransportCredentials) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return grpc.DialContext(ctx, endpoint.String(), grpc.WithTransportCredentials(cred))
+}
+
 func SocketOperationCheckContext(ctx context.Context, listenEndpoint net.Addr) (*grpc.ClientConn, error) {
 	conn, err := dial(ctx, listenEndpoint)
 	if err != nil {
