@@ -284,15 +284,6 @@ func (srv *networkServiceManager) request(ctx context.Context, request nsm.NSMRe
 		cc.Request = request
 	})
 
-	// 9. We need to programm dataplane with our values.
-	// 9.1 TODO: now we need close only if we update local-dst with local-dst, other cases works fine without close
-	if existingConnection != nil && existingConnection.RemoteNsm == nil && cc.RemoteNsm == nil {
-		logrus.Errorf("NSM:(9.0-%v) Closing Dataplane because of existing connection passed...", requestId)
-		if err := srv.closeDataplane(existingConnection); err != nil {
-			logrus.Errorf("NSM:(9.1-%v) Closing Dataplane error for local connection: %v", requestId, err)
-		}
-	}
-
 	var newXcon *crossconnect.CrossConnect
 
 	// 9.2 Sending updated request to dataplane.
