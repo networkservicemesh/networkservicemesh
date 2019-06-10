@@ -14,13 +14,14 @@
 
 BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s
 BUILD_CONTAINERS+=devenv crossconnect-monitor
-BUILD_CONTAINERS+=nsm-init test-nse monitoring-nsc
-BUILD_CONTAINERS+=vppagent-firewall-nse
+BUILD_CONTAINERS+=nsm-init
+BUILD_CONTAINERS+=test-common vpp-test-common
 
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
   BUILD_CONTAINERS+=vppagent-dataplane vppagent-dataplane-dev
 endif
+
 
 RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)

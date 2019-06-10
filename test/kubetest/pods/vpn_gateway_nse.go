@@ -6,13 +6,18 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
+// VPNGatewayNSEPod creates a new 'vpn-gateway-nse' pod
+func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
+	ht := new(v1.HostPathType)
+	*ht = v1.HostPathDirectoryOrCreate
+
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
-		envVars = append(envVars, v1.EnvVar{
-			Name:  k,
-			Value: v,
-		})
+		envVars = append(envVars,
+			v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
 	}
 
 	pod := &v1.Pod{
@@ -23,22 +28,33 @@ func VppagentNSC(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			HostPID: true,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
-					Name:            "vppagent-nsc",
-					Image:           "networkservicemesh/vppagent-nsc:latest",
+					Name:            "vpn-gateway",
+					Image:           "networkservicemesh/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Env:             envVars,
+					Command: []string{
+						"/bin/icmp-responder-nse",
+					},
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
+					Env: envVars,
 				}),
+				{
+					Name:  "nginx",
+					Image: "networkservicemesh/nginx",
+				},
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
+	}
+	if node != nil {
+		pod.Spec.NodeSelector = map[string]string{
+			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
+		}
 	}
 	return pod
 }
