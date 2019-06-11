@@ -6,31 +6,15 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ICMPResponderPod creates a new 'icmp-responder-nse' pod
-func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePeriod int64,
-	dirty, neighbors, routes, update bool) *v1.Pod {
-
-	envVars := []v1.EnvVar{}
+// VppTestCommonPod creates a new vpp-based testing pod
+func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string) *v1.Pod {
+	envVars := []v1.EnvVar{{Name: "TEST_APPLICATION", Value: app}}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{
 				Name:  k,
 				Value: v,
 			})
-	}
-
-	command := []string{"/bin/icmp-responder-nse"}
-	if dirty {
-		command = append(command, "-dirty")
-	}
-	if neighbors {
-		command = append(command, "-neighbors")
-	}
-	if routes {
-		command = append(command, "-routes")
-	}
-	if update {
-		command = append(command, "-update")
 	}
 
 	pod := &v1.Pod{
@@ -43,19 +27,18 @@ func ICMPResponderPod(name string, node *v1.Node, env map[string]string, gracePe
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
-					Name:            name,
-					Image:           "networkservicemesh/test-nse:latest",
+					Name:            container,
+					Image:           "networkservicemesh/vpp-test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
-					Env:     envVars,
-					Command: command,
+					Env: envVars,
 				}),
 			},
-			TerminationGracePeriodSeconds: &gracePeriod,
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 

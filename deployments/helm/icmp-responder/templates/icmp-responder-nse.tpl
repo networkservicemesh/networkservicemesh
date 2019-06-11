@@ -29,11 +29,10 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: icmp-responder-nse
-          image: {{ .Values.registry }}/networkservicemesh/test-nse:{{ .Values.tag}}
+          image: {{ .Values.registry }}/networkservicemesh/test-common:{{ .Values.tag}}
+          command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: NSE_IMAGE
-              value: "icmp-responder-nse"
             - name: ADVERTISE_NSE_NAME
               value: "icmp-responder"
             - name: ADVERTISE_NSE_LABELS
@@ -45,8 +44,6 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          command:
-          - "/bin/icmp-responder-nse"
 metadata:
   name: icmp-responder-nse
   namespace: {{ .Release.Namespace }}

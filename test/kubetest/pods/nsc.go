@@ -6,6 +6,7 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// NSCPodWebhook creates a new 'nsc' pod without init container
 func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
@@ -38,10 +39,8 @@ func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 	return pod
 }
 
+// NSCPod creates a new 'nsc' pod with init container
 func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
-	ht := new(v1.HostPathType)
-	*ht = v1.HostPathDirectoryOrCreate
-
 	initContainer := containerMod(&v1.Container{
 		Name:            "nsm-init",
 		Image:           "networkservicemesh/nsm-init:latest",
