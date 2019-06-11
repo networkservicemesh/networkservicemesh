@@ -51,7 +51,7 @@ jobs:
       - run:
           name: lint
           command: |
-            wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.16.0
+            ./scripts/lint-download.sh
             make lint-check-diff
     environment:
       GO111MODULE: "on"
@@ -186,24 +186,12 @@ jobs:
 # aws
   deploy-aws:
     parameters:
-      cluster_id:
-        type: string
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - run:
-          name: Install AWS Prerequisites
-          command: |
-            ./scripts/aws/aws-init.sh
-            mkdir -p data
-            sudo cp "$HOME/bin/aws-iam-authenticator" data/aws-iam-authenticator
-            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
-      - run:
+      cluster_id:g
           name: Create AWS Cluster
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
+            ./scripts/go-mod-download.sh
             make aws-start
           no_output_timeout: 40m
       - save_cache:
