@@ -268,6 +268,19 @@ func deployICMP(k8s *K8s, nodeName, name string, timeout time.Duration, template
 	return icmp
 }
 
+func deployDirtyNSE(k8s *K8s, nodeName, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+	startTime := time.Now()
+
+	logrus.Infof("Starting dirty NSE on node: %s", nodeName)
+	dirty := k8s.CreatePod(template)
+	Expect(dirty.Name).To(Equal(name))
+
+	k8s.WaitLogsContains(dirty, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
+
+	logrus.Printf("Dirty NSE %v started done: %v", name, time.Since(startTime))
+	return dirty
+}
+
 func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 	Expect(template).ShouldNot(BeNil())
