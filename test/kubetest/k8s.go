@@ -270,6 +270,11 @@ type K8s struct {
 	g                  *WithT
 }
 
+type ExtK8s struct {
+	K8s *K8s
+	NodesSetup []*NodeConf
+}
+
 // NewK8s - Creates a new K8s Clientset with roles for the default config
 func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 
