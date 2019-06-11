@@ -32,6 +32,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
+var version string
+
 func parseFlags() (bool, bool, bool, bool) {
 	dirty := flag.Bool("dirty", false,
 		"will not delete itself from registry at the end")
@@ -48,6 +50,8 @@ func parseFlags() (bool, bool, bool, bool) {
 }
 
 func main() {
+	logrus.Info("Starting nse...")
+	logrus.Infof("Version: %v", version)
 	dirty, neighbors, routes, update := parseFlags()
 
 	// Capture signals to cleanup before exiting

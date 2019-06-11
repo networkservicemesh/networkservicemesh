@@ -12,11 +12,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+var version string
+
 func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
 	logrus.Info("Admission Webhook starting...")
+	logrus.Infof("Version: %v", version)
 
 	repo = os.Getenv(repoEnv)
 	if repo == "" {

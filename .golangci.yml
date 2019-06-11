@@ -113,3 +113,4 @@ issues:
         - dupl
   exclude:
     - should not use dot imports
+    - \`version\` is a global variable
