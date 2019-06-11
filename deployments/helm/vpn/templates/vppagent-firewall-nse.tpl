@@ -15,9 +15,11 @@ spec:
     spec:
       containers:
         - name: firewall-nse
-          image: {{ .Values.registry }}/networkservicemesh/vppagent-firewall-nse:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
+            - name: TEST_APPLICATION
+              value: "vppagent-firewall-nse"
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS

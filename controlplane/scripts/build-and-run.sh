@@ -4,13 +4,13 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 CONTAINERTXT=/tmp/container.txt
 
 docker build -t networkservicemesh/nsmd -f "${DIR}/../build/Dockerfile.nsmd" "${DIR}/../../"
-docker build -t networkservicemesh/nse -f "${DIR}/../../test/applications/build/Dockerfile.test-nse" "${DIR}/../../"
+docker build -t networkservicemesh/test-common -f "${DIR}/../../test/applications/build/Dockerfile.test-common" "${DIR}/../../"
 docker build -t networkservicemesh/nsm-init -f "${DIR}/../../side-cars/build/Dockerfile.nsm-init" "${DIR}/../../"
 
 echo "Starting nsmd..."
 docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/nsmd > "${CONTAINERTXT}"
 echo "Starting nse..."
-docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/test-nse >> "${CONTAINERTXT}"
+docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/test-common "/bin/icmp-responder-nse" >> "${CONTAINERTXT}"
 echo "Starting vpp..."
 docker run --network=host --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --ipc=host --pid=host -d networkservicemesh/vpp >> "${CONTAINERTXT}"
 echo "Starting vpp-daemon..."

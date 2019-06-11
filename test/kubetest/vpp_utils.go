@@ -15,14 +15,20 @@ import (
 
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6()),
-	))
+	return deployICMP(k8s, node, name, timeout,
+		pods.VppTestCommonPod("vppagent-icmp-responder-nse", name, "icmp-responder-nse", node,
+			defaultICMPEnv(k8s.UseIPv6()),
+		),
+	)
 }
 
 // DeployVppAgentNSC - Setup Default VPP Based Client
 func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
+	return deployNSC(k8s, node, name, "vppagent-nsc", timeout,
+		pods.VppTestCommonPod("vppagent-nsc", name, "vppagent-nsc", node,
+			defaultNSCEnv(),
+		),
+	)
 }
 
 // CheckVppAgentNSC - Perform check of VPP based agent operations.
