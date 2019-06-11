@@ -6,10 +6,8 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
-	ht := new(v1.HostPathType)
-	*ht = v1.HostPathDirectoryOrCreate
-
+// TestCommonPod creates a new alpine-based testing pod
+func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string) *v1.Pod {
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -29,31 +27,27 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
-					Name:            "vpn-gateway",
-					Image:           "networkservicemesh/test-nse:latest",
+					Name:            name,
+					Image:           "networkservicemesh/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
+					Command:         command,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
 					},
 					Env: envVars,
-					Command: []string{
-						"/bin/icmp-responder-nse",
-					},
 				}),
-				{
-					Name:  "nginx",
-					Image: "networkservicemesh/nginx",
-				},
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
+
 	if node != nil {
 		pod.Spec.NodeSelector = map[string]string{
 			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
 		}
 	}
+
 	return pod
 }

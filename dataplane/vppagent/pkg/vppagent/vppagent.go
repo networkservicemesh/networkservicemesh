@@ -425,10 +425,10 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.Monit
 	v.mechanisms = &Mechanisms{
 		localMechanisms: []*local.Mechanism{
 			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+				Type: local.MechanismType_MEM_INTERFACE,
 			},
 			{
-				Type: local.MechanismType_MEM_INTERFACE,
+				Type: local.MechanismType_KERNEL_INTERFACE,
 			},
 		},
 		remoteMechanisms: []*remote.Mechanism{

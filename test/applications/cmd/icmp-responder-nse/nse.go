@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net"
 	"time"
@@ -93,7 +94,7 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
