@@ -102,7 +102,7 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect) (*KernelConnec
 }
 
 func setupVETHEnd(nsHandle netns.NsHandle, ifName, addrIP string) {
-	/* Lock the OS Thread so we don't accidentally switch namespaces */
+	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -119,13 +119,16 @@ func setupVETHEnd(nsHandle netns.NsHandle, ifName, addrIP string) {
 	if err != nil {
 		logrus.Errorf("Failed to lookup %q, %v", ifName, err)
 	}
+
 	/* Setup the interface with an IP address */
 	addr, _ := netlink.ParseAddr(addrIP)
 	netlink.AddrAdd(link, addr)
+
 	/* Bring the interface UP */
 	if err = netlink.LinkSetUp(link); err != nil {
 		logrus.Errorf("Failed to set %q up: %v", ifName, err)
 	}
+
 	/* Switch back to the original namespace */
 	netns.Set(oNsHandle)
 }
@@ -134,17 +137,18 @@ func createVETH(cfg *KernelConnectionConfig, srcNsHandle, dstNsHandle netns.NsHa
 	/* Initial VETH configuration */
 	cfgVETH := &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
-			Name:  cfg.srcName,
-			Flags: net.FlagUp,
-			MTU:   1500,
+			Name: cfg.srcName,
+			MTU:  16000,
 		},
 		PeerName: cfg.dstName,
 	}
+
 	/* Create the VETH pair - host namespace */
 	if err := netlink.LinkAdd(cfgVETH); err != nil {
 		logrus.Errorf("Failed to create the VETH pair - %v", err)
 		return err
 	}
+
 	/* Get a link for each VETH pair ends */
 	srcLink, err := netlink.LinkByName(cfg.srcName)
 	if err != nil {
