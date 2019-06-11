@@ -106,10 +106,10 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	} else {
 		logrus.Info("Did Not Find /dev/vhost-net - using veth pairs")
 		rv.LinuxConfig.Interfaces = append(rv.LinuxConfig.Interfaces, &linux_interfaces.Interface{
-			Name:        c.conversionParameters.Name + "-veth",
-			Type:        linux_interfaces.Interface_VETH,
-			Enabled:     true,
-			HostIfName:  c.conversionParameters.Name + "-veth",
+			Name:       c.conversionParameters.Name + "-veth",
+			Type:       linux_interfaces.Interface_VETH,
+			Enabled:    true,
+			HostIfName: c.conversionParameters.Name + "-veth",
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
 					PeerIfName: c.conversionParameters.Name,

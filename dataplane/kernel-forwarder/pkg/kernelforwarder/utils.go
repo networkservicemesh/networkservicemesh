@@ -16,28 +16,28 @@
 package kernelforwarder
 
 import (
-	"os"
 	"context"
-	"net"
-	"runtime"
-	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netns"
-	"github.com/vishvananda/netlink"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
+	"net"
+	"os"
+	"runtime"
 )
 
 type KernelConnectionConfig struct {
 	srcNsPath string
 	dstNsPath string
-	srcName string
-	dstName string
-	srcIP string
-	dstIP string
+	srcName   string
+	dstName   string
+	srcIP     string
+	dstIP     string
 }
 
 func handleKernelConnectionLocal(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
@@ -94,10 +94,10 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect) (*KernelConnec
 	return &KernelConnectionConfig{
 		srcNsPath: srcNsPath,
 		dstNsPath: dstNsPath,
-		srcName: crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-		dstName: crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-		srcIP: crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
-		dstIP: crossConnect.GetLocalSource().GetContext().GetDstIpAddr(),
+		srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
+		dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
+		srcIP:     crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
+		dstIP:     crossConnect.GetLocalSource().GetContext().GetDstIpAddr(),
 	}, nil
 }
 

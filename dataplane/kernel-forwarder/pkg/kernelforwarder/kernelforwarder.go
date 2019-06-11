@@ -19,8 +19,8 @@ import (
 	"context"
 	"net"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
@@ -35,24 +35,24 @@ import (
 
 // Kernel forwarding plane related constants
 const (
-	DataplaneNameKey                              = "DATAPLANE_NAME"
-	DataplaneNameDefault                          = "kernel-forwarder"
-	DataplaneSocketKey                            = "DATAPLANE_SOCKET"
-	DataplaneSocketDefault                        = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
-	DataplaneSocketTypeKey                        = "DATAPLANE_SOCKET_TYPE"
-	DataplaneSocketTypeDefault                    = "unix"
-	SrcIPEnvKey                                   = "NSM_DATAPLANE_SRC_IP"
-	cCONNECT = true
-	cDISCONNECT = false
+	DataplaneNameKey           = "DATAPLANE_NAME"
+	DataplaneNameDefault       = "kernel-forwarder"
+	DataplaneSocketKey         = "DATAPLANE_SOCKET"
+	DataplaneSocketDefault     = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketTypeKey     = "DATAPLANE_SOCKET_TYPE"
+	DataplaneSocketTypeDefault = "unix"
+	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
+	cCONNECT                   = true
+	cDISCONNECT                = false
 )
 
 type KernelForwarder struct {
-	common               *common.DataplaneConfigBase
-	mechanisms           *Mechanisms
-	updateCh             chan *Mechanisms
-	srcIP                net.IP
-	egressInterface      common.EgressInterface
-	monitor              monitor_crossconnect.MonitorServer
+	common          *common.DataplaneConfigBase
+	mechanisms      *Mechanisms
+	updateCh        chan *Mechanisms
+	srcIP           net.IP
+	egressInterface common.EgressInterface
+	monitor         monitor_crossconnect.MonitorServer
 }
 
 func CreateKernelForwarder() *KernelForwarder {
