@@ -44,5 +44,5 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190313124217-0fa624df11e9 // indirect
 	k8s.io/component-base v0.0.0-20190409093041-e34633071963 // indirect
 	k8s.io/klog v0.1.0 // indirect
-	k8s.io/kubernetes v1.14.2
+	k8s.io/kubernetes v1.14.3
 )
