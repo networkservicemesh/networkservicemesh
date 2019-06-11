@@ -16,6 +16,8 @@
 package kernelforwarder
 
 import (
+	"os"
+	"context"
 	"net"
 	"runtime"
 	"github.com/sirupsen/logrus"
@@ -23,6 +25,10 @@ import (
 	"github.com/vishvananda/netlink"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
 type KernelConnectionConfig struct {
@@ -32,6 +38,46 @@ type KernelConnectionConfig struct {
 	dstName string
 	srcIP string
 	dstIP string
+}
+
+func handleKernelConnectionLocal(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	/* Create a connection */
+	if connect {
+		/* 1. Get the connection configuration */
+		cfg, err := getConnectionConfig(crossConnect)
+		if err != nil {
+			logrus.Errorf("Failed to get the configuration for local connection - %v", err)
+			return crossConnect, err
+		}
+		/* 2. Get namespace handlers from their path - source and destination */
+		srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
+		defer srcNsHandle.Close()
+		if err != nil {
+			logrus.Errorf("Failed to get source namespace handler from path - %v", err)
+			return crossConnect, err
+		}
+		dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
+		defer dstNsHandle.Close()
+		if err != nil {
+			logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
+			return crossConnect, err
+		}
+		/* 3. Create a VETH pair and inject each end in the corresponding namespace */
+		if err = createVETH(cfg, srcNsHandle, dstNsHandle); err != nil {
+			logrus.Errorf("Failed to create the VETH pair - %v", err)
+			return crossConnect, err
+		}
+		/* 4. Bring up and configure each pair end with its IP address */
+		setupVETHEnd(srcNsHandle, cfg.srcName, cfg.srcIP)
+		setupVETHEnd(dstNsHandle, cfg.dstName, cfg.dstIP)
+	}
+	/* Delete a connection */
+	return crossConnect, nil
+}
+
+func handleKernelConnectionRemote(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	logrus.Errorf("Remote connection is not supported yet.")
+	return crossConnect, nil
 }
 
 func getConnectionConfig(crossConnect *crossconnect.CrossConnect) (*KernelConnectionConfig, error) {
@@ -121,4 +167,77 @@ func createVETH(cfg *KernelConnectionConfig, srcNsHandle, dstNsHandle netns.NsHa
 		return err
 	}
 	return nil
+}
+
+func setDataplaneConfigBase(v *KernelForwarder, common *common.DataplaneConfigBase) {
+	var ok bool
+	v.common = common
+	v.common.Name, ok = os.LookupEnv(DataplaneNameKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
+		v.common.Name = DataplaneNameDefault
+	}
+
+	logrus.Infof("Starting dataplane - %s", v.common.Name)
+	v.common.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
+		v.common.DataplaneSocket = DataplaneSocketDefault
+	}
+	logrus.Infof("DataplaneSocket: %s", v.common.DataplaneSocket)
+
+	v.common.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	if !ok {
+		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
+		v.common.DataplaneSocketType = DataplaneSocketTypeDefault
+	}
+	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
+}
+
+func setDataplaneConfigKernelForwarder(v *KernelForwarder, monitor monitor_crossconnect.MonitorServer) {
+	var err error
+
+	v.monitor = monitor
+
+	srcIPStr, ok := os.LookupEnv(SrcIPEnvKey)
+	if !ok {
+		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIPEnvKey)
+		common.SetSrcIPFailed()
+	}
+	v.srcIP = net.ParseIP(srcIPStr)
+	if v.srcIP == nil {
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIPEnvKey, srcIPStr)
+		common.SetValidIPFailed()
+	}
+	v.egressInterface, err = common.NewEgressInterface(v.srcIP)
+	if err != nil {
+		logrus.Fatalf("Unable to find egress Interface: %s", err)
+		common.SetNewEgressIFFailed()
+	}
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name(), v.egressInterface.SrcIPNet())
+
+	err = tools.SocketCleanup(v.common.DataplaneSocket)
+	if err != nil {
+		logrus.Fatalf("Error cleaning up socket %s: %s", v.common.DataplaneSocket, err)
+		common.SetSocketCleanFailed()
+	}
+	v.updateCh = make(chan *Mechanisms, 1)
+	v.mechanisms = &Mechanisms{
+		localMechanisms: []*local.Mechanism{
+			{
+				Type: local.MechanismType_MEM_INTERFACE,
+			},
+			{
+				Type: local.MechanismType_KERNEL_INTERFACE,
+			},
+		},
+		remoteMechanisms: []*remote.Mechanism{
+			{
+				Type: remote.MechanismType_VXLAN,
+				Parameters: map[string]string{
+					remote.VXLANSrcIP: v.egressInterface.SrcIPNet().IP.String(),
+				},
+			},
+		},
+	}
 }
