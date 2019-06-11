@@ -143,7 +143,7 @@ func createDataplaneConfig() *dataplaneConfig {
 	dpConfig.monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(dpConfig.gRPCserver, dpConfig.monitor)
 	monitor_crossconnect_server.NewMonitorNetNsInodeServer(dpConfig.monitor)
-	/* Metrics */
+
 	dpConfig.common.MetricsEnabled = DataplaneMetricsEnabledDefault
 	val, ok := os.LookupEnv(DataplaneMetricsEnabledKey)
 	if ok {

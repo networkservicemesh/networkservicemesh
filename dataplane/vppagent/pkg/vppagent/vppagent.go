@@ -102,7 +102,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
-	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
+	xcon, err := v.connectOrDisconnect(ctx, crossConnect, true)
 	if err != nil {
 		return nil, err
 	}
@@ -111,10 +111,10 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	return xcon, err
 }
 
-func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-		return v.directMemifConnector.ConnectOrDisConnect(crossConnect, connect)
+		return v.directMemifConnector.ConnectOrDisconnect(crossConnect, connect)
 	}
 
 	// TODO look at whether keepin a single conn might be better
@@ -296,7 +296,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 
 func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("vppagent.DisconnectRequest called with %#v", crossConnect)
-	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, false)
+	xcon, err := v.connectOrDisconnect(ctx, crossConnect, false)
 	if err != nil {
 		logrus.Warn(err)
 	}
