@@ -42,9 +42,8 @@ func TestDataplaneHealMultiNodesLocal(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	for i := 0; i < 10; i++ {
-		testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture())
-	}
+
+	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture())
 }
 func TestDataplaneHealMultiNodesRemote(t *testing.T) {
 	RegisterTestingT(t)
