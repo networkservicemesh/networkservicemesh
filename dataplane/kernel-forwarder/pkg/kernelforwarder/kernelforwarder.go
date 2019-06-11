@@ -42,6 +42,8 @@ const (
 	DataplaneSocketTypeKey                        = "DATAPLANE_SOCKET_TYPE"
 	DataplaneSocketTypeDefault                    = "unix"
 	SrcIPEnvKey                                   = "NSM_DATAPLANE_SRC_IP"
+	cCONNECT = true
+	cDISCONNECT = false
 )
 
 type KernelForwarder struct {
@@ -94,7 +96,7 @@ func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv datapl
 
 func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)
-	xcon, err := v.connectOrDisconnect(ctx, crossConnect, true)
+	xcon, err := v.connectOrDisconnect(ctx, crossConnect, cCONNECT)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +117,7 @@ func (v *KernelForwarder) connectOrDisconnect(ctx context.Context, crossConnect 
 
 func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("Close() called with %#v", crossConnect)
-	xcon, err := v.connectOrDisconnect(ctx, crossConnect, false)
+	xcon, err := v.connectOrDisconnect(ctx, crossConnect, cDISCONNECT)
 	if err != nil {
 		logrus.Warn(err)
 	}

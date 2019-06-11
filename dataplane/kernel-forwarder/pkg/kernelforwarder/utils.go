@@ -225,9 +225,6 @@ func setDataplaneConfigKernelForwarder(v *KernelForwarder, monitor monitor_cross
 	v.mechanisms = &Mechanisms{
 		localMechanisms: []*local.Mechanism{
 			{
-				Type: local.MechanismType_MEM_INTERFACE,
-			},
-			{
 				Type: local.MechanismType_KERNEL_INTERFACE,
 			},
 		},

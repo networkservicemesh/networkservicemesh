@@ -4,11 +4,11 @@ kind: DaemonSet
 spec:
   selector:
     matchLabels:
-      app: nsm-vpp-dataplane
+      app: nsm-kernel-plane
   template:
     metadata:
       labels:
-        app: nsm-vpp-dataplane
+        app: nsm-kernel-plane
     spec:
       hostPID: true
       hostNetwork: true
