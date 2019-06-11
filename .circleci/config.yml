@@ -186,7 +186,20 @@ jobs:
 # aws
   deploy-aws:
     parameters:
-      cluster_id:g
+      cluster_id:
+        type: string
+    docker:
+      - image: circleci/golang
+    steps:
+      - checkout
+      - run:
+          name: Install AWS Prerequisites
+          command: |
+            ./scripts/aws/aws-init.sh
+            mkdir -p data
+            sudo cp "$HOME/bin/aws-iam-authenticator" data/aws-iam-authenticator
+            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
+      - run:
           name: Create AWS Cluster
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
@@ -559,7 +572,7 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor test-nse vppagent-icmp-responder-nse vppagent-nsc nsm-init monitoring-nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook vppagent-firewall-nse)
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor nsm-init vppagent-dataplane vppagent-dataplane-dev admission-webhook)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}
@@ -615,28 +628,18 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-test-nse"
-          container: "test-nse"
+          name: "build-test-common"
+          container: "test-common"
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-vppagent-icmp-responder-nse"
-          container: "vppagent-icmp-responder-nse"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-vppagent-nsc"
-          container: "vppagent-nsc"
+          name: "build-vpp-test-common"
+          container: "vpp-test-common"
           requires:
             - test-sanity-check
       - build-container:
           name: "build-nsm-init"
           container: "nsm-init"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-monitoring-nsc"
-          container: "monitoring-nsc"
           requires:
             - test-sanity-check
       - build-container:
@@ -649,11 +652,6 @@ workflows:
           container: "vppagent-dataplane-dev"
           requires:
             - test-sanity-check
-      - build-container:
-          name: "build-vppagent-firewall-nse"
-          container: "vppagent-firewall-nse"
-          requires:
-            - test-sanity-check
       - build-container-success:
           requires:
             - build-nsmd
@@ -661,14 +659,11 @@ workflows:
             - build-nsmdp
             - build-admission-webhook
             - build-crossconnect-monitor
-            - build-test-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
+            - build-test-common
+            - build-vpp-test-common
             - build-nsm-init
-            - build-monitoring-nsc
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
 
 # packet
       - create-packet:
