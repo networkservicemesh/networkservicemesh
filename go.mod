@@ -31,6 +31,8 @@ require (
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v2.0.0+incompatible // indirect
 	github.com/ventu-io/go-shortid v0.0.0-20171029131806-771a37caa5cf // indirect
+	github.com/vishvananda/netlink v1.0.0
+	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
 	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890 // indirect
 	golang.org/x/sys v0.0.0-20190422165155-953cdadca894

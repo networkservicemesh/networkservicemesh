@@ -28,7 +28,7 @@ func NewMetricsCollector(requestPeriod time.Duration) *MetricsCollector {
 	}
 }
 
-// CollectAsync starts ago routine for asynchronous metrics collection
+// CollectAsync starts a go routine for asynchronous metrics collection
 func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint string) {
 	go m.collect(monitor, endpoint)
 }
