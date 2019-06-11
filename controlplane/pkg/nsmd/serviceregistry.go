@@ -239,7 +239,7 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(mdl model.Model, timeout time.Duration) error {
 	logrus.Info("Waiting for dataplane available...")
 	st := time.Now()
-	checkConfigured := func(dp *model.Dataplane) bool  {
+	checkConfigured := func(dp *model.Dataplane) bool {
 		return dp.MechanismsConfigured
 	}
 	for ; true; <-time.After(100 * time.Millisecond) {
