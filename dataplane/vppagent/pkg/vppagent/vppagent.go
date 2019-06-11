@@ -160,6 +160,9 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	if connect {
 		resync := v.resyncManager.needToResync(crossConnect.Id, &dataChange)
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange, FullResync: resync})
+		if resync {
+			v.programMgmtInterface()
+		}
 	} else {
 		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 	}
