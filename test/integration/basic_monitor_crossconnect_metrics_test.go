@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
@@ -34,8 +35,8 @@ func TestSimpleMetrics(t *testing.T) {
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			DataplaneVariables: map[string]string{
-				vppagent.DataplaneMetricsCollectorEnabledKey:       "true",
-				vppagent.DataplaneMetricsCollectorRequestPeriodKey: requestPeriod.String(),
+				common.DataplaneMetricsEnabledKey:       "true",
+				common.DataplaneMetricsRequestPeriodKey: requestPeriod.String(),
 			},
 			Variables: pods.DefaultNSMD(),
 		},
