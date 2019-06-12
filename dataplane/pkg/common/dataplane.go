@@ -152,7 +152,7 @@ func createDataplaneConfig() *dataplaneConfig {
 			dpConfig.common.MetricsEnabled = res
 		}
 	}
-	logrus.Infof("MetricsEnabled: %s", dpConfig.common.MetricsEnabled)
+	logrus.Infof("MetricsEnabled: %v", dpConfig.common.MetricsEnabled)
 
 	if dpConfig.common.MetricsEnabled {
 		dpConfig.common.MetricsPeriod = DataplaneMetricsRequestPeriodDefault
