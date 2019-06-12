@@ -1,8 +1,8 @@
 package kubetest
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	"github.com/sirupsen/logrus"
 )
 
 // DefaultDataplaneVariables - Default variables for dataplane deployment
