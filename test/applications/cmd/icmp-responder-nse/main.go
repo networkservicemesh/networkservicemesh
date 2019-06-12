@@ -50,7 +50,7 @@ func parseFlags() (bool, bool, bool, bool) {
 }
 
 func main() {
-	logrus.Info("Starting nse...")
+	logrus.Info("Starting icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
 	dirty, neighbors, routes, update := parseFlags()
 

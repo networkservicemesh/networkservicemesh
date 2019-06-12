@@ -36,7 +36,7 @@ const (
 var version string
 
 func main() {
-	logrus.Info("Starting nsc...")
+	logrus.Info("Starting monitoring-nsc...")
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
