@@ -51,7 +51,7 @@ jobs:
       - run:
           name: lint
           command: |
-            make lint-install
+            ./scripts/lint-download.sh
             make lint-check-diff
     environment:
       GO111MODULE: "on"
@@ -204,6 +204,7 @@ jobs:
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
+            ./scripts/go-mod-download.sh
             make aws-start
           no_output_timeout: 40m
       - save_cache:
