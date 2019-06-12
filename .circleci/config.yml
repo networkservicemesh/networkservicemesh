@@ -51,7 +51,7 @@ jobs:
       - run:
           name: lint
           command: |
-            make lint-install
+            ./scripts/lint-download.sh
             make lint-check-diff
     environment:
       GO111MODULE: "on"
@@ -204,6 +204,7 @@ jobs:
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
+            ./scripts/go-mod-download.sh
             make aws-start
           no_output_timeout: 40m
       - save_cache:
@@ -571,7 +572,12 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor nsm-init vppagent-dataplane vppagent-dataplane-dev admission-webhook)
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp)
+            export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init admission-webhook)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-icmp-responder-nse vppagent-nsc)
+            export CONTAINERS=(${CONTAINERS[@]} nsc icmp-responder-nse)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}
