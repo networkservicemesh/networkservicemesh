@@ -18,6 +18,12 @@ import (
 	"time"
 )
 
+func TestRepeatedSimpleMetrics(t *testing.T){
+	for i := 0; i < 10; i++{
+		TestSimpleMetrics(t)
+	}
+}
+
 func TestSimpleMetrics(t *testing.T) {
 	RegisterTestingT(t)
 	if testing.Short() {
