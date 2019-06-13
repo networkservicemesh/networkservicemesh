@@ -156,7 +156,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 		logrus.Error(err)
 		return nil, err
 	}
-	logrus.Infof("Sending DataChange to vppagent: %v", proto.MarshalTextString(dataChange))
+	logrus.Infof("Sending DataChange to vppagent1: %v", proto.MarshalTextString(dataChange))
 	if connect {
 		resync := v.resyncManager.needToResync(crossConnect.Id, &dataChange)
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange, FullResync: resync})
@@ -164,6 +164,7 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 			v.programMgmtInterface()
 		}
 	} else {
+		v.resyncManager.storeDataChange(crossConnect.Id, dataChange)
 		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 	}
 	v.printVppAgentConfiguration(client)
