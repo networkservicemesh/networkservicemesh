@@ -106,9 +106,10 @@ func monitorCrossConnectsMetrics(stream crossconnect.MonitorCrossConnect_Monitor
 			default:
 				event, err := stream.Recv()
 				if err != nil {
-					println(err)
+					logrus.Infof("An error during receive event %v", err)
 					continue
 				}
+				logrus.Infof("Received event %d", event)
 				if event.Metrics == nil {
 					continue
 				}
