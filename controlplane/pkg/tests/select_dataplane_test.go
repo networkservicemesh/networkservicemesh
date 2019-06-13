@@ -14,12 +14,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func createTestDataplane(name string, localMechanisms []connection.Mechanism, RemoteMechanisms []connection.Mechanism) *model.Dataplane {
+func createTestDataplane(name string, localMechanisms, remoteMechanisms []connection.Mechanism) *model.Dataplane {
 	return &model.Dataplane{
 		RegisteredName:       name,
 		SocketLocation:       "tcp:some_addr",
 		LocalMechanisms:      localMechanisms,
-		RemoteMechanisms:     RemoteMechanisms,
+		RemoteMechanisms:     remoteMechanisms,
 		MechanismsConfigured: true,
 	}
 }

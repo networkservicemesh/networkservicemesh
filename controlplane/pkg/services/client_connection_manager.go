@@ -107,7 +107,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 	m.destinationUpdated(cc, remoteDst)
 }
 
-func (m *ClientConnectionManager) destinationUpdated(cc *model.ClientConnection, dst connection.Connection) {
+func (m *ClientConnectionManager) destinationUpdated(cc nsm.ClientConnection, dst connection.Connection) {
 	// Check if it update we already have
 	if dst.Equals(cc.GetConnectionDestination()) {
 		// Since they are same, we do not need to do anything.

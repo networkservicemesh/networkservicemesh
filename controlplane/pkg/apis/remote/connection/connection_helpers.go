@@ -43,8 +43,8 @@ func (c *Connection) Clone() connection.Connection {
 	return proto.Clone(c).(*Connection)
 }
 
-// SetId sets connection id
-func (c *Connection) SetId(id string) {
+// SetID sets connection id
+func (c *Connection) SetID(id string) {
 	c.Id = id
 }
 

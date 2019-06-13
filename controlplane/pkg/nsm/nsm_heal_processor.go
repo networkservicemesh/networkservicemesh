@@ -70,7 +70,7 @@ func (p *nsmHealProcessor) healDstDown(healID string, connection *model.ClientCo
 		endpointName := connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
 		// Wait for NSE not equal to down one, since we know it will be re-registered with new EndpointName.
 		if !p.waitNSE(ctx, connection, endpointName, connection.GetNetworkService(), p.nseIsNewAndAvailable) {
-			connection.GetConnectionDestination().SetId("-")
+			connection.GetConnectionDestination().SetID("-")
 		}
 		// Fallback to heal with choose of new NSE.
 		requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
@@ -116,7 +116,7 @@ func (p *nsmHealProcessor) healDataplaneDown(healID string, cc *model.ClientConn
 	// Update request to contain a proper connection object from previous attempt.
 	request := cc.Request.Clone()
 	request.SetRequestConnection(cc.GetConnectionSource())
-	p.requestOrClose(fmt.Sprintf("NSM_Heal(3.4-%v) ", healID), ctx, request, cc)
+	p.requestOrClose(ctx, fmt.Sprintf("NSM_Heal(3.4-%v) ", healID), request, cc)
 	return true
 }
 
@@ -131,7 +131,7 @@ func (p *nsmHealProcessor) healDstUpdate(healID string, cc *model.ClientConnecti
 		request := cc.Request.Clone()
 		request.SetRequestConnection(cc.GetConnectionSource())
 
-		p.requestOrClose(fmt.Sprintf("NSM_Heal(5.2-%v) ", healID), ctx, request, cc)
+		p.requestOrClose(ctx, fmt.Sprintf("NSM_Heal(5.2-%v) ", healID), request, cc)
 		return true
 	}
 	return false
@@ -150,7 +150,7 @@ func (p *nsmHealProcessor) healDstNmgrDown(healID string, connection *model.Clie
 	if connection.Endpoint != nil {
 		endpointName = connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
 		if !p.waitNSE(ctx, connection, endpointName, networkService, p.nseIsSameAndAvailable) {
-			connection.GetConnectionDestination().SetId("-")
+			connection.GetConnectionDestination().SetID("-")
 		}
 	}
 	requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
@@ -190,7 +190,7 @@ func (p *nsmHealProcessor) healDstNmgrDown(healID string, connection *model.Clie
 	return false
 }
 
-func (p *nsmHealProcessor) requestOrClose(logPrefix string, ctx context.Context, request networkservice.Request, clientConnection *model.ClientConnection) {
+func (p *nsmHealProcessor) requestOrClose(ctx context.Context, logPrefix string, request networkservice.Request, clientConnection *model.ClientConnection) {
 	logrus.Infof("%v delegate to Request %v", logPrefix, request)
 	connection, err := p.conManager.request(ctx, request, clientConnection)
 	if err != nil {

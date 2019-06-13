@@ -11,6 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
 
+// ClientConnection is an interface for client connection
 type ClientConnection interface {
 	GetID() string
 	GetConnectionSource() connection.Connection

@@ -15,7 +15,7 @@ import (
 )
 
 type networkServiceEndpointManager interface {
-	getEndpoint(ctx context.Context, requestConnection connection.Connection, ignore_endpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
+	getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
 	createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error)
 	isLocalEndpoint(endpoint *registry.NSERegistration) bool
 	checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool
@@ -27,13 +27,13 @@ type nseManager struct {
 	properties      *nsm.NsmProperties
 }
 
-func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection connection.Connection, ignore_endpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
 
 	// Handle case we are remote NSM and asked for particular endpoint to connect to.
 	targetEndpoint := requestConnection.GetNetworkServiceEndpointName()
 	if len(targetEndpoint) > 0 {
 		endpoint := nsem.model.GetEndpoint(targetEndpoint)
-		if endpoint != nil && ignore_endpoints[endpoint.EndpointName()] == nil {
+		if endpoint != nil && ignoreEndpoints[endpoint.EndpointName()] == nil {
 			return endpoint.Endpoint, nil
 		} else {
 			return nil, fmt.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
@@ -54,17 +54,17 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 		logrus.Error(err)
 		return nil, err
 	}
-	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignore_endpoints)
+	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignoreEndpoints)
 
 	if len(endpoints) == 0 {
 		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
-			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
+			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 	}
 
 	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
 		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
-			requestConnection.GetNetworkService(), len(ignore_endpoints), len(endpoints))
+			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 	}
 
 	return &registry.NSERegistration{
@@ -124,11 +124,11 @@ func (nsem *nseManager) cleanupNSE(endpoint *model.Endpoint) {
 	logrus.Infof("NSM: Remove Endpoint since it is not available... %v", endpoint)
 }
 
-func (nsem *nseManager) filterEndpoints(endpoints []*registry.NetworkServiceEndpoint, ignore_endpoints map[string]*registry.NSERegistration) []*registry.NetworkServiceEndpoint {
+func (nsem *nseManager) filterEndpoints(endpoints []*registry.NetworkServiceEndpoint, ignoreEndpoints map[string]*registry.NSERegistration) []*registry.NetworkServiceEndpoint {
 	result := []*registry.NetworkServiceEndpoint{}
 	// Do filter of endpoints
 	for _, candidate := range endpoints {
-		if ignore_endpoints[candidate.GetEndpointName()] == nil {
+		if ignoreEndpoints[candidate.GetEndpointName()] == nil {
 			result = append(result, candidate)
 		}
 	}

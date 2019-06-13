@@ -20,7 +20,7 @@ type Connection interface {
 	Clone() Connection
 
 	GetId() string
-	SetId(id string)
+	SetID(id string)
 
 	GetNetworkService() string
 	SetNetworkService(networkService string)
