@@ -1,53 +1,26 @@
 package nsm
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"time"
 
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
 
-/*
-	Unified request, handles common part of local/Remote network requests.
-*/
-type NSMRequest interface {
-	IsValid() error
-	IsRemote() bool
-	GetConnectionId() string
-	Clone() NSMRequest
-	SetConnection(connection NSMConnection)
-}
-
-/*
-	Unified Connection interface, handles common part of local/Remote connections.
-*/
-type NSMConnection interface {
-	IsValid() error
-	SetId(id string)
-	GetNetworkService() string
-	GetContext() *connectioncontext.ConnectionContext
-	UpdateContext(connectionContext *connectioncontext.ConnectionContext) error
-	SetContext(connectionContext *connectioncontext.ConnectionContext)
-	GetId() string
-	IsComplete() error
-	GetLabels() map[string]string
-	GetNetworkServiceEndpointName() string
-	SetNetworkServiceName(service string)
-}
-
-type NSMClientConnection interface {
+type ClientConnection interface {
 	GetID() string
-	GetConnectionSource() NSMConnection
-	GetConnectionDestination() NSMConnection
+	GetConnectionSource() connection.Connection
+	GetConnectionDestination() connection.Connection
 	GetNetworkService() string
 }
 
 type NetworkServiceClient interface {
-	Request(ctx context.Context, request NSMRequest) (NSMConnection, error)
-	Close(ctx context.Context, connection NSMConnection) error
+	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
+	Close(ctx context.Context, connection connection.Connection) error
 
 	Cleanup() error
 }
@@ -68,13 +41,13 @@ const (
 )
 
 type NetworkServiceManager interface {
-	Request(ctx context.Context, request NSMRequest) (NSMConnection, error)
-	Close(ctx context.Context, clientConnection NSMClientConnection) error
-	Heal(connection NSMClientConnection, healState HealState)
+	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
+	Close(ctx context.Context, clientConnection ClientConnection) error
+	Heal(connection ClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
 	GetHealProperties() *NsmProperties
 	WaitForDataplane(duration time.Duration) error
-	RemoteConnectionLost(clientConnection NSMClientConnection)
+	RemoteConnectionLost(clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
 	GetExcludePrefixes() prefix_pool.PrefixPool
 	SetExcludePrefixes(prefix_pool.PrefixPool)

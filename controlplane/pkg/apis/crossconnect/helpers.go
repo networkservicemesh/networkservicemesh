@@ -1,6 +1,64 @@
 package crossconnect
 
-import fmt "fmt"
+import (
+	"fmt"
+
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+)
+
+// GetSourceConnection returns cross connect source connection
+func (c *CrossConnect) GetSourceConnection() connection.Connection {
+	if src := c.GetRemoteSource(); src != nil {
+		return src
+	}
+
+	if src := c.GetLocalSource(); src != nil {
+		return src
+	}
+
+	return nil
+}
+
+// SetSourceConnection sets cross connect source connection
+func (c *CrossConnect) SetSourceConnection(src connection.Connection) {
+	if src.IsRemote() {
+		c.Source = &CrossConnect_RemoteSource{
+			RemoteSource: src.(*remote.Connection),
+		}
+	} else {
+		c.Source = &CrossConnect_LocalSource{
+			LocalSource: src.(*local.Connection),
+		}
+	}
+}
+
+// GetDestinationConnection returns cross connect destination connection
+func (c *CrossConnect) GetDestinationConnection() connection.Connection {
+	if dst := c.GetRemoteDestination(); dst != nil {
+		return dst
+	}
+
+	if dst := c.GetLocalDestination(); dst != nil {
+		return dst
+	}
+
+	return nil
+}
+
+// SetDestinationConnection sets cross connect destination connection
+func (c *CrossConnect) SetDestinationConnection(dst connection.Connection) {
+	if dst.IsRemote() {
+		c.Destination = &CrossConnect_RemoteDestination{
+			RemoteDestination: dst.(*remote.Connection),
+		}
+	} else {
+		c.Destination = &CrossConnect_LocalDestination{
+			LocalDestination: dst.(*local.Connection),
+		}
+	}
+}
 
 func (c *CrossConnect) IsValid() error {
 	if c == nil {

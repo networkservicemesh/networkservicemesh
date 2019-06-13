@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	. "github.com/onsi/gomega"
 	net_context "golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -14,6 +15,8 @@ import (
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
@@ -277,12 +280,12 @@ type connectionManagerStub struct {
 	closeError error
 }
 
-func (stub *connectionManagerStub) request(ctx context.Context, request nsm.NSMRequest, existingConnection *model.ClientConnection) (nsm.NSMConnection, error) {
+func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error) {
 	if stub.requestError != nil {
 		return nil, stub.requestError
 	}
 
-	nsmConnection := newConnection(request)
+	nsmConnection := request.GetRequestConnection().Clone()
 	var dstId string
 	if conn := existingConnection.Xcon.GetLocalDestination(); conn != nil {
 		dstId = conn.GetId()
@@ -347,7 +350,7 @@ type nseManagerStub struct {
 	nses []*registry.NSERegistration
 }
 
-func (stub *nseManagerStub) getEndpoint(ctx context.Context, requestConnection nsm.NSMConnection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (stub *nseManagerStub) getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	panic("implement me")
 }
 
@@ -398,60 +401,21 @@ func (data *healTestData) createCrossConnection(isRemoteSrc, isRemoteDst bool, s
 	xcon := &crossconnect.CrossConnect{}
 
 	if isRemoteSrc {
-		xcon.Source = &crossconnect.CrossConnect_RemoteSource{
-			RemoteSource: &remote_connection.Connection{
-				Id: srcID,
-			},
-		}
+		xcon.SetSourceConnection(&remote_connection.Connection{Id: srcID})
 	} else {
-		xcon.Source = &crossconnect.CrossConnect_LocalSource{
-			LocalSource: &local_connection.Connection{
-				Id: srcID,
-			},
-		}
+		xcon.SetSourceConnection(&local_connection.Connection{Id: srcID})
 	}
 
 	if isRemoteDst {
-		xcon.Destination = &crossconnect.CrossConnect_RemoteDestination{
-			RemoteDestination: &remote_connection.Connection{
-				Id: dstID,
-			},
-		}
+		xcon.SetDestinationConnection(&remote_connection.Connection{Id: dstID})
 	} else {
-		xcon.Destination = &crossconnect.CrossConnect_LocalDestination{
-			LocalDestination: &local_connection.Connection{
-				Id: dstID,
-			},
-		}
+		xcon.SetDestinationConnection(&local_connection.Connection{Id: dstID})
 	}
 
 	return xcon
 }
 
-func (data *healTestData) cloneCrossConnection(xcon *crossconnect.CrossConnect) *crossconnect.CrossConnect {
-	var isRemoteSrc, isRemoteDst bool
-	var srcID, dstID string
-
-	if source := xcon.GetRemoteSource(); source != nil {
-		isRemoteSrc = true
-		srcID = source.GetId()
-	} else if source := xcon.GetLocalSource(); source != nil {
-		isRemoteSrc = false
-		srcID = source.GetId()
-	}
-
-	if destination := xcon.GetRemoteDestination(); destination != nil {
-		isRemoteDst = true
-		dstID = destination.GetId()
-	} else if destination := xcon.GetLocalDestination(); destination != nil {
-		isRemoteDst = false
-		dstID = destination.GetId()
-	}
-
-	return data.createCrossConnection(isRemoteSrc, isRemoteDst, srcID, dstID)
-}
-
-func (data *healTestData) createRequest(isRemote bool) nsm.NSMRequest {
+func (data *healTestData) createRequest(isRemote bool) networkservice.Request {
 	if isRemote {
 		return &remote_networkservice.NetworkServiceRequest{
 			Connection: &remote_connection.Connection{
@@ -468,7 +432,7 @@ func (data *healTestData) createRequest(isRemote bool) nsm.NSMRequest {
 
 }
 
-func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, dataplane string, request nsm.NSMRequest) *model.ClientConnection {
+func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, dataplane string, request networkservice.Request) *model.ClientConnection {
 	return &model.ClientConnection{
 		ConnectionID: id,
 		Xcon:         xcon,
@@ -484,7 +448,7 @@ func (data *healTestData) createClientConnection(id string, xcon *crossconnect.C
 
 func (data *healTestData) cloneClientConnection(connection *model.ClientConnection) *model.ClientConnection {
 	id := connection.GetID()
-	xcon := data.cloneCrossConnection(connection.Xcon)
+	xcon := proto.Clone(connection.Xcon).(*crossconnect.CrossConnect)
 	nse := data.createEndpoint(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName(), connection.Endpoint.GetNetworkServiceManager().GetName())
 	nsm := connection.RemoteNsm.GetName()
 	dataplane := connection.DataplaneRegisteredName

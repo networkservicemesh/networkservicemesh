@@ -27,14 +27,14 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
+	monitor_local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	monitor_remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -158,7 +158,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *mo
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 
 	if conn := new.Xcon.GetLocalSource(); conn != nil && !proto.Equal(old.Xcon.GetLocalSource(), conn) {
-		if workspace, ok := conn.GetMechanism().GetParameters()[local_connection.Workspace]; ok {
+		if workspace, ok := conn.GetMechanism().GetParameters()[local.Workspace]; ok {
 			if localConnectionMonitor := client.monitorManager.LocalConnectionMonitor(workspace); localConnectionMonitor != nil {
 				localConnectionMonitor.Update(conn)
 			}
@@ -259,7 +259,7 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 	err := client.monitor(
 		ctx,
 		endpointLogFormat, endpointLogWithParamFormat, endpoint.EndpointName(),
-		grpcConnectionSupplier, local.NewMonitorClient,
+		grpcConnectionSupplier, monitor_local.NewMonitorClient,
 		client.handleLocalConnection, nil)
 
 	if err != nil {
@@ -283,7 +283,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 }
 
 func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType) error {
-	localConnection, ok := entity.(*local_connection.Connection)
+	localConnection, ok := entity.(*local.Connection)
 	if !ok {
 		return fmt.Errorf("unable to cast %v to local.Connection", entity)
 	}
@@ -374,7 +374,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		return grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
-		return remote.NewMonitorClient(conn, &remote_connection.MonitorScopeSelector{
+		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
 			NetworkServiceManagerName: client.xconManager.GetNsmName(),
 		})
 	}
@@ -395,7 +395,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 }
 
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType) error {
-	remoteConnection, ok := entity.(*remote_connection.Connection)
+	remoteConnection, ok := entity.(*remote.Connection)
 	if !ok {
 		return fmt.Errorf("unable to cast %v to remote.Connection", entity)
 	}
@@ -407,8 +407,8 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 			client.xconManager.RemoteDestinationUpdated(cc, remoteConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
-			downConnection := proto.Clone(remoteConnection).(*remote_connection.Connection)
-			downConnection.State = remote_connection.State_DOWN
+			downConnection := proto.Clone(remoteConnection).(*remote.Connection)
+			downConnection.State = remote.State_DOWN
 
 			xconToSend := &crossconnect.CrossConnect{
 				Source: &crossconnect.CrossConnect_LocalSource{

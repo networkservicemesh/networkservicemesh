@@ -1,21 +1,20 @@
 package tests
 
 import (
+	"context"
+	"testing"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	localConnection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	localNetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	remoteConnection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-import (
-	"context"
-	"testing"
-)
-
-func createTestDataplane(name string, localMechanisms []*localConnection.Mechanism, RemoteMechanisms []*remoteConnection.Mechanism) *model.Dataplane {
+func createTestDataplane(name string, localMechanisms []connection.Mechanism, RemoteMechanisms []connection.Mechanism) *model.Dataplane {
 	return &model.Dataplane{
 		RegisteredName:       name,
 		SocketLocation:       "tcp:some_addr",
@@ -29,25 +28,25 @@ func TestSelectDataplane(t *testing.T) {
 	RegisterTestingT(t)
 
 	testDataplane1_1 := createTestDataplane("test_data_plane_2",
-		[]*localConnection.Mechanism{
-			{
-				Type: localConnection.MechanismType_VHOST_INTERFACE,
+		[]connection.Mechanism{
+			&local.Mechanism{
+				Type: local.MechanismType_VHOST_INTERFACE,
 			},
-			{
-				Type: localConnection.MechanismType_MEM_INTERFACE,
+			&local.Mechanism{
+				Type: local.MechanismType_MEM_INTERFACE,
 			},
 		},
-		[]*remoteConnection.Mechanism{
-			{
-				Type: remoteConnection.MechanismType_VXLAN,
+		[]connection.Mechanism{
+			&remote.Mechanism{
+				Type: remote.MechanismType_VXLAN,
 				Parameters: map[string]string{
-					remoteConnection.VXLANSrcIP: "127.0.0.1",
+					remote.VXLANSrcIP: "127.0.0.1",
 				},
 			},
-			{
-				Type: remoteConnection.MechanismType_GRE,
+			&remote.Mechanism{
+				Type: remote.MechanismType_GRE,
 				Parameters: map[string]string{
-					remoteConnection.VXLANSrcIP: "127.0.0.1",
+					remote.VXLANSrcIP: "127.0.0.1",
 				},
 			},
 		})
@@ -76,8 +75,8 @@ func TestSelectDataplane(t *testing.T) {
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
 
-	request := &localNetworkservice.NetworkServiceRequest{
-		Connection: &localConnection.Connection{
+	request := &networkservice.NetworkServiceRequest{
+		Connection: &local.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				DstIpRequired: true,
@@ -85,12 +84,12 @@ func TestSelectDataplane(t *testing.T) {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*localConnection.Mechanism{
+		MechanismPreferences: []*local.Mechanism{
 			{
-				Type: localConnection.MechanismType_KERNEL_INTERFACE,
+				Type: local.MechanismType_KERNEL_INTERFACE,
 				Parameters: map[string]string{
-					localConnection.NetNsInodeKey:    "10",
-					localConnection.InterfaceNameKey: "icmp-responder1",
+					local.NetNsInodeKey:    "10",
+					local.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
@@ -100,8 +99,8 @@ func TestSelectDataplane(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
-	request = &localNetworkservice.NetworkServiceRequest{
-		Connection: &localConnection.Connection{
+	request = &networkservice.NetworkServiceRequest{
+		Connection: &local.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				DstIpRequired: true,
@@ -109,12 +108,12 @@ func TestSelectDataplane(t *testing.T) {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*localConnection.Mechanism{
+		MechanismPreferences: []*local.Mechanism{
 			{
-				Type: localConnection.MechanismType_MEM_INTERFACE,
+				Type: local.MechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
-					localConnection.NetNsInodeKey:    "10",
-					localConnection.InterfaceNameKey: "icmp-responder1",
+					local.NetNsInodeKey:    "10",
+					local.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
@@ -124,8 +123,8 @@ func TestSelectDataplane(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
-	request = &localNetworkservice.NetworkServiceRequest{
-		Connection: &localConnection.Connection{
+	request = &networkservice.NetworkServiceRequest{
+		Connection: &local.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				DstIpRequired: true,
@@ -133,12 +132,12 @@ func TestSelectDataplane(t *testing.T) {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*localConnection.Mechanism{
+		MechanismPreferences: []*local.Mechanism{
 			{
-				Type: localConnection.MechanismType_SRIOV_INTERFACE,
+				Type: local.MechanismType_SRIOV_INTERFACE,
 				Parameters: map[string]string{
-					localConnection.NetNsInodeKey:    "10",
-					localConnection.InterfaceNameKey: "icmp-responder1",
+					local.NetNsInodeKey:    "10",
+					local.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},

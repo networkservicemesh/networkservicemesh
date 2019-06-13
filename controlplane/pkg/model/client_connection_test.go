@@ -51,7 +51,6 @@ func TestAddAndGetСс(t *testing.T) {
 
 	Expect(getConn.GetNetworkService()).To(Equal(cc.GetNetworkService()))
 	Expect(getConn.GetID()).To(Equal(cc.GetID()))
-	Expect(getConn.GetConnectionSource()).To(Equal(cc.GetConnectionSource()))
 
 	Expect(fmt.Sprintf("%p", getConn.RemoteNsm)).ToNot(Equal(fmt.Sprintf("%p", cc.RemoteNsm)))
 	Expect(fmt.Sprintf("%p", getConn.Endpoint)).ToNot(Equal(fmt.Sprintf("%p", cc.Endpoint)))

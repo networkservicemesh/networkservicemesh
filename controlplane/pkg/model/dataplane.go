@@ -2,8 +2,9 @@ package model
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
+
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
@@ -22,8 +23,8 @@ const (
 type Dataplane struct {
 	RegisteredName       string
 	SocketLocation       string
-	LocalMechanisms      []*local.Mechanism
-	RemoteMechanisms     []*remote.Mechanism
+	LocalMechanisms      []connection.Mechanism
+	RemoteMechanisms     []connection.Mechanism
 	MechanismsConfigured bool
 }
 
@@ -33,14 +34,14 @@ func (d *Dataplane) clone() cloneable {
 		return nil
 	}
 
-	lm := make([]*local.Mechanism, 0, len(d.LocalMechanisms))
+	lm := make([]connection.Mechanism, 0, len(d.LocalMechanisms))
 	for _, m := range d.LocalMechanisms {
-		lm = append(lm, proto.Clone(m).(*local.Mechanism))
+		lm = append(lm, m.Clone())
 	}
 
-	rm := make([]*remote.Mechanism, 0, len(d.RemoteMechanisms))
+	rm := make([]connection.Mechanism, 0, len(d.RemoteMechanisms))
 	for _, m := range d.RemoteMechanisms {
-		rm = append(rm, proto.Clone(m).(*remote.Mechanism))
+		rm = append(rm, m.Clone())
 	}
 
 	return &Dataplane{
@@ -50,6 +51,26 @@ func (d *Dataplane) clone() cloneable {
 		RemoteMechanisms:     rm,
 		MechanismsConfigured: d.MechanismsConfigured,
 	}
+}
+
+// SetLocalMechanisms sets dataplane local mechanisms
+func (d *Dataplane) SetLocalMechanisms(mechanisms []*local.Mechanism) {
+	lm := make([]connection.Mechanism, 0, len(mechanisms))
+	for _, m := range mechanisms {
+		lm = append(lm, m)
+	}
+
+	d.LocalMechanisms = lm
+}
+
+// SetRemoteMechanisms sets dataplane remote mechanisms
+func (d *Dataplane) SetRemoteMechanisms(mechanisms []*remote.Mechanism) {
+	rm := make([]connection.Mechanism, 0, len(mechanisms))
+	for _, m := range mechanisms {
+		rm = append(rm, m)
+	}
+
+	d.RemoteMechanisms = rm
 }
 
 type dataplaneDomain struct {
