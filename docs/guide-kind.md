@@ -1,6 +1,6 @@
 # Using `kind` as a cluster provider
 
-[`kind`](kind.sigs.k8s.io) is a tool for running local Kubernetes clusters using Docker container “nodes”.
+[`kind`](https://kind.sigs.k8s.io/) is a tool for running local Kubernetes clusters using Docker container “nodes”.
 Docker is the only prerequisite, it does not require any additional steps, hypervisors etc.
 
 It is worth noting that `kind` as any other Kubernetes deployment tool would expect that the machine that hosts the Docker has at least 4 CPU cores and 4 GB of RAM. That is specifically pointed for OSX users in the official [docs](https://kind.sigs.k8s.io/docs/user/quick-start/).
