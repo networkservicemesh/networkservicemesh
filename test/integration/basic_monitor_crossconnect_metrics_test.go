@@ -19,7 +19,7 @@ import (
 )
 
 func TestRepeatedSimpleMetrics(t *testing.T) {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		TestSimpleMetrics(t)
 	}
 }
@@ -47,7 +47,7 @@ func TestSimpleMetrics(t *testing.T) {
 			Variables: pods.DefaultNSMD(),
 		},
 	}, k8s.GetK8sNamespace())
-
+	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
 	Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
@@ -116,7 +116,7 @@ func monitorCrossConnectsMetrics(stream crossconnect.MonitorCrossConnect_Monitor
 					logrus.Infof("An error during receive event %v", err)
 					continue
 				}
-				logrus.Infof("Received event %d", event)
+				logrus.Infof("Received event %v", event)
 				if event.Metrics == nil {
 					continue
 				}
