@@ -108,7 +108,7 @@ func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEnd
 
 	self := &ConnectionEndpoint{
 		mechanismType: common.MechanismFromString(configuration.MechanismType),
-		id:            shortid.MustNew(1, shortid.DEFAULT_ABC, rand.Uint64()),
+		id:            shortid.MustNew(1, shortid.DefaultABC, rand.Uint64()),
 	}
 
 	return self

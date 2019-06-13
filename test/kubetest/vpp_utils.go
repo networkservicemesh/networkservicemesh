@@ -2,15 +2,14 @@ package kubetest
 
 import (
 	"fmt"
-	"net"
-	"strings"
-	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"net"
+	"strings"
+	"time"
 )
 
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
@@ -85,6 +84,6 @@ func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 // DefaultPlaneVariablesVPP - Default variables for VPP deployment
 func DefaultPlaneVariablesVPP() map[string]string {
 	return map[string]string{
-		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
+		common.DataplaneMetricsEnabledKey: "false",
 	}
 }

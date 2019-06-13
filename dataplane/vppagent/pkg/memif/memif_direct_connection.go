@@ -23,7 +23,8 @@ func NewDirectMemifConnector(baseDir string) *DirectMemifConnector {
 	}
 }
 
-func (d *DirectMemifConnector) ConnectOrDisConnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+// ConnectOrDisconnect handler for request() or close() connections
+func (d *DirectMemifConnector) ConnectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	if connect {
 		return d.connect(crossConnect)
 	}
