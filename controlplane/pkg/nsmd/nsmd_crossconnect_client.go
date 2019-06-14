@@ -17,10 +17,10 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"net"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -157,16 +157,20 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 
-	if conn := new.Xcon.GetLocalSource(); conn != nil && !proto.Equal(old.Xcon.GetLocalSource(), conn) {
-		if workspace, ok := conn.GetMechanism().GetParameters()[local.Workspace]; ok {
-			if localConnectionMonitor := client.monitorManager.LocalConnectionMonitor(workspace); localConnectionMonitor != nil {
-				localConnectionMonitor.Update(conn)
-			}
-		}
+	conn := new.Xcon.GetSourceConnection()
+	if conn.Equals(old.Xcon.GetSourceConnection()) {
+		return
 	}
 
-	if conn := new.Xcon.GetRemoteSource(); conn != nil && !proto.Equal(old.Xcon.GetRemoteSource(), conn) {
-		client.monitorManager.RemoteConnectionMonitor().Update(conn)
+	var monitorServer monitor.Server
+	if conn.IsRemote() {
+		monitorServer = client.monitorManager.RemoteConnectionMonitor()
+	} else if workspace, ok := conn.GetConnectionMechanism().GetParameters()[local.Workspace]; ok {
+		monitorServer = client.monitorManager.LocalConnectionMonitor(workspace)
+	}
+
+	if monitorServer != nil {
+		monitorServer.Update(conn)
 	}
 }
 
@@ -174,7 +178,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnec
 	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
 
 	client.monitorManager.CrossConnectMonitor().Delete(clientConnection.Xcon)
-	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
+	if conn := clientConnection.GetConnectionSource(); conn.IsRemote() {
 		client.monitorManager.RemoteConnectionMonitor().Delete(conn)
 	}
 
@@ -407,17 +411,15 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 			client.xconManager.RemoteDestinationUpdated(cc, remoteConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
-			downConnection := proto.Clone(remoteConnection).(*remote.Connection)
-			downConnection.State = remote.State_DOWN
+			downConnection := remoteConnection.Clone()
+			downConnection.SetConnectionState(connection.StateDown)
 
-			xconToSend := &crossconnect.CrossConnect{
-				Source: &crossconnect.CrossConnect_LocalSource{
-					LocalSource: cc.Xcon.GetLocalSource(),
-				},
-				Destination: &crossconnect.CrossConnect_RemoteDestination{
-					RemoteDestination: downConnection,
-				},
-			}
+			xconToSend := crossconnect.NewCrossConnect(
+				cc.Xcon.GetId(),
+				cc.Xcon.GetPayload(),
+				cc.Xcon.GetSourceConnection(),
+				downConnection,
+			)
 
 			client.monitorManager.CrossConnectMonitor().Update(xconToSend)
 			client.xconManager.DestinationDown(cc, false)

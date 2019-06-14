@@ -8,6 +8,19 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
+// NewCrossConnect creates a new cross connect
+func NewCrossConnect(id, payload string, src, dst connection.Connection) *CrossConnect {
+	c := &CrossConnect{
+		Id:      id,
+		Payload: payload,
+	}
+
+	c.SetSourceConnection(src)
+	c.SetDestinationConnection(dst)
+
+	return c
+}
+
 // GetSourceConnection returns cross connect source connection
 func (c *CrossConnect) GetSourceConnection() connection.Connection {
 	if src := c.GetRemoteSource(); src != nil {

@@ -489,7 +489,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	srv.updateConnectionParameters(requestID, nseConn, endpoint)
 
 	// 7.2.6.2.4 create cross connection
-	dpAPIConnection := srv.createCrossConnect(requestConn, endpoint, nseConn)
+	dpAPIConnection := srv.createCrossConnect(requestConn, nseConn, endpoint)
 	var dpState model.DataplaneState
 	if existingCC != nil {
 		dpState = existingCC.DataplaneState
@@ -509,17 +509,15 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	return clientConnection, nil
 }
 
-func (srv *networkServiceManager) createCrossConnect(requestConn connection.Connection, endpoint *registry.NSERegistration, nseConn connection.Connection) *crossconnect.CrossConnect {
-	dpApiConnection := &crossconnect.CrossConnect{
-		Id:      requestConn.GetId(),
-		Payload: endpoint.GetNetworkService().GetPayload(),
-	}
-
-	dpApiConnection.SetSourceConnection(requestConn)
-	dpApiConnection.SetDestinationConnection(nseConn)
-
-	return dpApiConnection
+func (srv *networkServiceManager) createCrossConnect(requestConn, nseConn connection.Connection, endpoint *registry.NSERegistration) *crossconnect.CrossConnect {
+	return crossconnect.NewCrossConnect(
+		requestConn.GetId(),
+		endpoint.GetNetworkService().GetPayload(),
+		requestConn,
+		nseConn,
+	)
 }
+
 func (srv *networkServiceManager) validateNSEConnection(nseConn connection.Connection) error {
 	err := nseConn.IsComplete()
 	if err != nil {
