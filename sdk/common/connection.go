@@ -17,9 +17,10 @@ package common
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/security/manager"
+	"github.com/networkservicemesh/networkservicemesh/security/certificate"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -59,7 +60,9 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	// logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
 	// NSE connection server is ready and now endpoints can be advertised to NSM
-	cm := security.NewCertificateManager()
+	certObtainer := security.NewSpireCertObtainer("/run/spire/sockets/agent.sock", 5*time.Second)
+	cm := security.NewCertificateManager(certObtainer)
+
 	cred, err := cm.ClientCredentials()
 	if err != nil {
 		logrus.Error(err)

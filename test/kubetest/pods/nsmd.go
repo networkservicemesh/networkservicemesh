@@ -122,11 +122,20 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						},
 					},
 				},
+				//{
+				//	Name: "certs",
+				//	VolumeSource: v1.VolumeSource{
+				//		Secret: &v1.SecretVolumeSource{
+				//			SecretName: "nsmd-cert-secret",
+				//		},
+				//	},
+				//},
 				{
-					Name: "certs",
+					Name: "spire-agent-socket",
 					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
-							SecretName: "nsmd-cert-secret",
+						HostPath: &v1.HostPathVolumeSource{
+							Path: "/run/spire/sockets",
+							Type: ht,
 						},
 					},
 				},
@@ -145,9 +154,14 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts: []v1.VolumeMount{
 						newNSMMount(),
+						//{
+						//	Name:      "certs",
+						//	MountPath: "/etc/certs",
+						//	ReadOnly:  true,
+						//},
 						{
-							Name:      "certs",
-							MountPath: "/etc/certs",
+							Name:      "spire-agent-socket",
+							MountPath: "/run/spire/sockets",
 							ReadOnly:  true,
 						},
 					},

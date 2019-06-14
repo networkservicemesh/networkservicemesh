@@ -15,8 +15,9 @@
 package nsmd
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/security/manager"
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/security/certificate"
 	"net"
 	"os"
 	"sync"
@@ -94,7 +95,9 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 
 	logrus.Infof("Creating new GRPC MonitorServer")
 	tracer := opentracing.GlobalTracer()
-	cm := security.NewCertificateManager()
+	certObtainer := security.NewSpireCertObtainer("/run/spire/sockets/agent.sock", 5*time.Second)
+	cm := security.NewCertificateManager(certObtainer)
+
 	cred, err := cm.ServerCredentials()
 	if err != nil {
 		logrus.Error(err)

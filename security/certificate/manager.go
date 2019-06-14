@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/credentials"
-	"io/ioutil"
 	"sync"
 )
 
@@ -21,6 +20,12 @@ type CertificateManager interface {
 	ServerCredentials() (credentials.TransportCredentials, error)
 }
 
+type CertificateObtainer interface {
+	ObtainCertificates() <-chan *certs
+	Stop()
+	Error() error
+}
+
 type certs struct {
 	cert []byte
 	key  []byte
@@ -29,17 +34,19 @@ type certs struct {
 
 type certificateManager struct {
 	sync.RWMutex
-	certs *certs
+	certs   *certs
+	readyCh chan struct{}
 }
 
 func (m *certificateManager) ClientCredentials() (credentials.TransportCredentials, error) {
-	cert, err := tls.X509KeyPair(m.certs.cert, m.certs.key)
+	c := m.getCertificates()
+	cert, err := tls.X509KeyPair(c.cert, c.key)
 	if err != nil {
 		return nil, err
 	}
 
 	caPool := x509.NewCertPool()
-	if ok := caPool.AppendCertsFromPEM(m.certs.ca); !ok {
+	if ok := caPool.AppendCertsFromPEM(c.ca); !ok {
 		return nil, errors.New("failed to append ca cert to pool")
 	}
 
@@ -51,13 +58,14 @@ func (m *certificateManager) ClientCredentials() (credentials.TransportCredentia
 }
 
 func (m *certificateManager) ServerCredentials() (credentials.TransportCredentials, error) {
-	cert, err := tls.X509KeyPair(m.certs.cert, m.certs.key)
+	c := m.getCertificates()
+	cert, err := tls.X509KeyPair(c.cert, c.key)
 	if err != nil {
 		return nil, err
 	}
 
 	caPool := x509.NewCertPool()
-	if ok := caPool.AppendCertsFromPEM(m.certs.ca); !ok {
+	if ok := caPool.AppendCertsFromPEM(c.ca); !ok {
 		return nil, errors.New("failed to append ca cert to pool")
 	}
 
@@ -68,28 +76,11 @@ func (m *certificateManager) ServerCredentials() (credentials.TransportCredentia
 	}), nil
 }
 
-func (m *certificateManager) readCertificates() error {
-	var err error
-	newCerts := &certs{}
-
-	if newCerts.cert, err = ioutil.ReadFile(certFile); err != nil {
-		return err
-	}
-
-	if newCerts.key, err = ioutil.ReadFile(keyFile); err != nil {
-		return err
-	}
-
-	if newCerts.ca, err = ioutil.ReadFile(caFile); err != nil {
-		return err
-	}
-
-	m.setCertificates(newCerts)
-	logrus.Info("Certificates successfully read")
-	return nil
-}
-
 func (m *certificateManager) getCertificates() *certs {
+	logrus.Infof("Waiting for certificates...")
+	<-m.readyCh
+	logrus.Infof("Certificates were obtained")
+
 	m.RLock()
 	defer m.RUnlock()
 	return m.certs
@@ -98,13 +89,37 @@ func (m *certificateManager) getCertificates() *certs {
 func (m *certificateManager) setCertificates(c *certs) {
 	m.Lock()
 	defer m.Unlock()
+
+	if m.certs == nil {
+		close(m.readyCh)
+	}
 	m.certs = c
 }
 
-func NewCertificateManager() CertificateManager {
-	cm := &certificateManager{}
-	if err := cm.readCertificates(); err != nil {
-		logrus.Error(err)
+func (m *certificateManager) exchangeCertificates(obtainer CertificateObtainer) {
+	logrus.Infof("exchangeCertificates %v", obtainer)
+	certCh := obtainer.ObtainCertificates()
+	logrus.Infof("ObtainCertificates() = %v", certCh)
+
+	for {
+		c, ok := <-certCh
+		if ok {
+			logrus.Info("ok")
+			m.setCertificates(c)
+			continue
+		}
+		logrus.Info("ne ok")
+		if err := obtainer.Error(); err != nil {
+			logrus.Errorf(err.Error())
+		}
+		return
 	}
+}
+
+func NewCertificateManager(obtainer CertificateObtainer) CertificateManager {
+	cm := &certificateManager{
+		readyCh: make(chan struct{}),
+	}
+	go cm.exchangeCertificates(obtainer)
 	return cm
 }

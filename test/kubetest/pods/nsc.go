@@ -93,11 +93,18 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 		},
 		VolumeMounts: []v1.VolumeMount{
 			{
-				Name:      "certs",
-				MountPath: "/etc/certs",
+				Name:      "spire-agent-socket",
+				MountPath: "/run/spire/sockets",
 				ReadOnly:  true,
 			},
 		},
+		//VolumeMounts: []v1.VolumeMount{
+		//	{
+		//		Name:      "certs",
+		//		MountPath: "/etc/certs",
+		//		ReadOnly:  true,
+		//	},
+		//},
 	})
 	for k, v := range env {
 		initContainer.Env = append(initContainer.Env,
@@ -115,6 +122,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: "nsc-acc",
 			Containers: []v1.Container{
 				{
 					Name:            "alpine-img",
@@ -125,12 +133,23 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 					},
 				},
 			},
+			//Volumes: []v1.Volume{
+			//	{
+			//		Name: "certs",
+			//		VolumeSource: v1.VolumeSource{
+			//			Secret: &v1.SecretVolumeSource{
+			//				SecretName: "nsc-cert-secret",
+			//			},
+			//		},
+			//	},
+			//},
 			Volumes: []v1.Volume{
 				{
-					Name: "certs",
+					Name: "spire-agent-socket",
 					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
-							SecretName: "nsc-cert-secret",
+						HostPath: &v1.HostPathVolumeSource{
+							Path: "/run/spire/sockets",
+							Type: ht,
 						},
 					},
 				},
