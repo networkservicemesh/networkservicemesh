@@ -8,7 +8,7 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
-// NewCrossConnect creates a new cross connect
+// NewCrossConnect creates a new crossConnect
 func NewCrossConnect(id, payload string, src, dst connection.Connection) *CrossConnect {
 	c := &CrossConnect{
 		Id:      id,
@@ -21,7 +21,7 @@ func NewCrossConnect(id, payload string, src, dst connection.Connection) *CrossC
 	return c
 }
 
-// GetSourceConnection returns cross connect source connection
+// GetSourceConnection returns crossConnect source connection
 func (c *CrossConnect) GetSourceConnection() connection.Connection {
 	if src := c.GetRemoteSource(); src != nil {
 		return src
@@ -34,7 +34,7 @@ func (c *CrossConnect) GetSourceConnection() connection.Connection {
 	return nil
 }
 
-// SetSourceConnection sets cross connect source connection
+// SetSourceConnection sets crossConnect source connection
 func (c *CrossConnect) SetSourceConnection(src connection.Connection) {
 	if src.IsRemote() {
 		c.Source = &CrossConnect_RemoteSource{
@@ -47,7 +47,7 @@ func (c *CrossConnect) SetSourceConnection(src connection.Connection) {
 	}
 }
 
-// GetDestinationConnection returns cross connect destination connection
+// GetDestinationConnection returns crossConnect destination connection
 func (c *CrossConnect) GetDestinationConnection() connection.Connection {
 	if dst := c.GetRemoteDestination(); dst != nil {
 		return dst
@@ -60,7 +60,7 @@ func (c *CrossConnect) GetDestinationConnection() connection.Connection {
 	return nil
 }
 
-// SetDestinationConnection sets cross connect destination connection
+// SetDestinationConnection sets crossConnect destination connection
 func (c *CrossConnect) SetDestinationConnection(dst connection.Connection) {
 	if dst.IsRemote() {
 		c.Destination = &CrossConnect_RemoteDestination{
@@ -73,81 +73,53 @@ func (c *CrossConnect) SetDestinationConnection(dst connection.Connection) {
 	}
 }
 
+// IsValid checks if crossConnect is minimally valid
 func (c *CrossConnect) IsValid() error {
 	if c == nil {
-		return fmt.Errorf("CrossConnect cannot be nil")
+		return fmt.Errorf("crossConnect cannot be nil")
 	}
 
 	if c.GetId() == "" {
-		return fmt.Errorf("CrossConnect.Id cannot be empty: %v", c)
+		return fmt.Errorf("crossConnect.Id cannot be empty: %v", c)
 	}
 
-	if c.GetSource() == nil {
-		return fmt.Errorf("CrossConnect.Source cannot be nil: %v", c)
+	src := c.GetSourceConnection()
+	if src == nil {
+		return fmt.Errorf("crossConnect.Source cannot be nil: %v", c)
 	}
 
-	if c.GetLocalSource() != nil {
-		if err := c.GetLocalSource().IsValid(); err != nil {
-			return fmt.Errorf("CrossConnect.Source %v invalid: %s", c, err)
-		}
+	if err := src.IsValid(); err != nil {
+		return fmt.Errorf("crossConnect.Source %v invalid: %s", c, err)
 	}
 
-	if c.GetRemoteSource() != nil {
-		if err := c.GetRemoteSource().IsValid(); err != nil {
-			return fmt.Errorf("CrossConnect.Source %v invalid: %s", c, err)
-		}
+	dst := c.GetDestinationConnection()
+	if dst == nil {
+		return fmt.Errorf("crossConnect.Destination cannot be nil: %v", c)
 	}
 
-	if c.GetDestination() == nil {
-		return fmt.Errorf("CrossConnect.Destination cannot be nil: %v", c)
-	}
-
-	if c.GetLocalDestination() != nil {
-		if err := c.GetLocalDestination().IsValid(); err != nil {
-			return fmt.Errorf("CrossConnect.Destination %v invalid: %s", c, err)
-		}
-	}
-
-	if c.GetRemoteDestination() != nil {
-		if err := c.GetRemoteDestination().IsValid(); err != nil {
-			return fmt.Errorf("CrossConnect.Destination %v invalid: %s", c, err)
-		}
+	if err := dst.IsValid(); err != nil {
+		return fmt.Errorf("crossConnect.Destination %v invalid: %s", c, err)
 	}
 
 	if c.GetPayload() == "" {
-		return fmt.Errorf("CrossConnect.Payload cannot be empty: %v", c)
+		return fmt.Errorf("crossConnect.Payload cannot be empty: %v", c)
 	}
 
 	return nil
 }
 
+// IsComplete checks if crossConnect is complete valid
 func (c *CrossConnect) IsComplete() error {
 	if err := c.IsValid(); err != nil {
 		return err
 	}
 
-	if c.GetLocalSource() != nil {
-		if err := c.GetLocalSource().IsComplete(); err != nil {
-			return fmt.Errorf("CrossConnect.Source %v invalid: %s", c, err)
-		}
+	if err := c.GetSourceConnection().IsComplete(); err != nil {
+		return fmt.Errorf("crossConnect.Source %v invalid: %s", c, err)
 	}
 
-	if c.GetRemoteSource() != nil {
-		if err := c.GetRemoteSource().IsComplete(); err != nil {
-			return fmt.Errorf("CrossConnect.Source %v invalid: %s", c, err)
-		}
-	}
-
-	if c.GetLocalDestination() != nil {
-		if err := c.GetLocalDestination().IsComplete(); err != nil {
-			return fmt.Errorf("CrossConnect.Destination %v invalid: %s", c, err)
-		}
-	}
-
-	if c.GetRemoteDestination() != nil {
-		if err := c.GetRemoteDestination().IsComplete(); err != nil {
-			return fmt.Errorf("CrossConnect.Destination %v invalid: %s", c, err)
-		}
+	if err := c.GetDestinationConnection().IsComplete(); err != nil {
+		return fmt.Errorf("crossConnect.Destination %v invalid: %s", c, err)
 	}
 
 	return nil

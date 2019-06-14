@@ -109,7 +109,7 @@ func (c *Connection) SetConnectionState(state connection.State) {
 	}
 }
 
-// IsValid checks if connection is minimally valid.
+// IsValid checks if connection is minimally valid
 func (c *Connection) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("connection cannot be nil")

@@ -17,6 +17,4 @@ type Mechanism interface {
 
 	GetParameters() map[string]string
 	SetParameters(parameters map[string]string)
-
-	IsValid() error
 }
