@@ -219,7 +219,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 				logrus.Errorf("NSM:(5.1-%v) Failed to close local Dataplane for connection %v", requestID, existingCC)
 			}
 		}
-		return nil, err
+		return nil, fmt.Errorf("NSM:(5.1-%v) %v", requestID, err)
 	}
 
 	// 6. Prepare dataplane connection is fine.

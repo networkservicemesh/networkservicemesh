@@ -59,7 +59,7 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestID string, reques
 			parameters[remote.VXLANVNI] = strconv.FormatUint(uint64(vni), 10)
 		}
 
-		logrus.Infof("NSM:(4.1-%v) Remote mechanism selected %v", requestID, mechanism)
+		logrus.Infof("NSM:(5.1-%v) Remote mechanism selected %v", requestID, mechanism)
 		return mechanism, nil
 	}
 
