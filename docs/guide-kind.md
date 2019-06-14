@@ -8,7 +8,7 @@ It is worth noting that `kind` as any other Kubernetes deployment tool would exp
 
 ## `kind` lifecycle management
 
-To start a `kind` cluster, just run:
+To start a `kind` cluster, just run the below command from root networkservicemesh directory:
 
 ```shell
 $ make kind-start
