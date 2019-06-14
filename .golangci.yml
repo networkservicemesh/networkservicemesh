@@ -91,6 +91,7 @@ linters-settings:
 
 linters:
   disable:
+    - depguard
     - lll
     - gofmt
     - varcheck #deprecated
