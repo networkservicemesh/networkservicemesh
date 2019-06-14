@@ -49,6 +49,9 @@ func (m *resyncManager) storeDataChange(id string, dataChange *configurator.Conf
 
 //TODO: do not use pointer to poinder
 func (m *resyncManager) needToResync(id string, dataChange **configurator.Config) bool {
+	if dataChange == nil {
+		return false
+	}
 	if value, ok := m.storedDataChanges.Load(id); ok {
 		storedDataChange := value.(*configurator.Config)
 

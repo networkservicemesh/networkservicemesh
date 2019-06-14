@@ -164,7 +164,6 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 			v.programMgmtInterface()
 		}
 	} else {
-		v.resyncManager.storeDataChange(crossConnect.Id, dataChange)
 		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 	}
 	v.printVppAgentConfiguration(client)
