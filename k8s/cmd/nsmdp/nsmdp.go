@@ -1,5 +1,5 @@
-// Copyright 2018 Red Hat, Inc.
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018-2019 Red Hat, Inc.
+// Copyright (c) 2018-2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"net"
-	"os"
 	"path"
 	"sync"
 	"time"
@@ -26,7 +26,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -299,25 +298,4 @@ func (n *nsmClientEndpoints) receiveWorkspaces() {
 
 		break
 	}
-}
-
-func main() {
-	// Capture signals to cleanup before exiting
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("nsmdp")
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
-
-	serviceRegistry := nsmd.NewServiceRegistry()
-	err := NewNSMDeviceServer(serviceRegistry)
-
-	if err != nil {
-		logrus.Errorf("failed to start server: %v", err)
-		os.Exit(1)
-	}
-
-	logrus.Info("nsmdp: successfully started")
-	<-c
 }

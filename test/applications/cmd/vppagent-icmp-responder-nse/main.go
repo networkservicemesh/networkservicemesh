@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, Inc.
+// Copyright 2018-2019 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var version string
+
 func main() {
+	logrus.Info("Starting vppagent-icmp-responder-nse...")
+	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 

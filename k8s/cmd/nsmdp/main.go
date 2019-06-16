@@ -1,5 +1,5 @@
-// Copyright 2018 VMware, Inc.
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2019 Red Hat, Inc.
+// Copyright (c) 2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,44 +12,42 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/sirupsen/logrus"
 	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 )
 
+var version string
+
 func main() {
+	logrus.Info("Starting nsmdp-k8s...")
+	logrus.Infof("Version %v", version)
+	// Capture signals to cleanup before exiting
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.TraceLevel)
+	tracer, closer := tools.InitJaeger("nsmdp")
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logrus.Errorf("An error during closing: %v", err)
+		}
+	}()
+	opentracing.SetGlobalTracer(tracer)
 
-	initConfig()
+	serviceRegistry := nsmd.NewServiceRegistry()
+	err := NewNSMDeviceServer(serviceRegistry)
 
-	configuration := &common.NSConfiguration{
-		MechanismType: "mem",
-	}
-
-	composite := endpoint.NewCompositeEndpoint(
-		endpoint.NewMonitorEndpoint(configuration),
-		newVppAgentAclComposite(configuration),
-		newVppAgentXConnComposite(configuration),
-		endpoint.NewClientEndpoint(configuration),
-		endpoint.NewConnectionEndpoint(configuration))
-
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		logrus.Errorf("failed to start server: %v", err)
+		os.Exit(1)
 	}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
-
+	logrus.Info("nsmdp: successfully started")
 	<-c
 }

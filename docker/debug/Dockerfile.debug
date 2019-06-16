@@ -3,6 +3,7 @@ FROM golang:alpine as build
 RUN apk add --update protobuf git bash gcc musl-dev curl
 
 # Compile Delve
+ARG VERSION=unspecified
 RUN echo "Building DLV"
 RUN go get github.com/derekparker/delve/cmd/dlv
 
@@ -21,5 +22,5 @@ WORKDIR /root/networkservicemesh/
 RUN go mod download
 
 COPY ["./docker/debug/dev-entry.go","/go/src/"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/dev-entry /go/src/dev-entry.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/dev-entry /go/src
 ENTRYPOINT ["/go/bin/dev-entry"]

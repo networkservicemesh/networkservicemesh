@@ -24,7 +24,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
+var version string
+
 func main() {
+	logrus.Info("Starting nsm-init...")
+	logrus.Infof("Version: %v", version)
 	tracer, closer := tools.InitJaeger("nsc")
 	opentracing.SetGlobalTracer(tracer)
 	defer func() { _ = closer.Close() }()

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2018-2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package main
 
 import (
@@ -29,7 +28,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -396,36 +395,6 @@ func buildClient() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	return k8sClientset, nil
-}
-
-func main() {
-	flag.Set("logtostderr", "true")
-	flag.Parse()
-	discoveredVFs := newVFs()
-	if err := discoverNetworks(discoveredVFs); err != nil {
-		logrus.Errorf("%+v", err)
-		os.Exit(1)
-	}
-	if len(discoveredVFs.vfs) == 0 {
-		logrus.Info("no VF were discovered, exiting...")
-		os.Exit(0)
-	}
-	logrus.Infof("%d VFs were discovered on the host.", len(discoveredVFs.vfs))
-	// Check if noRebind is selected
-	if !*noRebind {
-		// Building vfio device for each VF
-		if err := buildVFIODevices(discoveredVFs); err != nil {
-			logrus.Errorf("failed to build VFIO devices for VFs with error: %+v", err)
-			os.Exit(1)
-		}
-	}
-	// Check if noConfigMap is selected
-	if !*noConfigMap {
-		if err := generateConfigMap(discoveredVFs); err != nil {
-			logrus.Errorf("%+v", err)
-			os.Exit(1)
-		}
-	}
 }
 
 func generateConfigMap(discoveredVFs *VFs) error {
