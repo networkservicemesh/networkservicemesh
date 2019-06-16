@@ -49,7 +49,7 @@ func (m *resyncManager) storeDataChange(id string, dataChange *configurator.Conf
 
 //TODO: do not use pointer to poinder
 func (m *resyncManager) needToResync(id string, dataChange **configurator.Config) bool {
-	if dataChange == nil {
+	if *dataChange == nil {
 		return false
 	}
 	if value, ok := m.storedDataChanges.Load(id); ok {
@@ -63,7 +63,7 @@ func (m *resyncManager) needToResync(id string, dataChange **configurator.Config
 		}
 
 		for i, if1 := range storedDataChange.LinuxConfig.Interfaces {
-			if if1.Namespace.Reference != (*dataChange).LinuxConfig.Interfaces[i].Namespace.Reference {
+			if if1.Namespace == nil || (*dataChange).LinuxConfig.Interfaces[i].Namespace == nil || if1.Namespace.Reference != (*dataChange).LinuxConfig.Interfaces[i].Namespace.Reference {
 				logrus.Info("RESYNC: Yes")
 				storedDataChange.LinuxConfig = (*dataChange).LinuxConfig
 				*dataChange = storedDataChange
