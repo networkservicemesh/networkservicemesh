@@ -15,7 +15,13 @@ Install [Docker desktop](https://www.docker.com/products/docker-desktop) from th
 The rest of the prerequisites can be easily installed using `brew`:
 
 ```bash
-brew install kubectl
+brew install kubernetes-cli
+```
+
+## JSON utils
+
+```bash
+brew install jq
 ```
 
 ## VirtualBox
