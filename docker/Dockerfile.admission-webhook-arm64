@@ -12,6 +12,6 @@ RUN ./go-mod-download.sh
 ADD [".","/root/networkservicemesh"]
 RUN GOARCH=arm64 CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/admission-webhook ./k8s/cmd/admission-webhook/...
 
-FROM alpine as runtime
+FROM arm64v8/alpine as runtime
 COPY --from=build /go/bin/admission-webhook /bin/admission-webhook
 ENTRYPOINT ["/bin/admission-webhook"]

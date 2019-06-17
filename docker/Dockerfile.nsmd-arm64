@@ -12,6 +12,6 @@ RUN ./go-mod-download.sh
 ADD [".","/root/networkservicemesh"]
 RUN GOARCH=arm64 CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/nsmd ./controlplane/cmd/nsmd/nsmd.go
 
-FROM alpine as runtime
+FROM arm64v8/alpine as runtime
 COPY --from=build /go/bin/nsmd /bin/nsmd
 ENTRYPOINT ["/bin/nsmd"]
