@@ -153,7 +153,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout,
+	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.TestCommonPod(name, icmpCommand(false, false, true, false), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
@@ -162,47 +162,47 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
 	pod := pods.TestCommonPod(name, icmpCommand(false, false, true, false), node, defaultICMPEnv(k8s.UseIPv6()))
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
-	return deployICMP(k8s, node, name, timeout, pod)
+	return deployICMP(k8s, nodeName(node), name, timeout, pod)
 }
 
 // DeployDirtyICMP deploys 'icmp-responder-nse' pod with '-dirty' flag set
 func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployDirtyNSE(k8s, node, name, timeout,
+	return deployDirtyNSE(k8s, nodeName(node), name, timeout,
 		pods.TestCommonPod(name, icmpCommand(true, false, false, false), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployNeighborNSE deploys 'icmp-responder-nse' pod with '-neighbors' flag set
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout,
+	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.TestCommonPod(name, icmpCommand(false, true, false, false), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployUpdatingNSE deploys 'icmp-responder-nse' pod with '-update' flag set
 func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout,
+	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.TestCommonPod(name, icmpCommand(false, false, false, true), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployNSC - Setup Default Client
 func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "nsm-init", timeout,
+	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
 		pods.NSCPod(name, node, defaultNSCEnv()),
 	)
 }
 
 // DeployNSCWebhook - Setup Default Client with webhook
 func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "nsm-init-container", timeout,
+	return deployNSC(k8s, nodeName(node), name, "nsm-init-container", timeout,
 		pods.NSCPodWebhook(name, node),
 	)
 }
 
 // DeployMonitoringNSC deploys 'monitoring-nsc' pod
 func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "monitoring-nsc", timeout,
+	return deployNSC(k8s, nodeName(node), name, "monitoring-nsc", timeout,
 		pods.TestCommonPod(name, []string{"/bin/monitoring-nsc"}, node, defaultNSCEnv()),
 	)
 }
@@ -248,10 +248,18 @@ func defaultNSCEnv() map[string]string {
 	}
 }
 
-func deployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+func nodeName(node *v1.Node) string {
+	if node == nil {
+		return "Random Node"
+	}
+
+	return node.Name
+}
+
+func deployICMP(k8s *K8s, nodeName, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
-	logrus.Infof("Starting ICMP Responder NSE on node: %s", node.Name)
+	logrus.Infof("Starting ICMP Responder NSE on node: %s", nodeName)
 	icmp := k8s.CreatePod(template)
 	Expect(icmp.Name).To(Equal(name))
 
@@ -261,10 +269,10 @@ func deployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration, tem
 	return icmp
 }
 
-func deployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+func deployDirtyNSE(k8s *K8s, nodeName, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 
-	logrus.Infof("Starting dirty NSE on node: %s", node.Name)
+	logrus.Infof("Starting dirty NSE on node: %s", nodeName)
 	dirty := k8s.CreatePod(template)
 	Expect(dirty.Name).To(Equal(name))
 
@@ -274,11 +282,11 @@ func deployDirtyNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration,
 	return dirty
 }
 
-func deployNSC(k8s *K8s, node *v1.Node, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 	Expect(template).ShouldNot(BeNil())
 
-	logrus.Infof("Starting NSC %s on node: %s", name, node.Name)
+	logrus.Infof("Starting NSC %s on node: %s", name, nodeName)
 
 	nsc := k8s.CreatePod(template)
 
@@ -561,10 +569,8 @@ func (info *NSCCheckInfo) PrintLogs() {
 
 // CheckNSC - Perform default check for client to NSE operations
 func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
-	if !k8s.UseIPv6() {
-		return checkNSCConfig(k8s, nscPodNode, "172.16.1.1", "172.16.1.2")
-	}
-	return checkNSCConfig(k8s, nscPodNode, "100::1", "100::2")
+	nscLocalRemoteIPs := getNSCLocalRemoteIPs(k8s, nscPodNode)
+	return checkNSCConfig(k8s, nscPodNode, nscLocalRemoteIPs[0], nscLocalRemoteIPs[1])
 }
 
 func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCheckInfo {
