@@ -58,7 +58,7 @@ func (si* shellInterface) GetConfigLocation() string {
 	return si.configLocation
 }
 
-func (si *shellInterface) RunCmd(context context.Context, operation string, script []string, env []string) error {
+func (si *shellInterface) RunCmd(context context.Context, operation string, script, env []string) error {
 	_, fileRef, err := si.manager.OpenFile(si.id, operation)
 	if err != nil {
 		logrus.Errorf("Failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)
@@ -70,7 +70,7 @@ func (si *shellInterface) RunCmd(context context.Context, operation string, scri
 	writer := bufio.NewWriter(fileRef)
 
 	for _, cmd := range script {
-		if len(strings.TrimSpace(cmd)) == 0 {
+		if strings.TrimSpace(cmd) == "" {
 			continue
 		}
 
@@ -103,10 +103,14 @@ func (si *shellInterface) PrintEnv(processedEnv []string) string {
 				varValue = strings.Replace(varValue, envValue, "****", -1)
 			}
 		}
-		printableEnv.WriteString(fmt.Sprintf("%s=%s\n", varName, varValue))
+		_, _ = printableEnv.WriteString(fmt.Sprintf("%s=%s\n", varName, varValue))
 	}
+	return printableEnv.String()
+}
+func (si *shellInterface) PrintArgs() string {
+	printableEnv := strings.Builder{}
 
-	printableEnv.WriteString("Arguments:\n")
+	_, _ = printableEnv.WriteString("Arguments:\n")
 
 	for varName, varValue := range si.finalArgs {
 		if !si.params.NoMaskParameters {
@@ -116,7 +120,7 @@ func (si *shellInterface) PrintEnv(processedEnv []string) string {
 				varValue = strings.Replace(varValue, envValue, "****", -1)
 			}
 		}
-		printableEnv.WriteString(fmt.Sprintf("%s=%s\n", varName, varValue))
+		_,_ = printableEnv.WriteString(fmt.Sprintf("%s=%s\n", varName, varValue))
 	}
 	return printableEnv.String()
 }

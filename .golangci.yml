@@ -112,6 +112,9 @@ issues:
     - path: controlplane/pkg/monitor/
       linters:
         - dupl
+    - path: controlplane/pkg/nsm.nsm.go
+      linters:
+        - gocyclo # TODO: reduce nsm.request() complexity
   exclude:
     - should not use dot imports
     - \`version\` is a global variable

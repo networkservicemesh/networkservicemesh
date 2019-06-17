@@ -1,7 +1,6 @@
-package shell
+package packet
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
@@ -13,7 +12,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	"github.com/packethost/packngo"
 	"github.com/sirupsen/logrus"
-	"log"
+	"io"
 	"math/rand"
 	"os"
 	"path"
@@ -40,35 +39,34 @@ type packetProvider struct {
 }
 
 type packetInstance struct {
-	manager execmanager.ExecutionManager
+	installScript           []string
+	setupScript             []string
+	startScript             []string
+	prepareScript           []string
+	stopScript              []string
+	manager                 execmanager.ExecutionManager
+	root                    string
+	id                      string
+	configScript            string
+	zoneSelectorScript      string
+	factory                 k8s.ValidationFactory
+	validator               k8s.KubernetesValidator
+	configLocation          string
+	shellInterface          shell.ShellInterface
+	projectId               string
+	packetAuthKey           string
+	genId                   string
+	keyId                   string
+	config                  *config.ClusterProviderConfig
+	startFailed             int
+	provider                *packetProvider
+	client                  *packngo.Client
+	project                 *packngo.Project
+	devices                 map[string]*packngo.Device
+	sshKey                  *packngo.SSHKey
+	params                  providers.InstanceOptions
+	started                 bool
 
-	root               string
-	id                 string
-	config             *config.ClusterProviderConfig
-	started            bool
-	startFailed        int
-	configScript       string
-	installScript      []string
-	setupScript      []string
-	startScript        []string
-	prepareScript      []string
-	stopScript         []string
-	zoneSelectorScript string
-	provider           *packetProvider
-	factory            k8s.ValidationFactory
-	validator          k8s.KubernetesValidator
-	configLocation     string
-
-	shellInterface shell.ShellInterface
-	params         providers.InstanceOptions
-	client         *packngo.Client
-	projectId      string
-	packetAuthKey  string
-	project        *packngo.Project
-	genId          string
-	devices        map[string]*packngo.Device
-	keyId          string
-	sshKey         *packngo.SSHKey
 }
 
 func (pi *packetInstance) GetId() string {
@@ -105,7 +103,7 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	utils.ClearFolder(pi.root, true)
 
 	pi.genId = uuid.New().String()[:30]
-	// Process and prepare enviorment variables
+	// Process and prepare environment variables
 	err := pi.shellInterface.ProcessEnvironment(map[string]string{
 		"cluster-uuid": pi.genId,
 	})
@@ -125,7 +123,6 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	if err = pi.shellInterface.RunCmd(context, "setup", pi.setupScript, nil); err != nil {
 		return err
 	}
-
 
 	keyFile := pi.config.Packet.SshKey
 	if !utils.FileExists(keyFile) {
@@ -170,20 +167,21 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	sshKeys, response, err := pi.client.SSHKeys.List()
 
 	keyIds := []string{}
-	for _, k := range sshKeys {
-		if k.Label == pi.keyId {
+	for k := 0; k < len(sshKeys); k++ {
+		kk := &sshKeys[k]
+		if kk.Label == pi.keyId {
 			sshKey = &packngo.SSHKey{
-				ID:          k.ID,
-				Label:       k.Label,
-				URL:         k.URL,
-				User:        k.User,
-				Key:         k.Key,
-				FingerPrint: k.FingerPrint,
-				Created:     k.Created,
-				Updated:     k.Updated,
+				ID:          kk.ID,
+				Label:       kk.Label,
+				URL:         kk.URL,
+				User:        kk.User,
+				Key:         kk.Key,
+				FingerPrint: kk.FingerPrint,
+				Created:     kk.Created,
+				Updated:     kk.Updated,
 			}
 		}
-		keyIds = append(keyIds, k.ID)
+		keyIds = append(keyIds, kk.ID)
 	}
 
 	if sshKey == nil && err != nil {
@@ -227,10 +225,8 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 			updatedDevice, _, err = pi.client.Devices.Get(d.ID, &packngo.GetOptions{})
 			if err != nil {
 				logrus.Errorf("Error %v", err)
-			} else {
-				if updatedDevice.State == "active" {
-					alive[key] = updatedDevice
-				}
+			} else if updatedDevice.State == "active" {
+				alive[key] = updatedDevice
 			}
 		}
 		if len(alive) == len(pi.devices) {
@@ -366,7 +362,7 @@ func (pi *packetInstance) GetRoot() string {
 	return pi.root
 }
 
-func (pi *packetInstance) doDestroy(writer *bufio.Writer, timeout time.Duration, err error) {
+func (pi *packetInstance) doDestroy(writer io.StringWriter, timeout time.Duration, err error) {
 	_, _ = writer.WriteString(fmt.Sprintf("Error during k8s API initialisation %v", err))
 	_, _ = writer.WriteString(fmt.Sprintf("Trying to destroy cluster"))
 	// In case we failed to start and create cluster utils.
@@ -395,10 +391,10 @@ func (pi *packetInstance) updateProject() error {
 		logrus.Errorf("Failed to list Packet projects")
 	}
 
-	for _, p := range ps {
-		log.Println(p.ID, p.Name)
+	for i := 0; i> len(ps); i++ {
+		p := &ps[i]
 		if p.ID == pi.projectId {
-			pp := p
+			pp := ps[i]
 			pi.project = &pp
 			break
 		}
@@ -437,31 +433,26 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 	root := path.Join(p.root, id)
 
 	clusterInstance := &packetInstance{
-		manager:            manager,
-		provider:           p,
-		root:               root,
-		id:                 id,
-		config:             config,
-		configScript:       config.Scripts[ConfigScript],
-		installScript:      utils.ParseScript(config.Scripts[InstallScript]),
-		setupScript:        utils.ParseScript(config.Scripts[SetupScript]),
-		startScript:        utils.ParseScript(config.Scripts[StartScript]),
-		prepareScript:      utils.ParseScript(config.Scripts[PrepareScript]),
-		stopScript:         utils.ParseScript(config.Scripts[StopScript]),
-		factory:            factory,
-		shellInterface:     shell.NewShellInterface(manager, id, root, config, instanceOptions),
-		params:             instanceOptions,
-		projectId:          os.Getenv("PACKET_PROJECT_ID"),
-		packetAuthKey:      os.Getenv("PACKET_AUTH_TOKEN"),
-		devices:            map[string]*packngo.Device{},
+		manager:        manager,
+		provider:       p,
+		root:           root,
+		id:             id,
+		config:         config,
+		configScript:   config.Scripts[ConfigScript],
+		installScript:  utils.ParseScript(config.Scripts[InstallScript]),
+		setupScript:    utils.ParseScript(config.Scripts[SetupScript]),
+		startScript:    utils.ParseScript(config.Scripts[StartScript]),
+		prepareScript:  utils.ParseScript(config.Scripts[PrepareScript]),
+		stopScript:     utils.ParseScript(config.Scripts[StopScript]),
+		factory:        factory,
+		shellInterface: shell.NewShellInterface(manager, id, root, config, instanceOptions),
+		params:         instanceOptions,
+		projectId:      os.Getenv("PACKET_PROJECT_ID"),
+		packetAuthKey:  os.Getenv("PACKET_AUTH_TOKEN"),
+		devices:        map[string]*packngo.Device{},
 	}
 
 	return clusterInstance, nil
-}
-
-func init() {
-	logrus.Infof("Adding packet as supported providers...")
-	providers.ClusterProviderFactories["packet"] = NewPacketClusterProvider
 }
 
 func NewPacketClusterProvider(root string) providers.ClusterProvider {

@@ -2,8 +2,10 @@ package model
 
 import (
 	"github.com/golang/protobuf/proto"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
@@ -27,7 +29,7 @@ const (
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint
 type ClientConnection struct {
 	ConnectionID            string
-	Request                 nsm.NSMRequest
+	Request                 networkservice.Request
 	Xcon                    *crossconnect.CrossConnect
 	RemoteNsm               *registry.NetworkServiceManager
 	Endpoint                *registry.NSERegistration
@@ -53,19 +55,13 @@ func (cc *ClientConnection) GetNetworkService() string {
 }
 
 // GetConnectionSource returns source part of connection
-func (cc *ClientConnection) GetConnectionSource() nsm.NSMConnection {
-	if cc.Xcon.GetLocalSource() != nil {
-		return cc.Xcon.GetLocalSource()
-	}
-	return cc.Xcon.GetRemoteSource()
+func (cc *ClientConnection) GetConnectionSource() connection.Connection {
+	return cc.Xcon.GetSourceConnection()
 }
 
-// GetConnectionDestination returns connection destination as nsm.NSMConnection
-func (cc *ClientConnection) GetConnectionDestination() nsm.NSMConnection {
-	if cc.Xcon.GetLocalDestination() != nil {
-		return cc.Xcon.GetLocalDestination()
-	}
-	return cc.Xcon.GetRemoteDestination()
+// GetConnectionDestination returns destination part of connection
+func (cc *ClientConnection) GetConnectionDestination() connection.Connection {
+	return cc.Xcon.GetDestinationConnection()
 }
 
 // Clone return pointer to copy of ClientConnection
@@ -89,15 +85,10 @@ func (cc *ClientConnection) clone() cloneable {
 		endpoint = proto.Clone(cc.Endpoint).(*registry.NSERegistration)
 	}
 
-	var request nsm.NSMRequest
+	var request networkservice.Request
 	if cc.Request != nil {
 		request = cc.Request.Clone()
 	}
-
-	//var dataplane *Dataplane
-	//if cc.Dataplane != nil {
-	//	dataplane = cc.Dataplane.clone().(*Dataplane)
-	//}
 
 	return &ClientConnection{
 		ConnectionID:            cc.ConnectionID,

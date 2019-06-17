@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
@@ -11,6 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"io"
 	"math/rand"
 	"os"
 	"path"
@@ -37,26 +37,25 @@ type shellProvider struct {
 }
 
 type shellInstance struct {
-	manager execmanager.ExecutionManager
+	installScript           []string
+	startScript             []string
+	prepareScript           []string
+	stopScript              []string
+	manager                 execmanager.ExecutionManager
+	root                    string
+	id                      string
+	configScript            string
+	zoneSelectorScript      string
+	factory                 k8s.ValidationFactory
+	validator               k8s.KubernetesValidator
+	configLocation          string
+	shellInterface          shell.ShellInterface
+	config                  *config.ClusterProviderConfig
+	startFailed             int
+	provider                *shellProvider
+	params                  providers.InstanceOptions
+	started                 bool
 
-	root               string
-	id                 string
-	config             *config.ClusterProviderConfig
-	started            bool
-	startFailed        int
-	configScript       string
-	installScript      []string
-	startScript        []string
-	prepareScript      []string
-	stopScript         []string
-	zoneSelectorScript string
-	provider           *shellProvider
-	factory            k8s.ValidationFactory
-	validator          k8s.KubernetesValidator
-	configLocation     string
-
-	shellInterface shell.ShellInterface
-	params         providers.InstanceOptions
 }
 
 func (si *shellInstance) GetId() string {
@@ -103,14 +102,17 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 		selectedZone += zones[rand.Intn(len(zones)-1)]
 	}
 
-	// Process and prepare enviorment variables
-	si.shellInterface.ProcessEnvironment(map[string]string{
+	// Process and prepare environment variables
+	err := si.shellInterface.ProcessEnvironment(map[string]string{
 		"zone-selector": selectedZone,
 	})
+	if err != nil {
+		return err
+	}
 
 	// Do prepare
 	if !si.params.NoInstall {
-		if err := si.doInstall(context); err != nil {
+		if err = si.doInstall(context); err != nil {
 			return err
 		}
 	}
@@ -119,7 +121,7 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	si.manager.AddLog(si.id, "environment", printableEnv)
 
 	// Run start script
-	if err := si.shellInterface.RunCmd(context, "start", si.startScript, nil); err != nil {
+	if err = si.shellInterface.RunCmd(context, "start", si.startScript, nil); err != nil {
 		return err
 	}
 
@@ -136,7 +138,6 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 		}
 		si.configLocation = output[0]
 	}
-	var err error
 	si.validator, err = si.factory.CreateValidator(si.config, si.configLocation)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to start validator %v", err)
@@ -165,7 +166,7 @@ func (si *shellInstance) GetRoot() string {
 	return si.root
 }
 
-func (si *shellInstance) doDestroy(writer *bufio.Writer, timeout time.Duration, err error) {
+func (si *shellInstance) doDestroy(writer io.StringWriter, timeout time.Duration, err error) {
 	_, _ = writer.WriteString(fmt.Sprintf("Error during k8s API initialisation %v", err))
 	_, _ = writer.WriteString(fmt.Sprintf("Trying to destroy cluster"))
 	// In case we failed to start and create cluster utils.
@@ -227,11 +228,6 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 	}
 
 	return clusterInstance, nil
-}
-
-func init() {
-	logrus.Infof("Adding shell as supported providers...")
-	providers.ClusterProviderFactories["shell"] = NewShellClusterProvider
 }
 
 func NewShellClusterProvider(root string) providers.ClusterProvider {

@@ -48,5 +48,3 @@ type ClusterProvider interface {
 }
 
 type ClusterProviderFunction func(root string) ClusterProvider
-
-var ClusterProviderFactories = map[string]ClusterProviderFunction{}

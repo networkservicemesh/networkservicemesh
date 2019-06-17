@@ -32,7 +32,7 @@ func ParseCommandLine(cmdLine string) []string {
 			pos++
 			if pos < count {
 				// Write one more symbol
-				current.WriteByte(cmdLine[pos])
+				_ = current.WriteByte(cmdLine[pos])
 			}
 		} else if charAt == '"' {
 			if current.Len() > 0 {
@@ -47,12 +47,10 @@ func ParseCommandLine(cmdLine string) []string {
 		} else {
 			//Add skiping spaces.
 			if charAt != ' ' && charAt != '\t' {
-				current.WriteByte(charAt)
-			} else {
-				if current.Len() > 0 {
-					result = append(result, current.String())
-					current.Reset()
-				}
+				_ = current.WriteByte(charAt)
+			} else if current.Len() > 0 {
+				result = append(result, current.String())
+				current.Reset()
 			}
 		}
 
@@ -67,7 +65,7 @@ func ParseCommandLine(cmdLine string) []string {
 
 }
 
-func SubstituteVariable(variable string, vars map[string]string, args map[string]string) (string, error) {
+func SubstituteVariable(variable string, vars, args map[string]string) (string, error) {
 
 	pos := 0
 	result := strings.Builder{}
@@ -97,14 +95,14 @@ func SubstituteVariable(variable string, vars map[string]string, args map[string
 					}
 
 				} else if nextChar == '(' {
-					// This is parameter substituion
+					// This is parameter substitution
 					pos += 2
 					var varName string
 					varName, pos = readString(pos, count, variable, ')')
 
 					// We found variable or reached end of string
 					if argValue, ok := args[varName]; ok {
-						result.WriteString(argValue)
+						_, _ = result.WriteString(argValue)
 					} else {
 						return "", fmt.Errorf("Failed to find argument %v in passed arguments", varName)
 					}
@@ -112,10 +110,10 @@ func SubstituteVariable(variable string, vars map[string]string, args map[string
 
 			} else {
 				// End of string just add symbol to result
-				result.WriteByte(charAt)
+				_ = result.WriteByte(charAt)
 			}
 		} else {
-			result.WriteByte(charAt)
+			_ = result.WriteByte(charAt)
 		}
 
 		pos++
@@ -124,21 +122,21 @@ func SubstituteVariable(variable string, vars map[string]string, args map[string
 
 }
 
-func readString(pos int, count int, variable string, delim uint8) (string, int) {
+func readString(pos, count int, variable string, delim uint8) (string, int) {
 	varName := strings.Builder{}
 	for ; pos < count; {
 		tChar := variable[pos]
 		if tChar == delim {
 			break
 		} else {
-			varName.WriteByte(tChar)
+			_ = varName.WriteByte(tChar)
 		}
 		pos++
 	}
 	return varName.String(), pos
 }
 
-func readStringEscaping(pos int, count int, variable string, delim uint8) (string, int) {
+func readStringEscaping(pos, count int, variable string, delim uint8) (string, int) {
 	varName := strings.Builder{}
 	for ; pos < count; {
 		tChar := variable[pos]
@@ -146,12 +144,12 @@ func readStringEscaping(pos int, count int, variable string, delim uint8) (strin
 			pos++
 			if pos < count {
 				// Write one more symbol
-				varName.WriteByte(variable[pos])
+				_ = varName.WriteByte(variable[pos])
 			}
 		} else if tChar == delim {
 			break
 		} else {
-			varName.WriteByte(tChar)
+			_ = varName.WriteByte(tChar)
 		}
 		pos++
 	}
@@ -194,7 +192,7 @@ func RunCommand(id string, context context.Context, cmd, operation string, write
 			}
 			_, _ = writer.WriteString(s)
 			_ = writer.Flush()
-			if(len(strings.TrimSpace(s)) > 0) {
+			if (len(strings.TrimSpace(s)) > 0) {
 				logrus.Infof("Output: %s => %s %v", id, operation, s)
 			}
 		}
@@ -208,14 +206,14 @@ func RunCommand(id string, context context.Context, cmd, operation string, write
 			}
 			_, _ = writer.WriteString(s)
 			_ = writer.Flush()
-			if(len(strings.TrimSpace(s)) > 0) {
+			if (len(strings.TrimSpace(s)) > 0) {
 				logrus.Infof("StdErr: %s => %s %v", id, operation, s)
 			}
 		}
 	}()
 	if code := proc.ExitCode(); code != 0 {
 		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
-		return fmt.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
+		return fmt.Errorf("failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
 	}
 	return nil
 }

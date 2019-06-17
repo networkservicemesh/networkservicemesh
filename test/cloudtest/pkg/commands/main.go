@@ -10,8 +10,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers"
-	_ "github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/packet"
-	_ "github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/shell"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/packet"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/reporting"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -28,28 +28,12 @@ const (
 	DefaultConfigFile string = ".cloud_test.yaml"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "cloud_test",
-	Short: "NSM Cloud Test is cloud helper continuous integration testing tool",
-	Long:  `Allow to execute all set of individual tests across all clouds provided.`,
-	Run:   CloudTestRun,
-	Args: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
-}
-
 type Arguments struct {
-	providerConfig  string   // A folder to start scaning for tests inside.
 	clusters        []string // A list of enabled clusters from configuration.
-	onlyEnabled     bool     // Disable all clusters and enable only enabled in command line.
+	providerConfig  string   // A folder to start scaning for tests inside
 	count           int      // Limit number of tests to be run per every cloud
 	instanceOptions providers.InstanceOptions
-	// Disable masking of checked environment variables
-}
-
-var cmdArguments *Arguments = &Arguments{
-	providerConfig: DefaultConfigFile,
-	clusters:       []string{},
+	onlyEnabled     bool // Disable all clusters and enable only enabled in command line.
 }
 
 type clusterState byte
@@ -116,16 +100,18 @@ type executionContext struct {
 	startTime        time.Time
 	clusterReadyTime time.Time
 	factory          k8s.ValidationFactory
+	arguments        *Arguments
 }
 
-func CloudTestRun(cmd *cobra.Command, args []string) {
+func CloudTestRun(cmd *cloudTestCmd) {
 	var configFileContent []byte
 	var err error
-	if cmdArguments.providerConfig == "" {
-		cmdArguments.providerConfig = DefaultConfigFile
+
+	if cmd.cmdArguments.providerConfig == "" {
+		cmd.cmdArguments.providerConfig = DefaultConfigFile
 	}
 
-	configFileContent, err = ioutil.ReadFile(cmdArguments.providerConfig)
+	configFileContent, err = ioutil.ReadFile(cmd.cmdArguments.providerConfig)
 	if err != nil {
 		logrus.Errorf("Failed to read config file %v", err)
 		return
@@ -134,13 +120,13 @@ func CloudTestRun(cmd *cobra.Command, args []string) {
 	config := &config.CloudTestConfig{}
 	parseConfig(config, configFileContent)
 
-	err, _ = PerformTesting(config, k8s.CreateFactory())
+	err, _ = PerformTesting(config, k8s.CreateFactory(), cmd.cmdArguments)
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
-func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactory) (error, *reporting.JUnitFile) {
+func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactory, arguments *Arguments) (error, *reporting.JUnitFile) {
 	ctx := &executionContext{
 		cloudTestConfig:  config,
 		operationChannel: make(chan operationEvent),
@@ -149,6 +135,7 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 		completed:        []*testTask{},
 		tests:            []*TestEntry{},
 		factory:          factory,
+		arguments:        arguments,
 	}
 	ctx.manager = execmanager.NewExecutionManager(ctx.cloudTestConfig.ConfigRoot)
 	// Create cluster instance handles
@@ -178,7 +165,7 @@ func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []by
 
 func (ctx *executionContext) performShutdown() {
 	// We need to stop all clusters we started
-	if !cmdArguments.instanceOptions.NoStop {
+	if !ctx.arguments.instanceOptions.NoStop {
 		var wg sync.WaitGroup
 		for _, clG := range ctx.clusters {
 			group := clG
@@ -388,8 +375,8 @@ func (ctx *executionContext) createTasks() {
 				taskIndex++
 				cluster.tasks = append(cluster.tasks, task)
 
-				if cmdArguments.count > 0 && i >= cmdArguments.count {
-					logrus.Infof("Limit of tests for execution:: %v is reached. Skipping test %s", cmdArguments.count, test.Name)
+				if ctx.arguments.count > 0 && i >= ctx.arguments.count {
+					logrus.Infof("Limit of tests for execution:: %v is reached. Skipping test %s", ctx.arguments.count, test.Name)
 					test.Status = Status_SKIPPED
 					ctx.skipped = append(ctx.skipped, task)
 				} else {
@@ -481,7 +468,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 					break
 				}
 				_, _ = writer.WriteString(s)
-				writer.Flush()
+				_ = writer.Flush()
 			}
 		}()
 		code := proc.ExitCode()
@@ -506,7 +493,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 				msg := fmt.Sprintf("Failed to run %s Exit code: %v. Logs inside %v \n", cmdLine, code, fileName)
 				logrus.Errorf(msg)
 				_, _ = writer.WriteString(msg)
-				writer.Flush()
+				_ = writer.Flush()
 				ctx.updateTestExecution(task, fileName, Status_FAILED)
 			}
 		} else {
@@ -667,11 +654,11 @@ func (ctx *executionContext) createClusters() error {
 	}
 
 	for _, cl := range ctx.cloudTestConfig.Providers {
-		if cmdArguments.onlyEnabled {
+		if ctx.arguments.onlyEnabled {
 			logrus.Infof("Disable cluster config:: %v since onlyEnabled is passed...", cl.Name)
 			cl.Enabled = false
 		}
-		for _, cc := range cmdArguments.clusters {
+		for _, cc := range ctx.arguments.clusters {
 			if cl.Name == cc {
 				if !cl.Enabled {
 					logrus.Infof("Enabling config:: %v", cl.Name)
@@ -688,7 +675,7 @@ func (ctx *executionContext) createClusters() error {
 			} else {
 				instances := []*clusterInstance{}
 				for i := 0; i < cl.Instances; i++ {
-					cluster, err := provider.CreateCluster(cl, ctx.factory, ctx.manager, cmdArguments.instanceOptions)
+					cluster, err := provider.CreateCluster(cl, ctx.factory, ctx.manager, ctx.arguments.instanceOptions)
 					if err != nil {
 						msg := fmt.Sprintf("Failed to create cluster instance. Error %v", err)
 						logrus.Errorf(msg)
@@ -839,7 +826,13 @@ func (ctx *executionContext) setClusterState(instance *clusterInstance, op func(
 
 func createClusterProviders(manager execmanager.ExecutionManager) (map[string]providers.ClusterProvider, error) {
 	clusterProviders := map[string]providers.ClusterProvider{}
-	for key, factory := range providers.ClusterProviderFactories {
+
+	clusterProviderFactories := map[string]providers.ClusterProviderFunction {
+		"packet": packet.NewPacketClusterProvider,
+		"shell": shell.NewShellClusterProvider,
+	}
+
+	for key, factory := range clusterProviderFactories {
 		if _, ok := clusterProviders[key]; ok {
 			msg := fmt.Sprintf("Re-definition of cluster provider... Exiting")
 			logrus.Errorf(msg)
@@ -855,23 +848,47 @@ func createClusterProviders(manager execmanager.ExecutionManager) (map[string]pr
 	return clusterProviders, nil
 }
 
+type cloudTestCmd struct {
+	cobra.Command
+
+	cmdArguments *Arguments
+}
+
 func ExecuteCloudTest() {
+	var rootCmd = &cloudTestCmd{
+		cmdArguments: &Arguments{
+			providerConfig: DefaultConfigFile,
+			clusters:       []string{},
+		},
+	}
+	rootCmd.Use = "cloud_test"
+	rootCmd.Short = "NSM Cloud Test is cloud helper continuous integration testing tool"
+	rootCmd.Long = `Allow to execute all set of individual tests across all clouds provided.`
+	rootCmd.Run = func(cmd *cobra.Command, args []string) {
+		CloudTestRun(rootCmd)
+	}
+	rootCmd.Args = func(cmd *cobra.Command, args []string) error {
+		return nil
+	}
+
+	initCmd(rootCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
-func init() {
+func initCmd(rootCmd *cloudTestCmd) {
 	cobra.OnInitialize(initConfig)
-	rootCmd.Flags().StringVarP(&cmdArguments.providerConfig, "config", "", "", "Config file for providers, default="+DefaultConfigFile)
-	rootCmd.Flags().StringArrayVarP(&cmdArguments.clusters, "clusters", "c", []string{}, "Enable disable cluster configs, default use from config. Cloud be used to test agains selected configuration or locally...")
-	rootCmd.Flags().BoolVarP(&cmdArguments.onlyEnabled, "enabled", "e", false, "Use only passed cluster names...")
-	rootCmd.Flags().IntVarP(&cmdArguments.count, "count", "", -1, "Execute only count of tests")
+	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.providerConfig, "config", "", "", "Config file for providers, default="+DefaultConfigFile)
+	rootCmd.Flags().StringArrayVarP(&rootCmd.cmdArguments.clusters, "clusters", "c", []string{}, "Enable disable cluster configs, default use from config. Cloud be used to test agains selected configuration or locally...")
+	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.onlyEnabled, "enabled", "e", false, "Use only passed cluster names...")
+	rootCmd.Flags().IntVarP(&rootCmd.cmdArguments.count, "count", "", -1, "Execute only count of tests")
 
-	rootCmd.Flags().BoolVarP(&cmdArguments.instanceOptions.NoStop, "noStop", "", false, "Pass to disable stop operations...")
-	rootCmd.Flags().BoolVarP(&cmdArguments.instanceOptions.NoInstall, "noInstall", "", false, "Pass to disable do install operations...")
-	rootCmd.Flags().BoolVarP(&cmdArguments.instanceOptions.NoMaskParameters, "noMask", "", false, "Pass to disable masking of environment variables...")
+	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.instanceOptions.NoStop, "noStop", "", false, "Pass to disable stop operations...")
+	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.instanceOptions.NoInstall, "noInstall", "", false, "Pass to disable do install operations...")
+	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.instanceOptions.NoMaskParameters, "noMask", "", false, "Pass to disable masking of environment variables...")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",

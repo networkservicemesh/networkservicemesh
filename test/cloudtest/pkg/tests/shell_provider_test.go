@@ -61,7 +61,7 @@ func TestShellProvider(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{})
+	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("There is failed tests 4"))
 
 	Expect(report).NotTo(BeNil())
@@ -115,7 +115,7 @@ func TestInvalidProvider(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{})
+	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error Invalid start script"))
 
 	Expect(report).To(BeNil())
@@ -148,7 +148,7 @@ func TestRequireEnvVars(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{})
+	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error Environment variable are not specified  Required variables: [KUBECONFIG QWE]"))
 
 	Expect(report).To(BeNil())
@@ -197,7 +197,7 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{})
+	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("There is failed tests 2"))
 
 	Expect(report).ToNot(BeNil())

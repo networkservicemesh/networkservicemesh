@@ -8,7 +8,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func (srv *networkServiceManager) Heal(connection nsm.NSMClientConnection, healState nsm.HealState) {
+func (srv *networkServiceManager) Heal(connection nsm.ClientConnection, healState nsm.HealState) {
 	healID := create_logid()
 	logrus.Infof("NSM_Heal(1-%v) %v", healID, connection)
 
