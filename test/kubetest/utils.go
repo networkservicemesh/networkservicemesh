@@ -769,3 +769,22 @@ func PrepareRegistryClients(k8s *K8s, nsmd *v1.Pod) (registry.NetworkServiceRegi
 
 	return nseRegistryClient, nsmRegistryClient, closeFunc
 }
+
+// ExpectNSEsCountToBe checks if nses count becomes 'countExpected' after a time
+func ExpectNSEsCountToBe(k8s *K8s, countWas, countExpected int) {
+	if countWas == countExpected {
+		<-time.After(10 * time.Second)
+	} else {
+		for i := 0; i < 10; i++ {
+			if nses, err := k8s.GetNSEs(); err == nil && len(nses) == countExpected {
+				break
+			}
+			<-time.After(1 * time.Second)
+		}
+	}
+
+	nses, err := k8s.GetNSEs()
+
+	Expect(err).To(BeNil())
+	Expect(len(nses)).To(Equal(countExpected), fmt.Sprint(nses))
+}
