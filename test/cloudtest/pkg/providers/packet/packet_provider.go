@@ -116,13 +116,13 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 
 	// Do prepare
 	if !pi.params.NoInstall {
-		if err := pi.doInstall(context); err != nil {
+		if err = pi.doInstall(context); err != nil {
 			return err
 		}
 	}
 
 	// Run start script
-	if err := pi.shellInterface.RunCmd(context, "setup", pi.setupScript, nil); err != nil {
+	if err = pi.shellInterface.RunCmd(context, "setup", pi.setupScript, nil); err != nil {
 		return err
 	}
 
@@ -132,7 +132,7 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		// Relative file
 		keyFile = path.Join(pi.root, keyFile)
 		if !utils.FileExists(keyFile) {
-			err := fmt.Errorf("Failed to locate generated key file, please specify init script to generate it.")
+			err = fmt.Errorf("Failed to locate generated key file, please specify init script to generate it.")
 			logrus.Errorf(err.Error())
 			return err
 		}
@@ -207,7 +207,9 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 			ProjectID:      pi.projectId,
 			ProjectSSHKeys: keyIds,
 		}
-		device, response, err := pi.client.Devices.Create(devReq)
+		var device *packngo.Device
+		var response *packngo.Response
+		device, response, err = pi.client.Devices.Create(devReq)
 		pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), fmt.Sprintf("%v", response))
 		if err != nil {
 			return err
@@ -221,12 +223,13 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	for {
 		alive := map[string]*packngo.Device{}
 		for key, d := range pi.devices {
-			dUpd, _, err := pi.client.Devices.Get(d.ID, &packngo.GetOptions{})
+			var updatedDevice *packngo.Device
+			updatedDevice, _, err = pi.client.Devices.Get(d.ID, &packngo.GetOptions{})
 			if err != nil {
 				logrus.Errorf("Error %v", err)
 			} else {
-				if dUpd.State == "active" {
-					alive[key] = dUpd
+				if updatedDevice.State == "active" {
+					alive[key] = updatedDevice
 				}
 			}
 		}
@@ -261,7 +264,7 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	pi.manager.AddLog(pi.id, "environment", printableEnv)
 
 	// Run start script
-	if err := pi.shellInterface.RunCmd(context, "start", pi.startScript, nil); err != nil {
+	if err = pi.shellInterface.RunCmd(context, "start", pi.startScript, nil); err != nil {
 		return err
 	}
 
@@ -270,7 +273,8 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	}
 
 	if pi.configLocation == "" {
-		output, err := utils.ExecRead(context, strings.Split(pi.configScript, " "))
+		var output []string
+		output, err = utils.ExecRead(context, strings.Split(pi.configScript, " "))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to retrieve configuration location %v", err)
 			logrus.Errorf(msg)
@@ -286,7 +290,7 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		return err
 	}
 	// Run prepare script
-	if err := pi.shellInterface.RunCmd(context, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
+	if err = pi.shellInterface.RunCmd(context, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
 		return err
 	}
 

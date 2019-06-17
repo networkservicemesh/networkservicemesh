@@ -46,7 +46,7 @@ func ExecRead( ctx context.Context, args []string) ([]string, error) {
 	return output, nil
 }
 
-func ExecProc(ctx context.Context, args []string, env []string) (*ProcWrapper, error) {
+func ExecProc(ctx context.Context, args, env []string) (*ProcWrapper, error) {
 	if len(args) == 0 {
 		return &ProcWrapper{}, fmt.Errorf("missing command to run")
 	}

@@ -132,8 +132,8 @@ func (si *shellInterface) ProcessEnvironment(extraArgs map[string]string) error 
 		environment[key] = value
 	}
 
-	for _, varName := range si.config.Env {
-		varName, varValue, err := utils.ParseVariable(varName)
+	for _, rawVarName := range si.config.Env {
+		varName, varValue, err := utils.ParseVariable(rawVarName)
 		if err != nil {
 			return err
 		}
