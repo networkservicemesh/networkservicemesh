@@ -43,8 +43,23 @@ func (m *resyncManager) checkConnection(conn *connection.Connection) {
 	m.storedDataChanges.Delete(conn.Id)
 }
 
-func (m *resyncManager) storeDataChange(id string, dataChange *configurator.Config) {
-	m.storedDataChanges.Store(id, dataChange)
+func (m *resyncManager) getStoredDataChange(id string) *configurator.Config {
+	d, ok := m.storedDataChanges.Load(id)
+	if ok {
+		return d.(*configurator.Config)
+	}
+	return nil
+}
+func (m *resyncManager) getAllDataChanges(exclude string) []*configurator.Config {
+	result := []*configurator.Config{}
+	m.storedDataChanges.Range(func(k, v interface{}) bool {
+		storedDataChange := v.(*configurator.Config)
+		if id, ok := k.(string); ok && id != exclude {
+			result = append(result, storedDataChange)
+		}
+		return true
+	})
+	return result
 }
 
 //TODO: do not use pointer to poinder
@@ -72,6 +87,6 @@ func (m *resyncManager) needToResync(id string, dataChange **configurator.Config
 		}
 	}
 	logrus.Info("RESYNC: NO")
-	m.storeDataChange(id, *dataChange)
+	m.storedDataChanges.Store(id, *dataChange)
 	return false
 }
