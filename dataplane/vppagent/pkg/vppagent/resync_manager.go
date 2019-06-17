@@ -1,6 +1,7 @@
 package vppagent
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -89,4 +90,16 @@ func (m *resyncManager) needToResync(id string, dataChange **configurator.Config
 	logrus.Info("RESYNC: NO")
 	m.storedDataChanges.Store(id, *dataChange)
 	return false
+}
+
+//TODO: use VPP_AGENT_ENDPOINT if all tests passed
+func (m *resyncManager) downstreamResync() {
+	client := http.Client{}
+	r, _ := http.NewRequest("POST", "http://localhost:9191/scheduler/downstream-resync", nil)
+	resp, err := client.Do(r)
+	if err != nil {
+		logrus.Infof("Cant do downstream. Response %v, err: %v", resp, err)
+		return;
+	}
+	logrus.Info("invoked downstream-resync without errors")
 }

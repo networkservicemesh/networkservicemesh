@@ -160,18 +160,9 @@ func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossc
 	if connect {
 		resync := v.resyncManager.needToResync(crossConnect.Id, &dataChange)
 		if resync {
-			_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: v.resyncManager.getStoredDataChange(crossConnect.Id)})
+			v.resyncManager.downstreamResync()
 		}
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
-
-		//logrus.Infof("Resync %v", resync)
-		/*if resync {
-			for _, d := range v.resyncManager.getAllDataChanges(crossConnect.Id) {
-				logrus.Infof("Resync sub d %v", d)
-				client.Update(ctx, &configurator.UpdateRequest{Update: d})
-			}
-			v.programMgmtInterface()
-		}*/
 
 	} else {
 		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
