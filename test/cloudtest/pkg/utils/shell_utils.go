@@ -162,7 +162,7 @@ func ParseScript(s string) []string {
 	return strings.Split(strings.TrimSpace(s), "\n")
 }
 
-func RunCommand(id string, context context.Context, cmd, fileName string, writer *bufio.Writer, env []string, args map[string]string) error {
+func RunCommand(id string, context context.Context, cmd, operation string, writer *bufio.Writer, env []string, args map[string]string) error {
 	finalEnv := append(os.Environ(), env...)
 
 	environment := map[string]string{}
@@ -194,7 +194,9 @@ func RunCommand(id string, context context.Context, cmd, fileName string, writer
 			}
 			_, _ = writer.WriteString(s)
 			_ = writer.Flush()
-			logrus.Infof("Output: %s => %s %v", id, cmd, s)
+			if(len(strings.TrimSpace(s)) > 0) {
+				logrus.Infof("Output: %s => %s %v", id, operation, s)
+			}
 		}
 	}()
 	go func() {
@@ -206,12 +208,14 @@ func RunCommand(id string, context context.Context, cmd, fileName string, writer
 			}
 			_, _ = writer.WriteString(s)
 			_ = writer.Flush()
-			logrus.Infof("StdErr: %s => %s %v", id, cmd, s)
+			if(len(strings.TrimSpace(s)) > 0) {
+				logrus.Infof("StdErr: %s => %s %v", id, operation, s)
+			}
 		}
 	}()
 	if code := proc.ExitCode(); code != 0 {
-		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, fileName)
-		return fmt.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, fileName)
+		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
+		return fmt.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
 	}
 	return nil
 }

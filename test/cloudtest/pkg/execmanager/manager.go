@@ -30,7 +30,7 @@ type executionManagerImpl struct {
 // write file 'clusters/GKE/tests/testname/kubectl_logs'
 func (mgr *executionManagerImpl) AddTestLog(category, testName, operation, content string) {
 	cat := mgr.getCategory(category)
-	utils.WriteFile(path.Join(mgr.root, category), fmt.Sprintf("%s-%s-%s-%s.log", cat, testName, operation), content)
+	utils.WriteFile(path.Join(mgr.root, category), fmt.Sprintf("%s-%s-%s.log", cat, testName, operation), content)
 }
 
 func (mgr *executionManagerImpl) getCategory(category string) string {

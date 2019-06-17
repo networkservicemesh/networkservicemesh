@@ -59,7 +59,7 @@ func (si* shellInterface) GetConfigLocation() string {
 }
 
 func (si *shellInterface) RunCmd(context context.Context, operation string, script []string, env []string) error {
-	fileName, fileRef, err := si.manager.OpenFile(si.id, operation)
+	_, fileRef, err := si.manager.OpenFile(si.id, operation)
 	if err != nil {
 		logrus.Errorf("Failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)
 		return err
@@ -82,7 +82,7 @@ func (si *shellInterface) RunCmd(context context.Context, operation string, scri
 
 		logrus.Infof("%s: %s => %s", operation, si.id, cmd)
 
-		if err := utils.RunCommand(si.id, context, cmd, fileName, writer, cmdEnv, si.finalArgs); err != nil {
+		if err := utils.RunCommand(si.id, context, cmd, operation, writer, cmdEnv, si.finalArgs); err != nil {
 			_, _ = writer.WriteString(fmt.Sprintf("Error running command: %v\n", err))
 			_ = writer.Flush()
 			return err

@@ -24,11 +24,11 @@ import (
 
 const (
 	InstallScript = "install" //#1
-	StartScript   = "start"   //#2
-	ConfigScript  = "config"  //#3
-	PrepareScript = "prepare" //#4
-	StopScript    = "stop"    // #5
-	ZoneSelector  = "zone-selector"
+	SetupScript   = "setup"   //#2
+	StartScript   = "start"   //#4
+	ConfigScript  = "config"  //#5
+	PrepareScript = "prepare" //#6
+	StopScript    = "stop"    // #7
 )
 
 type packetProvider struct {
@@ -49,6 +49,7 @@ type packetInstance struct {
 	startFailed        int
 	configScript       string
 	installScript      []string
+	setupScript      []string
 	startScript        []string
 	prepareScript      []string
 	stopScript         []string
@@ -119,6 +120,12 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 			return err
 		}
 	}
+
+	// Run start script
+	if err := pi.shellInterface.RunCmd(context, "setup", pi.setupScript, nil); err != nil {
+		return err
+	}
+
 
 	keyFile := pi.config.Packet.SshKey
 	if !utils.FileExists(keyFile) {
@@ -319,10 +326,23 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 
 	// Randomize facilities.
 
-	ind := rand.Intn(len(facilitiesList))
-	selected := facilitiesList[ind]
-	facilitiesList[ind] = facilitiesList[0]
-	facilitiesList[0] = selected
+	ind := -1
+
+	if pi.config.Packet.PreferredFacility != "" {
+		for i, f := range facilitiesList {
+			if f == pi.config.Packet.PreferredFacility {
+				ind = i
+				break
+			}
+		}
+	}
+
+	if ind != -1 {
+		selected := facilitiesList[ind]
+
+		facilitiesList[ind] = facilitiesList[0]
+		facilitiesList[0] = selected
+	}
 
 	return facilitiesList, nil
 }
@@ -420,10 +440,10 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 		config:             config,
 		configScript:       config.Scripts[ConfigScript],
 		installScript:      utils.ParseScript(config.Scripts[InstallScript]),
+		setupScript:        utils.ParseScript(config.Scripts[SetupScript]),
 		startScript:        utils.ParseScript(config.Scripts[StartScript]),
 		prepareScript:      utils.ParseScript(config.Scripts[PrepareScript]),
 		stopScript:         utils.ParseScript(config.Scripts[StopScript]),
-		zoneSelectorScript: config.Scripts[ZoneSelector],
 		factory:            factory,
 		shellInterface:     shell.NewShellInterface(manager, id, root, config, instanceOptions),
 		params:             instanceOptions,

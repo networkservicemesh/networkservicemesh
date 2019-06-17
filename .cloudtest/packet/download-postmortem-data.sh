@@ -1,8 +1,9 @@
 #!/bin/bash -x
 # shellcheck disable=SC2086
 
-master_ip="$(terraform output master_public_ip)"
-worker_ip="$(terraform output worker1_public_ip)"
+master_ip=$1
+worker_ip=$2
+cluster_id=$3
 
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 SOURCE_LOC="/var/tmp/nsm-postmortem/"

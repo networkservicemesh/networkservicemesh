@@ -4,13 +4,13 @@ timeout: 3600 # 1 hour total timeout
 providers:
   - name: "packet"
     kind: "packet"
-    instances: 1
-    retry: 0
+    instances: 2
+    retry: 5
     node-count: 2
-    enabled: true
+    enabled: false
     timeout: 1800 # 30 minutes to start cluster
     env:
-      - CLUSTER_RULES_PREFIX=packet
+      - CLUSTER_RULES_PREFIX=null # To not add any specific code
       - KUBECONFIG=$(tempdir)/config
     env-check:
       - PACKET_AUTH_TOKEN
@@ -31,19 +31,20 @@ providers:
         - baremetal
         - layer_2
         - global_ipv4
+      preferred-facility: sjc1
     scripts:
-      install: |
+      install: "echo all deps installed"
+      setup: |
         ssh-keygen -t rsa -f $(tempdir)/sshkey -q -N ""
         ssh-add $(tempdir)/sshkey
       start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
-      start-config: |
-        make k8s-config
+      prepare: make k8s-config
   - name: "gke"
     kind: "shell"
     instances: 2
     retry: 5
     node-count: 2
-    enabled: false
+    enabled: true
     timeout: 1800 # 30 minutes to start cluster
     env:
       - GOOGLE_PROJECT_ID=ci-management
@@ -60,13 +61,10 @@ providers:
     scripts:
       install: ./.cloudtest/gke/init.sh
       zone-selector: ./.cloudtest/gke/list_zones.sh  # List zones
-      start: |
-        make gke-start
-        make k8s-config
+      start: make gke-start
       stop: make gke-destroy
       #config: # We do not need it since we put KUBECONFIG into env.
-      start-config: |
-        make k8s-config
+      prepare: make k8s-config
   - name: "Kind"
     kind: "shell"
     instances: 1
@@ -83,7 +81,7 @@ providers:
         make kind-start
       stop: make kind-stop
       config: make kind-config-location
-      start-config: |
+      prepare: |
         make k8s-load-images
         make k8s-config
 

@@ -468,9 +468,9 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 		}
 
 		task.test.Started = time.Now()
-		proc, error := utils.ExecProc(timeoutCtx, cmdLine, env)
-		if error != nil {
-			logrus.Errorf("Failed to run %s %v", cmdLine)
+		proc, err := utils.ExecProc(timeoutCtx, cmdLine, env)
+		if err != nil {
+			logrus.Errorf("Failed to run %s %v", cmdLine, err)
 			ctx.updateTestExecution(task, fileName, Status_FAILED)
 		}
 		go func() {

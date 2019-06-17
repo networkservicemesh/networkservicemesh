@@ -8,9 +8,10 @@ type DeviceConfig struct {
 }
 
 type PacketConfig struct {
-	Devices    []*DeviceConfig `yaml:"devices"`    // A set of device configuration required to be created before starting cluster.
-	Facilities []string        `yaml:"facilities"` // A set of facility filters
-	SshKey     string          `yaml:"ssh-key"`    // A location of ssh key
+	Devices           []*DeviceConfig `yaml:"devices"`            // A set of device configuration required to be created before starting cluster.
+	Facilities        []string        `yaml:"facilities"`         // A set of facility filters
+	PreferredFacility string          `yaml:"preferred-facility"` // A prefered facility key
+	SshKey            string          `yaml:"ssh-key"`            // A location of ssh key
 }
 
 type ClusterProviderConfig struct {
