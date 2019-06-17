@@ -5,8 +5,12 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+
+	"testing"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -14,8 +18,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"testing"
-	"time"
 )
 
 func TestSimpleMetrics(t *testing.T) {
@@ -41,10 +43,10 @@ func TestSimpleMetrics(t *testing.T) {
 			Variables: pods.DefaultNSMD(),
 		},
 	}, k8s.GetK8sNamespace())
-
+	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
 	Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-
+	defer kubetest.FailLogger(k8s, nodes, t)
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
 
@@ -107,9 +109,10 @@ func monitorCrossConnectsMetrics(stream crossconnect.MonitorCrossConnect_Monitor
 			default:
 				event, err := stream.Recv()
 				if err != nil {
-					println(err)
+					logrus.Infof("An error during receive event %v", err)
 					continue
 				}
+				logrus.Infof("Received event %v", event)
 				if event.Metrics == nil {
 					continue
 				}
