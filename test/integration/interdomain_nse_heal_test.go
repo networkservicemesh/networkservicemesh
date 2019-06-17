@@ -4,18 +4,16 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"os"
 	"testing"
-	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
 
-func TestInterdomainNSCAndICMPDataplaneHealLocal(t *testing.T) {
+func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -23,24 +21,16 @@ func TestInterdomainNSCAndICMPDataplaneHealLocal(t *testing.T) {
 		return
 	}
 
-	testInterdomainDataplaneHeal(t, 2, 0)
-}
-
-func TestInterdomainNSCAndICMPDataplaneHealRemote(t *testing.T) {
-	RegisterTestingT(t)
-
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testInterdomainDataplaneHeal(t, 2, 1)
+	testInterdomainNSEHeal(t, 1, map[string]int{
+		"icmp-responder-nse-1": 0,
+		"icmp-responder-nse-2": 1,
+	})
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, killIndex int) {
+func testInterdomainNSEHeal(t *testing.T, clustersCount int, affinity map[string]int) {
 	k8ss := []* kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
@@ -99,33 +89,5 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, killIndex int
 	}
 
 
-	logrus.Infof("Delete Selected dataplane")
-	k8ss[killIndex].K8s.DeletePods(k8ss[killIndex].NodesSetup[0].Dataplane)
-
-	logrus.Infof("Wait NSMD is waiting for dataplane recovery")
-	k8ss[killIndex].K8s.WaitLogsContains(k8ss[killIndex].NodesSetup[0].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
-	dpName := fmt.Sprintf("nsmd-dataplane-recovered-%d", killIndex)
-
-	logrus.Infof("Starting recovered dataplane...")
-	startTime := time.Now()
-	k8ss[killIndex].NodesSetup[0].Dataplane = k8ss[killIndex].K8s.CreatePod(pods.ForwardingPlane(dpName, k8ss[killIndex].NodesSetup[0].Node, k8ss[killIndex].K8s.GetForwardingPlane()))
-	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), k8ss[killIndex].NodesSetup[0].Node.Name)
-
-	// Check NSMd goint into HEAL state.
-
-	logrus.Infof("Waiting for connection recovery...")
-	if killIndex != 0 {
-		k8ss[killIndex].K8s.WaitLogsContains(k8ss[killIndex].NodesSetup[0].Nsmd, "nsmd", "Healing will be continued on source side...", defaultTimeout)
-		k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-	} else {
-		k8ss[killIndex].K8s.WaitLogsContains(k8ss[killIndex].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-	}
-	logrus.Infof("Waiting for connection recovery Done...")
-
-	failures = InterceptGomegaFailures(func() {
-		nscInfo = kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8ss[0].K8s, k8ss[0].NodesSetup, nscInfo, t)
 }
 
