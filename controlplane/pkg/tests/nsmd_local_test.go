@@ -113,7 +113,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(false)
@@ -140,7 +140,7 @@ func TestNSENoSrc(t *testing.T) {
 
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(false)
@@ -160,7 +160,7 @@ func TestNSEExcludePrefixes(t *testing.T) {
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(true)
@@ -184,7 +184,7 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(false)
@@ -265,7 +265,7 @@ func checkPrefixes(srv *nsmdFullServerImpl, expected []string) {
 	success := waitForExcludePrefixes(srv, expected, 5*time.Second)
 	Expect(success).To(BeTrue())
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer func() { _ = conn.Close() }()
 
 	request := createRequest(false)
@@ -334,7 +334,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(false)
@@ -368,7 +368,7 @@ func TestSlowNSE(t *testing.T) {
 
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(false)
@@ -401,7 +401,7 @@ func TestSlowDP(t *testing.T) {
 
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
-	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
 	request := createRequest(false)

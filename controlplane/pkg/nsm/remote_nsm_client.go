@@ -3,34 +3,39 @@ package nsm
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
-
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 )
 
 //// Remote NSM Connection Client
 type nsmClient struct {
-	client     networkservice.NetworkServiceClient
+	client     remote_networkservice.NetworkServiceClient
 	connection *grpc.ClientConn
 }
 
-func (c *nsmClient) Request(ctx context.Context, request nsm.NSMRequest) (nsm.NSMConnection, error) {
+func (c *nsmClient) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("Remote NSM Connection is not initialized...")
 	}
-	response, err := c.client.Request(ctx, request.(*networkservice.NetworkServiceRequest))
-	return proto.Clone(response).(*connection.Connection), err
+
+	response, err := c.client.Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Clone(), nil
 }
-func (c *nsmClient) Close(ctx context.Context, conn nsm.NSMConnection) error {
+
+func (c *nsmClient) Close(ctx context.Context, conn connection.Connection) error {
 	if c == nil || c.client == nil {
 		return fmt.Errorf("Remote NSM Connection is not initialized...")
 	}
-	_, err := c.client.Close(ctx, conn.(*connection.Connection))
+	_, err := c.client.Close(ctx, conn.(*remote_connection.Connection))
 	_ = c.Cleanup()
 	return err
 }
