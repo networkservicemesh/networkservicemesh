@@ -88,8 +88,8 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		}
 		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", dataplaneName, updates.RemoteMechanisms)
 		// TODO: this is not good -- direct model changes
-		dataplane.RemoteMechanisms = updates.RemoteMechanisms
-		dataplane.LocalMechanisms = updates.LocalMechanisms
+		dataplane.SetRemoteMechanisms(updates.RemoteMechanisms)
+		dataplane.SetLocalMechanisms(updates.LocalMechanisms)
 		dataplane.MechanismsConfigured = true
 		model.UpdateDataplane(dataplane)
 	}

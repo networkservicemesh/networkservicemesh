@@ -18,7 +18,6 @@ import (
 	"context"
 	"net"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -51,27 +50,17 @@ import (
 
 // VPPAgent related constants
 const (
-	DataplaneMetricsCollectorEnabledKey           = "METRICS_COLLECTOR_ENABLED"
-	DataplaneMetricsCollectorRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
-	DataplaneMetricsCollectorRequestPeriodDefault = time.Second * 2
-	DataplaneNameKey                              = "DATAPLANE_NAME"
-	DataplaneNameDefault                          = "vppagent"
-	DataplaneSocketKey                            = "DATAPLANE_SOCKET"
-	DataplaneSocketDefault                        = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
-	DataplaneSocketTypeKey                        = "DATAPLANE_SOCKET_TYPE"
-	DataplaneSocketTypeDefault                    = "unix"
-	DataplaneEndpointKey                          = "VPPAGENT_ENDPOINT"
-	DataplaneEndpointDefault                      = "localhost:9111"
-	SrcIPEnvKey                                   = "NSM_DATAPLANE_SRC_IP"
-	ManagementInterface                           = "mgmt"
+	VPPEndpointKey      = "VPPAGENT_ENDPOINT"
+	VPPEndpointDefault  = "localhost:9111"
+	SrcIPEnvKey         = "NSM_DATAPLANE_SRC_IP"
+	ManagementInterface = "mgmt"
 )
 
 type VPPAgent struct {
 	vppAgentEndpoint     string
 	common               *common.DataplaneConfigBase
 	metricsCollector     *MetricsCollector
-	mechanisms           *Mechanisms
-	updateCh             chan *Mechanisms
+	updateCh             chan *common.Mechanisms
 	directMemifConnector *memif.DirectMemifConnector
 	srcIP                net.IP
 	egressInterface      common.EgressInterface
@@ -82,17 +71,11 @@ func CreateVPPAgent() *VPPAgent {
 	return &VPPAgent{}
 }
 
-// Mechanisms is a message used to communicate any changes in operational parameters and constraints
-type Mechanisms struct {
-	remoteMechanisms []*remote.Mechanism
-	localMechanisms  []*local.Mechanism
-}
-
 func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
-		RemoteMechanisms: v.mechanisms.remoteMechanisms,
-		LocalMechanisms:  v.mechanisms.localMechanisms,
+		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
+		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
 	}
 	logrus.Infof("Sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
@@ -104,11 +87,11 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
 		case update := <-v.updateCh:
-			v.mechanisms = update
+			v.common.Mechanisms = update
 			logrus.Infof("Sending MonitorMechanisms update: %v", update)
 			if err := updateSrv.Send(&dataplane.MechanismUpdate{
-				RemoteMechanisms: update.remoteMechanisms,
-				LocalMechanisms:  update.localMechanisms,
+				RemoteMechanisms: update.RemoteMechanisms,
+				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
 				logrus.Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
@@ -119,7 +102,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 
 func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
-	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, true)
+	xcon, err := v.connectOrDisconnect(ctx, crossConnect, true)
 	if err != nil {
 		return nil, err
 	}
@@ -128,10 +111,10 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	return xcon, err
 }
 
-func (v *VPPAgent) ConnectOrDisConnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-		return v.directMemifConnector.ConnectOrDisConnect(crossConnect, connect)
+		return v.directMemifConnector.ConnectOrDisconnect(crossConnect, connect)
 	}
 
 	// TODO look at whether keepin a single conn might be better
@@ -313,7 +296,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 
 func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("vppagent.DisconnectRequest called with %#v", crossConnect)
-	xcon, err := v.ConnectOrDisConnect(ctx, crossConnect, false)
+	xcon, err := v.connectOrDisconnect(ctx, crossConnect, false)
 	if err != nil {
 		logrus.Warn(err)
 	}
@@ -328,7 +311,6 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor monitor_cros
 	defer closer.Close()
 
 	v.common = common
-	v.setDataplaneConfigBase()
 	v.setDataplaneConfigVPPAgent(monitor)
 	v.reset()
 	v.programMgmtInterface()
@@ -337,53 +319,11 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor monitor_cros
 }
 
 func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {
-	val, ok := os.LookupEnv(DataplaneMetricsCollectorEnabledKey)
-	if ok {
-		enabled, err := strconv.ParseBool(val)
-		if err != nil {
-			logrus.Errorf("Metrics collector using default value for %v, %v ", DataplaneMetricsCollectorEnabledKey, err)
-		} else if !enabled {
-			logrus.Info("Metics collector is disabled")
-			return
-		}
+	if !v.common.MetricsEnabled {
+		return
 	}
-	requestPeriod := DataplaneMetricsCollectorRequestPeriodDefault
-	if val, ok = os.LookupEnv(DataplaneMetricsCollectorRequestPeriodKey); ok {
-		parsedPeriod, err := time.ParseDuration(val)
-		if err != nil {
-			logrus.Errorf("Metrics collector using default request period, %v ", err)
-		} else {
-			requestPeriod = parsedPeriod
-		}
-	}
-	logrus.Infof("Metrics collector request period: %v ", requestPeriod)
-	v.metricsCollector = NewMetricsCollector(requestPeriod)
+	v.metricsCollector = NewMetricsCollector(v.common.MetricsPeriod)
 	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
-}
-
-func (v *VPPAgent) setDataplaneConfigBase() {
-	var ok bool
-
-	v.common.Name, ok = os.LookupEnv(DataplaneNameKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
-		v.common.Name = DataplaneNameDefault
-	}
-
-	logrus.Infof("Starting dataplane - %s", v.common.Name)
-	v.common.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
-		v.common.DataplaneSocket = DataplaneSocketDefault
-	}
-	logrus.Infof("DataplaneSocket: %s", v.common.DataplaneSocket)
-
-	v.common.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
-		v.common.DataplaneSocketType = DataplaneSocketTypeDefault
-	}
-	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
 }
 
 func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.MonitorServer) {
@@ -414,16 +354,16 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.Monit
 		common.SetSocketCleanFailed()
 	}
 
-	v.vppAgentEndpoint, ok = os.LookupEnv(DataplaneEndpointKey)
+	v.vppAgentEndpoint, ok = os.LookupEnv(VPPEndpointKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneEndpointKey, DataplaneEndpointDefault)
-		v.vppAgentEndpoint = DataplaneEndpointDefault
+		logrus.Infof("%s not set, using default %s", VPPEndpointKey, VPPEndpointDefault)
+		v.vppAgentEndpoint = VPPEndpointDefault
 	}
 	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
 
-	v.updateCh = make(chan *Mechanisms, 1)
-	v.mechanisms = &Mechanisms{
-		localMechanisms: []*local.Mechanism{
+	v.updateCh = make(chan *common.Mechanisms, 1)
+	v.common.Mechanisms = &common.Mechanisms{
+		LocalMechanisms: []*local.Mechanism{
 			{
 				Type: local.MechanismType_MEM_INTERFACE,
 			},
@@ -431,7 +371,7 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.Monit
 				Type: local.MechanismType_KERNEL_INTERFACE,
 			},
 		},
-		remoteMechanisms: []*remote.Mechanism{
+		RemoteMechanisms: []*remote.Mechanism{
 			{
 				Type: remote.MechanismType_VXLAN,
 				Parameters: map[string]string{

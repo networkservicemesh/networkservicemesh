@@ -43,7 +43,7 @@ jobs:
 
 # code analysis
   test-static-code-analysis:
-    resource_class: medium+
+    resource_class: large
     docker:
       - image: circleci/golang
     steps:
@@ -575,9 +575,7 @@ jobs:
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init admission-webhook)
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
-            export CONTAINERS=(${CONTAINERS[@]} vppagent-icmp-responder-nse vppagent-nsc)
-            export CONTAINERS=(${CONTAINERS[@]} nsc icmp-responder-nse)
-            export CONTAINERS=(${CONTAINERS[@]} vppagent-firewall-nse vpn-gateway-nse vpn-gateway-nsc)
+            export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}

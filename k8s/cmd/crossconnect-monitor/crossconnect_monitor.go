@@ -5,10 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-	"sync"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -109,23 +106,4 @@ func lookForNSMServers() {
 		}
 		time.Sleep(time.Second)
 	}
-}
-
-func main() {
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
-	go func() {
-		<-c
-		closing = true
-		wg.Done()
-	}()
-
-	lookForNSMServers()
-
-	wg.Wait()
-
 }

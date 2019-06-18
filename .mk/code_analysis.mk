@@ -4,7 +4,7 @@ lint-fix:
 
 .PHONY: lint-install
 lint-install:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
 
 .PHONY: lint-check-diff
 lint-check-diff:

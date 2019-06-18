@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2018-2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+var version string
+
 func main() {
+	logrus.Info("Starting vppagent-dataplane...")
+	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 

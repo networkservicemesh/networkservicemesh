@@ -93,11 +93,11 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 	Expect(err).To(BeNil())
 
 	nodes := createNodes(k8s, nodeCount)
-	defer kubetest.FailLogger(k8s, nodes, t)
 
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
+	defer kubetest.FailLogger(k8s, nodes, t)
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		for count := nscCount; count > 0; count-- {

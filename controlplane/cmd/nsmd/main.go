@@ -12,7 +12,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+var version string
+
 func main() {
+	logrus.Info("Starting nsmd...")
+	logrus.Infof("Version: %v", version)
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting

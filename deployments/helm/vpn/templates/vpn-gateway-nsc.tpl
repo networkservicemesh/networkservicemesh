@@ -13,8 +13,6 @@ spec:
         networkservicemesh.io/app: "vpn-gateway-nsc"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
       containers:
         - name: alpine-img
           image: alpine:latest

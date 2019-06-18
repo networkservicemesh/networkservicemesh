@@ -7,25 +7,32 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+var version string
+
 func main() {
+	logrus.Info("Starting nsmd-k8s...")
+	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsmd-k8s")
 	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logrus.Errorf("An error during cloasing: %v", err)
+		}
+	}()
 
 	address := os.Getenv("NSMD_K8S_ADDRESS")
 	if strings.TrimSpace(address) == "" {

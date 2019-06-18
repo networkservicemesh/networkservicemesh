@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2018-2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,14 +54,21 @@ func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 	return err
 }
 
+var version string
+
 func main() {
+	logrus.Info("Starting vppagent-nsc...")
+	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
 	tracer, closer := tools.InitJaeger("nsc")
 	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
-
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logrus.Errorf("An error during cloasing: %v", err)
+		}
+	}()
 	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
 	if !ok {
 		logrus.Fatalf("Failed getting %s", nsmd.WorkspaceEnv)

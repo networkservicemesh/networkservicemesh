@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -10,6 +11,8 @@ import (
 	"syscall"
 )
 
+var version string
+
 func checkError(err error) {
 	if err != nil {
 		println("Error: %s", err)
@@ -17,7 +20,7 @@ func checkError(err error) {
 }
 func main() {
 	println("Starting NSC DevEnv dummy application")
-
+	fmt.Printf("Version: %v", version)
 	cmd := exec.Command("bash", "/go/src/github.com/networkservicemesh/networkservicemesh/scripts/debug_env.sh")
 
 	// Create stdout, stderr streams of type io.Reader

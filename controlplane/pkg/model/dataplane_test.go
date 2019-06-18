@@ -2,10 +2,13 @@ package model
 
 import (
 	"fmt"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
+
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
 func TestAddAndGetDp(t *testing.T) {
@@ -14,16 +17,16 @@ func TestAddAndGetDp(t *testing.T) {
 	dp := &Dataplane{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
-		LocalMechanisms: []*local.Mechanism{
-			{
+		LocalMechanisms: []connection.Mechanism{
+			&local.Mechanism{
 				Type: local.MechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
 					"localParam": "value",
 				},
 			},
 		},
-		RemoteMechanisms: []*remote.Mechanism{
-			{
+		RemoteMechanisms: []connection.Mechanism{
+			&remote.Mechanism{
 				Type: remote.MechanismType_GRE,
 				Parameters: map[string]string{
 					"remoteParam": "value",
@@ -54,16 +57,16 @@ func TestDeleteDp(t *testing.T) {
 	dd.AddDataplane(&Dataplane{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
-		LocalMechanisms: []*local.Mechanism{
-			{
+		LocalMechanisms: []connection.Mechanism{
+			&local.Mechanism{
 				Type: local.MechanismType_MEM_INTERFACE,
 				Parameters: map[string]string{
 					"localParam": "value",
 				},
 			},
 		},
-		RemoteMechanisms: []*remote.Mechanism{
-			{
+		RemoteMechanisms: []connection.Mechanism{
+			&remote.Mechanism{
 				Type: remote.MechanismType_GRE,
 				Parameters: map[string]string{
 					"remoteParam": "value",
@@ -93,16 +96,16 @@ func TestSelectDp(t *testing.T) {
 		dd.AddDataplane(&Dataplane{
 			RegisteredName: fmt.Sprintf("dp%d", i),
 			SocketLocation: fmt.Sprintf("/socket-%d", i),
-			LocalMechanisms: []*local.Mechanism{
-				{
+			LocalMechanisms: []connection.Mechanism{
+				&local.Mechanism{
 					Type: local.MechanismType_MEM_INTERFACE,
 					Parameters: map[string]string{
 						"localParam": "value",
 					},
 				},
 			},
-			RemoteMechanisms: []*remote.Mechanism{
-				{
+			RemoteMechanisms: []connection.Mechanism{
+				&remote.Mechanism{
 					Type: remote.MechanismType_GRE,
 					Parameters: map[string]string{
 						"remoteParam": "value",
