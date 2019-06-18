@@ -1,24 +1,25 @@
 package nsm
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection, dataplane *model.Dataplane, existingConnection *model.ClientConnection) (*remote_networkservice.NetworkServiceRequest, error) {
+func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConn connection.Connection, dp *model.Dataplane, existingCC *model.ClientConnection) networkservice.Request {
 	// We need to obtain parameters for remote mechanism
-	remoteM := append([]*remote_connection.Mechanism{}, dataplane.RemoteMechanisms...)
+	remoteM := append([]connection.Mechanism{}, dp.RemoteMechanisms...)
 
 	// Try Heal only if endpoint are same as for existing connection.
-	if existingConnection != nil && endpoint == existingConnection.Endpoint {
-		if remoteDst := existingConnection.Xcon.GetRemoteDestination(); remoteDst != nil {
-			return &remote_networkservice.NetworkServiceRequest{
-				Connection: &remote_connection.Connection{
+	if existingCC != nil && endpoint == existingCC.Endpoint {
+		if remoteDst := existingCC.Xcon.GetRemoteDestination(); remoteDst != nil {
+			return remote_networkservice.NewRequest(
+				&remote_connection.Connection{
 					Id:                                   remoteDst.GetId(),
 					NetworkService:                       remoteDst.NetworkService,
 					Context:                              remoteDst.GetContext(),
@@ -27,45 +28,36 @@ func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSER
 					SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
 					NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
 				},
-				MechanismPreferences: remoteM,
-			}, nil
+				remoteM,
+			)
 		}
 	}
 
-	return &remote_networkservice.NetworkServiceRequest{
-		Connection: &remote_connection.Connection{
+	return remote_networkservice.NewRequest(
+		&remote_connection.Connection{
 			Id:                                   "-",
-			NetworkService:                       requestConnection.GetNetworkService(),
-			Context:                              requestConnection.GetContext(),
-			Labels:                               requestConnection.GetLabels(),
+			NetworkService:                       requestConn.GetNetworkService(),
+			Context:                              requestConn.GetContext(),
+			Labels:                               requestConn.GetLabels(),
 			DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
 			SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
 			NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
 		},
-		MechanismPreferences: remoteM,
-	}, nil
-
+		remoteM,
+	)
 }
 
-func (srv *networkServiceManager) createLocalNSERequest(endpoint *registry.NSERegistration, requestConnection nsm.NSMConnection) *networkservice.NetworkServiceRequest {
+func (srv *networkServiceManager) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Dataplane, requestConn connection.Connection) networkservice.Request {
+	// We need to obtain parameters for local mechanism
+	localM := append([]connection.Mechanism{}, dp.LocalMechanisms...)
 
-	message := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+	return local_networkservice.NewRequest(
+		&local_connection.Connection{
 			Id:             srv.createConnectionId(),
 			NetworkService: endpoint.GetNetworkService().GetName(),
-			Context:        requestConnection.GetContext(),
-			Labels:         requestConnection.GetLabels(),
+			Context:        requestConn.GetContext(),
+			Labels:         requestConn.GetLabels(),
 		},
-		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type:       connection.MechanismType_MEM_INTERFACE,
-				Parameters: map[string]string{},
-			},
-			{
-				Type:       connection.MechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{},
-			},
-		},
-	}
-	return message
+		localM,
+	)
 }

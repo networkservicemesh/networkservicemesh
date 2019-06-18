@@ -470,6 +470,27 @@ func (k8s *K8s) DescribePod(pod *v1.Pod) {
 	}
 }
 
+// PrintImageVersion Prints image version pf pod.
+func (k8s *K8s) PrintImageVersion(pod *v1.Pod) {
+	logs, err := k8s.GetLogs(pod, pod.Spec.Containers[0].Name)
+	Expect(err).Should(BeNil())
+	versionSubStr := "Version: "
+	index := strings.Index(logs, versionSubStr)
+	Expect(index == -1).ShouldNot(BeTrue())
+	index += len(versionSubStr)
+	builder := strings.Builder{}
+	for ; index < len(logs); index++ {
+		if logs[index] == '\n' {
+			break
+		}
+		err = builder.WriteByte(logs[index])
+		Expect(err).Should(BeNil())
+	}
+	version := builder.String()
+	Expect(strings.TrimSpace(version)).ShouldNot(Equal(""))
+	logrus.Infof("Version of %v is %v", pod.Name, version)
+}
+
 // CleanupEndpointsCRDs clean Network Service Endpoints from registry
 func (k8s *K8s) CleanupEndpointsCRDs() {
 	endpoints, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
@@ -485,8 +506,7 @@ func (k8s *K8s) Cleanup() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := k8s.deletePods(k8s.pods...)
-		Expect(err).To(BeNil())
+		_ = k8s.deletePods(k8s.pods...)
 	}()
 
 	wg.Add(1)
@@ -1008,6 +1028,7 @@ func (k8s *K8s) setForwardingPlane() {
 		logrus.Infof("%s not set, using default dataplane - %s", pods.EnvForwardingPlane, pods.EnvForwardingPlaneDefault)
 		k8s.forwardingPlane = pods.EnvForwardingPlaneDefault
 	} else {
+		logrus.Infof("%s set to: %s", pods.EnvForwardingPlane, plane)
 		k8s.forwardingPlane = plane
 	}
 }

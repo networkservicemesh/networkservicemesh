@@ -29,7 +29,8 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: icmp-responder-nse
-          image: networkservicemesh/test-nse:latest
+          image: networkservicemesh/test-common:latest
+          command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: IfNotPresent
           env:
             - name: ADVERTISE_NSE_NAME
@@ -43,7 +44,6 @@ spec:
           resources:
             limits:
               networkservicemesh.io/socket: 1
-          command: ["/bin/icmp-responder-nse"]
 metadata:
   name: icmp-responder-nse
   namespace: nsm-system

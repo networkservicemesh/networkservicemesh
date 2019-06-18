@@ -43,7 +43,7 @@ jobs:
 
 # code analysis
   test-static-code-analysis:
-    resource_class: medium+
+    resource_class: large
     docker:
       - image: circleci/golang
     steps:
@@ -51,7 +51,7 @@ jobs:
       - run:
           name: lint
           command: |
-            make lint-install
+            ./scripts/lint-download.sh
             make lint-check-diff
     environment:
       GO111MODULE: "on"
@@ -204,6 +204,7 @@ jobs:
           command: |
             export NSM_AWS_SERVICE_SUFFIX="-<< parameters.cluster_id >>-${CIRCLE_WORKFLOW_ID}"
             ./scripts/install-kubectl.sh
+            ./scripts/go-mod-download.sh
             make aws-start
           no_output_timeout: 40m
       - save_cache:
@@ -571,7 +572,10 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
-            export CONTAINERS=(nsmd nsmd-k8s nsmdp crossconnect-monitor test-nse vppagent-icmp-responder-nse vppagent-nsc nsm-init monitoring-nsc vppagent-dataplane vppagent-dataplane-dev admission-webhook vppagent-firewall-nse)
+            export CONTAINERS=(nsmd nsmd-k8s nsmdp)
+            export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init admission-webhook)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
+            export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${REPO}/${c}:${PULL_TAG}
@@ -627,28 +631,18 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-test-nse"
-          container: "test-nse"
+          name: "build-test-common"
+          container: "test-common"
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-vppagent-icmp-responder-nse"
-          container: "vppagent-icmp-responder-nse"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-vppagent-nsc"
-          container: "vppagent-nsc"
+          name: "build-vpp-test-common"
+          container: "vpp-test-common"
           requires:
             - test-sanity-check
       - build-container:
           name: "build-nsm-init"
           container: "nsm-init"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-monitoring-nsc"
-          container: "monitoring-nsc"
           requires:
             - test-sanity-check
       - build-container:
@@ -661,11 +655,6 @@ workflows:
           container: "vppagent-dataplane-dev"
           requires:
             - test-sanity-check
-      - build-container:
-          name: "build-vppagent-firewall-nse"
-          container: "vppagent-firewall-nse"
-          requires:
-            - test-sanity-check
       - build-container-success:
           requires:
             - build-nsmd
@@ -673,14 +662,11 @@ workflows:
             - build-nsmdp
             - build-admission-webhook
             - build-crossconnect-monitor
-            - build-test-nse
-            - build-vppagent-icmp-responder-nse
-            - build-vppagent-nsc
+            - build-test-common
+            - build-vpp-test-common
             - build-nsm-init
-            - build-monitoring-nsc
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
-            - build-vppagent-firewall-nse
 
 # packet
       - create-packet:

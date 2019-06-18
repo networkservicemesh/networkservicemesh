@@ -67,6 +67,8 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 
+	defer kubetest.FailLogger(k8s, nodesConf, t)
+
 	icmp0 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	Expect(icmp0).ToNot(BeNil())
 
@@ -115,6 +117,8 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	Expect(err).To(BeNil())
+
+	defer kubetest.FailLogger(k8s, nodesConf, t)
 
 	icmp := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-0", defaultTimeout)
 	Expect(icmp).ToNot(BeNil())
@@ -193,6 +197,8 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	Expect(err).To(BeNil())
+
+	defer kubetest.FailLogger(k8s, nodesConf, t)
 
 	icmp0 := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-0", defaultTimeout)
 	Expect(icmp0).ToNot(BeNil())
@@ -273,6 +279,8 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
+
+	defer kubetest.FailLogger(k8s, nodesConf, t)
 
 	icmp0 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	Expect(icmp0).ToNot(BeNil())

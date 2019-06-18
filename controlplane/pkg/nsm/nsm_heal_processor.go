@@ -7,10 +7,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -32,7 +32,7 @@ type nsmHealProcessor struct {
 }
 
 type connectionManager interface {
-	request(ctx context.Context, request nsm.NSMRequest, existingConnection *model.ClientConnection) (nsm.NSMConnection, error)
+	request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error)
 	close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane bool, modelRemove bool) error
 }
 
@@ -70,13 +70,7 @@ func (p *nsmHealProcessor) healDstDown(healID string, connection *model.ClientCo
 		endpointName := connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
 		// Wait for NSE not equal to down one, since we know it will be re-registered with new EndpointName.
 		if !p.waitNSE(ctx, connection, endpointName, connection.GetNetworkService(), p.nseIsNewAndAvailable) {
-			// Not remote NSE found, we need to update connection
-			if dst := connection.Xcon.GetRemoteDestination(); dst != nil {
-				dst.SetId("-") // We need to mark this as new connection.
-			}
-			if dst := connection.Xcon.GetLocalDestination(); dst != nil {
-				dst.SetId("-") // We need to mark this as new connection.
-			}
+			connection.GetConnectionDestination().SetID("-")
 		}
 		// Fallback to heal with choose of new NSE.
 		requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
@@ -108,11 +102,7 @@ func (p *nsmHealProcessor) healDataplaneDown(healID string, cc *model.ClientConn
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
 
 	p.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
-		if cc.Xcon.GetRemoteSource() != nil {
-			cc.Xcon.GetRemoteSource().State = remote_connection.State_DOWN
-		} else if cc.Xcon.GetLocalSource() != nil {
-			cc.Xcon.GetLocalSource().State = local_connection.State_DOWN
-		}
+		cc.GetConnectionSource().SetConnectionState(connection.StateDown)
 	})
 
 	if cc.Xcon.GetRemoteSource() != nil {
@@ -125,8 +115,8 @@ func (p *nsmHealProcessor) healDataplaneDown(healID string, cc *model.ClientConn
 	// We have Dataplane now, let's try request all again.
 	// Update request to contain a proper connection object from previous attempt.
 	request := cc.Request.Clone()
-	request.SetConnection(cc.GetConnectionSource())
-	p.requestOrClose(fmt.Sprintf("NSM_Heal(3.4-%v) ", healID), ctx, request, cc)
+	request.SetRequestConnection(cc.GetConnectionSource())
+	p.requestOrClose(ctx, fmt.Sprintf("NSM_Heal(3.4-%v) ", healID), request, cc)
 	return true
 }
 
@@ -139,9 +129,9 @@ func (p *nsmHealProcessor) healDstUpdate(healID string, cc *model.ClientConnecti
 	logrus.Infof("NSM_Heal(5.1-%v) Healing Src Update... %v", healID, cc)
 	if cc.Request != nil {
 		request := cc.Request.Clone()
-		request.SetConnection(cc.GetConnectionSource())
+		request.SetRequestConnection(cc.GetConnectionSource())
 
-		p.requestOrClose(fmt.Sprintf("NSM_Heal(5.2-%v) ", healID), ctx, request, cc)
+		p.requestOrClose(ctx, fmt.Sprintf("NSM_Heal(5.2-%v) ", healID), request, cc)
 		return true
 	}
 	return false
@@ -160,13 +150,7 @@ func (p *nsmHealProcessor) healDstNmgrDown(healID string, connection *model.Clie
 	if connection.Endpoint != nil {
 		endpointName = connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
 		if !p.waitNSE(ctx, connection, endpointName, networkService, p.nseIsSameAndAvailable) {
-			// Not remote NSE found, we need to update connection
-			if dst := connection.Xcon.GetRemoteDestination(); dst != nil {
-				dst.SetId("-") // We need to mark this as new connection.
-			}
-			if dst := connection.Xcon.GetLocalDestination(); dst != nil {
-				dst.SetId("-") // We need to mark this as new connection.
-			}
+			connection.GetConnectionDestination().SetID("-")
 		}
 	}
 	requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
@@ -206,7 +190,7 @@ func (p *nsmHealProcessor) healDstNmgrDown(healID string, connection *model.Clie
 	return false
 }
 
-func (p *nsmHealProcessor) requestOrClose(logPrefix string, ctx context.Context, request nsm.NSMRequest, clientConnection *model.ClientConnection) {
+func (p *nsmHealProcessor) requestOrClose(ctx context.Context, logPrefix string, request networkservice.Request, clientConnection *model.ClientConnection) {
 	logrus.Infof("%v delegate to Request %v", logPrefix, request)
 	connection, err := p.conManager.request(ctx, request, clientConnection)
 	if err != nil {

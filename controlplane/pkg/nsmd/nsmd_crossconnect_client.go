@@ -17,24 +17,24 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"net"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
+	monitor_local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	monitor_remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -157,16 +157,20 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 
-	if conn := new.Xcon.GetLocalSource(); conn != nil && !proto.Equal(old.Xcon.GetLocalSource(), conn) {
-		if workspace, ok := conn.GetMechanism().GetParameters()[local_connection.Workspace]; ok {
-			if localConnectionMonitor := client.monitorManager.LocalConnectionMonitor(workspace); localConnectionMonitor != nil {
-				localConnectionMonitor.Update(conn)
-			}
-		}
+	conn := new.Xcon.GetSourceConnection()
+	if conn.Equals(old.Xcon.GetSourceConnection()) {
+		return
 	}
 
-	if conn := new.Xcon.GetRemoteSource(); conn != nil && !proto.Equal(old.Xcon.GetRemoteSource(), conn) {
-		client.monitorManager.RemoteConnectionMonitor().Update(conn)
+	var monitorServer monitor.Server
+	if conn.IsRemote() {
+		monitorServer = client.monitorManager.RemoteConnectionMonitor()
+	} else if workspace, ok := conn.GetConnectionMechanism().GetParameters()[local.Workspace]; ok {
+		monitorServer = client.monitorManager.LocalConnectionMonitor(workspace)
+	}
+
+	if monitorServer != nil {
+		monitorServer.Update(conn)
 	}
 }
 
@@ -174,7 +178,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnec
 	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
 
 	client.monitorManager.CrossConnectMonitor().Delete(clientConnection.Xcon)
-	if conn := clientConnection.Xcon.GetRemoteSource(); conn != nil {
+	if conn := clientConnection.GetConnectionSource(); conn.IsRemote() {
 		client.monitorManager.RemoteConnectionMonitor().Delete(conn)
 	}
 
@@ -232,16 +236,18 @@ func (client *NsmMonitorCrossConnectClient) monitor(
 			logrus.Errorf(logWithParamFormat, name, "Connection closed", err)
 			return err
 		case event := <-monitorClient.EventChannel():
-			logrus.Infof(logWithParamFormat, name, "Received event", event)
-			for _, entity := range event.Entities() {
-				if err = entityHandler(entity, event.EventType()); err != nil {
-					logrus.Errorf(logWithParamFormat, name, "Error handling entity", err)
+			if event != nil {
+				logrus.Infof(logWithParamFormat, name, "Received event", event)
+				for _, entity := range event.Entities() {
+					if err = entityHandler(entity, event.EventType()); err != nil {
+						logrus.Errorf(logWithParamFormat, name, "Error handling entity", err)
+					}
 				}
-			}
 
-			if eventHandler != nil {
-				if err = eventHandler(event); err != nil {
-					logrus.Errorf(logWithParamFormat, name, "Error handling event", err)
+				if eventHandler != nil {
+					if err = eventHandler(event); err != nil {
+						logrus.Errorf(logWithParamFormat, name, "Error handling event", err)
+					}
 				}
 			}
 		}
@@ -257,7 +263,7 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 	err := client.monitor(
 		ctx,
 		endpointLogFormat, endpointLogWithParamFormat, endpoint.EndpointName(),
-		grpcConnectionSupplier, local.NewMonitorClient,
+		grpcConnectionSupplier, monitor_local.NewMonitorClient,
 		client.handleLocalConnection, nil)
 
 	if err != nil {
@@ -281,7 +287,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 }
 
 func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType) error {
-	localConnection, ok := entity.(*local_connection.Connection)
+	localConnection, ok := entity.(*local.Connection)
 	if !ok {
 		return fmt.Errorf("unable to cast %v to local.Connection", entity)
 	}
@@ -372,7 +378,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		return grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
-		return remote.NewMonitorClient(conn, &remote_connection.MonitorScopeSelector{
+		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
 			NetworkServiceManagerName: client.xconManager.GetNsmName(),
 		})
 	}
@@ -393,7 +399,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 }
 
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType) error {
-	remoteConnection, ok := entity.(*remote_connection.Connection)
+	remoteConnection, ok := entity.(*remote.Connection)
 	if !ok {
 		return fmt.Errorf("unable to cast %v to remote.Connection", entity)
 	}
@@ -405,17 +411,15 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 			client.xconManager.RemoteDestinationUpdated(cc, remoteConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
-			downConnection := proto.Clone(remoteConnection).(*remote_connection.Connection)
-			downConnection.State = remote_connection.State_DOWN
+			downConnection := remoteConnection.Clone()
+			downConnection.SetConnectionState(connection.StateDown)
 
-			xconToSend := &crossconnect.CrossConnect{
-				Source: &crossconnect.CrossConnect_LocalSource{
-					LocalSource: cc.Xcon.GetLocalSource(),
-				},
-				Destination: &crossconnect.CrossConnect_RemoteDestination{
-					RemoteDestination: downConnection,
-				},
-			}
+			xconToSend := crossconnect.NewCrossConnect(
+				cc.Xcon.GetId(),
+				cc.Xcon.GetPayload(),
+				cc.Xcon.GetSourceConnection(),
+				downConnection,
+			)
 
 			client.monitorManager.CrossConnectMonitor().Update(xconToSend)
 			client.xconManager.DestinationDown(cc, false)

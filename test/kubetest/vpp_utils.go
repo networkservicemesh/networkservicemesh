@@ -2,27 +2,32 @@ package kubetest
 
 import (
 	"fmt"
-	"net"
-	"strings"
-	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"net"
+	"strings"
+	"time"
 )
 
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout, pods.VppagentICMPResponderPod(name, node,
-		defaultICMPEnv(k8s.UseIPv6()),
-	))
+	return deployICMP(k8s, nodeName(node), name, timeout,
+		pods.VppTestCommonPod("vppagent-icmp-responder-nse", name, "icmp-responder-nse", node,
+			defaultICMPEnv(k8s.UseIPv6()),
+		),
+	)
 }
 
 // DeployVppAgentNSC - Setup Default VPP Based Client
 func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "vppagent-nsc", timeout, pods.VppagentNSC(name, node, defaultNSCEnv()))
+	return deployNSC(k8s, nodeName(node), name, "vppagent-nsc", timeout,
+		pods.VppTestCommonPod("vppagent-nsc", name, "vppagent-nsc", node,
+			defaultNSCEnv(),
+		),
+	)
 }
 
 // CheckVppAgentNSC - Perform check of VPP based agent operations.
@@ -79,6 +84,6 @@ func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 // DefaultPlaneVariablesVPP - Default variables for VPP deployment
 func DefaultPlaneVariablesVPP() map[string]string {
 	return map[string]string{
-		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
+		common.DataplaneMetricsEnabledKey: "false",
 	}
 }
