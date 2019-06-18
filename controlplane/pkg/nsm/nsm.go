@@ -213,7 +213,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 			requestNSEOnUpdate = true
 			closeDataplaneOnNSEFailed = true
 			// Network service is closing, we need to close remote NSM and re-programm local one.
-			if err = srv.closeEndpoint(ctx, existingCC); err != nil {
+			if err = srv.close(ctx, existingCC, false); err != nil {
 				logrus.Errorf("NSM:(4.1-%v) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", requestID, request, existingCC, err)
 			}
 		} else {
@@ -428,17 +428,29 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 		modelCC.ConnectionState = model.ClientConnectionClosing
 	})
 
-	logrus.Infof("NSM: Closing connection %v", cc)
-
-	nseErr := srv.closeEndpoint(ctx, cc)
-	dpErr := srv.closeDataplane(cc)
+	err := srv.close(ctx, cc, true)
 
 	// TODO: We need to be sure Dataplane is respond well so we could delete connection.
 	srv.model.DeleteClientConnection(cc.GetID())
 
-	if nseErr != nil || dpErr != nil {
-		return fmt.Errorf("NSM: Close error: %v", []error{nseErr, dpErr})
+	return err
+}
+
+func (srv *networkServiceManager) close(ctx context.Context, cc *model.ClientConnection, closeDp bool) error {
+	logrus.Infof("NSM: Closing connection %v", cc)
+
+	nseCloseError := srv.closeEndpoint(ctx, cc)
+
+	var dpCloseError error
+	if closeDp {
+		dpCloseError = srv.closeDataplane(cc)
 	}
+
+	if nseCloseError != nil || dpCloseError != nil {
+		return fmt.Errorf("NSM: Close error: %v", []error{nseCloseError, dpCloseError})
+	}
+
+	logrus.Infof("NSM: Close for %s complete...", cc.GetID())
 
 	return nil
 }
