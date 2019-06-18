@@ -1,8 +1,9 @@
 package security
 
 import (
+	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
+	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"
 	proto "github.com/spiffe/spire/proto/spire/api/workload"
@@ -36,8 +37,8 @@ func newWorkloadAPIClient(agentAddress string, timeout time.Duration) workload.X
 	return workload.NewX509Client(config)
 }
 
-func (s *spireCertObtainer) ObtainCertificates() <-chan *certs {
-	certCh := make(chan *certs)
+func (s *spireCertObtainer) ObtainCertificates() <-chan *RetrievedCerts {
+	certCh := make(chan *RetrievedCerts)
 
 	go func() {
 		if err := s.workloadAPIClient.Start(); err != nil {
@@ -57,7 +58,12 @@ func (s *spireCertObtainer) ObtainCertificates() <-chan *certs {
 			select {
 			case svidResponse := <-updateCh:
 				logrus.Infof("Received new SVID: %v", svidResponse.Svids[0].SpiffeId)
-				certCh <- readCertificates(svidResponse)
+				if c, err := readCertificates(svidResponse); err == nil {
+					certCh <- c
+				} else {
+					s.errorCh <- err
+					return
+				}
 			case <-s.stopCh:
 				return
 			}
@@ -75,39 +81,20 @@ func (s *spireCertObtainer) Error() error {
 	return <-s.errorCh
 }
 
-func readCertificates(svidResponse *proto.X509SVIDResponse) *certs {
+func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, error) {
 	svid := svidResponse.Svids[0]
-	cert, _ := certToPemBlocks(svid.X509Svid)
-	ca, _ := certToPemBlocks(svid.Bundle)
-	return &certs{
-		cert: cert,
-		key:  keyToPem(svid.X509SvidKey),
-		ca:   ca,
-	}
-}
-
-func certToPemBlocks(data []byte) ([]byte, error) {
-	certs, err := x509.ParseCertificates(data)
+	keyPair, err := tls.X509KeyPair(svid.GetX509Svid(), svid.GetX509SvidKey())
 	if err != nil {
 		return nil, err
 	}
 
-	pemData := []byte{}
-	for _, cert := range certs {
-		b := &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert.Raw,
-		}
-		pemData = append(pemData, pem.EncodeToMemory(b)...)
+	caPool := x509.NewCertPool()
+	if ok := caPool.AppendCertsFromPEM(svid.GetBundle()); !ok {
+		return nil, errors.New("failed to append ca cert to pool")
 	}
 
-	return pemData, nil
-}
-
-func keyToPem(data []byte) []byte {
-	b := &pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: data,
-	}
-	return pem.EncodeToMemory(b)
+	return &RetrievedCerts{
+		keyPair:  &keyPair,
+		caBundle: caPool,
+	}, nil
 }

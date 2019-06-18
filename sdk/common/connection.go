@@ -17,13 +17,12 @@ package common
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/security/certificate"
-	"os"
-	"sync"
-	"time"
-
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"os"
+	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -60,16 +59,10 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	// logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
 	// NSE connection server is ready and now endpoints can be advertised to NSM
-	certObtainer := security.NewSpireCertObtainer("/run/spire/sockets/agent.sock", 5*time.Second)
-	cm := security.NewCertificateManager(certObtainer)
-
-	cred, err := cm.ClientCredentials()
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
+	securityMgr := security.NewManager()
+	target := fmt.Sprintf("unix:%s", tools.SocketPath(configuration.NsmServerSocket))
 	// Check if the socket of Endpoint Connection Server is operable
-	testSocket, err := tools.SocketOperationCheckSecure("unix:"+tools.SocketPath(configuration.NsmServerSocket), cred)
+	testSocket, err := securityMgr.DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the nsm on socket %s with error: %v", configuration.NsmServerSocket, err)
 		return nil, err
@@ -81,7 +74,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 		return nil, err
 	}
 
-	conn.GrpcClient, err = tools.SocketOperationCheckSecure("unix:"+tools.SocketPath(configuration.NsmServerSocket), cred)
+	conn.GrpcClient, err = securityMgr.DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err
