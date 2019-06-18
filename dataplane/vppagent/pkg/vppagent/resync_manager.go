@@ -16,15 +16,18 @@ type resyncManager struct {
 
 func newResyncManager(m monitor_crossconnect.MonitorServer, vppEndpoint string) (*resyncManager, error) {
 	kvSchedulerClient, err := newKVSchedulerClient(vppEndpoint)
+
 	if err != nil {
 		return nil, err
 	}
-	result := &resyncManager{}
+
+	result := &resyncManager{
+		kvSchedulerClient: kvSchedulerClient,
+	}
+
 	m.AddRecipient(result)
 
-	return &resyncManager{
-		kvSchedulerClient: kvSchedulerClient,
-	}, nil
+	return result, nil
 }
 
 //SendMsg - takes a message from monitor server and check is interface down
