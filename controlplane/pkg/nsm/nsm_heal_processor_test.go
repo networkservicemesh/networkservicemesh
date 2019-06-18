@@ -100,7 +100,7 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 
 	xcon := data.createCrossConnection(true, false, "src", "dst")
 	request := data.createRequest(true)
-	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, dataplane1Name, request)
+	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
 	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
@@ -126,7 +126,7 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, false, "src", "dst")
 	request := data.createRequest(false)
-	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, dataplane1Name, request)
+	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
@@ -153,7 +153,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, false, "src", "dst")
 	request := data.createRequest(false)
-	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, dataplane1Name, request)
+	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
 	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
@@ -177,7 +177,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, false, "src", "dst")
 	request := data.createRequest(false)
-	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, dataplane1Name, request)
+	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
 	data.connectionManager.requestError = fmt.Errorf("request error")
@@ -202,7 +202,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, true, "src", "dst")
 	request := data.createRequest(true)
-	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, dataplane1Name, request)
+	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
@@ -230,7 +230,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, true, "src", "dst")
 	request := data.createRequest(true)
-	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, dataplane1Name, request)
+	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
 	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
@@ -426,14 +426,14 @@ func (data *healTestData) createRequest(isRemote bool) networkservice.Request {
 	}
 }
 
-func (data *healTestData) createClientConnection(xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, dataplane string, request networkservice.Request) *model.ClientConnection {
+func (data *healTestData) createClientConnection(xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm string, request networkservice.Request) *model.ClientConnection {
 	return &model.ClientConnection{
 		Xcon: xcon,
 		RemoteNsm: &registry.NetworkServiceManager{
 			Name: nsm,
 		},
 		Endpoint:                nse,
-		DataplaneRegisteredName: dataplane,
+		DataplaneRegisteredName: dataplane1Name,
 		Request:                 request,
 		DataplaneState:          model.DataplaneStateReady,
 	}

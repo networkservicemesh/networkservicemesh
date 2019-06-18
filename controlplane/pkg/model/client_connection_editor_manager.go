@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// ClientConnectionEditor is a type to commit changes on ClientConnection
 type ClientConnectionEditor struct {
 	ClientConnection *ClientConnection
 
@@ -84,7 +85,7 @@ func (m *clientConnectionEditorManager) DeleteClientConnection(id string) error 
 func (m *clientConnectionEditorManager) ChangeClientConnectionState(id string, connectionState ClientConnectionState) (*ClientConnectionEditor, error) {
 	cc := m.GetClientConnection(id)
 	if cc == nil {
-		return nil, fmt.Errorf("trying to change state for not exising connection: %v", id)
+		return nil, fmt.Errorf("trying to change state for not existing connection: %v", id)
 	}
 
 	cc.connectionState = connectionState
