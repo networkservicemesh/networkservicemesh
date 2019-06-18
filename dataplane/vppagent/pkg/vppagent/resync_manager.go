@@ -67,6 +67,6 @@ func (m *resyncManager) isNeedToResync(id string, dataChange *configurator.Confi
 			}
 		}
 	}
-	m.storedDataChanges.Store(id, *dataChange)
+	m.storedDataChanges.Store(id, dataChange)
 	return false
 }

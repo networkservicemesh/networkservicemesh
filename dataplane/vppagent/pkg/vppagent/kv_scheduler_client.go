@@ -39,12 +39,16 @@ func (c *kvSchedulerClient) downstreamResync() {
 	if err != nil {
 		logrus.Errorf("kvSchedulerClient:, can't do request %v, error: %v", resp, err)
 	}
+	err = resp.Body.Close()
+	if err != nil {
+		logrus.Errorf("kvSchedulerClient:, can't close response body: %v", err)
+	}
 	logrus.Infof("kvSchedulerClient: response %v from %v", resp, downSteamResyncPath)
 }
 
 func buildKvSchedulerDownStreamPath(vppAgentEndpoint string) (string, error) {
 	parts := strings.Split(vppAgentEndpoint, ":")
-	serverURL := fmt.Sprintf("http://%v:%v", parts[len(parts)-1], kvSchedulerPort)
+	serverURL := fmt.Sprintf("http://%v:%v", parts[0], kvSchedulerPort)
 	_, err := url.Parse(vppAgentEndpoint)
 	if err != nil {
 		return "", err
