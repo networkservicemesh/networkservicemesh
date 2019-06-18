@@ -141,8 +141,7 @@ func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossc
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", proto.MarshalTextString(dataChange))
 	if connect {
-		resync := v.resyncManager.needToResync(crossConnect.Id, &dataChange)
-		if resync {
+		if v.resyncManager.isNeedToResync(crossConnect.Id, dataChange) {
 			v.resyncManager.downstreamResync()
 		}
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
@@ -311,6 +310,7 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor monitor_crossconnect.MonitorServer) error {
+	var err error
 	tracer, closer := tools.InitJaeger("vppagent-dataplane")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
@@ -320,8 +320,8 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigBase, monitor monitor_cros
 	v.reset()
 	v.programMgmtInterface()
 	v.setupMetricsCollector(monitor)
-	v.resyncManager = newResyncManager(monitor)
-	return nil
+	v.resyncManager, err = newResyncManager(monitor, v.vppAgentEndpoint)
+	return err
 }
 
 func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {

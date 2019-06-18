@@ -533,7 +533,7 @@ func PrintLogs(k8s *K8s, nodesSetup []*NodeConf) {
 
 func printDataplaneLogs(k8s *K8s, dataplane *v1.Pod, k int) {
 	dataplaneLogs, _ := k8s.GetLogs(dataplane, "")
-	logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, formatLogs(dataplaneLogs))
+	logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
 }
 
 func printNSMDLogs(k8s *K8s, nsmdPod *v1.Pod, k int) {
@@ -549,14 +549,11 @@ func printNSMDLogs(k8s *K8s, nsmdPod *v1.Pod, k int) {
 				Container: cs.Name,
 				Previous:  true,
 			})
-			logrus.Errorf("===================== %s %d previous output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, formatLogs(prevLogs))
+			logrus.Errorf("===================== %s %d previous output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, prevLogs)
 		}
-		logrus.Errorf("===================== %s %d output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, formatLogs(containerLogs))
+		logrus.Errorf("===================== %s %d output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, containerLogs)
 	}
-}
 
-func formatLogs(logs string) string {
-	return strings.Replace(logs, "\\n", "\n", -1)
 }
 
 // PrintLogs - Print Client print information
