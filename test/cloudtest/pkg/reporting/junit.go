@@ -2,11 +2,12 @@ package reporting
 
 import "encoding/xml"
 
+// JUnitFile - JUnitFile
 type JUnitFile struct {
 	XMLName xml.Name `xml:"testsuites"`
 	Suites  []*Suite
 }
-
+// Suite - Suite
 type Suite struct {
 	XMLName    xml.Name        `xml:"testsuite"`
 	Tests      int             `xml:"tests,attr"`
@@ -16,7 +17,7 @@ type Suite struct {
 	Properties []*Property `xml:"properties>property,omitempty"`
 	TestCases  []*TestCase
 }
-
+// TestCase - TestCase
 type TestCase struct {
 	XMLName     xml.Name          `xml:"testcase"`
 	Classname   string            `xml:"classname,attr"`
@@ -26,18 +27,18 @@ type TestCase struct {
 	Failure     *Failure     `xml:"failure,omitempty"`
 }
 
-// JUnitSkipMessage contains the reason why a testcase was skipped.
+// SkipMessage - JUnitSkipMessage contains the reason why a testcase was skipped.
 type SkipMessage struct {
 	Message string `xml:"message,attr"`
 }
 
-// JUnitProperty represents a key/value pair used to define properties.
+// Property -  represents a key/value pair used to define properties.
 type Property struct {
 	Name  string `xml:"name,attr"`
 	Value string `xml:"value,attr"`
 }
 
-// JUnitFailure contains data related to a failed test.
+// Failure -  contains data related to a failed test.
 type Failure struct {
 	Message  string `xml:"message,attr"`
 	Type     string `xml:"type,attr"`

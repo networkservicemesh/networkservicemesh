@@ -10,23 +10,26 @@ import (
 	"time"
 )
 
+// Status - Test Execution status
 type Status int8
 
 const (
-	// Success execution on all clusters
-	Status_ADDED               Status = 0 // Just added
-	Status_SUCCESS             Status = 1 // Passed
-	Status_FAILED              Status = 2 // Failed execution on all clusters
-	Status_TIMEOUT             Status = 3 // Test timeout waiting for results
-	Status_SKIPPED             Status = 4
-	Status_SKIPPED_NO_CLUSTERS Status = 5
+	statusAdded                  Status = 0 // statusAdded - Just added
+	statusSuccess                Status = 1 // Passed
+	statusFailed                 Status = 2 // Failed execution on all clusters
+	statusTimeout                Status = 3 // Test timeout waiting for results
+	statusSkipped                Status = 4 // Test is skipped
+	statusSkippedSinceNoClusters Status = 5 // Test is skipped since there is not clusters to execute on.
 )
 
+// TestEntryExecution - represent one test execution.
 type TestEntryExecution struct {
 	OutputFile string // Output file name
 	retry      int    // Did we retry execution on this cluster.
 	Status     Status // Execution status
 }
+
+// TestEntry - represent one found test
 type TestEntry struct {
 	Name            string // Test name
 	Tags            string // A list of tags
@@ -38,7 +41,7 @@ type TestEntry struct {
 	Started    time.Time
 }
 
-// Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
+// GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
 func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tags []string) ([]*TestEntry, error) {
 	gotestCmd := []string{"go", "test", root, "--list", ".*"}
 	if len(tags) > 0 {
@@ -51,9 +54,8 @@ func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tag
 		logrus.Infof("Found %d tests with tags %s", len(tests), tagsStr)
 		result = append(result, tests...)
 		return result, nil
-	} else {
-		return getTests(manager, gotestCmd, "")
 	}
+	return getTests(manager, gotestCmd, "")
 }
 
 func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag string) ([]*TestEntry, error) {
@@ -70,6 +72,7 @@ func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag stri
 			special := strings.Split(testLine, "\t")
 			if len(special) == 3 {
 				// This is special case.
+				continue
 			}
 		} else {
 			testResult = append(testResult, &TestEntry{

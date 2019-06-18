@@ -8,25 +8,27 @@ import (
 	"strings"
 )
 
-func OpenFile( root, fileName string) (string, *os.File, error) {
+// OpenFile - opens a file in folder and make folder parents if required.
+func OpenFile(root, fileName string) (string, *os.File, error) {
 	// Create folder if it doesn't exists
 	if !FileExists(root) {
 		_ = os.MkdirAll(root, os.ModePerm)
 	}
 	fileName = path.Join(root, fileName)
 
-	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm )
+	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	return fileName, f, err
 }
 
-func ReadFile( fileName string) ([]string, error) {
+// ReadFile - read a file contents and return as array of strings
+func ReadFile(fileName string) ([]string, error) {
 	// Create folder if it doesn't exists
 
-	f, err := os.OpenFile(fileName, os.O_RDONLY, os.ModePerm )
+	f, err := os.OpenFile(fileName, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {_ = f.Close()}()
 
 	reader := bufio.NewReader(f)
 	output := []string{}
@@ -39,6 +41,8 @@ func ReadFile( fileName string) ([]string, error) {
 	}
 	return output, nil
 }
+
+// WriteFile - write content to file inside folder
 func WriteFile(root, fileName, content string) {
 	fileName, f, err := OpenFile(root, fileName)
 
@@ -53,11 +57,13 @@ func WriteFile(root, fileName, content string) {
 	_ = f.Close()
 }
 
+// FileExists - check if file are exists.
 func FileExists(root string) bool {
 	_, err := os.Stat(root)
 	return !os.IsNotExist(err)
 }
 
+// ClearFolder - If folder exists it will be removed with all subfolders and if recreate is passed it will be created
 func ClearFolder(root string, recreate bool) {
 	if FileExists(root) {
 		logrus.Infof("Cleaning report folder %s", root)
@@ -68,7 +74,7 @@ func ClearFolder(root string, recreate bool) {
 		CreateFolders(root)
 	}
 }
-
+// CreateFolders - Create folder and all parents.
 func CreateFolders(root string) {
 	err := os.MkdirAll(root, os.ModePerm)
 	if err != nil {

@@ -20,12 +20,12 @@ import (
 )
 
 const (
-	InstallScript = "install" //#1
-	StartScript   = "start"   //#2
-	ConfigScript  = "config"  //#3
-	PrepareScript = "prepare" //#4
-	StopScript    = "stop"    // #5
-	ZoneSelector  = "zone-selector"
+	installScript = "install" //#1
+	startScript   = "start"   //#2
+	configScript  = "config"  //#3
+	prepareScript = "prepare" //#4
+	stopScript    = "stop"    // #5
+	zoneSelector  = "zone-selector"
 )
 
 type shellProvider struct {
@@ -49,16 +49,15 @@ type shellInstance struct {
 	factory                 k8s.ValidationFactory
 	validator               k8s.KubernetesValidator
 	configLocation          string
-	shellInterface          shell.ShellInterface
+	shellInterface          shell.Manager
 	config                  *config.ClusterProviderConfig
-	startFailed             int
 	provider                *shellProvider
 	params                  providers.InstanceOptions
 	started                 bool
 
 }
 
-func (si *shellInstance) GetId() string {
+func (si *shellInstance) GetID() string {
 	return si.id
 }
 
@@ -66,7 +65,7 @@ func (si *shellInstance) CheckIsAlive() error {
 	if si.started {
 		return si.validator.Validate()
 	}
-	return fmt.Errorf("Cluster is not running")
+	return fmt.Errorf("cluster is not running")
 }
 
 func (si *shellInstance) IsRunning() bool {
@@ -77,7 +76,7 @@ func (si *shellInstance) GetClusterConfig() (string, error) {
 	if si.started {
 		return si.configLocation, nil
 	}
-	return "", fmt.Errorf("Cluster is not started yet...")
+	return "", fmt.Errorf("cluster is not started yet")
 }
 
 func (si *shellInstance) Start(timeout time.Duration) error {
@@ -130,7 +129,8 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	}
 
 	if si.configLocation == "" {
-		output, err := utils.ExecRead(context, strings.Split(si.configScript, " "))
+		var output []string
+		output, err = utils.ExecRead(context, strings.Split(si.configScript, " "))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to retrieve configuration location %v", err)
 			logrus.Errorf(msg)
@@ -186,7 +186,7 @@ func (si *shellInstance) doInstall(context context.Context) error {
 	return nil
 }
 
-func (p *shellProvider) getProviderId(provider string) string {
+func (p *shellProvider) getProviderID(provider string) string {
 	val, ok := p.indexes[provider]
 	if ok {
 		val++
@@ -206,7 +206,7 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 	}
 	p.Lock()
 	defer p.Unlock()
-	id := fmt.Sprintf("%s-%s", config.Name, p.getProviderId(config.Name))
+	id := fmt.Sprintf("%s-%s", config.Name, p.getProviderID(config.Name))
 
 	root := path.Join(p.root, id)
 
@@ -216,20 +216,20 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 		root:               root,
 		id:                 id,
 		config:             config,
-		configScript:       config.Scripts[ConfigScript],
-		installScript:      utils.ParseScript(config.Scripts[InstallScript]),
-		startScript:        utils.ParseScript(config.Scripts[StartScript]),
-		prepareScript:      utils.ParseScript(config.Scripts[PrepareScript]),
-		stopScript:         utils.ParseScript(config.Scripts[StopScript]),
-		zoneSelectorScript: config.Scripts[ZoneSelector],
+		configScript:       config.Scripts[configScript],
+		installScript:      utils.ParseScript(config.Scripts[installScript]),
+		startScript:        utils.ParseScript(config.Scripts[startScript]),
+		prepareScript:      utils.ParseScript(config.Scripts[prepareScript]),
+		stopScript:         utils.ParseScript(config.Scripts[stopScript]),
+		zoneSelectorScript: config.Scripts[zoneSelector],
 		factory:            factory,
-		shellInterface:     shell.NewShellInterface(manager, id, root, config, instanceOptions),
+		shellInterface:     shell.NewManager(manager, id, root, config, instanceOptions),
 		params:             instanceOptions,
 	}
 
 	return clusterInstance, nil
 }
-
+// NewShellClusterProvider - Creates new shell provider
 func NewShellClusterProvider(root string) providers.ClusterProvider {
 	utils.ClearFolder(root, true)
 	return &shellProvider{
@@ -241,7 +241,7 @@ func NewShellClusterProvider(root string) providers.ClusterProvider {
 }
 
 func (p *shellProvider) ValidateConfig(config *config.ClusterProviderConfig) error {
-	if _, ok := config.Scripts[ConfigScript]; !ok {
+	if _, ok := config.Scripts[configScript]; !ok {
 		hasKubeConfig := false
 		for _, e := range config.Env {
 			if strings.HasPrefix(e, "KUBECONFIG=") {
@@ -250,20 +250,20 @@ func (p *shellProvider) ValidateConfig(config *config.ClusterProviderConfig) err
 			}
 		}
 		if !hasKubeConfig {
-			return fmt.Errorf("Invalid config location")
+			return fmt.Errorf("invalid config location")
 		}
 	}
-	if _, ok := config.Scripts[StartScript]; !ok {
-		return fmt.Errorf("Invalid start script")
+	if _, ok := config.Scripts[startScript]; !ok {
+		return fmt.Errorf("invalid start script")
 	}
-	if _, ok := config.Scripts[StopScript]; !ok {
-		return fmt.Errorf("Invalid shutdown script location")
+	if _, ok := config.Scripts[stopScript]; !ok {
+		return fmt.Errorf("invalid shutdown script location")
 	}
 
 	for _, envVar := range config.EnvCheck {
 		envValue := os.Getenv(envVar)
 		if envValue == "" {
-			return fmt.Errorf("Environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
+			return fmt.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
 		}
 	}
 

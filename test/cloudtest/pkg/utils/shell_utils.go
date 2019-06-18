@@ -5,18 +5,21 @@ import (
 	"context"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"strings"
 )
 
+// ParseVariable - parses var=value variable format.
 func ParseVariable(variable string) (string, string, error) {
 	pos := strings.Index(variable, "=")
 	if pos == -1 {
-		return "", "", fmt.Errorf("Variable passed are invalid...")
+		return "", "", fmt.Errorf("variable passed are invalid")
 	}
 	return variable[:pos], variable[pos+1:], nil
 }
 
+// ParseCommandLine - parses command line with support of "" and escaping.
 func ParseCommandLine(cmdLine string) []string {
 	pos := 0
 	current := strings.Builder{}
@@ -65,6 +68,7 @@ func ParseCommandLine(cmdLine string) []string {
 
 }
 
+// SubstituteVariable - perform a substitution of all ${var} $(arg) in passed string and return substitution results and error
 func SubstituteVariable(variable string, vars, args map[string]string) (string, error) {
 
 	pos := 0
@@ -89,9 +93,9 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 
 					// We found variable or reached end of string
 					if varValue, ok := vars[varName]; ok {
-						result.WriteString(varValue)
+						_, _ = result.WriteString(varValue)
 					} else {
-						return "", fmt.Errorf("Failed to find variable %v in passed variables", varName)
+						return "", fmt.Errorf("failed to find variable %v in passed variables", varName)
 					}
 
 				} else if nextChar == '(' {
@@ -104,7 +108,7 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 					if argValue, ok := args[varName]; ok {
 						_, _ = result.WriteString(argValue)
 					} else {
-						return "", fmt.Errorf("Failed to find argument %v in passed arguments", varName)
+						return "", fmt.Errorf("failed to find argument %v in passed arguments", varName)
 					}
 				}
 
@@ -156,11 +160,13 @@ func readStringEscaping(pos, count int, variable string, delim uint8) (string, i
 	return varName.String(), pos
 }
 
+// ParseScript - parse multi line script and return individual commands.
 func ParseScript(s string) []string {
 	return strings.Split(strings.TrimSpace(s), "\n")
 }
 
-func RunCommand(id string, context context.Context, cmd, operation string, writer *bufio.Writer, env []string, args map[string]string) error {
+// RunCommand - run shell command and put output into file, command variables are substituted.
+func RunCommand(context context.Context, id, cmd, operation string, writer *bufio.Writer, env []string, args map[string]string) error {
 	finalEnv := append(os.Environ(), env...)
 
 	environment := map[string]string{}
@@ -181,39 +187,30 @@ func RunCommand(id string, context context.Context, cmd, operation string, write
 
 	proc, err := ExecProc(context, cmdLine, finalEnv)
 	if err != nil {
-		return fmt.Errorf("Failed to run %s %v", cmdLine, err)
+		return fmt.Errorf("failed to run %s %v", cmdLine, err)
 	}
-	go func() {
-		reader := bufio.NewReader(proc.Stdout)
-		for {
-			s, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
-			_, _ = writer.WriteString(s)
-			_ = writer.Flush()
-			if (len(strings.TrimSpace(s)) > 0) {
-				logrus.Infof("Output: %s => %s %v", id, operation, s)
-			}
-		}
-	}()
-	go func() {
-		reader := bufio.NewReader(proc.Stderr)
-		for {
-			s, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
-			_, _ = writer.WriteString(s)
-			_ = writer.Flush()
-			if (len(strings.TrimSpace(s)) > 0) {
-				logrus.Infof("StdErr: %s => %s %v", id, operation, s)
-			}
-		}
-	}()
+	processOutput(proc.Stdout, writer, id, operation, "StdOut")
+	processOutput(proc.Stderr, writer, id, operation, "StdErr")
 	if code := proc.ExitCode(); code != 0 {
 		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
 		return fmt.Errorf("failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
 	}
 	return nil
+}
+
+func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string) {
+	go func() {
+		reader := bufio.NewReader(stream)
+		for {
+			s, err := reader.ReadString('\n')
+			if err != nil {
+				break
+			}
+			_, _ = writer.WriteString(s)
+			_ = writer.Flush()
+			if (len(strings.TrimSpace(s)) > 0) {
+				logrus.Infof("%s: %s => %s %v", pattern, id, operation, s)
+			}
+		}
+	}()
 }

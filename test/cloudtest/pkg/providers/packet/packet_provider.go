@@ -22,12 +22,13 @@ import (
 )
 
 const (
-	InstallScript = "install" //#1
-	SetupScript   = "setup"   //#2
-	StartScript   = "start"   //#4
-	ConfigScript  = "config"  //#5
-	PrepareScript = "prepare" //#6
-	StopScript    = "stop"    // #7
+	installScript   = "install" //#1
+	setupScript     = "setup"   //#2
+	startScript     = "start"   //#4
+	configScript    = "config"  //#5
+	prepareScript   = "prepare" //#6
+	stopScript      = "stop"    // #7
+	packetProjectID = "PACKET_PROJECT_ID"
 )
 
 type packetProvider struct {
@@ -39,37 +40,36 @@ type packetProvider struct {
 }
 
 type packetInstance struct {
-	installScript           []string
-	setupScript             []string
-	startScript             []string
-	prepareScript           []string
-	stopScript              []string
-	manager                 execmanager.ExecutionManager
-	root                    string
-	id                      string
-	configScript            string
-	zoneSelectorScript      string
-	factory                 k8s.ValidationFactory
-	validator               k8s.KubernetesValidator
-	configLocation          string
-	shellInterface          shell.ShellInterface
-	projectId               string
-	packetAuthKey           string
-	genId                   string
-	keyId                   string
-	config                  *config.ClusterProviderConfig
-	startFailed             int
-	provider                *packetProvider
-	client                  *packngo.Client
-	project                 *packngo.Project
-	devices                 map[string]*packngo.Device
-	sshKey                  *packngo.SSHKey
-	params                  providers.InstanceOptions
-	started                 bool
-
+	installScript  []string
+	setupScript    []string
+	startScript    []string
+	prepareScript  []string
+	stopScript     []string
+	manager        execmanager.ExecutionManager
+	root           string
+	id             string
+	configScript   string
+	factory        k8s.ValidationFactory
+	validator      k8s.KubernetesValidator
+	configLocation string
+	shellInterface shell.Manager
+	projectID      string
+	packetAuthKey  string
+	genID          string
+	keyID          string
+	config         *config.ClusterProviderConfig
+	provider       *packetProvider
+	client         *packngo.Client
+	project        *packngo.Project
+	devices        map[string]*packngo.Device
+	sshKey         *packngo.SSHKey
+	params         providers.InstanceOptions
+	started        bool
+	keyIds         []string
+	facilitiesList []string
 }
 
-func (pi *packetInstance) GetId() string {
+func (pi *packetInstance) GetID() string {
 	return pi.id
 }
 
@@ -77,7 +77,7 @@ func (pi *packetInstance) CheckIsAlive() error {
 	if pi.started {
 		return pi.validator.Validate()
 	}
-	return fmt.Errorf("Cluster is not running")
+	return fmt.Errorf("cluster is not running")
 }
 
 func (pi *packetInstance) IsRunning() bool {
@@ -88,13 +88,13 @@ func (pi *packetInstance) GetClusterConfig() (string, error) {
 	if pi.started {
 		return pi.configLocation, nil
 	}
-	return "", fmt.Errorf("Cluster is not started yet...")
+	return "", fmt.Errorf("cluster is not started yet")
 }
 
 func (pi *packetInstance) Start(timeout time.Duration) error {
 	logrus.Infof("Starting cluster %s-%s", pi.config.Name, pi.id)
-
-	context, cancel := context.WithTimeout(context.Background(), timeout)
+	var err error
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// Set seed
@@ -102,25 +102,22 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 
 	utils.ClearFolder(pi.root, true)
 
-	pi.genId = uuid.New().String()[:30]
+	pi.genID = uuid.New().String()[:30]
 	// Process and prepare environment variables
-	err := pi.shellInterface.ProcessEnvironment(map[string]string{
-		"cluster-uuid": pi.genId,
-	})
-	if err != nil {
-		logrus.Errorf("Error during preocessing enviornment variables %v", err)
+	if err = pi.shellInterface.ProcessEnvironment(map[string]string{"cluster-uuid": pi.genID}); err != nil {
+		logrus.Errorf("error during preocessing enviornment variables %v", err)
 		return err
 	}
 
 	// Do prepare
 	if !pi.params.NoInstall {
-		if err = pi.doInstall(context); err != nil {
+		if err = pi.doInstall(ctx); err != nil {
 			return err
 		}
 	}
 
 	// Run start script
-	if err = pi.shellInterface.RunCmd(context, "setup", pi.setupScript, nil); err != nil {
+	if err = pi.shellInterface.RunCmd(ctx, "setup", pi.setupScript, nil); err != nil {
 		return err
 	}
 
@@ -129,100 +126,108 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		// Relative file
 		keyFile = path.Join(pi.root, keyFile)
 		if !utils.FileExists(keyFile) {
-			err = fmt.Errorf("Failed to locate generated key file, please specify init script to generate it.")
+			err = fmt.Errorf("failed to locate generated key file, please specify init script to generate it")
 			logrus.Errorf(err.Error())
 			return err
 		}
 	}
 
-	pi.client, err = packngo.NewClient()
-	if err != nil {
-		logrus.Errorf("Failed to create Packet REST interface")
+	if pi.client, err = packngo.NewClient(); err != nil {
+		logrus.Errorf("failed to create Packet REST interface")
 		return err
-
 	}
 
-	err = pi.updateProject()
-	if err != nil {
+	if err = pi.updateProject(); err != nil {
 		return err
 	}
 
 	// Check and add key if it is not yet added.
 
-	pi.keyId = "dev-ci-cloud-" + pi.genId
-
-	keyFileContent, err := utils.ReadFile(keyFile)
-	if err != nil {
-		logrus.Errorf("Failed to read file %v %v", keyFile, err)
+	if pi.keyIds, err = pi.createKey(keyFile); err != nil {
 		return err
 	}
 
-	keyRequest := &packngo.SSHKeyCreateRequest{
-		ProjectID: pi.project.ID,
-		Label:     pi.keyId,
-		Key:       strings.Join(keyFileContent, "\n"),
-	}
-	sshKey, _, _ := pi.client.SSHKeys.Create(keyRequest)
-
-	sshKeys, response, err := pi.client.SSHKeys.List()
-
-	keyIds := []string{}
-	for k := 0; k < len(sshKeys); k++ {
-		kk := &sshKeys[k]
-		if kk.Label == pi.keyId {
-			sshKey = &packngo.SSHKey{
-				ID:          kk.ID,
-				Label:       kk.Label,
-				URL:         kk.URL,
-				User:        kk.User,
-				Key:         kk.Key,
-				FingerPrint: kk.FingerPrint,
-				Created:     kk.Created,
-				Updated:     kk.Updated,
-			}
-		}
-		keyIds = append(keyIds, kk.ID)
-	}
-
-	if sshKey == nil && err != nil {
-		logrus.Errorf("Failed to create ssh key %v", err)
+	if pi.facilitiesList, err = pi.findFacilities(); err != nil {
 		return err
 	}
-
-	pi.sshKey = sshKey
-	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v", sshKey, response, err))
-
-	facilitiesList, err := pi.findFacilities()
-
 	for _, devCfg := range pi.config.Packet.Devices {
-		devReq := &packngo.DeviceCreateRequest{
-			//Facility:
-			Plan:           devCfg.Plan,
-			Facility:       facilitiesList,
-			Hostname:       devCfg.Name + "-" + pi.genId,
-			BillingCycle:   devCfg.BillingCycle,
-			OS:             devCfg.OperatingSystem,
-			ProjectID:      pi.projectId,
-			ProjectSSHKeys: keyIds,
-		}
 		var device *packngo.Device
-		var response *packngo.Response
-		device, response, err = pi.client.Devices.Create(devReq)
-		pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), fmt.Sprintf("%v", response))
-		if err != nil {
+		if device, err = pi.createDevice(devCfg); err != nil {
 			return err
 		}
-
 		pi.devices[devCfg.Name] = device
 	}
 
 	// All devices are created so we need to wait for them to get alive.
+	if err = pi.waitDevicesStartup(ctx); err != nil {
+		return err
+	}
+	// We need to add arguments
 
+	pi.addDeviceContextArguments()
+
+	printableEnv := pi.shellInterface.PrintEnv(pi.shellInterface.GetProcessedEnv())
+	pi.manager.AddLog(pi.id, "environment", printableEnv)
+
+	// Run start script
+	if err = pi.shellInterface.RunCmd(ctx, "start", pi.startScript, nil); err != nil {
+		return err
+	}
+
+	if err = pi.updateKUBEConfig(ctx); err != nil {
+		return err
+	}
+
+	if pi.validator, err = pi.factory.CreateValidator(pi.config, pi.configLocation); err != nil {
+		msg := fmt.Sprintf("Failed to start validator %v", err)
+		logrus.Errorf(msg)
+		return err
+	}
+	// Run prepare script
+	if err = pi.shellInterface.RunCmd(ctx, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
+		return err
+	}
+
+	pi.started = true
+
+	return nil
+}
+
+func (pi *packetInstance) updateKUBEConfig(context context.Context) error {
+	if pi.configLocation == "" {
+		pi.configLocation = pi.shellInterface.GetConfigLocation()
+	}
+	if pi.configLocation == "" {
+		output, err := utils.ExecRead(context, strings.Split(pi.configScript, " "))
+		if err != nil {
+			err = fmt.Errorf("failed to retrieve configuration location %v", err)
+			logrus.Errorf(err.Error())
+		}
+		pi.configLocation = output[0]
+	}
+	return nil
+}
+
+func (pi *packetInstance) addDeviceContextArguments() {
+	for key, dev := range pi.devices {
+		for _, n := range dev.Network {
+			pub := "pub"
+			if !n.Public {
+				pub = "private"
+			}
+			pi.shellInterface.AddExtraArgs(fmt.Sprintf("device.%v.%v.%v.%v", key, pub, "ip", n.AddressFamily), n.Address)
+			pi.shellInterface.AddExtraArgs(fmt.Sprintf("device.%v.%v.%v.%v", key, pub, "gw", n.AddressFamily), n.Gateway)
+			pi.shellInterface.AddExtraArgs(fmt.Sprintf("device.%v.%v.%v.%v", key, pub, "net", n.AddressFamily), n.Network)
+		}
+	}
+}
+
+func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 	for {
 		alive := map[string]*packngo.Device{}
 		for key, d := range pi.devices {
 			var updatedDevice *packngo.Device
-			updatedDevice, _, err = pi.client.Devices.Get(d.ID, &packngo.GetOptions{})
+			updatedDevice, _, err := pi.client.Devices.Get(d.ID, &packngo.GetOptions{})
 			if err != nil {
 				logrus.Errorf("Error %v", err)
 			} else if updatedDevice.State == "active" {
@@ -237,62 +242,28 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		case <-time.After(100 * time.Millisecond):
 			continue
 		case <-context.Done():
-			logrus.Errorf("Timeout waiting for devices...")
-			return fmt.Errorf("Timeout %v", context.Err())
+			return fmt.Errorf("timeout %v", context.Err())
 		}
 	}
-
-	// We need to add arguments
-
-	for key, dev := range pi.devices {
-		for _, n := range dev.Network {
-			pub := "pub"
-			if !n.Public {
-				pub = "private"
-			}
-			pi.shellInterface.AddExtraArgs(fmt.Sprintf("device.%v.%v.%v.%v", key, pub, "ip", n.AddressFamily), n.Address)
-			pi.shellInterface.AddExtraArgs(fmt.Sprintf("device.%v.%v.%v.%v", key, pub, "gw", n.AddressFamily), n.Gateway)
-			pi.shellInterface.AddExtraArgs(fmt.Sprintf("device.%v.%v.%v.%v", key, pub, "net", n.AddressFamily), n.Network)
-		}
-	}
-
-	printableEnv := pi.shellInterface.PrintEnv(pi.shellInterface.GetProcessedEnv())
-	pi.manager.AddLog(pi.id, "environment", printableEnv)
-
-	// Run start script
-	if err = pi.shellInterface.RunCmd(context, "start", pi.startScript, nil); err != nil {
-		return err
-	}
-
-	if pi.configLocation == "" {
-		pi.configLocation = pi.shellInterface.GetConfigLocation()
-	}
-
-	if pi.configLocation == "" {
-		var output []string
-		output, err = utils.ExecRead(context, strings.Split(pi.configScript, " "))
-		if err != nil {
-			msg := fmt.Sprintf("Failed to retrieve configuration location %v", err)
-			logrus.Errorf(msg)
-			return err
-		}
-		pi.configLocation = output[0]
-	}
-
-	pi.validator, err = pi.factory.CreateValidator(pi.config, pi.configLocation)
-	if err != nil {
-		msg := fmt.Sprintf("Failed to start validator %v", err)
-		logrus.Errorf(msg)
-		return err
-	}
-	// Run prepare script
-	if err = pi.shellInterface.RunCmd(context, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
-		return err
-	}
-
-	pi.started = true
-
 	return nil
+}
+
+func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.Device, error) {
+	devReq := &packngo.DeviceCreateRequest{
+		//Facility:
+		Plan:           devCfg.Plan,
+		Facility:       pi.facilitiesList,
+		Hostname:       devCfg.Name + "-" + pi.genID,
+		BillingCycle:   devCfg.BillingCycle,
+		OS:             devCfg.OperatingSystem,
+		ProjectID:      pi.projectID,
+		ProjectSSHKeys: pi.keyIds,
+	}
+	var device *packngo.Device
+	var response *packngo.Response
+	device, response, err := pi.client.Devices.Create(devReq)
+	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), fmt.Sprintf("%v", response))
+	return device, err
 }
 
 func (pi *packetInstance) findFacilities() ([]string, error) {
@@ -391,9 +362,9 @@ func (pi *packetInstance) updateProject() error {
 		logrus.Errorf("Failed to list Packet projects")
 	}
 
-	for i := 0; i> len(ps); i++ {
+	for i := 0; i > len(ps); i++ {
 		p := &ps[i]
-		if p.ID == pi.projectId {
+		if p.ID == pi.projectID {
 			pp := ps[i]
 			pi.project = &pp
 			break
@@ -401,14 +372,60 @@ func (pi *packetInstance) updateProject() error {
 	}
 
 	if pi.project == nil {
-		err := fmt.Errorf("Specified project are not found on Packet %v", pi.projectId)
+		err := fmt.Errorf("specified project are not found on Packet %v", pi.projectID)
 		logrus.Errorf(err.Error())
 		return err
 	}
 	return nil
 }
 
-func (p *packetProvider) getProviderId(provider string) string {
+func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
+	pi.keyID = "dev-ci-cloud-" + pi.genID
+
+	keyFileContent, err := utils.ReadFile(keyFile)
+	if err != nil {
+		logrus.Errorf("Failed to read file %v %v", keyFile, err)
+		return nil, err
+	}
+
+	keyRequest := &packngo.SSHKeyCreateRequest{
+		ProjectID: pi.project.ID,
+		Label:     pi.keyID,
+		Key:       strings.Join(keyFileContent, "\n"),
+	}
+	sshKey, _, _ := pi.client.SSHKeys.Create(keyRequest)
+
+	sshKeys, response, err := pi.client.SSHKeys.List()
+
+	keyIds := []string{}
+	for k := 0; k < len(sshKeys); k++ {
+		kk := &sshKeys[k]
+		if kk.Label == pi.keyID {
+			sshKey = &packngo.SSHKey{
+				ID:          kk.ID,
+				Label:       kk.Label,
+				URL:         kk.URL,
+				User:        kk.User,
+				Key:         kk.Key,
+				FingerPrint: kk.FingerPrint,
+				Created:     kk.Created,
+				Updated:     kk.Updated,
+			}
+		}
+		keyIds = append(keyIds, kk.ID)
+	}
+
+	if sshKey == nil && err != nil {
+		logrus.Errorf("Failed to create ssh key %v", err)
+		return nil, err
+	}
+
+	pi.sshKey = sshKey
+	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v", sshKey, response, err))
+	return keyIds, nil
+}
+
+func (p *packetProvider) getProviderID(provider string) string {
 	val, ok := p.indexes[provider]
 	if ok {
 		val++
@@ -428,7 +445,7 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 	}
 	p.Lock()
 	defer p.Unlock()
-	id := fmt.Sprintf("%s-%s", config.Name, p.getProviderId(config.Name))
+	id := fmt.Sprintf("%s-%s", config.Name, p.getProviderID(config.Name))
 
 	root := path.Join(p.root, id)
 
@@ -438,16 +455,16 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 		root:           root,
 		id:             id,
 		config:         config,
-		configScript:   config.Scripts[ConfigScript],
-		installScript:  utils.ParseScript(config.Scripts[InstallScript]),
-		setupScript:    utils.ParseScript(config.Scripts[SetupScript]),
-		startScript:    utils.ParseScript(config.Scripts[StartScript]),
-		prepareScript:  utils.ParseScript(config.Scripts[PrepareScript]),
-		stopScript:     utils.ParseScript(config.Scripts[StopScript]),
+		configScript:   config.Scripts[configScript],
+		installScript:  utils.ParseScript(config.Scripts[installScript]),
+		setupScript:    utils.ParseScript(config.Scripts[setupScript]),
+		startScript:    utils.ParseScript(config.Scripts[startScript]),
+		prepareScript:  utils.ParseScript(config.Scripts[prepareScript]),
+		stopScript:     utils.ParseScript(config.Scripts[stopScript]),
 		factory:        factory,
-		shellInterface: shell.NewShellInterface(manager, id, root, config, instanceOptions),
+		shellInterface: shell.NewManager(manager, id, root, config, instanceOptions),
 		params:         instanceOptions,
-		projectId:      os.Getenv("PACKET_PROJECT_ID"),
+		projectID:      os.Getenv(packetProjectID),
 		packetAuthKey:  os.Getenv("PACKET_AUTH_TOKEN"),
 		devices:        map[string]*packngo.Device{},
 	}
@@ -455,6 +472,7 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 	return clusterInstance, nil
 }
 
+// NewPacketClusterProvider - create new packet provider.
 func NewPacketClusterProvider(root string) providers.ClusterProvider {
 	utils.ClearFolder(root, true)
 	return &packetProvider{
@@ -468,18 +486,18 @@ func NewPacketClusterProvider(root string) providers.ClusterProvider {
 func (p *packetProvider) ValidateConfig(config *config.ClusterProviderConfig) error {
 
 	if config.Packet == nil {
-		return fmt.Errorf("Packet configuration element should be specified...")
+		return fmt.Errorf("packet configuration element should be specified")
 	}
 
 	if len(config.Packet.Facilities) == 0 {
-		return fmt.Errorf("Packet configuration facilities should be specified...")
+		return fmt.Errorf("packet configuration facilities should be specified")
 	}
 
 	if len(config.Packet.Devices) == 0 {
-		return fmt.Errorf("Packet configuration devices should be specified...")
+		return fmt.Errorf("packet configuration devices should be specified")
 	}
 
-	if _, ok := config.Scripts[ConfigScript]; !ok {
+	if _, ok := config.Scripts[configScript]; !ok {
 		hasKubeConfig := false
 		for _, e := range config.Env {
 			if strings.HasPrefix(e, "KUBECONFIG=") {
@@ -488,28 +506,28 @@ func (p *packetProvider) ValidateConfig(config *config.ClusterProviderConfig) er
 			}
 		}
 		if !hasKubeConfig {
-			return fmt.Errorf("Invalid config location")
+			return fmt.Errorf("invalid config location")
 		}
 	}
-	if _, ok := config.Scripts[StartScript]; !ok {
-		return fmt.Errorf("Invalid start script")
+	if _, ok := config.Scripts[startScript]; !ok {
+		return fmt.Errorf("invalid start script")
 	}
 
 	for _, envVar := range config.EnvCheck {
 		envValue := os.Getenv(envVar)
 		if envValue == "" {
-			return fmt.Errorf("Environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
+			return fmt.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
 		}
 	}
 
 	envValue := os.Getenv("PACKET_AUTH_TOKEN")
 	if envValue == "" {
-		return fmt.Errorf("Environment variable are not specified PACKET_AUTH_TOKEN")
+		return fmt.Errorf("environment variable are not specified PACKET_AUTH_TOKEN")
 	}
 
 	envValue = os.Getenv("PACKET_PROJECT_ID")
 	if envValue == "" {
-		return fmt.Errorf("Environment variable are not specified PACKET_AUTH_TOKEN")
+		return fmt.Errorf("environment variable are not specified PACKET_AUTH_TOKEN")
 	}
 
 	return nil

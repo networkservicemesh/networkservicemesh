@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+//ProcWrapper - A simple process wrapper
 type ProcWrapper struct {
 	Cmd    *exec.Cmd
 	cancel context.CancelFunc
@@ -18,7 +19,7 @@ type ProcWrapper struct {
 	Stderr io.ReadCloser
 }
 
-
+// ExitCode - wait for completion and return exit code
 func (w* ProcWrapper) ExitCode() int {
 	st, err := w.Cmd.Process.Wait()
 	if err != nil {
@@ -28,7 +29,7 @@ func (w* ProcWrapper) ExitCode() int {
 	return st.ExitCode()
 }
 
-
+// ExecRead - execute command and return output as result, stderr is ignored.
 func ExecRead( ctx context.Context, args []string) ([]string, error) {
 	proc, error := ExecProc(ctx, args, nil)
 	if error != nil {
@@ -46,6 +47,7 @@ func ExecRead( ctx context.Context, args []string) ([]string, error) {
 	return output, nil
 }
 
+// ExecProc - execute shell command and return ProcWrapper
 func ExecProc(ctx context.Context, args, env []string) (*ProcWrapper, error) {
 	if len(args) == 0 {
 		return &ProcWrapper{}, fmt.Errorf("missing command to run")

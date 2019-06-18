@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/sirupsen/logrus"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+// KubernetesValidator - a validator to check periodically of cluster livenes.
 type KubernetesValidator interface {
 	Validate() error
 }
 
+// ValidationFactory - factory to create validator
 type ValidationFactory interface {
+	// CreateValidator - return intanceof of validator with config and cluster config
 	CreateValidator(config *config.ClusterProviderConfig, location string) (KubernetesValidator, error)
 }
 
@@ -21,7 +23,7 @@ type k8sFactory struct {
 type k8sValidator struct {
 	config   *config.ClusterProviderConfig
 	location string
-	utils    *K8sUtils
+	utils    *Utils
 }
 
 func (v *k8sValidator) Validate() error {
@@ -51,7 +53,7 @@ func (*k8sFactory) CreateValidator(config *config.ClusterProviderConfig, locatio
 		utils:    utils,
 	}, nil
 }
-
+// CreateFactory - creates a validation factory.
 func CreateFactory() ValidationFactory {
 	return &k8sFactory{}
 }

@@ -15,12 +15,21 @@ import (
 	"strings"
 )
 
-type ShellInterface interface {
+// Manager - allow to perform shell command executions with variable and parameter substitutions.
+type Manager interface {
+	// GetConfigLocation - detect if KUBECONFIG variable is passed and return its value.
 	GetConfigLocation() string
+	// RunCmd - execute a command, operation with extra env
 	RunCmd(context context.Context, operation string, script[] string, env[] string) error
+	// ProcessEnvironment - process substitute of environment variables with arguments.
 	ProcessEnvironment(extraArgs map[string]string) error
+	// PrintEnv - print environment variables into string
 	PrintEnv(processedEnv []string) string
+	// PrintArgs - print arguments to string
+	PrintArgs() string
+	// GetProcessedEnv - return substituted environment variables
 	GetProcessedEnv() []string
+	// AddExtraArgs - add argument to map of substitute arguments $(arg) = value
 	AddExtraArgs(key, value string)
 }
 
@@ -43,8 +52,9 @@ func (si *shellInterface) GetProcessedEnv() []string {
 	return si.processedEnv
 }
 
-func NewShellInterface(manager execmanager.ExecutionManager, id, root string, config *config.ClusterProviderConfig,
-	params providers.InstanceOptions) ShellInterface {
+// NewManager - creates a new shell manager
+func NewManager(manager execmanager.ExecutionManager, id, root string, config *config.ClusterProviderConfig,
+	params providers.InstanceOptions) Manager {
 	return &shellInterface{
 		manager: manager,
 		root:    root,
@@ -58,14 +68,15 @@ func (si* shellInterface) GetConfigLocation() string {
 	return si.configLocation
 }
 
+// Run command in context and add appropriate execution output file.
 func (si *shellInterface) RunCmd(context context.Context, operation string, script, env []string) error {
 	_, fileRef, err := si.manager.OpenFile(si.id, operation)
 	if err != nil {
-		logrus.Errorf("Failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)
+		logrus.Errorf("failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)
 		return err
 	}
 
-	defer fileRef.Close()
+	defer func() { _ = fileRef.Close() }()
 
 	writer := bufio.NewWriter(fileRef)
 
@@ -82,8 +93,8 @@ func (si *shellInterface) RunCmd(context context.Context, operation string, scri
 
 		logrus.Infof("%s: %s => %s", operation, si.id, cmd)
 
-		if err := utils.RunCommand(si.id, context, cmd, operation, writer, cmdEnv, si.finalArgs); err != nil {
-			_, _ = writer.WriteString(fmt.Sprintf("Error running command: %v\n", err))
+		if err := utils.RunCommand(context, si.id, cmd, operation, writer, cmdEnv, si.finalArgs); err != nil {
+			_, _ = writer.WriteString(fmt.Sprintf("error running command: %v\n", err))
 			_ = writer.Flush()
 			return err
 		}

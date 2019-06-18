@@ -10,17 +10,22 @@ import (
 	"sync"
 )
 
+// ExecutionManager - allow to manage indexed files output per category.
 type ExecutionManager interface {
-	AddTestLog(category, testName, operation, content string)
+	// OpenFileTest - associate a new output stream for test results
 	OpenFileTest(category, testname, operation string) (string, *os.File, error)
+	//AddLog - add category operation content into file.
 	AddLog(category, operationName, content string)
+	//OpenFile - associate a new output stream for operation/
 	OpenFile(category, operationName string) (string, *os.File, error)
-	GetRoot(root string) (string,error)
+	//GetRoot - associate and get uniq root location based on pattern
+	GetRoot(root string) (string, error)
+	//AddFile - set named file to content.
 	AddFile(fileName string, bytes []byte)
 }
 
 type executionManagerImpl struct {
-	root string
+	root  string
 	steps map[string]int
 	sync.Mutex
 }
@@ -82,23 +87,24 @@ func (mgr *executionManagerImpl) GetRoot(root string) (string, error) {
 	if !utils.FileExists(initPath) {
 		utils.CreateFolders(initPath)
 		return filepath.Abs(initPath)
-	} else {
-		index := 2
-		for {
-			initPath := path.Join(mgr.root, fmt.Sprintf("%s-%d", root, index))
-			if !utils.FileExists(initPath) {
-				utils.CreateFolders(initPath)
-				return filepath.Abs(initPath)
-			}
-			index++
+	}
+
+	index := 2
+	for {
+		initPath := path.Join(mgr.root, fmt.Sprintf("%s-%d", root, index))
+		if !utils.FileExists(initPath) {
+			utils.CreateFolders(initPath)
+			return filepath.Abs(initPath)
 		}
+		index++
 	}
 }
 
+//NewExecutionManager - Creates new execution manager based on root dir.
 func NewExecutionManager(root string) ExecutionManager {
 	utils.ClearFolder(root, true)
 	return &executionManagerImpl{
-		root: root,
+		root:  root,
 		steps: map[string]int{},
 	}
 }

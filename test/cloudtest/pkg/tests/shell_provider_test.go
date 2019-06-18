@@ -4,7 +4,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/commands"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
@@ -61,7 +60,7 @@ func TestShellProvider(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
+	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("There is failed tests 4"))
 
 	Expect(report).NotTo(BeNil())
@@ -83,11 +82,11 @@ func createProvider(testConfig *config.CloudTestConfig, name string) {
 		RetryCount: 1,
 		Instances:  2,
 		Scripts: map[string]string{
-			shell.ConfigScript:  "echo ./.tests/config",
-			shell.StartScript:   "echo started",
-			shell.PrepareScript: "echo prepared",
-			shell.InstallScript: "echo installed",
-			shell.StopScript:    "echo stopped",
+			"config":  "echo ./.tests/config",
+			"start":   "echo started",
+			"prepare": "echo prepared",
+			"install": "echo installed",
+			"stop":    "echo stopped",
 		},
 		Enabled: true,
 	})
@@ -107,7 +106,7 @@ func TestInvalidProvider(t *testing.T) {
 
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
-	delete(testConfig.Providers[0].Scripts, shell.StartScript)
+	delete(testConfig.Providers[0].Scripts, "start")
 
 	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
 		Name:        "simple",
@@ -115,7 +114,7 @@ func TestInvalidProvider(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
+	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error Invalid start script"))
 
 	Expect(report).To(BeNil())
@@ -148,7 +147,7 @@ func TestRequireEnvVars(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
+	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error Environment variable are not specified  Required variables: [KUBECONFIG QWE]"))
 
 	Expect(report).To(BeNil())
@@ -197,7 +196,7 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
-	err, report := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
+	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	Expect(err.Error()).To(Equal("There is failed tests 2"))
 
 	Expect(report).ToNot(BeNil())
