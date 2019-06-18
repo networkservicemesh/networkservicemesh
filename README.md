@@ -47,6 +47,9 @@ See our full documentation at the [docs](/docs/README.md) folder.
 * Mailing list
   * [![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
 
+### CNCF Code of Conduct
+The Network Service Mesh community follows the [CNCF Community Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
+
 ## Upcoming events
 
 * Network Service Mesh At KubeCon + CloudNativeCon EU 2019
