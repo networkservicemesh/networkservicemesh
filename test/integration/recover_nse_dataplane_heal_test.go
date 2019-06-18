@@ -64,23 +64,17 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 	Expect(killDataplaneIndex >= 0 && killDataplaneIndex < nodesCount).Should(BeTrue())
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
-
 	Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
-
+	defer kubetest.FailLogger(k8s, nodes_setup, t)
 	// Run ICMP on latest node
 	fixture.DeployNse(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nscPodNode := fixture.DeployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = fixture.CheckNsc(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	fixture.CheckNsc(k8s, nscPodNode)
 
 	logrus.Infof("Delete Selected dataplane")
 	k8s.DeletePods(nodes_setup[killDataplaneIndex].Dataplane)
@@ -105,9 +99,5 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 		k8s.WaitLogsContains(nodes_setup[killDataplaneIndex].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	}
 	logrus.Infof("Waiting for connection recovery Done...")
-
-	failures = InterceptGomegaFailures(func() {
-		nscInfo = fixture.CheckNsc(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	fixture.CheckNsc(k8s, nscPodNode)
 }

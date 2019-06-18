@@ -657,7 +657,7 @@ func HealNscChecker(k8s *K8s, nscPod *v1.Pod) *NSCCheckInfo {
 			rv = info
 			break
 		}
-		<-time.After(300 * time.Millisecond)
+		<-time.After(time.Second)
 	}
 	Expect(success).To(BeTrue())
 	return rv
