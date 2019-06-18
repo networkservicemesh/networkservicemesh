@@ -275,7 +275,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	cc = srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Request = request
 	})
-	
+
 	var newXcon *crossconnect.CrossConnect
 
 	// 9.2 Sending updated request to dataplane.

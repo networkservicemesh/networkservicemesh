@@ -79,7 +79,8 @@ func (m *resyncManager) needToResync(id string, dataChange **configurator.Config
 		}
 
 		for i, if1 := range storedDataChange.LinuxConfig.Interfaces {
-			if if1.Namespace == nil || (*dataChange).LinuxConfig.Interfaces[i].Namespace == nil || if1.Namespace.Reference != (*dataChange).LinuxConfig.Interfaces[i].Namespace.Reference {
+			if2 := (*dataChange).LinuxConfig.Interfaces[i]
+			if if1.Namespace != if2.Namespace && (if1.Namespace == nil || if2.Namespace == nil || if1.Namespace.Reference != if2.Namespace.Reference) {
 				logrus.Info("RESYNC: Yes")
 				storedDataChange.LinuxConfig = (*dataChange).LinuxConfig
 				*dataChange = storedDataChange
