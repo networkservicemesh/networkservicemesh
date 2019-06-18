@@ -178,10 +178,22 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						},
 					},
 					Resources: createDefaultResources(),
+				}),
+				containerMod(&v1.Container{
+					Name:            "proxy-nsmd-k8s",
+					Image:           "networkservicemesh/proxy-nsmd-k8s",
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Env: []v1.EnvVar{
+						v1.EnvVar{
+							Name:  namespace.NsmNamespaceEnv,
+							Value: config.Namespace,
+						},
+					},
+					Resources: createDefaultResources(),
 					Ports: []v1.ContainerPort{
 						{
-							HostPort: 5000,
-							ContainerPort: 5000,
+							HostPort: 5005,
+							ContainerPort: 5005,
 						},
 					},
 				}),

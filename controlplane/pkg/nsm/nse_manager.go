@@ -3,9 +3,6 @@ package nsm
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"strings"
-
 	"github.com/sirupsen/logrus"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -43,29 +40,12 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 	}
 
 	// Get endpoints, do it every time since we do not know if list are changed or not.
-	var discoveryClient registry.NetworkServiceDiscoveryClient
-	var networkService string
-	var remoteDomain string
-	var err error
-	if strings.Contains(requestConnection.GetNetworkService(), "@") {
-		t := strings.SplitN(requestConnection.GetNetworkService(), "@", 2)
-		networkService = t[0]
-		remoteDomain = t[1]
-		remoteRegistry := nsmd.NewServiceRegistryAt(remoteDomain + ":5000")
-		discoveryClient, err = remoteRegistry.DiscoveryClient()
-		if err != nil {
-			logrus.Error(err)
-			return nil, err
-		}
-	} else {
-		networkService = requestConnection.GetNetworkService()
-		discoveryClient, err = nsem.serviceRegistry.DiscoveryClient()
-		if err != nil {
-			logrus.Error(err)
-			return nil, err
-		}
+	networkService := requestConnection.GetNetworkService()
+	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient()
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
 	}
-
 
 	nseRequest := &registry.FindNetworkServiceRequest{
 		NetworkServiceName: networkService,
@@ -91,11 +71,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 
 	respNetworkServiceManager := endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()]
 	respNetworkService := endpointResponse.GetNetworkService()
-	logrus.Printf("Remote domain: %s", remoteDomain)
-	if remoteDomain != "" {
-		respNetworkServiceManager.Url = remoteDomain + ":5001"
-		//Todo change network service name
-	}
+
 	logrus.Printf("Response NSM: %v", respNetworkServiceManager)
 	return &registry.NSERegistration{
 		NetworkServiceManager:  respNetworkServiceManager,

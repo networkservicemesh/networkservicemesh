@@ -21,7 +21,7 @@ func TestInterdomainNSCAndICMPRemote(t *testing.T) {
 		return
 	}
 
-	testInterdomainNSCAndICMP(t, 2,false)
+	testInterdomainNSCAndICMP(t, 2, 1,false)
 }
 
 func TestInterdomainNSCAndICMPRemoteVeth(t *testing.T) {
@@ -32,13 +32,24 @@ func TestInterdomainNSCAndICMPRemoteVeth(t *testing.T) {
 		return
 	}
 
-	testInterdomainNSCAndICMP(t, 2, true)
+	testInterdomainNSCAndICMP(t, 2, 1, true)
+}
+
+func TestInterdomainNSCAndICMPProxyRemote(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testInterdomainNSCAndICMP(t, 2, 2,false)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, disableVHost bool) {
+func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, disableVHost bool) {
 	k8ss := []* kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
@@ -61,7 +72,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, disableVHost boo
 		}
 		config = append(config, cfg)
 
-		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, config, k8s.GetK8sNamespace())
+		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
@@ -72,7 +83,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, disableVHost boo
 	}
 
 	// Run ICMP on latest node
-	_ = kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[nodesCount - 1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nseInternalIP, err := kubetest.GetNodeInternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
 	Expect(err).To(BeNil())
