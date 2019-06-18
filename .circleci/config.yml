@@ -358,6 +358,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             # export CONTAINER_FORCE_PULL="true"
             cat /home/circleci/project/data/kubeconfig
             ./scripts/prepare-circle-integration-tests.sh
@@ -543,6 +544,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
@@ -872,9 +874,16 @@ workflows:
 
 # push
       - docker-push-tag:
-          tag: "latest"
+          tag: "master"
           requires:
             - destroy-packet
           filters:
             branches:
               only: master
+      - docker-push-tag:
+          tag: "branch-0.1"
+          requires:
+            - destroy-packet
+          filters:
+            branches:
+              only: release-0.1

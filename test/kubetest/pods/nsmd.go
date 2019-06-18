@@ -126,14 +126,14 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "nsmdp",
-					Image:           "networkservicemesh/nsmdp",
+					Image:           containerRepo + "/nsmdp",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts:    []v1.VolumeMount{newDevMount(), newNSMMount()},
 					Resources:       createDefaultResources(),
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd",
-					Image:           "networkservicemesh/nsmd",
+					Image:           containerRepo + "/nsmd",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts:    []v1.VolumeMount{newNSMMount()},
 					LivenessProbe:   config.liveness,
@@ -142,7 +142,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
-					Image:           "networkservicemesh/nsmd-k8s",
+					Image:           containerRepo + "/nsmd-k8s",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Env: []v1.EnvVar{
 						v1.EnvVar{
@@ -221,5 +221,5 @@ func updateSpec(pod *v1.Pod, index int, app string, mode NSMgrContainerMode) {
 	} else {
 		pod.Spec.Containers[index].Args = []string{"/go/src/github.com/networkservicemesh/networkservicemesh/scripts/run.sh", app}
 	}
-	pod.Spec.Containers[index].Image = "networkservicemesh/devenv"
+	pod.Spec.Containers[index].Image = containerRepo + "/devenv"
 }

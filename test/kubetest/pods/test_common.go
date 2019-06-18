@@ -28,7 +28,7 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            name,
-					Image:           "networkservicemesh/test-common:latest",
+					Image:           containerRepo + "/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Command:         command,
 					Resources: v1.ResourceRequirements{

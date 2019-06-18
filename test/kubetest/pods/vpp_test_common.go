@@ -28,7 +28,7 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            container,
-					Image:           "networkservicemesh/vpp-test-common:latest",
+					Image:           containerRepo + "/vpp-test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources: v1.ResourceRequirements{
 						Limits: v1.ResourceList{
