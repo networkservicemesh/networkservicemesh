@@ -306,8 +306,7 @@ func (v *VPPAgent) Init(common *common.DataplaneConfigCommon, monitor monitor_cr
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	v.common = common
-	v.setDataplaneConfigVPPAgent(monitor)
+	v.setDataplaneConfigVPPAgent()
 	v.reset()
 	v.programMgmtInterface()
 	v.setupMetricsCollector(monitor)
@@ -322,10 +321,8 @@ func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {
 	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.MonitorServer) {
+func (v *VPPAgent) setDataplaneConfigVPPAgent() {
 	var ok bool
-
-	v.monitor = monitor
 
 	v.vppAgentEndpoint, ok = os.LookupEnv(VPPEndpointKey)
 	if !ok {
