@@ -170,120 +170,180 @@ func (nsm *nsmServer) EnumConnection(context context.Context, request *nsmdapi.E
 	return &nsmdapi.EnumConnectionReply{Workspace: workspaces}, nil
 }
 
-func (nsm *nsmServer) restoreClients(registeredEndpoints *registry.NetworkServiceEndpointList) {
-
+func (nsm *nsmServer) restore(registeredEndpointsList *registry.NetworkServiceEndpointList) {
 	if os.Getenv(NsmdDeleteLocalRegistry) == "true" {
 		logrus.Errorf("Delete of local nse/client registry... by ENV VAR: %s", NsmdDeleteLocalRegistry)
 		nsm.localRegistry.Delete()
 	}
+
 	clients, nses, err := nsm.localRegistry.LoadRegistry()
 	if err != nil {
 		logrus.Errorf("NSMServer: Error Loading stored NSE registry: %v", err)
 		return
 	}
 
-	updatedClients := []string{}
+	registeredNSEs := map[string]string{}
+	for _, endpoint := range registeredEndpointsList.GetNetworkServiceEndpoints() {
+		registeredNSEs[endpoint.GetEndpointName()] = endpoint.GetNetworkServiceName()
+	}
+
+	updatedClients := nsm.restoreClients(clients)
+	updatedEndpoints, err := nsm.restoreEndpoints(nses, registeredNSEs)
+	if err != nil {
+		logrus.Errorf("Error restoring endpoints: %v", err)
+		return
+	}
+
+	if len(updatedClients) > 0 || len(updatedEndpoints) > 0 {
+		if err := nsm.localRegistry.Save(updatedClients, updatedEndpoints); err != nil {
+			logrus.Errorf("Store updated NSE local registry...")
+		}
+	}
+
+	logrus.Infof("NSMD: Restore of NSE/Clients Complete...")
+}
+
+func (nsm *nsmServer) restoreClients(clients []string) []string {
+	nsm.Lock()
+	defer nsm.Unlock()
+
+	logrus.Infof("NSMServer: Creating workspaces for existing clients...")
+
+	updatedClients := make([]string, 0, len(clients))
+	for _, client := range clients {
+		if client == "" {
+			continue
+		}
+		workspace, err := NewWorkSpace(nsm, client, true)
+		if err != nil {
+			logrus.Errorf("NSMServer: Failed to create workspace %s %v. Ignoring...", client, err)
+			continue
+		}
+		nsm.workspaces[workspace.Name()] = workspace
+		updatedClients = append(updatedClients, client)
+	}
+
+	return updatedClients
+}
+
+func (nsm *nsmServer) restoreEndpoints(nses map[string]nseregistry.NSEEntry, registeredNSEs map[string]string) (map[string]nseregistry.NSEEntry, error) {
+	discoveryClient, err := nsm.serviceRegistry.DiscoveryClient()
+	if err != nil {
+		logrus.Errorf("Failed to get DiscoveryClient: %v", err)
+		return nil, err
+	}
+
+	registryClient, err := nsm.serviceRegistry.NseRegistryClient()
+	if err != nil {
+		logrus.Errorf("Failed to get RegistryClient: %v", err)
+		return nil, err
+	}
+
+	networkServices := map[string]bool{}
 	updatedNSEs := map[string]nseregistry.NSEEntry{}
-	if len(clients) > 0 {
-		logrus.Infof("NSMServer: Creating workspaces for existing clients...")
-		nsm.Lock()
-		defer nsm.Unlock()
-		for _, client := range clients {
-			if client == "" {
-				continue
-			}
-			workspace, err := NewWorkSpace(nsm, client, true)
-			if err != nil {
-				logrus.Errorf("NSMServer: Failed to create workspace %s %v. Ignoring...", client, err)
-				continue
-			}
-			nsm.workspaces[workspace.Name()] = workspace
-			updatedClients = append(updatedClients, client)
+	for name, nse := range nses {
+		ws, ok := nsm.workspaces[nse.Workspace]
+		if !ok {
+			continue
 		}
+
+		logrus.Infof("Checking NSE %s is alive at %v...", name, ws.NsmClientSocket())
+		if !ws.isConnectionAlive(NSEAliveTimeout) {
+			logrus.Errorf("Unable to connect to local nse %v. Skipping", nse.NseReg)
+			if err := nsm.deleteEndpointWithClient(name, registryClient); err != nil {
+				logrus.Errorf("Remove NSE: NSE %v", err)
+			}
+			continue
+		}
+
+		logrus.Infof("NSE %s is alive at %v...", name, ws.NsmClientSocket())
+		newName, newNSE, err := nsm.restoreEndpoint(discoveryClient, registryClient, name, nse, ws, registeredNSEs, networkServices)
+		if err != nil {
+			logrus.Errorf("Failed to register NSE: %v", err)
+			continue
+		}
+
+		networkServices[newNSE.NseReg.GetNetworkService().GetName()] = true
+		updatedNSEs[newName] = newNSE
 	}
 
-	existingEndpoints := map[string]*registry.NetworkServiceEndpoint{}
-	for _, ep := range registeredEndpoints.NetworkServiceEndpoints {
-		existingEndpoints[ep.EndpointName] = ep
-	}
-
-	if len(nses) > 0 {
-		// Restore NSEs
-		client, err := nsm.serviceRegistry.NseRegistryClient()
-		if err != nil {
-			err = fmt.Errorf("Failed to get RegistryClient: %s", err)
-			return
-		}
-
-		for endpointId, nse := range nses {
-			if ws, ok := nsm.workspaces[nse.Workspace]; ok {
-				logrus.Infof("Checking NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
-				if !ws.isConnectionAlive(NSEAliveTimeout) {
-					logrus.Errorf("Unable to connect to local nse %v. Skipping", nse.NseReg)
-					if err = nsm.deleteEndpointWithClient(endpointId, client); err != nil {
-						logrus.Errorf("Remove NSE: NSE %v", err)
-					}
-					continue
-				}
-
-				logrus.Infof("NSE %s is alive at %v...", endpointId, ws.NsmClientSocket())
-
-				if _, ok := existingEndpoints[endpointId]; !ok {
-					newReg, err := ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
-					if err != nil {
-						endpointName := nse.NseReg.NetworkserviceEndpoint.EndpointName
-						logrus.Warnf("Failed to register NSE with name %v: %v", endpointName, err)
-						logrus.Infof("Try to register NSE with new name...")
-						nse.NseReg.NetworkserviceEndpoint.EndpointName = ""
-						newReg, err = ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, client)
-						if err == nil {
-							nsm.manager.NotifyRenamedEndpoint(endpointName, newReg.NetworkserviceEndpoint.EndpointName)
-						}
-					}
-
-					if err != nil {
-						logrus.Errorf("Failed to register NSE: %v", err)
-					} else {
-						updatedNSEs[newReg.NetworkserviceEndpoint.EndpointName] = nseregistry.NSEEntry{
-							Workspace: ws.Name(),
-							NseReg:    newReg,
-						}
-					}
-				} else {
-					nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
-					nse.NseReg.NetworkserviceEndpoint.NetworkServiceManagerName = nse.NseReg.NetworkServiceManager.Name
-					nsm.model.AddEndpoint(&model.Endpoint{
-						Endpoint:       nse.NseReg,
-						Workspace:      nse.Workspace,
-						SocketLocation: ws.NsmClientSocket(),
-					})
-					updatedNSEs[endpointId] = nse
-				}
-			}
-		}
-	} else {
-		// We do not have NSE's, need to unregister all of them.
-		// Restore NSEs
-		client, err := nsm.serviceRegistry.NseRegistryClient()
-		if err != nil {
-			err = fmt.Errorf("Failed to get RegistryClient: %s", err)
-			return
-		}
-
-		for _, nse := range existingEndpoints {
-			if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-				EndpointName: nse.EndpointName,
+	// We need to unregister NSE's without NSM registration.
+	for name := range registeredNSEs {
+		if _, ok := updatedNSEs[name]; !ok {
+			if _, err := registryClient.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
+				EndpointName: name,
 			}); err != nil {
 				logrus.Errorf("Remove NSE: NSE %v", err)
 			}
 		}
 	}
-	if len(updatedClients) > 0 || len(updatedNSEs) > 0 {
-		if err := nsm.localRegistry.Save(updatedClients, updatedNSEs); err != nil {
-			logrus.Errorf("Store updated NSE local registry...")
+
+	return updatedNSEs, nil
+}
+
+func (nsm *nsmServer) restoreEndpoint(
+	discoveryClient registry.NetworkServiceDiscoveryClient,
+	registryClient registry.NetworkServiceRegistryClient,
+	name string,
+	nse nseregistry.NSEEntry,
+	ws *Workspace,
+	registeredNSEs map[string]string,
+	networkServices map[string]bool) (string, nseregistry.NSEEntry, error) {
+
+	if networkService, ok := registeredNSEs[name]; ok {
+		if networkServices[networkService] {
+			nsm.restoreRegisteredEndpoint(nse, ws)
+			return name, nse, nil
+		}
+
+		if _, err := discoveryClient.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
+			NetworkServiceName: networkService,
+		}); err == nil {
+			nsm.restoreRegisteredEndpoint(nse, ws)
+			return name, nse, nil
+		}
+
+		if err := nsm.deleteEndpointWithClient(name, registryClient); err != nil {
+			return "", nseregistry.NSEEntry{}, err
 		}
 	}
-	logrus.Infof("NSMD: Restore of NSE/Clients Complete...")
+
+	return nsm.restoreNotRegisteredEndpoint(registryClient, nse, ws)
+}
+
+func (nsm *nsmServer) restoreRegisteredEndpoint(nse nseregistry.NSEEntry, ws *Workspace) {
+	nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
+	nse.NseReg.NetworkserviceEndpoint.NetworkServiceManagerName = nse.NseReg.NetworkServiceManager.Name
+
+	nsm.model.AddEndpoint(&model.Endpoint{
+		Endpoint:       nse.NseReg,
+		Workspace:      nse.Workspace,
+		SocketLocation: ws.NsmClientSocket(),
+	})
+}
+
+func (nsm *nsmServer) restoreNotRegisteredEndpoint(
+	registryClient registry.NetworkServiceRegistryClient,
+	nse nseregistry.NSEEntry,
+	ws *Workspace) (string, nseregistry.NSEEntry, error) {
+
+	reg, err := ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, registryClient)
+	if err != nil {
+		name := nse.NseReg.NetworkserviceEndpoint.EndpointName
+		logrus.Warnf("Failed to register NSE with name %v: %v", name, err)
+
+		nse.NseReg.NetworkserviceEndpoint.EndpointName = ""
+		if reg, err = ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, registryClient); err != nil {
+			return "", nseregistry.NSEEntry{}, err
+		}
+
+		nsm.manager.NotifyRenamedEndpoint(name, reg.NetworkserviceEndpoint.EndpointName)
+	}
+
+	return reg.NetworkserviceEndpoint.EndpointName, nseregistry.NSEEntry{
+		Workspace: ws.Name(),
+		NseReg:    reg,
+	}, nil
 }
 
 func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.NetworkServiceRegistryClient) error {
@@ -380,7 +440,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 	logrus.Infof("NSM gRPC socket: %s is operational", nsm.registerSock.Addr().String())
 
 	// Restore existing clients in case of NSMd restart.
-	nsm.restoreClients(endpoints)
+	nsm.restore(endpoints)
 
 	nsm.initMonitorServers()
 	return nsm, nil

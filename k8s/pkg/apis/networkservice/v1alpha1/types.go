@@ -61,6 +61,7 @@ type NetworkServiceEndpoint struct {
 
 type NetworkServiceEndpointSpec struct {
 	NetworkServiceName string `json:"networkservicename"`
+	Payload            string `json:"payload"`
 	NsmName            string `json:"nsmname"`
 }
 
