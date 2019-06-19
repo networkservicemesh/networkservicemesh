@@ -297,15 +297,17 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
-	tracer, closer := tools.InitJaeger("vppagent-dataplane")
-	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
 	v.common = common
 
-	v.setDataplaneConfigVPPAgent()
-	v.reset()
-	v.programMgmtInterface()
-	v.setupMetricsCollector()
+	tracer, closer := tools.InitJaeger(v.common.Name)
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+
+	err := v.configureVPPAgent()
+	if err != nil {
+		logrus.Errorf("Error configuring the VPP Agent: %s", err)
+		return err
+	}
 	return nil
 }
 
@@ -317,7 +319,7 @@ func (v *VPPAgent) setupMetricsCollector() {
 	v.metricsCollector.CollectAsync(v.common.Monitor, v.vppAgentEndpoint)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent() {
+func (v *VPPAgent) configureVPPAgent() error {
 	var ok bool
 
 	v.vppAgentEndpoint, ok = os.LookupEnv(VPPEndpointKey)
@@ -347,4 +349,16 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent() {
 			},
 		},
 	}
+	err := v.reset()
+	if err != nil {
+		logrus.Errorf("Error resetting the VPP Agent: %s", err)
+		return err
+	}
+	err = v.programMgmtInterface()
+	if err != nil {
+		logrus.Errorf("Error setting up the management interface for VPP Agent: %s", err)
+		return err
+	}
+	v.setupMetricsCollector()
+	return nil
 }
