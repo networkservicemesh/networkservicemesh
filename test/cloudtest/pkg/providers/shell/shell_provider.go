@@ -98,7 +98,8 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 			logrus.Errorf("Failed to select zones...")
 			return err
 		}
-		selectedZone += zones[rand.Intn(len(zones)-1)]
+		si.manager.AddLog(si.id, si.zoneSelectorScript, strings.Join(zones, "\n"))
+		selectedZone += zones[rand.Intn(len(zones))]
 	}
 
 	// Process and prepare environment variables
