@@ -190,7 +190,7 @@ func RunCommand(context context.Context, id, cmd, operation string, writer *bufi
 		return "", fmt.Errorf("failed to run %s %v", cmdLine, err)
 	}
 
-	var builder *strings.Builder
+	var builder *strings.Builder = nil
 	if returnStdout {
 		builder = &strings.Builder{}
 	}
