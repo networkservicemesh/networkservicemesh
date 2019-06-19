@@ -166,39 +166,47 @@ func ParseScript(s string) []string {
 }
 
 // RunCommand - run shell command and put output into file, command variables are substituted.
-func RunCommand(context context.Context, id, cmd, operation string, writer *bufio.Writer, env []string, args map[string]string) error {
+func RunCommand(context context.Context, id, cmd, operation string, writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
 	finalEnv := append(os.Environ(), env...)
 
 	environment := map[string]string{}
 	for _, k := range finalEnv {
 		key, value, err := ParseVariable(k)
 		if err != nil {
-			return err
+			return "", err
 		}
 		environment[key] = value
 	}
 
 	finalCmd, err := SubstituteVariable(cmd, environment, args)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	cmdLine := ParseCommandLine(finalCmd)
 
 	proc, err := ExecProc(context, cmdLine, finalEnv)
 	if err != nil {
-		return fmt.Errorf("failed to run %s %v", cmdLine, err)
+		return "", fmt.Errorf("failed to run %s %v", cmdLine, err)
 	}
-	processOutput(proc.Stdout, writer, id, operation, "StdOut")
-	processOutput(proc.Stderr, writer, id, operation, "StdErr")
+
+	var builder *strings.Builder
+	if returnStdout {
+		builder = &strings.Builder{}
+	}
+	processOutput(proc.Stdout, writer, id, operation, "StdOut", builder)
+	processOutput(proc.Stderr, writer, id, operation, "StdErr", nil)
 	if code := proc.ExitCode(); code != 0 {
 		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
-		return fmt.Errorf("failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
+		return "", fmt.Errorf("failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
 	}
-	return nil
+	if returnStdout {
+		return builder.String(), nil
+	}
+	return "", nil
 }
 
-func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string) {
+func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string, builder *strings.Builder) {
 	go func() {
 		reader := bufio.NewReader(stream)
 		for {
@@ -210,6 +218,9 @@ func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, patter
 			_ = writer.Flush()
 			if (len(strings.TrimSpace(s)) > 0) {
 				logrus.Infof("%s: %s => %s %v", pattern, id, operation, s)
+			}
+			if builder != nil {
+				builder.WriteString(strings.TrimSpace(s) + "\n")
 			}
 		}
 	}()

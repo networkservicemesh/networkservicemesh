@@ -22,6 +22,8 @@ type Manager interface {
 	GetConfigLocation() string
 	// RunCmd - execute a command, operation with extra env
 	RunCmd(context context.Context, operation string, script [] string, env [] string) error
+	// RunRead - execute a command, operation with extra env and read response into variable
+	RunRead(context context.Context, operation string, script [] string, env [] string) (string,error)
 	// ProcessEnvironment - process substitute of environment variables with arguments.
 	ProcessEnvironment(extraArgs map[string]string) error
 	// PrintEnv - print environment variables into string
@@ -69,18 +71,28 @@ func (si *shellInterface) GetConfigLocation() string {
 	return si.configLocation
 }
 
-// Run command in context and add appropriate execution output file.
+// RunCmd -  command in context and add appropriate execution output file.
 func (si *shellInterface) RunCmd(context context.Context, operation string, script, env []string) error {
+	_, err := si.runCmd(context, operation, script, env, false)
+	return err
+}
+
+// Run command in context and add appropriate execution output file.
+func (si *shellInterface) RunRead(context context.Context, operation string, script, env []string) (string, error) {
+	return si.runCmd(context, operation, script, env, true)
+}
+func (si *shellInterface) runCmd(context context.Context, operation string, script []string, env []string, returnResult bool) (string, error) {
 	_, fileRef, err := si.manager.OpenFile(si.id, operation)
 	if err != nil {
 		logrus.Errorf("failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)
-		return err
+		return "", err
 	}
 
 	defer func() { _ = fileRef.Close() }()
 
 	writer := bufio.NewWriter(fileRef)
 
+	finalOut := ""
 	for _, cmd := range script {
 		if strings.TrimSpace(cmd) == "" {
 			continue
@@ -94,13 +106,17 @@ func (si *shellInterface) RunCmd(context context.Context, operation string, scri
 
 		logrus.Infof("%s: %s => %s", operation, si.id, cmd)
 
-		if err := utils.RunCommand(context, si.id, cmd, operation, writer, cmdEnv, si.finalArgs); err != nil {
+		stdOut, err := utils.RunCommand(context, si.id, cmd, operation, writer, cmdEnv, si.finalArgs, returnResult)
+		if err != nil {
 			_, _ = writer.WriteString(fmt.Sprintf("error running command: %v\n", err))
 			_ = writer.Flush()
-			return err
+			return "", err
+		}
+		if returnResult {
+			finalOut += stdOut
 		}
 	}
-	return nil
+	return finalOut, nil
 }
 
 func (si *shellInterface) PrintEnv(processedEnv []string) string {

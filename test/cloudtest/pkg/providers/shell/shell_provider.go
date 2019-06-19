@@ -45,7 +45,7 @@ type shellInstance struct {
 	root                    string
 	id                      string
 	configScript            string
-	zoneSelectorScript      string
+	zoneSelectorScript      []string
 	factory                 k8s.ValidationFactory
 	validator               k8s.KubernetesValidator
 	configLocation          string
@@ -92,14 +92,18 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 
 	selectedZone := ""
 
-	if si.zoneSelectorScript != "" {
-		zones, err := utils.ExecRead(context, strings.Split(si.zoneSelectorScript, " "))
+	if len(si.zoneSelectorScript) > 0 {
+		zones, err := si.shellInterface.RunRead(context, zoneSelector,  si.zoneSelectorScript, nil)
 		if err != nil {
 			logrus.Errorf("Failed to select zones...")
 			return err
 		}
-		si.manager.AddLog(si.id, si.zoneSelectorScript, strings.Join(zones, "\n"))
-		selectedZone += zones[rand.Intn(len(zones))]
+		zonesList := strings.Split(zones, "\n")
+		if len(zonesList) == 0 {
+			return fmt.Errorf("Failed to retrieve a zone list")
+		}
+
+		selectedZone += zonesList[rand.Intn(len(zonesList))]
 	}
 
 	// Process and prepare environment variables
@@ -222,7 +226,7 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 		startScript:        utils.ParseScript(config.Scripts[startScript]),
 		prepareScript:      utils.ParseScript(config.Scripts[prepareScript]),
 		stopScript:         utils.ParseScript(config.Scripts[stopScript]),
-		zoneSelectorScript: config.Scripts[zoneSelector],
+		zoneSelectorScript: utils.ParseScript(config.Scripts[zoneSelector]),
 		factory:            factory,
 		shellInterface:     shell.NewManager(manager, id, root, config, instanceOptions),
 		params:             instanceOptions,

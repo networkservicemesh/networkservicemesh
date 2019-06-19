@@ -14,12 +14,16 @@ ifeq ($(GKE_CLUSTER_NUM_NODES),)
 	GKE_CLUSTER_NUM_NODES := "2"
 endif
 
+ifeq ($(GKE_PROJECT_ID),)
+	GKE_PROJECT_ID := "ci-management"
+endif
+
 .PHONY: gke-start
 gke-start: gcloud-check
-	@if ! (gcloud container clusters list | grep -q ^${GKE_CLUSTER_NAME}); then \
-		time gcloud container clusters create ${GKE_CLUSTER_NAME} --machine-type=${GKE_CLUSTER_TYPE} --num-nodes=${GKE_CLUSTER_NUM_NODES} --zone=${GKE_CLUSTER_ZONE} -q; \
+	@if ! (gcloud container clusters list --project=${GKE_PROJECT_ID} | grep -q ^${GKE_CLUSTER_NAME}); then \
+		time gcloud container clusters create ${GKE_CLUSTER_NAME} --project=${GKE_PROJECT_ID} --machine-type=${GKE_CLUSTER_TYPE} --num-nodes=${GKE_CLUSTER_NUM_NODES} --zone=${GKE_CLUSTER_ZONE} -q; \
 		echo "Writing config to ${KUBECONFIG}"; \
-		gcloud container clusters get-credentials ${GKE_CLUSTER_NAME} --zone=${GKE_CLUSTER_ZONE} ; \
+		gcloud container clusters get-credentials ${GKE_CLUSTER_NAME} --project=${GKE_PROJECT_ID} --zone=${GKE_CLUSTER_ZONE} ; \
 		kubectl create clusterrolebinding cluster-admin-binding \
 			--clusterrole cluster-admin \
   			--user $$(gcloud config get-value account); \
@@ -27,8 +31,8 @@ gke-start: gcloud-check
 
 .PHONY: gke-destroy
 gke-destroy: gcloud-check
-	@if (gcloud container clusters list | grep -q ^${GKE_CLUSTER_NAME}); then \
-		time gcloud container clusters delete ${GKE_CLUSTER_NAME} --zone=${GKE_CLUSTER_ZONE} -q ; \
+	@if (gcloud container clusters list --project=${GKE_PROJECT_ID} | grep -q ^${GKE_CLUSTER_NAME}); then \
+		time gcloud container clusters delete ${GKE_CLUSTER_NAME} --project=${GKE_PROJECT_ID} --zone=${GKE_CLUSTER_ZONE} -q ; \
 	fi
 
 .PHONY: gcloud-check
