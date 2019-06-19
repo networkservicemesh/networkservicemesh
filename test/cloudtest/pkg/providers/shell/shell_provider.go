@@ -90,6 +90,13 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 
 	utils.ClearFolder(si.root, true)
 
+	// Do prepare
+	if !si.params.NoInstall {
+		if err = si.doInstall(context); err != nil {
+			return err
+		}
+	}
+
 	selectedZone := ""
 
 	if len(si.zoneSelectorScript) > 0 {
@@ -112,13 +119,6 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	})
 	if err != nil {
 		return err
-	}
-
-	// Do prepare
-	if !si.params.NoInstall {
-		if err = si.doInstall(context); err != nil {
-			return err
-		}
 	}
 
 	printableEnv := si.shellInterface.PrintEnv(si.shellInterface.GetProcessedEnv())

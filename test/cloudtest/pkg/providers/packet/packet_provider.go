@@ -321,11 +321,13 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", pi.id)
-	response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
-	pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
-	for key, device := range pi.devices {
-		response, err := pi.client.Devices.Delete(device.ID)
-		pi.manager.AddLog(pi.id, fmt.Sprintf("delete-device-%s", key), fmt.Sprintf("%v\n%v", response, err))
+	if( pi.client != nil) {
+		response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
+		pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
+		for key, device := range pi.devices {
+			response, err := pi.client.Devices.Delete(device.ID)
+			pi.manager.AddLog(pi.id, fmt.Sprintf("delete-device-%s", key), fmt.Sprintf("%v\n%v", response, err))
+		}
 	}
 	return nil
 }
@@ -363,7 +365,7 @@ func (pi *packetInstance) updateProject() error {
 		logrus.Errorf("Failed to list Packet projects")
 	}
 
-	for i := 0; i > len(ps); i++ {
+	for i := 0; i < len(ps); i++ {
 		p := &ps[i]
 		if p.ID == pi.projectID {
 			pp := ps[i]
@@ -373,7 +375,7 @@ func (pi *packetInstance) updateProject() error {
 	}
 
 	if pi.project == nil {
-		err := fmt.Errorf("specified project are not found on Packet %v", pi.projectID)
+		err := fmt.Errorf("%s - specified project are not found on Packet %v", pi.id, pi.projectID)
 		logrus.Errorf(err.Error())
 		return err
 	}
