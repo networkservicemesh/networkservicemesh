@@ -32,7 +32,7 @@ type ARPEntry struct {
 	PhysAddress string
 }
 
-type EgressInterface interface {
+type EgressInterfaceType interface {
 	SrcIPNet() *net.IPNet
 	DefaultGateway() *net.IP
 	Interface() *net.Interface
@@ -43,7 +43,7 @@ type EgressInterface interface {
 }
 
 type egressInterface struct {
-	EgressInterface
+	EgressInterfaceType
 	srcNet            *net.IPNet
 	iface             *net.Interface
 	defaultGateway    net.IP
@@ -140,7 +140,7 @@ func getArpEntries() ([]*ARPEntry, error) {
 	return arps, nil
 }
 
-func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
+func NewEgressInterface(srcIp net.IP) (EgressInterfaceType, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err

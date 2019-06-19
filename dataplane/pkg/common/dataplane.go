@@ -37,7 +37,7 @@ import (
 
 type NSMDataplane interface {
 	dataplane.DataplaneServer
-	Init(*DataplaneConfigBase, monitor_crossconnect.MonitorServer) error
+	Init(*DataplaneConfigCommon, monitor_crossconnect.MonitorServer) error
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -58,9 +58,10 @@ const (
 	DataplaneSocketDefault               = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
 	DataplaneSocketTypeKey               = "DATAPLANE_SOCKET_TYPE"
 	DataplaneSocketTypeDefault           = "unix"
+	DataplaneSrcIPKey                    = "NSM_DATAPLANE_SRC_IP"
 )
 
-type DataplaneConfigBase struct {
+type DataplaneConfigCommon struct {
 	Name                string
 	NSMBaseDir          string
 	RegistrarSocket     string
@@ -70,10 +71,12 @@ type DataplaneConfigBase struct {
 	Mechanisms          *Mechanisms
 	MetricsEnabled      bool
 	MetricsPeriod       time.Duration
+	SrcIP               net.IP
+	EgressInterface     EgressInterfaceType
 }
 
 type dataplaneConfig struct {
-	common     *DataplaneConfigBase
+	common     *DataplaneConfigCommon
 	gRPCserver *grpc.Server
 	monitor    monitor_crossconnect.MonitorServer
 	listener   net.Listener
@@ -87,9 +90,10 @@ type Mechanisms struct {
 
 func createDataplaneConfig() *dataplaneConfig {
 	dpConfig := &dataplaneConfig{
-		common: &DataplaneConfigBase{},
+		common: &DataplaneConfigCommon{},
 	}
 	var ok bool
+	var err error
 
 	dpConfig.common.Name, ok = os.LookupEnv(DataplaneNameKey)
 	if !ok {
@@ -164,6 +168,24 @@ func createDataplaneConfig() *dataplaneConfig {
 		}
 		logrus.Infof("MetricsPeriod: %v ", dpConfig.common.MetricsPeriod)
 	}
+
+	srcIPStr, ok := os.LookupEnv(DataplaneSrcIPKey)
+	if !ok {
+		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
+		SetSrcIPFailed()
+	}
+	dpConfig.common.SrcIP = net.ParseIP(srcIPStr)
+	if dpConfig.common.SrcIP == nil {
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
+		SetValidIPFailed()
+	}
+	dpConfig.common.EgressInterface, err = NewEgressInterface(dpConfig.common.SrcIP)
+	if err != nil {
+		logrus.Fatalf("Unable to find egress Interface: %s", err)
+		SetNewEgressIFFailed()
+	}
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", dpConfig.common.SrcIP, dpConfig.common.EgressInterface.Name(), dpConfig.common.EgressInterface.SrcIPNet())
+
 	return dpConfig
 }
 
@@ -206,7 +228,7 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 	return registration
 }
 
-func sanityCheckConfig(dataplaneConfig *DataplaneConfigBase) bool {
+func sanityCheckConfig(dataplaneConfig *DataplaneConfigCommon) bool {
 	return len(dataplaneConfig.Name) > 0 &&
 		len(dataplaneConfig.NSMBaseDir) > 0 &&
 		len(dataplaneConfig.RegistrarSocket) > 0 &&
