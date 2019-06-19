@@ -193,7 +193,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	})
 
 	if err != nil {
-		srv.requestFailed(requestID, editor, existingCC, false, false)
+		srv.requestFailed(requestID, editor, false, false, false)
 		return nil, err
 	}
 
@@ -222,7 +222,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	err = srv.updateMechanism(requestID, conn, request, dp)
 	if err != nil {
 		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
-		srv.requestFailed(requestID, editor, existingCC, false, closeDataplaneOnNSEFailed)
+		srv.requestFailed(requestID, editor, false, closeDataplaneOnNSEFailed, false)
 		return nil, fmt.Errorf("NSM:(5.1-%v) %v", requestID, err)
 	}
 
@@ -230,7 +230,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	logrus.Infof("NSM:(6-%v) Preparing to program dataplane: %v...", requestID, dp)
 	dataplaneClient, dataplaneConn, err := srv.serviceRegistry.DataplaneConnection(dp)
 	if err != nil {
-		srv.requestFailed(requestID, editor, existingCC, false, false)
+		srv.requestFailed(requestID, editor, false, false, false)
 		return nil, err
 	}
 	if dataplaneConn != nil { // Required for testing
@@ -242,26 +242,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		}()
 	}
 
-	var cc = existingCC
-
-	// 7. do a Request() on NSE and select it.
-	if existingCC == nil || requestNSEOnUpdate {
-		// 7.1 try find NSE and do a Request to it.
-		cc, err = srv.findConnectNSE(ctx, requestID, conn, existingCC, dp)
-		if err != nil {
-			srv.requestFailed(requestID, editor, existingCC, false, true)
-			return nil, err
-		}
-	} else {
-		// 7.2 We do not need to access NSE, since all parameters are same.
-		cc.GetConnectionSource().SetConnectionMechanism(conn.GetConnectionMechanism())
-		cc.GetConnectionSource().SetConnectionState(connection.StateUp)
-
-		// 7.3 Destination context probably has been changed, so we need to update source context.
-		if err = srv.updateConnectionContext(cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
-			err = fmt.Errorf("failed to update source connection context: %v", err)
-		}
-	}
+	cc, err := srv.updateClientConnection(ctx, requestID, conn, existingCC, dp, requestNSEOnUpdate)
 
 	// 7.4 We need to update connection before requesting the dataplane
 	if err == nil {
@@ -274,7 +255,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	if err != nil {
-		srv.requestFailed(requestID, editor, existingCC, true, false)
+		srv.requestFailed(requestID, editor, true, false, false)
 		return nil, err
 	}
 
@@ -309,7 +290,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	if err != nil {
-		srv.requestFailed(requestID, editor, existingCC, true, false)
+		srv.requestFailed(requestID, editor, true, false, existingCC == nil)
 		return nil, err
 	}
 
@@ -322,7 +303,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	if err != nil {
-		srv.requestFailed(requestID, editor, existingCC, true, true)
+		srv.requestFailed(requestID, editor, true, true, existingCC == nil)
 		return nil, err
 	}
 
@@ -332,7 +313,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	return editor.GetConnectionSource(), nil
 }
 
-func (srv *networkServiceManager) requestFailed(requestID string, editor *model.ClientConnectionEditor, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
+func (srv *networkServiceManager) requestFailed(requestID string, editor *model.ClientConnectionEditor, closeNSE, closeDp, deleteCC bool) {
 	logrus.Errorf("NSM:(%v) Request failed", requestID)
 
 	if editor == nil {
@@ -351,7 +332,7 @@ func (srv *networkServiceManager) requestFailed(requestID string, editor *model.
 		}
 	}
 
-	if existingCC == nil {
+	if deleteCC {
 		_ = srv.model.DeleteClientConnection(editor.GetID())
 	}
 
@@ -362,6 +343,37 @@ func (srv *networkServiceManager) requestFailed(requestID string, editor *model.
 	if _, err := srv.model.ChangeClientConnectionState(editor.GetID(), model.ClientConnectionBroken); err != nil {
 		logrus.Errorf("NSM:(%v) Error changing connection state to Broken: %v", requestID, err)
 	}
+}
+
+func (srv *networkServiceManager) updateClientConnection(
+	ctx context.Context,
+	requestID string,
+	conn connection.Connection,
+	existingCC *model.ClientConnection,
+	dp *model.Dataplane,
+	requestNSEOnUpdate bool) (*model.ClientConnection, error) {
+
+	cc := existingCC
+	var err error
+	// 7.0 do a Request() on NSE and select it.
+	if existingCC == nil || requestNSEOnUpdate {
+		// 7.1 try find NSE and do a Request to it.
+		cc, err = srv.findConnectNSE(ctx, requestID, conn, cc, dp)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// 7.2 We do not need to access NSE, since all parameters are same.
+		cc.GetConnectionSource().SetConnectionMechanism(conn.GetConnectionMechanism())
+		cc.GetConnectionSource().SetConnectionState(connection.StateUp)
+
+		// 7.3 Destination context probably has been changed, so we need to update source context.
+		if err = srv.updateConnectionContext(cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
+			return nil, fmt.Errorf("failed to update source connection context: %v", err)
+		}
+	}
+
+	return cc, err
 }
 
 func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID string, conn connection.Connection, existingCC *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
