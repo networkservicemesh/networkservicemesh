@@ -17,7 +17,6 @@ package kernelforwarder
 
 import (
 	"context"
-	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
@@ -28,31 +27,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // Kernel forwarding plane related constants
 const (
-	DataplaneNameKey           = "DATAPLANE_NAME"
-	DataplaneNameDefault       = "kernel-forwarder"
-	DataplaneSocketKey         = "DATAPLANE_SOCKET"
-	DataplaneSocketDefault     = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
-	DataplaneSocketTypeKey     = "DATAPLANE_SOCKET_TYPE"
-	DataplaneSocketTypeDefault = "unix"
-	SrcIPEnvKey                = "NSM_DATAPLANE_SRC_IP"
-	cCONNECT                   = true
-	cDISCONNECT                = false
+	cCONNECT    = true
+	cDISCONNECT = false
 )
 
 type KernelForwarder struct {
-	common          *common.DataplaneConfigBase
-	mechanisms      *Mechanisms
-	updateCh        chan *Mechanisms
-	srcIP           net.IP
-	egressInterface common.EgressInterface
-	monitor         monitor_crossconnect.MonitorServer
+	common *common.DataplaneConfig
 }
 
 func CreateKernelForwarder() *KernelForwarder {
@@ -68,8 +54,8 @@ type Mechanisms struct {
 func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
-		RemoteMechanisms: v.mechanisms.remoteMechanisms,
-		LocalMechanisms:  v.mechanisms.localMechanisms,
+		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
+		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
 	}
 	logrus.Infof("Sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
@@ -80,12 +66,12 @@ func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv datapl
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
-		case update := <-v.updateCh:
-			v.mechanisms = update
+		case update := <-v.common.MechanismsUpdateChannel:
+			v.common.Mechanisms = update
 			logrus.Infof("Sending MonitorMechanisms update: %v", update)
 			if err := updateSrv.Send(&dataplane.MechanismUpdate{
-				RemoteMechanisms: update.remoteMechanisms,
-				LocalMechanisms:  update.localMechanisms,
+				RemoteMechanisms: update.RemoteMechanisms,
+				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
 				logrus.Errorf("Kernel forwarding plane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
@@ -100,7 +86,7 @@ func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 	if err != nil {
 		return nil, err
 	}
-	v.monitor.Update(xcon)
+	v.common.Monitor.Update(xcon)
 	logrus.Infof("Request() called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -121,17 +107,18 @@ func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.monitor.Delete(xcon)
+	v.common.Monitor.Delete(xcon)
 	return &empty.Empty{}, nil
 }
 
-// Init makes setup for the KernelForwarder
-func (v *KernelForwarder) Init(common *common.DataplaneConfigBase, monitor monitor_crossconnect.MonitorServer) error {
-	tracer, closer := tools.InitJaeger("kernel-forwarder")
+// Init makes setup for the Kernel forwarding plane
+func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
+	v.common = common
+
+	tracer, closer := tools.InitJaeger(v.common.Name)
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	setDataplaneConfigBase(v, common)
-	setDataplaneConfigKernelForwarder(v, monitor)
+	v.configureKernelForwarder()
 	return nil
 }

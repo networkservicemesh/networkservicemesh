@@ -20,14 +20,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
-	"net"
-	"os"
 	"runtime"
 )
 
@@ -173,70 +170,19 @@ func createVETH(cfg *KernelConnectionConfig, srcNsHandle, dstNsHandle netns.NsHa
 	return nil
 }
 
-func setDataplaneConfigBase(v *KernelForwarder, common *common.DataplaneConfigBase) {
-	var ok bool
-	v.common = common
-	v.common.Name, ok = os.LookupEnv(DataplaneNameKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
-		v.common.Name = DataplaneNameDefault
-	}
-
-	logrus.Infof("Starting dataplane - %s", v.common.Name)
-	v.common.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
-		v.common.DataplaneSocket = DataplaneSocketDefault
-	}
-	logrus.Infof("DataplaneSocket: %s", v.common.DataplaneSocket)
-
-	v.common.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
-		v.common.DataplaneSocketType = DataplaneSocketTypeDefault
-	}
-	logrus.Infof("DataplaneSocketType: %s", v.common.DataplaneSocketType)
-}
-
-func setDataplaneConfigKernelForwarder(v *KernelForwarder, monitor monitor_crossconnect.MonitorServer) {
-	var err error
-
-	v.monitor = monitor
-
-	srcIPStr, ok := os.LookupEnv(SrcIPEnvKey)
-	if !ok {
-		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", SrcIPEnvKey)
-		common.SetSrcIPFailed()
-	}
-	v.srcIP = net.ParseIP(srcIPStr)
-	if v.srcIP == nil {
-		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", SrcIPEnvKey, srcIPStr)
-		common.SetValidIPFailed()
-	}
-	v.egressInterface, err = common.NewEgressInterface(v.srcIP)
-	if err != nil {
-		logrus.Fatalf("Unable to find egress Interface: %s", err)
-		common.SetNewEgressIFFailed()
-	}
-	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", v.srcIP, v.egressInterface.Name(), v.egressInterface.SrcIPNet())
-
-	err = tools.SocketCleanup(v.common.DataplaneSocket)
-	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", v.common.DataplaneSocket, err)
-		common.SetSocketCleanFailed()
-	}
-	v.updateCh = make(chan *Mechanisms, 1)
-	v.mechanisms = &Mechanisms{
-		localMechanisms: []*local.Mechanism{
+func (v *KernelForwarder) configureKernelForwarder() {
+	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
+	v.common.Mechanisms = &common.Mechanisms{
+		LocalMechanisms: []*local.Mechanism{
 			{
 				Type: local.MechanismType_KERNEL_INTERFACE,
 			},
 		},
-		remoteMechanisms: []*remote.Mechanism{
+		RemoteMechanisms: []*remote.Mechanism{
 			{
 				Type: remote.MechanismType_VXLAN,
 				Parameters: map[string]string{
-					remote.VXLANSrcIP: v.egressInterface.SrcIPNet().IP.String(),
+					remote.VXLANSrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},
