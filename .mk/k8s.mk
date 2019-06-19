@@ -14,20 +14,24 @@
 
 K8S_CONF_DIR = k8s/conf
 
-DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
-DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
+# Deployments - common
 DEPLOY_TRACING = jaeger
 DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_MONITOR = crossconnect-monitor skydive
+DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
+  # Deployments - VPP plane
   DEPLOY_FORWARDING_PLANE = vppagent-dataplane
-  DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
+  DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
   DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
+  DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_MONITOR)
+  DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
 endif
+# Deployments - grouped
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
-DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
+DEPLOY_INFRA += $(DEPLOY_NSM)
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
