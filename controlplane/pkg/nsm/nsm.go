@@ -128,8 +128,21 @@ func (srv *networkServiceManager) SetExcludePrefixes(prefixes prefix_pool.Prefix
 }
 
 func (srv *networkServiceManager) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
+	var editor *model.ClientConnectionEditor
+	var err error
+
 	// Check if we are recovering connection, by checking passed connection Id is known to us.
-	return srv.request(ctx, request, srv.model.GetClientConnection(request.GetRequestConnection().GetId()))
+	connectionID := request.GetRequestConnection().GetId()
+	if srv.model.GetClientConnection(connectionID) != nil {
+		editor, err = srv.model.ChangeClientConnectionState(connectionID, model.ClientConnectionRequesting)
+		if err != nil {
+			logrus.Errorf("NSM: Failed to start request: %v", err)
+			return nil, err
+		}
+		srv.model.ResetClientConnectionChanges(editor)
+	}
+
+	return srv.request(ctx, request, editor)
 }
 
 func create_logid() (uuid string) {
@@ -144,7 +157,7 @@ func create_logid() (uuid string) {
 	return
 }
 
-func (srv *networkServiceManager) request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error) {
+func (srv *networkServiceManager) request(ctx context.Context, request networkservice.Request, editor *model.ClientConnectionEditor) (connection.Connection, error) {
 	requestID := create_logid()
 	logrus.Infof("NSM:(%v) request: %v", requestID, request)
 
@@ -155,14 +168,8 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		return nil, err
 	}
 
-	var editor *model.ClientConnectionEditor
-	if existingCC != nil {
-		logrus.Infof("NSM:(%v) Called with existing connection passed: %v", requestID, existingCC)
-
-		if editor, err = srv.model.ChangeClientConnectionState(existingCC.GetID(), model.ClientConnectionRequesting); err != nil {
-			logrus.Errorf("NSM:(%v) Failed to start requesting: %v", requestID, err)
-			return nil, err
-		}
+	if editor != nil {
+		logrus.Infof("NSM:(%v) Called with existing connection passed: %v", requestID, editor.ClientConnection)
 	}
 
 	// 1. Create a new connection object.
@@ -170,11 +177,11 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 
 	// 2. Set connection id for new connections.
 	// Every NSMD manage it's connections.
-	if existingCC == nil {
+	if editor == nil {
 		conn.SetID(srv.createConnectionId())
 	} else {
 		// 2.1 we have connection updata/heal no need for new connection id
-		conn.SetID(existingCC.GetID())
+		conn.SetID(editor.GetID())
 	}
 
 	// 3. get dataplane
@@ -203,18 +210,18 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	// 4. Check if Heal/Update if we need to ask remote NSM or it is a just local mechanism change requested.
 	// true if we detect we need to request NSE to upgrade/update connection.
 	requestNSEOnUpdate := false
-	if existingCC != nil {
+	if editor != nil {
 		// 4.1 New Network service is requested, we need to close current connection and do re-request of NSE.
-		if conn.GetNetworkService() != existingCC.GetNetworkService() {
+		if conn.GetNetworkService() != editor.GetNetworkService() {
 			requestNSEOnUpdate = true
 			closeDataplaneOnNSEFailed = true
 			// Network service is closing, we need to close remote NSM and re-programm local one.
-			if err = srv.closeEndpoint(ctx, existingCC); err != nil {
-				logrus.Errorf("NSM:(4.1-%v) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", requestID, request, existingCC, err)
+			if err = srv.closeEndpoint(ctx, editor.ClientConnection); err != nil {
+				logrus.Errorf("NSM:(4.1-%v) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", requestID, request, editor.ClientConnection, err)
 			}
 		} else {
 			// 4.2 Check if NSE is still required, if some more context requests are different.
-			requestNSEOnUpdate = srv.checkNeedNSERequest(requestID, conn, existingCC, dp)
+			requestNSEOnUpdate = srv.checkNeedNSERequest(requestID, conn, editor.ClientConnection, dp)
 		}
 	}
 
@@ -242,20 +249,11 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		}()
 	}
 
-	cc, err := srv.updateClientConnection(ctx, requestID, conn, existingCC, dp, requestNSEOnUpdate)
+	existingCC := editor.GetClientConnection()
 
-	// 7.4 We need to update connection before requesting the dataplane
-	if err == nil {
-		if editor == nil {
-			editor, err = srv.model.AddClientConnection(conn.GetId(), model.ClientConnectionRequesting, cc)
-		} else {
-			editor.ClientConnection = cc
-			err = srv.model.CommitClientConnectionChanges(editor)
-		}
-	}
-
-	if err != nil {
-		srv.requestFailed(requestID, editor, true, false, false)
+	// 7. Update client connection
+	if editor, err = srv.updateClientConnection(ctx, requestID, conn, editor, dp, requestNSEOnUpdate); err != nil {
+		srv.requestFailed(requestID, editor, true, closeDataplaneOnNSEFailed, false)
 		return nil, err
 	}
 
@@ -349,18 +347,18 @@ func (srv *networkServiceManager) updateClientConnection(
 	ctx context.Context,
 	requestID string,
 	conn connection.Connection,
-	existingCC *model.ClientConnection,
+	editor *model.ClientConnectionEditor,
 	dp *model.Dataplane,
-	requestNSEOnUpdate bool) (*model.ClientConnection, error) {
+	requestNSEOnUpdate bool) (*model.ClientConnectionEditor, error) {
 
-	cc := existingCC
+	cc := editor.GetClientConnection()
 	var err error
 	// 7.0 do a Request() on NSE and select it.
-	if existingCC == nil || requestNSEOnUpdate {
+	if editor == nil || requestNSEOnUpdate {
 		// 7.1 try find NSE and do a Request to it.
 		cc, err = srv.findConnectNSE(ctx, requestID, conn, cc, dp)
 		if err != nil {
-			return nil, err
+			return editor, err
 		}
 	} else {
 		// 7.2 We do not need to access NSE, since all parameters are same.
@@ -373,7 +371,14 @@ func (srv *networkServiceManager) updateClientConnection(
 		}
 	}
 
-	return cc, err
+	if editor == nil {
+		editor, err = srv.model.AddClientConnection(conn.GetId(), model.ClientConnectionRequesting, cc)
+	} else {
+		editor.ClientConnection = cc
+		err = srv.model.CommitClientConnectionChanges(editor)
+	}
+
+	return editor, err
 }
 
 func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID string, conn connection.Connection, existingCC *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
@@ -440,8 +445,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 
 func (srv *networkServiceManager) Close(ctx context.Context, clientConnection nsm.ClientConnection) error {
 	cc := clientConnection.(*model.ClientConnection)
-
-	if _, err := srv.model.ChangeClientConnectionState(clientConnection.GetID(), model.ClientConnectionClosing); err != nil {
+	if _, err := srv.model.ChangeClientConnectionState(cc.GetID(), model.ClientConnectionClosing); err != nil {
 		return err
 	}
 
@@ -701,7 +705,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 
 			if src := xcon.GetSourceConnection(); src.IsRemote() {
 				// Since source is remote, connection need to be healed.
-				connectionState = model.ClientConnectionBroken
+				connectionState = model.ClientConnectionHealing
 
 				networkServiceName = src.GetNetworkService()
 				endpointName = src.GetNetworkServiceEndpointName()
@@ -847,7 +851,13 @@ func (srv *networkServiceManager) closeLocalMissingNSE(cc *model.ClientConnectio
 func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.ClientConnection) {
 	logrus.Infof("NSM: Remote opened connection is not monitored and put into Healing state %v", clientConnection)
 
-	_, _ = srv.model.ChangeClientConnectionState(clientConnection.GetID(), model.ClientConnectionHealing)
+	if _, err := srv.model.ChangeClientConnectionState(clientConnection.GetID(), model.ClientConnectionWaitingForRequest); err != nil {
+		logrus.Errorf("NSM: Error waiting for request: %v", err)
+		if err := srv.Close(context.Background(), clientConnection); err != nil {
+			logrus.Errorf("NSM: Error closing connection %v", err)
+		}
+		return
+	}
 
 	go func() {
 		<-time.After(srv.properties.HealTimeout)

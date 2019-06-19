@@ -27,8 +27,11 @@ const (
 	// ClientConnectionHealing means connection is in 'healing' state
 	ClientConnectionHealing ClientConnectionState = 3
 
+	// ClientConnectionWaitingForRequest means connection finished healing on the local side and waits for the request
+	ClientConnectionWaitingForRequest ClientConnectionState = 4
+
 	// ClientConnectionClosing means connection is started closing process
-	ClientConnectionClosing ClientConnectionState = 4
+	ClientConnectionClosing ClientConnectionState = 5
 )
 
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint

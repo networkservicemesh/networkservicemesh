@@ -103,7 +103,7 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
-	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
+	healed := data.healProcessor.healDstDown("", editor)
 	Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -131,7 +131,7 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
 
-	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
+	healed := data.healProcessor.healDstDown("", editor)
 	Expect(healed).To(BeTrue())
 
 	test_utils.NewModelVerifier(data.model).
@@ -156,7 +156,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 	clientConnection := data.createClientConnection(xcon, nse1, localNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
-	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
+	healed := data.healProcessor.healDstDown("", editor)
 	Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -182,7 +182,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	data.connectionManager.requestError = fmt.Errorf("request error")
 
-	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
+	healed := data.healProcessor.healDstDown("", editor)
 	Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -208,7 +208,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
 	data.connectionManager.nse = nse2
 
-	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
+	healed := data.healProcessor.healDstDown("", editor)
 	Expect(healed).To(BeTrue())
 
 	Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
@@ -233,7 +233,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
 	clientConnection := data.createClientConnection(xcon, nse1, remoteNSMName, request)
 	editor, _ := data.model.AddClientConnection("id", model.ClientConnectionHealing, clientConnection)
 
-	healed := data.healProcessor.healDstDown("", editor.ClientConnection)
+	healed := data.healProcessor.healDstDown("", editor)
 	Expect(healed).To(BeFalse())
 
 	Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
@@ -279,28 +279,23 @@ type connectionManagerStub struct {
 	closeError error
 }
 
-func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error) {
+func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, editor *model.ClientConnectionEditor) (connection.Connection, error) {
 	if stub.requestError != nil {
 		return nil, stub.requestError
 	}
 
-	editor, err := stub.model.ChangeClientConnectionState(existingCC.GetID(), model.ClientConnectionRequesting)
-	if err != nil {
-		return nil, err
-	}
-
-	if existingCC.GetConnectionDestination().GetId() == "-" {
+	if editor.GetConnectionDestination().GetId() == "-" {
 		if stub.nse != nil {
-			existingCC.Endpoint = stub.nse
+			editor.Endpoint = stub.nse
 		} else {
-			_ = stub.model.DeleteClientConnection(existingCC.GetID())
+			_ = stub.model.DeleteClientConnection(editor.GetID())
 			return nil, fmt.Errorf("no NSE available")
 		}
 	}
 
 	editor.DataplaneState = model.DataplaneStateReady
 
-	if err = stub.model.CommitClientConnectionChanges(editor); err != nil {
+	if err := stub.model.CommitClientConnectionChanges(editor); err != nil {
 		return nil, err
 	}
 

@@ -12,6 +12,14 @@ type ClientConnectionEditor struct {
 	connectionState ClientConnectionState
 }
 
+// GetClientConnection returns editor ClientConnection
+func (e *ClientConnectionEditor) GetClientConnection() *ClientConnection {
+	if e == nil {
+		return nil
+	}
+	return e.ClientConnection
+}
+
 type clientConnectionEditorManager struct {
 	domain  clientConnectionDomain
 	editors map[string]*ClientConnectionEditor
@@ -40,6 +48,12 @@ func newClientConnectionEditorManager() clientConnectionEditorManager {
 				ClientConnectionClosing: true,
 			},
 			ClientConnectionHealing: {
+				ClientConnectionReady:             true,
+				ClientConnectionBroken:            true,
+				ClientConnectionWaitingForRequest: true,
+				ClientConnectionClosing:           true,
+			},
+			ClientConnectionWaitingForRequest: {
 				ClientConnectionRequesting: true,
 				ClientConnectionClosing:    true,
 			},
