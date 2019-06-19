@@ -26,8 +26,6 @@ import (
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
-
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -40,7 +38,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
@@ -56,11 +53,9 @@ const (
 
 type VPPAgent struct {
 	vppAgentEndpoint     string
-	common               *common.DataplaneConfigCommon
 	metricsCollector     *MetricsCollector
-	updateCh             chan *common.Mechanisms
 	directMemifConnector *memif.DirectMemifConnector
-	monitor              monitor_crossconnect.MonitorServer
+	common               *common.DataplaneConfig
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -82,7 +77,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dat
 		select {
 		// Waiting for any updates which might occur during a life of dataplane module and communicating
 		// them back to NSM.
-		case update := <-v.updateCh:
+		case update := <-v.common.MechanismsUpdateChannel:
 			v.common.Mechanisms = update
 			logrus.Infof("Sending MonitorMechanisms update: %v", update)
 			if err := updateSrv.Send(&dataplane.MechanismUpdate{
@@ -102,7 +97,7 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	if err != nil {
 		return nil, err
 	}
-	v.monitor.Update(xcon)
+	v.common.Monitor.Update(xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -296,43 +291,36 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.monitor.Delete(xcon)
+	v.common.Monitor.Delete(xcon)
 	return &empty.Empty{}, err
 }
 
 // Init makes setup for the VPPAgent
-func (v *VPPAgent) Init(common *common.DataplaneConfigCommon, monitor monitor_crossconnect.MonitorServer) error {
-	tracer, closer := tools.InitJaeger("vppagent-dataplane")
+func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
+	v.common = common
+
+	tracer, closer := tools.InitJaeger(v.common.Name)
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	v.common = common
-	v.setDataplaneConfigVPPAgent(monitor)
-	v.reset()
-	v.programMgmtInterface()
-	v.setupMetricsCollector(monitor)
+	err := v.configureVPPAgent()
+	if err != nil {
+		logrus.Errorf("Error configuring the VPP Agent: %s", err)
+		return err
+	}
 	return nil
 }
 
-func (v *VPPAgent) setupMetricsCollector(monitor metrics.MetricsMonitor) {
+func (v *VPPAgent) setupMetricsCollector() {
 	if !v.common.MetricsEnabled {
 		return
 	}
 	v.metricsCollector = NewMetricsCollector(v.common.MetricsPeriod)
-	v.metricsCollector.CollectAsync(monitor, v.vppAgentEndpoint)
+	v.metricsCollector.CollectAsync(v.common.Monitor, v.vppAgentEndpoint)
 }
 
-func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.MonitorServer) {
+func (v *VPPAgent) configureVPPAgent() error {
 	var ok bool
-	var err error
-
-	v.monitor = monitor
-
-	err = tools.SocketCleanup(v.common.DataplaneSocket)
-	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", v.common.DataplaneSocket, err)
-		common.SetSocketCleanFailed()
-	}
 
 	v.vppAgentEndpoint, ok = os.LookupEnv(VPPEndpointKey)
 	if !ok {
@@ -341,7 +329,8 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.Monit
 	}
 	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
 
-	v.updateCh = make(chan *common.Mechanisms, 1)
+	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
+	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
 		LocalMechanisms: []*local.Mechanism{
 			{
@@ -360,5 +349,16 @@ func (v *VPPAgent) setDataplaneConfigVPPAgent(monitor monitor_crossconnect.Monit
 			},
 		},
 	}
-	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
+	err := v.reset()
+	if err != nil {
+		logrus.Errorf("Error resetting the VPP Agent: %s", err)
+		return err
+	}
+	err = v.programMgmtInterface()
+	if err != nil {
+		logrus.Errorf("Error setting up the management interface for VPP Agent: %s", err)
+		return err
+	}
+	v.setupMetricsCollector()
+	return nil
 }
