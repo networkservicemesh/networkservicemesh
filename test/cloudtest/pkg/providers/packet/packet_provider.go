@@ -102,10 +102,11 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 
 	utils.ClearFolder(pi.root, true)
 
-	pi.genID = uuid.New().String()[:30]
+	today := time.Now()
+	pi.genID = fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), uuid.New().String()[:10])
 	// Process and prepare environment variables
 	if err = pi.shellInterface.ProcessEnvironment(map[string]string{"cluster-uuid": pi.genID}); err != nil {
-		logrus.Errorf("error during preocessing enviornment variables %v", err)
+		logrus.Errorf("error during processing environment variables %v", err)
 		return err
 	}
 

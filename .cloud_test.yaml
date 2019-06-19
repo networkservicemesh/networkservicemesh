@@ -49,7 +49,7 @@ providers:
     env:
       - GOOGLE_PROJECT_ID=ci-management
       - CLUSTER_RULES_PREFIX=gke
-      - GKE_CLUSTER_NAME=$(cluster-name)-$(uuid)
+      - GKE_CLUSTER_NAME=$(cluster-name)-$(date)-$(uuid10)
       - CONTAINER_REPO=networkservicemesh
       - KUBECONFIG=$(tempdir)/config
       - GKE_CLUSTER_ZONE=$(zone-selector)

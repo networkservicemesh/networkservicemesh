@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 // Manager - allow to perform shell command executions with variable and parameter substitutions.
@@ -20,7 +21,7 @@ type Manager interface {
 	// GetConfigLocation - detect if KUBECONFIG variable is passed and return its value.
 	GetConfigLocation() string
 	// RunCmd - execute a command, operation with extra env
-	RunCmd(context context.Context, operation string, script[] string, env[] string) error
+	RunCmd(context context.Context, operation string, script [] string, env [] string) error
 	// ProcessEnvironment - process substitute of environment variables with arguments.
 	ProcessEnvironment(extraArgs map[string]string) error
 	// PrintEnv - print environment variables into string
@@ -64,7 +65,7 @@ func NewManager(manager execmanager.ExecutionManager, id, root string, config *c
 	}
 }
 
-func (si* shellInterface) GetConfigLocation() string {
+func (si *shellInterface) GetConfigLocation() string {
 	return si.configLocation
 }
 
@@ -131,7 +132,7 @@ func (si *shellInterface) PrintArgs() string {
 				varValue = strings.Replace(varValue, envValue, "****", -1)
 			}
 		}
-		_,_ = printableEnv.WriteString(fmt.Sprintf("%s=%s\n", varName, varValue))
+		_, _ = printableEnv.WriteString(fmt.Sprintf("%s=%s\n", varName, varValue))
 	}
 	return printableEnv.String()
 }
@@ -147,20 +148,33 @@ func (si *shellInterface) ProcessEnvironment(extraArgs map[string]string) error 
 		environment[key] = value
 	}
 
+	today := time.Now()
+
+	todayYear := fmt.Sprintf("%d", today.Year())
+	todayMonth := fmt.Sprintf("%d", today.Month())
+	todayDay := fmt.Sprintf("%d", today.Day())
 	for _, rawVarName := range si.config.Env {
 		varName, varValue, err := utils.ParseVariable(rawVarName)
 		if err != nil {
 			return err
 		}
 		randValue := fmt.Sprintf("%v", rand.Intn(1000000))
-		uuidValue := uuid.New().String()[:30]
+		uuidValue := uuid.New().String()
+		uuidValue30 := uuid.New().String()[:30]
+		uuidValue10 := uuid.New().String()[:10]
 
 		args := map[string]string{
 			"cluster-name":  si.id,
 			"provider-name": si.config.Name,
 			"random":        randValue,
 			"uuid":          uuidValue,
+			"uuid30":        uuidValue30,
+			"uuid10":        uuidValue10,
 			"tempdir":       si.root,
+			"year":          todayYear,
+			"month":         todayMonth,
+			"date":          fmt.Sprintf("%s-%s-%s", todayYear, todayMonth, todayDay),
+			"day":           todayDay,
 		}
 
 		for k, v := range extraArgs {

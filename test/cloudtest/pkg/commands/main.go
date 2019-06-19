@@ -806,7 +806,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 				}
 			case statusSkippedSinceNoClusters:
 				testCase.SkipMessage = &reporting.SkipMessage{
-					Message: "No clusters are avalable, all clusters reached restart limits...",
+					Message: "No clusters are available, all clusters reached restart limits...",
 				}
 			}
 			suite.TestCases = append(suite.TestCases, testCase)
@@ -897,7 +897,7 @@ func ExecuteCloudTest() {
 func initCmd(rootCmd *cloudTestCmd) {
 	cobra.OnInitialize(initConfig)
 	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.providerConfig, "config", "", "", "Config file for providers, default="+defaultConfigFile)
-	rootCmd.Flags().StringArrayVarP(&rootCmd.cmdArguments.clusters, "clusters", "c", []string{}, "Enable disable cluster configs, default use from config. Cloud be used to test agains selected configuration or locally...")
+	rootCmd.Flags().StringArrayVarP(&rootCmd.cmdArguments.clusters, "clusters", "c", []string{}, "Enable disable cluster configs, default use from config. Cloud be used to test against selected configuration or locally...")
 	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.onlyEnabled, "enabled", "e", false, "Use only passed cluster names...")
 	rootCmd.Flags().IntVarP(&rootCmd.cmdArguments.count, "count", "", -1, "Execute only count of tests")
 
