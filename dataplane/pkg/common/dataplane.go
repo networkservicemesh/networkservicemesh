@@ -38,7 +38,7 @@ import (
 
 type NSMDataplane interface {
 	dataplane.DataplaneServer
-	Init(*DataplaneConfigCommon, monitor_crossconnect.MonitorServer) error
+	Init(*DataplaneConfig) error
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -62,26 +62,23 @@ const (
 	DataplaneSrcIPKey                    = "NSM_DATAPLANE_SRC_IP"
 )
 
-// DataplaneConfigCommon keeps the common configuration for a forwarding plane
-type DataplaneConfigCommon struct {
-	Name                string
-	NSMBaseDir          string
-	RegistrarSocket     string
-	RegistrarSocketType string
-	DataplaneSocket     string
-	DataplaneSocketType string
-	Mechanisms          *Mechanisms
-	MetricsEnabled      bool
-	MetricsPeriod       time.Duration
-	SrcIP               net.IP
-	EgressInterface     EgressInterfaceType
-}
-
-type dataplaneConfig struct {
-	common     *DataplaneConfigCommon
-	gRPCserver *grpc.Server
-	monitor    monitor_crossconnect.MonitorServer
-	listener   net.Listener
+// DataplaneConfig keeps the common configuration for a forwarding plane
+type DataplaneConfig struct {
+	Name                    string
+	NSMBaseDir              string
+	RegistrarSocket         string
+	RegistrarSocketType     string
+	DataplaneSocket         string
+	DataplaneSocketType     string
+	MechanismsUpdateChannel chan *Mechanisms
+	Mechanisms              *Mechanisms
+	MetricsEnabled          bool
+	MetricsPeriod           time.Duration
+	SrcIP                   net.IP
+	EgressInterface         EgressInterfaceType
+	GRPCserver              *grpc.Server
+	Monitor                 monitor_crossconnect.MonitorServer
+	Listener                net.Listener
 }
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
@@ -90,90 +87,88 @@ type Mechanisms struct {
 	LocalMechanisms  []*local.Mechanism
 }
 
-func createDataplaneConfig() *dataplaneConfig {
-	dpConfig := &dataplaneConfig{
-		common: &DataplaneConfigCommon{},
-	}
+func createDataplaneConfig() *DataplaneConfig {
+	dpConfig := &DataplaneConfig{}
 	var ok bool
 
-	dpConfig.common.Name, ok = os.LookupEnv(DataplaneNameKey)
+	dpConfig.Name, ok = os.LookupEnv(DataplaneNameKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
-		dpConfig.common.Name = DataplaneNameDefault
+		dpConfig.Name = DataplaneNameDefault
 	}
-	logrus.Infof("Starting dataplane - %s", dpConfig.common.Name)
+	logrus.Infof("Starting dataplane - %s", dpConfig.Name)
 
-	dpConfig.common.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	dpConfig.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
-		dpConfig.common.DataplaneSocket = DataplaneSocketDefault
+		dpConfig.DataplaneSocket = DataplaneSocketDefault
 	}
-	logrus.Infof("DataplaneSocket: %s", dpConfig.common.DataplaneSocket)
+	logrus.Infof("DataplaneSocket: %s", dpConfig.DataplaneSocket)
 
-	err := tools.SocketCleanup(dpConfig.common.DataplaneSocket)
+	err := tools.SocketCleanup(dpConfig.DataplaneSocket)
 	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", dpConfig.common.DataplaneSocket, err)
+		logrus.Fatalf("Error cleaning up socket %s: %s", dpConfig.DataplaneSocket, err)
 		SetSocketCleanFailed()
 	}
 
-	dpConfig.common.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	dpConfig.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
-		dpConfig.common.DataplaneSocketType = DataplaneSocketTypeDefault
+		dpConfig.DataplaneSocketType = DataplaneSocketTypeDefault
 	}
-	logrus.Infof("DataplaneSocketType: %s", dpConfig.common.DataplaneSocketType)
+	logrus.Infof("DataplaneSocketType: %s", dpConfig.DataplaneSocketType)
 
-	dpConfig.common.NSMBaseDir, ok = os.LookupEnv(NSMBaseDirKey)
+	dpConfig.NSMBaseDir, ok = os.LookupEnv(NSMBaseDirKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", NSMBaseDirKey, NSMBaseDirDefault)
-		dpConfig.common.NSMBaseDir = NSMBaseDirDefault
+		dpConfig.NSMBaseDir = NSMBaseDirDefault
 	}
-	logrus.Infof("NSMBaseDir: %s", dpConfig.common.NSMBaseDir)
+	logrus.Infof("NSMBaseDir: %s", dpConfig.NSMBaseDir)
 
-	dpConfig.common.RegistrarSocket, ok = os.LookupEnv(DataplaneRegistrarSocketKey)
+	dpConfig.RegistrarSocket, ok = os.LookupEnv(DataplaneRegistrarSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketKey, DataplaneRegistrarSocketDefault)
-		dpConfig.common.RegistrarSocket = DataplaneRegistrarSocketDefault
+		dpConfig.RegistrarSocket = DataplaneRegistrarSocketDefault
 	}
-	logrus.Infof("RegistrarSocket: %s", dpConfig.common.RegistrarSocket)
+	logrus.Infof("RegistrarSocket: %s", dpConfig.RegistrarSocket)
 
-	dpConfig.common.RegistrarSocketType, ok = os.LookupEnv(DataplaneRegistrarSocketTypeKey)
+	dpConfig.RegistrarSocketType, ok = os.LookupEnv(DataplaneRegistrarSocketTypeKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketTypeKey, DataplaneRegistrarSocketTypeDefault)
-		dpConfig.common.RegistrarSocketType = DataplaneRegistrarSocketTypeDefault
+		dpConfig.RegistrarSocketType = DataplaneRegistrarSocketTypeDefault
 	}
-	logrus.Infof("RegistrarSocketType: %s", dpConfig.common.RegistrarSocketType)
+	logrus.Infof("RegistrarSocketType: %s", dpConfig.RegistrarSocketType)
 
 	tracer := opentracing.GlobalTracer()
-	dpConfig.gRPCserver = grpc.NewServer(
+	dpConfig.GRPCserver = grpc.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	dpConfig.monitor = monitor_crossconnect.NewMonitorServer()
-	crossconnect.RegisterMonitorCrossConnectServer(dpConfig.gRPCserver, dpConfig.monitor)
-	monitor_crossconnect_server.NewMonitorNetNsInodeServer(dpConfig.monitor)
+	dpConfig.Monitor = monitor_crossconnect.NewMonitorServer()
+	crossconnect.RegisterMonitorCrossConnectServer(dpConfig.GRPCserver, dpConfig.Monitor)
+	monitor_crossconnect_server.NewMonitorNetNsInodeServer(dpConfig.Monitor)
 
-	dpConfig.common.MetricsEnabled = DataplaneMetricsEnabledDefault
+	dpConfig.MetricsEnabled = DataplaneMetricsEnabledDefault
 	val, ok := os.LookupEnv(DataplaneMetricsEnabledKey)
 	if ok {
 		res, err := strconv.ParseBool(val)
 		if err == nil {
-			dpConfig.common.MetricsEnabled = res
+			dpConfig.MetricsEnabled = res
 		}
 	}
-	logrus.Infof("MetricsEnabled: %v", dpConfig.common.MetricsEnabled)
+	logrus.Infof("MetricsEnabled: %v", dpConfig.MetricsEnabled)
 
-	if dpConfig.common.MetricsEnabled {
-		dpConfig.common.MetricsPeriod = DataplaneMetricsRequestPeriodDefault
+	if dpConfig.MetricsEnabled {
+		dpConfig.MetricsPeriod = DataplaneMetricsRequestPeriodDefault
 		if val, ok = os.LookupEnv(DataplaneMetricsRequestPeriodKey); ok {
 			parsedPeriod, err := time.ParseDuration(val)
 			if err == nil {
-				dpConfig.common.MetricsPeriod = parsedPeriod
+				dpConfig.MetricsPeriod = parsedPeriod
 			}
 		}
-		logrus.Infof("MetricsPeriod: %v ", dpConfig.common.MetricsPeriod)
+		logrus.Infof("MetricsPeriod: %v ", dpConfig.MetricsPeriod)
 	}
 
 	srcIPStr, ok := os.LookupEnv(DataplaneSrcIPKey)
@@ -181,17 +176,17 @@ func createDataplaneConfig() *dataplaneConfig {
 		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
 		SetSrcIPFailed()
 	}
-	dpConfig.common.SrcIP = net.ParseIP(srcIPStr)
-	if dpConfig.common.SrcIP == nil {
+	dpConfig.SrcIP = net.ParseIP(srcIPStr)
+	if dpConfig.SrcIP == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
 		SetValidIPFailed()
 	}
-	dpConfig.common.EgressInterface, err = NewEgressInterface(dpConfig.common.SrcIP)
+	dpConfig.EgressInterface, err = NewEgressInterface(dpConfig.SrcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 		SetNewEgressIFFailed()
 	}
-	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", dpConfig.common.SrcIP, dpConfig.common.EgressInterface.Name(), dpConfig.common.EgressInterface.SrcIPNet())
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", dpConfig.SrcIP, dpConfig.EgressInterface.Name(), dpConfig.EgressInterface.SrcIPNet())
 
 	return dpConfig
 }
@@ -202,40 +197,40 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 	config := createDataplaneConfig()
 
 	// Initialize the dataplane
-	err := dp.Init(config.common, config.monitor)
+	err := dp.Init(config)
 	if err != nil {
 		logrus.Fatalf("Dataplane initialization failed: %s ", err)
 	}
 
 	// Verify the configuration is populated
-	if !sanityCheckConfig(config.common) {
+	if !sanityCheckConfig(config) {
 		logrus.Fatalf("Dataplane configuration sanity check failed: %s ", err)
 	}
 
 	// Prepare the gRPC server
-	config.listener, err = net.Listen(config.common.DataplaneSocketType, config.common.DataplaneSocket)
+	config.Listener, err = net.Listen(config.DataplaneSocketType, config.DataplaneSocket)
 	if err != nil {
-		logrus.Fatalf("Error listening on socket %s: %s ", config.common.DataplaneSocket, err)
+		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
 		SetSocketListenFailed()
 	}
-	dataplane.RegisterDataplaneServer(config.gRPCserver, dp)
+	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
 
 	// Start the server
-	logrus.Infof("Creating %s server...", config.common.Name)
-	go config.gRPCserver.Serve(config.listener)
-	logrus.Infof("%s server serving", config.common.Name)
+	logrus.Infof("Creating %s server...", config.Name)
+	go config.GRPCserver.Serve(config.Listener)
+	logrus.Infof("%s server serving", config.Name)
 
-	logrus.Debugf("Starting the %s dataplane server took: %s", config.common.Name, time.Since(start))
+	logrus.Debugf("Starting the %s dataplane server took: %s", config.Name, time.Since(start))
 
 	logrus.Info("Creating Dataplane Registrar Client...")
-	registrar := NewDataplaneRegistrarClient(config.common.RegistrarSocketType, config.common.RegistrarSocket)
-	registration := registrar.Register(context.Background(), config.common.Name, config.common.DataplaneSocket, nil, nil)
+	registrar := NewDataplaneRegistrarClient(config.RegistrarSocketType, config.RegistrarSocket)
+	registration := registrar.Register(context.Background(), config.Name, config.DataplaneSocket, nil, nil)
 	logrus.Info("Registered Dataplane Registrar Client")
 
 	return registration
 }
 
-func sanityCheckConfig(dataplaneConfig *DataplaneConfigCommon) bool {
+func sanityCheckConfig(dataplaneConfig *DataplaneConfig) bool {
 	return len(dataplaneConfig.Name) > 0 &&
 		len(dataplaneConfig.NSMBaseDir) > 0 &&
 		len(dataplaneConfig.RegistrarSocket) > 0 &&
