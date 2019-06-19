@@ -6,7 +6,7 @@ import (
 
 // ClientConnectionEditor is a type to commit changes on ClientConnection
 type ClientConnectionEditor struct {
-	ClientConnection *ClientConnection
+	*ClientConnection
 
 	id              string
 	connectionState ClientConnectionState

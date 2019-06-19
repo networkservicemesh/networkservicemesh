@@ -279,7 +279,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 8. Remember original Request for Heal cases.
-	editor.ClientConnection.Request = request
+	editor.Request = request
 
 	var newXcon *crossconnect.CrossConnect
 	// 9. We need to programm dataplane with our values.
@@ -293,10 +293,10 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		dpCtx, cancel := context.WithTimeout(context.Background(), DataplaneTimeout)
 		defer cancel()
 
-		logrus.Infof("NSM:(9.2.1-%v) Sending request to dataplane: %v retry: %v", requestID, editor.ClientConnection.Xcon, dpRetry)
-		newXcon, err = dataplaneClient.Request(dpCtx, editor.ClientConnection.Xcon)
+		logrus.Infof("NSM:(9.2.1-%v) Sending request to dataplane: %v retry: %v", requestID, editor.Xcon, dpRetry)
+		newXcon, err = dataplaneClient.Request(dpCtx, editor.Xcon)
 		if err == nil {
-			logrus.Infof("NSM:(9.2.2-%v) Dataplane configuration successful %v", requestID, editor.ClientConnection.Xcon)
+			logrus.Infof("NSM:(9.2.2-%v) Dataplane configuration successful %v", requestID, editor.Xcon)
 			break
 		}
 
@@ -314,8 +314,8 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 10. Update client connection
-	editor.ClientConnection.DataplaneState = model.DataplaneStateReady
-	editor.ClientConnection.Xcon = newXcon
+	editor.DataplaneState = model.DataplaneStateReady
+	editor.Xcon = newXcon
 
 	if err = srv.model.CommitClientConnectionChanges(editor); err == nil {
 		_, err = srv.model.ChangeClientConnectionState(conn.GetId(), model.ClientConnectionReady)
@@ -329,7 +329,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	// 11. We are done with configuration here.
 	logrus.Infof("NSM:(11-%v) Request done...", requestID)
 
-	return editor.ClientConnection.GetConnectionSource(), nil
+	return editor.GetConnectionSource(), nil
 }
 
 func (srv *networkServiceManager) requestFailed(requestID string, editor *model.ClientConnectionEditor, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
@@ -352,14 +352,14 @@ func (srv *networkServiceManager) requestFailed(requestID string, editor *model.
 	}
 
 	if existingCC == nil {
-		_ = srv.model.DeleteClientConnection(editor.ClientConnection.GetID())
+		_ = srv.model.DeleteClientConnection(editor.GetID())
 	}
 
 	if err := srv.model.CommitClientConnectionChanges(editor); err != nil {
 		logrus.Errorf("NSM:(%v) Error committing changes: %v", requestID, err)
 	}
 
-	if _, err := srv.model.ChangeClientConnectionState(editor.ClientConnection.GetID(), model.ClientConnectionBroken); err != nil {
+	if _, err := srv.model.ChangeClientConnectionState(editor.GetID(), model.ClientConnectionBroken); err != nil {
 		logrus.Errorf("NSM:(%v) Error changing connection state to Broken: %v", requestID, err)
 	}
 }

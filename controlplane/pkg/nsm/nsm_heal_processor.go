@@ -193,7 +193,7 @@ func (p *healProcessor) healDataplaneDown(healID string, cc *model.ClientConnect
 	}
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
 
-	editor.ClientConnection.GetConnectionSource().SetConnectionState(connection.StateDown)
+	editor.GetConnectionSource().SetConnectionState(connection.StateDown)
 	if err := p.model.CommitClientConnectionChanges(editor); err != nil {
 		logrus.Errorf("NSM_Heal(3.3-%v) Error committing changes: %v", healID, err)
 		return false

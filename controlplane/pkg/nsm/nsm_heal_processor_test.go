@@ -298,7 +298,7 @@ func (stub *connectionManagerStub) request(ctx context.Context, request networks
 		}
 	}
 
-	editor.ClientConnection.DataplaneState = model.DataplaneStateReady
+	editor.DataplaneState = model.DataplaneStateReady
 
 	if err = stub.model.CommitClientConnectionChanges(editor); err != nil {
 		return nil, err
