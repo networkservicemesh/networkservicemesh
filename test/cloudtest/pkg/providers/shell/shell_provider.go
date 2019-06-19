@@ -101,7 +101,8 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	selectedZone := ""
 
 	if len(si.zoneSelectorScript) > 0 {
-		zones, err := si.shellInterface.RunRead(context, zoneSelector,  si.zoneSelectorScript, nil)
+		var zones string
+		zones, err = si.shellInterface.RunRead(context, zoneSelector,  si.zoneSelectorScript, nil)
 		if err != nil {
 			logrus.Errorf("Failed to select zones...")
 			return err
