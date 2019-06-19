@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	defaultConfigFile string = ".cloud_test.yaml"
+	defaultConfigFile string = ".cloudtest.yaml"
 )
 
 // Arguments - command line arguments
