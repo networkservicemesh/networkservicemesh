@@ -88,87 +88,87 @@ type Mechanisms struct {
 }
 
 func createDataplaneConfig() *DataplaneConfig {
-	dpConfig := &DataplaneConfig{}
+	cfg := &DataplaneConfig{}
 	var ok bool
 
-	dpConfig.Name, ok = os.LookupEnv(DataplaneNameKey)
+	cfg.Name, ok = os.LookupEnv(DataplaneNameKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
-		dpConfig.Name = DataplaneNameDefault
+		cfg.Name = DataplaneNameDefault
 	}
-	logrus.Infof("Starting dataplane - %s", dpConfig.Name)
+	logrus.Infof("Starting dataplane - %s", cfg.Name)
 
-	dpConfig.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	cfg.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
-		dpConfig.DataplaneSocket = DataplaneSocketDefault
+		cfg.DataplaneSocket = DataplaneSocketDefault
 	}
-	logrus.Infof("DataplaneSocket: %s", dpConfig.DataplaneSocket)
+	logrus.Infof("DataplaneSocket: %s", cfg.DataplaneSocket)
 
-	err := tools.SocketCleanup(dpConfig.DataplaneSocket)
+	err := tools.SocketCleanup(cfg.DataplaneSocket)
 	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", dpConfig.DataplaneSocket, err)
+		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
 		SetSocketCleanFailed()
 	}
 
-	dpConfig.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	cfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
-		dpConfig.DataplaneSocketType = DataplaneSocketTypeDefault
+		cfg.DataplaneSocketType = DataplaneSocketTypeDefault
 	}
-	logrus.Infof("DataplaneSocketType: %s", dpConfig.DataplaneSocketType)
+	logrus.Infof("DataplaneSocketType: %s", cfg.DataplaneSocketType)
 
-	dpConfig.NSMBaseDir, ok = os.LookupEnv(NSMBaseDirKey)
+	cfg.NSMBaseDir, ok = os.LookupEnv(NSMBaseDirKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", NSMBaseDirKey, NSMBaseDirDefault)
-		dpConfig.NSMBaseDir = NSMBaseDirDefault
+		cfg.NSMBaseDir = NSMBaseDirDefault
 	}
-	logrus.Infof("NSMBaseDir: %s", dpConfig.NSMBaseDir)
+	logrus.Infof("NSMBaseDir: %s", cfg.NSMBaseDir)
 
-	dpConfig.RegistrarSocket, ok = os.LookupEnv(DataplaneRegistrarSocketKey)
+	cfg.RegistrarSocket, ok = os.LookupEnv(DataplaneRegistrarSocketKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketKey, DataplaneRegistrarSocketDefault)
-		dpConfig.RegistrarSocket = DataplaneRegistrarSocketDefault
+		cfg.RegistrarSocket = DataplaneRegistrarSocketDefault
 	}
-	logrus.Infof("RegistrarSocket: %s", dpConfig.RegistrarSocket)
+	logrus.Infof("RegistrarSocket: %s", cfg.RegistrarSocket)
 
-	dpConfig.RegistrarSocketType, ok = os.LookupEnv(DataplaneRegistrarSocketTypeKey)
+	cfg.RegistrarSocketType, ok = os.LookupEnv(DataplaneRegistrarSocketTypeKey)
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketTypeKey, DataplaneRegistrarSocketTypeDefault)
-		dpConfig.RegistrarSocketType = DataplaneRegistrarSocketTypeDefault
+		cfg.RegistrarSocketType = DataplaneRegistrarSocketTypeDefault
 	}
-	logrus.Infof("RegistrarSocketType: %s", dpConfig.RegistrarSocketType)
+	logrus.Infof("RegistrarSocketType: %s", cfg.RegistrarSocketType)
 
 	tracer := opentracing.GlobalTracer()
-	dpConfig.GRPCserver = grpc.NewServer(
+	cfg.GRPCserver = grpc.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	dpConfig.Monitor = monitor_crossconnect.NewMonitorServer()
-	crossconnect.RegisterMonitorCrossConnectServer(dpConfig.GRPCserver, dpConfig.Monitor)
-	monitor_crossconnect_server.NewMonitorNetNsInodeServer(dpConfig.Monitor)
+	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
+	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)
+	monitor_crossconnect_server.NewMonitorNetNsInodeServer(cfg.Monitor)
 
-	dpConfig.MetricsEnabled = DataplaneMetricsEnabledDefault
+	cfg.MetricsEnabled = DataplaneMetricsEnabledDefault
 	val, ok := os.LookupEnv(DataplaneMetricsEnabledKey)
 	if ok {
 		res, err := strconv.ParseBool(val)
 		if err == nil {
-			dpConfig.MetricsEnabled = res
+			cfg.MetricsEnabled = res
 		}
 	}
-	logrus.Infof("MetricsEnabled: %v", dpConfig.MetricsEnabled)
+	logrus.Infof("MetricsEnabled: %v", cfg.MetricsEnabled)
 
-	if dpConfig.MetricsEnabled {
-		dpConfig.MetricsPeriod = DataplaneMetricsRequestPeriodDefault
+	if cfg.MetricsEnabled {
+		cfg.MetricsPeriod = DataplaneMetricsRequestPeriodDefault
 		if val, ok = os.LookupEnv(DataplaneMetricsRequestPeriodKey); ok {
 			parsedPeriod, err := time.ParseDuration(val)
 			if err == nil {
-				dpConfig.MetricsPeriod = parsedPeriod
+				cfg.MetricsPeriod = parsedPeriod
 			}
 		}
-		logrus.Infof("MetricsPeriod: %v ", dpConfig.MetricsPeriod)
+		logrus.Infof("MetricsPeriod: %v ", cfg.MetricsPeriod)
 	}
 
 	srcIPStr, ok := os.LookupEnv(DataplaneSrcIPKey)
@@ -176,19 +176,19 @@ func createDataplaneConfig() *DataplaneConfig {
 		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
 		SetSrcIPFailed()
 	}
-	dpConfig.SrcIP = net.ParseIP(srcIPStr)
-	if dpConfig.SrcIP == nil {
+	cfg.SrcIP = net.ParseIP(srcIPStr)
+	if cfg.SrcIP == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
 		SetValidIPFailed()
 	}
-	dpConfig.EgressInterface, err = NewEgressInterface(dpConfig.SrcIP)
+	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 		SetNewEgressIFFailed()
 	}
-	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", dpConfig.SrcIP, dpConfig.EgressInterface.Name(), dpConfig.EgressInterface.SrcIPNet())
+	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
 
-	return dpConfig
+	return cfg
 }
 
 func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
