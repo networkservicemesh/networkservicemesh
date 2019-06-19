@@ -81,7 +81,7 @@ func (si *shellInterface) RunCmd(context context.Context, operation string, scri
 func (si *shellInterface) RunRead(context context.Context, operation string, script, env []string) (string, error) {
 	return si.runCmd(context, operation, script, env, true)
 }
-func (si *shellInterface) runCmd(context context.Context, operation string, script []string, env []string, returnResult bool) (string, error) {
+func (si *shellInterface) runCmd(context context.Context, operation string, script, env []string, returnResult bool) (string, error) {
 	_, fileRef, err := si.manager.OpenFile(si.id, operation)
 	if err != nil {
 		logrus.Errorf("failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)

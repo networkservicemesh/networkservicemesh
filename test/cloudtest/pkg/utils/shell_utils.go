@@ -206,7 +206,7 @@ func RunCommand(context context.Context, id, cmd, operation string, writer *bufi
 	return "", nil
 }
 
-func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string, builder *strings.Builder) {
+func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string, builder io.StringWriter) {
 	go func() {
 		reader := bufio.NewReader(stream)
 		for {
@@ -220,7 +220,7 @@ func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, patter
 				logrus.Infof("%s: %s => %s %v", pattern, id, operation, s)
 			}
 			if builder != nil {
-				builder.WriteString(strings.TrimSpace(s) + "\n")
+				_, _ = builder.WriteString(strings.TrimSpace(s) + "\n")
 			}
 		}
 	}()

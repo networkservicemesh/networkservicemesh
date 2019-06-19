@@ -92,7 +92,7 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 
 	// Do prepare
 	if !si.params.NoInstall {
-		if err = si.doInstall(context); err != nil {
+		if err := si.doInstall(context); err != nil {
 			return err
 		}
 	}
@@ -107,7 +107,7 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 		}
 		zonesList := strings.Split(zones, "\n")
 		if len(zonesList) == 0 {
-			return fmt.Errorf("Failed to retrieve a zone list")
+			return fmt.Errorf("failed to retrieve a zone list")
 		}
 
 		selectedZone += zonesList[rand.Intn(len(zonesList))]
