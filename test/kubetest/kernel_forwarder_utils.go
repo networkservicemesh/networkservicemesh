@@ -1,10 +1,10 @@
 package kubetest
 
-import "github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+import "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 // DefaultPlaneVariablesKernel - Default variables for Kernel forwarding deployment
 func DefaultPlaneVariablesKernel() map[string]string {
 	return map[string]string{
-		vppagent.DataplaneMetricsCollectorEnabledKey: "false",
+		common.DataplaneMetricsEnabledKey: "false",
 	}
 }
