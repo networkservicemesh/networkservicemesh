@@ -109,23 +109,41 @@ func (m *clientConnectionEditorManager) ResetClientConnectionChanges(editor *Cli
 	editor.ClientConnection = m.domain.GetClientConnection(editor.id)
 }
 
-func (m *clientConnectionEditorManager) CommitClientConnectionChanges(editor *ClientConnectionEditor) error {
+func (m *clientConnectionEditorManager) validateEditor(editor *ClientConnectionEditor) error {
 	if editor != m.editors[editor.id] {
-		return fmt.Errorf("using completed editor: %v", editor.id)
+		return fmt.Errorf("trying to use completed editor: %v", editor.id)
 	}
 
 	if editor.ClientConnection == nil {
-		return fmt.Errorf("trying to commit editor for nil connection: %v", editor.id)
+		return fmt.Errorf("trying to use editor for nil connection: %v", editor.id)
 	}
 
 	if editor.connectionState != ClientConnectionRequesting && editor.connectionState != ClientConnectionHealing {
-		return fmt.Errorf("trying to commit editor for not Requesting or Healing connection: %v", editor.id)
+		return fmt.Errorf("trying to use editor for not Requesting or Healing connection: %v", editor.id)
+	}
+
+	return nil
+}
+
+func (m *clientConnectionEditorManager) CommitClientConnectionChanges(editor *ClientConnectionEditor) error {
+	if err := m.validateEditor(editor); err != nil {
+		return err
 	}
 
 	editor.ClientConnection.id = editor.id
 	editor.ClientConnection.connectionState = editor.connectionState
 
 	m.domain.AddOrUpdateClientConnection(editor.ClientConnection)
+
+	return nil
+}
+
+func (m *clientConnectionEditorManager) ApplyClientConnectionChanges(editor *ClientConnectionEditor, f func(*ClientConnection)) error {
+	if err := m.validateEditor(editor); err != nil {
+		return err
+	}
+
+	m.domain.ApplyClientConnectionChanges(editor.id, f)
 
 	return nil
 }

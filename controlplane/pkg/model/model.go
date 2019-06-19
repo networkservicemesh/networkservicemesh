@@ -26,12 +26,13 @@ type Model interface {
 	ApplyDataplaneChanges(name string, changeFunc func(*Dataplane)) *Dataplane
 
 	AddClientConnection(id string, connectionState ClientConnectionState, cc *ClientConnection) (*ClientConnectionEditor, error)
-	GetClientConnection(connectionID string) *ClientConnection
+	GetClientConnection(id string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
-	DeleteClientConnection(connectionID string) error
+	DeleteClientConnection(id string) error
 	ChangeClientConnectionState(id string, connectionState ClientConnectionState) (*ClientConnectionEditor, error)
 	ResetClientConnectionChanges(editor *ClientConnectionEditor)
 	CommitClientConnectionChanges(editor *ClientConnectionEditor) error
+	ApplyClientConnectionChanges(editor *ClientConnectionEditor, changeFunc func(*ClientConnection)) error
 
 	ConnectionID() string
 	CorrectIDGenerator(id string)
