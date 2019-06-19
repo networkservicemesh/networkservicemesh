@@ -89,10 +89,11 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	rand.Seed(time.Now().UnixNano())
 
 	utils.ClearFolder(si.root, true)
+	var err error
 
 	// Do prepare
 	if !si.params.NoInstall {
-		if err := si.doInstall(context); err != nil {
+		if err = si.doInstall(context); err != nil {
 			return err
 		}
 	}
@@ -114,7 +115,7 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	}
 
 	// Process and prepare environment variables
-	err := si.shellInterface.ProcessEnvironment(map[string]string{
+	err = si.shellInterface.ProcessEnvironment(map[string]string{
 		"zone-selector": selectedZone,
 	})
 	if err != nil {
