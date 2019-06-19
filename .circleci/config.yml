@@ -320,9 +320,9 @@ jobs:
           command: |
             ./scripts/install-kubectl.sh
       - run:
-           name: "Install GKE deps"
-           command: |
-             ./scripts/gke/install-gcloud-sdk.sh
+          name: "Install GKE deps"
+          command: |
+            ./scripts/gke/install-gcloud-sdk.sh
       - run:
           name: "Install Azure deps"
           command: |
