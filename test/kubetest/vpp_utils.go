@@ -14,7 +14,7 @@ import (
 
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployICMP(k8s, node, name, timeout,
+	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.VppTestCommonPod("vppagent-icmp-responder-nse", name, "icmp-responder-nse", node,
 			defaultICMPEnv(k8s.UseIPv6()),
 		),
@@ -23,7 +23,7 @@ func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Durat
 
 // DeployVppAgentNSC - Setup Default VPP Based Client
 func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, node, name, "vppagent-nsc", timeout,
+	return deployNSC(k8s, nodeName(node), name, "vppagent-nsc", timeout,
 		pods.VppTestCommonPod("vppagent-nsc", name, "vppagent-nsc", node,
 			defaultNSCEnv(),
 		),

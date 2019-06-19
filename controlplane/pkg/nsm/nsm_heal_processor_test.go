@@ -45,7 +45,7 @@ type healTestData struct {
 	connectionManager *connectionManagerStub
 	nseManager        *nseManagerStub
 
-	healProcessor *nsmHealProcessor
+	healProcessor *healProcessor
 }
 
 func newHealTestData() *healTestData {
@@ -68,7 +68,7 @@ func newHealTestData() *healTestData {
 		nses:       []*registry.NSERegistration{},
 	}
 
-	data.healProcessor = &nsmHealProcessor{
+	data.healProcessor = &healProcessor{
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
 		properties: &nsm.NsmProperties{
@@ -310,22 +310,20 @@ func (stub *connectionManagerStub) request(ctx context.Context, request networks
 	return nsmConnection, nil
 }
 
-func (stub *connectionManagerStub) close(ctx context.Context, clientConnection *model.ClientConnection, closeDataplane, modelRemove bool) error {
+func (stub *connectionManagerStub) Close(ctx context.Context, clientConnection nsm.ClientConnection) error {
 	if stub.closeError != nil {
 		return stub.closeError
 	}
 
-	clientConnection.ConnectionState = model.ClientConnectionClosing
+	cc := clientConnection.(*model.ClientConnection)
 
-	stub.model.DeleteEndpoint(clientConnection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+	stub.model.ApplyClientConnectionChanges(cc.GetID(), func(connection *model.ClientConnection) {
+		connection.ConnectionState = model.ClientConnectionClosing
+	})
 
-	if closeDataplane {
-		stub.model.DeleteDataplane(clientConnection.DataplaneRegisteredName)
-		clientConnection.DataplaneState = model.DataplaneStateNone
-		if modelRemove {
-			stub.model.DeleteClientConnection(clientConnection.ConnectionID)
-		}
-	}
+	stub.model.DeleteEndpoint(cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+	stub.model.DeleteDataplane(cc.DataplaneRegisteredName)
+	stub.model.DeleteClientConnection(cc.GetID())
 
 	return nil
 }
