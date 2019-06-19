@@ -35,7 +35,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 	NSMs := make(map[string]*registry.NetworkServiceManager)
 	endpointIds := []string{}
 	for i, endpoint := range endpointList {
-		NSEs[i] = mapNseFromCustomResource(endpoint, payload)
+		NSEs[i] = mapNseFromCustomResource(endpoint)
 		endpointIds = append(endpointIds, NSEs[i].EndpointName)
 		nsm, err := d.cache.GetNetworkServiceManager(endpoint.Spec.NsmName)
 		if err != nil {

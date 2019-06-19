@@ -45,7 +45,9 @@ const (
 
 // Network service manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
+	networkServiceHealProcessor
 	sync.RWMutex
+
 	serviceRegistry  serviceregistry.ServiceRegistry
 	model            model.Model
 	excludedPrefixes prefix_pool.PrefixPool
@@ -54,8 +56,7 @@ type networkServiceManager struct {
 	errCh            chan error
 	renamedEndpoints map[string]string
 
-	healProcessor networkServiceHealProcessor
-	nseManager    networkServiceEndpointManager
+	nseManager networkServiceEndpointManager
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
@@ -78,19 +79,18 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		properties:       properties,
 		stateRestored:    make(chan bool, 1),
 		errCh:            make(chan error, 1),
+		renamedEndpoints: make(map[string]string),
 
 		nseManager: nseManager,
 	}
 
-	srv.healProcessor = &nsmHealProcessor{
-		serviceRegistry: serviceRegistry,
-		model:           model,
-		properties:      properties,
-
-		conManager: srv,
-		nseManager: nseManager,
-	}
-	srv.renamedEndpoints = make(map[string]string)
+	srv.networkServiceHealProcessor = newNetworkServiceHealProcessor(
+		serviceRegistry,
+		model,
+		properties,
+		srv,
+		nseManager,
+	)
 
 	go srv.monitorExcludePrefixes()
 	return srv
