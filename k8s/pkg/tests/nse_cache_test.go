@@ -167,6 +167,7 @@ func newTestNse(name string, networkServiceName string) *v1.NetworkServiceEndpoi
 		},
 		Spec: v1.NetworkServiceEndpointSpec{
 			NetworkServiceName: networkServiceName,
+			Payload:            "IP",
 			NsmName:            "nsm1",
 		},
 		Status: v1.NetworkServiceEndpointStatus{

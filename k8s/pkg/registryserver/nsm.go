@@ -40,15 +40,9 @@ func (n *nsmRegistryService) RegisterNSM(ctx context.Context, nsm *registry.Netw
 func (n *nsmRegistryService) GetEndpoints(context.Context, *empty.Empty) (*registry.NetworkServiceEndpointList, error) {
 	logrus.Info("Received GetEndpoints")
 
-	endpoints := n.cache.GetEndpointsByNsm(n.nsmName)
 	var response []*registry.NetworkServiceEndpoint
-	for _, endpoint := range endpoints {
-		ns, err := n.cache.GetNetworkService(endpoint.Spec.NetworkServiceName)
-		if err != nil {
-			logrus.Error(err)
-			return nil, err
-		}
-		response = append(response, mapNseFromCustomResource(endpoint, ns.Spec.Payload))
+	for _, endpoint := range n.cache.GetEndpointsByNsm(n.nsmName) {
+		response = append(response, mapNseFromCustomResource(endpoint))
 	}
 
 	logrus.Infof("GetEndpoints return: %v", response)
