@@ -313,24 +313,24 @@ jobs:
             sudo ./.circleci/install-yq.sh
       - run:
           command: |
-            ./.circleci/set-nameserver.sh sudo
+            sudo ./.circleci/set-nameserver.sh sudo
             sudo apt-get install gettext-base
       - run:
           name: "Install kubectl"
           command: |
-            ./scripts/install-kubectl.sh
+            sudo ./scripts/install-kubectl.sh
       - run:
           name: "Install GKE deps"
           command: |
-            ./scripts/gke/install-gcloud-sdk.sh
+            sudo ./scripts/gke/install-gcloud-sdk.sh
       - run:
           name: "Install Azure deps"
           command: |
-            ./scripts/azure/install-azure-cli.sh
+            sudo ./scripts/azure/install-azure-cli.sh
       - run:
           name: "Init AWS"
           command: |
-            ./scripts/aws/aws-init.sh
+            sudo ./scripts/aws/aws-init.sh
       - run:
           name: Downloading go deps
           command: |
