@@ -347,11 +347,6 @@ jobs:
             CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
             ./cloudtest
           no_output_timeout: 40m
-      - run:
-          when: always
-          name: Save postmortem data
-          command: |
-            make << parameters.cloud_provider >>-download-postmortem
       - store_test_results:
           path: .tests/cloud_test/junit.xml
       - store_artifacts:
