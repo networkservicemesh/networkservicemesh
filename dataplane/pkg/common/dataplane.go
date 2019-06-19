@@ -62,6 +62,7 @@ const (
 	DataplaneSrcIPKey                    = "NSM_DATAPLANE_SRC_IP"
 )
 
+// DataplaneConfigCommon keeps the common configuration for a forwarding plane
 type DataplaneConfigCommon struct {
 	Name                string
 	NSMBaseDir          string
