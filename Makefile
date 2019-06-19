@@ -15,6 +15,10 @@
 # We want to use bash
 SHELL:=/bin/bash
 
+# folder to variable
+REPO_FOLDER ?= $(shell pwd)
+export REPO_FOLDER
+
 # Set number of VM workers to be spawned
 WORKER_COUNT ?= 1
 

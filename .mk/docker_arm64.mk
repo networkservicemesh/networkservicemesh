@@ -16,7 +16,7 @@
 docker-build-arm64: $(addsuffix -build-arm64,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build-arm64
-docker-%-build-arm64:
+docker-%-build-arm64: install-qemu
 	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} -t ${ORG}/$*-arm64 -f docker/Dockerfile.$*-arm64 . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$*-arm64 ${ORG}/$*-arm64:${COMMIT} ;\

@@ -8,15 +8,19 @@ ifeq (${BUILD_ARCH}, arm64)
 endif
 
 .PHONY: docker-vppagent-dataplane-dev-build
-docker-vppagent-dataplane-dev-build: docker-vppagent-dataplane-build
+docker-vppagent-dataplane-dev-build: docker-vppagent-dataplane-build install-qemu
 	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VPP_DEV=${VPP_AGENT_DEV} --build-arg REPO=${ORG}  --build-arg VERSION=${VERSION}  -t ${ORG}/vppagent-dataplane-dev -f docker/Dockerfile.vppagent-dataplane-dev . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/vppagent-dataplane-dev ${ORG}/vppagent-dataplane-dev:${COMMIT} ;\
 	fi
 
 .PHONY: docker-vppagent-dataplane-dev-build-arm64
-docker-vppagent-dataplane-dev-build-arm64: docker-vppagent-dataplane-build-arm64
+docker-vppagent-dataplane-dev-build-arm64: docker-vppagent-dataplane-build-arm64 install-qemu
 	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VPP_DEV=${VPP_AGENT_DEV} --build-arg REPO=${ORG} -t ${ORG}/vppagent-dataplane-dev-arm64 -f docker/Dockerfile.vppagent-dataplane-dev-arm64 . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/vppagent-dataplane-dev-arm64 ${ORG}/vppagent-dataplane-dev-arm64:${COMMIT} ;\
 	fi
+
+.PHONY: install-qemu
+install-qemu:
+	./scripts/install-qemu-user-static.sh ${REPO_FOLDER} > /dev/null
