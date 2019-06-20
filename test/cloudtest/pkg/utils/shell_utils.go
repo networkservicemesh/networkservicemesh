@@ -190,12 +190,9 @@ func RunCommand(context context.Context, id, cmd, operation string, writer *bufi
 		return "", fmt.Errorf("failed to run %s %v", cmdLine, err)
 	}
 
-	var builder *strings.Builder = nil
-	if returnStdout {
-		builder = &strings.Builder{}
-	}
-	processOutput(proc.Stdout, writer, id, operation, "StdOut", builder)
-	processOutput(proc.Stderr, writer, id, operation, "StdErr", nil)
+	builder := strings.Builder{}
+	processOutput(proc.Stdout, writer, id, operation, "StdOut", &builder, returnStdout)
+	processOutput(proc.Stderr, writer, id, operation, "StdErr", nil, false)
 	if code := proc.ExitCode(); code != 0 {
 		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
 		return "", fmt.Errorf("failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
@@ -206,7 +203,7 @@ func RunCommand(context context.Context, id, cmd, operation string, writer *bufi
 	return "", nil
 }
 
-func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string, builder io.StringWriter) {
+func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string, builder io.StringWriter, returnStdout bool) {
 	go func() {
 		reader := bufio.NewReader(stream)
 		for {
@@ -219,7 +216,7 @@ func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, patter
 			if (len(strings.TrimSpace(s)) > 0) {
 				logrus.Infof("%s: %s => %s %v", pattern, id, operation, s)
 			}
-			if builder != nil {
+			if returnStdout {
 				_, _ = builder.WriteString(strings.TrimSpace(s) + "\n")
 			}
 		}

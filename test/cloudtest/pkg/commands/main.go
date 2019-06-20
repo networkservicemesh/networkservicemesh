@@ -103,6 +103,7 @@ type executionContext struct {
 	factory          k8s.ValidationFactory
 	arguments        *Arguments
 }
+
 // CloudTestRun - CloudTestRun
 func CloudTestRun(cmd *cloudTestCmd) {
 	var configFileContent []byte
@@ -344,7 +345,7 @@ func (ctx *executionContext) printStatistics() {
 	for _, cl := range ctx.clusters {
 		clustersMsg += fmt.Sprintf("\t\tCluster: %v\n", cl.config.Name)
 		for _, inst := range cl.instances {
-			clustersMsg += fmt.Sprintf("\t\t\t%s %v uptime: %v\n", inst.id, inst.state,
+			clustersMsg += fmt.Sprintf("\t\t\t%s %v uptime: %v\n", inst.id, fromClusterState(inst.state),
 				time.Since(inst.startTime))
 		}
 	}
@@ -366,6 +367,24 @@ func (ctx *executionContext) printStatistics() {
 		elapsedRunning, len(ctx.completed),
 		remaining, len(ctx.running)+len(ctx.tasks),
 		running, clustersMsg)
+}
+
+func fromClusterState(state clusterState) string {
+	switch state {
+	case clusterReady:
+		return "ready"
+	case clusterAdded:
+		return "added"
+	case clusterBusy:
+		return "running test"
+	case clusterCrashed:
+		return "crashed"
+	case clusterNotAvailable:
+		return "not available"
+	case clusterStarting:
+		return "starting"
+	}
+	return fmt.Sprintf("unknown state: %v", state)
 }
 
 func (ctx *executionContext) createTasks() {
