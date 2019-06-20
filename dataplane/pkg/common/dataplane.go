@@ -217,7 +217,9 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 
 	// Start the server
 	logrus.Infof("Creating %s server...", config.Name)
-	go config.GRPCserver.Serve(config.Listener)
+	go func() {
+		_ = config.GRPCserver.Serve(config.Listener)
+	}()
 	logrus.Infof("%s server serving", config.Name)
 
 	logrus.Debugf("Starting the %s dataplane server took: %s", config.Name, time.Since(start))
