@@ -252,7 +252,7 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 			break
 		}
 		select {
-		case <-time.After(10* time.Second):
+		case <-time.After(10 * time.Second):
 			continue
 		case <-context.Done():
 			_, _ = writer.WriteString(fmt.Sprintf("Timeout"))
@@ -341,7 +341,7 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", pi.id)
-	if( pi.client != nil) {
+	if (pi.client != nil) {
 		response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
 		pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
 		for key, device := range pi.devices {
@@ -395,7 +395,7 @@ func (pi *packetInstance) updateProject() error {
 		}
 	}
 
-	pi.manager.AddLog(pi.id, "list-projects", out.String() )
+	pi.manager.AddLog(pi.id, "list-projects", out.String())
 
 	if pi.project == nil {
 		err := fmt.Errorf("%s - specified project are not found on Packet %v", pi.id, pi.projectID)
@@ -411,51 +411,62 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	out := strings.Builder{}
 	keyFileContent, err := utils.ReadFile(keyFile)
 	if err != nil {
-		out.WriteString(fmt.Sprintf("Failed to read key file %s", keyFile))
+		_,_ = out.WriteString(fmt.Sprintf("Failed to read key file %s", keyFile))
 		pi.manager.AddLog(pi.id, "create-key", out.String())
 		logrus.Errorf("Failed to read file %v %v", keyFile, err)
 		return nil, err
 	}
 
-	out.WriteString(fmt.Sprintf("Key file %s readed ok", keyFile))
+	_,_ = out.WriteString(fmt.Sprintf("Key file %s readed ok", keyFile))
 
 	keyRequest := &packngo.SSHKeyCreateRequest{
 		ProjectID: pi.project.ID,
 		Label:     pi.keyID,
 		Key:       strings.Join(keyFileContent, "\n"),
 	}
-	sshKey, _, _ := pi.client.SSHKeys.Create(keyRequest)
+	sshKey, response, err := pi.client.SSHKeys.Create(keyRequest)
 
-	sshKeys, response, err := pi.client.SSHKeys.List()
+	createMsg := fmt.Sprintf("Create key %v %v %v", sshKey, response.String(), err)
+	_,_ = out.WriteString(createMsg)
+	logrus.Infof("%s-%v", pi.id, createMsg)
 
 	keyIds := []string{}
-	for k := 0; k < len(sshKeys); k++ {
-		kk := &sshKeys[k]
-		if kk.Label == pi.keyID {
-			sshKey = &packngo.SSHKey{
-				ID:          kk.ID,
-				Label:       kk.Label,
-				URL:         kk.URL,
-				User:        kk.User,
-				Key:         kk.Key,
-				FingerPrint: kk.FingerPrint,
-				Created:     kk.Created,
-				Updated:     kk.Updated,
-			}
-		}
-		out.WriteString(fmt.Sprintf("Added key key %v\n", kk))
-		keyIds = append(keyIds, kk.ID)
-	}
 
-	if sshKey == nil && err != nil {
-		out.WriteString(fmt.Sprintf("Failed to create ssh key %v %v", sshKey, err))
+	if sshKey == nil {
+		// try to find key.
+		sshKeys, response, err := pi.client.SSHKeys.List()
+		if err != nil {
+			_,_ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
+		}
+		for k := 0; k < len(sshKeys); k++ {
+			kk := &sshKeys[k]
+			if kk.Label == pi.keyID {
+				sshKey = &packngo.SSHKey{
+					ID:          kk.ID,
+					Label:       kk.Label,
+					URL:         kk.URL,
+					User:        kk.User,
+					Key:         kk.Key,
+					FingerPrint: kk.FingerPrint,
+					Created:     kk.Created,
+					Updated:     kk.Updated,
+				}
+			}
+			_,_ = out.WriteString(fmt.Sprintf("Added key key %v\n", kk))
+			keyIds = append(keyIds, kk.ID)
+		}
+	} else {
+		keyIds = append(keyIds, sshKey.ID)
+	}
+	pi.sshKey = sshKey
+	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v\n %s", sshKey, response, err, out.String()))
+
+	if sshKey == nil {
+		_,_ = out.WriteString(fmt.Sprintf("Failed to create ssh key %v %v", sshKey, err))
 		pi.manager.AddLog(pi.id, "create-key", out.String())
 		logrus.Errorf("Failed to create ssh key %v", err)
 		return nil, err
 	}
-
-	pi.sshKey = sshKey
-	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v\n %s", sshKey, response, err, out.String()))
 	return keyIds, nil
 }
 
