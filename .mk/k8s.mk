@@ -19,24 +19,27 @@ DEPLOY_TRACING = jaeger
 DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
+DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL)
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
   # Deployments - VPP plane
   DEPLOY_FORWARDING_PLANE = vppagent-dataplane
   DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
   DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
-  DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_MONITOR)
-  DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL) $(DEPLOY_ICMP_VPP)
+  DEPLOY_ICMP += $(DEPLOY_ICMP_VPP)
 else ifeq (${FORWARDING_PLANE}, kernel-forwarder)
   # Deployments - Kernel plane
   DEPLOY_FORWARDING_PLANE = kernel-forwarder
-  DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL)
-  DEPLOY_INFRA = $(DEPLOY_WEBHOOK)
 endif
 # Deployments - grouped
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
-DEPLOY_INFRA += $(DEPLOY_NSM)
+# Temporary limit the infra deployment
+ifeq (${FORWARDING_PLANE}, vpp)
+  DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_MONITOR) $(DEPLOY_NSM)
+else ifeq (${FORWARDING_PLANE}, kernel-forwarder)
+  DEPLOY_INFRA = $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
+endif
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
