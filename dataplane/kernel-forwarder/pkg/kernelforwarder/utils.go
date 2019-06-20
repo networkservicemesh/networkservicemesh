@@ -27,7 +27,12 @@ import (
 	"runtime"
 )
 
-type KernelConnectionConfig struct {
+type kernelConnectionConfig struct {
+	local *connectionConfig
+	remote *connectionConfig
+}
+
+type connectionConfig struct {
 	srcNsPath string
 	dstNsPath string
 	srcName   string
@@ -46,13 +51,13 @@ func handleKernelConnectionLocal(crossConnect *crossconnect.CrossConnect, connec
 			return crossConnect, err
 		}
 		/* 2. Get namespace handlers from their path - source and destination */
-		srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
+		srcNsHandle, err := netns.GetFromPath(cfg.local.srcNsPath)
 		defer srcNsHandle.Close()
 		if err != nil {
 			logrus.Errorf("Failed to get source namespace handler from path - %v", err)
 			return crossConnect, err
 		}
-		dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
+		dstNsHandle, err := netns.GetFromPath(cfg.local.dstNsPath)
 		defer dstNsHandle.Close()
 		if err != nil {
 			logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
@@ -64,8 +69,8 @@ func handleKernelConnectionLocal(crossConnect *crossconnect.CrossConnect, connec
 			return crossConnect, err
 		}
 		/* 4. Bring up and configure each pair end with its IP address */
-		setupVETHEnd(srcNsHandle, cfg.srcName, cfg.srcIP)
-		setupVETHEnd(dstNsHandle, cfg.dstName, cfg.dstIP)
+		setupVETHEnd(srcNsHandle, cfg.local.srcName, cfg.local.srcIP)
+		setupVETHEnd(dstNsHandle, cfg.local.dstName, cfg.local.dstIP)
 	}
 	/* Delete a connection */
 	return crossConnect, nil
@@ -75,12 +80,10 @@ func handleKernelConnectionRemote(crossConnect *crossconnect.CrossConnect, conne
 	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming connection */
-		logrus.Info("Incoming connection - remote source/local destination")
 		return handleKernelConnectionRemoteIncoming(crossConnect, connect)
 	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing connection */
-		logrus.Info("Outgoing connection - local source/remote destination")
 		return handleKernelConnectionRemoteOutgoing(crossConnect, connect)
 	} else {
 		logrus.Errorf("Remote connection is not supported yet.")
@@ -89,8 +92,25 @@ func handleKernelConnectionRemote(crossConnect *crossconnect.CrossConnect, conne
 }
 
 func handleKernelConnectionRemoteIncoming(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	logrus.Info("Incoming connection - remote source/local destination")
 	/* Create a connection */
 	if connect {
+		/* 1. Get the connection configuration */
+		cfg, err := getConnectionConfig(crossConnect)
+		if err != nil {
+			logrus.Errorf("Failed to get the configuration for local connection - %v", err)
+			return crossConnect, err
+		}
+		/* 2. Get namespace handler from path - destination */
+		dstNsHandle, err := netns.GetFromPath(cfg.local.dstNsPath)
+		defer dstNsHandle.Close()
+		if err != nil {
+			logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
+			return crossConnect, err
+		}
+		/* 3. Create a VETH pair and inject each end in the corresponding namespace */
+
+		/* 4. Bring up and configure each pair end with its IP address */
 
 	}
 	/* Delete a connection */
@@ -98,6 +118,7 @@ func handleKernelConnectionRemoteIncoming(crossConnect *crossconnect.CrossConnec
 }
 
 func handleKernelConnectionRemoteOutgoing(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	logrus.Info("Outgoing connection - local source/remote destination")
 	/* Create a connection */
 	if connect {
 
@@ -106,7 +127,7 @@ func handleKernelConnectionRemoteOutgoing(crossConnect *crossconnect.CrossConnec
 	return crossConnect, nil
 }
 
-func getConnectionConfig(crossConnect *crossconnect.CrossConnect) (*KernelConnectionConfig, error) {
+func getConnectionConfig(crossConnect *crossconnect.CrossConnect) (*kernelConnectionConfig, error) {
 	srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
 	if err != nil {
 		logrus.Errorf("Failed to get source namespace path - %v", err)
@@ -117,13 +138,15 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect) (*KernelConnec
 		logrus.Errorf("Failed to get destination namespace path - %v", err)
 		return nil, err
 	}
-	return &KernelConnectionConfig{
-		srcNsPath: srcNsPath,
-		dstNsPath: dstNsPath,
-		srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-		dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-		srcIP:     crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
-		dstIP:     crossConnect.GetLocalSource().GetContext().GetDstIpAddr(),
+	return &kernelConnectionConfig{
+		local: &connectionConfig{
+			srcNsPath: srcNsPath,
+			dstNsPath: dstNsPath,
+			srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			srcIP:     crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
+			dstIP:     crossConnect.GetLocalSource().GetContext().GetDstIpAddr(),
+		},
 	}, nil
 }
 
@@ -159,14 +182,14 @@ func setupVETHEnd(nsHandle netns.NsHandle, ifName, addrIP string) {
 	netns.Set(oNsHandle)
 }
 
-func createVETH(cfg *KernelConnectionConfig, srcNsHandle, dstNsHandle netns.NsHandle) error {
+func createVETH(cfg *kernelConnectionConfig, srcNsHandle, dstNsHandle netns.NsHandle) error {
 	/* Initial VETH configuration */
 	cfgVETH := &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
-			Name: cfg.srcName,
+			Name: cfg.local.srcName,
 			MTU:  16000,
 		},
-		PeerName: cfg.dstName,
+		PeerName: cfg.local.dstName,
 	}
 
 	/* Create the VETH pair - host namespace */
@@ -176,12 +199,12 @@ func createVETH(cfg *KernelConnectionConfig, srcNsHandle, dstNsHandle netns.NsHa
 	}
 
 	/* Get a link for each VETH pair ends */
-	srcLink, err := netlink.LinkByName(cfg.srcName)
+	srcLink, err := netlink.LinkByName(cfg.local.srcName)
 	if err != nil {
 		logrus.Errorf("Failed to get source link from name - %v", err)
 		return err
 	}
-	dstLink, err := netlink.LinkByName(cfg.dstName)
+	dstLink, err := netlink.LinkByName(cfg.local.dstName)
 	if err != nil {
 		logrus.Errorf("Failed to get destination link from name - %v", err)
 		return err
