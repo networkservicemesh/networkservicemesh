@@ -1,6 +1,7 @@
-package security
+package test
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -8,54 +9,116 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/security"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/examples/helloworld/helloworld"
 	"math/big"
 	"net"
-	"testing"
 	"time"
 )
 
-const (
-	testDomain   = "test.com"
-	testSpiffeID = "spiffe://test.com/test"
-)
+var oidSanExtension = []int{2, 5, 29, 17}
 
-type testSimpleCertificateObtainer struct {
-	cert *RetrievedCerts
+type helloSrv struct {
+	p    *party
+	next string
+	me   string
 }
 
-func newTestCertificateObtainer() (CertificateObtainer, error) {
-	ca, err := generateCA()
-	if err != nil {
-		return nil, err
-	}
-
-	return newTestCertificateObtainerWithCA(ca)
+type party struct {
+	security.Manager
+	srv        *grpc.Server
+	client     helloworld.GreeterClient
+	closeFuncs []func()
 }
 
-func newTestCertificateObtainerWithCA(caTLS tls.Certificate) (CertificateObtainer, error) {
-	caX509, err := x509.ParseCertificate(caTLS.Certificate[0])
+func createParty(spiffeID string, port int, ca *tls.Certificate, next, name string) (*party, error) {
+	rv := &party{}
+
+	obt, err := newSimpleCertObtainerWithCA(spiffeID, ca)
 	if err != nil {
 		return nil, err
 	}
 
-	caPool := x509.NewCertPool()
-	caPool.AddCert(caX509)
-
-	crt, err := generateKeyPair(testSpiffeID, &caTLS)
+	rv.Manager = security.NewManagerWithCertObtainer(obt)
+	rv.srv, err = rv.NewServer()
 	if err != nil {
 		return nil, err
 	}
 
-	return &testSimpleCertificateObtainer{
-		cert: &RetrievedCerts{
-			caBundle: caPool,
-			keyPair:  &crt,
-		},
-	}, nil
+	helloworld.RegisterGreeterServer(rv.srv, &helloSrv{
+		p:    rv,
+		next: next,
+		me:   name,
+	})
+
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return nil, err
+	}
+	go rv.srv.Serve(ln)
+
+	rv.closeFuncs = []func(){
+		func() { _ = ln.Close() },
+	}
+	return rv, nil
+}
+
+func (p *party) SayHello(msg, target, obo string) (*helloworld.HelloReply, error) {
+	if p.client == nil {
+		conn, err := p.DialContext(context.Background(), target)
+		if err != nil {
+			return nil, err
+		}
+		p.closeFuncs = append(p.closeFuncs, func() { _ = conn.Close() })
+		p.client = helloworld.NewGreeterClient(conn)
+	}
+
+	jwt, err := p.GenerateJWT("networkservice", obo)
+	if err != nil {
+		return nil, err
+	}
+
+	cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
+	request := &helloworld.HelloRequest{Name: msg}
+	return p.client.SayHello(context.Background(), request, cred)
+}
+
+func (p *party) Close() {
+	for _, f := range p.closeFuncs {
+		f()
+	}
+}
+
+func (s *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+	logrus.Infof("Receive SayHello, spiffeID = %s", ctx.Value("spiffeID"))
+	logrus.Infof("obo = %s", ctx.Value("obo"))
+	logrus.Infof("next = %s", s.next)
+	logrus.Infof("me = %s", s.me)
+
+	if s.next != "" {
+		//return s.p.SayHello(r.Name+"msg2", s.next, ctx.Value("obo").(string))
+		conn, err := s.p.DialContext(context.Background(), s.next)
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+		client := helloworld.NewGreeterClient(conn)
+
+		jwt, err := s.p.GenerateJWT("networkservice", ctx.Value("obo").(string))
+		if err != nil {
+			return nil, err
+		}
+
+		cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
+		request := &helloworld.HelloRequest{Name: r.Name + s.me}
+
+		return client.SayHello(ctx, request, cred)
+	}
+
+	return &helloworld.HelloReply{Message: r.GetName() + s.me}, nil
 }
 
 func generateCA() (tls.Certificate, error) {
@@ -143,20 +206,6 @@ func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, 
 	return tls.X509KeyPair(certPem, keyPem)
 }
 
-func (t *testSimpleCertificateObtainer) ObtainCertificates() <-chan *RetrievedCerts {
-	certCh := make(chan *RetrievedCerts, 1)
-	certCh <- t.cert
-	close(certCh)
-	return certCh
-}
-
-func (*testSimpleCertificateObtainer) Stop() {
-}
-
-func (*testSimpleCertificateObtainer) Error() error {
-	return nil
-}
-
 func verify(crt *tls.Certificate, caBundle *x509.CertPool) error {
 	crtX509, err := x509.ParseCertificate(crt.Certificate[0])
 	if err != nil {
@@ -168,71 +217,41 @@ func verify(crt *tls.Certificate, caBundle *x509.CertPool) error {
 	return err
 }
 
-func TestSimpleCertCreation(t *testing.T) {
-	RegisterTestingT(t)
+func createPartyWithCA(spiffeID string, caTLS tls.Certificate) (security.Manager, error) {
+	obt, err := newSimpleCertObtainerWithCA(spiffeID, &caTLS)
+	if err != nil {
+		return nil, err
+	}
 
+	return security.NewManagerWithCertObtainer(obt), nil
+}
+
+func createParties() (security.Manager, security.Manager, error) {
 	ca, err := generateCA()
-	Expect(err).To(BeNil())
+	if err != nil {
+		return nil, nil, err
+	}
 
-	caX509, err := x509.ParseCertificate(ca.Certificate[0])
-	Expect(err).To(BeNil())
+	p1, err := createPartyWithCA(testSpiffeID, ca)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	roots := x509.NewCertPool()
-	roots.AddCert(caX509)
+	p2, err := createPartyWithCA(testSpiffeID, ca)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	crt, err := generateKeyPair(testSpiffeID, &ca)
-	Expect(err).To(BeNil())
-
-	err = verify(&crt, roots)
-	Expect(err).To(BeNil())
+	return p1, p2, nil
 }
 
-func TestSimpleCertObtainer(t *testing.T) {
-	RegisterTestingT(t)
+func caToBundle(caTLS *tls.Certificate) (*x509.CertPool, error) {
+	caX509, err := x509.ParseCertificate(caTLS.Certificate[0])
+	if err != nil {
+		return nil, err
+	}
 
-	obt, err := newTestCertificateObtainer()
-	Expect(err).To(BeNil())
-
-	mgr := NewManagerWithCertObtainer(obt)
-
-	crt := mgr.GetCertificate()
-	ca := mgr.GetCABundle()
-	verify(crt, ca)
-}
-
-type helloSrv struct{}
-
-func (hs *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	return &helloworld.HelloReply{Message: r.GetName()}, nil
-}
-
-func TestClientServer(t *testing.T) {
-	RegisterTestingT(t)
-
-	obt, err := newTestCertificateObtainer()
-	Expect(err).To(BeNil())
-
-	mgr := NewManagerWithCertObtainer(obt)
-
-	srv, err := mgr.NewServer()
-	Expect(err).To(BeNil())
-
-	helloworld.RegisterGreeterServer(srv, &helloSrv{})
-
-	ln, err := net.Listen("tcp", ":3434")
-	Expect(err).To(BeNil())
-	defer ln.Close()
-	go srv.Serve(ln)
-
-	secureConn, err := mgr.DialContext(context.Background(), ":3434")
-	Expect(err).To(BeNil())
-	defer secureConn.Close()
-
-	gc := helloworld.NewGreeterClient(secureConn)
-	response, err := gc.SayHello(context.Background(), &helloworld.HelloRequest{Name: "testName"})
-	Expect(err).To(BeNil())
-	Expect(response.Message).To(Equal("testName"))
-
-	_, err = grpc.DialContext(context.Background(), ":3434")
-	Expect(err).ToNot(BeNil())
+	caPool := x509.NewCertPool()
+	caPool.AddCert(caX509)
+	return caPool, nil
 }

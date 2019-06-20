@@ -94,7 +94,7 @@ func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, er
 	}
 
 	return &RetrievedCerts{
-		keyPair:  &keyPair,
-		caBundle: caPool,
+		TLSCert:  &keyPair,
+		CABundle: caPool,
 	}, nil
 }
