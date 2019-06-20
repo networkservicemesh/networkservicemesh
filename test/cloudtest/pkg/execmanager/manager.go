@@ -48,7 +48,7 @@ func (mgr *executionManagerImpl) getCategory(category string) string {
 		val = 1
 	}
 	mgr.steps[category] = val
-	return fmt.Sprintf("%d", val)
+	return fmt.Sprintf("%03d", val)
 }
 
 func (mgr *executionManagerImpl) AddFile(fileName string, bytes []byte) {

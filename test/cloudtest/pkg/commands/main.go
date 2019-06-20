@@ -208,12 +208,12 @@ func (ctx *executionContext) performExecution() {
 			switch event.kind {
 			case eventClusterUpdate:
 				ctx.performClusterUpdate(event)
-
+				ctx.printStatistics()
 			case eventTaskUpdate:
 				// Remove from running onces.
 				ctx.processTaskUpdate(event)
 			}
-		case <-time.After(10 * time.Second):
+		case <-time.After(1 * time.Minute):
 			ctx.printStatistics()
 		case <-termChannel:
 			logrus.Errorf("Termination request is received")

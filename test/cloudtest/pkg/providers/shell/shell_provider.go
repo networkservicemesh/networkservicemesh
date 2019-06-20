@@ -166,7 +166,14 @@ func (si *shellInstance) Destroy(timeout time.Duration) error {
 
 	context, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return si.shellInterface.RunCmd(context, "destroy", si.stopScript, nil)
+	attempts := si.config.RetryCount
+	for {
+		err := si.shellInterface.RunCmd(context, fmt.Sprintf("destroy-%d", si.config.RetryCount - attempts), si.stopScript, nil)
+		if err == nil || attempts == 0 {
+			return err
+		}
+		attempts++
+	}
 }
 
 func (si *shellInstance) GetRoot() string {

@@ -1,6 +1,7 @@
 package packet
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
@@ -224,6 +225,13 @@ func (pi *packetInstance) addDeviceContextArguments() {
 }
 
 func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
+	_, fileId, err := pi.manager.OpenFile(pi.id, "wait-nodes")
+	if err != nil {
+		return err
+	}
+
+	writer := bufio.NewWriter(fileId)
+	defer func() { _ = fileId.Close() }()
 	for {
 		alive := map[string]*packngo.Device{}
 		for key, d := range pi.devices {
@@ -234,24 +242,30 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 			} else if updatedDevice.State == "active" {
 				alive[key] = updatedDevice
 			}
+			msg := fmt.Sprintf("Checking status %v %v %v", key, d.ID, updatedDevice.State)
+			_, _ = writer.WriteString(msg)
+			_ = writer.Flush()
+			logrus.Infof("%v-%v", pi.id, msg)
 		}
 		if len(alive) == len(pi.devices) {
 			pi.devices = alive
 			break
 		}
 		select {
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(10* time.Second):
 			continue
 		case <-context.Done():
+			_, _ = writer.WriteString(fmt.Sprintf("Timeout"))
 			return fmt.Errorf("timeout %v", context.Err())
 		}
 	}
+	_, _ = writer.WriteString(fmt.Sprintf("All devices online"))
+	_ = writer.Flush()
 	return nil
 }
 
 func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.Device, error) {
 	devReq := &packngo.DeviceCreateRequest{
-		//Facility:
 		Plan:           devCfg.Plan,
 		Facility:       pi.facilitiesList,
 		Hostname:       devCfg.Name + "-" + pi.genID,
@@ -263,16 +277,18 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	var device *packngo.Device
 	var response *packngo.Response
 	device, response, err := pi.client.Devices.Create(devReq)
-	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), fmt.Sprintf("%v", response))
+	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), fmt.Sprintf("%v - %v", response, err))
 	return device, err
 }
 
 func (pi *packetInstance) findFacilities() ([]string, error) {
 	facilities, response, err := pi.client.Facilities.List(&packngo.ListOptions{})
 
-	pi.manager.AddLog(pi.id, "list-facilities", response.String())
+	out := strings.Builder{}
+	out.WriteString(fmt.Sprintf("%v\n%v\n", response.String(), err))
 
 	if err != nil {
+		pi.manager.AddLog(pi.id, "list-facilities", out.String())
 		return nil, err
 	}
 
@@ -294,10 +310,12 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 			facilitiesList = append(facilitiesList, f.Code)
 		}
 	}
-	logrus.Infof("List of facilities: %v %v", facilities, response)
+	msg := fmt.Sprintf("List of facilities: %v %v", facilities, response)
+	logrus.Infof(msg)
+	out.WriteString(msg)
+	pi.manager.AddLog(pi.id, "list-facilities", out.String())
 
 	// Randomize facilities.
-
 	ind := -1
 
 	if pi.config.Packet.PreferredFacility != "" {
@@ -359,7 +377,8 @@ func (pi *packetInstance) doInstall(context context.Context) error {
 func (pi *packetInstance) updateProject() error {
 	ps, response, err := pi.client.Projects.List(nil)
 
-	pi.manager.AddLog(pi.id, "list-projects", fmt.Sprintf("%v\n%v\n%v", ps, response, err))
+	out := strings.Builder{}
+	out.WriteString(fmt.Sprintf("%v\n%v\n", response, err))
 
 	if err != nil {
 		logrus.Errorf("Failed to list Packet projects")
@@ -367,12 +386,14 @@ func (pi *packetInstance) updateProject() error {
 
 	for i := 0; i < len(ps); i++ {
 		p := &ps[i]
+		out.WriteString(fmt.Sprintf("Project: %v\n %v", p.Name, p))
 		if p.ID == pi.projectID {
 			pp := ps[i]
 			pi.project = &pp
-			break
 		}
 	}
+
+	pi.manager.AddLog(pi.id, "list-projects", out.String() )
 
 	if pi.project == nil {
 		err := fmt.Errorf("%s - specified project are not found on Packet %v", pi.id, pi.projectID)
