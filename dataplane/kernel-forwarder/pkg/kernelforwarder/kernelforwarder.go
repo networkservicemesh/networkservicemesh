@@ -98,7 +98,7 @@ func (v *KernelForwarder) connectOrDisconnect(ctx context.Context, crossConnect 
 		return handleKernelConnectionLocal(crossConnect, connect)
 	}
 	/* 2. Handle remote connection */
-	return handleKernelConnectionRemote(ctx, crossConnect, connect)
+	return handleKernelConnectionRemote(crossConnect, connect)
 }
 
 func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {

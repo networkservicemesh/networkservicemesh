@@ -16,7 +16,6 @@
 package kernelforwarder
 
 import (
-	"context"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -72,8 +71,38 @@ func handleKernelConnectionLocal(crossConnect *crossconnect.CrossConnect, connec
 	return crossConnect, nil
 }
 
-func handleKernelConnectionRemote(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	logrus.Errorf("Remote connection is not supported yet.")
+func handleKernelConnectionRemote(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
+		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
+		/* 1. Incoming connection */
+		logrus.Info("Incoming connection - remote source/local destination")
+		return handleKernelConnectionRemoteIncoming(crossConnect, connect)
+	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
+		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
+		/* 2. Outgoing connection */
+		logrus.Info("Outgoing connection - local source/remote destination")
+		return handleKernelConnectionRemoteOutgoing(crossConnect, connect)
+	} else {
+		logrus.Errorf("Remote connection is not supported yet.")
+	}
+	return crossConnect, nil
+}
+
+func handleKernelConnectionRemoteIncoming(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	/* Create a connection */
+	if connect {
+
+	}
+	/* Delete a connection */
+	return crossConnect, nil
+}
+
+func handleKernelConnectionRemoteOutgoing(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	/* Create a connection */
+	if connect {
+
+	}
+	/* Delete a connection */
 	return crossConnect, nil
 }
 
