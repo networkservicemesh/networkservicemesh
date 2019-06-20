@@ -58,6 +58,7 @@ func (m *resyncManager) downstreamResync() {
 }
 
 func (m *resyncManager) isNeedToResync(id string, dataChange *configurator.Config) bool {
+	defer m.storedDataChanges.Store(id, dataChange)
 	if value, ok := m.storedDataChanges.Load(id); ok {
 		storedDataChange := value.(*configurator.Config)
 		if len(storedDataChange.LinuxConfig.Interfaces) != len((*dataChange).LinuxConfig.Interfaces) {
@@ -70,6 +71,5 @@ func (m *resyncManager) isNeedToResync(id string, dataChange *configurator.Confi
 			}
 		}
 	}
-	m.storedDataChanges.Store(id, dataChange)
 	return false
 }
