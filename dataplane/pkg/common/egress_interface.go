@@ -32,7 +32,8 @@ type ARPEntry struct {
 	PhysAddress string
 }
 
-type EgressInterface interface {
+// EgressInterfaceType describes the info about the egress interface used for tunneling
+type EgressInterfaceType interface {
 	SrcIPNet() *net.IPNet
 	DefaultGateway() *net.IP
 	Interface() *net.Interface
@@ -43,7 +44,7 @@ type EgressInterface interface {
 }
 
 type egressInterface struct {
-	EgressInterface
+	EgressInterfaceType
 	srcNet            *net.IPNet
 	iface             *net.Interface
 	defaultGateway    net.IP
@@ -140,7 +141,8 @@ func getArpEntries() ([]*ARPEntry, error) {
 	return arps, nil
 }
 
-func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
+// NewEgressInterface creates a new egress interface object
+func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -166,7 +168,7 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 		for _, addr := range addrs {
 			switch v := addr.(type) {
 			case *net.IPNet:
-				if v.IP.Equal(srcIp) {
+				if v.IP.Equal(srcIP) {
 					return &egressInterface{
 						srcNet:            v,
 						iface:             &iface,
@@ -180,7 +182,7 @@ func NewEgressInterface(srcIp net.IP) (EgressInterface, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("Unable to find interface with IP: %s", srcIp)
+	return nil, fmt.Errorf("unable to find interface with IP: %s", srcIP)
 }
 
 func (e *egressInterface) SrcIPNet() *net.IPNet {

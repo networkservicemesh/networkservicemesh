@@ -15,11 +15,11 @@
 BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s
 BUILD_CONTAINERS+=devenv crossconnect-monitor
 BUILD_CONTAINERS+=nsm-init
-BUILD_CONTAINERS+=test-common vpp-test-common
+BUILD_CONTAINERS+=test-common
 
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
-  BUILD_CONTAINERS+=vppagent-dataplane vppagent-dataplane-dev
+  BUILD_CONTAINERS+=vppagent-dataplane vppagent-dataplane-dev vpp-test-common
 endif
 
 
