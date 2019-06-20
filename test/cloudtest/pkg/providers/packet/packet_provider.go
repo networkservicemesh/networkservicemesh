@@ -225,13 +225,13 @@ func (pi *packetInstance) addDeviceContextArguments() {
 }
 
 func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
-	_, fileId, err := pi.manager.OpenFile(pi.id, "wait-nodes")
+	_, fileID, err := pi.manager.OpenFile(pi.id, "wait-nodes")
 	if err != nil {
 		return err
 	}
 
-	writer := bufio.NewWriter(fileId)
-	defer func() { _ = fileId.Close() }()
+	writer := bufio.NewWriter(fileID)
+	defer func() { _ = fileID.Close() }()
 	for {
 		alive := map[string]*packngo.Device{}
 		for key, d := range pi.devices {
@@ -277,7 +277,9 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	var device *packngo.Device
 	var response *packngo.Response
 	device, response, err := pi.client.Devices.Create(devReq)
-	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), fmt.Sprintf("%v - %v", response, err))
+	msg := fmt.Sprintf("%v - %v", response, err)
+	logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
+	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
 	return device, err
 }
 
@@ -285,7 +287,7 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 	facilities, response, err := pi.client.Facilities.List(&packngo.ListOptions{})
 
 	out := strings.Builder{}
-	out.WriteString(fmt.Sprintf("%v\n%v\n", response.String(), err))
+	_, _ = out.WriteString(fmt.Sprintf("%v\n%v\n", response.String(), err))
 
 	if err != nil {
 		pi.manager.AddLog(pi.id, "list-facilities", out.String())
@@ -312,7 +314,7 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 	}
 	msg := fmt.Sprintf("List of facilities: %v %v", facilities, response)
 	logrus.Infof(msg)
-	out.WriteString(msg)
+	_, _ = out.WriteString(msg)
 	pi.manager.AddLog(pi.id, "list-facilities", out.String())
 
 	// Randomize facilities.
@@ -378,7 +380,7 @@ func (pi *packetInstance) updateProject() error {
 	ps, response, err := pi.client.Projects.List(nil)
 
 	out := strings.Builder{}
-	out.WriteString(fmt.Sprintf("%v\n%v\n", response, err))
+	_, _ = out.WriteString(fmt.Sprintf("%v\n%v\n", response, err))
 
 	if err != nil {
 		logrus.Errorf("Failed to list Packet projects")
@@ -386,7 +388,7 @@ func (pi *packetInstance) updateProject() error {
 
 	for i := 0; i < len(ps); i++ {
 		p := &ps[i]
-		out.WriteString(fmt.Sprintf("Project: %v\n %v", p.Name, p))
+		_, _ = out.WriteString(fmt.Sprintf("Project: %v\n %v", p.Name, p))
 		if p.ID == pi.projectID {
 			pp := ps[i]
 			pi.project = &pp
@@ -406,11 +408,16 @@ func (pi *packetInstance) updateProject() error {
 func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	pi.keyID = "dev-ci-cloud-" + pi.genID
 
+	out := strings.Builder{}
 	keyFileContent, err := utils.ReadFile(keyFile)
 	if err != nil {
+		out.WriteString(fmt.Sprintf("Failed to read key file %s", keyFile))
+		pi.manager.AddLog(pi.id, "create-key", out.String())
 		logrus.Errorf("Failed to read file %v %v", keyFile, err)
 		return nil, err
 	}
+
+	out.WriteString(fmt.Sprintf("Key file %s readed ok", keyFile))
 
 	keyRequest := &packngo.SSHKeyCreateRequest{
 		ProjectID: pi.project.ID,
@@ -436,16 +443,19 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 				Updated:     kk.Updated,
 			}
 		}
+		out.WriteString(fmt.Sprintf("Added key key %v\n", kk))
 		keyIds = append(keyIds, kk.ID)
 	}
 
 	if sshKey == nil && err != nil {
+		out.WriteString(fmt.Sprintf("Failed to create ssh key %v %v", sshKey, err))
+		pi.manager.AddLog(pi.id, "create-key", out.String())
 		logrus.Errorf("Failed to create ssh key %v", err)
 		return nil, err
 	}
 
 	pi.sshKey = sshKey
-	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v", sshKey, response, err))
+	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v\n %s", sshKey, response, err, out.String()))
 	return keyIds, nil
 }
 
