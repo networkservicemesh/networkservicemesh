@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 dpkg -l | grep qemu-user-static
 retVal=$?
 if [ $retVal -ne 0 ]; then
