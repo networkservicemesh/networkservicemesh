@@ -1038,11 +1038,42 @@ func (k8s *K8s) GetForwardingPlane() string {
 	return k8s.forwardingPlane
 }
 
-// GetNSEs returns existing nse resources
+// GetNSEs returns existing 'nse' resources
 func (k8s *K8s) GetNSEs() ([]v1alpha1.NetworkServiceEndpoint, error) {
 	nseList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints("default").List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return nseList.Items, err
+}
+
+// DeleteNSEs deletes 'nse' resources by names
+func (k8s *K8s) DeleteNSEs(names ...string) error {
+	nseClient := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints("default")
+	for _, name := range names {
+		if err := nseClient.Delete(name, &metaV1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetNetworkServices returns existing 'networkservice' resources
+func (k8s *K8s) GetNetworkServices() ([]v1alpha1.NetworkService, error) {
+	networkServiceList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices("default").List(metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return networkServiceList.Items, err
+}
+
+// DeleteNetworkServices deletes 'networkservice' resources by names
+func (k8s *K8s) DeleteNetworkServices(names ...string) error {
+	networkServiceClient := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices("default")
+	for _, name := range names {
+		if err := networkServiceClient.Delete(name, &metaV1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
