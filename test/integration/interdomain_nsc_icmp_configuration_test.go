@@ -85,12 +85,15 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 	// Run ICMP on latest node
 	_ = kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[nodesCount - 1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nseInternalIP, err := kubetest.GetNodeInternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
-	Expect(err).To(BeNil())
+	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
+	if err != nil {
+		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
+		Expect(err).To(BeNil())
+	}
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
 		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseInternalIP),
+		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseExternalIP),
 	})
 
 	var nscInfo *kubetest.NSCCheckInfo

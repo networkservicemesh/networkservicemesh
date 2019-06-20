@@ -2,16 +2,26 @@ package proxyregistryserver
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 )
 
 type k8sClusterInfo struct {
 	clientset *kubernetes.Clientset
 }
 
-func NewK8sClusterInfoService(config *rest.Config) (*k8sClusterInfo, error) {
+func NewK8sClusterInfoService(config *rest.Config) (registry.ClusterInfoServer, error) {
 	cs, err := kubernetes.NewForConfig(config)
 
 	if err != nil {
@@ -23,34 +33,100 @@ func NewK8sClusterInfoService(config *rest.Config) (*k8sClusterInfo, error) {
 	}, nil
 }
 
-func (k *k8sClusterInfo) GetClusterPublicIP(nodeName string) (string, error) {
-	nodes, err := k.clientset.CoreV1().Nodes().List(metav1.ListOptions{})
+func (k *k8sClusterInfo) GetClusterConfiguration(ctx context.Context, in *empty.Empty) (*registry.ClusterConfiguration, error) {
+	logrus.Info("ClusterConfiguration request")
+	kubeadmConfig, err := k.clientset.CoreV1().
+		ConfigMaps("kube-system").
+		Get("kubeadm-config", metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		logrus.Error(err)
+		return nil, err
 	}
 
-	nodeInternalIp := ""
-	nodeExternalIp := ""
-	for _, node := range nodes.Items {
-		if node.Name == nodeName {
-			for _, address := range node.Status.Addresses {
-				switch address.Type {
-					case "InternalIP":
-						nodeInternalIp = address.Address
-					case "ExternalIP":
-						nodeExternalIp = address.Address
-				}
+	clusterConfiguration := &v1alpha3.ClusterConfiguration{}
+	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(kubeadmConfig.Data["ClusterConfiguration"]), 4096).
+		Decode(clusterConfiguration)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	return &registry.ClusterConfiguration{
+		PodSubnet:     clusterConfiguration.Networking.PodSubnet,
+		ServiceSubnet: clusterConfiguration.Networking.ServiceSubnet,
+	}, nil
+}
+
+func (k *k8sClusterInfo) MonitorSubnets(empty *empty.Empty, stream registry.ClusterInfo_MonitorSubnetsServer) error {
+	logrus.Info("MonitorSubnets request")
+	pw, err := prefixcollector.WatchPodCIDR(k.clientset)
+	if err != nil {
+		return err
+	}
+	defer pw.Stop()
+
+	sw, err := prefixcollector.WatchServiceIpAddr(k.clientset)
+	if err != nil {
+		return err
+	}
+	defer sw.Stop()
+
+	for {
+		select {
+		case <-stream.Context().Done():
+			logrus.Infof("MonitorSubnets deadline exceeded")
+			return stream.Context().Err()
+		case podSubnet := <-pw.ResultChan():
+			err := stream.Send(&registry.SubnetExtendingResponse{
+				Type:   registry.SubnetExtendingResponse_POD,
+				Subnet: podSubnet.String(),
+			})
+			if err != nil {
+				logrus.Error(err)
+				return err
 			}
-			break
+		case serviceSubnet := <-sw.ResultChan():
+			err := stream.Send(&registry.SubnetExtendingResponse{
+				Type:   registry.SubnetExtendingResponse_SERVICE,
+				Subnet: serviceSubnet.String(),
+			})
+			if err != nil {
+				logrus.Error(err)
+				return err
+			}
+		}
+	}
+}
+
+func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIpConfiguration *registry.NodeIpConfiguration) (*registry.NodeIpConfiguration, error) {
+	nodes, err := k.clientset.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range nodes.Items {
+		nodeInternalIp := ""
+		nodeExternalIp := ""
+
+		for _, address := range node.Status.Addresses {
+			switch address.Type {
+			case "InternalIP":
+				nodeInternalIp = address.Address
+			case "ExternalIP":
+				nodeExternalIp = address.Address
+			}
+		}
+
+		if node.Name == nodeIpConfiguration.NodeName ||
+			len(nodeInternalIp) > 0 && nodeInternalIp == nodeIpConfiguration.InternalIp ||
+			len(nodeExternalIp) > 0 && nodeExternalIp == nodeIpConfiguration.ExternalIP {
+
+			return &registry.NodeIpConfiguration{
+				NodeName: node.Name,
+				ExternalIP: nodeExternalIp,
+				InternalIp: nodeInternalIp,
+			}, nil
 		}
 	}
 
-	if len(nodeExternalIp) > 0 {
-		return nodeExternalIp, nil
-	}
-	if len(nodeInternalIp) > 0 {
-		return nodeInternalIp, nil
-	}
-
-	return "", fmt.Errorf("Node %s was not found", nodeName)
+	return nil, fmt.Errorf("Node was not found: %v", nodeIpConfiguration)
 }
