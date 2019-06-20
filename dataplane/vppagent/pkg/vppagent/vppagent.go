@@ -65,7 +65,7 @@ type VPPAgent struct {
 	srcIP                net.IP
 	egressInterface      common.EgressInterface
 	monitor              monitor_crossconnect.MonitorServer
-	resyncManager        *resyncManager
+	resyncManager        *resyncMonitor
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -141,9 +141,6 @@ func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossc
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", proto.MarshalTextString(dataChange))
 	if connect {
-		if v.resyncManager.isNeedToResync(crossConnect.Id, dataChange) {
-			v.resyncManager.downstreamResync()
-		}
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
 
 	} else {
