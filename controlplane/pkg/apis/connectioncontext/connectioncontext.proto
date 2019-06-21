@@ -45,7 +45,7 @@ message ExtraPrefixRequest {
     uint32 requested_number = 4;
 }
 
-message ConnectionContext {
+message IPContext {
     string src_ip_addr = 1;             /* source ip address + prefix in format <address>/<prefix> */
     string dst_ip_addr = 2;             /* destination ip address + prefix in format <address>/<prefix> */
 
@@ -59,4 +59,21 @@ message ConnectionContext {
 
     repeated ExtraPrefixRequest extra_prefix_request = 8;   /* A request for NSE to provide extra prefixes */
     repeated string extra_prefixes = 9; /* A list of extra prefixes requested */
+}
+
+message ConnectionContext {
+    IPContext ip_context = 1;  /* IP related context */
+    DNSConfig dns_config = 2;
+}
+
+message DNSConfig {
+    /* ips of DNS Servers for this DNSConfig.  Any given IP may be IPv4 or IPv6 */
+    repeated string dns_server_ips = 1;
+    /* domains for which this DNSConfig provides resolution.  If empty, all domains. */
+    repeated string resolves_domains = 2;
+    /* true if DNSConfig should be used to resolve listed domains listed in
+     * resolves_domains over other resolvers that did not request priority.  true is
+     * invalid if resolves_domains is empty.
+     */
+    bool prioritize = 3;
 }

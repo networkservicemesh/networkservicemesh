@@ -200,6 +200,14 @@ func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 	)
 }
 
+// DeployNSCWebhook - Setup Default Client with webhook
+func DeployNSCDns(k8s *K8s, node *v1.Node, name, dnsconfig string, timeout time.Duration) *v1.Pod {
+	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
+		pods.NSCPodDns(name, node, dnsconfig),
+	)
+}
+
+
 // DeployMonitoringNSC deploys 'monitoring-nsc' pod
 func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, nodeName(node), name, "monitoring-nsc", timeout,
