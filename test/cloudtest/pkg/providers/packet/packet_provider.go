@@ -434,27 +434,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 
 	if sshKey == nil {
 		// try to find key.
-		sshKeys, response, err := pi.client.SSHKeys.List()
-		if err != nil {
-			_,_ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
-		}
-		for k := 0; k < len(sshKeys); k++ {
-			kk := &sshKeys[k]
-			if kk.Label == pi.keyID {
-				sshKey = &packngo.SSHKey{
-					ID:          kk.ID,
-					Label:       kk.Label,
-					URL:         kk.URL,
-					User:        kk.User,
-					Key:         kk.Key,
-					FingerPrint: kk.FingerPrint,
-					Created:     kk.Created,
-					Updated:     kk.Updated,
-				}
-			}
-			_,_ = out.WriteString(fmt.Sprintf("Added key key %v\n", kk))
-			keyIds = append(keyIds, kk.ID)
-		}
+		sshKey, keyIds = pi.findKeys(out, sshKey, keyIds)
 	} else {
 		keyIds = append(keyIds, sshKey.ID)
 	}
@@ -462,12 +442,37 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	pi.manager.AddLog(pi.id, "create-sshkey", fmt.Sprintf("%v\n%v\n%v\n %s", sshKey, response, err, out.String()))
 
 	if sshKey == nil {
-		_,_ = out.WriteString(fmt.Sprintf("Failed to create ssh key %v %v", sshKey, err))
+		_, _ = out.WriteString(fmt.Sprintf("Failed to create ssh key %v %v", sshKey, err))
 		pi.manager.AddLog(pi.id, "create-key", out.String())
 		logrus.Errorf("Failed to create ssh key %v", err)
 		return nil, err
 	}
 	return keyIds, nil
+}
+
+func (pi *packetInstance) findKeys(out strings.Builder, sshKey *packngo.SSHKey, keyIds []string) (*packngo.SSHKey, []string) {
+	sshKeys, response, err := pi.client.SSHKeys.List()
+	if err != nil {
+		_, _ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
+	}
+	for k := 0; k < len(sshKeys); k++ {
+		kk := &sshKeys[k]
+		if kk.Label == pi.keyID {
+			sshKey = &packngo.SSHKey{
+				ID:          kk.ID,
+				Label:       kk.Label,
+				URL:         kk.URL,
+				User:        kk.User,
+				Key:         kk.Key,
+				FingerPrint: kk.FingerPrint,
+				Created:     kk.Created,
+				Updated:     kk.Updated,
+			}
+		}
+		_, _ = out.WriteString(fmt.Sprintf("Added key key %v\n", kk))
+		keyIds = append(keyIds, kk.ID)
+	}
+	return sshKey, keyIds
 }
 
 func (p *packetProvider) getProviderID(provider string) string {

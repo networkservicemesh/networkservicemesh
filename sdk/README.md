@@ -32,7 +32,6 @@ type NSConfiguration struct {
 	TracerEnabled      bool   // TRACER_ENABLED
 	MechanismType      string // MECHANISM_TYPE
 	IPAddress          string // IP_ADDRESS
-	Routes             []string // ROUTES
 }
 ```
 
@@ -48,7 +47,6 @@ Note that some of the members of this structure can be initialized through the e
  * `TracerEnabled` - [ `TRACER_ENABLED` ], enable the Jager tracing for an *endpoint*
  * `MechanismType` - [ `MECHANISM_TYPE` ], enforce a particular Mechanism type. Currently `kernel` or `mem`. Defaults to `kernel`
  * `IPAddress` - [ `IP_ADDRESS` ], the IP network to initalize a prefix pool in the IPAM composite
- * `Routes` - [ `ROUTES` ], list of routes that will be set into connection's context by *RouteEndpoint*
 
 ## Implementing a Client
 

@@ -6,6 +6,8 @@ import:
   - .cloudtest/gke.yaml
   - .cloudtest/kind.yaml
   - .cloudtest/vagrant.yaml
+  - .cloudtest/aws.yaml
+  - .cloudtest/azure.yaml
 reporting:
   junit-report: "results/junit.xml"
 executions:

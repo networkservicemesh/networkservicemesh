@@ -146,7 +146,7 @@ func performImport(testConfig *config.CloudTestConfig) error {
 
 		configFileContent, err := ioutil.ReadFile(imp)
 		if err != nil {
-			logrus.Errorf("Failed to read config file %v", err)
+			logrus.Errorf("аailed to read config file %v", err)
 			return err
 		}
 		if err = parseConfig(importConfig, configFileContent); err != nil {
@@ -192,11 +192,11 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
 	err := yaml.Unmarshal(configFileContent, cloudTestConfig)
 	if err != nil {
-		err = fmt.Errorf("Failed to parse configuration file: %v", err)
+		err = fmt.Errorf("failed to parse configuration file: %v", err)
 		logrus.Errorf(err.Error())
 		return err
 	}
-	logrus.Infof("Configuration file loaded successfully...")
+	logrus.Infof("configuration file loaded successfully...")
 	return nil
 }
 
