@@ -172,7 +172,7 @@ func (si *shellInstance) Destroy(timeout time.Duration) error {
 		if err == nil || attempts == 0 {
 			return err
 		}
-		attempts++
+		attempts--
 	}
 }
 

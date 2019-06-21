@@ -12,7 +12,7 @@ providers:
       - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-$(uuid10)
       - CONTAINER_REPO=networkservicemesh
       - KUBECONFIG=$(tempdir)/config
-      - NSM_AWS_SERVICE_SUFFIX=$(cluster-name)-$(date)-$(uuid10)"
+      - NSM_AWS_SERVICE_SUFFIX=$(cluster-name)-$(date)-$(uuid10)
     env-check:
       - COMMIT
       - CIRCLE_WORKFLOW_ID
