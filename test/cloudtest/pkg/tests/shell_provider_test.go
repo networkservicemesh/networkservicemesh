@@ -60,8 +60,10 @@ func TestShellProvider(t *testing.T) {
 		PackageRoot: "./sample",
 	})
 
+	testConfig.Reporting.JUnitReportFile = "reporting/junit.xml"
+
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("There is failed tests 4"))
+	Expect(err.Error()).To(Equal("there is failed tests 4"))
 
 	Expect(report).NotTo(BeNil())
 

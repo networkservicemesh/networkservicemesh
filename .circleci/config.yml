@@ -345,10 +345,10 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
 
             CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
-            ./cloudtest --count 5
+            ./cloudtest
           no_output_timeout: 40m
       - store_test_results:
-          path: .tests/cloud_test/junit.xml
+          path: .tests/cloud_test/reporting/
       - store_artifacts:
           path: .tests/cloud_test/
       - store_artifacts:

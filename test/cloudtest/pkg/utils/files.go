@@ -11,6 +11,8 @@ import (
 // OpenFile - opens a file in folder and make folder parents if required.
 func OpenFile(root, fileName string) (string, *os.File, error) {
 	// Create folder if it doesn't exists
+	joinedRoot := path.Join(root, fileName)
+	root,fileName = path.Split(joinedRoot)
 	if !FileExists(root) {
 		_ = os.MkdirAll(root, os.ModePerm)
 	}

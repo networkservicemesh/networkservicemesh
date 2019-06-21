@@ -44,7 +44,7 @@ providers:
     instances: 2
     retry: 5
     node-count: 2
-    enabled: false
+    enabled: true
     timeout: 1800 # 30 minutes to start cluster
     env:
       - GKE_PROJECT_ID=ci-management
@@ -105,7 +105,7 @@ providers:
         make k8s-config
       stop: make vagrant-suspend
 reporting:
-  junit-report: "junit.xml"
+  junit-report: "results/junit.xml"
 executions:
   - name: "Single cluster tests"
     tags:
