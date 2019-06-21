@@ -17,7 +17,7 @@ It should be considered as a baseline that can be further extended when needed.
 * This structure keeps the main dataplane configuration -
 
 ```go
-type DataplaneConfigBase struct {
+type DataplaneConfig struct {
     Name                string
     NSMBaseDir          string
     RegistrarSocket     string
@@ -38,7 +38,7 @@ The following is an example using VPP as a dataplane.
 * The configuration will look like -
 
 ```go
-&DataplaneConfigBase{
+&DataplaneConfig{
     Name:                "vppagent"
     NSMBaseDir:          "/var/lib/networkservicemesh/"
     RegistrarSocket:     "/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock"
