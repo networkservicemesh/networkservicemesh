@@ -19,7 +19,7 @@ providers:
       - NSM_AWS_ACCESS_KEY_ID
       - NSM_AWS_SECRET_ACCESS_KEY
     scripts:
-      install: ./scripts/aws/aws-init.sh
+      install: Echo "Init already done"
       start: make aws-start
       stop: |
         make aws-destroy
