@@ -163,21 +163,6 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					},
 				}),
 				containerMod(&v1.Container{
-					Name:            "proxy-nsmd",
-					Image:           "networkservicemesh/proxy-nsmd",
-					ImagePullPolicy: v1.PullIfNotPresent,
-					VolumeMounts:    []v1.VolumeMount{newNSMMount()},
-					LivenessProbe:   config.liveness,
-					ReadinessProbe:  config.readiness,
-					Resources:       createDefaultResources(),
-					Ports: []v1.ContainerPort{
-						{
-							HostPort: 5006,
-							ContainerPort: 5006,
-						},
-					},
-				}),
-				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
 					Image:           "networkservicemesh/nsmd-k8s",
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -193,24 +178,6 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						},
 					},
 					Resources: createDefaultResources(),
-				}),
-				containerMod(&v1.Container{
-					Name:            "proxy-nsmd-k8s",
-					Image:           "networkservicemesh/proxy-nsmd-k8s",
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Env: []v1.EnvVar{
-						v1.EnvVar{
-							Name:  namespace.NsmNamespaceEnv,
-							Value: config.Namespace,
-						},
-					},
-					Resources: createDefaultResources(),
-					Ports: []v1.ContainerPort{
-						{
-							HostPort: 5005,
-							ContainerPort: 5005,
-						},
-					},
 				}),
 			},
 		},

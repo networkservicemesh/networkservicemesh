@@ -79,6 +79,15 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 			K8s:      k8s,
 			NodesSetup: nodesSetup,
 		})
+
+		for j := 0; j < nodesCount; j ++ {
+			pnsmdName := fmt.Sprintf("pnsmgr-%s", nodesSetup[j].Node.Name)
+			kubetest.DeployProxyNSMgr(k8s, nodesSetup[j].Node, pnsmdName, defaultTimeout)
+		}
+
+		serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
+		defer serviceCleanup()
+
 		defer k8ss[i].K8s.Cleanup()
 	}
 
