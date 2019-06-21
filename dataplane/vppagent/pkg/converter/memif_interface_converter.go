@@ -89,16 +89,14 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	})
 
 	// Process static routes
-	if c.conversionParameters.Side == SOURCE {
-		for _, route := range c.Connection.GetContext().GetRoutes() {
-			route := &vpp.Route{
-				Type:              vpp_l3.Route_INTER_VRF,
-				DstNetwork:        route.Prefix,
-				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
-				OutgoingInterface: c.conversionParameters.Name,
-			}
-			rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
+	for _, route := range c.Connection.GetContext().GetRoutes() {
+		route := &vpp.Route{
+			Type:              vpp_l3.Route_INTER_VRF,
+			DstNetwork:        route.Prefix,
+			NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
+			OutgoingInterface: c.conversionParameters.Name,
 		}
+		rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
 	}
 	return rv, nil
 }
