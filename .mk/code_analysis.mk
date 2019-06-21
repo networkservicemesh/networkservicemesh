@@ -4,12 +4,12 @@ lint-fix:
 
 .PHONY: lint-install
 lint-install:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+	GO111MODULE=on go get -u github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
 
 .PHONY: lint-check-diff
 lint-check-diff:
-	golangci-lint run --new-from-rev=origin/master
+	GO111MODULE=on golangci-lint run --new-from-rev=origin/master
 
 .PHONY: lint-check-all
 lint-check-all:
-	golangci-lint run ./...
+	GO111MODULE=on golangci-lint run ./...
