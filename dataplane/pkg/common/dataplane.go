@@ -31,7 +31,6 @@ import (
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor_crossconnect_server"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -148,7 +147,6 @@ func createDataplaneConfig() *DataplaneConfig {
 
 	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)
-	monitor_crossconnect_server.NewMonitorNetNsInodeServer(cfg.Monitor)
 
 	cfg.MetricsEnabled = DataplaneMetricsEnabledDefault
 	val, ok := os.LookupEnv(DataplaneMetricsEnabledKey)

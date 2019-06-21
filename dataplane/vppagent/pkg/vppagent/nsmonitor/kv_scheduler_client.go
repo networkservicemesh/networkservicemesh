@@ -1,4 +1,4 @@
-package vppagent
+package nsmonitor
 
 import (
 	"fmt"
@@ -14,12 +14,19 @@ const (
 	downStreamResync  = "/downstream-resync"
 )
 
+// KVSchedulerClient - Client to vpp KVScheduler server.
+type KVSchedulerClient interface {
+	//DownstreamResync - Calls downstream-resync in KVScheduler
+	DownstreamResync()
+}
+
 type kvSchedulerClient struct {
 	httpClient          http.Client
 	kvSchedulerEndpoint string
 }
 
-func newKVSchedulerClient(vppAgentEndpoint string) (*kvSchedulerClient, error) {
+//NewKVSchedulerClient - Creates a new client for KVScheduelr. Can return an error if vppAgentEndpoint has an incorrect format.
+func NewKVSchedulerClient(vppAgentEndpoint string) (KVSchedulerClient, error) {
 	kvSchedulerEndpoint, err := buildKvSchedulerDownStreamPath(vppAgentEndpoint)
 	if err != nil {
 		return nil, err
@@ -29,7 +36,7 @@ func newKVSchedulerClient(vppAgentEndpoint string) (*kvSchedulerClient, error) {
 	}, nil
 }
 
-func (c *kvSchedulerClient) downstreamResync() {
+func (c *kvSchedulerClient) DownstreamResync() {
 	downSteamResyncPath := c.kvSchedulerEndpoint + kvSchedulerPrefix + downStreamResync
 	request, err := http.NewRequest("POST", downSteamResyncPath, nil)
 	if err != nil {
