@@ -6,7 +6,7 @@ providers:
     retry: 5
     node-count: 2
     enabled: true
-    timeout: 1800 # 30 minutes to start cluster
+    timeout: 3600 # 60 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=aws
       - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-$(uuid10)
@@ -22,6 +22,5 @@ providers:
       install: ./scripts/aws/aws-init.sh
       start: make aws-start
       stop: |
-        kubectl delete svc --all --all-namespaces
         make aws-destroy
       prepare: make k8s-config
