@@ -1,0 +1,27 @@
+version: 1.0
+providers:
+  - name: "aws"
+    kind: "shell"
+    instances: 2
+    retry: 5
+    node-count: 2
+    enabled: true
+    timeout: 1800 # 30 minutes to start cluster
+    env:
+      - CLUSTER_RULES_PREFIX=aws
+      - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-$(uuid10)
+      - CONTAINER_REPO=networkservicemesh
+      - KUBECONFIG=$(tempdir)/config
+      - NSM_AWS_SERVICE_SUFFIX=$(cluster-name)-${CIRCLE_WORKFLOW_ID}"
+    env-check:
+      - COMMIT
+      - CIRCLE_WORKFLOW_ID
+      - NSM_AWS_ACCESS_KEY_ID
+      - NSM_AWS_SECRET_ACCESS_KEY
+    scripts:
+      install: echo "No login required"
+      start: make aws-start
+      stop: |
+        kubectl delete svc --all --all-namespaces
+        make aws-destroy
+      prepare: make k8s-config

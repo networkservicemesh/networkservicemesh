@@ -348,7 +348,7 @@ jobs:
             ./cloudtest
           no_output_timeout: 40m
       - store_test_results:
-          path: .tests/cloud_test/reporting/
+          path: .tests/cloud_test/results/
       - store_artifacts:
           path: .tests/cloud_test/
       - store_artifacts:

@@ -55,4 +55,5 @@ type CloudTestConfig struct {
 
 	Executions []*ExecutionConfig `yaml:"executions"`
 	Timeout    int64              `yaml:"timeout"` // Global timeout in minutes
+	Imports     []string           `yaml:"import"` // A set of configurations for import
 }

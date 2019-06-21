@@ -119,13 +119,45 @@ func CloudTestRun(cmd *cloudTestCmd) {
 		return
 	}
 
-	config := &config.CloudTestConfig{}
-	parseConfig(config, configFileContent)
-
-	_, err = PerformTesting(config, k8s.CreateFactory(), cmd.cmdArguments)
+	// Root config
+	testConfig := &config.CloudTestConfig{}
+	err = parseConfig(testConfig, configFileContent)
 	if err != nil {
 		os.Exit(1)
 	}
+
+	// Process config imports
+	err = performImport(testConfig)
+	if err != nil {
+		logrus.Errorf("Failed to process config imports %v", err)
+		os.Exit(1)
+	}
+
+
+	_, err = PerformTesting(testConfig, k8s.CreateFactory(), cmd.cmdArguments)
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func performImport(testConfig *config.CloudTestConfig) error {
+	for _, imp := range testConfig.Imports {
+		importConfig := &config.CloudTestConfig{}
+
+		configFileContent, err := ioutil.ReadFile(imp)
+		if err != nil {
+			logrus.Errorf("Failed to read config file %v", err)
+			return err
+		}
+		if err = parseConfig(importConfig, configFileContent); err != nil {
+			return err
+		}
+
+		// Do add imported items
+		testConfig.Executions = append(testConfig.Executions, importConfig.Executions...)
+		testConfig.Providers = append(testConfig.Providers, importConfig.Providers...)
+	}
+	return nil
 }
 
 // PerformTesting - PerformTesting
@@ -157,13 +189,15 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	return ctx.generateJUnitReportFile()
 }
 
-func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) {
+func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
 	err := yaml.Unmarshal(configFileContent, cloudTestConfig)
 	if err != nil {
-		logrus.Errorf("Failed to parse configuration file: %v", err)
-		os.Exit(1)
+		err = fmt.Errorf("Failed to parse configuration file: %v", err)
+		logrus.Errorf(err.Error())
+		return err
 	}
 	logrus.Infof("Configuration file loaded successfully...")
+	return nil
 }
 
 func (ctx *executionContext) performShutdown() {
