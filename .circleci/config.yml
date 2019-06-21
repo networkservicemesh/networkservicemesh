@@ -330,7 +330,7 @@ jobs:
       - run:
           name: "Init AWS"
           command: |
-            sudo ./scripts/aws/aws-init.sh
+            ./scripts/aws/aws-init.sh
             sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
       - run:
           name: Downloading go deps
