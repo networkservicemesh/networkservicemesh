@@ -26,7 +26,10 @@ WORKER_COUNT ?= 1
 FORWARDING_PLANE ?= vpp
 
 # Set target architecture
-BUILD_ARCH ?= amd64
+ARCH ?= amd64
+
+# what is the current OS arcitecture
+OS_ARCH ?= $(shell uname -m)
 
 # Default target, no other targets should be before default
 .PHONY: default
