@@ -71,12 +71,12 @@ func TestClientServerExchangeCertificatesJWT(t *testing.T) {
 	obt1, err := newExchangeCertObtainerWithCA(&ca, frequency)
 	Expect(err).To(BeNil())
 
-	mgr1 := security.NewManagerWithCertObtainer(obt1)
+	mgr1 := security.NewManagerWithCertObtainer(obt1, helloworldAud)
 
 	obt2, err := newExchangeCertObtainerWithCA(&ca, frequency)
 	Expect(err).To(BeNil())
 
-	mgr2 := security.NewManagerWithCertObtainer(obt2)
+	mgr2 := security.NewManagerWithCertObtainer(obt2, helloworldAud)
 
 	srv, err := mgr2.NewServer()
 	Expect(err).To(BeNil())
@@ -93,7 +93,7 @@ func TestClientServerExchangeCertificatesJWT(t *testing.T) {
 	defer secureConn.Close()
 
 	gc := helloworld.NewGreeterClient(secureConn)
-	for {
+	for i := 0; i < 3; i++ {
 		token, err := mgr1.GenerateJWT("myns", "")
 		Expect(err).To(BeNil())
 
@@ -155,7 +155,6 @@ func TestClientServerOboToken(t *testing.T) {
 	defer p3.Close()
 
 	reply, err := p1.SayHello("", ":3431", "")
-
 	Expect(err).To(BeNil())
 	Expect(reply.Message).To(Equal("123"))
 }

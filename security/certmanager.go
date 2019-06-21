@@ -5,8 +5,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -49,6 +51,7 @@ type certificateManager struct {
 	cert          *tls.Certificate
 	readyCh       chan struct{}
 	crtBySpiffeID map[string]*x509.Certificate
+	audByReqFunc  func(req interface{}) (string, error)
 }
 
 func (m *certificateManager) DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
@@ -58,7 +61,7 @@ func (m *certificateManager) DialContext(ctx context.Context, target string, opt
 		return nil, err
 	}
 
-	return grpc.DialContext(ctx, target, append(opts, grpc.WithTransportCredentials(cred))...)
+	return grpc.DialContext(ctx, target, append(opts, grpc.WithTransportCredentials(cred), grpc.WithUnaryInterceptor(m.clientInterceptor))...)
 }
 
 func (m *certificateManager) NewServer(opt ...grpc.ServerOption) (*grpc.Server, error) {
@@ -77,17 +80,6 @@ func (m *certificateManager) clientCredentials() (credentials.TransportCredentia
 		Certificates:       []tls.Certificate{*m.GetCertificate()},
 		RootCAs:            m.GetCABundle(),
 	}), nil
-}
-
-func spiffeID(spiffeIDCh <-chan string) func() string {
-	var spiffeIDCache string
-	return func() string {
-		if spiffeIDCache != "" {
-			return spiffeIDCache
-		}
-		spiffeIDCache = <-spiffeIDCh
-		return spiffeIDCache
-	}
 }
 
 func (m *certificateManager) serverCredentials() (credentials.TransportCredentials, func() string, error) {
@@ -109,6 +101,36 @@ func (m *certificateManager) serverCredentials() (credentials.TransportCredentia
 	}), spiffeID(spiffeIDCh), nil
 }
 
+func spiffeID(spiffeIDCh <-chan string) func() string {
+	var spiffeIDCache string
+	return func() string {
+		if spiffeIDCache != "" {
+			return spiffeIDCache
+		}
+		spiffeIDCache = <-spiffeIDCh
+		return spiffeIDCache
+	}
+}
+
+func (m *certificateManager) clientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	aud, err := m.audByReqFunc(req)
+	if err != nil {
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+
+	var obo string
+	if ctx.Value("obo") != nil {
+		obo = ctx.Value("obo").(string)
+	}
+
+	jwt, err := m.GenerateJWT(aud, obo)
+	if err != nil {
+		return err
+	}
+
+	return invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: jwt}))...)
+}
+
 func (m *certificateManager) makeJwtTokenValidator(spiffeIDFunc func() string) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		md, ok := metadata.FromIncomingContext(ctx)
@@ -125,8 +147,11 @@ func (m *certificateManager) makeJwtTokenValidator(spiffeIDFunc func() string) f
 			return nil, status.Errorf(codes.Unauthenticated, "token is not valid")
 		}
 
+		_, _, claims, _ := parseJWTWithClaims(jwt)
+
 		newCtx := context.WithValue(ctx, "spiffeID", spiffeIDFunc())
 		newCtx = context.WithValue(newCtx, "obo", jwt)
+		newCtx = context.WithValue(newCtx, "aud", claims.Audience)
 		return handler(newCtx, req)
 	}
 }
@@ -256,16 +281,25 @@ func (m *certificateManager) GenerateJWT(networkService string, obo string) (str
 	return token.SignedString(m.GetCertificate().PrivateKey)
 }
 
-func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {
+func NewManagerWithCertObtainer(obtainer CertificateObtainer, audByReqFunc func(req interface{}) (string, error)) Manager {
 	cm := &certificateManager{
 		readyCh:       make(chan struct{}),
 		crtBySpiffeID: make(map[string]*x509.Certificate),
+		audByReqFunc:  audByReqFunc,
 	}
 	go cm.exchangeCertificates(obtainer)
 	return cm
 }
 
+func networserviceAud(req interface{}) (string, error) {
+	r, ok := req.(*networkservice.NetworkServiceRequest)
+	if !ok {
+		return "", errors.New("request does not have type *networkservice.NetworkServiceRequest")
+	}
+	return r.GetConnection().GetNetworkService(), nil
+}
+
 func NewManager() Manager {
 	obt := NewSpireCertObtainer(agentAddress, timeout)
-	return NewManagerWithCertObtainer(obt)
+	return NewManagerWithCertObtainer(obt, networserviceAud)
 }

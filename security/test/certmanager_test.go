@@ -36,7 +36,7 @@ func TestSimpleCertObtainer(t *testing.T) {
 	obt, err := newSimpleCertObtainer(testSpiffeID)
 	Expect(err).To(BeNil())
 
-	mgr := security.NewManagerWithCertObtainer(obt)
+	mgr := security.NewManagerWithCertObtainer(obt, helloworldAud)
 
 	crt := mgr.GetCertificate()
 	ca := mgr.GetCABundle()
@@ -49,7 +49,7 @@ func TestClientServer(t *testing.T) {
 	obt, err := newSimpleCertObtainer(testSpiffeID)
 	Expect(err).To(BeNil())
 
-	mgr := security.NewManagerWithCertObtainer(obt)
+	mgr := security.NewManagerWithCertObtainer(obt, helloworldAud)
 
 	srv, err := mgr.NewServer()
 	Expect(err).To(BeNil())

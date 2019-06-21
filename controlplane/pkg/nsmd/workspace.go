@@ -16,17 +16,16 @@ package nsmd
 
 import (
 	"context"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/security/certificate"
+	"github.com/networkservicemesh/networkservicemesh/security"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"net"
 	"os"
 	"sync"
 	"time"
-
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -95,20 +94,32 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 
 	logrus.Infof("Creating new GRPC MonitorServer")
 	tracer := opentracing.GlobalTracer()
-	certObtainer := security.NewSpireCertObtainer("/run/spire/sockets/agent.sock", 5*time.Second)
-	cm := security.NewCertificateManager(certObtainer)
 
-	cred, err := cm.ServerCredentials()
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-	w.grpcServer = grpc.NewServer(
-		grpc.Creds(cred),
+	//certObtainer := security.NewSpireCertObtainer("/run/spire/sockets/agent.sock", 5*time.Second)
+	//cm := security.NewCertificateManager(certObtainer)
+	//
+	//cred, err := cm.ServerCredentials()
+	//if err != nil {
+	//	logrus.Error(err)
+	//	return nil, err
+	//}
+	//w.grpcServer = grpc.NewServer(
+	//	grpc.Creds(cred),
+	//	grpc.UnaryInterceptor(
+	//		otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+	//	grpc.StreamInterceptor(
+	//		otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+
+	mgr := security.NewManager()
+	w.grpcServer, err = mgr.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
 
 	logrus.Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)

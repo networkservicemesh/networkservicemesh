@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,14 @@ type party struct {
 	closeFuncs []func()
 }
 
+func helloworldAud(req interface{}) (string, error) {
+	r, ok := req.(*helloworld.HelloRequest)
+	if !ok {
+		return "", errors.New("request does not have type helloworld.HelloRequest")
+	}
+	return r.GetName(), nil
+}
+
 func createParty(spiffeID string, port int, ca *tls.Certificate, next, name string) (*party, error) {
 	rv := &party{}
 
@@ -42,7 +51,7 @@ func createParty(spiffeID string, port int, ca *tls.Certificate, next, name stri
 		return nil, err
 	}
 
-	rv.Manager = security.NewManagerWithCertObtainer(obt)
+	rv.Manager = security.NewManagerWithCertObtainer(obt, helloworldAud)
 	rv.srv, err = rv.NewServer()
 	if err != nil {
 		return nil, err
@@ -76,14 +85,14 @@ func (p *party) SayHello(msg, target, obo string) (*helloworld.HelloReply, error
 		p.client = helloworld.NewGreeterClient(conn)
 	}
 
-	jwt, err := p.GenerateJWT("networkservice", obo)
-	if err != nil {
-		return nil, err
-	}
+	//jwt, err := p.GenerateJWT("networkservice", obo)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
+	//cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
 	request := &helloworld.HelloRequest{Name: msg}
-	return p.client.SayHello(context.Background(), request, cred)
+	return p.client.SayHello(context.Background(), request)
 }
 
 func (p *party) Close() {
@@ -95,6 +104,7 @@ func (p *party) Close() {
 func (s *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
 	logrus.Infof("Receive SayHello, spiffeID = %s", ctx.Value("spiffeID"))
 	logrus.Infof("obo = %s", ctx.Value("obo"))
+	logrus.Infof("aud = %s", ctx.Value("aud"))
 	logrus.Infof("next = %s", s.next)
 	logrus.Infof("me = %s", s.me)
 
@@ -107,15 +117,15 @@ func (s *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*h
 		defer conn.Close()
 		client := helloworld.NewGreeterClient(conn)
 
-		jwt, err := s.p.GenerateJWT("networkservice", ctx.Value("obo").(string))
-		if err != nil {
-			return nil, err
-		}
+		//jwt, err := s.p.GenerateJWT("networkservice", ctx.Value("obo").(string))
+		//if err != nil {
+		//	return nil, err
+		//}
 
-		cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
+		//cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
 		request := &helloworld.HelloRequest{Name: r.Name + s.me}
 
-		return client.SayHello(ctx, request, cred)
+		return client.SayHello(ctx, request)
 	}
 
 	return &helloworld.HelloReply{Message: r.GetName() + s.me}, nil
@@ -223,7 +233,7 @@ func createPartyWithCA(spiffeID string, caTLS tls.Certificate) (security.Manager
 		return nil, err
 	}
 
-	return security.NewManagerWithCertObtainer(obt), nil
+	return security.NewManagerWithCertObtainer(obt, helloworldAud), nil
 }
 
 func createParties() (security.Manager, security.Manager, error) {
