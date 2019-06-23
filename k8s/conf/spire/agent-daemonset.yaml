@@ -18,7 +18,7 @@ spec:
       hostPID: true
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: default
+      serviceAccountName: "spire-agent"
       initContainers:
       - name: init
         # This is a small image with wait-for-it, choose whatever image

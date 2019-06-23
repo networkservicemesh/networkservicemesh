@@ -112,8 +112,8 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 
 	mgr := security.NewManager()
 	w.grpcServer, err = mgr.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+		//grpc.UnaryInterceptor(
+		//	otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 	if err != nil {

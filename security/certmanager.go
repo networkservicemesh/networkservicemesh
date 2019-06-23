@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -94,8 +96,8 @@ func (m *certificateManager) serverCredentials() (credentials.TransportCredentia
 			if err != nil {
 				logrus.Error(err)
 			}
-			spiffeIDCh <- c.DNSNames[0]
-			logrus.Infof("%v", c.DNSNames)
+			spiffeIDCh <- c.URIs[0].String()
+			logrus.Infof("%v", c.URIs)
 			return nil
 		},
 	}), spiffeID(spiffeIDCh), nil
@@ -113,8 +115,10 @@ func spiffeID(spiffeIDCh <-chan string) func() string {
 }
 
 func (m *certificateManager) clientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	logrus.Infof("ClientInterceptor start working...")
 	aud, err := m.audByReqFunc(req)
 	if err != nil {
+		logrus.Error(err)
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 
@@ -125,6 +129,7 @@ func (m *certificateManager) clientInterceptor(ctx context.Context, method strin
 
 	jwt, err := m.GenerateJWT(aud, obo)
 	if err != nil {
+		logrus.Error(err)
 		return err
 	}
 
@@ -261,23 +266,23 @@ func (m *certificateManager) GenerateJWT(networkService string, obo string) (str
 			return "", fmt.Errorf("obo token validation error: %s", err.Error())
 		}
 
-		if claims.Subject == x509crt.DNSNames[0] {
+		if claims.Subject == x509crt.URIs[0].String() {
 			return obo, nil
 		}
 	}
 
 	certStr := base64.StdEncoding.EncodeToString(crtBytes)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, &nsmClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, &nsmClaims{
 		StandardClaims: jwt.StandardClaims{
 			Audience: networkService,
 			Issuer:   "test",
-			Subject:  x509crt.DNSNames[0],
+			Subject:  x509crt.URIs[0].String(),
 		},
 		Obo:  obo,
 		Cert: certStr,
 	})
-
+	logrus.Infof("m.GetCertificate().PrivateKey.Type = %v", reflect.TypeOf(m.GetCertificate().PrivateKey))
 	return token.SignedString(m.GetCertificate().PrivateKey)
 }
 
@@ -292,11 +297,14 @@ func NewManagerWithCertObtainer(obtainer CertificateObtainer, audByReqFunc func(
 }
 
 func networserviceAud(req interface{}) (string, error) {
-	r, ok := req.(*networkservice.NetworkServiceRequest)
-	if !ok {
-		return "", errors.New("request does not have type *networkservice.NetworkServiceRequest")
+	if r, ok := req.(*networkservice.NetworkServiceRequest); ok {
+		return r.GetConnection().GetNetworkService(), nil
 	}
-	return r.GetConnection().GetNetworkService(), nil
+	if r, ok := req.(*registry.NSERegistration); ok {
+		return r.GetNetworkService().GetName(), nil
+	}
+
+	return "", errors.New("unable to get networkservice from request")
 }
 
 func NewManager() Manager {

@@ -30,7 +30,7 @@ func (c *nsmClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Cert
 		return nil, err
 	}
 
-	if crt.DNSNames[0] != c.Subject {
+	if crt.URIs[0].String() != c.Subject {
 		return nil, fmt.Errorf("spiffeID provided with JWT not equal to spiffeID from x509 TLS certificate")
 	}
 

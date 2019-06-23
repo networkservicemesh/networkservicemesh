@@ -31,7 +31,7 @@ data:
             # NOTE: Change this to your cluster name
             "demo-cluster" = {
               service_account_key_file = "/run/k8s-certs/sa.pub"
-              service_account_whitelist = ["default:default"]
+              service_account_whitelist = ["default:spire-agent"]
             }
           }
         }

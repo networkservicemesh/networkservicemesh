@@ -11,6 +11,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -43,7 +45,22 @@ func helloworldAud(req interface{}) (string, error) {
 	return r.GetName(), nil
 }
 
-func createParty(spiffeID string, port int, ca *tls.Certificate, next, name string) (*party, error) {
+func createGreeterParty(spiffeID string, port int, ca *tls.Certificate, next, name string) (*party, error) {
+	rv, err := createParty(spiffeID, port, ca)
+	if err != nil {
+		return nil, err
+	}
+
+	helloworld.RegisterGreeterServer(rv.srv, &helloSrv{
+		p:    rv,
+		next: next,
+		me:   name,
+	})
+
+	return rv, nil
+}
+
+func createParty(spiffeID string, port int, ca *tls.Certificate) (*party, error) {
 	rv := &party{}
 
 	obt, err := newSimpleCertObtainerWithCA(spiffeID, ca)
@@ -56,12 +73,6 @@ func createParty(spiffeID string, port int, ca *tls.Certificate, next, name stri
 	if err != nil {
 		return nil, err
 	}
-
-	helloworld.RegisterGreeterServer(rv.srv, &helloSrv{
-		p:    rv,
-		next: next,
-		me:   name,
-	})
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -85,12 +96,6 @@ func (p *party) SayHello(msg, target, obo string) (*helloworld.HelloReply, error
 		p.client = helloworld.NewGreeterClient(conn)
 	}
 
-	//jwt, err := p.GenerateJWT("networkservice", obo)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
 	request := &helloworld.HelloRequest{Name: msg}
 	return p.client.SayHello(context.Background(), request)
 }
@@ -109,26 +114,38 @@ func (s *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*h
 	logrus.Infof("me = %s", s.me)
 
 	if s.next != "" {
-		//return s.p.SayHello(r.Name+"msg2", s.next, ctx.Value("obo").(string))
 		conn, err := s.p.DialContext(context.Background(), s.next)
 		if err != nil {
 			return nil, err
 		}
 		defer conn.Close()
 		client := helloworld.NewGreeterClient(conn)
-
-		//jwt, err := s.p.GenerateJWT("networkservice", ctx.Value("obo").(string))
-		//if err != nil {
-		//	return nil, err
-		//}
-
-		//cred := grpc.PerRPCCredentials(&security.NSMToken{Token: jwt})
 		request := &helloworld.HelloRequest{Name: r.Name + s.me}
 
 		return client.SayHello(ctx, request)
 	}
 
 	return &helloworld.HelloReply{Message: r.GetName() + s.me}, nil
+}
+
+type testConnectionMonitor struct {
+}
+
+func (cm *testConnectionMonitor) MonitorConnections(empty *empty.Empty, stream connection.MonitorConnection_MonitorConnectionsServer) error {
+	for i := 0; i < 5; i++ {
+		id := fmt.Sprintf("%d", i)
+		stream.Send(&connection.ConnectionEvent{
+			Type: connection.ConnectionEventType_UPDATE,
+			Connections: map[string]*connection.Connection{
+				id: {
+					Id:             id,
+					NetworkService: "ns",
+				},
+			},
+		})
+	}
+
+	return nil
 }
 
 func generateCA() (tls.Certificate, error) {

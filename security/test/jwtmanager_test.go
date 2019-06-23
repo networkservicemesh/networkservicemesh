@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -142,15 +143,15 @@ func TestClientServerOboToken(t *testing.T) {
 	ca, err := generateCA()
 	Expect(err).To(BeNil())
 
-	p1, err := createParty("spiffe://test.com/p1", 3431, &ca, ":3432", "1")
+	p1, err := createGreeterParty("spiffe://test.com/p1", 3431, &ca, ":3432", "1")
 	Expect(err).To(BeNil())
 	defer p1.Close()
 
-	p2, err := createParty("spiffe://test.com/p2", 3432, &ca, ":3433", "2")
+	p2, err := createGreeterParty("spiffe://test.com/p2", 3432, &ca, ":3433", "2")
 	Expect(err).To(BeNil())
 	defer p2.Close()
 
-	p3, err := createParty("spiffe://test.com/p3", 3433, &ca, "", "3")
+	p3, err := createGreeterParty("spiffe://test.com/p3", 3433, &ca, "", "3")
 	Expect(err).To(BeNil())
 	defer p3.Close()
 
@@ -158,3 +159,18 @@ func TestClientServerOboToken(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(reply.Message).To(Equal("123"))
 }
+
+//func TestServerStreamSecurity(t *testing.T) {
+//	RegisterTestingT(t)
+//
+//	ca, err := generateCA()
+//	Expect(err).To(BeNil())
+//
+//	p, err := createParty("spiffe://test.com/p1", 3431, &ca)
+//	Expect(err).To(BeNil())
+//
+//	connection.RegisterMonitorConnectionServer(p.srv, &testConnectionMonitor{})
+//
+//	obt, err := newSimpleCertObtainerWithCA("spiffe://test.com/p2", &ca)
+//	mgr2 := security.NewManagerWithCertObtainer(obt, )
+//}

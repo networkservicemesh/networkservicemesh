@@ -103,6 +103,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 			//Kind: "DaemonSet",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: "nsmgr-acc",
 			Volumes: []v1.Volume{
 				{
 					Name: "kubelet-socket",
