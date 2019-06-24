@@ -310,12 +310,35 @@ func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
 		IpPermissions: []*ec2.IpPermission{
 			{
 				IpProtocol: aws.String("tcp"),
-				ToPort:     aws.Int64(22),
-				FromPort:   aws.Int64(22),
+				ToPort:     aws.Int64(65535),
+				FromPort:   aws.Int64(0),
 				IpRanges: []*ec2.IpRange{
 					{
 						CidrIp:      aws.String("0.0.0.0/0"),
-						Description: aws.String("SSH access"),
+						Description: aws.String("Remote ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("Remote ip6 access"),
+					},
+				},
+			},
+			{
+				IpProtocol: aws.String("udp"),
+				ToPort:     aws.Int64(65535),
+				FromPort:   aws.Int64(0),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Remote ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("Remote ip6 access"),
 					},
 				},
 			},
