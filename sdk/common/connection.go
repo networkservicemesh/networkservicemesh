@@ -59,10 +59,10 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	// logrus.Infof("Starting NSE, linux namespace: %s", linuxNS)
 
 	// NSE connection server is ready and now endpoints can be advertised to NSM
-	securityMgr := security.NewManager()
+	//securityMgr := security.NewManager()
 	target := fmt.Sprintf("unix:%s", tools.SocketPath(configuration.NsmServerSocket))
 	// Check if the socket of Endpoint Connection Server is operable
-	testSocket, err := securityMgr.DialContext(ctx, target)
+	testSocket, err := security.GetSecurityManager().DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the nsm on socket %s with error: %v", configuration.NsmServerSocket, err)
 		return nil, err
@@ -74,7 +74,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 		return nil, err
 	}
 
-	conn.GrpcClient, err = securityMgr.DialContext(ctx, target)
+	conn.GrpcClient, err = security.GetSecurityManager().DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err

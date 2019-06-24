@@ -311,3 +311,15 @@ func NewManager() Manager {
 	obt := NewSpireCertObtainer(agentAddress, timeout)
 	return NewManagerWithCertObtainer(obt, networserviceAud)
 }
+
+var once sync.Once
+var manager Manager
+
+func GetSecurityManager() Manager {
+	logrus.Info("Getting SecurityManager...")
+	once.Do(func() {
+		logrus.Info("Initializing SecurityManager")
+		manager = NewManager()
+	})
+	return manager
+}

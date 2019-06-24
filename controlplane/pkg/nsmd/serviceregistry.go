@@ -3,6 +3,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"net"
 	"os"
 	"strings"
@@ -75,12 +76,13 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		return nil, nil, err
 	}
 
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.DialContext(ctx, nsm.Url, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	//tracer := opentracing.GlobalTracer()
+	//conn, err := grpc.DialContext(ctx, nsm.Url, grpc.WithInsecure(),
+	//	grpc.WithUnaryInterceptor(
+	//		otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+	//	grpc.WithStreamInterceptor(
+	//		otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	conn, err := security.GetSecurityManager().DialContext(ctx, nsm.GetUrl())
 	if err != nil {
 		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
@@ -91,7 +93,9 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 }
 
 func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	nseConn, err := tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation))
+	//nseConn, err := tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation))
+	target := fmt.Sprintf("unix:%s", endpoint.SocketLocation)
+	nseConn, err := security.GetSecurityManager().DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
