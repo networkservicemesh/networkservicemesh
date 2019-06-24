@@ -35,7 +35,7 @@ include .mk/vpp_agent.mk
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
-docker-%-build:
+docker-%-build: $(is_cross_build)
 	@${DOCKERBUILD} --network="host" \
 	                        --build-arg GOARCHI=${GOARCH} \
 	                        --build-arg DOCKERARCHI=${DOCKERARCHI} \
