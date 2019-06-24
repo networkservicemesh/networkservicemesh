@@ -28,7 +28,7 @@ type ClusterProviderConfig struct {
 	Env        []string          `yaml:"env"`        // Extra environment variables
 	EnvCheck   []string          `yaml:"env-check"`  // Check if environment has required environment variables present.
 	Packet     *PacketConfig     `yaml:"packet"`     // A Packet provider configuration
-	TestDelay  int               `yaml:"test-delay"` // Deley between tests of this cluster will be executed in second.
+	TestDelay  int               `yaml:"test-delay"` // Delay between tests of this cluster will be executed in second.
 }
 
 type ExecutionConfig struct {
@@ -56,7 +56,7 @@ type CloudTestConfig struct {
 		JUnitReportFile string `yaml:"junit-report"`
 	} `yaml:"reporting"`
 
-	Executions      []*ExecutionConfig `yaml:"executions"`
-	Timeout         int64              `yaml:"timeout"` // Global timeout in minutes
-	Imports         []string           `yaml:"import"`  // A set of configurations for import
+	Executions []*ExecutionConfig `yaml:"executions"`
+	Timeout    int64              `yaml:"timeout"` // Global timeout in minutes
+	Imports    []string           `yaml:"import"`  // A set of configurations for import
 }

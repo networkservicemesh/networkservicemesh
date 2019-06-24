@@ -37,7 +37,7 @@ type shellInterface struct {
 }
 
 // NewManager - creates a new shell manager
-func NewManager(manager execmanager.ExecutionManager, id, root string, config *config.ClusterProviderConfig,
+func NewManager(manager execmanager.ExecutionManager, id string, config *config.ClusterProviderConfig,
 	params providers.InstanceOptions) Manager {
 	return &shellInterface{
 		manager: manager,

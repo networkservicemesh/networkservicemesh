@@ -238,7 +238,7 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 		stopScript:         utils.ParseScript(config.Scripts[stopScript]),
 		zoneSelectorScript: utils.ParseScript(config.Scripts[zoneSelector]),
 		factory:            factory,
-		shellInterface:     shell.NewManager(manager, id, root, config, instanceOptions),
+		shellInterface:     shell.NewManager(manager, id, config, instanceOptions),
 		params:             instanceOptions,
 	}
 

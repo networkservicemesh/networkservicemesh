@@ -19,11 +19,11 @@ type shellTestRunner struct {
 	manager execmanager.ExecutionManager
 }
 
-func (runner *shellTestRunner) Run(timeoutCtx context.Context, env [] string, fileName string, writer *bufio.Writer) error {
-	return runner.runCmd(timeoutCtx, runner.test.Name, utils.ParseScript(runner.test.RunScript), env, writer)
+func (runner *shellTestRunner) Run(timeoutCtx context.Context, env [] string, writer *bufio.Writer) error {
+	return runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
 }
 
-func (runner *shellTestRunner) runCmd(context context.Context, operation string, script, env []string, writer *bufio.Writer) error {
+func (runner *shellTestRunner) runCmd(context context.Context, script, env []string, writer *bufio.Writer) error {
 	for _, cmd := range script {
 		if strings.TrimSpace(cmd) == "" {
 			continue
@@ -49,6 +49,7 @@ func (runner *shellTestRunner) GetCmdLine() string {
 	return runner.test.RunScript
 }
 
+// NewShellTestRunner - creates a new shell script test runner.
 func NewShellTestRunner(ids string, test *model.TestEntry, manager execmanager.ExecutionManager) TestRunner {
 	envMgr := shell.NewEnvironmentManager()
 	_ = envMgr.ProcessEnvironment(ids, "shellrun", os.TempDir(), test.ExecutionConfig.Env, map[string]string{})

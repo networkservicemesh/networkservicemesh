@@ -16,7 +16,7 @@ type goTestRunner struct {
 	envMgr  shell.EnvironmentManager
 }
 
-func (runner *goTestRunner) Run(timeoutCtx context.Context, env [] string, fileName string, writer *bufio.Writer) error {
+func (runner *goTestRunner) Run(timeoutCtx context.Context, env [] string, writer *bufio.Writer) error {
 	logger := func(s string) {}
 	cmdEnv := append(runner.envMgr.GetProcessedEnv(), env...)
 	_, err := utils.RunCommand(timeoutCtx, runner.cmdLine, logger, writer, cmdEnv, map[string]string{}, false)
@@ -27,6 +27,7 @@ func (runner *goTestRunner) GetCmdLine() string {
 	return runner.cmdLine
 }
 
+// NewGoTestRunner - creates go test runner
 func NewGoTestRunner(ids string, test *model.TestEntry, timeout int64) TestRunner {
 	cmdLine := fmt.Sprintf("go test %s -test.timeout %ds -count 1 --run ^(%s)$ --tags %s --test.v",
 		test.ExecutionConfig.PackageRoot, timeout, test.Name, test.Tags)

@@ -14,11 +14,17 @@ import (
 type Status int8
 
 const (
+	// StatusAdded - test is added
 	StatusAdded                  Status = 0 // statusAdded - Just added
+	// StatusSuccess - test is completed fine.
 	StatusSuccess                Status = 1 // Passed
+	// StatusFailed - test is failed to be executed.
 	StatusFailed                 Status = 2 // Failed execution on all clusters
+	// StatusTimeout - timeout during test execution.
 	StatusTimeout                Status = 3 // Test timeout waiting for results
+	// StatusSkipped - status if test is marked as skipped.
 	StatusSkipped                Status = 4 // Test is skipped
+	// StatusSkippedSinceNoClusters - status of test if not clusters of desired group are available.
 	StatusSkippedSinceNoClusters Status = 5 // Test is skipped since there is not clusters to execute on.
 )
 
@@ -29,27 +35,30 @@ type TestEntryExecution struct {
 	Status     Status // Execution status
 }
 
-//TestEntryKind
+//TestEntryKind - describes a testing way.
 type TestEntryKind uint8
 
 const (
+	// TestEntryKindGoTest - go test test
 	TestEntryKindGoTest    TestEntryKind = 0
+	// TestEntryKindShellTest - shell test.
 	TestEntryKindShellTest TestEntryKind = 1
 )
 
 // TestEntry - represent one found test
 type TestEntry struct {
-	Kind            TestEntryKind
 	Name            string // Test name
 	Tags            string // A list of tags
 	ExecutionConfig *config.ExecutionConfig
-	Status          Status
 
 	Executions []TestEntryExecution
 	Duration   time.Duration
 	Started    time.Time
 
 	RunScript string
+
+	Kind            TestEntryKind
+	Status          Status
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.

@@ -22,15 +22,15 @@ executions:
     kubernetes-env:
       - KUBECONFIG
   - name: "Benchmark tests"
-      tags:
-        - bench
-      root: ./test/integration
-      timeout: 600
-      cluster-count: 1
-      cluster-selector:
-        - packet
-      kubernetes-env:
-        - KUBECONFIG
+    tags:
+      - bench
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 1
+    cluster-selector:
+      - packet
+    kubernetes-env:
+      - KUBECONFIG
   - name: "Example-icmp"
     env:
       - NSM_NAMESPACE=nsm-system
@@ -63,6 +63,3 @@ executions:
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-check
       make k8s-delete
-
-
-

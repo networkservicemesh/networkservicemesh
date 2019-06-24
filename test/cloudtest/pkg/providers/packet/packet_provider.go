@@ -513,7 +513,7 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 		prepareScript:  utils.ParseScript(config.Scripts[prepareScript]),
 		stopScript:     utils.ParseScript(config.Scripts[stopScript]),
 		factory:        factory,
-		shellInterface: shell.NewManager(manager, id, root, config, instanceOptions),
+		shellInterface: shell.NewManager(manager, id, config, instanceOptions),
 		params:         instanceOptions,
 		projectID:      os.Getenv(packetProjectID),
 		packetAuthKey:  os.Getenv("PACKET_AUTH_TOKEN"),

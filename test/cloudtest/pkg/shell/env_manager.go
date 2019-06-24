@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"math/rand"
+	"crypto/rand"
+	"github.com/sirupsen/logrus"
+	"math/big"
 	"os"
 	"time"
 )
 
-// EnvironmentManager - manages enviornment variables.
+// EnvironmentManager - manages environment variables.
 type EnvironmentManager interface {
 	// ProcessEnvironment - process substitute of environment variables with arguments.
-	ProcessEnvironment(clusterId, providerName, tempDir string, env []string, extraArgs map[string]string) error
+	ProcessEnvironment(clusterID, providerName, tempDir string, env []string, extraArgs map[string]string) error
 	// GetProcessedEnv - return substituted environment variables
 	GetProcessedEnv() []string
 	// AddExtraArgs - add argument to map of substitute arguments $(arg) = value
@@ -26,7 +28,7 @@ type environmentManager struct {
 	finalArgs      map[string]string
 }
 
-// NewManager - creates a new shell manager
+// NewEnvironmentManager - creates a new environment variable manager
 func NewEnvironmentManager() EnvironmentManager {
 	return &environmentManager{
 	}
@@ -44,16 +46,18 @@ func (em *environmentManager) GetConfigLocation() string {
 	return em.configLocation
 }
 
+// NewRandomStr - generates random string of desired length, size should be multiple of two for best result.
 func NewRandomStr(size int) string {
-	var value []byte = make([]byte, size/2)
+	value := make([]byte, size/2)
 	_, err := rand.Read(value)
 	if err != nil {
+		logrus.Errorf("error during random string generation %v", err)
 		return ""
 	}
 	return hex.EncodeToString(value)
 }
 
-func (em *environmentManager) ProcessEnvironment(clusterId, providerName, tempDir string, env []string, extraArgs map[string]string) error {
+func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDir string, env []string, extraArgs map[string]string) error {
 	environment := map[string]string{}
 
 	for _, k := range os.Environ() {
@@ -74,13 +78,19 @@ func (em *environmentManager) ProcessEnvironment(clusterId, providerName, tempDi
 		if err != nil {
 			return err
 		}
-		randValue := fmt.Sprintf("%v", rand.Intn(1000000))
+		randNum, err := rand.Int(rand.Reader, big.NewInt(1000000))
+		randValue := ""
+		if err != nil {
+			randValue = fmt.Sprintf("%v", randNum)
+		} else {
+			logrus.Errorf("Error during random number generation %v", err)
+		}
 
 		randValue30 := NewRandomStr(30)
 		randValue10 := NewRandomStr(10)
 
 		args := map[string]string{
-			"cluster-name":  clusterId,
+			"cluster-name":  clusterID,
 			"provider-name": providerName,
 			"random":        randValue,
 			"uuid":          uuid.New().String(),
@@ -113,7 +123,7 @@ func (em *environmentManager) ProcessEnvironment(clusterId, providerName, tempDi
 	}
 
 	em.finalArgs = map[string]string{
-		"cluster-name":  clusterId,
+		"cluster-name":  clusterID,
 		"provider-name": providerName,
 		"tempdir":       tempDir,
 	}

@@ -198,7 +198,7 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 	code := proc.ExitCode()
 	wg.Wait()
 	if code != 0 {
-		return "", fmt.Errorf("failed to run %v ExitCode: %v.", cmdLine, code)
+		return "", fmt.Errorf("failed to run %v ExitCode: %v", cmdLine, code)
 	}
 	if returnStdout {
 		return builder.String(), nil
