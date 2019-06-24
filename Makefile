@@ -26,10 +26,29 @@ WORKER_COUNT ?= 1
 FORWARDING_PLANE ?= vpp
 
 # Set target architecture
-ARCH ?= amd64
+export ARCH ?= amd64
 
 # what is the current OS arcitecture
-OS_ARCH ?= $(shell uname -m)
+export OS_ARCH ?= $(shell uname -m)
+
+# test supported target
+ifeq (${OS_ARCH},x86_64)
+  ERR=$(if $(or $(findstring ${ARCH},amd64), $(findstring ${ARCH},arm64)),,ERR=$(error Error NOT SUPPORTED TARGET ${ARCH}.))
+  ifeq (${ARCH},arm64)
+    # in case you are trying to build arm64 target on x86_64 platform there is a prerequisite: qemu-user-static
+    ifeq (, $(shell which qemu-aarch64-static))
+      $(error "No qemu-aarch64-static in $(PATH), consider doing apt-get install qemu-user-static")
+    endif
+  endif
+else
+  ifeq (${OS_ARCH},arm64)
+    ifneq (${ARCH},arm64))
+      ERR=$(error Error NOT SUPPORTED TARGET ${ARCH}. Please add before your make command: ARCH=arm64...)
+    endif
+  else
+    ERR=$(error Error NOT SUPPORTED PLATFORM ${OS_ARCH})
+  endif
+endif
 
 # Default target, no other targets should be before default
 .PHONY: default

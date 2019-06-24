@@ -1,3 +1,4 @@
+ARG GOARCHI
 ARG VPP_AGENT
 ARG VPP_DEV
 ARG REPO
@@ -5,6 +6,9 @@ ARG REPO
 FROM golang:alpine as build
 FROM ${VPP_DEV} as vpp_dev
 FROM ${VPP_AGENT} as vpp_agent
+# qemu-aarch64-static is a binary in case OS_ARCH=amd64 and ARCH=arm64
+# qemu-aarch64-static is an empty file (not to complicate this code with if structure commands) in case OS_ARCH=amd64 and ARCH=amd64
+COPY dataplane/vppagent/conf/vpp/qemu-aarch64-static /usr/bin
 
 ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
 
@@ -29,6 +33,7 @@ COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
 
 FROM golang:alpine as build_vpp
+ARG GOARCHI
 ARG VERSION=unspecified
 RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
@@ -41,9 +46,12 @@ WORKDIR /root/networkservicemesh/
 RUN ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd
+RUN export ${GOARCHI} && echo $ARCH && CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd
 
 FROM vpp_agent
+# qemu-aarch64-static is a binary in case OS_ARCH=amd64 and ARCH=arm64
+# qemu-aarch64-static is an empty file (not to complicate this code with if structure commands) in case OS_ARCH=amd64 and ARCH=amd64
+COPY dataplane/vppagent/conf/vpp/qemu-aarch64-static /usr/bin
 COPY --from=build_vpp /go/bin/vppagent-dataplane /bin/vppagent-dataplane
 CMD [ "/bin/sh", "-c", "rm -f /dev/shm/db /dev/shm/global_vm /dev/shm/vpe-api &&     /usr/bin/supervisord -c /etc/supervisord/supervisord.conf"]
 
