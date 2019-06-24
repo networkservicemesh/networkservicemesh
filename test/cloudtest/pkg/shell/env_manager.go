@@ -81,9 +81,9 @@ func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDi
 		randNum, err := rand.Int(rand.Reader, big.NewInt(1000000))
 		randValue := ""
 		if err != nil {
-			randValue = fmt.Sprintf("%v", randNum)
-		} else {
 			logrus.Errorf("Error during random number generation %v", err)
+		} else {
+			randValue = fmt.Sprintf("%v", randNum)
 		}
 
 		randValue30 := NewRandomStr(30)
