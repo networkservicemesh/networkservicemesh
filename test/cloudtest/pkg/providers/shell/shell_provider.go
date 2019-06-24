@@ -37,24 +37,23 @@ type shellProvider struct {
 }
 
 type shellInstance struct {
-	installScript           []string
-	startScript             []string
-	prepareScript           []string
-	stopScript              []string
-	manager                 execmanager.ExecutionManager
-	root                    string
-	id                      string
-	configScript            string
-	zoneSelectorScript      []string
-	factory                 k8s.ValidationFactory
-	validator               k8s.KubernetesValidator
-	configLocation          string
-	shellInterface          shell.Manager
-	config                  *config.ClusterProviderConfig
-	provider                *shellProvider
-	params                  providers.InstanceOptions
-	started                 bool
-
+	installScript      []string
+	startScript        []string
+	prepareScript      []string
+	stopScript         []string
+	manager            execmanager.ExecutionManager
+	root               string
+	id                 string
+	configScript       string
+	zoneSelectorScript []string
+	factory            k8s.ValidationFactory
+	validator          k8s.KubernetesValidator
+	configLocation     string
+	shellInterface     shell.Manager
+	config             *config.ClusterProviderConfig
+	provider           *shellProvider
+	params             providers.InstanceOptions
+	started            bool
 }
 
 func (si *shellInstance) GetID() string {
@@ -102,7 +101,7 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 
 	if len(si.zoneSelectorScript) > 0 {
 		var zones string
-		zones, err = si.shellInterface.RunRead(context, zoneSelector,  si.zoneSelectorScript, nil)
+		zones, err = si.shellInterface.RunRead(context, zoneSelector, si.zoneSelectorScript, nil)
 		if err != nil {
 			logrus.Errorf("Failed to select zones...")
 			return err
@@ -116,9 +115,11 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	}
 
 	// Process and prepare environment variables
-	err = si.shellInterface.ProcessEnvironment(map[string]string{
-		"zone-selector": selectedZone,
-	})
+	err = si.shellInterface.ProcessEnvironment(
+		si.id, si.config.Name, si.root, si.config.Env,
+		map[string]string{
+			"zone-selector": selectedZone,
+		})
 	if err != nil {
 		return err
 	}
@@ -168,7 +169,7 @@ func (si *shellInstance) Destroy(timeout time.Duration) error {
 	defer cancel()
 	attempts := si.config.RetryCount
 	for {
-		err := si.shellInterface.RunCmd(context, fmt.Sprintf("destroy-%d", si.config.RetryCount - attempts), si.stopScript, nil)
+		err := si.shellInterface.RunCmd(context, fmt.Sprintf("destroy-%d", si.config.RetryCount-attempts), si.stopScript, nil)
 		if err == nil || attempts == 0 {
 			return err
 		}
@@ -243,6 +244,7 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 
 	return clusterInstance, nil
 }
+
 // NewShellClusterProvider - Creates new shell provider
 func NewShellClusterProvider(root string) providers.ClusterProvider {
 	utils.ClearFolder(root, true)

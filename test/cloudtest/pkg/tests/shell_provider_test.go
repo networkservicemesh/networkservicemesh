@@ -6,8 +6,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -75,8 +77,8 @@ func TestShellProvider(t *testing.T) {
 	// Do assertions
 }
 
-func createProvider(testConfig *config.CloudTestConfig, name string) {
-	testConfig.Providers = append(testConfig.Providers, &config.ClusterProviderConfig{
+func createProvider(testConfig *config.CloudTestConfig, name string) *config.ClusterProviderConfig {
+	provider := &config.ClusterProviderConfig{
 		Timeout:    100,
 		Name:       name,
 		NodeCount:  1,
@@ -91,7 +93,9 @@ func createProvider(testConfig *config.CloudTestConfig, name string) {
 			"stop":    "echo stopped",
 		},
 		Enabled: true,
-	})
+	}
+	testConfig.Providers = append(testConfig.Providers, provider)
+	return provider
 }
 
 func TestInvalidProvider(t *testing.T) {
@@ -117,7 +121,8 @@ func TestInvalidProvider(t *testing.T) {
 	})
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error Invalid start script"))
+	logrus.Error(err.Error())
+	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error invalid start script"))
 
 	Expect(report).To(BeNil())
 	// Do assertions
@@ -150,7 +155,9 @@ func TestRequireEnvVars(t *testing.T) {
 	})
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error Environment variable are not specified  Required variables: [KUBECONFIG QWE]"))
+	logrus.Error(err.Error())
+	Expect(err.Error()).To(Equal(
+		"Failed to create cluster instance. Error environment variable are not specified  Required variables: [KUBECONFIG QWE]"))
 
 	Expect(report).To(BeNil())
 	// Do assertions
@@ -199,9 +206,68 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 	})
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("There is failed tests 2"))
+	Expect(err.Error()).To(Equal("there is failed tests 2"))
 
 	Expect(report).ToNot(BeNil())
 	// Do assertions
 }
 
+func TestShellProviderShellTest(t *testing.T) {
+	RegisterTestingT(t)
+
+	testConfig := &config.CloudTestConfig{
+	}
+
+	testConfig.Timeout = 300
+
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
+	defer utils.ClearFolder(tmpDir, false)
+	Expect(err).To(BeNil())
+
+	testConfig.ConfigRoot = tmpDir
+	createProvider(testConfig, "a_provider")
+	createProvider(testConfig, "b_provider")
+
+	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
+		Name:        "simple",
+		Timeout:     15,
+		PackageRoot: "./sample",
+	})
+
+	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
+		Name:    "simple_shell",
+		Timeout: 150000,
+		Kind:    "shell",
+		Run: strings.Join([]string{
+			"pwd",
+			"ls -la",
+			"echo $KUBECONFIG",
+		}, "\n"),
+	})
+
+	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
+		Name:    "simple_shell_fail",
+		Timeout: 15,
+		Kind:    "shell",
+		Run: strings.Join([]string{
+			"pwd",
+			"ls -la",
+			"exit 1",
+		}, "\n"),
+	})
+
+
+	testConfig.Reporting.JUnitReportFile = "reporting/junit.xml"
+
+	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
+	Expect(err.Error()).To(Equal("there is failed tests 4"))
+
+	Expect(report).NotTo(BeNil())
+
+	Expect(len(report.Suites)).To(Equal(2))
+	Expect(report.Suites[0].Failures).To(Equal(2))
+	Expect(report.Suites[0].Tests).To(Equal(5))
+	Expect(len(report.Suites[0].TestCases)).To(Equal(5))
+
+	// Do assertions
+}

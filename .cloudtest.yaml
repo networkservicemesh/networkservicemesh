@@ -16,9 +16,53 @@ executions:
       - basic
       - recover
       - usecase
-      - bench
     root: ./test/integration
     timeout: 300
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
+  - name: "Benchmark tests"
+      tags:
+        - bench
+      root: ./test/integration
+      timeout: 600
+      cluster-count: 1
+      cluster-selector:
+        - packet
+      kubernetes-env:
+        - KUBECONFIG
+  - name: "Example-icmp"
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+    kubernetes-env:
+      - KUBECONFIG
+    cluster-selector:
+      - packet
+      - kind
+      - vagrant
+    run: |
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-icmp-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-check
+      make k8s-delete
+  - name: "Example-vpn"
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+    kubernetes-env:
+      - KUBECONFIG
+    cluster-selector:
+      - packet
+      - kind
+      - vagrant
+    run: |
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-vpn-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-check
+      make k8s-delete
+
+
+

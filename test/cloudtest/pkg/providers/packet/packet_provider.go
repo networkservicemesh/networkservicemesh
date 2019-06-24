@@ -106,7 +106,9 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	today := time.Now()
 	pi.genID = fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), uuid.New().String()[:10])
 	// Process and prepare environment variables
-	if err = pi.shellInterface.ProcessEnvironment(map[string]string{"cluster-uuid": pi.genID}); err != nil {
+	if err = pi.shellInterface.ProcessEnvironment(
+		pi.id, pi.config.Name, pi.root, pi.config.Env,
+		map[string]string{"cluster-uuid": pi.genID}); err != nil {
 		logrus.Errorf("error during processing environment variables %v", err)
 		return err
 	}
@@ -411,13 +413,13 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	out := strings.Builder{}
 	keyFileContent, err := utils.ReadFile(keyFile)
 	if err != nil {
-		_,_ = out.WriteString(fmt.Sprintf("Failed to read key file %s", keyFile))
+		_, _ = out.WriteString(fmt.Sprintf("Failed to read key file %s", keyFile))
 		pi.manager.AddLog(pi.id, "create-key", out.String())
 		logrus.Errorf("Failed to read file %v %v", keyFile, err)
 		return nil, err
 	}
 
-	_,_ = out.WriteString(fmt.Sprintf("Key file %s readed ok", keyFile))
+	_, _ = out.WriteString(fmt.Sprintf("Key file %s readed ok", keyFile))
 
 	keyRequest := &packngo.SSHKeyCreateRequest{
 		ProjectID: pi.project.ID,
@@ -427,7 +429,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	sshKey, response, err := pi.client.SSHKeys.Create(keyRequest)
 
 	createMsg := fmt.Sprintf("Create key %v %v %v", sshKey, response.String(), err)
-	_,_ = out.WriteString(createMsg)
+	_, _ = out.WriteString(createMsg)
 	logrus.Infof("%s-%v", pi.id, createMsg)
 
 	keyIds := []string{}

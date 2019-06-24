@@ -9,10 +9,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/packet"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/reporting"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/runners"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -67,7 +69,7 @@ type clustersGroup struct {
 
 type testTask struct {
 	taskID           string
-	test             *TestEntry
+	test             *model.TestEntry
 	cluster          *clustersGroup
 	clusterInstances []*clusterInstance
 	clusterTaskID    string
@@ -91,7 +93,7 @@ type executionContext struct {
 	manager          execmanager.ExecutionManager
 	clusters         []*clustersGroup
 	operationChannel chan operationEvent
-	tests            []*TestEntry
+	tests            []*model.TestEntry
 	tasks            []*testTask
 	running          map[string]*testTask
 	completed        []*testTask
@@ -133,7 +135,6 @@ func CloudTestRun(cmd *cloudTestCmd) {
 		os.Exit(1)
 	}
 
-
 	_, err = PerformTesting(testConfig, k8s.CreateFactory(), cmd.cmdArguments)
 	if err != nil {
 		os.Exit(1)
@@ -168,7 +169,7 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 		tasks:            []*testTask{},
 		running:          map[string]*testTask{},
 		completed:        []*testTask{},
-		tests:            []*TestEntry{},
+		tests:            []*model.TestEntry{},
 		factory:          factory,
 		arguments:        arguments,
 	}
@@ -178,7 +179,10 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 		return nil, err
 	}
 	// Collect tests
-	ctx.findTests()
+	if err := ctx.findTests(); err != nil {
+		logrus.Errorf("Error finding tests %v", err)
+		return nil, err
+	}
 	// We need to be sure all clusters will be deleted on end of execution.
 	defer ctx.performShutdown()
 	// Fill tasks to be executed..
@@ -268,6 +272,7 @@ func (ctx *executionContext) assignTasks(terminated func() bool) {
 			}
 			clustersAvailable, clustersToUse, assigned := ctx.selectClusterForTask(task, terminated)
 			if assigned {
+				// Start task execution.
 				err := ctx.startTask(task, clustersToUse)
 				if err != nil {
 					logrus.Errorf("Error starting task  %s %v", task.test.Name, err)
@@ -280,7 +285,7 @@ func (ctx *executionContext) assignTasks(terminated func() bool) {
 			if !assigned {
 				if clustersAvailable == 0 {
 					// We move task to skipped since, no clusters could execute it, all attempts for clusters to recover are finished.
-					task.test.Status = statusSkippedSinceNoClusters
+					task.test.Status = model.StatusSkippedSinceNoClusters
 					ctx.completed = append(ctx.completed, task)
 				} else {
 					newTasks = append(newTasks, task)
@@ -315,7 +320,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 			inst.taskCancel = nil
 		})
 	}
-	if event.task.test.Status == statusSuccess || event.task.test.Status == statusFailed {
+	if event.task.test.Status == model.StatusSuccess || event.task.test.Status == model.StatusFailed {
 		ctx.completed = append(ctx.completed, event.task)
 
 		elapsed := time.Since(ctx.startTime)
@@ -430,12 +435,14 @@ func (ctx *executionContext) createTasks() {
 				// Cluster selector is defined we need to add tasks for individual cluster only
 				task := &testTask{
 					taskID: fmt.Sprintf("%d", taskIndex),
-					test: &TestEntry{
+					test: &model.TestEntry{
+						Kind:            test.Kind,
 						Name:            test.Name,
 						Tags:            test.Tags,
 						Status:          test.Status,
 						ExecutionConfig: test.ExecutionConfig,
-						Executions:      []TestEntryExecution{},
+						Executions:      []model.TestEntryExecution{},
+						RunScript:       test.RunScript,
 					},
 					cluster: cluster,
 				}
@@ -444,7 +451,7 @@ func (ctx *executionContext) createTasks() {
 
 				if ctx.arguments.count > 0 && i >= ctx.arguments.count {
 					logrus.Infof("Limit of tests for execution:: %v is reached. Skipping test %s", ctx.arguments.count, test.Name)
-					test.Status = statusSkipped
+					test.Status = model.StatusSkipped
 					ctx.skipped = append(ctx.skipped, task)
 				} else {
 					ctx.tasks = append(ctx.tasks, task)
@@ -486,62 +493,55 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 
 	timeout := ctx.getTestTimeout(task)
 
+	var runner runners.TestRunner
+	switch task.test.Kind {
+	case model.TestEntryKindShellTest:
+		runner = runners.NewShellTestRunner(ids, task.test, ctx.manager)
+	case model.TestEntryKindGoTest:
+		runner = runners.NewGoTestRunner(ids, task.test, timeout)
+	default:
+		return fmt.Errorf("Invalid task runner")
+	}
+
 	go func() {
 		st := time.Now()
-		cmdLine := []string{
-			"go", "test",
-			task.test.ExecutionConfig.PackageRoot,
-			"-test.timeout", fmt.Sprintf("%ds", timeout),
-			"-count", "1",
-			"--run", fmt.Sprintf("^(%s)$", task.test.Name),
-			"--tags", task.test.Tags,
-			"--test.v",
-		}
-
 		env := []string{
 		}
 		// Fill Kubernetes environment variables.
 
-		for ind, envV := range task.test.ExecutionConfig.KubernetesEnv {
-			env = append(env, fmt.Sprintf("%s=%s", envV, clusterConfigs[ind]))
+		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
+			for ind, envV := range task.test.ExecutionConfig.KubernetesEnv {
+				env = append(env, fmt.Sprintf("%s=%s", envV, clusterConfigs[ind]))
+			}
+		} else {
+			for idx, cfg := range clusterConfigs {
+				if idx == 0 {
+					env = append(env, fmt.Sprintf("KUBECONFIG=%s", cfg))
+				} else {
+					env = append(env, fmt.Sprintf("KUBECONFIG%d=%s", idx, cfg))
+				}
+			}
 		}
 
 		writer := bufio.NewWriter(file)
 
+		logrus.Infof(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
+		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
+		_, _ = writer.WriteString(fmt.Sprintf("Command line %v\nenv==%v \n\n", runner.GetCmdLine(), env))
+		_ = writer.Flush()
+
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout*2)*time.Second)
 		defer cancel()
-
-		logrus.Infof(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
-
-		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
-		_, _ = writer.WriteString(fmt.Sprintf("Command line %v env==%v \n", cmdLine, env))
-		_ = writer.Flush()
 
 		for _, inst := range instances {
 			inst.taskCancel = cancel
 		}
 
 		task.test.Started = time.Now()
-		proc, err := utils.ExecProc(timeoutCtx, cmdLine, env)
-		if err != nil {
-			logrus.Errorf("Failed to run %s %v", cmdLine, err)
-			ctx.updateTestExecution(task, fileName, statusFailed)
-		}
-		go func() {
-			reader := bufio.NewReader(proc.Stdout)
-			for {
-				s, err := reader.ReadString('\n')
-				if err != nil {
-					break
-				}
-				_, _ = writer.WriteString(s)
-				_ = writer.Flush()
-			}
-		}()
-		code := proc.ExitCode()
+		err := runner.Run(timeoutCtx, env, fileName, writer)
 		task.test.Duration = time.Since(st)
 
-		if code != 0 {
+		if err != nil {
 			// Check if cluster is alive.
 			clusterNotAvailable := false
 			for _, inst := range instances {
@@ -555,16 +555,15 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 
 			if timeoutCtx.Err() == context.Canceled || clusterNotAvailable {
 				logrus.Errorf("Test is canceled due timeout or cluster error.. Will be re-run")
-				ctx.updateTestExecution(task, fileName, statusTimeout)
+				ctx.updateTestExecution(task, fileName, model.StatusTimeout)
 			} else {
-				msg := fmt.Sprintf("Failed to run %s Exit code: %v. Logs inside %v \n", cmdLine, code, fileName)
-				logrus.Errorf(msg)
-				_, _ = writer.WriteString(msg)
+				logrus.Errorf(err.Error())
+				_, _ = writer.WriteString(err.Error())
 				_ = writer.Flush()
-				ctx.updateTestExecution(task, fileName, statusFailed)
+				ctx.updateTestExecution(task, fileName, model.StatusFailed)
 			}
 		} else {
-			ctx.updateTestExecution(task, fileName, statusSuccess)
+			ctx.updateTestExecution(task, fileName, model.StatusSuccess)
 		}
 	}()
 	return nil
@@ -579,11 +578,11 @@ func (ctx *executionContext) getTestTimeout(task *testTask) int64 {
 	return timeout
 }
 
-func (ctx *executionContext) updateTestExecution(task *testTask, fileName string, status Status) {
+func (ctx *executionContext) updateTestExecution(task *testTask, fileName string, status model.Status) {
 	task.test.Status = status
-	task.test.Executions = append(task.test.Executions, TestEntryExecution{
+	task.test.Executions = append(task.test.Executions, model.TestEntryExecution{
 		Status:     status,
-		retry:      len(task.test.Executions) + 1,
+		Retry:      len(task.test.Executions) + 1,
 		OutputFile: fileName,
 	})
 	ctx.operationChannel <- operationEvent{
@@ -775,39 +774,68 @@ func (ctx *executionContext) createClusters() error {
 	return nil
 }
 
-func (ctx *executionContext) findTests() {
+func (ctx *executionContext) findTests() error {
 	logrus.Infof("Finding tests")
-	testsMap := map[string]*TestEntry{}
+	testsMap := map[string]*model.TestEntry{}
 	for _, exec := range ctx.cloudTestConfig.Executions {
-		st := time.Now()
-		execTests, err := GetTestConfiguration(ctx.manager, exec.PackageRoot, exec.Tags)
-		if err != nil {
-			logrus.Errorf("Failed during test lookup %v", err)
+		if exec.Name == "" {
+			return fmt.Errorf("Execution name should be specified")
 		}
-		logrus.Infof("Tests found: %v Elapsed: %v", len(execTests), time.Since(st))
-		for _, t := range execTests {
-			t.ExecutionConfig = exec
-			if existing, ok := testsMap[t.Name]; ok {
-				// Test is already added
-				if existing.Tags != "" && t.Tags == "" {
-					// test without tags are in priority
-					testsMap[t.Name] = t
-				}
-			} else {
-				testsMap[t.Name] = t
-			}
+		if _, ok := testsMap[exec.Name]; ok {
+			return fmt.Errorf("Execution name is duplicated by some of test names: %v", exec.Name)
+		}
+		if exec.Kind == "" || exec.Kind == "gotest" {
+			ctx.findGoTest(exec, testsMap)
+		} else if exec.Kind == "shell" {
+			ctx.findShellTest(exec, testsMap)
+		} else {
+			return fmt.Errorf("Unknown executon kind %v", exec.Kind)
 		}
 	}
 	// If we have execution without tags, we need to remove all tests from it from tagged executions.
 
 	for _, v := range testsMap {
-		v.Status = statusAdded
+		v.Status = model.StatusAdded
 		ctx.tests = append(ctx.tests, v)
 	}
 
 	logrus.Infof("Total tests found: %v", len(ctx.tests))
 	if len(ctx.tests) == 0 {
-		logrus.Errorf("There is no tests defined. Exiting...")
+		return fmt.Errorf("There is no tests defined. Exiting...")
+	}
+	return nil
+}
+
+func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig, testsMap map[string]*model.TestEntry) {
+	testsMap[exec.Name] = &model.TestEntry{
+		Name:            exec.Name,
+		Kind:            model.TestEntryKindShellTest,
+		Tags:            "",
+		ExecutionConfig: exec,
+		Status:          model.StatusAdded,
+		RunScript:       exec.Run,
+	}
+}
+
+func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig, testsMap map[string]*model.TestEntry) {
+	st := time.Now()
+	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
+	if err != nil {
+		logrus.Errorf("Failed during test lookup %v", err)
+	}
+	logrus.Infof("Tests found: %v Elapsed: %v", len(execTests), time.Since(st))
+	for _, t := range execTests {
+		t.Kind = model.TestEntryKindGoTest
+		t.ExecutionConfig = executionConfig
+		if existing, ok := testsMap[t.Name]; ok {
+			// Test is already added
+			if existing.Tags != "" && t.Tags == "" {
+				// test without tags are in priority
+				testsMap[t.Name] = t
+			}
+		} else {
+			testsMap[t.Name] = t
+		}
 	}
 }
 
@@ -834,7 +862,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			totalTime += test.test.Duration
 
 			switch test.test.Status {
-			case statusFailed, statusTimeout:
+			case model.StatusFailed, model.StatusTimeout:
 				failures++
 
 				message := fmt.Sprintf("Test execution failed %v", test.test.Name)
@@ -853,11 +881,11 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 					Contents: result,
 					Message:  message,
 				}
-			case statusSkipped:
+			case model.StatusSkipped:
 				testCase.SkipMessage = &reporting.SkipMessage{
 					Message: "By limit of number of tests to run",
 				}
-			case statusSkippedSinceNoClusters:
+			case model.StatusSkippedSinceNoClusters:
 				testCase.SkipMessage = &reporting.SkipMessage{
 					Message: "No clusters are available, all clusters reached restart limits...",
 				}

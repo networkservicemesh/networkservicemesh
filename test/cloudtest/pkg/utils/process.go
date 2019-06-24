@@ -21,12 +21,12 @@ type ProcWrapper struct {
 
 // ExitCode - wait for completion and return exit code
 func (w* ProcWrapper) ExitCode() int {
-	st, err := w.Cmd.Process.Wait()
+	err := w.Cmd.Wait()
 	if err != nil {
 		logrus.Errorf("Error during waiting for process exit code: %v %v", w.Cmd.Args, err)
 		return -1
 	}
-	return st.ExitCode()
+	return w.Cmd.ProcessState.ExitCode()
 }
 
 // ExecRead - execute command and return output as result, stderr is ignored.
@@ -44,6 +44,7 @@ func ExecRead( ctx context.Context, args []string) ([]string, error) {
 		}
 		output = append(output, strings.TrimSpace(s))
 	}
+	_ = proc.Cmd.Wait()
 	return output, nil
 }
 

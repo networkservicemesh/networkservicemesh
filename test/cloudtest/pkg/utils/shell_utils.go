@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
 
 // ParseVariable - parses var=value variable format.
@@ -166,7 +166,7 @@ func ParseScript(s string) []string {
 }
 
 // RunCommand - run shell command and put output into file, command variables are substituted.
-func RunCommand(context context.Context, id, cmd, operation string, writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
+func RunCommand(context context.Context, cmd string, logger func(str string), writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
 	finalEnv := append(os.Environ(), env...)
 
 	environment := map[string]string{}
@@ -191,11 +191,14 @@ func RunCommand(context context.Context, id, cmd, operation string, writer *bufi
 	}
 
 	builder := strings.Builder{}
-	processOutput(proc.Stdout, writer, id, operation, "StdOut", &builder, returnStdout)
-	processOutput(proc.Stderr, writer, id, operation, "StdErr", nil, false)
-	if code := proc.ExitCode(); code != 0 {
-		logrus.Errorf("Failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
-		return "", fmt.Errorf("failed to run %s ExitCode: %v. Logs inside %v", cmdLine, code, operation)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	processOutput(proc.Stdout, writer, logger, "StdOut", &builder, returnStdout, &wg)
+	processOutput(proc.Stderr, writer, logger, "StdErr", nil, false, &wg)
+	code := proc.ExitCode()
+	wg.Wait()
+	if code != 0 {
+		return "", fmt.Errorf("failed to run %v ExitCode: %v.", cmdLine, code)
 	}
 	if returnStdout {
 		return builder.String(), nil
@@ -203,8 +206,9 @@ func RunCommand(context context.Context, id, cmd, operation string, writer *bufi
 	return "", nil
 }
 
-func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, pattern string, builder io.StringWriter, returnStdout bool) {
+func processOutput(stream io.Reader, writer *bufio.Writer, logger func(str string), pattern string, builder io.StringWriter, returnStdout bool, wg *sync.WaitGroup) {
 	go func() {
+		defer wg.Done()
 		reader := bufio.NewReader(stream)
 		for {
 			s, err := reader.ReadString('\n')
@@ -214,7 +218,7 @@ func processOutput(stream io.Reader, writer *bufio.Writer, id, operation, patter
 			_, _ = writer.WriteString(s)
 			_ = writer.Flush()
 			if (len(strings.TrimSpace(s)) > 0) {
-				logrus.Infof("%s: %s => %s %v", pattern, id, operation, s)
+				logger(fmt.Sprintf("%s => %v", pattern, s))
 			}
 			if returnStdout {
 				_, _ = builder.WriteString(strings.TrimSpace(s) + "\n")
