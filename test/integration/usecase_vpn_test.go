@@ -155,10 +155,10 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 
 		vppagentPassthroughNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-"+id, &nodes[node],
 			map[string]string{
-				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
-				"ADVERTISE_NSE_LABELS": "app=passthrough-" + id,
-				"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
-				"OUTGOING_NSC_LABELS":  "app=passthrough-" + id,
+				"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
+				"ENDPOINT_LABELS": "app=passthrough-" + id,
+				"CLIENT_NETWORK_SERVICE":    "secure-intranet-connectivity",
+				"CLIENT_LABELS":  "app=passthrough-" + id,
 			},
 		))
 		g.Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-" + id))
