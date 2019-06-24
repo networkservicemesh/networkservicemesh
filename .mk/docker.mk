@@ -30,7 +30,6 @@ ORG=networkservicemesh
 VERSION = $(shell git describe --tags --always)
 
 include .mk/vpp_agent.mk
-include .mk/docker_arm64.mk
 
 .PHONY: docker-build
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
@@ -39,6 +38,7 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 docker-%-build:
 	@${DOCKERBUILD} --network="host" \
 	                        --build-arg GOARCHI=${GOARCH} \
+	                        --build-arg DOCKERARCHI=${DOCKERARCHI} \
 	                        --build-arg VPP_AGENT=${VPP_AGENT} \
 	                        --build-arg VERSION=${VERSION} \
 	                         -t ${ORG}/$*${IMAGE_ARCH} \

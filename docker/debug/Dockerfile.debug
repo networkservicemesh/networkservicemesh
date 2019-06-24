@@ -1,4 +1,7 @@
-FROM golang:alpine as build
+ARG GOARCHI
+ARG DOCKERARCHI
+
+FROM ${DOCKERARCHI}golang:alpine as build
 
 RUN apk add --update protobuf git bash gcc musl-dev curl
 
@@ -22,5 +25,5 @@ WORKDIR /root/networkservicemesh/
 RUN go mod download
 
 COPY ["./docker/debug/dev-entry.go","/go/src/"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/dev-entry /go/src
+RUN export ${GOARCHI} && CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/dev-entry /go/src
 ENTRYPOINT ["/go/bin/dev-entry"]

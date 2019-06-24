@@ -1,6 +1,7 @@
 # non-cross platform build:
 export IMAGE_ARCH=""
 export GOARCH=""
+export DOCKERARCHI=""
 is_cross_build=fake-qemu #  workaround to overcome non-conditional Dockerfile COPY clause
 
 # the first supported target platform is amd64
@@ -23,6 +24,7 @@ ifeq (${ARCH}, arm64)
   #cross platform build on x86_64 platform is supported:
   ifeq (${OS_ARCH}, x86_64)
     export GOARCH="GOARCH=arm64"
+    export DOCKERARCHI="arm64v8/"
     is_cross_build=install-qemu
   endif
 endif
@@ -49,6 +51,7 @@ install-qemu: fake-qemu
 	  x86_64)
 	    cp /usr/bin/qemu-aarch64-static ${REPO_FOLDER}/test/applications/build/qemu-aarch64-static
 	    cp /usr/bin/qemu-aarch64-static ${REPO_FOLDER}/dataplane/vppagent/conf/vpp/qemu-aarch64-static
+	    cp /usr/bin/qemu-aarch64-static ${REPO_FOLDER}/test/applications/build/qemu-aarch64-static
 	  #arm64)
 	  #  cp /usr/bin/qemu-x86_64-static ${REPO_FOLDER}/test/applications/build/qemu-x86_64-static
 	  #  cp /usr/bin/qemu-x86_64-static ${REPO_FOLDER}/dataplane/vppagent/conf/vpp/qemu-x86_64-static
@@ -62,5 +65,6 @@ fake-qemu:
 	chmod +x ${REPO_FOLDER}/qemu-FAKE-static
 	cp ${REPO_FOLDER}/qemu-FAKE-static ${REPO_FOLDER}/test/applications/build/qemu-aarch64-static
 	cp ${REPO_FOLDER}/qemu-FAKE-static ${REPO_FOLDER}/dataplane/vppagent/conf/vpp/qemu-aarch64-static
+	cp ${REPO_FOLDER}/qemu-FAKE-static ${REPO_FOLDER}/test/applications/build/qemu-aarch64-static
 	#cp ${REPO_FOLDER}/qemu-FAKE-static ${REPO_FOLDER}/test/applications/build/qemu-x86_64-static
 	#cp ${REPO_FOLDER}/qemu-FAKE-static ${REPO_FOLDER}/dataplane/vppagent/conf/vpp/qemu-x86_64-static
