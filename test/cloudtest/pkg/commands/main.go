@@ -224,7 +224,7 @@ func (ctx *executionContext) performShutdown() {
 				go func() {
 					defer wg.Done()
 					logrus.Infof("Closing cluster %v %v", group.config.Name, curInst.id)
-					ctx.destroyCluster(group, curInst, false)
+					ctx.destroyCluster(group, curInst, false, false)
 				}()
 			}
 		}
@@ -258,7 +258,7 @@ func (ctx *executionContext) performExecution() {
 				// Remove from running onces.
 				ctx.processTaskUpdate(event)
 			}
-		case <-time.After(1 * time.Minute):
+		case <-time.After(30 * time.Second):
 			ctx.printStatistics()
 		case <-termChannel:
 			logrus.Errorf("Termination request is received")
@@ -562,7 +562,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 				err = inst.instance.CheckIsAlive()
 				if err != nil {
 					clusterNotAvailable = true
-					ctx.destroyCluster(task.cluster, inst, true)
+					ctx.destroyCluster(task.cluster, inst, true, false)
 				}
 				inst.taskCancel = nil
 			}
@@ -626,7 +626,7 @@ func (ctx *executionContext) startCluster(group *clustersGroup, ci *clusterInsta
 		ci.startCount++
 		err := ci.instance.Start(timeout)
 		if err != nil {
-			ctx.destroyCluster(group, ci, true)
+			ctx.destroyCluster(group, ci, true, false)
 			ctx.setClusterState(ci, func(ci *clusterInstance) {
 				ci.state = clusterCrashed
 			})
@@ -661,7 +661,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 		err := ci.instance.CheckIsAlive()
 		if err != nil {
 			logrus.Errorf("Failed to interact with cluster %v", ci.id)
-			ctx.destroyCluster(group, ci, true)
+			ctx.destroyCluster(group, ci, true, false)
 			break
 		}
 
@@ -689,13 +689,9 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 	}
 }
 
-func (ctx *executionContext) destroyCluster(group *clustersGroup, ci *clusterInstance, sendUpdate bool) {
+func (ctx *executionContext) destroyCluster(group *clustersGroup, ci *clusterInstance, sendUpdate bool, fork bool) {
 	ci.lock.Lock()
 	defer ci.lock.Unlock()
-
-	if ci.cancelMonitor != nil {
-		ci.cancelMonitor()
-	}
 
 	if ci.state == clusterCrashed || ci.state == clusterNotAvailable || ci.state == clusterShutdown {
 		// It is already destroyed or not available.
@@ -704,14 +700,26 @@ func (ctx *executionContext) destroyCluster(group *clustersGroup, ci *clusterIns
 
 	ci.state = clusterBusy
 
+	if ci.cancelMonitor != nil {
+		ci.cancelMonitor()
+	}
 	timeout := ctx.getClusterTimeout(group)
+	if fork {
+		go func() {
+			err := ci.instance.Destroy(timeout)
+			if err != nil {
+				logrus.Errorf("Failed to destroy cluster")
+			}
+		}()
+		return
+	}
 	err := ci.instance.Destroy(timeout)
 	if err != nil {
 		logrus.Errorf("Failed to destroy cluster")
 	}
 
 	if group.config.StopDelay != 0 {
-		logrus.Infof("Cluster stop wormup timeout specified %v", group.config.StopDelay)
+		logrus.Infof("Cluster stop warm-up timeout specified %v", group.config.StopDelay)
 		<-time.After(time.Duration(group.config.StopDelay) * time.Second)
 	}
 	ci.state = clusterCrashed
@@ -948,16 +956,18 @@ func (ctx *executionContext) checkClustersUsage() {
 		if len(ci.tasks) == 0 {
 			up := 0
 			for _, inst := range ci.instances {
-				if ctx.isClusterDown(inst) {
+				if !ctx.isClusterDown(inst) {
 					up++
 				}
 			}
 			if up > 0 {
 				logrus.Infof("All tasks for cluster group %v are complete. Starting cluster shutdown.", ci.config.Name)
 				for _, inst := range ci.instances {
-					if !ctx.isClusterDown(inst) {
-						ctx.destroyCluster(ci, inst, false)
-						inst.state = clusterShutdown
+					if !ctx.isClusterDown(inst) && inst.state != clusterBusy {
+						ctx.destroyCluster(ci, inst, false, true)
+						ctx.setClusterState(inst, func(inst *clusterInstance) {
+							inst.state = clusterShutdown
+						})
 					}
 				}
 			}
@@ -966,7 +976,7 @@ func (ctx *executionContext) checkClustersUsage() {
 }
 
 func (ctx *executionContext) isClusterDown(inst *clusterInstance) bool {
-	return !(inst.state == clusterShutdown || inst.state == clusterCrashed || inst.state == clusterNotAvailable)
+	return inst.state == clusterShutdown || inst.state == clusterCrashed || inst.state == clusterNotAvailable
 }
 
 func createClusterProviders(manager execmanager.ExecutionManager) (map[string]providers.ClusterProvider, error) {
