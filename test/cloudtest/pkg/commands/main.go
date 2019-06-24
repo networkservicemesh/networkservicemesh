@@ -689,7 +689,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 	}
 }
 
-func (ctx *executionContext) destroyCluster(group *clustersGroup, ci *clusterInstance, sendUpdate bool, fork bool) {
+func (ctx *executionContext) destroyCluster(group *clustersGroup, ci *clusterInstance, sendUpdate, fork bool) {
 	ci.lock.Lock()
 	defer ci.lock.Unlock()
 
