@@ -10,7 +10,7 @@ providers:
     env:
       - GKE_PROJECT_ID=ci-management
       - CLUSTER_RULES_PREFIX=gke
-      - GKE_CLUSTER_NAME=$(cluster-name)-$(date)-$(uuid10)
+      - GKE_CLUSTER_NAME=$(cluster-name)-$(date)-$(rands10)
       - CONTAINER_REPO=networkservicemesh
       - KUBECONFIG=$(tempdir)/config
       - GKE_CLUSTER_ZONE=$(zone-selector)

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
@@ -104,7 +103,7 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	utils.ClearFolder(pi.root, true)
 
 	today := time.Now()
-	pi.genID = fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), uuid.New().String()[:10])
+	pi.genID = fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), shell.NewRandomStr(10))
 	// Process and prepare environment variables
 	if err = pi.shellInterface.ProcessEnvironment(
 		pi.id, pi.config.Name, pi.root, pi.config.Env,

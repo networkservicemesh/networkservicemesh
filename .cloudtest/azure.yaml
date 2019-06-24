@@ -9,7 +9,7 @@ providers:
     timeout: 3600 # 30 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=azure
-      - AZURE_CLUSTER_NAME=$(cluster-name)-$(date)-$(uuid10)
+      - AZURE_CLUSTER_NAME=$(cluster-name)-$(date)-$(rands10)
       - CONTAINER_REPO=networkservicemesh
       - AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
       - KUBECONFIG=$(tempdir)/config
