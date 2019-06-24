@@ -20,8 +20,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
@@ -101,7 +99,7 @@ func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration
 
 	var clients []nsmClientListEntry
 	for _, url := range urls {
-		configuration = common.NSConfigurationFromUrl(configuration, url)
+		configuration = common.NewNSConfigurationWithURL(configuration, url)
 		client, err := NewNSMClient(ctx, configuration)
 		if err != nil {
 			return nil, err

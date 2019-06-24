@@ -55,7 +55,7 @@ type NSConfiguration struct {
 func (nsc *NSConfiguration) getEnv(key, description string, mandatory bool) string {
 
 	value := nsc.viperConfig.GetString(key)
-	if len(value) == 0 {
+	if value == "" {
 		if mandatory {
 			logrus.Fatalf("Error getting %v", key)
 		} else {
@@ -100,11 +100,11 @@ func (nsc *NSConfiguration) completeNSConfiguration() {
 
 	nsc.TracerEnabled, _ = strconv.ParseBool(nsc.getEnv(tracerEnabledEnv, "Tracer enabled", false))
 
-	if configuration.MechanismType == "" {
-		configuration.MechanismType = nsc.getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
+	if nsc.MechanismType == "" {
+		nsc.MechanismType = nsc.getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
 	}
 
-	if len(nsc.IPAddress) == 0 {
+	if nsc.IPAddress == "" {
 		nsc.IPAddress = nsc.getEnv(ipAddressEnv, "IP Address", false)
 	}
 
@@ -116,42 +116,51 @@ func (nsc *NSConfiguration) completeNSConfiguration() {
 	}
 }
 
-func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *NSConfiguration {
-	var conf NSConfiguration
-	if configuration != nil {
-		conf = *configuration
-	}
-	conf.ClientNetworkService = url.NsName
-	var labels strings.Builder
-	separator := false
-	for k, v := range url.Params {
-		if separator {
-			labels.WriteRune(',')
-		} else {
-			separator = true
-		}
-		labels.WriteString(k)
-		labels.WriteRune('=')
-		labels.WriteString(v[0])
-	}
-	conf.ClientLabels = labels.String()
-	return &conf
-}
-
 func (nsc *NSConfiguration) bindNSConfiguration() {
-	nsc.viperConfig.BindEnv(nsmd.NsmServerSocketEnv)
-	nsc.viperConfig.BindEnv(nsmd.NsmClientSocketEnv)
-	nsc.viperConfig.BindEnv(nsmd.WorkspaceEnv)
-	nsc.viperConfig.BindEnv(endpointNetworkServiceEnv)
-	nsc.viperConfig.BindEnv(clientNetworkServiceEnv)
-	nsc.viperConfig.BindEnv(endpointLabelsEnv)
-	nsc.viperConfig.BindEnv(clientLabelsEnv)
-	nsc.viperConfig.BindEnv(tracerEnabledEnv)
-	nsc.viperConfig.BindEnv(mechanismTypeEnv)
-	nsc.viperConfig.BindEnv(ipAddressEnv)
+	err := nsc.viperConfig.BindEnv(nsmd.NsmServerSocketEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", nsmd.NsmServerSocketEnv)
+	}
+	err = nsc.viperConfig.BindEnv(nsmd.NsmClientSocketEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", nsmd.NsmClientSocketEnv)
+	}
+	err = nsc.viperConfig.BindEnv(nsmd.WorkspaceEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", nsmd.WorkspaceEnv)
+	}
+	err = nsc.viperConfig.BindEnv(endpointNetworkServiceEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", endpointNetworkServiceEnv)
+	}
+	err = nsc.viperConfig.BindEnv(clientNetworkServiceEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", clientNetworkServiceEnv)
+	}
+	err = nsc.viperConfig.BindEnv(endpointLabelsEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", endpointLabelsEnv)
+	}
+	err = nsc.viperConfig.BindEnv(clientLabelsEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", clientLabelsEnv)
+	}
+	err = nsc.viperConfig.BindEnv(tracerEnabledEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", tracerEnabledEnv)
+	}
+	err = nsc.viperConfig.BindEnv(ipAddressEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", ipAddressEnv)
+	}
+	err = nsc.viperConfig.BindEnv(ipAddressEnv)
+	if err != nil {
+		logrus.Errorf("Unable to bind %s", ipAddressEnv)
+	}
 }
 
-func NewNSConfigurationWithUrl(nsc *NSConfiguration, url *tools.NsUrl) *NSConfiguration {
+// NewNSConfigurationWithURL ensure the new NS configuration with a provided URL
+func NewNSConfigurationWithURL(nsc *NSConfiguration, url *tools.NSUrl) *NSConfiguration {
 
 	nsc = NewNSConfiguration(nsc)
 	nsc.ClientNetworkService = url.NsName
@@ -171,6 +180,7 @@ func NewNSConfigurationWithUrl(nsc *NSConfiguration, url *tools.NsUrl) *NSConfig
 	return nsc
 }
 
+// NewNSConfiguration ensure the new NS configuration
 func NewNSConfiguration(nsc *NSConfiguration) *NSConfiguration {
 	if nsc == nil {
 		nsc = &NSConfiguration{}
