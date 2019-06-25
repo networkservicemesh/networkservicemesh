@@ -158,7 +158,7 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
-func DeployICMPDns(k8s *K8s, node *v1.Node, name string, timeout time.Duration, dnsConfig string) *v1.Pod {
+func DeployICMPDns(k8s *K8s, node *v1.Node, name, dnsConfig string, timeout time.Duration) *v1.Pod {
 	pod := pods.TestCommonPod(name, []string{"/bin/icmp-responder-dns-nse"}, node, defaultICMPEnv(k8s.UseIPv6()))
 	pods.InjectCoredns(pod, dnsConfig)
 	deployICMP(k8s, nodeName(node), name, timeout, pod)
@@ -211,6 +211,11 @@ func DeployMonitoringNSCDns(k8s *K8s, node *v1.Node, name string, timeout time.D
 	pod := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
 	pods.InjectCorednsWithSharedFolder(pod)
 	return deployNSC(k8s, nodeName(node), name, "nsc", timeout, pod)
+}
+func DeployNSCDns(k8s *K8s, node *v1.Node, name, dnscoreConfig string, timeout time.Duration) *v1.Pod {
+	pod := pods.NSCPod(name, node, defaultNSCEnv())
+	pods.InjectCoredns(pod, dnscoreConfig)
+	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, pod)
 }
 
 func CreateCorednsConfig(k8s *K8s, name, content string) {

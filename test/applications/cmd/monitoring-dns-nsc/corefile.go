@@ -69,6 +69,7 @@ type CorefileScope interface {
 	Scope(string) CorefileScope
 	Records() []fmt.Stringer
 	Remove(string)
+	Name() string
 }
 
 type corefileScope struct {
@@ -95,6 +96,9 @@ func (c *corefileScope) Up() CorefileScope {
 func (c *corefileScope) Records() []fmt.Stringer {
 	return c.records
 }
+func (c *corefileScope) Name() string {
+	return c.name
+}
 
 func (c *corefileScope) Scope(name string) CorefileScope {
 	if _, ok := c.scopes[name]; !ok {
@@ -105,6 +109,19 @@ func (c *corefileScope) Scope(name string) CorefileScope {
 
 func (c *corefileScope) Remove(name string) {
 	delete(c.scopes, name)
+	removeIndex := -1
+	for i, rec := range c.records {
+		if scope, ok := rec.(CorefileScope); ok {
+			if scope.Name() == name {
+				removeIndex = i
+				break
+			}
+		} else if rec.String() == name {
+			removeIndex = i
+			break
+		}
+	}
+	c.records = append(c.records[:removeIndex], c.records[removeIndex+1:]...)
 }
 
 func (c *corefileScope) String() string {

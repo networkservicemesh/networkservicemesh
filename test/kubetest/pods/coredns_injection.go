@@ -44,12 +44,12 @@ func InjectCoredns(pod *v1.Pod, corednsConfigName string) {
 			Image:           "coredns/coredns:1.5.0",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
+			VolumeMounts: []v1.VolumeMount{{
+				ReadOnly:  false,
+				Name:      "config-volume",
+				MountPath: "/etc/coredns",
+			}},
 		})
-	pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{{
-		ReadOnly:  false,
-		Name:      "config-volume",
-		MountPath: "/etc/coredns",
-	}}
 	pod.Spec.DNSPolicy = v1.DNSNone
 	pod.Spec.DNSConfig = &v1.PodDNSConfig{}
 	pod.Spec.DNSConfig.Nameservers = []string{"127.0.0.1", "10.96.0.10"}

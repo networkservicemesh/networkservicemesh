@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 var version string
+
+const myCoreDnsPort = 53
 
 func main() {
 	logrus.Info("Starting icmp-responder-dns-nse...")
@@ -23,23 +27,12 @@ func main() {
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
 		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
-	dnsConfig := connectioncontext.DNSConfig{
-		DnsServerIps:    []string{"172.16.1.2:53"},
-		ResolvesDomains: []string{"my.own.google.com"},
-	}
-	err := dnsConfig.Validate()
-	if err != nil {
-		logrus.Fatalf("%v", err)
-	}
+
 	composite := endpoint.NewCompositeEndpointBuilder().
 		Append(
 			endpoint.NewMonitorEndpoint(nil),
 			endpoint.NewCustomFuncEndpoint("route", routeAddr),
-			endpoint.NewCustomFuncEndpoint("dns", func(c *connection.Connection) error {
-				logrus.Infof("Injecting dns config: %v into: %v", dnsConfig, c)
-				c.Context.DnsConfig = &dnsConfig
-				return nil
-			}),
+			endpoint.NewCustomFuncEndpoint("dns", dnsConfigMutator),
 			ipamEndpoint,
 			endpoint.NewConnectionEndpoint(nil)).
 		Build()
@@ -53,6 +46,14 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 	<-c
+}
+
+func dnsConfigMutator(c *connection.Connection) error {
+	dnsSidecarIp := strings.Split(c.Context.DstIpAddr, "/")[0] + ":" + fmt.Sprint(myCoreDnsPort)
+	c.Context.DnsConfig = &connectioncontext.DNSConfig{
+		DnsServerIps: []string{dnsSidecarIp},
+	}
+	return nil
 }
 
 //TODO: remove code duplication

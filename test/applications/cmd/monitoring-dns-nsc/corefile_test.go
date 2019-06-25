@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func TestCorefileRemove(t *testing.T) {
+	gomega.RegisterTestingT(t)
+	c := NewCorefile("corefile.txt")
+	c.WriteScope(".53:")
+	c.Remove(".53:")
+	expected := ""
+	actual := c.String()
+	gomega.Expect(actual).Should(gomega.Equal(expected))
+	c.Save()
+}
 func TestCorefileBacic(t *testing.T) {
 	gomega.RegisterTestingT(t)
 	c := NewCorefile("corefile.txt")

@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/opentracing/opentracing-go"
-
-	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
@@ -21,7 +21,7 @@ var version string
 //TODO: cleanup
 func main() {
 	corefile := NewCorefile("/etc/coredns/Corefile")
-	corefile.WriteScope(".:53").Write("log").WriteScope("hosts").Write("172.16.1.2 test")
+	corefile.WriteScope(".:53").Write("log")
 	logrus.Info("Starting monitoring-dns-nsc...")
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
@@ -84,10 +84,8 @@ func main() {
 }
 
 func updateCoreFile(corefile Corefile, config *connectioncontext.DNSConfig) {
-
-	s := corefile.Scope(".:53")
-	for _, ip := range config.DnsServerIps {
-		s.Write(fmt.Sprintf("forward . %v", ip))
-	}
+	forwards := strings.Join(config.DnsServerIps, " ")
+	corefile.Remove(".:53")
+	corefile.WriteScope(".:53").Write("log").Write(fmt.Sprintf("forward . %v", forwards))
 	corefile.Save()
 }

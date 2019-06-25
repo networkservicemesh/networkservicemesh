@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestAdvancedDNS(t *testing.T) {
+func TestAdvancedDNS1(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -32,7 +32,7 @@ func TestAdvancedDNS(t *testing.T) {
 	Expect(err).To(BeNil())
 	defer kubetest.FailLogger(k8s, nodes, t)
 
-	kubetest.DeployICMPDns(k8s, nodes[0].Node, "icmp-responder", defaultTimeout, "core")
+	kubetest.DeployICMPDns(k8s, nodes[0].Node, "icmp-responder", "core", defaultTimeout)
 	nscAndDns1 := kubetest.DeployMonitoringNSCDns(k8s, nodes[0].Node, "nsc", defaultTimeout)
 	resp, _, err := k8s.Exec(nscAndDns1, "nsc", "ping", "my.own.google.com", "-c", "4")
 	Expect(err).Should(BeNil())
