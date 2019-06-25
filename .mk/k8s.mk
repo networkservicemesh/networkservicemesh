@@ -35,11 +35,7 @@ endif
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
 # Temporary limit the infra deployment
-ifeq (${FORWARDING_PLANE}, vpp)
-  DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_MONITOR) $(DEPLOY_NSM)
-else ifeq (${FORWARDING_PLANE}, kernel-forwarder)
-  DEPLOY_INFRA = $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
-endif
+DEPLOY_INFRA = $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
@@ -165,6 +161,13 @@ k8s-admission-webhook-delete:
 k8s-%-delete:
 	@echo "Deleting ${K8S_CONF_DIR}/$*.yaml"
 	@$(kubectl) delete -f ${K8S_CONF_DIR}/$*.yaml > /dev/null 2>&1 || echo "$* does not exist and thus cannot be deleted"
+
+.PHONY: k8s-icmp-responder-nse-delete
+k8s-icmp-responder-nse-delete:
+	@echo "Deleting ${K8S_CONF_DIR}/icmp-responder-nse.yaml"
+	@$(kubectl) delete -f ${K8S_CONF_DIR}/icmp-responder-nse.yaml > /dev/null 2>&1 || echo "icmp-responder-nse does not exist and thus cannot be deleted"
+	@echo "Deleting networkservice icmp-responder"
+	@$(kubectl) delete networkservice icmp-responder > /dev/null 2>&1 || echo "icmp-responder does not exist and thus cannot be deleted"
 
 .PHONY: k8s-load-images
 k8s-load-images: $(addsuffix -load-images,$(addprefix k8s-,$(DEPLOYS)))

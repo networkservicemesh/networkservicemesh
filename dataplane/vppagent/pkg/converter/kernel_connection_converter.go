@@ -151,7 +151,8 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
 				DstNetwork:        route.Prefix,
 				OutgoingInterface: c.conversionParameters.Name,
-				Scope:             linux_l3.Route_LINK,
+				Scope:             linux_l3.Route_GLOBAL,
+				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
 			})
 		}
 	}
