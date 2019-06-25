@@ -43,13 +43,13 @@ type Arguments struct {
 type clusterState byte
 
 const (
-	clusterAdded        clusterState = 0
-	clusterReady        clusterState = 1
-	clusterBusy         clusterState = 2
-	clusterStarting     clusterState = 3
-	clusterCrashed      clusterState = 4
-	clusterNotAvailable clusterState = 5
-	clusterShutdown     clusterState = 6
+	clusterAdded clusterState = iota
+	clusterReady
+	clusterBusy
+	clusterStarting
+	clusterCrashed
+	clusterNotAvailable
+	clusterShutdown
 )
 
 type clusterInstance struct {
@@ -82,8 +82,8 @@ type testTask struct {
 type eventKind byte
 
 const (
-	eventTaskUpdate    eventKind = 0
-	eventClusterUpdate eventKind = 1
+	eventTaskUpdate eventKind = iota
+	eventClusterUpdate
 )
 
 type operationEvent struct {
@@ -330,8 +330,10 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 
 		elapsed := time.Since(ctx.startTime)
 		oneTask := elapsed / time.Duration(len(ctx.completed))
-		logrus.Infof("Complete task %s on cluster %s, Elapsed: %v (%d) Remaining: %v (%d)",
-			event.task.test.Name, event.task.clusterTaskID, elapsed,
+		logrus.Infof("Complete task: %s Status: %v on cluster: %s, Elapsed: %v (%d) Remaining: %v (%d)",
+			event.task.test.Name,
+			statusName(event.task.test.Status),
+			event.task.clusterTaskID, elapsed,
 			len(ctx.completed),
 			time.Duration(len(ctx.tasks)+len(ctx.running))*oneTask,
 			len(ctx.running)+len(ctx.tasks))
@@ -348,6 +350,22 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 		logrus.Infof("Re schedule task %v", event.task.test.Name)
 		ctx.tasks = append(ctx.tasks, event.task)
 	}
+}
+
+func statusName(status model.Status) interface{} {
+	switch status {
+	case model.StatusAdded:
+		return "added"
+	case model.StatusFailed:
+		return "failsed"
+	case model.StatusSkipped:
+		return "skipped"
+	case model.StatusSuccess:
+		return "success"
+	case model.StatusTimeout:
+		return "timeout"
+	}
+	return fmt.Sprintf("code: %v", status)
 }
 
 func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clusterInstance, bool) {

@@ -432,10 +432,9 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	logrus.Infof("%s-%v", pi.id, createMsg)
 
 	keyIds := []string{}
-
 	if sshKey == nil {
 		// try to find key.
-		sshKey, keyIds = pi.findKeys(out, sshKey, keyIds)
+		sshKey, keyIds = pi.findKeys(out, sshKey)
 	} else {
 		keyIds = append(keyIds, sshKey.ID)
 	}
@@ -451,11 +450,12 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	return keyIds, nil
 }
 
-func (pi *packetInstance) findKeys(out strings.Builder, sshKey *packngo.SSHKey, keyIds []string) (*packngo.SSHKey, []string) {
+func (pi *packetInstance) findKeys(out strings.Builder, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
 	sshKeys, response, err := pi.client.SSHKeys.List()
 	if err != nil {
 		_, _ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
 	}
+	var keyIds []string
 	for k := 0; k < len(sshKeys); k++ {
 		kk := &sshKeys[k]
 		if kk.Label == pi.keyID {

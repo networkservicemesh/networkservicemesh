@@ -15,17 +15,17 @@ type Status int8
 
 const (
 	// StatusAdded - test is added
-	StatusAdded                  Status = 0 // statusAdded - Just added
+	StatusAdded Status = iota // statusAdded - Just added
 	// StatusSuccess - test is completed fine.
-	StatusSuccess                Status = 1 // Passed
+	StatusSuccess
 	// StatusFailed - test is failed to be executed.
-	StatusFailed                 Status = 2 // Failed execution on all clusters
+	StatusFailed
 	// StatusTimeout - timeout during test execution.
-	StatusTimeout                Status = 3 // Test timeout waiting for results
+	StatusTimeout
 	// StatusSkipped - status if test is marked as skipped.
-	StatusSkipped                Status = 4 // Test is skipped
+	StatusSkipped
 	// StatusSkippedSinceNoClusters - status of test if not clusters of desired group are available.
-	StatusSkippedSinceNoClusters Status = 5 // Test is skipped since there is not clusters to execute on.
+	StatusSkippedSinceNoClusters
 )
 
 // TestEntryExecution - represent one test execution.
@@ -40,9 +40,9 @@ type TestEntryKind uint8
 
 const (
 	// TestEntryKindGoTest - go test test
-	TestEntryKindGoTest    TestEntryKind = 0
+	TestEntryKindGoTest TestEntryKind = iota
 	// TestEntryKindShellTest - shell test.
-	TestEntryKindShellTest TestEntryKind = 1
+	TestEntryKindShellTest
 )
 
 // TestEntry - represent one found test
@@ -57,8 +57,8 @@ type TestEntry struct {
 
 	RunScript string
 
-	Kind            TestEntryKind
-	Status          Status
+	Kind   TestEntryKind
+	Status Status
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
