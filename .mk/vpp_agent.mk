@@ -23,7 +23,7 @@ ifeq (${ARCH}, arm64)
   export IMAGE_ARCH="-arm64"
   #cross platform build on x86_64 platform is supported:
   ifeq (${OS_ARCH}, x86_64)
-    export GOARCH="GOARCH=arm64"
+    export GOARCH="arm64"
     export DOCKERARCHI="arm64v8/"
     is_cross_build=install-qemu
   endif
@@ -32,7 +32,7 @@ endif
 .PHONY: docker-vppagent-dataplane-dev-build
 docker-vppagent-dataplane-dev-build: $(is_cross_build) docker-vppagent-dataplane-build
 	@${DOCKERBUILD} --network="host" \
-	                --build-arg GOARCHI=${GOARCH} \
+	                --build-arg GOARCH=${GOARCH} \
 	                --build-arg VPP_AGENT=${VPP_AGENT} \
 	                --build-arg VPP_DEV=${VPP_AGENT_DEV} \
 	                --build-arg REPO=${ORG} \

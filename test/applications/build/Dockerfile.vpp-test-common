@@ -1,4 +1,3 @@
-ARG GOARCHI
 ARG DOCKERARCHI
 ARG VPP_AGENT
 
@@ -29,7 +28,8 @@ RUN mkdir -p /tmp/vpp/
 # 1. vppagent-nsc
 FROM build as build-1
 ARG VERSION=unspecified
-RUN export ${GOARCHI} && CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-nsc ./test/applications/cmd/vppagent-nsc
+ARG GOARCH
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-nsc ./test/applications/cmd/vppagent-nsc
 FROM runtime as runtime-1
 # qemu-aarch64-static is a binary in case OS_ARCH=amd64 and ARCH=arm64
 # qemu-aarch64-static is an placeholder file (workaround enforced by non conditional DOCKER COPY) in case OS_ARCH=amd64 and ARCH=amd64
@@ -40,7 +40,8 @@ RUN mkdir /tmp/vpp/vppagent-nsc/; echo 'Endpoint: "0.0.0.0:9113"' > /tmp/vpp/vpp
 # 2. vppagent-icmp-responder-nse
 FROM build-1 as build-2
 ARG VERSION=unspecified
-RUN export ${GOARCHI} && CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-icmp-responder-nse ./test/applications/cmd/vppagent-icmp-responder-nse
+ARG GOARCH
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-icmp-responder-nse ./test/applications/cmd/vppagent-icmp-responder-nse
 FROM runtime-1 as runtime-2
 # qemu-aarch64-static is a binary in case OS_ARCH=amd64 and ARCH=arm64
 # qemu-aarch64-static is an placeholder file (workaround enforced by non conditional DOCKER COPY) in case OS_ARCH=amd64 and ARCH=amd64
@@ -51,7 +52,8 @@ RUN mkdir /tmp/vpp/vppagent-icmp-responder-nse/; echo 'Endpoint: "0.0.0.0:9112"'
 # 3. vppagent-firewall-nse
 FROM build-2 as build-3
 ARG VERSION=unspecified
-RUN export ${GOARCHI} && CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-firewall-nse ./test/applications/cmd/vppagent-firewall-nse
+ARG GOARCH
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-firewall-nse ./test/applications/cmd/vppagent-firewall-nse
 FROM runtime-2 as runtime-3
 # qemu-aarch64-static is a binary in case OS_ARCH=amd64 and ARCH=arm64
 # qemu-aarch64-static is an placeholder file (workaround enforced by non conditional DOCKER COPY) in case OS_ARCH=amd64 and ARCH=amd64

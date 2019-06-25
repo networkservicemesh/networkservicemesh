@@ -37,7 +37,7 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 .PHONY: docker-%-build
 docker-%-build: $(is_cross_build)
 	@${DOCKERBUILD} --network="host" \
-	                        --build-arg GOARCHI=${GOARCH} \
+	                        --build-arg GOARCH=${GOARCH} \
 	                        --build-arg DOCKERARCHI=${DOCKERARCHI} \
 	                        --build-arg VPP_AGENT=${VPP_AGENT} \
 	                        --build-arg VERSION=${VERSION} \

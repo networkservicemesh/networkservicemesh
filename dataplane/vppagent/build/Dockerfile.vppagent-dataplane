@@ -1,4 +1,3 @@
-ARG GOARCHI
 ARG VPP_AGENT
 
 FROM golang:alpine as build
@@ -14,7 +13,8 @@ WORKDIR /root/networkservicemesh/
 RUN ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN export ${GOARCHI} && CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd
+ARG GOARCH
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/vppagent-dataplane ./dataplane/vppagent/cmd
 
 FROM ${VPP_AGENT} as runtime
 # qemu-aarch64-static is a binary in case OS_ARCH=amd64 and ARCH=arm64
