@@ -2,8 +2,9 @@ package test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -23,6 +24,8 @@ import (
 )
 
 var oidSanExtension = []int{2, 5, 29, 17}
+
+const nameTypeURI = 6
 
 type helloSrv struct {
 	p    *party
@@ -164,10 +167,11 @@ func generateCA() (tls.Certificate, error) {
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		SignatureAlgorithm:    x509.ECDSAWithSHA256,
 		BasicConstraintsValid: true,
 	}
 
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
@@ -179,12 +183,16 @@ func generateCA() (tls.Certificate, error) {
 	}
 
 	certPem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-	keyPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+	keyBytes, err := x509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	keyPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: keyBytes})
 	return tls.X509KeyPair(certPem, keyPem)
 }
 
 func marshalSAN(spiffeID string) ([]byte, error) {
-	return asn1.Marshal([]asn1.RawValue{{Tag: 2, Class: 2, Bytes: []byte(spiffeID)}})
+	return asn1.Marshal([]asn1.RawValue{{Tag: nameTypeURI, Class: 2, Bytes: []byte(spiffeID)}})
 }
 
 func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, error) {
@@ -214,9 +222,11 @@ func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, 
 				Value: san,
 			},
 		},
-		KeyUsage: x509.KeyUsageDigitalSignature,
+		SignatureAlgorithm: x509.ECDSAWithSHA256,
+		KeyUsage:           x509.KeyUsageDigitalSignature,
 	}
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
@@ -226,10 +236,18 @@ func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, 
 	if err != nil {
 		return tls.Certificate{}, err
 	}
+
 	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, pub, caTLS.PrivateKey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
 
 	certPem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-	keyPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+	keyBytes, err := x509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	keyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
 	return tls.X509KeyPair(certPem, keyPem)
 }
 
