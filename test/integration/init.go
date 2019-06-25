@@ -3,17 +3,15 @@ package nsmd_integration_tests
 import "os"
 
 const (
-	containerRepoEnv = "CONTAINER_REPO"
+	containerRepoEnv     = "CONTAINER_REPO"
+	containerRepoDefault = "networkservicemesh"
 )
 
-var containerRepo = "networkservicemesh"
-var containerRepoDefault = "networkservicemesh"
-
-func init() {
-	found := false
-	containerRepo, found = os.LookupEnv(containerRepoEnv)
+func GetContainerRepo() string {
+	containerRepo, found := os.LookupEnv(containerRepoEnv)
 
 	if !found {
 		containerRepo = containerRepoDefault
 	}
+	return containerRepo
 }
