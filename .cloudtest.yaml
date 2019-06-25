@@ -39,10 +39,6 @@ executions:
       - CLUSTER_RULES_PREFIX=null
     kubernetes-env:
       - KUBECONFIG
-    cluster-selector:
-      - packet
-      - kind
-      - vagrant
     run: |
       make k8s-infra-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
@@ -57,10 +53,6 @@ executions:
       - CLUSTER_RULES_PREFIX=null
     kubernetes-env:
       - KUBECONFIG
-    cluster-selector:
-      - packet
-      - kind
-      - vagrant
     run: |
       make k8s-infra-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods

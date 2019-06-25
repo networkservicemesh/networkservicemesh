@@ -41,7 +41,7 @@ type ExecutionConfig struct {
 	ExtraOptions    []string `yaml:"extra-options"`  // Extra options to pass to gotest
 	ClusterCount    int      `yaml:"cluster-count"`  // A number of clusters required for this execution, default 1
 	KubernetesEnv   []string `yaml:"kubernetes-env"` // Names of environment variables to put cluster names inside.
-	ClusterSelector []string `yaml:"selector"`       // A cluster name to execute this tests on.
+	ClusterSelector []string `yaml:"cluster-selector"`       // A cluster name to execute this tests on.
 	Env             []string `yaml:"env"`            // Additional environment variables
 	// Additional shell command to run
 	Run string `yaml:"run"` // A script to execute agains required cluster
