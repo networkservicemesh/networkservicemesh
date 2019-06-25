@@ -45,7 +45,7 @@ func TestHealLocalDataplane(t *testing.T) {
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
+			Context: &connectioncontext.IPContext{
 				DstIpRequired: true,
 				SrcIpRequired: true,
 			},

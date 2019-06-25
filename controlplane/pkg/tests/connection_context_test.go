@@ -11,26 +11,28 @@ import (
 func TestEmptyConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
 
-	ctx := &connectioncontext.ConnectionContext{}
-	Expect(ctx.IsValid()).To(BeNil())
+	ctx := &connectioncontext.ConnectionContext{IpContext: &connectioncontext.IPContext{}}
+	Expect(ctx.IpContext.IsValid()).To(BeNil())
 }
 
 func TestPrefixConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
 
 	ctx := &connectioncontext.ConnectionContext{
-		Routes: []*connectioncontext.Route{
-			&connectioncontext.Route{
-				Prefix: "",
+		IpContext: &connectioncontext.IPContext{
+			Routes: []*connectioncontext.Route{
+				&connectioncontext.Route{
+					Prefix: "",
+				},
 			},
 		},
 	}
-	Expect(ctx.IsValid().Error()).To(Equal("ConnectionContext.Route.Prefix is required and cannot be empty/nil: routes:<> "))
+	Expect(ctx.IpContext.IsValid().Error()).To(Equal("ConnectionContext.Route.Prefix is required and cannot be empty/nil: routes:<> "))
 }
 func TestPrefixWrongConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
+	ctx := &connectioncontext.IPContext{
 		Routes: []*connectioncontext.Route{
 			&connectioncontext.Route{
 				Prefix: "8.8.8.8",
@@ -42,7 +44,7 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 func TestPrefixFineConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
+	ctx := &connectioncontext.IPContext{
 		Routes: []*connectioncontext.Route{
 			&connectioncontext.Route{
 				Prefix: "8.8.8.8/30",
@@ -55,7 +57,7 @@ func TestPrefixFineConnectionContext(t *testing.T) {
 func TestIpNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
+	ctx := &connectioncontext.IPContext{
 		IpNeighbors: []*connectioncontext.IpNeighbor{
 			&connectioncontext.IpNeighbor{
 				Ip: "",
@@ -68,7 +70,7 @@ func TestIpNeighbors(t *testing.T) {
 func TestHWNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
+	ctx := &connectioncontext.IPContext{
 		IpNeighbors: []*connectioncontext.IpNeighbor{
 			&connectioncontext.IpNeighbor{
 				Ip: "8.8.8.8",
@@ -83,7 +85,7 @@ func TestHWNeighbors(t *testing.T) {
 func TestValidNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
+	ctx := &connectioncontext.IPContext{
 		IpNeighbors: []*connectioncontext.IpNeighbor{
 			&connectioncontext.IpNeighbor{
 				Ip:              "8.8.8.8",

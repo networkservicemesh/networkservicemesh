@@ -52,7 +52,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
+		Context: &connectioncontext.IPContext{
 			SrcIpAddr: impl.srcIp,
 			DstIpAddr: impl.dstIp,
 		},
@@ -74,7 +74,7 @@ func createRequest(add_exclude bool) *networkservice.NetworkServiceRequest {
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
+			Context: &connectioncontext.IPContext{
 				DstIpRequired: true,
 				SrcIpRequired: true,
 			},

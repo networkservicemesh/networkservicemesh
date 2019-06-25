@@ -37,8 +37,8 @@ func createTestMechanism() *connection.Mechanism {
 	}
 }
 
-func createTestContext() *connectioncontext.ConnectionContext {
-	return &connectioncontext.ConnectionContext{
+func createTestContext() *connectioncontext.IPContext {
+	return &connectioncontext.IPContext{
 		SrcIpAddr: srcIp,
 		DstIpAddr: dstIp,
 	}
