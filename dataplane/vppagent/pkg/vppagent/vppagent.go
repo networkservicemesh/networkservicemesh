@@ -17,6 +17,7 @@ package vppagent
 import (
 	"context"
 	"github.com/opentracing/opentracing-go"
+
 	"os"
 	"time"
 

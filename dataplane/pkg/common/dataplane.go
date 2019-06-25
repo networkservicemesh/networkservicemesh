@@ -102,6 +102,7 @@ func createDataplaneConfig() *DataplaneConfig {
 	if !ok {
 		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
 		cfg.DataplaneSocket = DataplaneSocketDefault
+
 	}
 	logrus.Infof("DataplaneSocket: %s", cfg.DataplaneSocket)
 
