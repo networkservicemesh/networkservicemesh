@@ -6,7 +6,7 @@ providers:
     retry: 5
     node-count: 2
     enabled: true
-    timeout: 1800 # 30 minutes to start cluster
+    timeout: 900 # 15 minutes to start cluster
     env:
       - GKE_PROJECT_ID=ci-management
       - CLUSTER_RULES_PREFIX=gke

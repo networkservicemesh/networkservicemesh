@@ -1,6 +1,6 @@
 version: 1.0
 providers:
-  - name: "Kind"
+  - name: "kind"
     kind: "shell"
     instances: 1
     node-count: 3

@@ -3,7 +3,7 @@ providers:
   - name: "aws"
     kind: "shell"
     instances: 2
-    retry: 1
+    retry: 2
     node-count: 2
     enabled: true
     timeout: 3600 # 60 minutes to start cluster

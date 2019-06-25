@@ -3,10 +3,10 @@ providers:
   - name: "packet"
     kind: "packet"
     instances: 2
-    retry: 0
+    retry: 5
     node-count: 2
     enabled: true
-    timeout: 1800 # 30 minutes to start cluster
+    timeout: 600 # 10 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=null # To not add any specific code
       - KUBECONFIG=$(tempdir)/config

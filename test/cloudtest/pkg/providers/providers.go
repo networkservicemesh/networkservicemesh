@@ -10,6 +10,7 @@ import (
 // InstanceOptions - instance operation parameters
 type InstanceOptions struct {
 	NoInstall        bool
+	NoPrepare        bool
 	NoMaskParameters bool
 	NoStop           bool
 }

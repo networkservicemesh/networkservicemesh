@@ -153,8 +153,10 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 		return err
 	}
 	// Run prepare script
-	if err := si.shellInterface.RunCmd(context, "prepare", si.prepareScript, []string{"KUBECONFIG=" + si.configLocation}); err != nil {
-		return err
+	if !si.params.NoPrepare {
+		if err := si.shellInterface.RunCmd(context, "prepare", si.prepareScript, []string{"KUBECONFIG=" + si.configLocation}); err != nil {
+			return err
+		}
 	}
 
 	si.started = true

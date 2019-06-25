@@ -15,20 +15,20 @@ type PacketConfig struct {
 }
 
 type ClusterProviderConfig struct {
-	Name       string            `yaml:"name"`       // name of provider, GKE, Azure, etc.
-	Kind       string            `yaml:"kind"`       // register provider type, 'generic', 'gke', etc.
-	Instances  int               `yaml:"instances"`  // Number of required instances, executions will be split between instances.
-	Timeout    int               `yaml:"timeout"`    // Timeout for start, stop
-	RetryCount int               `yaml:"retry"`      // A count of start retrying steps.
-	NodeCount  int               `yaml:"node-count"` // A count of nodes should be available via API to match cluster is alive.
-	StopDelay  int64             `yaml:"stop-delay"` // A timeout after stop and starting of session again.
-	Enabled    bool              `yaml:"enabled"`    // Is it enabled by default or not
-	Parameters map[string]string `yaml:"parameters"` // A parameters specific for provider
-	Scripts    map[string]string `yaml:"scripts"`    // A parameters specific for provider
-	Env        []string          `yaml:"env"`        // Extra environment variables
-	EnvCheck   []string          `yaml:"env-check"`  // Check if environment has required environment variables present.
-	Packet     *PacketConfig     `yaml:"packet"`     // A Packet provider configuration
-	TestDelay  int               `yaml:"test-delay"` // Delay between tests of this cluster will be executed in second.
+	Name         string              `yaml:"name"`          // name of provider, GKE, Azure, etc.
+	Kind         string              `yaml:"kind"`          // register provider type, 'generic', 'gke', multi-cluster
+	Instances    int                 `yaml:"instances"`     // Number of required instances, executions will be split between instances.
+	Timeout      int                 `yaml:"timeout"`       // Timeout for start, stop
+	RetryCount   int                 `yaml:"retry"`         // A count of start retrying steps.
+	NodeCount    int                 `yaml:"node-count"`    // A count of nodes should be available via API to match cluster is alive.
+	StopDelay    int64               `yaml:"stop-delay"`    // A timeout after stop and starting of session again.
+	Enabled      bool                `yaml:"enabled"`       // Is it enabled by default or not
+	Parameters   map[string]string   `yaml:"parameters"`    // A parameters specific for provider
+	Scripts      map[string]string   `yaml:"scripts"`       // A parameters specific for provider
+	Env          []string            `yaml:"env"`           // Extra environment variables
+	EnvCheck     []string            `yaml:"env-check"`     // Check if environment has required environment variables present.
+	Packet       *PacketConfig       `yaml:"packet"`        // A Packet provider configuration
+	TestDelay    int                 `yaml:"test-delay"`    // Delay between tests of this cluster will be executed in second.
 }
 
 type ExecutionConfig struct {

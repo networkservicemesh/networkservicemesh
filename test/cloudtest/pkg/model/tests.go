@@ -62,29 +62,34 @@ type TestEntry struct {
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
-func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tags []string) ([]*TestEntry, error) {
+func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tags []string) (map[string]*TestEntry, error) {
 	gotestCmd := []string{"go", "test", root, "--list", ".*"}
+	noTagTests, err1 := getTests(manager, gotestCmd, "")
 	if len(tags) > 0 {
-		result := []*TestEntry{}
 		tagsStr := strings.Join(tags, " ")
 		tests, err := getTests(manager, append(gotestCmd, "-tags", tagsStr), tagsStr)
 		if err != nil {
 			return nil, err
 		}
-		logrus.Infof("Found %d tests with tags %s", len(tests), tagsStr)
-		result = append(result, tests...)
-		return result, nil
+		for key := range noTagTests {
+			_, ok := tests[key]
+			if ok {
+				delete(tests, key)
+			}
+		}
+		return tests, nil
 	}
-	return getTests(manager, gotestCmd, "")
+	return noTagTests, err1
 }
 
-func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag string) ([]*TestEntry, error) {
+func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag string) (map[string]*TestEntry, error) {
 	result, err := utils.ExecRead(context.Background(), gotestCmd)
 	if err != nil {
 		logrus.Errorf("Error getting list of tests %v", err)
+		return nil, err
 	}
 
-	var testResult []*TestEntry
+	testResult := map[string]*TestEntry{}
 
 	manager.AddLog("gotest", "find-tests", strings.Join(gotestCmd, " ")+"\n"+strings.Join(result, "\n"))
 	for _, testLine := range result {
@@ -95,10 +100,11 @@ func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag stri
 				continue
 			}
 		} else {
-			testResult = append(testResult, &TestEntry{
-				Name: strings.TrimSpace(testLine),
+			testName := strings.TrimSpace(testLine)
+			testResult[testName] = &TestEntry{
+				Name: testName,
 				Tags: tag,
-			})
+			}
 		}
 	}
 	return testResult, nil

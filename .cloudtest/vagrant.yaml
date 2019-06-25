@@ -1,6 +1,6 @@
 version: 1.0
 providers:
-  - name: "Vagrant"
+  - name: "vagrant"
     kind: "shell"
     instances: 1
     retry: 3

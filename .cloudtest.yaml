@@ -8,6 +8,7 @@ import:
   - .cloudtest/vagrant.yaml
   - .cloudtest/aws.yaml
   - .cloudtest/azure.yaml
+
 reporting:
   junit-report: "results/junit.xml"
 executions:
@@ -32,6 +33,7 @@ executions:
     kubernetes-env:
       - KUBECONFIG
   - name: "Example-icmp"
+    kind: shell
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
@@ -42,12 +44,14 @@ executions:
       - kind
       - vagrant
     run: |
+      make k8s-infra-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-icmp-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-check
       make k8s-delete
   - name: "Example-vpn"
+    kind: shell
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
@@ -58,6 +62,7 @@ executions:
       - kind
       - vagrant
     run: |
+      make k8s-infra-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-vpn-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
