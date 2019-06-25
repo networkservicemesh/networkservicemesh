@@ -46,19 +46,20 @@ message ExtraPrefixRequest {
 }
 
 message IPContext {
-    string src_ip_addr = 1;             /* source ip address + prefix in format <address>/<prefix> */
-    string dst_ip_addr = 2;             /* destination ip address + prefix in format <address>/<prefix> */
+    string src_ip_addr = 1; /* source ip address + prefix in format <address>/<prefix> */
+    string dst_ip_addr = 2; /* destination ip address + prefix in format <address>/<prefix> */
 
-    bool src_ip_required = 3;           /* if specified src_ip is required from NSE. */
-    bool dst_ip_required = 4;           /* if specified dst_ip is required from NSE */
+    bool src_ip_required = 3; /* if specified src_ip is required from NSE. */
+    bool dst_ip_required = 4; /* if specified dst_ip is required from NSE */
 
-    repeated Route routes = 5;          /* a list of routes via dst_ip_addr as gateway */
+    repeated Route routes = 5; /* a list of routes via dst_ip_addr as gateway */
     repeated string excluded_prefixes = 6; /* a list of excluded passed to NSE */
 
     repeated IpNeighbor ip_neighbors  = 7; /* A list of ARP table neighbours addresses */
 
-    repeated ExtraPrefixRequest extra_prefix_request = 8;   /* A request for NSE to provide extra prefixes */
+    repeated ExtraPrefixRequest extra_prefix_request = 8; /* A request for NSE to provide extra prefixes */
     repeated string extra_prefixes = 9; /* A list of extra prefixes requested */
+    DNSConfig dns_config = 10;
 }
 
 message ConnectionContext {

@@ -6,48 +6,6 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NSCPodDns(name string, node *v1.Node, corednsConfigName string) * v1.Pod {
-	config := map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
-	}
-	result := NSCPod(name, node, config)
-	result.Spec.Containers = append(result.Spec.Containers,
-	v1.Container{
-		Name:"coredns",
-		Image:"coredns/coredns:1.5.0",
-		ImagePullPolicy: v1.PullIfNotPresent,
-		Args: []string{"-conf", "/etc/coredns/Corefile"},
-		VolumeMounts: []v1.VolumeMount{{
-			ReadOnly:true,
-			Name:"config-volume",
-			MountPath:"/etc/coredns",
-		},
-
-		},
-
-	})
-	result.Spec.DNSPolicy = v1.DNSNone
-	result.Spec.DNSConfig = &v1.PodDNSConfig{}
-	result.Spec.DNSConfig.Nameservers = []string{"127.0.0.1", "10.96.0.10"}
-	result.Spec.DNSConfig.Searches = []string{"default.svc.cluster.local","svc.cluster.local", "cluster.local"}
-	result.Spec.Volumes = append(result.Spec.Volumes, v1.Volume{
-		Name: "config-volume",
-		VolumeSource: v1.VolumeSource{
-			ConfigMap: &v1.ConfigMapVolumeSource{
-				LocalObjectReference: v1.LocalObjectReference{Name:corednsConfigName},
-				Items: []v1.KeyToPath{{
-					Key:"Corefile",
-					Path:"Corefile",
-				},
-				},
-			},
-		},
-	})
-
-	return result
-}
-
 // NSCPodWebhook creates a new 'nsc' pod without init container
 func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 	pod := &v1.Pod{

@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func (c *ConnectionContext) IsValid() error {
+func (c *IPContext) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("ConnectionContext should not be nil...")
 	}
@@ -30,7 +30,17 @@ func (c *ConnectionContext) IsValid() error {
 	return nil
 }
 
-func (c *ConnectionContext) MeetsRequirements(original *ConnectionContext) error {
+func (c *DNSConfig) Validate() error {
+	if c == nil {
+		return fmt.Errorf("dns config should be nil")
+	}
+	if c.Prioritize && len(c.ResolvesDomains) == 0 {
+		return fmt.Errorf("resolves domains can not be empty")
+	}
+	return nil
+}
+
+func (c *IPContext) MeetsRequirements(original *IPContext) error {
 	if c == nil {
 		return fmt.Errorf("ConnectionContext should not be nil...")
 	}

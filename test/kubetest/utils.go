@@ -158,6 +158,13 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
+func DeployICMPDns(k8s *K8s, node *v1.Node, name string, timeout time.Duration, dnsConfig string) *v1.Pod {
+	pod := pods.TestCommonPod(name, []string{"/bin/icmp-responder-dns-nse"}, node, defaultICMPEnv(k8s.UseIPv6()))
+	pods.InjectCoredns(pod, dnsConfig)
+	deployICMP(k8s, nodeName(node), name, timeout, pod)
+	return pod
+}
+
 // DeployICMPWithConfig deploys 'icmp-responder-nse' pod with '-routes' flag set and given grace period
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
 	pod := pods.TestCommonPod(name, icmpCommand(false, false, true, false), node, defaultICMPEnv(k8s.UseIPv6()))
@@ -200,13 +207,28 @@ func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 	)
 }
 
-// DeployNSCWebhook - Setup Default Client with webhook
-func DeployNSCDns(k8s *K8s, node *v1.Node, name, dnsconfig string, timeout time.Duration) *v1.Pod {
-	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
-		pods.NSCPodDns(name, node, dnsconfig),
-	)
+func DeployMonitoringNSCDns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	pod := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
+	pods.InjectCorednsWithSharedFolder(pod)
+	return deployNSC(k8s, nodeName(node), name, "nsc", timeout, pod)
 }
 
+func CreateCorednsConfig(k8s *K8s, name, content string) {
+	k8s.CreateConfigMap(&v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: k8s.GetK8sNamespace(),
+		},
+
+		BinaryData: map[string][]byte{
+			"Corefile": []byte(content),
+		},
+	})
+}
 
 // DeployMonitoringNSC deploys 'monitoring-nsc' pod
 func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
@@ -271,12 +293,11 @@ func deployICMP(k8s *K8s, nodeName, name string, timeout time.Duration, template
 	icmp := k8s.CreatePod(template)
 	Expect(icmp.Name).To(Equal(name))
 
-	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
+	k8s.WaitLogsContains(icmp, icmp.Spec.Containers[0].Name, "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
 
 	logrus.Printf("ICMP Responder %v started done: %v", name, time.Since(startTime))
 	return icmp
 }
-
 func deployDirtyNSE(k8s *K8s, nodeName, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
 

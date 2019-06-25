@@ -555,7 +555,17 @@ jobs:
           command: |
             echo "SUCCESS"
 
-# docker push
+  pull-coredns:
+    docker:
+      - image: circleci/golang
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            docker pull coredns/coredns
+
+  # docker push
   docker-push-tag:
     docker:
       - image: circleci/golang
@@ -602,6 +612,11 @@ workflows:
       - test-sanity-check
       - test-static-code-analysis:
           name: "test-static-code-analysis"
+          requires:
+            - test-sanity-check
+
+      - pull-coredns:
+          name: "pull-coredns"
           requires:
             - test-sanity-check
 # build
@@ -667,6 +682,7 @@ workflows:
             - build-nsm-init
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
+            - pull-coredns
 
 # packet
       - create-packet:

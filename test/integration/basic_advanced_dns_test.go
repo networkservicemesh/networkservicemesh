@@ -3,12 +3,11 @@
 package nsmd_integration_tests
 
 import (
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"strings"
+	"testing"
 )
 
 func TestAdvancedDNS(t *testing.T) {
@@ -18,54 +17,27 @@ func TestAdvancedDNS(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	coreFile1 := `.:53 {
-    log
+
+	coreFile := `.:53 {
     hosts {
-        172.16.1.2 trash.com
-        fallthrough
+        172.16.1.1 my.own.google.com
     }
-}`
-	coreFile2 := `.:53 {
-    log
-    hosts {
-        9.9.9.9 trash2.com
-        fallthrough
-    }
-	forward . 172.16.1.1
 }`
 	k8s, err := kubetest.NewK8s(true)
 	Expect(err).Should(BeNil())
 	defer k8s.Cleanup()
-	createDnsConfig(k8s, "core1", coreFile1)
-	createDnsConfig(k8s, "core2", coreFile2)
+	kubetest.CreateCorednsConfig(k8s, "core", coreFile)
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 	defer kubetest.FailLogger(k8s, nodes, t)
 
-	kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
-	nscAndDns1 := kubetest.DeployNSCDns(k8s, nodes[0].Node, "nsc1", "core1", defaultTimeout)
-	nscAndDns2 := kubetest.DeployNSCDns(k8s, nodes[0].Node, "nsc2", "core2", defaultTimeout)
-	Expect(true, kubetest.IsNsePinged(k8s, nscAndDns1))
-	Expect(true, kubetest.IsNsePinged(k8s, nscAndDns2))
-}
-
-func createDnsConfig(k8s *kubetest.K8s,name, content string){
-	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
-		TypeMeta : metav1.TypeMeta{
-			Kind:"ConfigMap",
-			APIVersion:"v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:name,
-			Namespace:k8s.GetK8sNamespace(),
-		},
-
-		BinaryData: map[string][]byte{
-			"Corefile": []byte(content),
-		},
-	})
-
-	Expect(err).To(BeNil())
+	kubetest.DeployICMPDns(k8s, nodes[0].Node, "icmp-responder", defaultTimeout, "core")
+	nscAndDns1 := kubetest.DeployMonitoringNSCDns(k8s, nodes[0].Node, "nsc", defaultTimeout)
+	resp, _, err := k8s.Exec(nscAndDns1, "nsc", "ping", "my.own.google.com", "-c", "4")
+	Expect(err).Should(BeNil())
+	logrus.Info(resp)
+	Expect(strings.TrimSpace(resp)).ShouldNot(BeEmpty())
+	Expect(strings.Contains(resp, "bad")).Should(BeFalse())
 
 }

@@ -265,7 +265,7 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *l
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
+		Context: &connectioncontext.IPContext{
 			SrcIpAddr:     srcIP.String(),
 			DstIpAddr:     dstIP.String(),
 			ExtraPrefixes: requested,

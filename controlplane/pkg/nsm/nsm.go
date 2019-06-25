@@ -609,7 +609,7 @@ func (srv *networkServiceManager) updateConnectionParameters(requestID string, n
 func (srv *networkServiceManager) updateExcludePrefixes(requestConn connection.Connection) {
 	c := requestConn.GetContext()
 	if c == nil {
-		c = &connectioncontext.ConnectionContext{}
+		c = &connectioncontext.IPContext{}
 	}
 	c.ExcludedPrefixes = append(c.ExcludedPrefixes, srv.GetExcludePrefixes().GetPrefixes()...)
 	// Since we do not worry about validation, just

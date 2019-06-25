@@ -226,7 +226,7 @@ func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, src
 		Id:             id,
 		NetworkService: "some-network-service",
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
+		Context: &connectioncontext.IPContext{
 			SrcIpAddr: srcIp,
 			DstIpAddr: dstIp,
 		},

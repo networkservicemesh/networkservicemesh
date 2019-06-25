@@ -64,12 +64,12 @@ func (c *Connection) SetConnectionMechanism(mechanism connection.Mechanism) {
 }
 
 // SetContext sets connection context
-func (c *Connection) SetContext(context *connectioncontext.ConnectionContext) {
+func (c *Connection) SetContext(context *connectioncontext.IPContext) {
 	c.Context = context
 }
 
 // UpdateContext checks and tries to set connection context
-func (c *Connection) UpdateContext(context *connectioncontext.ConnectionContext) error {
+func (c *Connection) UpdateContext(context *connectioncontext.IPContext) error {
 	if err := context.MeetsRequirements(c.Context); err != nil {
 		return err
 	}
