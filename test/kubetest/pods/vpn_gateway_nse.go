@@ -29,9 +29,9 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				containerMod(&v1.Container{
+				ContainerMod(&v1.Container{
 					Name:            "vpn-gateway",
-					Image:           containerRepo + "/test-common:latest",
+					Image:           "networkservicemesh/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Command: []string{
 						"/bin/icmp-responder-nse",
@@ -45,7 +45,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 				}),
 				{
 					Name:  "nginx",
-					Image: containerRepo + "/nginx",
+					Image: "networkservicemesh/nginx",
 				},
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,

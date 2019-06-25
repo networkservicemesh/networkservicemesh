@@ -41,9 +41,9 @@ func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 
 // NSCPod creates a new 'nsc' pod with init container
 func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
-	initContainer := containerMod(&v1.Container{
+	initContainer := ContainerMod(&v1.Container{
 		Name:            "nsm-init",
-		Image:           containerRepo + "/nsm-init:latest",
+		Image:           "networkservicemesh/nsm-init:latest",
 		ImagePullPolicy: v1.PullIfNotPresent,
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{

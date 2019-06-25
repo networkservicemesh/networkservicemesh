@@ -51,7 +51,7 @@ func init() {
 	containerForcePull = (pull == "true")
 }
 
-func containerMod(c *v1.Container) v1.Container {
+func ContainerMod(c *v1.Container) v1.Container {
 	if strings.HasPrefix(c.Image, containerRepoDefault) {
 		c.Image = strings.Split(c.Image, ":")[0] + ":" + containerTag
 		if len(containerRepo) > 0 {

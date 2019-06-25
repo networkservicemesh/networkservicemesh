@@ -436,6 +436,18 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 
 // CreateAdmissionWebhookDeployment - Setup Admission Webhook deoloyment
 func CreateAdmissionWebhookDeployment(k8s *K8s, name, image, namespace string) *appsv1.Deployment {
+	container := pods.ContainerMod(&v1.Container{
+		Name:            name,
+		Image:           image,
+		ImagePullPolicy: v1.PullIfNotPresent,
+		VolumeMounts: []v1.VolumeMount{
+			{
+				Name:      "webhook-certs",
+				MountPath: "/etc/webhook/certs",
+				ReadOnly:  true,
+			},
+		},
+	})
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -458,18 +470,7 @@ func CreateAdmissionWebhookDeployment(k8s *K8s, name, image, namespace string) *
 				},
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
-						{
-							Name:            name,
-							Image:           image,
-							ImagePullPolicy: v1.PullIfNotPresent,
-							VolumeMounts: []v1.VolumeMount{
-								{
-									Name:      "webhook-certs",
-									MountPath: "/etc/webhook/certs",
-									ReadOnly:  true,
-								},
-							},
-						},
+						container,
 					},
 					Volumes: []v1.Volume{
 						{

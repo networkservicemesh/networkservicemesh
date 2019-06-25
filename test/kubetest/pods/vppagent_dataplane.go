@@ -54,9 +54,9 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 				},
 			},
 			Containers: []v1.Container{
-				containerMod(&v1.Container{
+				ContainerMod(&v1.Container{
 					Name:            "vppagent-dataplane",
-					Image:           containerRepo + "/vppagent-dataplane-dev:latest",
+					Image:           "networkservicemesh/vppagent-dataplane-dev:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts: []v1.VolumeMount{
 						{
