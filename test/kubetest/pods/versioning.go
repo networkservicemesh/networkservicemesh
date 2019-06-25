@@ -51,6 +51,7 @@ func init() {
 	containerForcePull = (pull == "true")
 }
 
+// ContainerMod - Modify Container to use the proper repo, pullPolicy, and tag
 func ContainerMod(c *v1.Container) v1.Container {
 	if strings.HasPrefix(c.Image, containerRepoDefault) {
 		c.Image = strings.Split(c.Image, ":")[0] + ":" + containerTag
