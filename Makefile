@@ -25,11 +25,16 @@ WORKER_COUNT ?= 1
 # Set a default forwarding plane
 FORWARDING_PLANE ?= vpp
 
-# Set target architecture
-export ARCH ?= amd64
-
 # what is the current OS arcitecture
 export OS_ARCH ?= $(shell uname -m)
+
+# Set target architecture
+ifeq (${OS_ARCH},x86_64)
+  export ARCH ?= amd64
+endif
+ifeq (${OS_ARCH},aarch64)
+  export ARCH ?= arm64
+endif
 
 # test supported target
 ifeq (${OS_ARCH},x86_64)
