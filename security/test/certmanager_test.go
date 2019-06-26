@@ -2,12 +2,10 @@ package test
 
 import (
 	"crypto/x509"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/examples/helloworld/helloworld"
-	"net"
+	"strings"
 	"testing"
 )
 
@@ -36,82 +34,31 @@ func TestSimpleCertObtainer(t *testing.T) {
 	obt, err := newSimpleCertObtainer(testSpiffeID)
 	Expect(err).To(BeNil())
 
-	mgr := security.NewManagerWithCertObtainer(obt, helloworldAud)
+	mgr := security.NewManagerWithCertObtainer(obt)
 
 	crt := mgr.GetCertificate()
 	ca := mgr.GetCABundle()
 	verify(crt, ca)
 }
 
-func TestClientServer(t *testing.T) {
+func TestTamperToken(t *testing.T) {
 	RegisterTestingT(t)
 
 	obt, err := newSimpleCertObtainer(testSpiffeID)
 	Expect(err).To(BeNil())
 
-	mgr := security.NewManagerWithCertObtainer(obt, helloworldAud)
-
-	srv, err := mgr.NewServer()
+	mgr := security.NewManagerWithCertObtainer(obt)
+	token, err := mgr.GenerateJWT("123", "")
 	Expect(err).To(BeNil())
 
-	helloworld.RegisterGreeterServer(srv, &helloSrv{})
+	ptoken, parts, err := new(jwt.Parser).ParseUnverified(token, &security.NSMClaims{})
+	ptoken.Claims.(*security.NSMClaims).Audience = "hacked"
 
-	ln, err := net.Listen("tcp", ":3434")
+	ss, err := ptoken.SigningString()
 	Expect(err).To(BeNil())
-	defer ln.Close()
-	go srv.Serve(ln)
 
-	secureConn, err := mgr.DialContext(context.Background(), ":3434")
-	Expect(err).To(BeNil())
-	defer secureConn.Close()
+	hack := strings.Join([]string{ss, parts[2]}, ".")
 
-	gc := helloworld.NewGreeterClient(secureConn)
-	response, err := gc.SayHello(context.Background(), &helloworld.HelloRequest{Name: "testName"})
-	Expect(err).To(BeNil())
-	Expect(response.Message).To(Equal("testName"))
-
-	_, err = grpc.DialContext(context.Background(), ":3434")
+	err = mgr.VerifyJWT(testSpiffeID, hack)
 	Expect(err).ToNot(BeNil())
 }
-
-//func TestExchangeCertObtainer(t *testing.T) {
-//	RegisterTestingT(t)
-//
-//	ca, err := generateCA()
-//	Expect(err).To(BeNil())
-//
-//	obt1, err := newExchangeCertObtainerWithCA(&ca, frequency)
-//	Expect(err).To(BeNil())
-//
-//	mgr1 := security.NewManagerWithCertObtainer(obt1)
-//
-//	obt2, err := newExchangeCertObtainerWithCA(&ca, frequency)
-//	Expect(err).To(BeNil())
-//
-//	mgr2 := security.NewManagerWithCertObtainer(obt2)
-//
-//	srv, err := mgr2.NewServer()
-//	Expect(err).To(BeNil())
-//
-//	helloworld.RegisterGreeterServer(srv, &helloSrv{
-//		p: mgr2,
-//	})
-//
-//	ln, err := net.Listen("tcp", ":3434")
-//	Expect(err).To(BeNil())
-//	defer ln.Close()
-//	go srv.Serve(ln)
-//
-//	secureConn, err := mgr1.DialContext(context.Background(), ":3434")
-//	Expect(err).To(BeNil())
-//	defer secureConn.Close()
-//
-//	gc := helloworld.NewGreeterClient(secureConn)
-//	for i := 0; i < 3; i++ {
-//		response, err := gc.SayHello(context.Background(), &helloworld.HelloRequest{Name: "testName"})
-//		Expect(err).To(BeNil())
-//		logrus.Infof("SayHello successfully finished, response = %v", response)
-//		Expect(response.Message).To(Equal("testName"))
-//		<-time.After(4 * time.Second)
-//	}
-//}

@@ -9,8 +9,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -302,17 +300,6 @@ type DataplaneRegistrationServer interface {
 	RequestLiveness(DataplaneRegistration_RequestLivenessServer) error
 }
 
-// UnimplementedDataplaneRegistrationServer can be embedded to have forward compatible implementations.
-type UnimplementedDataplaneRegistrationServer struct {
-}
-
-func (*UnimplementedDataplaneRegistrationServer) RequestDataplaneRegistration(ctx context.Context, req *DataplaneRegistrationRequest) (*DataplaneRegistrationReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RequestDataplaneRegistration not implemented")
-}
-func (*UnimplementedDataplaneRegistrationServer) RequestLiveness(srv DataplaneRegistration_RequestLivenessServer) error {
-	return status.Errorf(codes.Unimplemented, "method RequestLiveness not implemented")
-}
-
 func RegisterDataplaneRegistrationServer(s *grpc.Server, srv DataplaneRegistrationServer) {
 	s.RegisterService(&_DataplaneRegistration_serviceDesc, srv)
 }
@@ -408,14 +395,6 @@ func (c *dataplaneUnRegistrationClient) RequestDataplaneUnRegistration(ctx conte
 // DataplaneUnRegistrationServer is the server API for DataplaneUnRegistration service.
 type DataplaneUnRegistrationServer interface {
 	RequestDataplaneUnRegistration(context.Context, *DataplaneUnRegistrationRequest) (*DataplaneUnRegistrationReply, error)
-}
-
-// UnimplementedDataplaneUnRegistrationServer can be embedded to have forward compatible implementations.
-type UnimplementedDataplaneUnRegistrationServer struct {
-}
-
-func (*UnimplementedDataplaneUnRegistrationServer) RequestDataplaneUnRegistration(ctx context.Context, req *DataplaneUnRegistrationRequest) (*DataplaneUnRegistrationReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RequestDataplaneUnRegistration not implemented")
 }
 
 func RegisterDataplaneUnRegistrationServer(s *grpc.Server, srv DataplaneUnRegistrationServer) {

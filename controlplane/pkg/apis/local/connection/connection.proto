@@ -50,6 +50,7 @@ message Connection {
   connectioncontext.ConnectionContext context = 4;
   map<string, string> labels = 5;
   State state = 6;
+  string ResponseJWT = 7;
 }
 
 enum ConnectionEventType {

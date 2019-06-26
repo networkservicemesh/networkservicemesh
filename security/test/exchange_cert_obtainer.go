@@ -15,6 +15,7 @@ type testExchangeCertificateObtainer struct {
 	caTLS     *tls.Certificate
 	frequency time.Duration
 	errorCh   chan error
+	spiffeID  string
 }
 
 func (t *testExchangeCertificateObtainer) ObtainCertificates() <-chan *security.RetrievedCerts {
@@ -33,7 +34,7 @@ func (t *testExchangeCertificateObtainer) ObtainCertificates() <-chan *security.
 
 		for {
 			logrus.Info("Generating new x509 certificate...")
-			cert, err := generateKeyPair(testSpiffeID, t.caTLS)
+			cert, err := generateKeyPair(t.spiffeID, t.caTLS)
 			if err != nil {
 				logrus.Error(err)
 				t.errorCh <- err
@@ -58,18 +59,20 @@ func (*testExchangeCertificateObtainer) Error() error {
 	return nil
 }
 
-func newExchangeCertObtainer(frequency time.Duration) (security.CertificateObtainer, error) {
-	ca, err := generateCA()
-	if err != nil {
-		return nil, err
-	}
+//
+//func newExchangeCertObtainer(frequency time.Duration) (security.CertificateObtainer, error) {
+//	ca, err := generateCA()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return newExchangeCertObtainerWithCA(&ca, frequency)
+//}
 
-	return newExchangeCertObtainerWithCA(&ca, frequency)
-}
-
-func newExchangeCertObtainerWithCA(caTLS *tls.Certificate, frequency time.Duration) (security.CertificateObtainer, error) {
+func newExchangeCertObtainerWithCA(spiffeID string, caTLS *tls.Certificate, frequency time.Duration) (security.CertificateObtainer, error) {
 	return &testExchangeCertificateObtainer{
 		frequency: frequency,
 		caTLS:     caTLS,
+		spiffeID:  spiffeID,
 	}, nil
 }

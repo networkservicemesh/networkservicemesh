@@ -108,15 +108,11 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	//		otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	//mgr := security.NewManager()
-	w.grpcServer, err = security.GetSecurityManager().NewServer()
+	w.grpcServer = security.GetSecurityManager().NewServer()
 	//grpc.UnaryInterceptor(
 	//	otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 	//grpc.StreamInterceptor(
 	//	otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
 
 	logrus.Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)

@@ -81,11 +81,7 @@ func (nsme *nsmEndpoint) Start() error {
 	//}
 
 	//nsme.grpcServer = grpc.NewServer(grpcOptions...)
-	var err error
-	nsme.grpcServer, err = security.GetSecurityManager().NewServer()
-	if err != nil {
-		return err
-	}
+	nsme.grpcServer = security.GetSecurityManager().NewServer()
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()
@@ -163,6 +159,11 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	if err := security.GetSecurityManager().SignResponse(incomingConnection, ""); err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+
 	return incomingConnection, nil
 }
 

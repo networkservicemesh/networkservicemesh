@@ -14,10 +14,10 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/examples/helloworld/helloworld"
 	"math/big"
 	"net"
 	"time"
@@ -27,90 +27,25 @@ var oidSanExtension = []int{2, 5, 29, 17}
 
 const nameTypeURI = 6
 
-type helloSrv struct {
-	p    *party
+type testSrv struct {
+	p    security.Manager
 	next string
 	me   string
 }
 
-type party struct {
+type intermediary struct {
 	security.Manager
 	srv        *grpc.Server
-	client     helloworld.GreeterClient
 	closeFuncs []func()
 }
 
-func helloworldAud(req interface{}) (string, error) {
-	r, ok := req.(*helloworld.HelloRequest)
+func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	spiffeId, ok := ctx.Value("spiffeID").(string)
 	if !ok {
-		return "", errors.New("request does not have type helloworld.HelloRequest")
-	}
-	return r.GetName(), nil
-}
-
-func createGreeterParty(spiffeID string, port int, ca *tls.Certificate, next, name string) (*party, error) {
-	rv, err := createParty(spiffeID, port, ca)
-	if err != nil {
-		return nil, err
+		return nil, errors.New("context doesn't contain spiffeID")
 	}
 
-	helloworld.RegisterGreeterServer(rv.srv, &helloSrv{
-		p:    rv,
-		next: next,
-		me:   name,
-	})
-
-	return rv, nil
-}
-
-func createParty(spiffeID string, port int, ca *tls.Certificate) (*party, error) {
-	rv := &party{}
-
-	obt, err := newSimpleCertObtainerWithCA(spiffeID, ca)
-	if err != nil {
-		return nil, err
-	}
-
-	rv.Manager = security.NewManagerWithCertObtainer(obt, helloworldAud)
-	rv.srv, err = rv.NewServer()
-	if err != nil {
-		return nil, err
-	}
-
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		return nil, err
-	}
-	go rv.srv.Serve(ln)
-
-	rv.closeFuncs = []func(){
-		func() { _ = ln.Close() },
-	}
-	return rv, nil
-}
-
-func (p *party) SayHello(msg, target, obo string) (*helloworld.HelloReply, error) {
-	if p.client == nil {
-		conn, err := p.DialContext(context.Background(), target)
-		if err != nil {
-			return nil, err
-		}
-		p.closeFuncs = append(p.closeFuncs, func() { _ = conn.Close() })
-		p.client = helloworld.NewGreeterClient(conn)
-	}
-
-	request := &helloworld.HelloRequest{Name: msg}
-	return p.client.SayHello(context.Background(), request)
-}
-
-func (p *party) Close() {
-	for _, f := range p.closeFuncs {
-		f()
-	}
-}
-
-func (s *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	logrus.Infof("Receive SayHello, spiffeID = %s", ctx.Value("spiffeID"))
+	logrus.Infof("Receive Request, spiffeID = %s", spiffeId)
 	logrus.Infof("obo = %s", ctx.Value("obo"))
 	logrus.Infof("aud = %s", ctx.Value("aud"))
 	logrus.Infof("next = %s", s.next)
@@ -122,33 +57,109 @@ func (s *helloSrv) SayHello(ctx context.Context, r *helloworld.HelloRequest) (*h
 			return nil, err
 		}
 		defer conn.Close()
-		client := helloworld.NewGreeterClient(conn)
-		request := &helloworld.HelloRequest{Name: r.Name + s.me}
+		client := networkservice.NewNetworkServiceClient(conn)
+		if r.GetConnection().GetLabels() == nil {
+			r.Connection.Labels = map[string]string{}
+		}
+		r.GetConnection().GetLabels()[s.me] = spiffeId
 
-		return client.SayHello(ctx, request)
+		response, err := client.Request(ctx, r)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.p.SignResponse(response, response.GetResponseJWT())
+		if err != nil {
+			return nil, err
+		}
+
+		return response, nil
 	}
 
-	return &helloworld.HelloReply{Message: r.GetName() + s.me}, nil
-}
-
-type testConnectionMonitor struct {
-}
-
-func (cm *testConnectionMonitor) MonitorConnections(empty *empty.Empty, stream connection.MonitorConnection_MonitorConnectionsServer) error {
-	for i := 0; i < 5; i++ {
-		id := fmt.Sprintf("%d", i)
-		stream.Send(&connection.ConnectionEvent{
-			Type: connection.ConnectionEventType_UPDATE,
-			Connections: map[string]*connection.Connection{
-				id: {
-					Id:             id,
-					NetworkService: "ns",
-				},
-			},
-		})
+	if r.GetConnection() == nil {
+		r.Connection = &connection.Connection{}
 	}
 
-	return nil
+	if r.GetConnection().GetLabels() == nil {
+		r.Connection.Labels = map[string]string{}
+	}
+	r.GetConnection().GetLabels()[s.me] = spiffeId
+	response := &connection.Connection{
+		Id:     "testId",
+		Labels: r.GetConnection().GetLabels(),
+	}
+	s.p.SignResponse(response, "")
+	return response, nil
+}
+
+func emptyRequest() *networkservice.NetworkServiceRequest {
+	return &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			Labels: map[string]string{},
+		},
+	}
+}
+
+func (s *testSrv) Close(context.Context, *connection.Connection) (*empty.Empty, error) {
+	panic("implement me")
+}
+
+func createSimpleIntermediary(spiffeID string, port int, ca *tls.Certificate, next, name string) (*intermediary, error) {
+	obt, err := newSimpleCertObtainerWithCA(spiffeID, ca)
+	if err != nil {
+		return nil, err
+	}
+
+	return createIntermediaryWithObt(obt, port, next, name)
+}
+
+func createExchangeIntermediary(spiffeID string, port int, ca *tls.Certificate, next, name string) (*intermediary, error) {
+	obt, err := newExchangeCertObtainerWithCA(spiffeID, ca, 3*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return createIntermediaryWithObt(obt, port, next, name)
+}
+
+func createIntermediaryWithObt(obt security.CertificateObtainer, port int, next, name string) (*intermediary, error) {
+	mgr := security.NewManagerWithCertObtainer(obt)
+	srv := mgr.NewServer()
+
+	networkservice.RegisterNetworkServiceServer(srv, &testSrv{
+		p:    mgr,
+		next: next,
+		me:   name,
+	})
+
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return nil, err
+	}
+	go srv.Serve(ln)
+
+	return &intermediary{
+		Manager: mgr,
+		srv:     srv,
+		closeFuncs: []func(){
+			func() { _ = ln.Close() },
+		},
+	}, nil
+}
+
+func (p *intermediary) NewClient(target string) (networkservice.NetworkServiceClient, error) {
+	conn, err := p.DialContext(context.Background(), target)
+	if err != nil {
+		return nil, err
+	}
+	p.closeFuncs = append(p.closeFuncs, func() { _ = conn.Close() })
+	return networkservice.NewNetworkServiceClient(conn), nil
+}
+
+func (p *intermediary) Close() {
+	for _, f := range p.closeFuncs {
+		f()
+	}
 }
 
 func generateCA() (tls.Certificate, error) {
@@ -268,7 +279,7 @@ func createPartyWithCA(spiffeID string, caTLS tls.Certificate) (security.Manager
 		return nil, err
 	}
 
-	return security.NewManagerWithCertObtainer(obt, helloworldAud), nil
+	return security.NewManagerWithCertObtainer(obt), nil
 }
 
 func createParties() (security.Manager, security.Manager, error) {

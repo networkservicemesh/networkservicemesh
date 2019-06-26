@@ -17,6 +17,7 @@ package client
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -97,6 +98,8 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 			logrus.Errorf("Connect failed after %v iterations and %v", connectRetries, time.Since(start))
 			return nil, err
 		}
+
+		security.GetSecurityManager().VerifyJWT()
 
 		nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
 		logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)

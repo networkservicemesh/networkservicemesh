@@ -6,9 +6,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/security"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/examples/helloworld/helloworld"
-	"net"
 	"testing"
 	"time"
 )
@@ -26,90 +23,27 @@ func TestJwtManager_Verify(t *testing.T) {
 	Expect(err).To(BeNil())
 }
 
-func TestClientServerJWTValidation(t *testing.T) {
-	RegisterTestingT(t)
-
-	p1, p2, err := createParties()
-	Expect(err).To(BeNil())
-
-	srv, err := p2.NewServer()
-	Expect(err).To(BeNil())
-
-	helloworld.RegisterGreeterServer(srv, &helloSrv{})
-
-	ln, err := net.Listen("tcp", ":3434")
-	Expect(err).To(BeNil())
-	defer ln.Close()
-	go srv.Serve(ln)
-
-	secureConn, err := p1.DialContext(context.Background(), ":3434")
-	Expect(err).To(BeNil())
-	defer secureConn.Close()
-
-	token, err := p1.GenerateJWT("myns", "")
-	Expect(err).To(BeNil())
-
-	gc := helloworld.NewGreeterClient(secureConn)
-	response, err := gc.SayHello(
-		context.Background(),
-		&helloworld.HelloRequest{Name: "testName"},
-		grpc.PerRPCCredentials(&security.NSMToken{Token: token}))
-
-	Expect(err).To(BeNil())
-	Expect(response.Message).To(Equal("testName"))
-
-	_, err = grpc.DialContext(context.Background(), ":3434")
-	Expect(err).ToNot(BeNil())
-}
-
 func TestClientServerExchangeCertificatesJWT(t *testing.T) {
 	RegisterTestingT(t)
 
 	ca, err := generateCA()
 	Expect(err).To(BeNil())
 
-	obt1, err := newExchangeCertObtainerWithCA(&ca, frequency)
+	p1, err := createExchangeIntermediary("spiffe://test.com/p1", 3231, &ca, "", "1")
 	Expect(err).To(BeNil())
+	defer p1.Close()
 
-	mgr1 := security.NewManagerWithCertObtainer(obt1, helloworldAud)
-
-	obt2, err := newExchangeCertObtainerWithCA(&ca, frequency)
+	p2, err := createExchangeIntermediary("spiffe://test.com/p2", 3232, &ca, "", "2")
 	Expect(err).To(BeNil())
+	defer p2.Close()
 
-	mgr2 := security.NewManagerWithCertObtainer(obt2, helloworldAud)
-
-	srv, err := mgr2.NewServer()
+	client, err := p1.NewClient(":3232")
 	Expect(err).To(BeNil())
-
-	helloworld.RegisterGreeterServer(srv, &helloSrv{})
-
-	ln, err := net.Listen("tcp", ":3434")
-	Expect(err).To(BeNil())
-	defer ln.Close()
-	go srv.Serve(ln)
-
-	secureConn, err := mgr1.DialContext(context.Background(), ":3434")
-	Expect(err).To(BeNil())
-	defer secureConn.Close()
-
-	gc := helloworld.NewGreeterClient(secureConn)
-	for i := 0; i < 3; i++ {
-		token, err := mgr1.GenerateJWT("myns", "")
+	for i := 0; i < 5; i++ {
+		response, err := client.Request(context.Background(), emptyRequest())
 		Expect(err).To(BeNil())
-
-		response, err := gc.SayHello(
-			context.Background(),
-			&helloworld.HelloRequest{Name: "testName"},
-			grpc.PerRPCCredentials(&security.NSMToken{Token: token}))
-		if err != nil {
-			logrus.Error(err)
-			<-time.After(3 * time.Second)
-			continue
-		}
-
-		logrus.Infof("SayHello successfully finished, response = %v", response)
-		Expect(response.Message).To(Equal("testName"))
-		<-time.After(3 * time.Second)
+		logrus.Info(response)
+		<-time.After(1 * time.Second)
 	}
 }
 
@@ -142,34 +76,26 @@ func TestClientServerOboToken(t *testing.T) {
 	ca, err := generateCA()
 	Expect(err).To(BeNil())
 
-	p1, err := createGreeterParty("spiffe://test.com/p1", 3431, &ca, ":3432", "1")
+	p1, err := createSimpleIntermediary("spiffe://test.com/p1", 3431, &ca, ":3432", "1")
 	Expect(err).To(BeNil())
 	defer p1.Close()
 
-	p2, err := createGreeterParty("spiffe://test.com/p2", 3432, &ca, ":3433", "2")
+	p2, err := createSimpleIntermediary("spiffe://test.com/p2", 3432, &ca, ":3433", "2")
 	Expect(err).To(BeNil())
 	defer p2.Close()
 
-	p3, err := createGreeterParty("spiffe://test.com/p3", 3433, &ca, "", "3")
+	p3, err := createSimpleIntermediary("spiffe://test.com/p3", 3433, &ca, "", "3")
 	Expect(err).To(BeNil())
 	defer p3.Close()
 
-	reply, err := p1.SayHello("", ":3431", "")
+	client, err := p1.NewClient(":3431")
 	Expect(err).To(BeNil())
-	Expect(reply.Message).To(Equal("123"))
-}
 
-//func TestServerStreamSecurity(t *testing.T) {
-//	RegisterTestingT(t)
-//
-//	ca, err := generateCA()
-//	Expect(err).To(BeNil())
-//
-//	p, err := createParty("spiffe://test.com/p1", 3431, &ca)
-//	Expect(err).To(BeNil())
-//
-//	connection.RegisterMonitorConnectionServer(p.srv, &testConnectionMonitor{})
-//
-//	obt, err := newSimpleCertObtainerWithCA("spiffe://test.com/p2", &ca)
-//	mgr2 := security.NewManagerWithCertObtainer(obt, )
-//}
+	response, err := client.Request(context.Background(), emptyRequest())
+	Expect(err).To(BeNil())
+
+	logrus.Info(response.GetLabels())
+	Expect(response.GetLabels()["2"]).To(Equal("spiffe://test.com/p1"))
+	Expect(response.GetLabels()["3"]).To(Equal("spiffe://test.com/p2"))
+	Expect(p1.VerifyJWT("spiffe://test.com/p1", response.GetResponseJWT())).To(BeNil())
+}

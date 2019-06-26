@@ -8,8 +8,6 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -370,20 +368,6 @@ type NSMDServer interface {
 	RequestClientConnection(context.Context, *ClientConnectionRequest) (*ClientConnectionReply, error)
 	EnumConnection(context.Context, *EnumConnectionRequest) (*EnumConnectionReply, error)
 	DeleteClientConnection(context.Context, *DeleteConnectionRequest) (*DeleteConnectionReply, error)
-}
-
-// UnimplementedNSMDServer can be embedded to have forward compatible implementations.
-type UnimplementedNSMDServer struct {
-}
-
-func (*UnimplementedNSMDServer) RequestClientConnection(ctx context.Context, req *ClientConnectionRequest) (*ClientConnectionReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RequestClientConnection not implemented")
-}
-func (*UnimplementedNSMDServer) EnumConnection(ctx context.Context, req *EnumConnectionRequest) (*EnumConnectionReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EnumConnection not implemented")
-}
-func (*UnimplementedNSMDServer) DeleteClientConnection(ctx context.Context, req *DeleteConnectionRequest) (*DeleteConnectionReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteClientConnection not implemented")
 }
 
 func RegisterNSMDServer(s *grpc.Server, srv NSMDServer) {

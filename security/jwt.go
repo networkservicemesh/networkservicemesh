@@ -9,13 +9,13 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-type nsmClaims struct {
+type NSMClaims struct {
 	jwt.StandardClaims
 	Obo  string `json:"obo"`
 	Cert string `json:"cert"`
 }
 
-func (c *nsmClaims) getCertificate() (*x509.Certificate, error) {
+func (c *NSMClaims) getCertificate() (*x509.Certificate, error) {
 	crtBytes, err := base64.StdEncoding.DecodeString(c.Cert)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (c *nsmClaims) getCertificate() (*x509.Certificate, error) {
 	return x509.ParseCertificate(crtBytes)
 }
 
-func (c *nsmClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Certificate, error) {
+func (c *NSMClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Certificate, error) {
 	crt, err := c.getCertificate()
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (c *nsmClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Cert
 	return crt, nil
 }
 
-func (c *nsmClaims) getObo() (*jwt.Token, []string, *nsmClaims, error) {
+func (c *NSMClaims) getObo() (*jwt.Token, []string, *NSMClaims, error) {
 	if c.Obo == "" {
 		return nil, nil, nil, nil
 	}
@@ -50,13 +50,13 @@ func (c *nsmClaims) getObo() (*jwt.Token, []string, *nsmClaims, error) {
 	return parseJWTWithClaims(c.Obo)
 }
 
-func parseJWTWithClaims(tokenString string) (*jwt.Token, []string, *nsmClaims, error) {
-	token, parts, err := new(jwt.Parser).ParseUnverified(tokenString, &nsmClaims{})
+func parseJWTWithClaims(tokenString string) (*jwt.Token, []string, *NSMClaims, error) {
+	token, parts, err := new(jwt.Parser).ParseUnverified(tokenString, &NSMClaims{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	claims, ok := token.Claims.(*nsmClaims)
+	claims, ok := token.Claims.(*NSMClaims)
 	if !ok {
 		return nil, nil, nil, errors.New("wrong claims format")
 	}

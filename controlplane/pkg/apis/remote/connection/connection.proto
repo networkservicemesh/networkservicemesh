@@ -54,6 +54,7 @@ message Connection {
   string destination_network_service_manager_name = 7;
   string network_service_endpoint_name = 8;
   State state = 9;
+  string ResponseJWT = 10;
 }
 
 enum ConnectionEventType {
