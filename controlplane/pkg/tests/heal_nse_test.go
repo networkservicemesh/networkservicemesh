@@ -47,9 +47,11 @@ func TestHealRemoteNSE(t *testing.T) {
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.IPContext{
-				DstIpRequired: true,
-				SrcIpRequired: true,
+			Context: &connectioncontext.ConnectionContext{
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
 			},
 			Labels: make(map[string]string),
 		},

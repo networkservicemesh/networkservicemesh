@@ -37,10 +37,12 @@ func createTestMechanism() *connection.Mechanism {
 	}
 }
 
-func createTestContext() *connectioncontext.IPContext {
-	return &connectioncontext.IPContext{
-		SrcIpAddr: srcIp,
-		DstIpAddr: dstIp,
+func createTestContext() *connectioncontext.ConnectionContext {
+	return &connectioncontext.ConnectionContext{
+		IpContext: &connectioncontext.IPContext{
+			SrcIpAddr: srcIp,
+			DstIpAddr: dstIp,
+		},
 	}
 }
 
