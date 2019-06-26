@@ -1,0 +1,62 @@
+version: 1.0
+root: "./.tests/cloud_test/"
+timeout: 3600 # 1 hour total timeout
+import:
+  - .cloudtest/packet.yaml
+  - .cloudtest/gke.yaml
+  - .cloudtest/kind.yaml
+  - .cloudtest/vagrant.yaml
+  - .cloudtest/aws.yaml
+  - .cloudtest/azure.yaml
+
+reporting:
+  junit-report: "results/junit.xml"
+executions:
+  - name: "Single cluster tests"
+    tags:
+      - basic
+      - recover
+      - usecase
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+  - name: "Benchmark tests"
+    tags:
+      - bench
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 1
+    cluster-selector:
+      - packet
+    kubernetes-env:
+      - KUBECONFIG
+  - name: "Example-icmp"
+    kind: shell
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      make k8s-infra-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-icmp-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-check
+      make k8s-delete
+  - name: "Example-vpn"
+    kind: shell
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      make k8s-infra-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-vpn-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-check
+      make k8s-delete
