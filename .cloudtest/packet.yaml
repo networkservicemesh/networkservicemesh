@@ -1,0 +1,39 @@
+version: 1.0
+providers:
+  - name: "packet"
+    kind: "packet"
+    instances: 2
+    retry: 5
+    node-count: 2
+    enabled: true
+    timeout: 600 # 10 minutes to start cluster
+    env:
+      - CLUSTER_RULES_PREFIX=null # To not add any specific code
+      - KUBECONFIG=$(tempdir)/config
+    env-check:
+      - PACKET_AUTH_TOKEN
+      - PACKET_PROJECT_ID
+      - COMMIT
+    packet:
+      ssh-key: sshkey.pub   # A key name relative to $(tempdir) or absolute
+      devices:
+        - name: "Master"
+          plan: "t1.small.x86"
+          os: "ubuntu_16_04"
+          billing_cycle: "hourly"
+        - name: "Worker"
+          plan: "t1.small.x86"
+          os: "ubuntu_16_04"
+          billing_cycle: "hourly"
+      facilities:
+        - baremetal
+        - layer_2
+        - global_ipv4
+      preferred-facility: sjc1
+    scripts:
+      install: "echo all deps installed"
+      setup: |
+        ssh-keygen -t rsa -f $(tempdir)/sshkey -q -N ""
+        ssh-add $(tempdir)/sshkey
+      start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
+      prepare: make k8s-config

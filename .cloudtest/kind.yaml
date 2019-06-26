@@ -1,0 +1,21 @@
+version: 1.0
+providers:
+  - name: "kind"
+    kind: "shell"
+    instances: 1
+    node-count: 3
+    retry: 10
+    enabled: false
+    timeout: 300 # 5 minutes to start cluster
+    stop-delay: 10
+    env:
+      - CLUSTER_RULES_PREFIX=kind
+    scripts:
+      start: |
+        make kind-config
+        make kind-start
+      stop: make kind-stop
+      config: make kind-config-location
+      prepare: |
+        make k8s-load-images
+        make k8s-config
