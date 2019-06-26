@@ -1,4 +1,4 @@
-package main
+package corefile
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ func NewCorefileScope(name string, parent CorefileScope) CorefileScope {
 
 type Corefile interface {
 	CorefileScope
-	Save()
+	Save() error
 }
 
 type corefile struct {
@@ -33,25 +33,27 @@ type corefile struct {
 }
 
 func NewCorefile(path string) Corefile {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			os.Create(path)
-		} else {
-			panic(err)
-		}
-	}
 	return &corefile{
 		CorefileScope: NewCorefileScope("", nil),
 		pathToFile:    path,
 	}
 }
 
-func (c *corefile) Save() {
-	err := ioutil.WriteFile(c.pathToFile, []byte(c.String()), 0)
-	if err != nil {
-		panic(err)
+func (c *corefile) Save() error {
+	_, err := os.Stat(c.pathToFile)
+	if os.IsNotExist(err) {
+		_, err = os.Create(c.pathToFile)
+		if err != nil {
+			return err
+		}
 	}
+	err = ioutil.WriteFile(c.pathToFile, []byte(c.String()), 0)
+	if err != nil {
+		return err
+	}
+	return nil
 }
+
 func (c *corefile) String() string {
 	sb := strings.Builder{}
 	for _, scope := range c.Records() {
@@ -70,6 +72,7 @@ type CorefileScope interface {
 	Records() []fmt.Stringer
 	Remove(string)
 	Name() string
+	Prioritize() CorefileScope
 }
 
 type corefileScope struct {
@@ -106,23 +109,28 @@ func (c *corefileScope) Scope(name string) CorefileScope {
 	}
 	return c.scopes[name]
 }
+func (c *corefileScope) Prioritize() CorefileScope {
+	index := indexOf(c.parent.Records(), c)
+	if index == -1 {
+		return c
+	}
+	pop := c.parent.Records()[0]
+	c.parent.Records()[index] = pop
+	c.parent.Records()[0] = c
+	return c
+}
 
 func (c *corefileScope) Remove(name string) {
 	delete(c.scopes, name)
-	removeIndex := -1
-	for i, rec := range c.records {
-		if scope, ok := rec.(CorefileScope); ok {
-			if scope.Name() == name {
-				removeIndex = i
-				break
-			}
-		} else if rec.String() == name {
-			removeIndex = i
-			break
-		}
+
+	removeIndex := indexOf(c.records, record(name))
+
+	if removeIndex == -1 {
+		return
 	}
 	c.records = append(c.records[:removeIndex], c.records[removeIndex+1:]...)
 }
+
 
 func (c *corefileScope) String() string {
 	sb := strings.Builder{}
@@ -149,4 +157,22 @@ func (c *corefileScope) level() int {
 		p = p.parent.(*corefileScope)
 	}
 	return lvl
+}
+func indexOf(records []fmt.Stringer, rec fmt.Stringer) int {
+	name := nameOf(rec)
+	removeIndex := -1
+	for i, rec := range records {
+		if nameOf(rec) == name {
+			removeIndex = i
+			break
+		}
+	}
+	return removeIndex
+}
+
+func nameOf(s fmt.Stringer) string {
+	if v, ok := s.(CorefileScope); ok {
+		return v.Name()
+	}
+	return s.String()
 }

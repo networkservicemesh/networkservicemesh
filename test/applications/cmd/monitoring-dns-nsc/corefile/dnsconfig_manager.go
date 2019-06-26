@@ -1,0 +1,65 @@
+package corefile
+
+import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"strings"
+)
+
+const (
+	defaultCoreFileLocation = "/etc/coredns/Corefile"
+	anyDomain               = "."
+)
+
+type DNSConfigManager interface {
+	UpdateDNSConfig(config *connectioncontext.DNSConfig) error
+	RemoveDNSConfig(config *connectioncontext.DNSConfig) error
+}
+
+func NewDefaultDNSConfigManager() (DNSConfigManager, error) {
+	return NewDNSConfigManager(defaultCoreFileLocation)
+}
+func NewDNSConfigManager(coreFilePath string) (DNSConfigManager, error) {
+	c := NewCorefile(coreFilePath)
+	c.WriteScope(anyDomain + ":54").Write("log").Write("reload 5s")
+	err := c.Save()
+	if err != nil {
+		return nil, err
+	}
+	return &dnsConfigManager{
+		corefile: c,
+	}, nil
+}
+
+type dnsConfigManager struct {
+	corefile Corefile
+}
+
+func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) error {
+	err := config.Validate()
+	if err != nil {
+		return err
+	}
+	domains := strings.Join(config.ResolvesDomains, " ")
+	ips := strings.Join(config.DnsServerIps, " ")
+	if domains == "" {
+		domains = anyDomain
+	}
+	s := m.corefile.WriteScope(domains).Write("log").Write("forward . " + ips)
+	if config.Prioritize {
+		s.Prioritize()
+	}
+	return m.corefile.Save()
+}
+
+func (m *dnsConfigManager) RemoveDNSConfig(config *connectioncontext.DNSConfig) error {
+	err := config.Validate()
+	if err != nil {
+		return err
+	}
+	domains := strings.Join(config.ResolvesDomains, " ")
+	if domains == "" {
+		domains = anyDomain
+	}
+	m.corefile.Remove(domains)
+	return m.corefile.Save()
+}

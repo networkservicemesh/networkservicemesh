@@ -69,9 +69,9 @@ func main() {
 
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
 
-	routeAddr := makeRouteMutator([]string{"8.8.8.8/30"})
+	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
-		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
+		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 
 	if routes {
@@ -112,17 +112,6 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	<-c
-}
-
-func makeRouteMutator(routes []string) endpoint.ConnectionMutator {
-	return func(c *connection.Connection) error {
-		for _, r := range routes {
-			c.Context.IpContext.Routes = append(c.Context.IpContext.Routes, &connectioncontext.Route{
-				Prefix: r,
-			})
-		}
-		return nil
-	}
 }
 
 func ipNeighborMutator(c *connection.Connection) error {

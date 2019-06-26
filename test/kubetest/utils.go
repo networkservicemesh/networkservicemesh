@@ -159,10 +159,10 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 }
 
 func DeployICMPDns(k8s *K8s, node *v1.Node, name, dnsConfig string, timeout time.Duration) *v1.Pod {
-	pod := pods.TestCommonPod(name, []string{"/bin/icmp-responder-dns-nse"}, node, defaultICMPEnv(k8s.UseIPv6()))
-	pods.InjectCoredns(pod, dnsConfig)
-	deployICMP(k8s, nodeName(node), name, timeout, pod)
-	return pod
+	template := pods.TestCommonPod(name, []string{"/bin/icmp-responder-dns-nse"}, node, defaultICMPEnv(k8s.UseIPv6()))
+	pods.InjectCoredns(template, dnsConfig)
+	result := deployICMP(k8s, nodeName(node), name, timeout, template)
+	return result
 }
 
 // DeployICMPWithConfig deploys 'icmp-responder-nse' pod with '-routes' flag set and given grace period
@@ -208,14 +208,18 @@ func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 }
 
 func DeployMonitoringNSCDns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	pod := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
-	pods.InjectCorednsWithSharedFolder(pod)
-	return deployNSC(k8s, nodeName(node), name, "nsc", timeout, pod)
+	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
+	pods.InjectCorednsWithSharedFolder(template)
+	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
+	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
+	return result
 }
 func DeployNSCDns(k8s *K8s, node *v1.Node, name, dnscoreConfig string, timeout time.Duration) *v1.Pod {
-	pod := pods.NSCPod(name, node, defaultNSCEnv())
-	pods.InjectCoredns(pod, dnscoreConfig)
-	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, pod)
+	template := pods.NSCPod(name, node, defaultNSCEnv())
+	pods.InjectCoredns(template, dnscoreConfig)
+	result := deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, template)
+	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
+	return result
 }
 
 func CreateCorednsConfig(k8s *K8s, name, content string) {

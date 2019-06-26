@@ -141,9 +141,5 @@ func (c *Connection) IsComplete() error {
 		return err
 	}
 
-	if err := c.GetContext().DnsConfig.Validate(); err != nil {
-		return err
-	}
-
 	return nil
 }

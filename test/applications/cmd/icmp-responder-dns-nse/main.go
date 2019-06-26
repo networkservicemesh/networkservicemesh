@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -14,8 +13,6 @@ import (
 
 var version string
 
-const myCoreDnsPort = 53
-
 func main() {
 	logrus.Info("Starting icmp-responder-dns-nse...")
 	logrus.Infof("Version: %v", version)
@@ -23,9 +20,9 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
-	routeAddr := makeRouteMutator([]string{"8.8.8.8/30"})
+	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
-		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
+		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 
 	composite := endpoint.NewCompositeEndpointBuilder().
@@ -49,21 +46,11 @@ func main() {
 }
 
 func dnsConfigMutator(c *connection.Connection) error {
-	dnsSidecarIp := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0] + ":" + fmt.Sprint(myCoreDnsPort)
+	dnsSidecarIp := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
 	c.Context.DnsConfig = &connectioncontext.DNSConfig{
-		DnsServerIps: []string{dnsSidecarIp},
+		DnsServerIps:    []string{dnsSidecarIp},
+		ResolvesDomains: []string{"my.domain1", "my.domain2"},
+		Prioritize:      true,
 	}
 	return nil
-}
-
-//TODO: remove code duplication
-func makeRouteMutator(routes []string) endpoint.ConnectionMutator {
-	return func(c *connection.Connection) error {
-		for _, r := range routes {
-			c.Context.IpContext.Routes = append(c.Context.IpContext.Routes, &connectioncontext.Route{
-				Prefix: r,
-			})
-		}
-		return nil
-	}
 }

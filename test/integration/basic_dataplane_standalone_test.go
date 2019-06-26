@@ -226,9 +226,11 @@ func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, src
 		Id:             id,
 		NetworkService: "some-network-service",
 		Mechanism:      mechanism,
-		Context: &connectioncontext.IPContext{
-			SrcIpAddr: srcIp,
-			DstIpAddr: dstIp,
+		Context: &connectioncontext.ConnectionContext{
+			IpContext: &connectioncontext.IPContext{
+				SrcIpAddr: srcIp,
+				DstIpAddr: dstIp,
+			},
 		},
 	}
 }
@@ -257,8 +259,8 @@ func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crosscon
 	failures := InterceptGomegaFailures(func() {
 		srcIface := getIface(xcon.GetLocalSource())
 		dstIface := getIface(xcon.GetLocalDestination())
-		srcIp := unmaskIp(xcon.GetLocalSource().Context.SrcIpAddr)
-		dstIp := unmaskIp(xcon.GetLocalDestination().Context.DstIpAddr)
+		srcIp := unmaskIp(xcon.GetLocalSource().Context.IpContext.SrcIpAddr)
+		dstIp := unmaskIp(xcon.GetLocalDestination().Context.IpContext.DstIpAddr)
 
 		out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
 		Expect(err).To(BeNil())

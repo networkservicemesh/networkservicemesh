@@ -32,10 +32,13 @@ func (c *IPContext) IsValid() error {
 
 func (c *DNSConfig) Validate() error {
 	if c == nil {
-		return fmt.Errorf("dns config should be nil")
+		return fmt.Errorf("dnsConfig should not be nil")
 	}
 	if c.Prioritize && len(c.ResolvesDomains) == 0 {
 		return fmt.Errorf("resolves domains can not be empty")
+	}
+	if len(c.DnsServerIps) == 0 {
+		return fmt.Errorf("dnsConfig should have recoreds")
 	}
 	return nil
 }
