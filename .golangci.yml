@@ -115,6 +115,12 @@ issues:
     - path: controlplane/pkg/nsm.nsm.go
       linters:
         - gocyclo # TODO: reduce nsm.request() complexity
+    - path: test/cloudtest/pkg/utils/process.go
+      linters:
+        - gosec
+    - path: test/cloudtest/pkg/commands/main.go
+      linters:
+        - gosec
   exclude:
     - should not use dot imports
     - \`version\` is a global variable
