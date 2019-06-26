@@ -291,6 +291,10 @@ func (ctx *executionContext) assignTasks() {
 				if clustersAvailable == 0 {
 					// We move task to skipped since, no clusters could execute it, all attempts for clusters to recover are finished.
 					task.test.Status = model.StatusSkippedSinceNoClusters
+					for _, cl := range task.clusters {
+						delete(cl.tasks, task.test.Name)
+						cl.completed[task.test.Name] = task
+					}
 					ctx.completed = append(ctx.completed, task)
 				} else {
 					newTasks = append(newTasks, task)

@@ -187,7 +187,7 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 
 	proc, err := ExecProc(context, cmdLine, finalEnv)
 	if err != nil {
-		return "", fmt.Errorf("failed to run %s %v", cmdLine, err)
+		return "", fmt.Errorf("failed to run %s %v", finalCmd, err)
 	}
 
 	builder := strings.Builder{}
@@ -198,7 +198,7 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 	code := proc.ExitCode()
 	wg.Wait()
 	if code != 0 {
-		return "", fmt.Errorf("failed to run %v ExitCode: %v", cmdLine, code)
+		return "", fmt.Errorf("failed to run %v ExitCode: %v", finalCmd, code)
 	}
 	if returnStdout {
 		return builder.String(), nil
