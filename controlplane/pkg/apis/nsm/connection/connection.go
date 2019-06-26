@@ -28,9 +28,9 @@ type Connection interface {
 	GetConnectionMechanism() Mechanism
 	SetConnectionMechanism(mechanism Mechanism)
 
-	GetContext() *connectioncontext.IPContext
-	SetContext(context *connectioncontext.IPContext)
-	UpdateContext(connectionContext *connectioncontext.IPContext) error
+	GetContext() *connectioncontext.ConnectionContext
+	SetContext(context *connectioncontext.ConnectionContext)
+	UpdateContext(connectionContext *connectioncontext.ConnectionContext) error
 
 	GetLabels() map[string]string
 

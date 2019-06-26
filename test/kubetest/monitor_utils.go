@@ -217,11 +217,11 @@ func srcConnToString(xcon *crossconnect.CrossConnect) string {
 	var distance string
 
 	if ls := xcon.GetLocalSource(); ls != nil {
-		ip = ls.Context.GetSrcIpAddr()
+		ip = ls.Context.IpContext.GetSrcIpAddr()
 		state = ls.GetState().String()
 		distance = "local"
 	} else {
-		ip = xcon.GetRemoteSource().Context.GetSrcIpAddr()
+		ip = xcon.GetRemoteSource().Context.IpContext.GetSrcIpAddr()
 		state = xcon.GetRemoteSource().GetState().String()
 		distance = "remote"
 
@@ -237,12 +237,12 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 	var endpoint string
 
 	if ls := xcon.GetLocalDestination(); ls != nil {
-		ip = ls.Context.GetDstIpAddr()
+		ip = ls.Context.IpContext.GetDstIpAddr()
 		state = ls.GetState().String()
 		distance = "local"
 		endpoint = ls.GetMechanism().GetParameters()[connection.WorkspaceNSEName]
 	} else {
-		ip = xcon.GetRemoteDestination().Context.GetDstIpAddr()
+		ip = xcon.GetRemoteDestination().Context.IpContext.GetDstIpAddr()
 		state = xcon.GetRemoteDestination().GetState().String()
 		distance = "remote"
 		endpoint = xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection.WorkspaceNSEName]

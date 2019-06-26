@@ -64,13 +64,13 @@ func (c *Connection) SetConnectionMechanism(mechanism connection.Mechanism) {
 }
 
 // SetContext sets connection context
-func (c *Connection) SetContext(context *connectioncontext.IPContext) {
+func (c *Connection) SetContext(context *connectioncontext.ConnectionContext) {
 	c.Context = context
 }
 
 // UpdateContext checks and tries to set connection context
-func (c *Connection) UpdateContext(context *connectioncontext.IPContext) error {
-	if err := context.MeetsRequirements(c.Context); err != nil {
+func (c *Connection) UpdateContext(context *connectioncontext.ConnectionContext) error {
+	if err := context.IpContext.MeetsRequirements(c.Context.IpContext); err != nil {
 		return err
 	}
 
@@ -137,7 +137,11 @@ func (c *Connection) IsComplete() error {
 		return fmt.Errorf("connection.Id cannot be empty: %v", c)
 	}
 
-	if err := c.GetContext().IsValid(); err != nil {
+	if err := c.GetContext().IpContext.IsValid(); err != nil {
+		return err
+	}
+
+	if err := c.GetContext().DnsConfig.Validate(); err != nil {
 		return err
 	}
 

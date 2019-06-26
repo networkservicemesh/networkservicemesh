@@ -49,7 +49,7 @@ func main() {
 }
 
 func dnsConfigMutator(c *connection.Connection) error {
-	dnsSidecarIp := strings.Split(c.Context.DstIpAddr, "/")[0] + ":" + fmt.Sprint(myCoreDnsPort)
+	dnsSidecarIp := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0] + ":" + fmt.Sprint(myCoreDnsPort)
 	c.Context.DnsConfig = &connectioncontext.DNSConfig{
 		DnsServerIps: []string{dnsSidecarIp},
 	}
@@ -60,7 +60,7 @@ func dnsConfigMutator(c *connection.Connection) error {
 func makeRouteMutator(routes []string) endpoint.ConnectionMutator {
 	return func(c *connection.Connection) error {
 		for _, r := range routes {
-			c.Context.Routes = append(c.Context.Routes, &connectioncontext.Route{
+			c.Context.IpContext.Routes = append(c.Context.IpContext.Routes, &connectioncontext.Route{
 				Prefix: r,
 			})
 		}

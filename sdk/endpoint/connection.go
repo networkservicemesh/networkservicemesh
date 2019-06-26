@@ -66,7 +66,7 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 			Id:             request.GetConnection().GetId(),
 			NetworkService: request.GetConnection().GetNetworkService(),
 			Mechanism:      mechanism,
-			Context:        proto.Clone(request.Connection.Context).(*connectioncontext.IPContext),
+			Context:        proto.Clone(request.Connection.Context).(*connectioncontext.ConnectionContext),
 		}
 	}
 

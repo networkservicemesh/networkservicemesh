@@ -55,17 +55,12 @@ message IPContext {
     repeated Route routes = 5; /* a list of routes via dst_ip_addr as gateway */
     repeated string excluded_prefixes = 6; /* a list of excluded passed to NSE */
 
-    repeated IpNeighbor ip_neighbors  = 7; /* A list of ARP table neighbours addresses */
+    repeated IpNeighbor ip_neighbors = 7; /* A lists of ARP table neighbours addresses */
 
     repeated ExtraPrefixRequest extra_prefix_request = 8; /* A request for NSE to provide extra prefixes */
     repeated string extra_prefixes = 9; /* A list of extra prefixes requested */
-    DNSConfig dns_config = 10;
 }
 
-message ConnectionContext {
-    IPContext ip_context = 1;  /* IP related context */
-    DNSConfig dns_config = 2;
-}
 
 message DNSConfig {
     /* ips of DNS Servers for this DNSConfig.  Any given IP may be IPv4 or IPv6 */
@@ -77,4 +72,9 @@ message DNSConfig {
      * invalid if resolves_domains is empty.
      */
     bool prioritize = 3;
+}
+
+message ConnectionContext {
+    IPContext ip_context = 1; /* IP related context */
+    DNSConfig dns_config = 2; /* DNS related context */
 }

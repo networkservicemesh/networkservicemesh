@@ -525,7 +525,7 @@ func (srv *networkServiceManager) validateNSEConnection(nseConn connection.Conne
 	}
 
 	prefixes := srv.GetExcludePrefixes()
-	if srcIP := nseConn.GetContext().GetSrcIpAddr(); srcIP != "" {
+	if srcIP := nseConn.GetContext().IpContext.GetSrcIpAddr(); srcIP != "" {
 		intersect, err := prefixes.Intersect(srcIP)
 		if err != nil {
 			return err
@@ -535,7 +535,7 @@ func (srv *networkServiceManager) validateNSEConnection(nseConn connection.Conne
 		}
 	}
 
-	if dstIP := nseConn.GetContext().GetDstIpAddr(); dstIP != "" {
+	if dstIP := nseConn.GetContext().IpContext.GetDstIpAddr(); dstIP != "" {
 		intersect, err := prefixes.Intersect(dstIP)
 		if err != nil {
 			return err
@@ -609,9 +609,11 @@ func (srv *networkServiceManager) updateConnectionParameters(requestID string, n
 func (srv *networkServiceManager) updateExcludePrefixes(requestConn connection.Connection) {
 	c := requestConn.GetContext()
 	if c == nil {
-		c = &connectioncontext.IPContext{}
+		c = &connectioncontext.ConnectionContext{
+			IpContext: &connectioncontext.IPContext{},
+		}
 	}
-	c.ExcludedPrefixes = append(c.ExcludedPrefixes, srv.GetExcludePrefixes().GetPrefixes()...)
+	c.IpContext.ExcludedPrefixes = append(c.IpContext.ExcludedPrefixes, srv.GetExcludePrefixes().GetPrefixes()...)
 	// Since we do not worry about validation, just
 	requestConn.SetContext(c)
 }
