@@ -14,11 +14,11 @@ func TestVariableSubstitutions(t *testing.T) {
 	}
 
 	args := map[string]string{
-		"cluster-name": "idd",
+		"cluster-name":  "idd",
 		"provider-name": "name",
-		"random": "r1",
-		"uuid": "uu-uu",
-		"tempdir": "/tmp",
+		"random":        "r1",
+		"uuid":          "uu-uu",
+		"tempdir":       "/tmp",
 		"zone-selector": "zone",
 	}
 
@@ -48,8 +48,20 @@ func TestParseCommandLine1(t *testing.T) {
 
 	t.Run("empty_arg", func(t *testing.T) {
 		RegisterTestingT(t)
-		Expect(utils.ParseCommandLine("a 	-N \"\"" )).To(Equal([]string{"a", "-N", ""}))
+		Expect(utils.ParseCommandLine("a 	-N \"\"")).To(Equal([]string{"a", "-N", ""}))
 	})
+}
 
+func TestParseCommandLine2(t *testing.T) {
+	RegisterTestingT(t)
 
+	cmdLine := utils.ParseCommandLine("go test ./test/integration -test.timeout 300s -count 1 --run \"^(TestNSMHealLocalDieNSMD)$\" --tags \"basic recover usecase\" --test.v")
+	Expect(len(cmdLine)).To(Equal(12))
+}
+func TestParseCommandLine3(t *testing.T) {
+	RegisterTestingT(t)
+
+	cmdLine := utils.ParseCommandLine("go test ./test/integration -test.timeout 300s -count 1 --run \"^(TestNSMHealLocalDieNSMD)$\\\\z\" --tags \"basic recover usecase\" --test.v")
+	Expect(len(cmdLine)).To(Equal(12))
+	Expect(cmdLine[8]).To(Equal("^(TestNSMHealLocalDieNSMD)$\\z"))
 }
