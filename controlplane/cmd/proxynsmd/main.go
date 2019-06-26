@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -11,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -66,6 +67,10 @@ func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.Service
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+
+
+	remoteConnectionMonitor := remote.NewProxyMonitorServer()
+	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 
 	// Register Remote NetworkServiceManager
 	remoteServer := proxy_network_service_server.NewProxyNetworkServiceServer(serviceRegistry)

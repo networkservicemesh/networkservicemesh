@@ -7,13 +7,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
 
-func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
+func TestInterdomainNSMHealLocalDieNSMD(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -21,16 +22,13 @@ func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
 		return
 	}
 
-	testInterdomainNSEHeal(t, 2, 2, map[string]int{
-		"icmp-responder-nse-1": 0,
-		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture())
+	testInterdomainNSMHeal(t, 2, 0, false)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture) {
+func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, deleteNSE bool) {
 	k8ss := []* kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
@@ -51,7 +49,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 
 		config = append(config, cfg)
 
-		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, config, k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
@@ -59,10 +57,8 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 			NodesSetup: nodesSetup,
 		})
 
-		for j := 0; j < nodesCount; j ++ {
-			pnsmdName := fmt.Sprintf("pnsmgr-%s", nodesSetup[j].Node.Name)
-			kubetest.DeployProxyNSMgr(k8s, nodesSetup[j].Node, pnsmdName, defaultTimeout)
-		}
+		pnsmdName := fmt.Sprintf("pnsmgr-%s", nodesSetup[0].Node.Name)
+		kubetest.DeployProxyNSMgr(k8s, nodesSetup[0].Node, pnsmdName, defaultTimeout)
 
 		serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
 		defer serviceCleanup()
@@ -71,8 +67,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 	}
 
 	// Run ICMP
-	node := affinity["icmp-responder-nse-1"]
-	nse1 := kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[node].Node, "icmp-responder-nse-1", defaultTimeout)
+	kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
 	if err != nil {
@@ -101,20 +96,32 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 		t.Fail()
 	}
 
-	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	node = affinity["icmp-responder-nse-2"]
-	kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[node].Node, "icmp-responder-nse-2", defaultTimeout)
+	logrus.Infof("Delete Local NSMD")
+	k8ss[0].K8s.DeletePods(k8ss[0].NodesSetup[0].Nsmd)
 
-	logrus.Infof("Delete first NSE")
-	k8ss[clustersCount - 1].K8s.DeletePods(nse1)
+	logrus.Infof("Waiting for NSE with network service")
+	k8ss[clustersCount - 1].K8s.WaitLogsContains(k8ss[clustersCount - 1].NodesSetup[0].Nsmd, "nsmd", "NSM: Remote opened connection is not monitored and put into Healing state", defaultTimeout)
 
-	logrus.Infof("Waiting for connection recovery...")
-	k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	// Now we are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	nsmdName := fmt.Sprintf("%s-recovered", k8ss[0].NodesSetup[0].Nsmd.Name)
+
+	logrus.Infof("Starting recovered NSMD...")
+	startTime := time.Now()
+	k8ss[0].NodesSetup[0].Nsmd = k8ss[0].K8s.CreatePod(
+		pods.NSMgrPodWithConfig(
+			nsmdName,
+			k8ss[0].NodesSetup[0].Node,
+			&pods.NSMgrPodConfig{Namespace: k8ss[0].K8s.GetK8sNamespace()},
+		)) // Recovery NSEs
+	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), k8ss[0].NodesSetup[0].Node.Name)
 
 	failures = InterceptGomegaFailures(func() {
+		logrus.Infof("Waiting for connection recovery...")
+		k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+		logrus.Infof("Waiting for connection recovery Done...")
+
 		nscInfo = kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
 	})
-	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
 		for i := 0; i < clustersCount; i++ {
