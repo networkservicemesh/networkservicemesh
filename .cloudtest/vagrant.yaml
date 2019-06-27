@@ -1,0 +1,21 @@
+version: 1.0
+providers:
+  - name: "vagrant"
+    kind: "shell"
+    instances: 1
+    retry: 3
+    node-count: 2
+    enabled: false
+    timeout: 900 # 15 minutes to start cluster
+    env:
+      - CLUSTER_RULES_PREFIX=vagrant
+      - CONTAINER_BUILD_PREFIX=docker
+      - CONTAINER_REPO=networkservicemesh
+    scripts:
+      start: |
+        make vagrant-start
+      config: make vagrant-config-location
+      prepare: |
+        make k8s-load-images
+        make k8s-config
+      stop: make vagrant-suspend

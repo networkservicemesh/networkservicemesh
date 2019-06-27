@@ -74,3 +74,7 @@ vagrant-print-kubelet-log:
 		vagrant ssh worker$$number -c "journalctl -u kubelet"; \
 		((number++)) ; \
 	done;
+
+.PHONY: vagrant-config-location
+vagrant-config-location:
+	@echo "$(CURDIR)/scripts/vagrant/.kube/config"

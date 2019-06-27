@@ -1,0 +1,27 @@
+version: 1.0
+providers:
+  - name: "azure"
+    kind: "shell"
+    instances: 2
+    retry: 5
+    node-count: 2
+    enabled: true
+    timeout: 3600 # 30 minutes to start cluster
+    env:
+      - CLUSTER_RULES_PREFIX=azure
+      - AZURE_CLUSTER_NAME=$(cluster-name)-$(date)-$(rands10)
+      - CONTAINER_REPO=networkservicemesh
+      - AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
+      - KUBECONFIG=$(tempdir)/config
+      - AZURE_CREDENTIALS_PATH=$(tempdir)/config
+    env-check:
+      - AZURE_SERVICE_PRINCIPAL
+      - AZURE_SERVICE_PRINCIPAL_SECRET
+      - CIRCLE_AZURE_TENANT
+      - CIRCLE_AZURE_RESOURCE_GROUP
+      - COMMIT
+    scripts:
+      install: az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
+      start: make azure-start
+      stop: make azure-destroy
+      prepare: make k8s-config

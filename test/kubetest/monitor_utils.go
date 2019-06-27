@@ -48,7 +48,7 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 	return getEventCh(client, cancel, stopCh), closeFunc
 }
 
-const defaultNextTimeout = 5 * time.Second
+const defaultNextTimeout = 10 * time.Second
 
 // NewEventChecker starts goroutine that read events from actualCh and
 // compare it with EventDescription passed to expectedFunc
