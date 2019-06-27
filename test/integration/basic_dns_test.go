@@ -5,8 +5,6 @@ package nsmd_integration_tests
 import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"strings"
 	"testing"
 )
 
@@ -32,12 +30,8 @@ func TestBasicLocalDns(t *testing.T) {
 	}
 }`)
 	kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
-	nscAndDns := kubetest.DeployNSCDns(k8s, nodes[0].Node, "nsc", "nsc-dns-core-file", defaultTimeout)
-	resp, _, err := k8s.Exec(nscAndDns, "alpine-img", "ping", "test", "-c", "4")
-	Expect(err).Should(BeNil())
-	logrus.Info(resp)
-	Expect(strings.TrimSpace(resp)).ShouldNot(BeEmpty())
-	Expect(strings.Contains(resp, "bad")).Should(BeFalse())
+	nsc := kubetest.DeployNSCAndCoredns(k8s, nodes[0].Node, "nsc", "nsc-dns-core-file", defaultTimeout)
+	Expect(kubetest.PingByHostName(k8s, nsc, "test")).Should(BeTrue())
 }
 
 func TestBasicProxyDns(t *testing.T) {
@@ -66,11 +60,7 @@ func TestBasicProxyDns(t *testing.T) {
 		172.16.1.1 my.google.com
 	}
 }`)
-	kubetest.DeployICMPDns(k8s, nodes[0].Node, "icmp-responder", "nse-dns-core-file", defaultTimeout)
-	nscAndDns := kubetest.DeployNSCDns(k8s, nodes[0].Node, "nsc", "nsc-dns-core-file", defaultTimeout)
-	resp, _, err := k8s.Exec(nscAndDns, "alpine-img", "ping", "my.google.com", "-c", "4")
-	Expect(err).Should(BeNil())
-	logrus.Info(resp)
-	Expect(strings.TrimSpace(resp)).ShouldNot(BeEmpty())
-	Expect(strings.Contains(resp, "bad")).Should(BeFalse())
+	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "nse-dns-core-file", defaultTimeout)
+	nsc := kubetest.DeployNSCAndCoredns(k8s, nodes[0].Node, "nsc", "nsc-dns-core-file", defaultTimeout)
+	Expect(kubetest.PingByHostName(k8s, nsc, "my.google.com")).Should(BeTrue())
 }

@@ -158,7 +158,23 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
-func DeployICMPDns(k8s *K8s, node *v1.Node, name, dnsConfig string, timeout time.Duration) *v1.Pod {
+func PingByHostName(k8s *K8s, pod *v1.Pod, hostname string) bool {
+	for i := 0; i < 5; i++ {
+		logrus.Infof("Trying ping from container %v host by name %v", pod.Spec.Containers[0].Name, hostname)
+		response, reason, err := k8s.Exec(pod, pod.Spec.Containers[0].Name, "ping", hostname, "-c", "4")
+		if err == nil {
+			logrus.Infof("Ping by hostname is success. Response %v", response)
+			return true
+		} else {
+			logrus.Errorf("Can't ping by hostname. Reason: %v, error: %v", reason, err)
+		}
+		<-time.After(time.Second)
+	}
+	return false
+
+}
+
+func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, dnsConfig string, timeout time.Duration) *v1.Pod {
 	template := pods.TestCommonPod(name, []string{"/bin/icmp-responder-dns-nse"}, node, defaultICMPEnv(k8s.UseIPv6()))
 	pods.InjectCoredns(template, dnsConfig)
 	result := deployICMP(k8s, nodeName(node), name, timeout, template)
@@ -214,7 +230,7 @@ func DeployMonitoringNSCDns(k8s *K8s, node *v1.Node, name string, timeout time.D
 	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
 	return result
 }
-func DeployNSCDns(k8s *K8s, node *v1.Node, name, dnscoreConfig string, timeout time.Duration) *v1.Pod {
+func DeployNSCAndCoredns(k8s *K8s, node *v1.Node, name, dnscoreConfig string, timeout time.Duration) *v1.Pod {
 	template := pods.NSCPod(name, node, defaultNSCEnv())
 	pods.InjectCoredns(template, dnscoreConfig)
 	result := deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, template)
