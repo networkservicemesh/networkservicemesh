@@ -64,7 +64,7 @@ func (m *Mechanism) SetParameters(parameters map[string]string) {
 	m.Parameters = parameters
 }
 
-// IsValid checks if mechanism is valid
+// IsValid - Checks if mechanism is valid
 func (m *Mechanism) IsValid() error {
 	if m == nil {
 		return fmt.Errorf("mechanism cannot be nil")

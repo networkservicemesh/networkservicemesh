@@ -7,44 +7,6 @@ import (
 )
 
 // TestCommonPod creates a new alpine-based testing pod
-func TestCommonPod2(name string, command []string, node *v1.Node, env map[string]string, corednsConfigName string) *v1.Pod {
-	pod := TestCommonPod(name, command, node, env)
-
-	pod.Spec.DNSPolicy = v1.DNSNone
-	pod.Spec.DNSConfig = &v1.PodDNSConfig{}
-	pod.Spec.DNSConfig.Nameservers = []string{"127.0.0.1"}
-	pod.Spec.DNSConfig.Searches = []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"}
-	pod.Spec.Volumes = append(pod.Spec.Volumes, v1.Volume{
-		Name: "config-volume",
-		VolumeSource: v1.VolumeSource{
-			ConfigMap: &v1.ConfigMapVolumeSource{
-				LocalObjectReference: v1.LocalObjectReference{Name: corednsConfigName},
-				Items: []v1.KeyToPath{{
-					Key:  "Corefile",
-					Path: "Corefile",
-				},
-				},
-			},
-		},
-	})
-	pod.Spec.Containers = append(pod.Spec.Containers,
-		v1.Container{
-			Name:            "coredns",
-			Image:           "coredns/coredns:1.5.0",
-			ImagePullPolicy: v1.PullIfNotPresent,
-			Args:            []string{"-conf", "/etc/coredns/Corefile"},
-			VolumeMounts: []v1.VolumeMount{{
-				ReadOnly:  true,
-				Name:      "config-volume",
-				MountPath: "/etc/coredns",
-			},
-			},
-		})
-
-	return pod
-}
-
-// TestCommonPod creates a new alpine-based testing pod
 func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string) *v1.Pod {
 	envVars := []v1.EnvVar{}
 	for k, v := range env {

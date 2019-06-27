@@ -60,7 +60,7 @@ func (ns *NetworkServiceRequest) SetRequestMechanismPreferences(mechanismPrefere
 	ns.MechanismPreferences = preferences
 }
 
-// IsValid returns if request is valid
+// IsValid - Returns nil if request is valid
 func (ns *NetworkServiceRequest) IsValid() error {
 	if ns == nil {
 		return fmt.Errorf("request cannot be nil")

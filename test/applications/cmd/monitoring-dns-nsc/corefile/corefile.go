@@ -13,32 +13,36 @@ func (r record) String() string {
 	return string(r)
 }
 
-func NewCorefileScope(name string, parent CorefileScope) CorefileScope {
+//NewCorefileScope - Creates new scope for Corefile
+func NewCorefileScope(name string, parent Scope) Scope {
 	return &corefileScope{
 		records: make([]fmt.Stringer, 0),
-		scopes:  make(map[string]CorefileScope),
+		scopes:  make(map[string]Scope),
 		name:    name,
 		parent:  parent,
 	}
 }
 
+//Corefile - API for creating and editing the Corefile.
 type Corefile interface {
-	CorefileScope
+	Scope
 	Save() error
 }
 
 type corefile struct {
-	CorefileScope
+	Scope
 	pathToFile string
 }
 
+//NewCorefile - Creates new instance of Corefile
 func NewCorefile(path string) Corefile {
 	return &corefile{
-		CorefileScope: NewCorefileScope("", nil),
-		pathToFile:    path,
+		Scope:      NewCorefileScope("", nil),
+		pathToFile: path,
 	}
 }
 
+//Save - Saves the content of corefile on disk
 func (c *corefile) Save() error {
 	_, err := os.Stat(c.pathToFile)
 	if os.IsNotExist(err) {
@@ -54,62 +58,75 @@ func (c *corefile) Save() error {
 	return nil
 }
 
+//String - Converts corefile to string
 func (c *corefile) String() string {
 	sb := strings.Builder{}
 	for _, scope := range c.Records() {
-		sb.WriteString(scope.String())
-		sb.WriteRune('\n')
+		_, _ = sb.WriteString(scope.String())
+		_, _ = sb.WriteRune('\n')
 	}
 	return sb.String()
 }
 
-type CorefileScope interface {
+//GetOrCreate - GetOrCreate of corefile
+type Scope interface {
 	fmt.Stringer
-	Write(string) CorefileScope
-	WriteScope(string) CorefileScope
-	Up() CorefileScope
-	Scope(string) CorefileScope
+	Write(string) Scope
+	WriteScope(string) Scope
+	Up() Scope
+	GetOrCreate(string) Scope
 	Records() []fmt.Stringer
 	Remove(string)
 	Name() string
-	Prioritize() CorefileScope
+	Prioritize() Scope
 }
 
 type corefileScope struct {
 	records []fmt.Stringer
-	scopes  map[string]CorefileScope
+	scopes  map[string]Scope
 	name    string
-	parent  CorefileScope
+	parent  Scope
 }
 
-func (c *corefileScope) Write(str string) CorefileScope {
+//Write - Writes new record in corefile
+func (c *corefileScope) Write(str string) Scope {
 	c.records = append(c.records, record(str))
 	return c
 }
 
-func (c *corefileScope) WriteScope(name string) CorefileScope {
+//Write - Writes new scope in corefile
+func (c *corefileScope) WriteScope(name string) Scope {
 	scope := NewCorefileScope(name, c)
 	c.scopes[name] = scope
 	c.records = append(c.records, scope)
 	return scope
 }
-func (c *corefileScope) Up() CorefileScope {
+
+//Up - Returns parent of current scope. Can return nil if c is root
+func (c *corefileScope) Up() Scope {
 	return c.parent
 }
+
+//Records - Returns all records in scope
 func (c *corefileScope) Records() []fmt.Stringer {
 	return c.records
 }
+
+//Name - Returns name of scope
 func (c *corefileScope) Name() string {
 	return c.name
 }
 
-func (c *corefileScope) Scope(name string) CorefileScope {
+//GetOrCreate - Creates new scope if scope with name does not exist or returns exists scope.
+func (c *corefileScope) GetOrCreate(name string) Scope {
 	if _, ok := c.scopes[name]; !ok {
 		c.scopes[name] = NewCorefileScope(name, c)
 	}
 	return c.scopes[name]
 }
-func (c *corefileScope) Prioritize() CorefileScope {
+
+//Prioritize - Move scope up
+func (c *corefileScope) Prioritize() Scope {
 	index := indexOf(c.parent.Records(), c)
 	if index == -1 {
 		return c
@@ -120,6 +137,7 @@ func (c *corefileScope) Prioritize() CorefileScope {
 	return c
 }
 
+//Remove - Removes record from current scope
 func (c *corefileScope) Remove(name string) {
 	delete(c.scopes, name)
 
@@ -131,21 +149,21 @@ func (c *corefileScope) Remove(name string) {
 	c.records = append(c.records[:removeIndex], c.records[removeIndex+1:]...)
 }
 
-
+//String - Converts scope to string
 func (c *corefileScope) String() string {
 	sb := strings.Builder{}
-	sb.WriteString(c.name)
-	sb.WriteString(" {\n")
+	_, _ = sb.WriteString(c.name)
+	_, _ = sb.WriteString(" {\n")
 	tab := strings.Repeat("\t", c.level())
 	for _, scope := range c.records {
-		sb.WriteString(tab)
-		sb.WriteString(scope.String())
-		sb.WriteString("\n")
+		_, _ = sb.WriteString(tab)
+		_, _ = sb.WriteString(scope.String())
+		_, _ = sb.WriteString("\n")
 	}
 	if tab != "" {
-		sb.WriteString(tab[:len(tab)-1])
+		_, _ = sb.WriteString(tab[:len(tab)-1])
 	}
-	sb.WriteString("}")
+	_, _ = sb.WriteString("}")
 	return sb.String()
 }
 
@@ -171,7 +189,7 @@ func indexOf(records []fmt.Stringer, rec fmt.Stringer) int {
 }
 
 func nameOf(s fmt.Stringer) string {
-	if v, ok := s.(CorefileScope); ok {
+	if v, ok := s.(Scope); ok {
 		return v.Name()
 	}
 	return s.String()

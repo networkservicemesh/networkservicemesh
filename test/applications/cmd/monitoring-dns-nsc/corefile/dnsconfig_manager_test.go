@@ -34,7 +34,7 @@ func TestDNSConfigManager(t *testing.T) {
 	gomega.Expect(string(buf)).Should(gomega.Equal(expected))
 	gomega.Expect(mngr.RemoveDNSConfig(&dnsConfig)).Should(gomega.BeNil())
 	buf, err = ioutil.ReadFile(coreFilePath)
-	expected = `.:53 {
+	expected = `.:54 {
 	log
 	reload 5s
 }

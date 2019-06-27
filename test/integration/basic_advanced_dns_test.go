@@ -34,7 +34,7 @@ func TestAdvancedDNSLocal(t *testing.T) {
 
 	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "core", defaultTimeout)
 
-	nsc := kubetest.DeployMonitoringNSCDns(k8s, nodes[0].Node, "nsc", defaultTimeout)
+	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, nodes[0].Node, "nsc", defaultTimeout)
 	Expect(kubetest.PingByHostName(k8s, nsc, "my.domain1")).Should(BeTrue())
 	Expect(kubetest.PingByHostName(k8s, nsc, "my.domain2")).Should(BeTrue())
 }
@@ -65,7 +65,7 @@ func TestAdvancedDNSRemote(t *testing.T) {
 
 	kubetest.DeployICMPAndCoredns(k8s, nodes[1].Node, "icmp-responder", "core", defaultTimeout)
 
-	nsc := kubetest.DeployMonitoringNSCDns(k8s, nodes[0].Node, "nsc", defaultTimeout)
+	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, nodes[0].Node, "nsc", defaultTimeout)
 	Expect(kubetest.PingByHostName(k8s, nsc, "my.domain1")).Should(BeTrue())
 	Expect(kubetest.PingByHostName(k8s, nsc, "my.domain2")).Should(BeTrue())
 

@@ -73,7 +73,7 @@ func (c *CrossConnect) SetDestinationConnection(dst connection.Connection) {
 	}
 }
 
-// IsValid checks if crossConnect is minimally valid
+// IsValid - Checks if crossConnect is minimally valid
 func (c *CrossConnect) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("crossConnect cannot be nil")

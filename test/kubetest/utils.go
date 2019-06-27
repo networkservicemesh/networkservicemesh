@@ -158,6 +158,7 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
+//PingByHostName - Try ping hostname from the first container of pod several times
 func PingByHostName(k8s *K8s, pod *v1.Pod, hostname string) bool {
 	for i := 0; i < 5; i++ {
 		logrus.Infof("Trying ping from container %v host by name %v", pod.Spec.Containers[0].Name, hostname)
@@ -165,15 +166,15 @@ func PingByHostName(k8s *K8s, pod *v1.Pod, hostname string) bool {
 		if err == nil {
 			logrus.Infof("Ping by hostname is success. Response %v", response)
 			return true
-		} else {
-			logrus.Errorf("Can't ping by hostname. Reason: %v, error: %v", reason, err)
 		}
+		logrus.Errorf("Can't ping by hostname. Reason: %v, error: %v", reason, err)
 		<-time.After(time.Second)
 	}
 	return false
 
 }
 
+//DeployICMPAndCoredns - Deploys pod of ICMP responder and coredns
 func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, dnsConfig string, timeout time.Duration) *v1.Pod {
 	template := pods.TestCommonPod(name, []string{"/bin/icmp-responder-dns-nse"}, node, defaultICMPEnv(k8s.UseIPv6()))
 	pods.InjectCoredns(template, dnsConfig)
@@ -223,23 +224,27 @@ func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 	)
 }
 
-func DeployMonitoringNSCDns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+//DeployMonitoringNSCAndCoredns - Deploys pod of monitoring NSC and coredns
+func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
 	pods.InjectCorednsWithSharedFolder(template)
 	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
 	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
 	return result
 }
-func DeployNSCAndCoredns(k8s *K8s, node *v1.Node, name, dnscoreConfig string, timeout time.Duration) *v1.Pod {
+
+//DeployNSCAndCoredns - Deploys pod of  NSC and coredns
+func DeployNSCAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfig string, timeout time.Duration) *v1.Pod {
 	template := pods.NSCPod(name, node, defaultNSCEnv())
-	pods.InjectCoredns(template, dnscoreConfig)
+	pods.InjectCoredns(template, corednsConfig)
 	result := deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, template)
 	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
 	return result
 }
 
+//CreateCorednsConfig - Creates configmap with Corefile content
 func CreateCorednsConfig(k8s *K8s, name, content string) {
-	k8s.CreateConfigMap(&v1.ConfigMap{
+	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -253,6 +258,7 @@ func CreateCorednsConfig(k8s *K8s, name, content string) {
 			"Corefile": []byte(content),
 		},
 	})
+	Expect(err).Should(BeNil())
 }
 
 // DeployMonitoringNSC deploys 'monitoring-nsc' pod

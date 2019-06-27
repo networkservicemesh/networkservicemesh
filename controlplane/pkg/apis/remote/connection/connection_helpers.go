@@ -109,7 +109,7 @@ func (c *Connection) SetConnectionState(state connection.State) {
 	}
 }
 
-// IsValid checks if connection is minimally valid
+// IsValid - Checks if connection is minimally valid
 func (c *Connection) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("connection cannot be nil")
@@ -137,7 +137,7 @@ func (c *Connection) IsComplete() error {
 		return fmt.Errorf("connection.Id cannot be empty: %v", c)
 	}
 
-	if err := c.GetContext().IpContext.IsValid(); err != nil {
+	if err := c.GetContext().IpContext.Validate(); err != nil {
 		return err
 	}
 

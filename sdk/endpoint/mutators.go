@@ -5,6 +5,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
+//CreateRouteMutator - Creates an instance of ConnectionMutator with routes mutating
 func CreateRouteMutator(routes []string) ConnectionMutator {
 	return func(c *connection.Connection) error {
 		for _, r := range routes {

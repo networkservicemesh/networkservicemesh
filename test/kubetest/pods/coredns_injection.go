@@ -4,25 +4,27 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func InjectCorednsWithSharedFolder(pod *v1.Pod) {
-	pod.Spec.Containers = append(pod.Spec.Containers,
+//InjectCorednsWithSharedFolder - Injects coredns container and configure the DnsConfig for template.
+//Also makes shared folder between coredns container and first container of template
+func InjectCorednsWithSharedFolder(template *v1.Pod) {
+	template.Spec.Containers = append(template.Spec.Containers,
 		v1.Container{
 			Name:            "coredns",
 			Image:           "coredns/coredns:latest",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
 		})
-	pod.Spec.Containers[len(pod.Spec.Containers)-1].VolumeMounts = []v1.VolumeMount{{
+	template.Spec.Containers[len(template.Spec.Containers)-1].VolumeMounts = []v1.VolumeMount{{
 		ReadOnly:  false,
 		Name:      "empty-dir-volume",
 		MountPath: "/etc/coredns",
 	}}
-	pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{{
+	template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{{
 		ReadOnly:  false,
 		Name:      "empty-dir-volume",
 		MountPath: "/etc/coredns",
 	}}
-	pod.Spec.Volumes = append(pod.Spec.Volumes, v1.Volume{
+	template.Spec.Volumes = append(template.Spec.Volumes, v1.Volume{
 		Name: "empty-dir-volume",
 		VolumeSource: v1.VolumeSource{
 			EmptyDir: &v1.EmptyDirVolumeSource{
@@ -31,9 +33,10 @@ func InjectCorednsWithSharedFolder(pod *v1.Pod) {
 			},
 		},
 	})
-	setupDNSConfig(pod)
+	setupDNSConfig(template)
 }
 
+//InjectCoredns - Injects coredns container and configure the DnsConfig for template.
 func InjectCoredns(pod *v1.Pod, corednsConfigName string) {
 	pod.Spec.Containers = append(pod.Spec.Containers,
 		v1.Container{

@@ -10,14 +10,18 @@ const (
 	anyDomain               = "."
 )
 
+//DNSConfigManager - Manager of DNS configs
 type DNSConfigManager interface {
 	UpdateDNSConfig(config *connectioncontext.DNSConfig) error
 	RemoveDNSConfig(config *connectioncontext.DNSConfig) error
 }
 
+//NewDefaultDNSConfigManager - Creates new instance of DNSConfigManager with default Corefile path
 func NewDefaultDNSConfigManager() (DNSConfigManager, error) {
 	return NewDNSConfigManager(defaultCoreFileLocation)
 }
+
+//NewDNSConfigManager - Creates new instance of DNSConfigManager with custom Corefile path
 func NewDNSConfigManager(coreFilePath string) (DNSConfigManager, error) {
 	c := NewCorefile(coreFilePath)
 	c.WriteScope(anyDomain + ":54").Write("log").Write("reload 5s")
@@ -34,6 +38,7 @@ type dnsConfigManager struct {
 	corefile Corefile
 }
 
+//UpdateDNSConfig - Updates Corefile with new DNSConfig
 func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) error {
 	err := config.Validate()
 	if err != nil {
@@ -51,6 +56,7 @@ func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) 
 	return m.corefile.Save()
 }
 
+//RemoveDNSConfig - Removes DNSConfig from Corefile
 func (m *dnsConfigManager) RemoveDNSConfig(config *connectioncontext.DNSConfig) error {
 	err := config.Validate()
 	if err != nil {
