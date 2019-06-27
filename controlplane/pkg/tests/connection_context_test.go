@@ -27,7 +27,7 @@ func TestPrefixConnectionContext(t *testing.T) {
 			},
 		},
 	}
-	Expect(ctx.IpContext.Validate().Error()).To(Equal("ConnectionContext.Route.Prefix is required and cannot be empty/nil: routes:<> "))
+	Expect(ctx.IpContext.Validate().Error()).To(Equal("connectionContext.Route.Prefix is required and cannot be empty/nil: routes:<> "))
 }
 func TestPrefixWrongConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
@@ -39,7 +39,7 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 			},
 		},
 	}
-	Expect(ctx.Validate().Error()).To(Equal("ConnectionContext.Route.Prefix should be a valid CIDR address: routes:<prefix:\"8.8.8.8\" > "))
+	Expect(ctx.Validate().Error()).To(Equal("connectionContext.Route.Prefix should be a valid CIDR address: routes:<prefix:\"8.8.8.8\" > "))
 }
 func TestPrefixFineConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
@@ -64,7 +64,7 @@ func TestIpNeighbors(t *testing.T) {
 			},
 		},
 	}
-	Expect(ctx.Validate().Error()).To(Equal("ConnectionContext.IpNeighbors.Ip is required and cannot be empty/nil: ip_neighbors:<> "))
+	Expect(ctx.Validate().Error()).To(Equal("connectionContext.IpNeighbors.Ip is required and cannot be empty/nil: ip_neighbors:<> "))
 }
 
 func TestHWNeighbors(t *testing.T) {
@@ -79,7 +79,7 @@ func TestHWNeighbors(t *testing.T) {
 	}
 	err := ctx.Validate()
 	Expect(err).ShouldNot(BeNil())
-	Expect(err.Error()).To(Equal("ConnectionContext.IpNeighbors.HardwareAddress is required and cannot be empty/nil: ip_neighbors:<ip:\"8.8.8.8\" > "))
+	Expect(err.Error()).To(Equal("connectionContext.IpNeighbors.HardwareAddress is required and cannot be empty/nil: ip_neighbors:<ip:\"8.8.8.8\" > "))
 }
 
 func TestValidNeighbors(t *testing.T) {

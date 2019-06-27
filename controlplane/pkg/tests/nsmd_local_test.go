@@ -151,7 +151,7 @@ func TestNSENoSrc(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
+	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: connectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())
 }
 
