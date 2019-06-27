@@ -16,6 +16,7 @@ package vppagent
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"os"
 	"time"
 
@@ -328,7 +329,9 @@ func (v *VPPAgent) configureVPPAgent() error {
 		v.vppAgentEndpoint = VPPEndpointDefault
 	}
 	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
-
+	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.vppAgentEndpoint); err != nil {
+		return err
+	}
 	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{

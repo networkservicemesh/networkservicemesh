@@ -1,4 +1,4 @@
-package monitor_crossconnect_server
+package nsmonitor
 
 type InodeSet struct {
 	inodes map[uint64]bool
