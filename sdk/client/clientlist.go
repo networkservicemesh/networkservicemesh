@@ -17,7 +17,6 @@ package client
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/security"
 	"os"
 	"strconv"
 
@@ -47,12 +46,6 @@ func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
 		if err != nil {
 			return err
 		}
-
-		if err := security.GetSecurityManager().VerifyJWT(conn.GetNetworkService(), conn.GetResponseJWT()); err != nil {
-			return err
-		}
-		logrus.Info("Connection successfully verified")
-
 		entry.connections = append(entry.connections, conn)
 	}
 	return nil

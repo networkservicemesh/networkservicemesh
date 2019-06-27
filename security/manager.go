@@ -36,6 +36,7 @@ type Manager interface {
 	GenerateJWT(networkService string, obo string) (string, error)
 	VerifyJWT(spiffeID, tokeString string) error
 	SignResponse(resp interface{}, obo string) error
+	GetSpiffeID() string
 }
 
 type CertificateObtainer interface {
@@ -84,9 +85,11 @@ func NewManager() Manager {
 }
 
 func (m *certificateManager) DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
+	cred, spiffeIDFunc := m.clientCredentials()
+
 	opts = append(opts,
-		grpc.WithTransportCredentials(m.clientCredentials()),
-		grpc.WithUnaryInterceptor(m.clientInterceptor))
+		grpc.WithTransportCredentials(cred),
+		grpc.WithUnaryInterceptor(m.createClientInterceptor(spiffeIDFunc)))
 
 	return grpc.DialContext(ctx, target, opts...)
 }
@@ -116,12 +119,18 @@ func (m *certificateManager) GetCABundle() *x509.CertPool {
 	return m.caBundle
 }
 
-func (m *certificateManager) GenerateJWT(networkService string, obo string) (string, error) {
+func (m *certificateManager) GetSpiffeID() string {
 	crtBytes := m.GetCertificate().Certificate[0]
 	x509crt, err := x509.ParseCertificate(crtBytes)
 	if err != nil {
-		return "", err
+		logrus.Error(err)
+		return ""
 	}
+	return x509crt.URIs[0].String()
+}
+
+func (m *certificateManager) GenerateJWT(networkService string, obo string) (string, error) {
+	spiffeID := m.GetSpiffeID()
 
 	if obo != "" {
 		token, parts, claims, err := parseJWTWithClaims(obo)
@@ -133,18 +142,18 @@ func (m *certificateManager) GenerateJWT(networkService string, obo string) (str
 			return "", fmt.Errorf("obo token validation error: %s", err.Error())
 		}
 
-		if claims.Subject == x509crt.URIs[0].String() {
+		if claims.Subject == spiffeID {
 			return obo, nil
 		}
 	}
 
-	certStr := base64.StdEncoding.EncodeToString(crtBytes)
+	certStr := base64.StdEncoding.EncodeToString(m.GetCertificate().Certificate[0])
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, &NSMClaims{
 		StandardClaims: jwt.StandardClaims{
 			Audience:  networkService,
 			Issuer:    "test",
-			Subject:   x509crt.URIs[0].String(),
+			Subject:   spiffeID,
 			ExpiresAt: time.Now().Add(2 * time.Second).Unix(),
 		},
 		Obo:  obo,
@@ -196,65 +205,110 @@ func (m *certificateManager) SignResponse(resp interface{}, obo string) error {
 	return nil
 }
 
-func (m *certificateManager) clientCredentials() credentials.TransportCredentials {
+func cachingReadFirst(ch chan string) func() string {
+	var cache string
+	cached := false
+	return func() string {
+		if cached {
+			return cache
+		}
+		cache = <-ch
+		cached = true
+		return cache
+	}
+}
+
+func parseSpiffeID(rawCert []byte) (string, error) {
+	crt, err := x509.ParseCertificate(rawCert)
+	if err != nil {
+		return "", err
+	}
+	return crt.URIs[0].String(), nil
+}
+
+func (m *certificateManager) clientCredentials() (credentials.TransportCredentials, func() string) {
+	spiffeIDCh := make(chan string, 1)
+
 	return credentials.NewTLS(&tls.Config{
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{*m.GetCertificate()},
 		RootCAs:            m.GetCABundle(),
-	})
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			if len(rawCerts) == 0 {
+				return errors.New("no certificates from peer")
+			}
+			spiffeID, err := parseSpiffeID(rawCerts[0])
+			if err != nil {
+				return err
+			}
+			spiffeIDCh <- spiffeID
+			logrus.Infof("%v", spiffeID)
+			return nil
+		},
+	}), cachingReadFirst(spiffeIDCh)
 }
 
 func (m *certificateManager) serverCredentials() (credentials.TransportCredentials, func() string) {
 	spiffeIDCh := make(chan string, 1)
-	var spiffeIDCache string
-	spiffeIDObtainer := func() string {
-		if spiffeIDCache != "" {
-			return spiffeIDCache
-		}
-		spiffeIDCache = <-spiffeIDCh
-		return spiffeIDCache
-	}
 
 	return credentials.NewTLS(&tls.Config{
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		Certificates: []tls.Certificate{*m.GetCertificate()},
 		ClientCAs:    m.GetCABundle(),
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			c, err := x509.ParseCertificate(rawCerts[0])
-			if err != nil {
-				logrus.Error(err)
+			if len(rawCerts) == 0 {
+				return errors.New("no certificates from peer")
 			}
-			spiffeIDCh <- c.URIs[0].String()
-			logrus.Infof("%v", c.URIs)
+			spiffeID, err := parseSpiffeID(rawCerts[0])
+			if err != nil {
+				return err
+			}
+			spiffeIDCh <- spiffeID
+			logrus.Infof("%v", spiffeID)
 			return nil
 		},
-	}), spiffeIDObtainer
+	}), cachingReadFirst(spiffeIDCh)
 }
 
-func (m *certificateManager) clientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	if !checkRequestType(req) {
-		return invoker(ctx, method, req, reply, cc, opts...)
-	}
+func (m *certificateManager) createClientInterceptor(spiffeIDFunc func() string) grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		if !checkRequestType(req) {
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
 
-	logrus.Infof("ClientInterceptor start working...")
-	aud, err := audienceByRequest(req)
-	if err != nil {
-		logrus.Error(err)
-		return invoker(ctx, method, req, reply, cc, opts...)
-	}
+		logrus.Infof("ClientInterceptor start working...")
+		aud, err := audienceByRequest(req)
+		if err != nil {
+			logrus.Error(err)
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
 
-	var obo string
-	if ctx.Value("obo") != nil {
-		obo = ctx.Value("obo").(string)
-	}
+		var obo string
+		if ctx.Value("obo") != nil {
+			obo = ctx.Value("obo").(string)
+		}
 
-	jwt, err := m.GenerateJWT(aud, obo)
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
+		jwt, err := m.GenerateJWT(aud, obo)
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
 
-	return invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: jwt}))...)
+		if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: jwt}))...); err != nil {
+			return err
+		}
+
+		responseJWT, err := jwtByResponse(reply)
+		if err != nil {
+			return err
+		}
+
+		if err := m.VerifyJWT(spiffeIDFunc(), responseJWT); err != nil {
+			return status.Errorf(codes.Unauthenticated, "response jwt is not valid")
+		}
+
+		return nil
+	}
 }
 
 func (m *certificateManager) createServerInterceptor(spiffeIDFunc func() string) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -330,6 +384,7 @@ func (m *certificateManager) verifyJWTChain(token *jwt.Token, parts []string, cl
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -372,13 +427,12 @@ func audienceByResponse(resp interface{}) (string, error) {
 
 func jwtByResponse(resp interface{}) (string, error) {
 	if r, ok := resp.(*local.Connection); ok {
-		return r.GetNetworkService(), nil
+		return r.GetResponseJWT(), nil
 	}
 	if r, ok := resp.(*remote.Connection); ok {
-		return r.GetNetworkService(), nil
+		return r.GetResponseJWT(), nil
 	}
 	return "", errors.New("unable to get ResponseJWT from response")
-
 }
 
 func setResponseJWT(resp interface{}, jwt string) error {
