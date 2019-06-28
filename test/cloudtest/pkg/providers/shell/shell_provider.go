@@ -78,7 +78,7 @@ func (si *shellInstance) GetClusterConfig() (string, error) {
 	return "", fmt.Errorf("cluster is not started yet")
 }
 
-func (si *shellInstance) Start(timeout time.Duration) error {
+func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 	logrus.Infof("Starting cluster %s-%s", si.config.Name, si.id)
 
 	context, cancel := context.WithTimeout(context.Background(), timeout)
@@ -89,11 +89,12 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 
 	utils.ClearFolder(si.root, true)
 	var err error
+	fileName := ""
 
 	// Do prepare
 	if !si.params.NoInstall {
-		if err = si.doInstall(context); err != nil {
-			return err
+		if fileName, err = si.doInstall(context); err != nil {
+			return fileName, err
 		}
 	}
 
@@ -104,11 +105,11 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 		zones, err = si.shellInterface.RunRead(context, zoneSelector, si.zoneSelectorScript, nil)
 		if err != nil {
 			logrus.Errorf("Failed to select zones...")
-			return err
+			return "", err
 		}
 		zonesList := strings.Split(zones, "\n")
 		if len(zonesList) == 0 {
-			return fmt.Errorf("failed to retrieve a zone list")
+			return "", fmt.Errorf("failed to retrieve a zone list")
 		}
 
 		selectedZone += zonesList[rand.Intn(len(zonesList))]
@@ -121,15 +122,15 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 			"zone-selector": selectedZone,
 		})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	printableEnv := si.shellInterface.PrintEnv(si.shellInterface.GetProcessedEnv())
 	si.manager.AddLog(si.id, "environment", printableEnv)
 
 	// Run start script
-	if err = si.shellInterface.RunCmd(context, "start", si.startScript, nil); err != nil {
-		return err
+	if fileName, err = si.shellInterface.RunCmd(context, "start", si.startScript, nil); err != nil {
+		return fileName, err
 	}
 
 	if si.configLocation == "" {
@@ -142,7 +143,7 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 		if err != nil {
 			msg := fmt.Sprintf("Failed to retrieve configuration location %v", err)
 			logrus.Errorf(msg)
-			return err
+			return "", err
 		}
 		si.configLocation = output[0]
 	}
@@ -150,18 +151,18 @@ func (si *shellInstance) Start(timeout time.Duration) error {
 	if err != nil {
 		msg := fmt.Sprintf("Failed to start validator %v", err)
 		logrus.Errorf(msg)
-		return err
+		return "", err
 	}
 	// Run prepare script
 	if !si.params.NoPrepare {
-		if err := si.shellInterface.RunCmd(context, "prepare", si.prepareScript, []string{"KUBECONFIG=" + si.configLocation}); err != nil {
-			return err
+		if fileName, err := si.shellInterface.RunCmd(context, "prepare", si.prepareScript, []string{"KUBECONFIG=" + si.configLocation}); err != nil {
+			return fileName, err
 		}
 	}
 
 	si.started = true
 
-	return nil
+	return "", nil
 }
 
 func (si *shellInstance) Destroy(timeout time.Duration) error {
@@ -171,7 +172,7 @@ func (si *shellInstance) Destroy(timeout time.Duration) error {
 	defer cancel()
 	attempts := si.config.RetryCount
 	for {
-		err := si.shellInterface.RunCmd(context, fmt.Sprintf("destroy-%d", si.config.RetryCount-attempts), si.stopScript, nil)
+		_, err := si.shellInterface.RunCmd(context, fmt.Sprintf("destroy-%d", si.config.RetryCount-attempts), si.stopScript, nil)
 		if err == nil || attempts == 0 {
 			return err
 		}
@@ -193,14 +194,14 @@ func (si *shellInstance) doDestroy(writer io.StringWriter, timeout time.Duration
 	}
 }
 
-func (si *shellInstance) doInstall(context context.Context) error {
+func (si *shellInstance) doInstall(context context.Context) (string, error) {
 	si.provider.Lock()
 	defer si.provider.Unlock()
 	if si.installScript != nil && !si.provider.installDone[si.config.Name] {
 		si.provider.installDone[si.config.Name] = true
 		return si.shellInterface.RunCmd(context, "install", si.installScript, nil)
 	}
-	return nil
+	return "", nil
 }
 
 func (p *shellProvider) getProviderID(provider string) string {

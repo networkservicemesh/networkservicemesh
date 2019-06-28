@@ -91,9 +91,10 @@ func (pi *packetInstance) GetClusterConfig() (string, error) {
 	return "", fmt.Errorf("cluster is not started yet")
 }
 
-func (pi *packetInstance) Start(timeout time.Duration) error {
+func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 	logrus.Infof("Starting cluster %s-%s", pi.config.Name, pi.id)
 	var err error
+	fileName := ""
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -109,19 +110,19 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		pi.id, pi.config.Name, pi.root, pi.config.Env,
 		map[string]string{"cluster-uuid": pi.genID}); err != nil {
 		logrus.Errorf("error during processing environment variables %v", err)
-		return err
+		return "", err
 	}
 
 	// Do prepare
 	if !pi.params.NoInstall {
-		if err = pi.doInstall(ctx); err != nil {
-			return err
+		if fileName, err = pi.doInstall(ctx); err != nil {
+			return fileName, err
 		}
 	}
 
 	// Run start script
-	if err = pi.shellInterface.RunCmd(ctx, "setup", pi.setupScript, nil); err != nil {
-		return err
+	if fileName, err = pi.shellInterface.RunCmd(ctx, "setup", pi.setupScript, nil); err != nil {
+		return fileName, err
 	}
 
 	keyFile := pi.config.Packet.SshKey
@@ -131,39 +132,39 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		if !utils.FileExists(keyFile) {
 			err = fmt.Errorf("failed to locate generated key file, please specify init script to generate it")
 			logrus.Errorf(err.Error())
-			return err
+			return "", err
 		}
 	}
 
 	if pi.client, err = packngo.NewClient(); err != nil {
 		logrus.Errorf("failed to create Packet REST interface")
-		return err
+		return "", err
 	}
 
 	if err = pi.updateProject(); err != nil {
-		return err
+		return "", err
 	}
 
 	// Check and add key if it is not yet added.
 
 	if pi.keyIds, err = pi.createKey(keyFile); err != nil {
-		return err
+		return "", err
 	}
 
 	if pi.facilitiesList, err = pi.findFacilities(); err != nil {
-		return err
+		return "", err
 	}
 	for _, devCfg := range pi.config.Packet.Devices {
 		var device *packngo.Device
 		if device, err = pi.createDevice(devCfg); err != nil {
-			return err
+			return "", err
 		}
 		pi.devices[devCfg.Name] = device
 	}
 
 	// All devices are created so we need to wait for them to get alive.
 	if err = pi.waitDevicesStartup(ctx); err != nil {
-		return err
+		return "", err
 	}
 	// We need to add arguments
 
@@ -173,27 +174,27 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	pi.manager.AddLog(pi.id, "environment", printableEnv)
 
 	// Run start script
-	if err = pi.shellInterface.RunCmd(ctx, "start", pi.startScript, nil); err != nil {
-		return err
+	if fileName, err = pi.shellInterface.RunCmd(ctx, "start", pi.startScript, nil); err != nil {
+		return fileName, err
 	}
 
 	if err = pi.updateKUBEConfig(ctx); err != nil {
-		return err
+		return "", err
 	}
 
 	if pi.validator, err = pi.factory.CreateValidator(pi.config, pi.configLocation); err != nil {
 		msg := fmt.Sprintf("Failed to start validator %v", err)
 		logrus.Errorf(msg)
-		return err
+		return "", err
 	}
 	// Run prepare script
-	if err = pi.shellInterface.RunCmd(ctx, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
-		return err
+	if fileName, err = pi.shellInterface.RunCmd(ctx, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
+		return fileName, err
 	}
 
 	pi.started = true
 
-	return nil
+	return "", nil
 }
 
 func (pi *packetInstance) updateKUBEConfig(context context.Context) error {
@@ -367,14 +368,14 @@ func (pi *packetInstance) doDestroy(writer io.StringWriter, timeout time.Duratio
 	}
 }
 
-func (pi *packetInstance) doInstall(context context.Context) error {
+func (pi *packetInstance) doInstall(context context.Context) (string, error) {
 	pi.provider.Lock()
 	defer pi.provider.Unlock()
 	if pi.installScript != nil && !pi.provider.installDone[pi.config.Name] {
 		pi.provider.installDone[pi.config.Name] = true
 		return pi.shellInterface.RunCmd(context, "install", pi.installScript, nil)
 	}
-	return nil
+	return "", nil
 }
 
 func (pi *packetInstance) updateProject() error {
