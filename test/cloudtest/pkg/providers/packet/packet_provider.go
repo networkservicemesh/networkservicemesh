@@ -55,7 +55,6 @@ type packetInstance struct {
 	shellInterface shell.Manager
 	projectID      string
 	packetAuthKey  string
-	genID          string
 	keyID          string
 	config         *config.ClusterProviderConfig
 	provider       *packetProvider
@@ -103,12 +102,9 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 
 	utils.ClearFolder(pi.root, true)
 
-	today := time.Now()
-	pi.genID = fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), shell.NewRandomStr(10))
 	// Process and prepare environment variables
 	if err = pi.shellInterface.ProcessEnvironment(
-		pi.id, pi.config.Name, pi.root, pi.config.Env,
-		map[string]string{"cluster-uuid": pi.genID}); err != nil {
+		pi.id, pi.config.Name, pi.root, pi.config.Env, map[string]string{}); err != nil {
 		logrus.Errorf("error during processing environment variables %v", err)
 		return "", err
 	}
@@ -267,10 +263,27 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 }
 
 func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.Device, error) {
+
+	finalEnv := pi.shellInterface.GetProcessedEnv()
+
+	environment := map[string]string{}
+	for _, k := range finalEnv {
+		key, value, err := utils.ParseVariable(k)
+		if err != nil {
+			return nil, err
+		}
+		environment[key] = value
+	}
+	var deviceName string
+	var err error
+	if deviceName, err = utils.SubstituteVariable(devCfg.Name, environment, pi.shellInterface.GetArguments()); err != nil {
+		return nil, err
+	}
+
 	devReq := &packngo.DeviceCreateRequest{
 		Plan:           devCfg.Plan,
 		Facility:       pi.facilitiesList,
-		Hostname:       devCfg.Name + "-" + pi.genID,
+		Hostname:       deviceName,
 		BillingCycle:   devCfg.BillingCycle,
 		OS:             devCfg.OperatingSystem,
 		ProjectID:      pi.projectID,
@@ -278,7 +291,7 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	}
 	var device *packngo.Device
 	var response *packngo.Response
-	device, response, err := pi.client.Devices.Create(devReq)
+	device, response, err = pi.client.Devices.Create(devReq)
 	msg := fmt.Sprintf("%v - %v", response, err)
 	logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
 	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
@@ -408,7 +421,9 @@ func (pi *packetInstance) updateProject() error {
 }
 
 func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
-	pi.keyID = "dev-ci-cloud-" + pi.genID
+	today := time.Now()
+	genID := fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), shell.NewRandomStr(10))
+	pi.keyID = "dev-ci-cloud-" + genID
 
 	out := strings.Builder{}
 	keyFileContent, err := utils.ReadFile(keyFile)
@@ -435,7 +450,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	keyIds := []string{}
 	if sshKey == nil {
 		// try to find key.
-		sshKey, keyIds = pi.findKeys(out, sshKey)
+		sshKey, keyIds = pi.findKeys(&out, sshKey)
 	} else {
 		keyIds = append(keyIds, sshKey.ID)
 	}
@@ -451,7 +466,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	return keyIds, nil
 }
 
-func (pi *packetInstance) findKeys(out strings.Builder, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
+func (pi *packetInstance) findKeys(out *strings.Builder, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
 	sshKeys, response, err := pi.client.SSHKeys.List()
 	if err != nil {
 		_, _ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
