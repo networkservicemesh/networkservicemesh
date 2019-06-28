@@ -18,7 +18,7 @@ type Manager interface {
 	// GetConfigLocation - detect if KUBECONFIG variable is passed and return its value.
 	GetConfigLocation() string
 	// RunCmd - execute a command, operation with extra env
-	RunCmd(context context.Context, operation string, script [] string, env [] string) error
+	RunCmd(context context.Context, operation string, script [] string, env [] string) (string, error)
 	// RunRead - execute a command, operation with extra env and read response into variable
 	RunRead(context context.Context, operation string, script [] string, env [] string) (string, error)
 	// PrintEnv - print environment variables into string
@@ -29,10 +29,10 @@ type Manager interface {
 }
 
 type shellInterface struct {
-	id             string
-	config         *config.ClusterProviderConfig
-	manager        execmanager.ExecutionManager
-	params         providers.InstanceOptions
+	id      string
+	config  *config.ClusterProviderConfig
+	manager execmanager.ExecutionManager
+	params  providers.InstanceOptions
 	environmentManager
 }
 
@@ -48,20 +48,21 @@ func NewManager(manager execmanager.ExecutionManager, id string, config *config.
 }
 
 // RunCmd -  command in context and add appropriate execution output file.
-func (si *shellInterface) RunCmd(context context.Context, operation string, script, env []string) error {
-	_, err := si.runCmd(context, operation, script, env, false)
-	return err
+func (si *shellInterface) RunCmd(context context.Context, operation string, script, env [] string) (string, error) {
+	fileName, _, err := si.runCmd(context, operation, script, env, false)
+	return fileName, err
 }
 
 // Run command in context and add appropriate execution output file.
 func (si *shellInterface) RunRead(context context.Context, operation string, script, env []string) (string, error) {
-	return si.runCmd(context, operation, script, env, true)
+	_, response, err := si.runCmd(context, operation, script, env, true)
+	return response, err
 }
-func (si *shellInterface) runCmd(context context.Context, operation string, script, env []string, returnResult bool) (string, error) {
-	_, fileRef, err := si.manager.OpenFile(si.id, operation)
+func (si *shellInterface) runCmd(context context.Context, operation string, script, env []string, returnResult bool) (string, string, error) {
+	fileName, fileRef, err := si.manager.OpenFile(si.id, operation)
 	if err != nil {
 		logrus.Errorf("failed to %s system for testing of cluster %s %v", operation, si.config.Name, err)
-		return "", err
+		return fileName, "", err
 	}
 
 	defer func() { _ = fileRef.Close() }()
@@ -89,13 +90,13 @@ func (si *shellInterface) runCmd(context context.Context, operation string, scri
 		if err != nil {
 			_, _ = writer.WriteString(fmt.Sprintf("error running command: %v\n", err))
 			_ = writer.Flush()
-			return "", err
+			return fileName, "", err
 		}
 		if returnResult {
 			finalOut += stdOut
 		}
 	}
-	return finalOut, nil
+	return fileName, finalOut, nil
 }
 func (si *shellInterface) PrintEnv(processedEnv []string) string {
 	printableEnv := strings.Builder{}
