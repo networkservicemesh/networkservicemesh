@@ -11,6 +11,7 @@ spec:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
+      nodeName: kube-worker1
       containers:
         - name: alpine-img
           image: alpine:latest

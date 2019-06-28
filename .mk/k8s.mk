@@ -36,6 +36,8 @@ endif
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
 # Temporary limit the infra deployment
 DEPLOY_INFRA = $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
+DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL)
+
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
