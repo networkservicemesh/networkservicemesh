@@ -90,7 +90,7 @@ func (cce *ConnectionEndpoint) Close(ctx context.Context, connection *connection
 
 // Name returns the composite name
 func (cce *ConnectionEndpoint) Name() string {
-	return "conection"
+	return "connection"
 }
 
 func (cce *ConnectionEndpoint) generateIfName() string {
