@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
+func TestInterdomainNSEHealLocal(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -24,6 +24,34 @@ func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
 	testInterdomainNSEHeal(t, 2, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
+	}, kubetest.HealTestingPodFixture())
+}
+
+func TestInterdomainNSEHealRemote(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testInterdomainNSEHeal(t, 2, 2, map[string]int{
+		"icmp-responder-nse-1": 1,
+		"icmp-responder-nse-2": 1,
+	}, kubetest.HealTestingPodFixture())
+}
+
+func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
+	RegisterTestingT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testInterdomainNSEHeal(t, 2, 2, map[string]int{
+		"icmp-responder-nse-1": 0,
+		"icmp-responder-nse-2": 1,
 	}, kubetest.HealTestingPodFixture())
 }
 
