@@ -27,6 +27,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -103,7 +104,7 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 
-	monitorServer = nsmEndpoint.MonitorServer()
+	monitorServer = endpoints[0].GetOpaque(nil).(local.MonitorServer)
 
 	_ = nsmEndpoint.Start()
 	if !dirty {

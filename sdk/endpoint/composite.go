@@ -19,14 +19,21 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
+// InitContext is the context passed to the Init function of the endpoint
+type InitContext struct {
+	GrpcServer *grpc.Server
+}
+
 // ChainedEndpoint is the basic endpoint composition interface
 type ChainedEndpoint interface {
 	networkservice.NetworkServiceServer
+	Init(context *InitContext) error
 	GetNext() ChainedEndpoint
 	GetOpaque(interface{}) interface{}
 	setNext(service ChainedEndpoint)
@@ -41,7 +48,12 @@ func (c *BaseCompositeEndpoint) setNext(service ChainedEndpoint) {
 	c.next = service
 }
 
-// GetNext return the next endpoint in the composition chain
+// Init is called for each composite in the chain during NSM Endpoint instantiation
+func (c *BaseCompositeEndpoint) Init(context *InitContext) error {
+	return nil
+}
+
+// GetNext returns the next endpoint in the composition chain
 func (c *BaseCompositeEndpoint) GetNext() ChainedEndpoint {
 	return c.next
 }
