@@ -7,6 +7,7 @@ import (
 	"k8s.io/api/core/v1"
 )
 
+// AdmissionWebhookDeployment returns deployment named `name` which starts container from `image`
 func AdmissionWebhookDeployment(name, image string) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
