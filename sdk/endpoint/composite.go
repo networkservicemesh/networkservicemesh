@@ -33,6 +33,7 @@ type InitContext struct {
 // ChainedEndpoint is the basic endpoint composition interface
 type ChainedEndpoint interface {
 	networkservice.NetworkServiceServer
+	Name() string
 	Init(context *InitContext) error
 	GetNext() ChainedEndpoint
 	GetOpaque(interface{}) interface{}

@@ -95,8 +95,9 @@ func (nsme *nsmEndpoint) Start() error {
 		GrpcServer: nsme.grpcServer,
 	}
 	for _, c := range nsme.service.chainedEndpoints {
+		logrus.Infof("About to init composite [%s]", c.Name())
 		if err = c.Init(initContext); err != nil {
-			logrus.Errorf("Unable to setup composite: %v", err)
+			logrus.Errorf("Unable to setup composite %s: %v", c.Name(), err)
 			return err
 		}
 	}

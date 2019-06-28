@@ -71,6 +71,11 @@ func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Co
 	return &empty.Empty{}, nil
 }
 
+// Name returns the composite name
+func (mce *MonitorEndpoint) Name() string {
+	return "monitor"
+}
+
 // GetOpaque will return the monitor server
 func (mce *MonitorEndpoint) GetOpaque(incoming interface{}) interface{} {
 	return mce.monitorConnectionServer
