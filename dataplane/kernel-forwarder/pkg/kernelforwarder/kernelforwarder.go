@@ -51,6 +51,7 @@ type Mechanisms struct {
 	localMechanisms  []*local.Mechanism
 }
 
+// MonitorMechanisms handler
 func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
@@ -80,6 +81,7 @@ func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv datapl
 	}
 }
 
+// Request handler for connections
 func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)
 	xcon, err := v.connectOrDisconnect(ctx, crossConnect, cCONNECT)
@@ -95,12 +97,13 @@ func (v *KernelForwarder) connectOrDisconnect(ctx context.Context, crossConnect 
 	/* 1. Handle local connection */
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
-		return handleKernelConnectionLocal(crossConnect, connect)
+		return handleLocalConnection(crossConnect, connect)
 	}
 	/* 2. Handle remote connection */
-	return handleKernelConnectionRemote(crossConnect, connect)
+	return handleRemoteConnection(v.common.EgressInterface, crossConnect, connect)
 }
 
+// Close handler for connections
 func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("Close() called with %#v", crossConnect)
 	xcon, err := v.connectOrDisconnect(ctx, crossConnect, cDISCONNECT)
@@ -111,9 +114,10 @@ func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 	return &empty.Empty{}, nil
 }
 
-// Init makes setup for the Kernel forwarding plane
+// Init setups the Kernel forwarding plane
 func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 	v.common = common
+	v.common.Name = "kernel-forwarder"
 
 	tracer, closer := tools.InitJaeger(v.common.Name)
 	opentracing.SetGlobalTracer(tracer)
