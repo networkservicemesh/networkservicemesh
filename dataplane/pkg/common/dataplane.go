@@ -89,7 +89,6 @@ type Mechanisms struct {
 func createDataplaneConfig() *DataplaneConfig {
 	cfg := &DataplaneConfig{}
 	var ok bool
-	var err error
 
 	cfg.Name, ok = os.LookupEnv(DataplaneNameKey)
 	if !ok {
@@ -105,7 +104,7 @@ func createDataplaneConfig() *DataplaneConfig {
 	}
 	logrus.Infof("DataplaneSocket: %s", cfg.DataplaneSocket)
 
-	err = tools.SocketCleanup(cfg.DataplaneSocket)
+	err := tools.SocketCleanup(cfg.DataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
 		SetSocketCleanFailed()

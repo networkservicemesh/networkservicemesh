@@ -31,12 +31,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
-// Kernel forwarding plane related constants
-const (
-	cCONNECT    = true
-	cDISCONNECT = false
-)
-
 type KernelForwarder struct {
 	common *common.DataplaneConfig
 }
@@ -114,7 +108,7 @@ func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 	return &empty.Empty{}, nil
 }
 
-// Init setups the Kernel forwarding plane
+// Init initializes the Kernel forwarding plane
 func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 	v.common = common
 	v.common.Name = "kernel-forwarder"
@@ -125,4 +119,24 @@ func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 
 	v.configureKernelForwarder()
 	return nil
+}
+
+// configureKernelForwarder setups the Kernel forwarding plane
+func (v *KernelForwarder) configureKernelForwarder() {
+	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
+	v.common.Mechanisms = &common.Mechanisms{
+		LocalMechanisms: []*local.Mechanism{
+			{
+				Type: local.MechanismType_KERNEL_INTERFACE,
+			},
+		},
+		RemoteMechanisms: []*remote.Mechanism{
+			{
+				Type: remote.MechanismType_VXLAN,
+				Parameters: map[string]string{
+					remote.VXLANSrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
+				},
+			},
+		},
+	}
 }

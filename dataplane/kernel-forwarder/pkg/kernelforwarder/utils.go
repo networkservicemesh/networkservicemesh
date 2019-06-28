@@ -32,11 +32,13 @@ import (
 	"github.com/vishvananda/netns"
 )
 
-// Connection type constants
+// Kernel forwarding plane related constants
 const (
-	cLOCAL    = 1
-	cINCOMING = 2
-	cOUTGOING = 3
+	cLOCAL      = 1
+	cINCOMING   = 2
+	cOUTGOING   = 3
+	cCONNECT    = true
+	cDISCONNECT = false
 )
 
 type connectionConfig struct {
@@ -52,39 +54,57 @@ type connectionConfig struct {
 }
 
 func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	/* Create a connection */
-	if connect {
-		/* 1. Get the connection configuration */
-		cfg, err := getConnectionConfig(crossConnect, cLOCAL)
-		if err != nil {
-			logrus.Errorf("Failed to get the configuration for local connection - %v", err)
-			return crossConnect, err
-		}
-		/* 2. Get namespace handlers from their path - source and destination */
-		srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
-		defer srcNsHandle.Close()
-		if err != nil {
-			logrus.Errorf("Failed to get source namespace handler from path - %v", err)
-			return crossConnect, err
-		}
-		dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
-		defer dstNsHandle.Close()
-		if err != nil {
-			logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
-			return crossConnect, err
-		}
-		/* 3. Create a VETH pair and inject each end in the corresponding namespace */
-		if err = createVETH(cfg, srcNsHandle, dstNsHandle); err != nil {
-			logrus.Errorf("Failed to create the VETH pair - %v", err)
-			return crossConnect, err
-		}
-		/* 4. Bring up and configure each pair end with its IP address */
-		setupVETHEnd(srcNsHandle, cfg.srcName, cfg.srcIP)
-		setupVETHEnd(dstNsHandle, cfg.dstName, cfg.dstIP)
+	/* 1. Get the connection configuration */
+	cfg, err := getConnectionConfig(crossConnect, cLOCAL)
+	if err != nil {
+		logrus.Errorf("Failed to get the configuration for local connection - %v", err)
+		return crossConnect, err
 	}
-	logrus.Errorf("Delete for local connection is not supported yet")
-	/* Delete a connection */
+	/* 2. Create a connection */
+	if connect {
+		err = createLocalConnection(cfg)
+		if err != nil {
+			logrus.Errorf("Failed to create local connection - %v", err)
+			return crossConnect, err
+		}
+	}
+	/* 3. Delete a connection */
+	err = deleteLocalConnection(cfg)
+	if err != nil {
+		logrus.Errorf("Failed to delete local connection - %v", err)
+		return crossConnect, err
+	}
 	return crossConnect, nil
+}
+
+func createLocalConnection(cfg *connectionConfig) error {
+	/* 1. Get namespace handlers from their path - source and destination */
+	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
+	defer srcNsHandle.Close()
+	if err != nil {
+		logrus.Errorf("Failed to get source namespace handler from path - %v", err)
+		return err
+	}
+	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
+	defer dstNsHandle.Close()
+	if err != nil {
+		logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
+		return err
+	}
+	/* 2. Create a VETH pair and inject each end in the corresponding namespace */
+	if err = createVETH(cfg, srcNsHandle, dstNsHandle); err != nil {
+		logrus.Errorf("Failed to create the VETH pair - %v", err)
+		return err
+	}
+	/* 3. Bring up and configure each pair end with its IP address */
+	setupVETHEnd(srcNsHandle, cfg.srcName, cfg.srcIP)
+	setupVETHEnd(dstNsHandle, cfg.dstName, cfg.dstIP)
+	return nil
+}
+
+func deleteLocalConnection(cfg *connectionConfig) error {
+	logrus.Errorf("Delete for local connection is not supported yet")
+	return nil
 }
 
 func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
@@ -104,47 +124,53 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 
 func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	logrus.Info("Incoming connection - remote source/local destination")
-	/* Create a connection */
+	/* 1. Get the connection configuration */
+	cfg, err := getConnectionConfig(crossConnect, cINCOMING)
+	logrus.Info(spew.Sdump(cfg), egress.Name())
+	if err != nil {
+		logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
+		return crossConnect, err
+	}
+	/* 2. Create a connection */
 	if connect {
-		/* 1. Get the connection configuration */
-		cfg, err := getConnectionConfig(crossConnect, cINCOMING)
-		logrus.Info(spew.Sdump(cfg), egress.Name())
-		if err != nil {
-			logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
-			return crossConnect, err
-		}
-		/* 2. Create the remote connection */
 		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
 		if err != nil {
 			logrus.Errorf("Failed to create remote connection - %v", err)
 			return crossConnect, err
 		}
 	}
-	logrus.Errorf("Delete for remote connection is not supported yet")
-	/* Delete a connection */
+	/* 3. Delete a connection */
+	err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
+	if err != nil {
+		logrus.Errorf("Failed to delete remote connection - %v", err)
+		return crossConnect, err
+	}
 	return crossConnect, nil
 }
 
 func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	logrus.Info("Outgoing connection - local source/remote destination")
-	/* Create a connection */
+	/* 1. Get the connection configuration */
+	cfg, err := getConnectionConfig(crossConnect, cOUTGOING)
+	logrus.Info(spew.Sdump(cfg), egress.Name())
+	if err != nil {
+		logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
+		return crossConnect, err
+	}
+	/* 2. Create a connection */
 	if connect {
-		/* 1. Get the connection configuration */
-		cfg, err := getConnectionConfig(crossConnect, cOUTGOING)
-		logrus.Info(spew.Sdump(cfg), egress.Name())
-		if err != nil {
-			logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
-			return crossConnect, err
-		}
-		/* 2. Create the remote connection */
 		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
 		if err != nil {
 			logrus.Errorf("Failed to create remote connection - %v", err)
 			return crossConnect, err
 		}
 	}
-	logrus.Errorf("Delete for remote connection is not supported yet")
-	/* Delete a connection */
+	/* 3. Delete a connection */
+	err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
+	if err != nil {
+		logrus.Errorf("Failed to delete remote connection - %v", err)
+		return crossConnect, err
+	}
 	return crossConnect, nil
 }
 
@@ -226,6 +252,11 @@ func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egres
 
 	/* 13. Switch back to the original namespace */
 	netns.Set(oNsHandle)
+	return nil
+}
+
+func deleteRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP net.IP, vni int) error {
+	logrus.Errorf("Delete for remote connection is not supported yet")
 	return nil
 }
 
@@ -356,23 +387,4 @@ func createVETH(cfg *connectionConfig, srcNsHandle, dstNsHandle netns.NsHandle) 
 		return err
 	}
 	return nil
-}
-
-func (v *KernelForwarder) configureKernelForwarder() {
-	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
-	v.common.Mechanisms = &common.Mechanisms{
-		LocalMechanisms: []*local.Mechanism{
-			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
-			},
-		},
-		RemoteMechanisms: []*remote.Mechanism{
-			{
-				Type: remote.MechanismType_VXLAN,
-				Parameters: map[string]string{
-					remote.VXLANSrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
-				},
-			},
-		},
-	}
 }
