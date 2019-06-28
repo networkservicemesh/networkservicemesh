@@ -155,7 +155,7 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 		if device, err = pi.createDevice(devCfg); err != nil {
 			return "", err
 		}
-		pi.devices[devCfg.Name] = device
+		pi.devices[device.Hostname] = device
 	}
 
 	// All devices are created so we need to wait for them to get alive.
