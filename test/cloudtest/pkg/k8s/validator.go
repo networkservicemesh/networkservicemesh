@@ -1,14 +1,17 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // KubernetesValidator - a validator to check periodically of cluster livenes.
 type KubernetesValidator interface {
 	Validate() error
+	WaitValid(context context.Context) error
 }
 
 // ValidationFactory - factory to create validator
@@ -24,6 +27,22 @@ type k8sValidator struct {
 	config   *config.ClusterProviderConfig
 	location string
 	utils    *Utils
+}
+
+func (v *k8sValidator) WaitValid(context context.Context) error {
+	for {
+		err := v.Validate()
+		if err == nil {
+			break
+		}
+		// Waiting a bit.
+		select {
+		case <-time.After(1 * time.Second):
+		case <-context.Done():
+			return err
+		}
+	}
+	return nil
 }
 
 func (v *k8sValidator) Validate() error {
@@ -53,6 +72,7 @@ func (*k8sFactory) CreateValidator(config *config.ClusterProviderConfig, locatio
 		utils:    utils,
 	}, nil
 }
+
 // CreateFactory - creates a validation factory.
 func CreateFactory() ValidationFactory {
 	return &k8sFactory{}
