@@ -5,6 +5,7 @@ type DeviceConfig struct {
 	OperatingSystem string `yaml:"os"`   // Operating system
 	BillingCycle    string `yaml:"billing_cycle"`
 	Name            string `yaml:"name"` // Host name prefix, will create ENV variable IP_HostName
+	HostName		string `yaml:"host-name"` // Host name with variable substitutions supported.
 }
 
 type PacketConfig struct {

@@ -155,7 +155,7 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 		if device, err = pi.createDevice(devCfg); err != nil {
 			return "", err
 		}
-		pi.devices[device.Hostname] = device
+		pi.devices[devCfg.Name] = device
 	}
 
 	// All devices are created so we need to wait for them to get alive.
@@ -274,16 +274,16 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 		}
 		environment[key] = value
 	}
-	var deviceName string
+	var hostName string
 	var err error
-	if deviceName, err = utils.SubstituteVariable(devCfg.Name, environment, pi.shellInterface.GetArguments()); err != nil {
+	if hostName, err = utils.SubstituteVariable(devCfg.HostName, environment, pi.shellInterface.GetArguments()); err != nil {
 		return nil, err
 	}
 
 	devReq := &packngo.DeviceCreateRequest{
 		Plan:           devCfg.Plan,
 		Facility:       pi.facilitiesList,
-		Hostname:       deviceName,
+		Hostname:       hostName,
 		BillingCycle:   devCfg.BillingCycle,
 		OS:             devCfg.OperatingSystem,
 		ProjectID:      pi.projectID,
@@ -292,7 +292,7 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	var device *packngo.Device
 	var response *packngo.Response
 	device, response, err = pi.client.Devices.Create(devReq)
-	msg := fmt.Sprintf("%v - %v", response, err)
+	msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
 	logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
 	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
 	return device, err

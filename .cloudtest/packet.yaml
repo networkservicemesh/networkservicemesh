@@ -10,7 +10,7 @@ providers:
     env:
       - CLUSTER_RULES_PREFIX=null # To not add any specific code
       - KUBECONFIG=$(tempdir)/config
-      - CLUSTER_NAME=$(cluster-name)-${CIRCLE_BUILD_NUM}-$(rands10)
+      - CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
     env-check:
       - PACKET_AUTH_TOKEN
       - PACKET_PROJECT_ID
@@ -19,11 +19,13 @@ providers:
     packet:
       ssh-key: sshkey.pub   # A key name relative to $(tempdir) or absolute
       devices:
-        - name: "Master-${CLUSTER_NAME}"
+        - name: "Master"
+          host-name: "Master-${CLUSTER_NAME}"
           plan: "t1.small.x86"
           os: "ubuntu_16_04"
           billing_cycle: "hourly"
-        - name: "Worker-${CLUSTER_NAME}"
+        - name: "Worker"
+          host-name: "Master-${CLUSTER_NAME}"
           plan: "t1.small.x86"
           os: "ubuntu_16_04"
           billing_cycle: "hourly"
