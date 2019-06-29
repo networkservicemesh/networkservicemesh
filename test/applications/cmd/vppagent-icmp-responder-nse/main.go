@@ -19,6 +19,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/sdk/vpp_agent"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +37,8 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
-		newVppAgentComposite(configuration),
+		vpp_agent.NewVppAgentFlush(configuration, "localhost:9112"),
+		vpp_agent.NewVppAgentMemifConnect(configuration),
 		endpoint.NewIpamEndpoint(nil),
 		endpoint.NewConnectionEndpoint(configuration))
 
