@@ -128,6 +128,7 @@ func CloudTestRun(cmd *cloudTestCmd) {
 	testConfig := &config.CloudTestConfig{}
 	err = parseConfig(testConfig, configFileContent)
 	if err != nil {
+		logrus.Errorf("Failed to parse config %v", err)
 		os.Exit(1)
 	}
 
@@ -140,6 +141,7 @@ func CloudTestRun(cmd *cloudTestCmd) {
 
 	_, err = PerformTesting(testConfig, k8s.CreateFactory(), cmd.cmdArguments)
 	if err != nil {
+		logrus.Errorf("Failed to process tests %v", err)
 		os.Exit(1)
 	}
 }
@@ -440,7 +442,7 @@ func (ctx *executionContext) printStatistics() {
 		elapsed,
 		elapsedRunning, len(ctx.completed),
 		remaining, len(ctx.running)+len(ctx.tasks),
-		running, clustersMsg)
+		running, strings.TrimSpace(clustersMsg))
 }
 
 func fromClusterState(state clusterState) string {
@@ -955,8 +957,9 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
 		Name: test.test.Name,
-		Time: fmt.Sprintf("%v", test.test.Duration),
+		Time: test.test.Duration.String(),
 	}
+
 	totalTests++
 	totalTime += test.test.Duration
 	switch test.test.Status {
@@ -964,19 +967,22 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 		failures++
 
 		message := fmt.Sprintf("Test execution failed %v", test.test.Name)
-		result := ""
+		result := strings.Builder{}
 		for _, ex := range test.test.Executions {
 			lines, err := utils.ReadFile(ex.OutputFile)
 			if err != nil {
 				logrus.Errorf("Failed to read stored output %v", ex.OutputFile)
 				lines = []string{"Failed to read stored output:", ex.OutputFile, err.Error()}
 			}
-			result = strings.Join(lines, "\n")
+			result.WriteString(strings.Join(lines, "\n"))
 		}
-
+		output := result.String()
+		for _, logs := range utils.CollectLogs(output) {
+			ctx.manager.AddLog(test.clusterTaskID, test.taskID+logs.ContainerName, logs.Logs)
+		}
 		testCase.Failure = &reporting.Failure{
 			Type:     "ERROR",
-			Contents: result,
+			Contents: result.String(),
 			Message:  message,
 		}
 	case model.StatusSkipped:

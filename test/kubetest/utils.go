@@ -144,8 +144,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
-		printNSMDLogs(k8s, nsmd, 0)
-		printDataplaneLogs(k8s, dataplane, 0)
+		PrintLogs(k8s)
 	}
 	err = nil
 	return
@@ -521,39 +520,30 @@ func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service
 	return awService
 }
 
-// PrintLogs - Print deployed pod logs
-func PrintLogs(k8s *K8s, nodesSetup []*NodeConf) {
-	for k := 0; k < len(nodesSetup); k++ {
-		nsmdPod := nodesSetup[k].Nsmd
-		printNSMDLogs(k8s, nsmdPod, k)
-
-		printDataplaneLogs(k8s, nodesSetup[k].Dataplane, k)
+// PrintLogs - Print deployed pods logs
+func PrintLogs(k8s *K8s, ) {
+	pods := k8s.ListPods()
+	for i := 0; i < len(pods); i++ {
+		LogPodLogs(k8s, &pods[i])
 	}
 }
 
-func printDataplaneLogs(k8s *K8s, dataplane *v1.Pod, k int) {
-	dataplaneLogs, _ := k8s.GetLogs(dataplane, "")
-	logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
-}
-
-func printNSMDLogs(k8s *K8s, nsmdPod *v1.Pod, k int) {
-	nsmdUpdatedPod, err := k8s.GetPod(nsmdPod)
-	if err != nil {
-		logrus.Errorf("Failed to update POD details %v", err)
-		return
-	}
-	for _, cs := range nsmdUpdatedPod.Status.ContainerStatuses {
-		containerLogs, _ := k8s.GetLogs(nsmdPod, cs.Name)
-		if cs.RestartCount > 0 {
-			prevLogs, _ := k8s.GetLogsWithOptions(nsmdPod, &v1.PodLogOptions{
-				Container: cs.Name,
-				Previous:  true,
-			})
-			logrus.Errorf("===================== %s %d previous output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, prevLogs)
+func LogPodLogs(k8s *K8s, pod *v1.Pod) {
+	for _, c := range pod.Spec.Containers {
+		name := pod.Name + ":" + c.Name
+		logs, err := k8s.GetLogs(pod, c.Name)
+		if err == nil {
+			LogTransaction(name, logs)
 		}
-		logrus.Errorf("===================== %s %d output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, containerLogs)
-	}
+		logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
+			Container: c.Name,
+			Previous:  true,
+		})
+		if err == nil {
+			LogTransaction(name, logs)
+		}
 
+	}
 }
 
 // PrintLogs - Print Client print information
@@ -730,7 +720,7 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		PrintLogs(k8s, nodesSetup)
+		PrintLogs(k8s)
 		nscInfo.PrintLogs()
 
 		t.Fail()
@@ -740,12 +730,25 @@ func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *N
 // FailLogger prints logs from containers in case of fail or panic
 func FailLogger(k8s *K8s, nodesSetup []*NodeConf, t *testing.T) {
 	if r := recover(); r != nil {
-		PrintLogs(k8s, nodesSetup)
+		PrintLogs(k8s)
 		panic(r)
 	}
 
 	if t.Failed() {
-		PrintLogs(k8s, nodesSetup)
+		PrintLogs(k8s)
+	}
+
+	return
+}
+
+func ProofOfConceptFailLogger(k8s *K8s, t *testing.T) {
+	if r := recover(); r != nil {
+		PrintLogs(k8s)
+		panic(r)
+	}
+
+	if t.Failed() {
+		PrintLogs(k8s)
 	}
 
 	return

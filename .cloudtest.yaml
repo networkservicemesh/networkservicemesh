@@ -14,9 +14,7 @@ reporting:
 executions:
   - name: "Single cluster tests"
     tags:
-      - basic
-      - recover
-      - usecase
+      - my_tag
     root: ./test/integration
     timeout: 300
     cluster-count: 1
