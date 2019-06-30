@@ -158,9 +158,9 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
-//PingByHostName - Try ping hostname from the first container of pod several times
+//PingByHostName - Tries ping hostname from the first container of pod several times
 func PingByHostName(k8s *K8s, pod *v1.Pod, hostname string) bool {
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
 		logrus.Infof("Trying ping from container %v host by name %v", pod.Spec.Containers[0].Name, hostname)
 		response, reason, err := k8s.Exec(pod, pod.Spec.Containers[0].Name, "ping", hostname, "-c", "4")
 		if err == nil {

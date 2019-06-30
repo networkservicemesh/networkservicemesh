@@ -68,7 +68,7 @@ func (c *corefile) String() string {
 	return sb.String()
 }
 
-//GetOrCreate - GetOrCreate of corefile
+//Scope is part of Corefile, represented as a block of plugin/server
 type Scope interface {
 	fmt.Stringer
 	Write(string) Scope
