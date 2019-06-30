@@ -52,6 +52,16 @@ const (
 	clusterShutdown
 )
 
+// Cluster operation record, to be added as testcase into report.
+type clusterOperationRecord struct {
+	time     time.Time
+	duration time.Duration
+	status   clusterState
+	attempt  int
+	logFile  string
+	errMsg   error
+}
+
 type clusterInstance struct {
 	instance      providers.ClusterInstance
 	state         clusterState
@@ -62,6 +72,8 @@ type clusterInstance struct {
 	cancelMonitor context.CancelFunc
 	startTime     time.Time
 	lock          sync.Mutex
+
+	executions []*clusterOperationRecord
 }
 type clustersGroup struct {
 	instances []*clusterInstance
@@ -168,7 +180,7 @@ func performImport(testConfig *config.CloudTestConfig) error {
 func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactory, arguments *Arguments) (*reporting.JUnitFile, error) {
 	ctx := &executionContext{
 		cloudTestConfig:  config,
-		operationChannel: make(chan operationEvent),
+		operationChannel: make(chan operationEvent, 100),
 		tasks:            []*testTask{},
 		running:          map[string]*testTask{},
 		completed:        []*testTask{},
@@ -677,16 +689,28 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 	}
 
 	ci.state = clusterStarting
+	execution := &clusterOperationRecord{
+		time: time.Now(),
+	}
+	ci.executions = append(ci.executions, execution)
 	go func() {
 		timeout := ctx.getClusterTimeout(ci.group)
 		ci.startCount++
-		err := ci.instance.Start(timeout)
+		execution.attempt = ci.startCount
+		errFile, err := ci.instance.Start(timeout)
 		if err != nil {
+			execution.logFile = errFile
+			execution.errMsg = err
+			execution.status = clusterCrashed
 			ctx.destroyCluster(ci, true, false)
 			ctx.setClusterState(ci, func(ci *clusterInstance) {
 				ci.state = clusterCrashed
 			})
+		} else {
+			execution.status = clusterReady
 		}
+		execution.duration = time.Since(execution.time)
+
 		// Starting cloud monitoring thread
 		if ci.state != clusterCrashed {
 			monitorContext, monitorCancel := context.WithCancel(context.Background())
@@ -931,6 +955,28 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		for _, test := range cluster.completed {
 			totalTests, totalTime, failures = ctx.generateTestCaseReport(test, totalTests, totalTime, failures, suite)
 		}
+
+		// Check cluster executions.
+		availableClusters := 0
+		for _, inst := range cluster.instances {
+			if inst.state != clusterNotAvailable {
+				availableClusters++
+			}
+		}
+		if availableClusters == 0 {
+			// No clusters available let's mark this as error.
+			for _, inst := range cluster.instances {
+				if inst.state == clusterNotAvailable {
+					for _, exec := range inst.executions {
+						ctx.generateClusterFailedReportEntry(inst, exec, suite)
+						failures++
+						totalTests++
+						break
+					}
+				}
+			}
+		}
+
 		suite.Tests = totalTests
 		suite.Failures = failures
 		suite.Time = fmt.Sprintf("%v", totalTime)
@@ -950,6 +996,28 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		return ctx.report, fmt.Errorf("there is failed tests %v", totalFailures)
 	}
 	return ctx.report, nil
+}
+
+func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInstance, exec *clusterOperationRecord, suite *reporting.Suite) {
+	message := fmt.Sprintf("Cluster start failed %v", inst.id)
+	result := fmt.Sprintf("Error: %v\n", exec.errMsg)
+	if exec.logFile != "" {
+		lines, err := utils.ReadFile(exec.logFile)
+		if err == nil {
+			// No file
+			result += strings.Join(lines, "\n")
+		}
+	}
+	startCase := &reporting.TestCase{
+		Name: fmt.Sprintf("Startup-%v", inst.id),
+		Time: fmt.Sprintf("%v", exec.duration),
+	}
+	startCase.Failure = &reporting.Failure{
+		Type:     "ERROR",
+		Contents: result,
+		Message:  message,
+	}
+	suite.TestCases = append(suite.TestCases, startCase)
 }
 
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
