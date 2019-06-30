@@ -192,9 +192,10 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 	st := time.Now()
 	err = pi.validator.WaitValid(ctx)
 	if err != nil {
+		logrus.Errorf("Failed to wait for required number of nodes: %v", err)
 		return fileName, err
 	}
-	logrus.Infof("Waiting for desired number of nodes to be ready %s-%s %v", pi.config.Name, pi.id, time.Since(st))
+	logrus.Infof("Waiting for desired number of nodes complete %s-%s %v", pi.config.Name, pi.id, time.Since(st))
 
 	pi.started = true
 	logrus.Infof("Starting are up and running %s-%s", pi.config.Name, pi.id)

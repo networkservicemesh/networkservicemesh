@@ -631,6 +631,7 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 			for _, inst := range instances {
 				err = inst.instance.CheckIsAlive()
 				if err != nil {
+					logrus.Errorf("Task failed because cluster is not valid: %v %v %v", task.test.Name, inst.id, err)
 					clusterNotAvailable = true
 					ctx.destroyCluster(inst, true, false)
 				}
@@ -739,7 +740,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 	for {
 		err := ci.instance.CheckIsAlive()
 		if err != nil {
-			logrus.Errorf("Failed to interact with cluster %v", ci.id)
+			logrus.Errorf("Failed to interact with cluster %v %v", ci.id, err)
 			ctx.destroyCluster(ci, true, false)
 			break
 		}

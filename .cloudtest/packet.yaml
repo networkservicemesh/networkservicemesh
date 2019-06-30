@@ -25,7 +25,7 @@ providers:
           os: "ubuntu_16_04"
           billing_cycle: "hourly"
         - name: "Worker"
-          host-name: "Master-${CLUSTER_NAME}"
+          host-name: "Worker-${CLUSTER_NAME}"
           plan: "t1.small.x86"
           os: "ubuntu_16_04"
           billing_cycle: "hourly"

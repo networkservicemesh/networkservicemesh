@@ -165,9 +165,10 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 
 	err = si.validator.WaitValid(context)
 	if err != nil {
+		logrus.Errorf("Failed to wait for required number of nodes: %v", err)
 		return fileName, err
 	}
-	logrus.Infof("Waiting for desired number of nodes to be ready %s-%s %v", si.config.Name, si.id, time.Since(st))
+	logrus.Infof("Waiting for desired number of nodes complete %s-%s %v", si.config.Name, si.id, time.Since(st))
 
 	si.started = true
 
