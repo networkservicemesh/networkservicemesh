@@ -104,7 +104,7 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 
 	// Process and prepare environment variables
 	if err = pi.shellInterface.ProcessEnvironment(
-		pi.id, pi.config.Name, pi.root, pi.config.Env, map[string]string{}); err != nil {
+		pi.id, pi.config.Name, pi.root, pi.config.Env, nil); err != nil {
 		logrus.Errorf("error during processing environment variables %v", err)
 		return "", err
 	}
@@ -192,7 +192,7 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 	st := time.Now()
 	err = pi.validator.WaitValid(ctx)
 	if err != nil {
-		return err
+		return fileName, err
 	}
 	logrus.Infof("Waiting for desired number of nodes to be ready %s-%s %v", pi.config.Name, pi.id, time.Since(st))
 
@@ -474,7 +474,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	return keyIds, nil
 }
 
-func (pi *packetInstance) findKeys(out *strings.Builder, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
+func (pi *packetInstance) findKeys(out io.StringWriter, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
 	sshKeys, response, err := pi.client.SSHKeys.List()
 	if err != nil {
 		_, _ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
