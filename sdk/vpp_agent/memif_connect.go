@@ -59,11 +59,11 @@ func (vmc *VppAgentMemifConnect) Close(ctx context.Context, connection *connecti
 	return &empty.Empty{}, nil
 }
 
-// GetOpaque will return the corresponding outgoing connection
+// GetOpaque will return the corresponding Memif connection
 func (vmc *VppAgentMemifConnect) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)
-	if outgoingConnection, ok := vmc.MemifConnections[incomingConnection.GetId()]; ok {
-		return outgoingConnection
+	if memifConnection, ok := vmc.MemifConnections[incomingConnection.GetId()]; ok {
+		return memifConnection
 	}
 	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
 	return nil
