@@ -19,15 +19,15 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
-      - name: client
-        image: gcr.io/spiffe-io/spire-k8s
-        args: ["/bin/bash", "-c", "sleep infinity"]
-        volumeMounts:
-        - name: spire-agent-socket
-          mountPath: /run/spire/sockets
-          readOnly: true
+        - name: client
+          image: gcr.io/spiffe-io/spire-k8s
+          args: ["/bin/bash", "-c", "sleep infinity"]
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
       volumes:
-      - name: spire-agent-socket
-        hostPath:
-          path: /run/spire/sockets
-          type: Directory
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
