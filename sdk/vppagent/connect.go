@@ -1,4 +1,4 @@
-package vpp_agent
+package vppagent
 
 import "github.com/ligato/vpp-agent/api/configurator"
 
