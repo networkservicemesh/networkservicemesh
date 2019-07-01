@@ -28,7 +28,7 @@ const (
 
 type Manager interface {
 	DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error)
-	NewServer(opt ...grpc.ServerOption) *grpc.Server
+	NewServer(opts ...grpc.ServerOption) *grpc.Server
 	GetCertificate() *tls.Certificate
 	GetCABundle() *x509.CertPool
 	GenerateJWT(networkService string, obo string) (string, error)
@@ -62,10 +62,17 @@ var manager Manager
 func GetSecurityManager() Manager {
 	logrus.Info("Getting SecurityManager...")
 	once.Do(func() {
-		logrus.Info("Initializing SecurityManager")
+		logrus.Info("Creating new SecurityManager...")
 		manager = NewManager()
 	})
 	return manager
+}
+
+func InitSecurityManagerWithExisting(mgr Manager) {
+	logrus.Info("Initializing Security Manager with existing one...")
+	once.Do(func() {
+		manager = mgr
+	})
 }
 
 func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {

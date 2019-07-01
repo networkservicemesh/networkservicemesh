@@ -1,4 +1,4 @@
-package test
+package testsec
 
 import (
 	"crypto/tls"
@@ -58,16 +58,6 @@ func (*testExchangeCertificateObtainer) Stop() {
 func (*testExchangeCertificateObtainer) Error() error {
 	return nil
 }
-
-//
-//func newExchangeCertObtainer(frequency time.Duration) (security.CertificateObtainer, error) {
-//	ca, err := generateCA()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return newExchangeCertObtainerWithCA(&ca, frequency)
-//}
 
 func newExchangeCertObtainerWithCA(spiffeID string, caTLS *tls.Certificate, frequency time.Duration) (security.CertificateObtainer, error) {
 	return &testExchangeCertificateObtainer{

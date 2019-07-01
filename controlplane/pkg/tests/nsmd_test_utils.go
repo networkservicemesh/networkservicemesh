@@ -3,6 +3,8 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/security"
+	"github.com/networkservicemesh/networkservicemesh/security/test"
 	"io/ioutil"
 	"net"
 	"os"
@@ -517,6 +519,8 @@ func newNSMDFullServer(nsmgrName string, storage *sharedStorage, cfg *registry.C
 }
 
 func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, cfg *registry.ClusterConfiguration) *nsmdFullServerImpl {
+	security.InitSecurityManagerWithExisting(testsec.NewStubSecurityManager())
+
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, cfg)
