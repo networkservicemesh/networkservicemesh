@@ -53,7 +53,6 @@ type NsePinger = func(k8s *K8s, from *v1.Pod) bool
 // NscChecker - Type to pass checked for pod
 type NscChecker = func(*K8s, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
-type LogWriteFunc = func(string, string)
 
 // SetupNodes - Setup NSMgr and Dataplane for particular number of nodes in cluster
 func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
@@ -483,15 +482,21 @@ func PrintLogs(k8s *K8s, t *testing.T) {
 	}
 }
 
+// LogPodLogs - log all logs in all containers in pod
 func LogPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
-	for _, c := range pod.Spec.Containers {
+	for i := 0; i < len(pod.Spec.Containers); i++ {
+		c := &pod.Spec.Containers[i]
 		name := pod.Name + ":" + c.Name
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := LogTransaction
 
 		if LogInFiles() && t != nil {
 			writeLogFunc = func(name string, content string) {
-				LogFile(name, filepath.Join(LogsDir(), t.Name()), content)
+				logErr := LogFile(name, filepath.Join(LogsDir(), t.Name()), content)
+				if logErr != nil {
+					logrus.Errorf("Can't log in file, reason %v", logErr)
+					LogTransaction(name, content)
+				}
 			}
 		}
 

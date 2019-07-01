@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+//LogsDir - returns dir where contains logs
 func LogsDir() string {
 	logDir := DefaultLogDir
 	if dir, ok := os.LookupEnv(WritePodLogsDir); ok {
@@ -17,6 +18,7 @@ func LogsDir() string {
 	return logDir
 }
 
+//LogInFiles - returns if the logs from pods should be stored as files
 func LogInFiles() bool {
 	if v, ok := os.LookupEnv(WritePodLogsInFile); ok {
 		if v == "true" {
@@ -26,26 +28,38 @@ func LogInFiles() bool {
 	return false
 }
 
-func LogFile(name, dir, content string) {
+//LogFile - saves logs in specific dir as file
+func LogFile(name, dir, content string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 	path := filepath.Join(dir, name)
 	var _, err = os.Stat(path)
 	if os.IsExist(err) {
-		os.Remove(path)
+		err = os.Remove(path)
+		if err != nil {
+			return err
+		}
 	}
 	file, err := os.Create(name)
-	file.WriteString(content)
+	if err != nil {
+		return err
+	}
+	_, err = file.WriteString(content)
+	if err != nil {
+		return err
+	}
 	err = file.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
+//LogTransaction - writes in log transaction with name and specific content
 func LogTransaction(name, content string) {
 	f := logrus.StandardLogger().Formatter
 	logrus.SetFormatter(&innerLogFormatter{})
@@ -73,23 +87,23 @@ type transactionDrawer struct {
 }
 
 func (t *transactionDrawer) drawText(text string) {
-	t.buff.WriteString(text)
+	_, _ = t.buff.WriteString(text)
 }
 
 func (t *transactionDrawer) drawLine() {
-	t.buff.WriteString(strings.Repeat(string(t.drawUnit), t.lineLength))
-	t.buff.WriteRune('\n')
+	_, _ = t.buff.WriteString(strings.Repeat(string(t.drawUnit), t.lineLength))
+	_, _ = t.buff.WriteRune('\n')
 }
 func (t *transactionDrawer) drawLineWithName(name string) {
 	sideWidth := int(math.Max(float64(t.lineLength-len(name)), 0)) / 2
 	for i := 0; i < sideWidth; i++ {
-		t.buff.WriteRune(t.drawUnit)
+		_, _ = t.buff.WriteRune(t.drawUnit)
 	}
-	t.buff.WriteString(name)
+	_, _ = t.buff.WriteString(name)
 	for i := 0; i < sideWidth; i++ {
-		t.buff.WriteRune(t.drawUnit)
+		_, _ = t.buff.WriteRune(t.drawUnit)
 	}
-	t.buff.WriteRune('\n')
+	_, _ = t.buff.WriteRune('\n')
 }
 
 type innerLogFormatter struct {

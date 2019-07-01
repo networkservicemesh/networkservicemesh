@@ -455,7 +455,7 @@ func (ctx *executionContext) printStatistics() {
 		elapsed,
 		elapsedRunning, len(ctx.completed),
 		remaining, len(ctx.running)+len(ctx.tasks),
-		running, strings.TrimSpace(clustersMsg))
+		running, clustersMsg)
 }
 
 func fromClusterState(state clusterState) string {
@@ -630,8 +630,12 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 
 		if errCode != nil {
 			if kubetest.LogInFiles() {
-				logsDir := kubetest.LogsDir()
-				os.Rename(logsDir, filepath.Join(ctx.manager.Root(), task.clusterTaskID, logsDir))
+				srcDir := kubetest.LogsDir()
+				dstDir := filepath.Join(ctx.manager.Root(), task.clusterTaskID, srcDir)
+				err = os.Rename(srcDir, dstDir)
+				if err != nil {
+					logrus.Errorf("Cant move logs from %v to %v", srcDir, dstDir)
+				}
 			}
 			// Check if cluster is alive.
 			clusterNotAvailable := false
