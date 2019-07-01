@@ -134,3 +134,7 @@ func (c *Connection) IsComplete() error {
 
 	return nil
 }
+
+func (c *Connection) SetResponseJWT(jwt string) {
+	c.ResponseJWT = jwt
+}

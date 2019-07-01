@@ -16,6 +16,8 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	"sync"
 	"time"
@@ -321,21 +323,10 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	})
 
 	// 11. We are done with configuration here.
-	var obo string
-	if request.IsRemote() {
-		nsmConnection = cc.Xcon.GetRemoteSource()
-		obo = cc.Xcon.GetLocalDestination().GetResponseJWT()
-	} else {
-		nsmConnection = cc.Xcon.GetLocalSource()
-		if ld := cc.Xcon.GetLocalDestination(); ld != nil {
-			obo = ld.GetResponseJWT()
-		} else {
-			obo = cc.Xcon.GetRemoteDestination().GetResponseJWT()
-		}
-	}
 	logrus.Infof("NSM:(11-%v) Request done...", requestID)
 
-	if err := security.GetSecurityManager().SignResponse(nsmConnection, obo); err != nil {
+	obo := cc.GetConnectionDestination().GetResponseJWT()
+	if err := security.GetSecurityManager().SignResponse(cc.GetConnectionSource(), obo); err != nil {
 		logrus.Error(err)
 		return nil, err
 	}

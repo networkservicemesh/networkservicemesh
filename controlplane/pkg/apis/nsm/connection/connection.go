@@ -41,4 +41,7 @@ type Connection interface {
 
 	IsValid() error
 	IsComplete() error
+
+	GetResponseJWT() string
+	SetResponseJWT(jwt string)
 }

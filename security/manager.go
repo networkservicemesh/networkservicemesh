@@ -8,10 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	local_ns "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_ns "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -183,25 +181,17 @@ func (m *certificateManager) VerifyJWT(transportSpiffeID, tokenString string) er
 }
 
 func (m *certificateManager) SignResponse(resp interface{}, obo string) error {
-	if !checkResponseType(resp) {
+	conn, ok := resp.(connection.Connection)
+	if !ok {
 		return errors.New("unable to sign response: unsupported type")
 	}
 
-	aud, err := audienceByResponse(resp)
+	responseJWT, err := m.GenerateJWT(conn.GetNetworkService(), obo)
 	if err != nil {
 		return err
 	}
 
-	responseJWT, err := m.GenerateJWT(aud, obo)
-	if err != nil {
-		return err
-	}
-
-	err = setResponseJWT(resp, responseJWT)
-	if err != nil {
-		return err
-	}
-
+	conn.SetResponseJWT(responseJWT)
 	return nil
 }
 
@@ -272,38 +262,34 @@ func (m *certificateManager) serverCredentials() (credentials.TransportCredentia
 
 func (m *certificateManager) createClientInterceptor(spiffeIDFunc func() string) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		if !checkRequestType(req) {
+		request, ok := req.(networkservice.Request)
+		if !ok {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
 
 		logrus.Infof("ClientInterceptor start working...")
-		aud, err := audienceByRequest(req)
-		if err != nil {
-			logrus.Error(err)
-			return invoker(ctx, method, req, reply, cc, opts...)
-		}
 
 		var obo string
 		if ctx.Value("obo") != nil {
 			obo = ctx.Value("obo").(string)
 		}
 
-		jwt, err := m.GenerateJWT(aud, obo)
+		token, err := m.GenerateJWT(request.GetRequestConnection().GetNetworkService(), obo)
 		if err != nil {
 			logrus.Error(err)
 			return err
 		}
 
-		if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: jwt}))...); err != nil {
+		if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}))...); err != nil {
 			return err
 		}
 
-		responseJWT, err := jwtByResponse(reply)
-		if err != nil {
-			return err
+		conn, ok := reply.(connection.Connection)
+		if !ok {
+			return errors.New("can't verify response: wrong type")
 		}
 
-		if err := m.VerifyJWT(spiffeIDFunc(), responseJWT); err != nil {
+		if err := m.VerifyJWT(spiffeIDFunc(), conn.GetResponseJWT()); err != nil {
 			return status.Errorf(codes.Unauthenticated, "response jwt is not valid")
 		}
 
@@ -313,7 +299,8 @@ func (m *certificateManager) createClientInterceptor(spiffeIDFunc func() string)
 
 func (m *certificateManager) createServerInterceptor(spiffeIDFunc func() string) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if !checkRequestType(req) {
+		_, ok := req.(networkservice.Request)
+		if !ok {
 			return handler(ctx, req)
 		}
 
@@ -400,75 +387,4 @@ func (m *certificateManager) verifyJwt(token *jwt.Token, parts []string, claims 
 	}
 
 	return nil
-}
-
-func audienceByRequest(req interface{}) (string, error) {
-	if r, ok := req.(*local_ns.NetworkServiceRequest); ok {
-		return r.GetConnection().GetNetworkService(), nil
-	}
-
-	if r, ok := req.(*remote_ns.NetworkServiceRequest); ok {
-		return r.GetConnection().GetNetworkService(), nil
-	}
-
-	return "", errors.New("unable to get NetworkService from request")
-}
-
-func audienceByResponse(resp interface{}) (string, error) {
-	if r, ok := resp.(*local.Connection); ok {
-		return r.GetNetworkService(), nil
-	}
-	if r, ok := resp.(*remote.Connection); ok {
-		return r.GetNetworkService(), nil
-	}
-
-	return "", errors.New("unable to get NetworkService from response")
-}
-
-func jwtByResponse(resp interface{}) (string, error) {
-	if r, ok := resp.(*local.Connection); ok {
-		return r.GetResponseJWT(), nil
-	}
-	if r, ok := resp.(*remote.Connection); ok {
-		return r.GetResponseJWT(), nil
-	}
-	return "", errors.New("unable to get ResponseJWT from response")
-}
-
-func setResponseJWT(resp interface{}, jwt string) error {
-	if conn, ok := resp.(*local.Connection); ok {
-		conn.ResponseJWT = jwt
-		return nil
-	}
-
-	if conn, ok := resp.(*remote.Connection); ok {
-		conn.ResponseJWT = jwt
-		return nil
-	}
-
-	return errors.New("unable to set ResponseJWT to response")
-}
-
-func checkRequestType(req interface{}) bool {
-	if _, ok := req.(*local_ns.NetworkServiceRequest); ok {
-		return true
-	}
-
-	if _, ok := req.(*remote_ns.NetworkServiceRequest); ok {
-		return true
-	}
-
-	return false
-}
-
-func checkResponseType(resp interface{}) bool {
-	if _, ok := resp.(*local.Connection); ok {
-		return true
-	}
-
-	if _, ok := resp.(*remote.Connection); ok {
-		return true
-	}
-
-	return false
 }
