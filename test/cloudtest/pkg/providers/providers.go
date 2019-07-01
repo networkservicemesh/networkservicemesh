@@ -23,7 +23,7 @@ type ClusterInstance interface {
 	GetClusterConfig() (string, error)
 
 	// Perform startup of cluster
-	Start(timeout time.Duration) error
+	Start(timeout time.Duration) (string, error)
 	// Destroy cluster
 	// Should destroy cluster with timeout passed, if time is left should report about error.
 	Destroy(timeout time.Duration) error

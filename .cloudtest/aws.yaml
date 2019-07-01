@@ -9,12 +9,13 @@ providers:
     timeout: 3600 # 60 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=aws
-      - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-$(rands10)
+      - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
       - CONTAINER_REPO=networkservicemesh
       - KUBECONFIG=$(tempdir)/config
       - NSM_AWS_SERVICE_SUFFIX=${AWS_CLUSTER_NAME}
     env-check:
       - COMMIT
+      - CIRCLE_BUILD_NUM
       - CIRCLE_WORKFLOW_ID
       - NSM_AWS_ACCESS_KEY_ID
       - NSM_AWS_SECRET_ACCESS_KEY

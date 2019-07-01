@@ -19,11 +19,14 @@ const (
 	// ClientConnectionRequesting means connection waits answer from NSE or Dp
 	ClientConnectionRequesting ClientConnectionState = 1
 
+	// ClientConnectionBroken means connection failed requesting
+	ClientConnectionBroken ClientConnectionState = 2
+
 	// ClientConnectionHealing means connection is in 'healing' state
-	ClientConnectionHealing ClientConnectionState = 2
+	ClientConnectionHealing ClientConnectionState = 3
 
 	// ClientConnectionClosing means connection is started closing process
-	ClientConnectionClosing ClientConnectionState = 3
+	ClientConnectionClosing ClientConnectionState = 4
 )
 
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint

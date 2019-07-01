@@ -55,7 +55,6 @@ type packetInstance struct {
 	shellInterface shell.Manager
 	projectID      string
 	packetAuthKey  string
-	genID          string
 	keyID          string
 	config         *config.ClusterProviderConfig
 	provider       *packetProvider
@@ -91,9 +90,10 @@ func (pi *packetInstance) GetClusterConfig() (string, error) {
 	return "", fmt.Errorf("cluster is not started yet")
 }
 
-func (pi *packetInstance) Start(timeout time.Duration) error {
+func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 	logrus.Infof("Starting cluster %s-%s", pi.config.Name, pi.id)
 	var err error
+	fileName := ""
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -102,26 +102,23 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 
 	utils.ClearFolder(pi.root, true)
 
-	today := time.Now()
-	pi.genID = fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), shell.NewRandomStr(10))
 	// Process and prepare environment variables
 	if err = pi.shellInterface.ProcessEnvironment(
-		pi.id, pi.config.Name, pi.root, pi.config.Env,
-		map[string]string{"cluster-uuid": pi.genID}); err != nil {
+		pi.id, pi.config.Name, pi.root, pi.config.Env, nil); err != nil {
 		logrus.Errorf("error during processing environment variables %v", err)
-		return err
+		return "", err
 	}
 
 	// Do prepare
 	if !pi.params.NoInstall {
-		if err = pi.doInstall(ctx); err != nil {
-			return err
+		if fileName, err = pi.doInstall(ctx); err != nil {
+			return fileName, err
 		}
 	}
 
 	// Run start script
-	if err = pi.shellInterface.RunCmd(ctx, "setup", pi.setupScript, nil); err != nil {
-		return err
+	if fileName, err = pi.shellInterface.RunCmd(ctx, "setup", pi.setupScript, nil); err != nil {
+		return fileName, err
 	}
 
 	keyFile := pi.config.Packet.SshKey
@@ -131,39 +128,39 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 		if !utils.FileExists(keyFile) {
 			err = fmt.Errorf("failed to locate generated key file, please specify init script to generate it")
 			logrus.Errorf(err.Error())
-			return err
+			return "", err
 		}
 	}
 
 	if pi.client, err = packngo.NewClient(); err != nil {
 		logrus.Errorf("failed to create Packet REST interface")
-		return err
+		return "", err
 	}
 
 	if err = pi.updateProject(); err != nil {
-		return err
+		return "", err
 	}
 
 	// Check and add key if it is not yet added.
 
 	if pi.keyIds, err = pi.createKey(keyFile); err != nil {
-		return err
+		return "", err
 	}
 
 	if pi.facilitiesList, err = pi.findFacilities(); err != nil {
-		return err
+		return "", err
 	}
 	for _, devCfg := range pi.config.Packet.Devices {
 		var device *packngo.Device
 		if device, err = pi.createDevice(devCfg); err != nil {
-			return err
+			return "", err
 		}
 		pi.devices[devCfg.Name] = device
 	}
 
 	// All devices are created so we need to wait for them to get alive.
 	if err = pi.waitDevicesStartup(ctx); err != nil {
-		return err
+		return "", err
 	}
 	// We need to add arguments
 
@@ -173,27 +170,36 @@ func (pi *packetInstance) Start(timeout time.Duration) error {
 	pi.manager.AddLog(pi.id, "environment", printableEnv)
 
 	// Run start script
-	if err = pi.shellInterface.RunCmd(ctx, "start", pi.startScript, nil); err != nil {
-		return err
+	if fileName, err = pi.shellInterface.RunCmd(ctx, "start", pi.startScript, nil); err != nil {
+		return fileName, err
 	}
 
 	if err = pi.updateKUBEConfig(ctx); err != nil {
-		return err
+		return "", err
 	}
 
 	if pi.validator, err = pi.factory.CreateValidator(pi.config, pi.configLocation); err != nil {
 		msg := fmt.Sprintf("Failed to start validator %v", err)
 		logrus.Errorf(msg)
-		return err
+		return "", err
 	}
 	// Run prepare script
-	if err = pi.shellInterface.RunCmd(ctx, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
-		return err
+	if fileName, err = pi.shellInterface.RunCmd(ctx, "prepare", pi.prepareScript, []string{"KUBECONFIG=" + pi.configLocation}); err != nil {
+		return fileName, err
 	}
 
-	pi.started = true
+	// Wait a bit to be sure clusters are up and running.
+	st := time.Now()
+	err = pi.validator.WaitValid(ctx)
+	if err != nil {
+		logrus.Errorf("Failed to wait for required number of nodes: %v", err)
+		return fileName, err
+	}
+	logrus.Infof("Waiting for desired number of nodes complete %s-%s %v", pi.config.Name, pi.id, time.Since(st))
 
-	return nil
+	pi.started = true
+	logrus.Infof("Starting are up and running %s-%s", pi.config.Name, pi.id)
+	return "", nil
 }
 
 func (pi *packetInstance) updateKUBEConfig(context context.Context) error {
@@ -266,10 +272,27 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 }
 
 func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.Device, error) {
+
+	finalEnv := pi.shellInterface.GetProcessedEnv()
+
+	environment := map[string]string{}
+	for _, k := range finalEnv {
+		key, value, err := utils.ParseVariable(k)
+		if err != nil {
+			return nil, err
+		}
+		environment[key] = value
+	}
+	var hostName string
+	var err error
+	if hostName, err = utils.SubstituteVariable(devCfg.HostName, environment, pi.shellInterface.GetArguments()); err != nil {
+		return nil, err
+	}
+
 	devReq := &packngo.DeviceCreateRequest{
 		Plan:           devCfg.Plan,
 		Facility:       pi.facilitiesList,
-		Hostname:       devCfg.Name + "-" + pi.genID,
+		Hostname:       hostName,
 		BillingCycle:   devCfg.BillingCycle,
 		OS:             devCfg.OperatingSystem,
 		ProjectID:      pi.projectID,
@@ -277,8 +300,8 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	}
 	var device *packngo.Device
 	var response *packngo.Response
-	device, response, err := pi.client.Devices.Create(devReq)
-	msg := fmt.Sprintf("%v - %v", response, err)
+	device, response, err = pi.client.Devices.Create(devReq)
+	msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
 	logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
 	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
 	return device, err
@@ -367,14 +390,14 @@ func (pi *packetInstance) doDestroy(writer io.StringWriter, timeout time.Duratio
 	}
 }
 
-func (pi *packetInstance) doInstall(context context.Context) error {
+func (pi *packetInstance) doInstall(context context.Context) (string, error) {
 	pi.provider.Lock()
 	defer pi.provider.Unlock()
 	if pi.installScript != nil && !pi.provider.installDone[pi.config.Name] {
 		pi.provider.installDone[pi.config.Name] = true
 		return pi.shellInterface.RunCmd(context, "install", pi.installScript, nil)
 	}
-	return nil
+	return "", nil
 }
 
 func (pi *packetInstance) updateProject() error {
@@ -407,7 +430,9 @@ func (pi *packetInstance) updateProject() error {
 }
 
 func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
-	pi.keyID = "dev-ci-cloud-" + pi.genID
+	today := time.Now()
+	genID := fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), shell.NewRandomStr(10))
+	pi.keyID = "dev-ci-cloud-" + genID
 
 	out := strings.Builder{}
 	keyFileContent, err := utils.ReadFile(keyFile)
@@ -434,7 +459,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	keyIds := []string{}
 	if sshKey == nil {
 		// try to find key.
-		sshKey, keyIds = pi.findKeys(out, sshKey)
+		sshKey, keyIds = pi.findKeys(&out, sshKey)
 	} else {
 		keyIds = append(keyIds, sshKey.ID)
 	}
@@ -450,7 +475,7 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	return keyIds, nil
 }
 
-func (pi *packetInstance) findKeys(out strings.Builder, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
+func (pi *packetInstance) findKeys(out io.StringWriter, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
 	sshKeys, response, err := pi.client.SSHKeys.List()
 	if err != nil {
 		_, _ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
