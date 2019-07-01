@@ -609,14 +609,14 @@ func GetNodeExternalIP(node *v1.Node) (string, error) {
 	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
 }
 
-// GetNodeInternalIP - Pop InternalIP from node addresses
+// GetNodeExternalIP - Pop InternalIP from node addresses
 func GetNodeExternalIP(node *v1.Node) (string, error) {
 	for i := range node.Status.Addresses {
 		if node.Status.Addresses[i].Type == "ExternalIP" {
 			return node.Status.Addresses[i].Address, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("Node %s does not have Internal IP address", node.ObjectMeta.Name))
+	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
 }
 
 // PrintLogs - Print Client print information

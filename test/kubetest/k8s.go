@@ -270,6 +270,7 @@ type K8s struct {
 	g                  *WithT
 }
 
+// ExtK8s - K8s ClientSet with nodes config
 type ExtK8s struct {
 	K8s *K8s
 	NodesSetup []*NodeConf
@@ -287,6 +288,7 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 	return client, err
 }
 
+// NewK8sForConfig - Creates a new K8s Clientset for the given config with creating roles
 func NewK8sForConfig(g *WithT, prepare bool, kubeconfig string) (*K8s, error) {
 	client, err := NewK8sWithoutRolesForConfig(g, prepare, kubeconfig)
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
@@ -302,6 +304,7 @@ func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 	return NewK8sWithoutRolesForConfig(g, prepare, path)
 }
 
+// NewK8sWithoutRolesForConfig - Creates a new K8s Clientset for the given config
 func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) (*K8s, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	Expect(err).To(BeNil())

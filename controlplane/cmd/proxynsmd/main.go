@@ -4,7 +4,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
+	proxynetworkserviceserver "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"google.golang.org/grpc"
 	"net"
@@ -19,9 +19,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Default values and environment variables of proxy connection
 const (
-	ProxyNsmdApiAddressEnv 		= "PROXY_NSMD_API_ADDRESS"
-	ProxyNsmdApiAddressDefaults = "0.0.0.0:5006"
+	ProxyNsmdAPIAddressEnv      = "PROXY_NSMD_API_ADDRESS"
+	ProxyNsmdAPIAddressDefaults = "0.0.0.0:5006"
 )
 
 func main() {
@@ -32,7 +33,11 @@ func main() {
 
 	tracer, closer := tools.InitJaeger("proxy-nsmd")
 	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logrus.Errorf("Failed to close tracer: %v", err)
+		}
+	}()
 
 	go nsmd.BeginHealthCheck()
 
@@ -41,11 +46,11 @@ func main() {
 	defer serviceRegistry.Stop()
 
 	// Choose a public API listener
-	nsmdApiAddress := os.Getenv(ProxyNsmdApiAddressEnv)
-	if strings.TrimSpace(nsmdApiAddress) == "" {
-		nsmdApiAddress = ProxyNsmdApiAddressDefaults
+	nsmdAPIAddress := os.Getenv(ProxyNsmdAPIAddressEnv)
+	if strings.TrimSpace(nsmdAPIAddress) == "" {
+		nsmdAPIAddress = ProxyNsmdAPIAddressDefaults
 	}
-	sock, err := apiRegistry.NewPublicListener(nsmdApiAddress)
+	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
 		nsmd.SetPublicListenerFailed()
@@ -73,7 +78,7 @@ func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.Service
 	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 
 	// Register Remote NetworkServiceManager
-	remoteServer := proxy_network_service_server.NewProxyNetworkServiceServer(serviceRegistry)
+	remoteServer := proxynetworkserviceserver.NewProxyNetworkServiceServer(serviceRegistry)
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	go func() {
