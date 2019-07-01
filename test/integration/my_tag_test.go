@@ -1,4 +1,4 @@
-// +build my_tag
+// +build tag
 
 package nsmd_integration_tests
 

@@ -931,6 +931,7 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 
 func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) []*model.TestEntry {
 	st := time.Now()
+	logrus.Infof("Starting finding tests by tags %v", executionConfig.Tags)
 	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
 	if err != nil {
 		logrus.Errorf("Failed during test lookup %v", err)

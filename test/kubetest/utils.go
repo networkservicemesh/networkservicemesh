@@ -496,6 +496,8 @@ func LogPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 				if logErr != nil {
 					logrus.Errorf("Can't log in file, reason %v", logErr)
 					LogTransaction(name, content)
+				} else {
+					logrus.Infof("Saved log of %v in file. Check dir %v", name, LogsDir())
 				}
 			}
 		}
