@@ -82,6 +82,9 @@ func WrongNSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 
 // NSCPod creates a new 'nsc' pod with init container
 func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
+	ht := new(v1.HostPathType)
+	*ht = v1.HostPathDirectoryOrCreate
+
 	initContainer := containerMod(&v1.Container{
 		Name:            "nsm-init",
 		Image:           "networkservicemesh/nsm-init:latest",
@@ -98,13 +101,6 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 				ReadOnly:  true,
 			},
 		},
-		//VolumeMounts: []v1.VolumeMount{
-		//	{
-		//		Name:      "certs",
-		//		MountPath: "/etc/certs",
-		//		ReadOnly:  true,
-		//	},
-		//},
 	})
 	for k, v := range env {
 		initContainer.Env = append(initContainer.Env,
@@ -133,16 +129,6 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 					},
 				},
 			},
-			//Volumes: []v1.Volume{
-			//	{
-			//		Name: "certs",
-			//		VolumeSource: v1.VolumeSource{
-			//			Secret: &v1.SecretVolumeSource{
-			//				SecretName: "nsc-cert-secret",
-			//			},
-			//		},
-			//	},
-			//},
 			Volumes: []v1.Volume{
 				{
 					Name: "spire-agent-socket",
