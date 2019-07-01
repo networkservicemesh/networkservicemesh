@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/commands"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
@@ -23,6 +24,10 @@ type testValidationFactory struct {
 type testValidator struct {
 	location string
 	config   *config.ClusterProviderConfig
+}
+
+func (v *testValidator) WaitValid(context context.Context) error {
+	return nil
 }
 
 func (v *testValidator) Validate() error {

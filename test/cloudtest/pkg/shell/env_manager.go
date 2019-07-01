@@ -20,12 +20,18 @@ type EnvironmentManager interface {
 	GetProcessedEnv() []string
 	// AddExtraArgs - add argument to map of substitute arguments $(arg) = value
 	AddExtraArgs(key, value string)
+	//
+	GetArguments() map[string]string
 }
 
 type environmentManager struct {
 	processedEnv   []string
 	configLocation string
 	finalArgs      map[string]string
+}
+
+func (em *environmentManager) GetArguments() map[string]string {
+	return em.finalArgs
 }
 
 // NewEnvironmentManager - creates a new environment variable manager

@@ -276,40 +276,31 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		cc.Request = request
 	})
 
-	// 9. We need to programm dataplane with our values.
-	// 9.1 TODO: now we need close only if we update local-dst with local-dst, other cases works fine without close
-	if existingCC != nil && existingCC.RemoteNsm == nil && cc.RemoteNsm == nil {
-		logrus.Errorf("NSM:(9.0-%v) Closing Dataplane because of existing connection passed...", requestID)
-		if err = srv.closeDataplane(existingCC); err != nil {
-			logrus.Errorf("NSM:(9.1-%v) Closing Dataplane error for local connection: %v", requestID, err)
-		}
-	}
-
 	var newXcon *crossconnect.CrossConnect
-
-	// 9.2 Sending updated request to dataplane.
+	// 9. We need to programm dataplane with our values.
+	// 9.1 Sending updated request to dataplane.
 	for dpRetry := 0; dpRetry < DataplaneRetryCount; dpRetry++ {
 		if err := ctx.Err(); err != nil {
 			srv.handleDataplaneContextTimeout(requestID, err, cc)
 			return nil, ctx.Err()
 		}
 
-		logrus.Infof("NSM:(9.2-%v) Sending request to dataplane: %v retry: %v", requestID, cc.Xcon, dpRetry)
+		logrus.Infof("NSM:(9.1-%v) Sending request to dataplane: %v retry: %v", requestID, cc.Xcon, dpRetry)
 		dpCtx, cancel := context.WithTimeout(context.Background(), DataplaneTimeout)
 		defer cancel()
 		newXcon, err = dataplaneClient.Request(dpCtx, cc.Xcon)
 		if err != nil {
-			logrus.Errorf("NSM:(9.2.1-%v) Dataplane request failed: %v retry: %v", requestID, err, dpRetry)
+			logrus.Errorf("NSM:(9.1.1-%v) Dataplane request failed: %v retry: %v", requestID, err, dpRetry)
 
 			// Let's try again with a short delay
 			if dpRetry < DataplaneRetryCount-1 {
 				<-time.After(DataplaneRetryDelay)
 				continue
 			}
-			logrus.Errorf("NSM:(9.2.2-%v) Dataplane request  all retry attempts failed: %v", requestID, cc.Xcon)
+			logrus.Errorf("NSM:(9.1.2-%v) Dataplane request  all retry attempts failed: %v", requestID, cc.Xcon)
 			// 9.3 If datplane configuration are failed, we need to close remore NSE actually.
 			if dpErr := srv.close(context.Background(), cc, false, false); dpErr != nil {
-				logrus.Errorf("NSM:(9.2.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestID, dpErr)
+				logrus.Errorf("NSM:(9.1.4-%v) Failed to NSE.Close() caused by local dataplane configuration failure: %v", requestID, dpErr)
 			}
 			// 9.4 We need to remove local connection we just added already.
 			srv.model.DeleteClientConnection(cc.GetID())
@@ -322,7 +313,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 			return nil, ctx.Err()
 		}
 
-		logrus.Infof("NSM:(9.3-%v) Dataplane configuration successful %v", requestID, cc.Xcon)
+		logrus.Infof("NSM:(9.2-%v) Dataplane configuration successful %v", requestID, cc.Xcon)
 		break
 	}
 

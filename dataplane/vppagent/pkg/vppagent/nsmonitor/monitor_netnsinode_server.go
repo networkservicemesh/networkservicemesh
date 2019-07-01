@@ -1,4 +1,4 @@
-package monitor_crossconnect_server
+package nsmonitor
 
 import (
 	"fmt"
@@ -9,28 +9,32 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
 type MonitorNetNsInodeServer struct {
-	monitor.Recipient
+	kvSchedulerClient   KVSchedulerClient
 	crossConnectServer  monitor_crossconnect.MonitorServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
 // NewMonitorNetNsInodeServer creates a new MonitorNetNsInodeServer
-func NewMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer) *MonitorNetNsInodeServer {
+func CreateMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer, vppEndpoint string) error {
+	var err error
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
 	}
+	if rv.kvSchedulerClient, err = NewKVSchedulerClient(vppEndpoint); err != nil {
+		return err
+	}
+
 	crossConnectServer.AddRecipient(rv)
 	go rv.MonitorNetNsInode()
-	return rv
+	return nil
 }
 
 func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
@@ -104,6 +108,7 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
 		logrus.Infof("Connection is down")
 		conn.State = connection.State_DOWN
+		m.kvSchedulerClient.DownstreamResync()
 		m.crossConnectServer.Update(xcon)
 	}
 
