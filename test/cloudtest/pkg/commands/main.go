@@ -16,12 +16,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/reporting"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/runners"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -194,7 +196,6 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	ctx.createTasks()
 
 	ctx.performExecution()
-
 	return ctx.generateJUnitReportFile()
 }
 
@@ -616,6 +617,10 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 		task.test.Duration = time.Since(st)
 
 		if errCode != nil {
+			if kubetest.LogInFiles() {
+				logsDir := kubetest.LogsDir()
+				os.Rename(logsDir, filepath.Join(ctx.manager.Root(), task.clusterTaskID, logsDir))
+			}
 			// Check if cluster is alive.
 			clusterNotAvailable := false
 			for _, inst := range instances {
@@ -626,7 +631,6 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 				}
 				inst.taskCancel = nil
 			}
-
 			if timeoutCtx.Err() == context.Canceled && clusterNotAvailable {
 				logrus.Errorf("Test is canceled due timeout and cluster error.. Will be re-run")
 				ctx.updateTestExecution(task, fileName, model.StatusTimeout)
@@ -975,10 +979,6 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 				lines = []string{"Failed to read stored output:", ex.OutputFile, err.Error()}
 			}
 			result.WriteString(strings.Join(lines, "\n"))
-		}
-		output := result.String()
-		for _, logs := range utils.CollectLogs(output) {
-			ctx.manager.AddLog(test.clusterTaskID, test.taskID+logs.ContainerName, logs.Logs)
 		}
 		testCase.Failure = &reporting.Failure{
 			Type:     "ERROR",

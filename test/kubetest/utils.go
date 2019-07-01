@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -52,6 +53,7 @@ type NsePinger = func(k8s *K8s, from *v1.Pod) bool
 // NscChecker - Type to pass checked for pod
 type NscChecker = func(*K8s, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
+type LogWriteFunc = func(string, string)
 
 // SetupNodes - Setup NSMgr and Dataplane for particular number of nodes in cluster
 func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
@@ -144,7 +146,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
-		PrintLogs(k8s)
+		PrintLogs(k8s, nil)
 	}
 	err = nil
 	return
@@ -521,26 +523,34 @@ func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service
 }
 
 // PrintLogs - Print deployed pods logs
-func PrintLogs(k8s *K8s, ) {
+func PrintLogs(k8s *K8s, t *testing.T) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
-		LogPodLogs(k8s, &pods[i])
+		LogPodLogs(k8s, t, &pods[i])
 	}
 }
 
-func LogPodLogs(k8s *K8s, pod *v1.Pod) {
+func LogPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 	for _, c := range pod.Spec.Containers {
 		name := pod.Name + ":" + c.Name
 		logs, err := k8s.GetLogs(pod, c.Name)
+		writeLogFunc := LogTransaction
+
+		if LogInFiles() && t != nil {
+			writeLogFunc = func(name string, content string) {
+				LogFile(name, filepath.Join(LogsDir(), t.Name()), content)
+			}
+		}
+
 		if err == nil {
-			LogTransaction(name, logs)
+			writeLogFunc(name, logs)
 		}
 		logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
 			Container: c.Name,
 			Previous:  true,
 		})
 		if err == nil {
-			LogTransaction(name, logs)
+			writeLogFunc(name+"-previous", logs)
 		}
 
 	}
@@ -720,7 +730,7 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		PrintLogs(k8s)
+		PrintLogs(k8s, t)
 		nscInfo.PrintLogs()
 
 		t.Fail()
@@ -730,25 +740,12 @@ func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *N
 // FailLogger prints logs from containers in case of fail or panic
 func FailLogger(k8s *K8s, nodesSetup []*NodeConf, t *testing.T) {
 	if r := recover(); r != nil {
-		PrintLogs(k8s)
+		PrintLogs(k8s, t)
 		panic(r)
 	}
 
 	if t.Failed() {
-		PrintLogs(k8s)
-	}
-
-	return
-}
-
-func ProofOfConceptFailLogger(k8s *K8s, t *testing.T) {
-	if r := recover(); r != nil {
-		PrintLogs(k8s)
-		panic(r)
-	}
-
-	if t.Failed() {
-		PrintLogs(k8s)
+		PrintLogs(k8s, t)
 	}
 
 	return

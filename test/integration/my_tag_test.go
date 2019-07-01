@@ -19,7 +19,7 @@ func TestWhyMyTestFail(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
-	defer kubetest.ProofOfConceptFailLogger(k8s, t)
+	defer kubetest.FailLogger(k8s, t)
 	defer t.Fail()
 
 	Expect(err).To(BeNil())

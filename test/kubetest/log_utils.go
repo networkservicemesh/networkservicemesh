@@ -4,8 +4,47 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 )
+
+func LogsDir() string {
+	logDir := DefaultLogDir
+	if dir, ok := os.LookupEnv(WritePodLogsDir); ok {
+		logDir = dir
+	}
+	return logDir
+}
+
+func LogInFiles() bool {
+	if v, ok := os.LookupEnv(WritePodLogsInFile); ok {
+		if v == "true" {
+			return true
+		}
+	}
+	return false
+}
+
+func LogFile(name, dir, content string) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+	path := filepath.Join(dir, name)
+	var _, err = os.Stat(path)
+	if os.IsExist(err) {
+		os.Remove(path)
+	}
+	file, err := os.Create(name)
+	file.WriteString(content)
+	err = file.Close()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func LogTransaction(name, content string) {
 	f := logrus.StandardLogger().Formatter

@@ -22,6 +22,8 @@ type ExecutionManager interface {
 	GetRoot(root string) (string, error)
 	//AddFile - set named file to content.
 	AddFile(fileName string, bytes []byte)
+	//Root - returns current root
+	Root() string
 }
 
 type executionManagerImpl struct {
@@ -72,6 +74,9 @@ func (mgr *executionManagerImpl) OpenFile(category, operationName string) (strin
 func (mgr *executionManagerImpl) OpenFileTest(category, testName, operation string) (string, *os.File, error) {
 	cat := mgr.getCategory(category)
 	return utils.OpenFile(path.Join(mgr.root, category), fmt.Sprintf("%s-%s-%s.log", cat, testName, operation))
+}
+func (mgr *executionManagerImpl) Root() string {
+	return mgr.root
 }
 
 func (mgr *executionManagerImpl) AddLog(category, operationName, content string) {

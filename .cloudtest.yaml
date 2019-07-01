@@ -20,6 +20,8 @@ executions:
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
+    env:
+      - WRITE_POD_LOGS_IN_FILES=true
   - name: "Benchmark tests"
     tags:
       - bench
