@@ -58,8 +58,9 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
+	monitorEndpoint := endpoint.NewMonitorEndpoint(nil)
 	endpoints := []endpoint.ChainedEndpoint{
-		endpoint.NewMonitorEndpoint(nil),
+		monitorEndpoint,
 	}
 
 	if neighbors {
@@ -104,7 +105,7 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 
-	monitorServer = endpoints[0].GetOpaque(nil).(local.MonitorServer)
+	monitorServer = monitorEndpoint.GetOpaque(nil).(local.MonitorServer)
 
 	_ = nsmEndpoint.Start()
 	if !dirty {
