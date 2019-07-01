@@ -4,6 +4,8 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	v1 "k8s.io/api/core/v1"
 	"os"
@@ -15,6 +17,14 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
+
+var nseNoHealPodConfig = &pods.NSMgrPodConfig{
+	Variables: map[string]string{
+		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
+		nsm.NsmdHealEnabled:          "true",
+	},
+}
 
 func TestInterdomainNSCDies(t *testing.T) {
 	RegisterTestingT(t)
@@ -52,12 +62,12 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 
 		Expect(err).To(BeNil())
 
-		nseNoHeal.Namespace = k8s.GetK8sNamespace()
-		nseNoHeal.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
+		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()
+		nseNoHealPodConfig.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-			nseNoHeal,
-			nseNoHeal,
+			nseNoHealPodConfig,
+			nseNoHealPodConfig,
 		}, k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
 
