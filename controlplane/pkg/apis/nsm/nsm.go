@@ -44,7 +44,7 @@ const (
 type NetworkServiceManager interface {
 	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
 	Close(ctx context.Context, clientConnection ClientConnection) error
-	Heal(connection ClientConnection, healState HealState)
+	Heal(clientConnection ClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
 	GetHealProperties() *NsmProperties
 	WaitForDataplane(duration time.Duration) error
