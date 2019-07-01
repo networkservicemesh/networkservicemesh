@@ -1,0 +1,10 @@
+FROM gcr.io/spiffe-io/spire-server:0.7.3 as builder
+
+FROM alpine
+RUN apk add ca-certificates
+RUN mkdir -p /opt/spire/bin
+COPY --from=builder /opt/spire/bin/spire-server /opt/spire/bin/spire-server
+WORKDIR /opt/spire
+ADD ["./registration.json", "/opt/spire"]
+#ENTRYPOINT ["/opt/spire/bin/spire-server", "entry", "create", "-registrationUDSPath", "/tmp/spire-registration.sock", "-data", "/opt/spire/registration.json"]
+CMD /opt/spire/bin/spire-server entry create -registrationUDSPath /tmp/spire-registration.sock -data /opt/spire/registration.json || tail -f /dev/null

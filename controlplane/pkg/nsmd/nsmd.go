@@ -2,6 +2,7 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"net"
 	"os"
 	"sync"
@@ -491,12 +492,13 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 
 // StartAPIServerAt starts GRPC API server at sock
 func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
-	tracer := opentracing.GlobalTracer()
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	//tracer := opentracing.GlobalTracer()
+	//grpcServer := grpc.NewServer(
+	//	grpc.UnaryInterceptor(
+	//		otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
+	//	grpc.StreamInterceptor(
+	//		otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	grpcServer := security.GetSecurityManager().NewServer()
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)

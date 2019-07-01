@@ -8,7 +8,7 @@ data:
     server {
       bind_address = "0.0.0.0"
       bind_port = "8081"
-      trust_domain = "example.org"
+      trust_domain = "test.com"
       data_dir = "/run/spire/data"
       log_level = "DEBUG"
       svid_ttl = "1h"
