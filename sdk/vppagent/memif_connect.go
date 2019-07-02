@@ -2,10 +2,15 @@ package vppagent
 
 import (
 	"context"
+	"os"
+	"path"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
@@ -13,8 +18,9 @@ import (
 
 type VppAgentMemifConnect struct {
 	endpoint.BaseCompositeEndpoint
-	Workspace        string
-	MemifConnections map[string]*ConnectionData
+	Workspace      string
+	ConnectionSide ConnectionSide
+	Connections    map[string]*ConnectionData
 }
 
 func (vmc *VppAgentMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -29,23 +35,60 @@ func (vmc *VppAgentMemifConnect) Request(ctx context.Context, request *networkse
 		return nil, err
 	}
 
-	interfaceName := "DST-" + incomingConnection.GetId()
-	conversionParameters := &converter.ConnectionConversionParameters{
-		Name:      interfaceName,
-		Terminate: true,
-		Side:      converter.DESTINATION,
-		BaseDir:   vmc.Workspace,
+	var connectionData *ConnectionData
+	opaque := vmc.GetNext().GetOpaque(incomingConnection)
+	if opaque != nil {
+		connectionData = opaque.(*ConnectionData)
+		if connectionData.DataChange == nil {
+			connectionData.DataChange = &configurator.Config{}
+		}
+	} else {
+		connectionData = &ConnectionData{
+			DataChange: &configurator.Config{},
+		}
 	}
 
-	dataChange, err := converter.NewMemifInterfaceConverter(incomingConnection, conversionParameters).ToDataRequest(nil, true)
-	if err != nil {
-		logrus.Error(err)
+	if connectionData.DataChange.VppConfig == nil {
+		connectionData.DataChange.VppConfig = &vpp.ConfigData{}
+	}
+
+	socketFilename := path.Join(vmc.Workspace, incomingConnection.GetMechanism().GetSocketFilename())
+	socketDir := path.Dir(socketFilename)
+
+	if err := os.MkdirAll(socketDir, os.ModePerm); err != nil {
 		return nil, err
 	}
 
-	vmc.MemifConnections[incomingConnection.GetId()] = &ConnectionData{
-		InterfaceName: interfaceName,
-		DataChange:    dataChange,
+	var name string
+	if vmc.ConnectionSide == DESTINATION {
+		name = "DST-" + incomingConnection.GetId()
+	} else {
+		name = "SRC-" + incomingConnection.GetId()
+	}
+
+	var ipAddresses []string
+	if vmc.ConnectionSide == DESTINATION && incomingConnection.GetContext().DstIpAddr != "" {
+		ipAddresses = []string{incomingConnection.GetContext().DstIpAddr}
+	}
+
+	connectionData.DataChange.VppConfig.Interfaces = append(connectionData.DataChange.VppConfig.Interfaces, &vpp.Interface{
+		Name:        name,
+		Type:        vpp_interfaces.Interface_MEMIF,
+		Enabled:     true,
+		IpAddresses: ipAddresses,
+		Link: &vpp_interfaces.Interface_Memif{
+			Memif: &vpp_interfaces.MemifLink{
+				Master:         true,
+				SocketFilename: socketFilename,
+			},
+		},
+	})
+
+	vmc.Connections[incomingConnection.GetId()] = connectionData
+	if vmc.ConnectionSide == DESTINATION {
+		vmc.Connections[incomingConnection.GetId()].DstName = name
+	} else {
+		vmc.Connections[incomingConnection.GetId()].SrcName = name
 	}
 
 	return incomingConnection, nil
@@ -59,18 +102,18 @@ func (vmc *VppAgentMemifConnect) Close(ctx context.Context, connection *connecti
 	return &empty.Empty{}, nil
 }
 
-// GetOpaque will return the corresponding Memif connection
+// GetOpaque will return the corresponding connection data
 func (vmc *VppAgentMemifConnect) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)
-	if memifConnection, ok := vmc.MemifConnections[incomingConnection.GetId()]; ok {
-		return memifConnection
+	if connectionData, ok := vmc.Connections[incomingConnection.GetId()]; ok {
+		return connectionData
 	}
 	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
 	return nil
 }
 
 // NewVppAgentMemifConnect creates a VppAgentMemifConnect
-func NewVppAgentMemifConnect(configuration *common.NSConfiguration) *VppAgentMemifConnect {
+func NewVppAgentMemifConnect(configuration *common.NSConfiguration, side ConnectionSide) *VppAgentMemifConnect {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
@@ -78,7 +121,8 @@ func NewVppAgentMemifConnect(configuration *common.NSConfiguration) *VppAgentMem
 	configuration.CompleteNSConfiguration()
 
 	return &VppAgentMemifConnect{
-		Workspace:        configuration.Workspace,
-		MemifConnections: map[string]*ConnectionData{},
+		Workspace:      configuration.Workspace,
+		ConnectionSide: side,
+		Connections:    map[string]*ConnectionData{},
 	}
 }
