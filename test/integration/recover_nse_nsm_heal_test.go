@@ -28,6 +28,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)

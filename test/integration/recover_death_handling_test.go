@@ -82,7 +82,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 		nseNoHeal,
 	}, k8s.GetK8sNamespace())
 
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 	Expect(err).To(BeNil())
 
 	icmp := kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

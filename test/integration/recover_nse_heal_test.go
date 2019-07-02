@@ -93,7 +93,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
 	// Deploy open tracing to see what happening.
 	nodesSetup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
-	defer kubetest.FailLogger(k8s, nodesSetup, t)
+	defer kubetest.ShowLogs(k8s, t)
 
 	// Run ICMP
 	node := affinity["icmp-responder-nse-1"]

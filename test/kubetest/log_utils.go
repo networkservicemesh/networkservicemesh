@@ -3,14 +3,64 @@ package kubetest
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 )
 
-//LogsDir - returns dir where contains logs
-func LogsDir() string {
+// ShowLogs prints logs from containers in case of fail/panic or enabled logging in file
+func ShowLogs(k8s *K8s, t *testing.T) {
+	if r := recover(); r != nil {
+		showLogs(k8s, t)
+		panic(r)
+	} else if t.Failed() || shouldShowLogs() {
+		showLogs(k8s, t)
+	}
+}
+func showLogs(k8s *K8s, t *testing.T) {
+	pods := k8s.ListPods()
+	for i := 0; i < len(pods); i++ {
+		showPodLogs(k8s, t, &pods[i])
+	}
+}
+
+func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
+	for i := 0; i < len(pod.Spec.Containers); i++ {
+		c := &pod.Spec.Containers[i]
+		name := pod.Name + ":" + c.Name
+		logs, err := k8s.GetLogs(pod, c.Name)
+		writeLogFunc := logTransaction
+
+		if shouldShowLogs() && t != nil {
+			writeLogFunc = func(name string, content string) {
+				logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
+				if logErr != nil {
+					logrus.Errorf("Can't log in file, reason %v", logErr)
+					logTransaction(name, content)
+				} else {
+					logrus.Infof("Saved log for %v. Check dir %v", name, logsDir())
+				}
+			}
+		}
+
+		if err == nil {
+			writeLogFunc(name, logs)
+		}
+		logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
+			Container: c.Name,
+			Previous:  true,
+		})
+		if err == nil {
+			writeLogFunc(name+"-previous", logs)
+		}
+
+	}
+}
+
+func logsDir() string {
 	logDir := DefaultLogDir
 	if dir, ok := os.LookupEnv(WritePodLogsDir); ok {
 		logDir = dir
@@ -18,8 +68,7 @@ func LogsDir() string {
 	return logDir
 }
 
-//ShouldLogInFile - returns if the logs from pods should be stored as files
-func ShouldLogInFile() bool {
+func shouldShowLogs() bool {
 	if v, ok := os.LookupEnv(WritePodLogsInFile); ok {
 		if v == "true" {
 			return true
@@ -28,8 +77,7 @@ func ShouldLogInFile() bool {
 	return false
 }
 
-//LogFile - saves logs in specific dir as file
-func LogFile(name, dir, content string) error {
+func logFile(name, dir, content string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -59,8 +107,7 @@ func LogFile(name, dir, content string) error {
 	return nil
 }
 
-//LogTransaction - writes in log transaction with name and specific content
-func LogTransaction(name, content string) {
+func logTransaction(name, content string) {
 	f := logrus.StandardLogger().Formatter
 	logrus.SetFormatter(&innerLogFormatter{})
 

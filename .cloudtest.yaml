@@ -13,14 +13,53 @@ reporting:
   junit-report: "results/junit.xml"
 executions:
   - name: "Single cluster tests"
+    env:
+      - WRITE_POD_LOGS_IN_FILES=true
+      - WRITE_POD_LOGS_DIR=./.tests/cloud_test/$(cluster-name)/logs
     tags:
-      - tag
+      - basic
+      - recover
+      - usecase
     root: ./test/integration
     timeout: 300
     cluster-count: 1
-    env:
-      - WRITE_POD_LOGS_IN_FILES=true
-      - WRITE_POD_LOGS_IN_DIR=./.tests/cloud_test/$(cluster-name)/logs
     kubernetes-env:
       - KUBECONFIG
-#TODO restore config after testing
+  - name: "Benchmark tests"
+    tags:
+      - bench
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 1
+    cluster-selector:
+      - packet
+    kubernetes-env:
+      - KUBECONFIG
+  - name: "Example-icmp"
+    kind: shell
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      make k8s-infra-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-icmp-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-check
+      make k8s-delete
+  - name: "Example-vpn"
+    kind: shell
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      make k8s-infra-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-vpn-deploy
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-check
+      make k8s-delete

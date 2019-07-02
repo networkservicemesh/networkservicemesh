@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -145,7 +144,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
-		PrintLogs(k8s, nil)
+		showLogs(k8s, nil)
 	}
 	err = nil
 	return
@@ -474,48 +473,6 @@ func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service
 	return awService
 }
 
-// PrintLogs - Print deployed pods logs
-func PrintLogs(k8s *K8s, t *testing.T) {
-	pods := k8s.ListPods()
-	for i := 0; i < len(pods); i++ {
-		LogPodLogs(k8s, t, &pods[i])
-	}
-}
-
-// LogPodLogs - log all logs in all containers in pod
-func LogPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
-	for i := 0; i < len(pod.Spec.Containers); i++ {
-		c := &pod.Spec.Containers[i]
-		name := pod.Name + ":" + c.Name
-		logs, err := k8s.GetLogs(pod, c.Name)
-		writeLogFunc := LogTransaction
-
-		if ShouldLogInFile() && t != nil {
-			writeLogFunc = func(name string, content string) {
-				logErr := LogFile(name, filepath.Join(LogsDir(), t.Name()), content)
-				if logErr != nil {
-					logrus.Errorf("Can't log in file, reason %v", logErr)
-					LogTransaction(name, content)
-				} else {
-					logrus.Infof("Saved log for %v. Check dir %v", name, LogsDir())
-				}
-			}
-		}
-
-		if err == nil {
-			writeLogFunc(name, logs)
-		}
-		logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
-			Container: c.Name,
-			Previous:  true,
-		})
-		if err == nil {
-			writeLogFunc(name+"-previous", logs)
-		}
-
-	}
-}
-
 // PrintLogs - Print Client print information
 func (info *NSCCheckInfo) PrintLogs() {
 	if info == nil {
@@ -690,22 +647,10 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		PrintLogs(k8s, t)
+		showLogs(k8s, t)
 		nscInfo.PrintLogs()
 
 		t.Fail()
-	}
-}
-
-// FailLogger prints logs from containers in case of fail or panic
-func FailLogger(k8s *K8s, nodesSetup []*NodeConf, t *testing.T) {
-	if r := recover(); r != nil {
-		PrintLogs(k8s, t)
-		panic(r)
-	}
-
-	if t.Failed() {
-		PrintLogs(k8s, t)
 	}
 }
 

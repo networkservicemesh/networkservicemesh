@@ -23,7 +23,7 @@ func TestNSMDDeploy(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
-
+	defer kubetest.ShowLogs(k8s, t)
 	Expect(err).To(BeNil())
 
 	st := time.Now()

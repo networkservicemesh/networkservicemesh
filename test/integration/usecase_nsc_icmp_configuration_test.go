@@ -165,7 +165,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		kubetest.PrintLogs(k8s)
+		defer kubetest.ShowLogs(k8s, t)
 		nscInfo.PrintLogs()
 
 		t.Fail()
