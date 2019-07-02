@@ -25,21 +25,29 @@ spire-delete: spire-server-delete spire-agent-delete
 .PHONY: spire-server-start
 spire-server-start:
 	@echo "Starting spire-server...";
+	@kubectl apply -f ${K8S_CONF_DIR}/spire/spire-namespace.yaml;
+	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-account.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-configmap.yaml;
+	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-secrets.yaml;
+	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-service.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml;
 
 .PHONY: spire-agent-start
 spire-agent-start:
 	@echo "Starting spire-agent...";
-	@kubectl apply -f ${K8S_CONF_DIR}/spire/agent-configmap.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/agent-account.yaml;
+	@kubectl apply -f ${K8S_CONF_DIR}/spire/agent-configmap.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/agent-daemonset.yaml;
 
 .PHONY: spire-server-delete
 spire-server-delete:
 	@echo "Deleting spire-server...";
-	@kubectl delete -f ${K8S_CONF_DIR}/spire/server-configmap.yaml;
-	@kubectl delete -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml;
+	@kubectl delete -f ${K8S_CONF_DIR}/spire/spire-namespace.yaml || \
+	kubectl delete -f ${K8S_CONF_DIR}/spire/server-account.yaml || \
+	kubectl delete -f ${K8S_CONF_DIR}/spire/server-configmap.yaml || \
+	kubectl delete -f ${K8S_CONF_DIR}/spire/server-secrets.yaml || \
+	kubectl delete -f ${K8S_CONF_DIR}/spire/server-service.yaml || \
+	kubectl delete -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml;
 
 .PHONY: spire-agent-delete
 spire-agent-delete:

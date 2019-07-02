@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: spire-agent
-  namespace: default
+  namespace: spire
   labels:
     app: spire-agent
 spec:
@@ -11,7 +11,7 @@ spec:
       app: spire-agent
   template:
     metadata:
-      namespace: default
+      namespace: spire
       labels:
         app: spire-agent
     spec:

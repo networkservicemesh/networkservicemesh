@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: spire-server
-  namespace: default
+  namespace: spire
 data:
   server.conf: |
     server {
@@ -31,7 +31,7 @@ data:
             # NOTE: Change this to your cluster name
             "demo-cluster" = {
               service_account_key_file = "/run/k8s-certs/sa.pub"
-              service_account_whitelist = ["default:spire-agent"]
+              service_account_whitelist = ["spire:spire-agent"]
             }
           }
         }
