@@ -1,11 +1,10 @@
 package shell
 
 import (
-	"encoding/hex"
+	"crypto/rand"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"crypto/rand"
 	"github.com/sirupsen/logrus"
 	"math/big"
 	"os"
@@ -52,18 +51,10 @@ func (em *environmentManager) GetConfigLocation() string {
 	return em.configLocation
 }
 
-// NewRandomStr - generates random string of desired length, size should be multiple of two for best result.
-func NewRandomStr(size int) string {
-	value := make([]byte, size/2)
-	_, err := rand.Read(value)
-	if err != nil {
-		logrus.Errorf("error during random string generation %v", err)
-		return ""
-	}
-	return hex.EncodeToString(value)
-}
+
 
 func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDir string, env []string, extraArgs map[string]string) error {
+	logrus.Infof("senv: %v", env)
 	environment := map[string]string{}
 
 	for _, k := range os.Environ() {
@@ -92,8 +83,8 @@ func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDi
 			randValue = fmt.Sprintf("%v", randNum)
 		}
 
-		randValue30 := NewRandomStr(30)
-		randValue10 := NewRandomStr(10)
+		randValue30 := utils.NewRandomStr(30)
+		randValue10 := utils.NewRandomStr(10)
 
 		args := map[string]string{
 			"cluster-name":  clusterID,
@@ -137,6 +128,6 @@ func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDi
 	for k, v := range extraArgs {
 		em.finalArgs[k] = v
 	}
-
+	logrus.Infof("eenv: %v", em.processedEnv)
 	return nil
 }

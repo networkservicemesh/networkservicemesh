@@ -98,7 +98,6 @@ jobs:
       - run:
           name: Running integration tests
           command: |
-            export WRITE_POD_LOGS_IN_FILES="true"
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
 

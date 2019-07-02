@@ -18,6 +18,9 @@ executions:
     root: ./test/integration
     timeout: 300
     cluster-count: 1
+    env:
+      - WRITE_POD_LOGS_IN_FILES=true
+      - WRITE_POD_LOGS_IN_DIR=./.tests/cloud_test/$(cluster-name)/logs
     kubernetes-env:
       - KUBECONFIG
 #TODO restore config after testing

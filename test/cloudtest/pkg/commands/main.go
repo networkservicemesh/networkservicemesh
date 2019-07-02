@@ -16,14 +16,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/reporting"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/runners"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -629,14 +627,6 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 		task.test.Duration = time.Since(st)
 
 		if errCode != nil {
-			if kubetest.LogInFiles() {
-				srcDir := kubetest.LogsDir()
-				dstDir := filepath.Join(ctx.manager.Root(), task.clusterTaskID, srcDir)
-				err = os.Rename(srcDir, dstDir)
-				if err != nil {
-					logrus.Errorf("Cant move logs from %v to %v", srcDir, dstDir)
-				}
-			}
 			// Check if cluster is alive.
 			clusterNotAvailable := false
 			for _, inst := range instances {

@@ -14,5 +14,5 @@ const (
 	//WritePodLogsDir - name of OS variable for custom dir for logs
 	WritePodLogsDir         = "WRITE_POD_LOGS_DIR"
 	//DefaultLogDir - default name of dir for logs
-	DefaultLogDir           = "logs"
+	DefaultLogDir = "containerLogs"
 )

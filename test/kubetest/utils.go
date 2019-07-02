@@ -490,14 +490,14 @@ func LogPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := LogTransaction
 
-		if LogInFiles() && t != nil {
+		if ShouldLogInFile() && t != nil {
 			writeLogFunc = func(name string, content string) {
 				logErr := LogFile(name, filepath.Join(LogsDir(), t.Name()), content)
 				if logErr != nil {
 					logrus.Errorf("Can't log in file, reason %v", logErr)
 					LogTransaction(name, content)
 				} else {
-					logrus.Infof("Saved log of %v in file. Check dir %v", name, LogsDir())
+					logrus.Infof("Saved log for %v. Check dir %v", name, LogsDir())
 				}
 			}
 		}
@@ -707,8 +707,6 @@ func FailLogger(k8s *K8s, nodesSetup []*NodeConf, t *testing.T) {
 	if t.Failed() {
 		PrintLogs(k8s, t)
 	}
-
-	return
 }
 
 // ServiceRegistryAt creates new service registry on 5000 port

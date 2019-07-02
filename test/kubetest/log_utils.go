@@ -18,8 +18,8 @@ func LogsDir() string {
 	return logDir
 }
 
-//LogInFiles - returns if the logs from pods should be stored as files
-func LogInFiles() bool {
+//ShouldLogInFile - returns if the logs from pods should be stored as files
+func ShouldLogInFile() bool {
 	if v, ok := os.LookupEnv(WritePodLogsInFile); ok {
 		if v == "true" {
 			return true
@@ -44,7 +44,7 @@ func LogFile(name, dir, content string) error {
 			return err
 		}
 	}
-	file, err := os.Create(name)
+	file, err := os.Create(name + ".log")
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (t *transactionDrawer) drawLineWithName(name string) {
 		_, _ = t.buff.WriteRune(t.drawUnit)
 	}
 	_, _ = t.buff.WriteString(name)
-	for i := 0; i < sideWidth; i++ {
+	for i := t.buff.Len(); i < MaxTransactionLineWidth; i++ {
 		_, _ = t.buff.WriteRune(t.drawUnit)
 	}
 	_, _ = t.buff.WriteRune('\n')
