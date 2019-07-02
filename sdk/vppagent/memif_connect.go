@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -75,11 +75,11 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 
 	connectionData.DataChange.VppConfig.Interfaces = append(connectionData.DataChange.VppConfig.Interfaces, &vpp.Interface{
 		Name:        name,
-		Type:        vpp_interfaces.Interface_MEMIF,
+		Type:        interfaces.Interface_MEMIF,
 		Enabled:     true,
 		IpAddresses: ipAddresses,
-		Link: &vpp_interfaces.Interface_Memif{
-			Memif: &vpp_interfaces.MemifLink{
+		Link: &interfaces.Interface_Memif{
+			Memif: &interfaces.MemifLink{
 				Master:         true,
 				SocketFilename: socketFilename,
 			},
