@@ -92,7 +92,7 @@ func logFile(name, dir, content string) error {
 			return err
 		}
 	}
-	file, err := os.Create(name + ".log")
+	file, err := os.Create(path + ".log")
 	if err != nil {
 		return err
 	}
@@ -111,43 +111,44 @@ func logTransaction(name, content string) {
 	f := logrus.StandardLogger().Formatter
 	logrus.SetFormatter(&innerLogFormatter{})
 
-	drawer := transactionDrawer{
+	drawer := transactionWriter{
 		buff:       strings.Builder{},
 		lineLength: MaxTransactionLineWidth,
 		drawUnit:   TransactionLogUnit,
 	}
-	drawer.drawLine()
-	drawer.drawLineWithName(StartLogsOf + name)
-	drawer.drawLine()
-	drawer.drawText(content)
-	drawer.drawLine()
-	drawer.drawLineWithName(EndLogsOf + name)
-	drawer.drawLine()
+	drawer.writeLine()
+	drawer.writeLineWithText(StartLogsOf + name)
+	drawer.writeLine()
+	drawer.writeText(content)
+	drawer.writeLine()
+	drawer.writeLineWithText(EndLogsOf + name)
+	drawer.writeLine()
 	logrus.Println(drawer.buff.String())
 	logrus.SetFormatter(f)
 }
 
-type transactionDrawer struct {
+type transactionWriter struct {
 	buff       strings.Builder
 	lineLength int
 	drawUnit   rune
 }
 
-func (t *transactionDrawer) drawText(text string) {
+func (t *transactionWriter) writeText(text string) {
 	_, _ = t.buff.WriteString(text)
+	_, _ = t.buff.WriteRune('\n')
 }
 
-func (t *transactionDrawer) drawLine() {
+func (t *transactionWriter) writeLine() {
 	_, _ = t.buff.WriteString(strings.Repeat(string(t.drawUnit), t.lineLength))
 	_, _ = t.buff.WriteRune('\n')
 }
-func (t *transactionDrawer) drawLineWithName(name string) {
-	sideWidth := int(math.Max(float64(t.lineLength-len(name)), 0)) / 2
+func (t *transactionWriter) writeLineWithText(test string) {
+	sideWidth := int(math.Max(float64(t.lineLength-len(test)), 0)) / 2
 	for i := 0; i < sideWidth; i++ {
 		_, _ = t.buff.WriteRune(t.drawUnit)
 	}
-	_, _ = t.buff.WriteString(name)
-	for i := t.buff.Len(); i < MaxTransactionLineWidth; i++ {
+	_, _ = t.buff.WriteString(test)
+	for i := sideWidth + len(test); i < MaxTransactionLineWidth; i++ {
 		_, _ = t.buff.WriteRune(t.drawUnit)
 	}
 	_, _ = t.buff.WriteRune('\n')

@@ -2,9 +2,9 @@ package kubetest
 
 const (
 	//StartLogsOf - start header of log transaction
-	StartLogsOf             = "Start logs of "
+	StartLogsOf = "Start logs of"
 	//EndLogsOf - end header of log transaction
-	EndLogsOf               = "End logs of "
+	EndLogsOf = "End logs of"
 	//MaxTransactionLineWidth - limit of header line
 	MaxTransactionLineWidth = 128
 	//TransactionLogUnit - charter of header line
@@ -14,5 +14,5 @@ const (
 	//WritePodLogsDir - name of OS variable for custom dir for logs
 	WritePodLogsDir         = "WRITE_POD_LOGS_DIR"
 	//DefaultLogDir - default name of dir for logs
-	DefaultLogDir = "containerLogs"
+	DefaultLogDir = "logs"
 )

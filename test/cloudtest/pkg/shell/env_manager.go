@@ -54,7 +54,6 @@ func (em *environmentManager) GetConfigLocation() string {
 
 
 func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDir string, env []string, extraArgs map[string]string) error {
-	logrus.Infof("senv: %v", env)
 	environment := map[string]string{}
 
 	for _, k := range os.Environ() {
@@ -128,6 +127,5 @@ func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDi
 	for k, v := range extraArgs {
 		em.finalArgs[k] = v
 	}
-	logrus.Infof("eenv: %v", em.processedEnv)
 	return nil
 }

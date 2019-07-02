@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
@@ -169,7 +168,6 @@ func ParseScript(s string) []string {
 // RunCommand - run shell command and put output into file, command variables are substituted.
 func RunCommand(context context.Context, cmd string, logger func(str string), writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
 	finalEnv := append(os.Environ(), env...)
-	logrus.Infof("final env: %v", finalEnv)
 	environment := map[string]string{}
 	for _, k := range finalEnv {
 		key, value, err := ParseVariable(k)
@@ -185,7 +183,6 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 	}
 
 	cmdLine := ParseCommandLine(finalCmd)
-	logrus.Infof("environment: %v", environment)
 	proc, err := ExecProc(context, cmdLine, finalEnv)
 	if err != nil {
 		return "", fmt.Errorf("failed to run %s %v", finalCmd, err)
