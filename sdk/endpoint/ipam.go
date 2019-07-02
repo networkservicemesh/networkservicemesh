@@ -106,6 +106,11 @@ func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Conne
 	return &empty.Empty{}, nil
 }
 
+// Name returns the composite name
+func (ice *IpamEndpoint) Name() string {
+	return "ipam"
+}
+
 // NewIpamEndpoint creates a IpamEndpoint
 func NewIpamEndpoint(configuration *common.NSConfiguration) *IpamEndpoint {
 	// ensure the env variables are processed
