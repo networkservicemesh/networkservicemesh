@@ -3,6 +3,8 @@ package vppagent
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -14,7 +16,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"time"
 )
 
 // Flush is a VPP Agent Flush composite
