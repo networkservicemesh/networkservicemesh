@@ -48,8 +48,8 @@ type connectionConfig struct {
 	dstName    string
 	srcIP      string
 	dstIP      string
-	srcIPVXLAN string
-	dstIPVXLAN string
+	srcIPVXLAN net.IP
+	dstIPVXLAN net.IP
 	vni        int
 }
 
@@ -133,19 +133,18 @@ func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnec
 	}
 	/* 2. Create a connection */
 	if connect {
-		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
+		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
 		if err != nil {
 			logrus.Errorf("Failed to create remote connection - %v", err)
-			return crossConnect, err
 		}
-	}
-	/* 3. Delete a connection */
-	err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
-	if err != nil {
-		logrus.Errorf("Failed to delete remote connection - %v", err)
 		return crossConnect, err
 	}
-	return crossConnect, nil
+	/* 3. Delete a connection */
+	err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
+	if err != nil {
+		logrus.Errorf("Failed to delete remote connection - %v", err)
+	}
+	return crossConnect, err
 }
 
 func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
@@ -159,22 +158,21 @@ func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnec
 	}
 	/* 2. Create a connection */
 	if connect {
-		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
+		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
 		if err != nil {
 			logrus.Errorf("Failed to create remote connection - %v", err)
-			return crossConnect, err
 		}
-	}
-	/* 3. Delete a connection */
-	err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.vni)
-	if err != nil {
-		logrus.Errorf("Failed to delete remote connection - %v", err)
 		return crossConnect, err
 	}
-	return crossConnect, nil
+	/* 3. Delete a connection */
+	err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
+	if err != nil {
+		logrus.Errorf("Failed to delete remote connection - %v", err)
+	}
+	return crossConnect, err
 }
 
-func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP net.IP, vni int) error {
+func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
 	/* 1. Get namespace handler from path */
 	srcNsHandle, err := netns.GetFromPath(NsPath)
 	defer srcNsHandle.Close()
@@ -194,15 +192,10 @@ func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egres
 		LinkAttrs: netlink.LinkAttrs{
 			Name: ifaceName,
 		},
-		VxlanId:        vni,
-		VtepDevIndex:   egressLink.Attrs().Index,
-		SrcAddr:        egressIP,
-		Learning:       true,
-		L2miss:         true,
-		L3miss:         true,
-		UDP6ZeroCSumTx: true,
-		UDP6ZeroCSumRx: true,
-		GBP:            true,
+		VxlanId:      vni,
+		VtepDevIndex: egressLink.Attrs().Index,
+		Group:        remoteIP,
+		SrcAddr:      egressIP,
 	}
 	logrus.Info(spew.Sdump(vxlan))
 
@@ -255,7 +248,7 @@ func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egres
 	return nil
 }
 
-func deleteRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP net.IP, vni int) error {
+func deleteRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
 	logrus.Errorf("Delete for remote connection is not supported yet")
 	return nil
 }
@@ -292,8 +285,8 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstNsPath:  dstNsPath,
 			dstName:    crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			dstIP:      crossConnect.GetLocalDestination().GetContext().GetDstIpAddr(),
-			srcIPVXLAN: crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP],
-			dstIPVXLAN: crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP],
+			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
+			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
 		}, nil
 	case cOUTGOING:
@@ -307,8 +300,8 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			srcNsPath:  srcNsPath,
 			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:      crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
-			srcIPVXLAN: crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP],
-			dstIPVXLAN: crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP],
+			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
+			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
 		}, nil
 	default:
