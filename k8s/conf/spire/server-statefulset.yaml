@@ -17,8 +17,6 @@ spec:
       labels:
         app: spire-server
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: kube-master
       serviceAccountName: spire-server
       containers:
         - name: spire-server
