@@ -88,6 +88,11 @@ func (cce *ConnectionEndpoint) Close(ctx context.Context, connection *connection
 	return &empty.Empty{}, nil
 }
 
+// Name returns the composite name
+func (cce *ConnectionEndpoint) Name() string {
+	return "connection"
+}
+
 func (cce *ConnectionEndpoint) generateIfName() string {
 	ifName := "nsm" + cce.id.MustGenerate()
 	ifName = strings.Replace(ifName, "-", "", -1)

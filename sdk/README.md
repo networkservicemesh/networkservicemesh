@@ -144,6 +144,8 @@ Writing a new *composite* is done better by extending the `BaseCompositeEndpoint
 
  * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`
  * `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
+ * `Name() string` - returns the name of the composite.
+ * `Init(context *InitContext) error` - an init function to be called before the endpoint GRPC listener is started but after the NSM endpoint is created.
  * `GetNext() CompositeEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
  * `GetOpaque(interface{}) interface{}` - get an arbitrary data from the composite. Both the parameter and the return are freely interpreted data and specific to the composite. See `GetOpaque` in `sdk/endpoint/composite/client.go`.
 
