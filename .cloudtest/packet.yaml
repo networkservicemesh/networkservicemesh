@@ -45,4 +45,3 @@ providers:
         sleep 3
         kubectl get pods -n spire
         kubectl describe pods -n spire
-
