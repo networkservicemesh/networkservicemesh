@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -267,12 +267,14 @@ type K8s struct {
 	apiServerHost      string
 	useIPv6            bool
 	forwardingPlane    string
+	sa                 []*v1.ServiceAccount
 }
 
 func NewK8s(prepare bool) (*K8s, error) {
 
 	client, err := NewK8sWithoutRoles(prepare)
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
+	client.sa, _ = client.CreateServiceAccounts("nsc-acc", "nse-acc", "nsmgr-acc")
 	return client, err
 }
 
@@ -523,6 +525,11 @@ func (k8s *K8s) Cleanup() {
 	go func() {
 		defer wg.Done()
 		_ = k8s.DeleteRoles(k8s.roles)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_ = k8s.DeleteServiceAccounts(k8s.sa...)
 	}()
 
 	wg.Wait()
@@ -943,6 +950,35 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 	logrus.Printf("namespace %v is created", nsNamespace.GetName())
 
 	return nsNamespace.GetName(), nil
+}
+
+func (k8s *K8s) CreateServiceAccounts(names ...string) ([]*v1.ServiceAccount, error) {
+	var rv []*v1.ServiceAccount
+
+	for _, n := range names {
+		sa, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
+			ObjectMeta: metaV1.ObjectMeta{
+				Name: n,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		rv = append(rv, sa)
+	}
+
+	return rv, nil
+}
+
+func (k8s *K8s) DeleteServiceAccounts(sa ...*v1.ServiceAccount) error {
+	var lastErr error
+	for _, s := range sa {
+		if err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Delete(s.GetName(), &metaV1.DeleteOptions{}); err != nil {
+			logrus.Error(err)
+			lastErr = err
+		}
+	}
+	return lastErr
 }
 
 // DeleteTestNamespace deletes a test namespace
