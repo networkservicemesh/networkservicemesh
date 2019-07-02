@@ -16,27 +16,29 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type VppAgentMemifConnect struct {
+// MemifConnect is a VPP Agent Memif Connect composite
+type MemifConnect struct {
 	endpoint.BaseCompositeEndpoint
 	Workspace      string
 	ConnectionSide ConnectionSide
 	Connections    map[string]*ConnectionData
 }
 
-func (vmc *VppAgentMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request implements the request handler
+func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
-	if vmc.GetNext() == nil {
+	if mc.GetNext() == nil {
 		logrus.Fatal("The VPP Agent Memif Connect composite requires that there is Next set")
 	}
 
-	incomingConnection, err := vmc.GetNext().Request(ctx, request)
+	incomingConnection, err := mc.GetNext().Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
 	var connectionData *ConnectionData
-	opaque := vmc.GetNext().GetOpaque(incomingConnection)
+	opaque := mc.GetNext().GetOpaque(incomingConnection)
 	if opaque != nil {
 		connectionData = opaque.(*ConnectionData)
 		if connectionData.DataChange == nil {
@@ -52,7 +54,7 @@ func (vmc *VppAgentMemifConnect) Request(ctx context.Context, request *networkse
 		connectionData.DataChange.VppConfig = &vpp.ConfigData{}
 	}
 
-	socketFilename := path.Join(vmc.Workspace, incomingConnection.GetMechanism().GetSocketFilename())
+	socketFilename := path.Join(mc.Workspace, incomingConnection.GetMechanism().GetSocketFilename())
 	socketDir := path.Dir(socketFilename)
 
 	if err := os.MkdirAll(socketDir, os.ModePerm); err != nil {
@@ -60,14 +62,14 @@ func (vmc *VppAgentMemifConnect) Request(ctx context.Context, request *networkse
 	}
 
 	var name string
-	if vmc.ConnectionSide == DESTINATION {
+	if mc.ConnectionSide == DESTINATION {
 		name = "DST-" + incomingConnection.GetId()
 	} else {
 		name = "SRC-" + incomingConnection.GetId()
 	}
 
 	var ipAddresses []string
-	if vmc.ConnectionSide == DESTINATION && incomingConnection.GetContext().DstIpAddr != "" {
+	if mc.ConnectionSide == DESTINATION && incomingConnection.GetContext().DstIpAddr != "" {
 		ipAddresses = []string{incomingConnection.GetContext().DstIpAddr}
 	}
 
@@ -84,43 +86,43 @@ func (vmc *VppAgentMemifConnect) Request(ctx context.Context, request *networkse
 		},
 	})
 
-	vmc.Connections[incomingConnection.GetId()] = connectionData
-	if vmc.ConnectionSide == DESTINATION {
-		vmc.Connections[incomingConnection.GetId()].DstName = name
+	mc.Connections[incomingConnection.GetId()] = connectionData
+	if mc.ConnectionSide == DESTINATION {
+		mc.Connections[incomingConnection.GetId()].DstName = name
 	} else {
-		vmc.Connections[incomingConnection.GetId()].SrcName = name
+		mc.Connections[incomingConnection.GetId()].SrcName = name
 	}
 
 	return incomingConnection, nil
 }
 
 // Close implements the close handler
-func (vmc *VppAgentMemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if vmc.GetNext() != nil {
-		return vmc.GetNext().Close(ctx, connection)
+func (mc *MemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if mc.GetNext() != nil {
+		return mc.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
 // GetOpaque will return the corresponding connection data
-func (vmc *VppAgentMemifConnect) GetOpaque(incoming interface{}) interface{} {
+func (mc *MemifConnect) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)
-	if connectionData, ok := vmc.Connections[incomingConnection.GetId()]; ok {
+	if connectionData, ok := mc.Connections[incomingConnection.GetId()]; ok {
 		return connectionData
 	}
 	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
 	return nil
 }
 
-// NewVppAgentMemifConnect creates a VppAgentMemifConnect
-func NewVppAgentMemifConnect(configuration *common.NSConfiguration, side ConnectionSide) *VppAgentMemifConnect {
+// NewMemifConnect creates a MemifConnect
+func NewMemifConnect(configuration *common.NSConfiguration, side ConnectionSide) *MemifConnect {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	return &VppAgentMemifConnect{
+	return &MemifConnect{
 		Workspace:      configuration.Workspace,
 		ConnectionSide: side,
 		Connections:    map[string]*ConnectionData{},

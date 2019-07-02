@@ -17,14 +17,16 @@ import (
 	"time"
 )
 
-type VppAgentFlush struct {
+// Flush is a VPP Agent Flush composite
+type Flush struct {
 	endpoint.BaseCompositeEndpoint
-	VppAgentEndpoint string
+	Endpoint string
 }
 
-func (vf *VppAgentFlush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request implements the request handler
+func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
-	if vf.GetNext() == nil {
+	if f.GetNext() == nil {
 		logrus.Fatal("The VPP Agent Flush composite requires that there is Next set")
 	}
 
@@ -33,12 +35,12 @@ func (vf *VppAgentFlush) Request(ctx context.Context, request *networkservice.Ne
 		ctx, cancel = context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 	}
-	if err := tools.WaitForPortAvailable(ctx, "tcp", vf.VppAgentEndpoint, 100*time.Millisecond); err != nil {
+	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, 100*time.Millisecond); err != nil {
 		return nil, err
 	}
 
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(vf.VppAgentEndpoint, grpc.WithInsecure(),
+	conn, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
@@ -48,16 +50,16 @@ func (vf *VppAgentFlush) Request(ctx context.Context, request *networkservice.Ne
 		logrus.Errorf("Can't dial grpc server: %v", err)
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	client := configurator.NewConfiguratorClient(conn)
 
-	incomingConnection, err := vf.GetNext().Request(ctx, request)
+	incomingConnection, err := f.GetNext().Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
-	opaque := vf.GetNext().GetOpaque(incomingConnection)
+	opaque := f.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
 		err := fmt.Errorf("received empty data from Next")
 		logrus.Errorf("Unable to find the DataChange: %v", err)
@@ -75,14 +77,14 @@ func (vf *VppAgentFlush) Request(ctx context.Context, request *networkservice.Ne
 	return incomingConnection, nil
 }
 
-func (vf *VppAgentFlush) Reset() error {
+func (f *Flush) reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	if err := tools.WaitForPortAvailable(ctx, "tcp", vf.VppAgentEndpoint, 100*time.Millisecond); err != nil {
+	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, 100*time.Millisecond); err != nil {
 		return err
 	}
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(vf.VppAgentEndpoint, grpc.WithInsecure(),
+	conn, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
@@ -92,7 +94,7 @@ func (vf *VppAgentFlush) Reset() error {
 		logrus.Errorf("Can't dial grpc server: %v", err)
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting VPP Agent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
@@ -107,25 +109,25 @@ func (vf *VppAgentFlush) Reset() error {
 }
 
 // Close implements the close handler
-func (vf *VppAgentFlush) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if vf.GetNext() != nil {
-		return vf.GetNext().Close(ctx, connection)
+func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if f.GetNext() != nil {
+		return f.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
-// NewVppAgentFlush creates a VppAgentFlush
-func NewVppAgentFlush(configuration *common.NSConfiguration, endpoint string) *VppAgentFlush {
+// NewFlush creates a Flush
+func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	self := &VppAgentFlush{
-		VppAgentEndpoint: endpoint,
+	self := &Flush{
+		Endpoint: endpoint,
 	}
-	self.Reset()
+	_ = self.reset()
 
 	return self
 }
