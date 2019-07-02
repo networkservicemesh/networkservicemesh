@@ -21,6 +21,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,7 +29,7 @@ var version string
 
 func main() {
 	logrus.Info("Starting vppagent-firewall-nse...")
-	logrus.Infof("Versiion: %v", version)
+	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
@@ -44,7 +45,10 @@ func main() {
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
 		newVppAgentAclComposite(configuration),
-		newVppAgentXConnComposite(configuration),
+		vppagent.NewFlush(configuration, "localhost:9112"),
+		vppagent.NewXConnect(configuration),
+		vppagent.NewMemifConnect(configuration, vppagent.SOURCE),
+		vppagent.NewClientConnect(configuration),
 		endpoint.NewClientEndpoint(configuration),
 		endpoint.NewConnectionEndpoint(configuration))
 
