@@ -125,8 +125,8 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	}
 
 	pingCommand := "ping"
-	addressPool := "10.60.1.0/24"
-	srcIP, dstIP := "10.60.1.1", "10.60.1.2"
+	addressPool := "172.16.1.0/24"
+	srcIP, dstIP := "172.16.1.1", "172.16.1.2"
 
 	/* Change stuff related to IPv6 */
 	if k8s.UseIPv6() {
