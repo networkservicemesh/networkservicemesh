@@ -24,16 +24,6 @@ providers:
       install: ./.cloudtest/gke/init.sh
       zone-selector: ./.cloudtest/gke/list_zones.sh ci-management # List zones, but it need GKE_PROJECT_ID to be passed.
       start: make gke-start
-      stop: |
-        kubectl logs spire-server-0 -n spire
-        kubectl logs -l app=spire-agent -n spire
-        make gke-destroy
+      stop: make gke-destroy
       #config: # We do not need it since we put KUBECONFIG into env.
-      prepare: |
-        kubectl describe pod -l component=kube-apiserver -n kube-system
-        make k8s-config
-        sleep 10
-        kubectl get pods -n spire
-        kubectl describe pods -n spire
-        kubectl logs spire-server-0 -n spire
-        kubectl logs -l app=spire-agent -n spire
+      prepare: make k8s-config

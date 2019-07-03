@@ -45,5 +45,3 @@ providers:
         sleep 10
         kubectl get pods -n spire
         kubectl describe pods -n spire
-        kubectl logs spire-server-0 -n spire
-        kubectl logs -l app=spire-agent -n spire
