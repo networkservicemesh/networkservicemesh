@@ -3,8 +3,9 @@ package vppagent
 import (
 	"context"
 	"fmt"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/ligato/vpp-agent/api/models/vpp"
 	l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -51,22 +52,8 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
-	if connectionData.DataChange == nil || connectionData.DataChange.VppConfig == nil {
-		err := fmt.Errorf("found empty DataChange.VppConfig")
-		logrus.Errorf("Invalid connection data: %v", err)
-		return nil, err
-	}
 
-	connectionData.DataChange.VppConfig.XconnectPairs = []*l2.XConnectPair{
-		{
-			ReceiveInterface:  connectionData.SrcName,
-			TransmitInterface: connectionData.DstName,
-		},
-		{
-			ReceiveInterface:  connectionData.DstName,
-			TransmitInterface: connectionData.SrcName,
-		},
-	}
+	connectionData.DataChange = xc.appendDataChange(connectionData.DataChange, connectionData.SrcName, connectionData.DstName)
 
 	xc.Connections[incomingConnection.GetId()] = connectionData
 	return incomingConnection, nil
@@ -102,4 +89,26 @@ func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 		Workspace:   configuration.Workspace,
 		Connections: map[string]*ConnectionData{},
 	}
+}
+
+func (xc *XConnect) appendDataChange(rv *configurator.Config, srcName string, dstName string) *configurator.Config {
+	if rv == nil {
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
+	}
+
+	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs,
+		&l2.XConnectPair{
+			ReceiveInterface:  srcName,
+			TransmitInterface: dstName,
+		},
+		&l2.XConnectPair{
+			ReceiveInterface:  dstName,
+			TransmitInterface: srcName,
+		},
+	)
+
+	return rv
 }

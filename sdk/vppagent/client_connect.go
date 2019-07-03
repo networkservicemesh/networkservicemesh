@@ -46,24 +46,9 @@ func (cc *ClientConnect) Request(ctx context.Context, request *networkservice.Ne
 	incomingConnection.Context = outgoingConnection.GetContext()
 
 	interfaceName := "DST-" + outgoingConnection.GetId()
+	socketFileName := path.Join(cc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
 
-	dataChange := &configurator.Config{
-		VppConfig: &vpp.ConfigData{
-			Interfaces: []*interfaces.Interface{
-				{
-					Name:    interfaceName,
-					Type:    interfaces.Interface_MEMIF,
-					Enabled: true,
-					Link: &interfaces.Interface_Memif{
-						Memif: &interfaces.MemifLink{
-							Master:         false,
-							SocketFilename: path.Join(cc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename()),
-						},
-					},
-				},
-			},
-		},
-	}
+	dataChange := cc.createDataChange(interfaceName, socketFileName)
 
 	cc.Connections[incomingConnection.GetId()] = &ConnectionData{
 		DstName:    interfaceName,
@@ -102,5 +87,25 @@ func NewClientConnect(configuration *common.NSConfiguration) *ClientConnect {
 	return &ClientConnect{
 		Workspace:   configuration.Workspace,
 		Connections: map[string]*ConnectionData{},
+	}
+}
+
+func (cc *ClientConnect) createDataChange(interfaceName string, socketFileName string) *configurator.Config {
+	return &configurator.Config{
+		VppConfig: &vpp.ConfigData{
+			Interfaces: []*interfaces.Interface{
+				{
+					Name:    interfaceName,
+					Type:    interfaces.Interface_MEMIF,
+					Enabled: true,
+					Link: &interfaces.Interface_Memif{
+						Memif: &interfaces.MemifLink{
+							Master:         false,
+							SocketFilename: socketFileName,
+						},
+					},
+				},
+			},
+		},
 	}
 }
