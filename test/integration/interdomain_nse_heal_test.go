@@ -81,6 +81,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
+		defer kubetest.ShowLogs(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:      k8s,
@@ -113,21 +114,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseExternalIP),
 	})
 
-	var nscInfo *kubetest.NSCCheckInfo
-
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		for i := 0; i < clustersCount; i++ {
-			kubetest.PrintLogs(k8ss[i].K8s, k8ss[i].NodesSetup)
-		}
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
 	node = affinity["icmp-responder-nse-2"]
@@ -139,18 +126,6 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 	logrus.Infof("Waiting for connection recovery...")
 	k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 
-	failures = InterceptGomegaFailures(func() {
-		nscInfo = kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		for i := 0; i < clustersCount; i++ {
-			kubetest.PrintLogs(k8ss[i].K8s, k8ss[i].NodesSetup)
-		}
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
 }
 

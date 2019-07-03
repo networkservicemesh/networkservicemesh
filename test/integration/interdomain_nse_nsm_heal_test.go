@@ -114,7 +114,8 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
 		for i := 0; i < clustersCount; i++ {
-			kubetest.PrintLogs(k8ss[i].K8s, k8ss[i].NodesSetup)
+			kubetest.PrintErrors(failures, k8ss[i].K8s, k8ss[i].NodesSetup, nscInfo, t)
+			kubetest.ShowLogs(k8ss[i].K8s, t)
 		}
 		nscInfo.PrintLogs()
 
@@ -134,10 +135,11 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 
 		nscInfo = kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
 	})
+
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
 		for i := 0; i < clustersCount; i++ {
-			kubetest.PrintLogs(k8ss[i].K8s, k8ss[i].NodesSetup)
+			kubetest.ShowLogs(k8ss[i].K8s, t)
 		}
 		nscInfo.PrintLogs()
 

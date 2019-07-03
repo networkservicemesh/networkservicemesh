@@ -15,7 +15,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 var nseNoHealPodConfig = &pods.NSMgrPodConfig{
@@ -70,6 +69,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 			nseNoHealPodConfig,
 		}, k8s.GetK8sNamespace())
 		Expect(err).To(BeNil())
+		defer kubetest.ShowLogs(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:      k8s,
@@ -99,26 +99,11 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseExternalIP),
 	})
 
-	var nscInfo *kubetest.NSCCheckInfo
-
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
-
-		ipResponse, errOut, err := k8ss[clustersCount - 1].K8s.Exec(icmpPodNode, icmpPodNode.Spec.Containers[0].Name, "ip", "addr")
-		Expect(err).To(BeNil())
-		Expect(errOut).To(Equal(""))
-		Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
-	})
-	// Do dumping of container state to dig into what is happened.
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		for i := 0; i < clustersCount; i++ {
-			kubetest.PrintLogs(k8ss[i].K8s, k8ss[i].NodesSetup)
-		}
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
+	ipResponse, errOut, err := k8ss[clustersCount - 1].K8s.Exec(icmpPodNode, icmpPodNode.Spec.Containers[0].Name, "ip", "addr")
+	Expect(err).To(BeNil())
+	Expect(errOut).To(Equal(""))
+	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
 	var podToKill *v1.Pod
 	var clusterToKill int
