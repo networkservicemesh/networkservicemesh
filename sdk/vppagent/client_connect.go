@@ -45,7 +45,7 @@ func (cc *ClientConnect) Request(ctx context.Context, request *networkservice.Ne
 	outgoingConnection := opaque.(*connection.Connection)
 	incomingConnection.Context = outgoingConnection.GetContext()
 
-	interfaceName := "DST-" + outgoingConnection.GetId()
+	interfaceName := outgoingConnection.GetId()
 	socketFileName := path.Join(cc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
 
 	dataChange := cc.createDataChange(interfaceName, socketFileName)
