@@ -53,12 +53,7 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 		return nil, err
 	}
 
-	var name string
-	if mc.ConnectionSide == DESTINATION {
-		name = "DST-" + incomingConnection.GetId()
-	} else {
-		name = "SRC-" + incomingConnection.GetId()
-	}
+	name := incomingConnection.GetId()
 
 	var ipAddresses []string
 	if mc.ConnectionSide == DESTINATION && incomingConnection.GetContext().DstIpAddr != "" {
