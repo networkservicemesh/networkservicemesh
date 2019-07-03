@@ -41,17 +41,9 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 	opaque := mc.GetNext().GetOpaque(incomingConnection)
 	if opaque != nil {
 		connectionData = opaque.(*ConnectionData)
-		if connectionData.DataChange == nil {
-			connectionData.DataChange = &configurator.Config{}
-		}
-	} else {
-		connectionData = &ConnectionData{
-			DataChange: &configurator.Config{},
-		}
 	}
-
-	if connectionData.DataChange.VppConfig == nil {
-		connectionData.DataChange.VppConfig = &vpp.ConfigData{}
+	if connectionData == nil {
+		connectionData = &ConnectionData{}
 	}
 
 	socketFilename := path.Join(mc.Workspace, incomingConnection.GetMechanism().GetSocketFilename())
@@ -73,18 +65,7 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 		ipAddresses = []string{incomingConnection.GetContext().DstIpAddr}
 	}
 
-	connectionData.DataChange.VppConfig.Interfaces = append(connectionData.DataChange.VppConfig.Interfaces, &vpp.Interface{
-		Name:        name,
-		Type:        interfaces.Interface_MEMIF,
-		Enabled:     true,
-		IpAddresses: ipAddresses,
-		Link: &interfaces.Interface_Memif{
-			Memif: &interfaces.MemifLink{
-				Master:         true,
-				SocketFilename: socketFilename,
-			},
-		},
-	})
+	connectionData.DataChange = mc.appendDataChange(connectionData.DataChange, name, ipAddresses, socketFilename)
 
 	mc.Connections[incomingConnection.GetId()] = connectionData
 	if mc.ConnectionSide == DESTINATION {
@@ -127,4 +108,28 @@ func NewMemifConnect(configuration *common.NSConfiguration, side ConnectionSide)
 		ConnectionSide: side,
 		Connections:    map[string]*ConnectionData{},
 	}
+}
+
+func (mc *MemifConnect) appendDataChange(rv *configurator.Config, name string, ipAddresses []string, socketFilename string) *configurator.Config {
+	if rv == nil {
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
+	}
+
+	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
+		Name:        name,
+		Type:        interfaces.Interface_MEMIF,
+		Enabled:     true,
+		IpAddresses: ipAddresses,
+		Link: &interfaces.Interface_Memif{
+			Memif: &interfaces.MemifLink{
+				Master:         true,
+				SocketFilename: socketFilename,
+			},
+		},
+	})
+
+	return rv
 }
