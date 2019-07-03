@@ -21,7 +21,7 @@ import (
 // Flush is a VPP Agent Flush composite
 type Flush struct {
 	endpoint.BaseCompositeEndpoint
-	Endpoint string
+	Conn     *grpc.ClientConn
 }
 
 // Request implements the request handler
@@ -69,6 +69,12 @@ func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*
 		}
 	}
 
+	err := f.Conn.Close()
+	if err != nil {
+		logrus.Errorf("Failed to close connection to VPP Agent: %v", err)
+		return &empty.Empty{}, err
+	}
+
 	if f.GetNext() != nil {
 		return f.GetNext().Close(ctx, connection)
 	}
@@ -88,32 +94,36 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 	}
 	configuration.CompleteNSConfiguration()
 
+	conn, err := createConnection(endpoint)
+	if err != nil {
+		logrus.Errorf("Failed to create connection to VPP Agent: %v", err)
+		return nil
+	}
+
 	self := &Flush{
-		Endpoint: endpoint,
+		Conn: conn,
 	}
 
 	logrus.Infof("Resetting VPP Agent")
-	err := self.reset()
+	err = self.reset()
 	if err != nil {
-		logrus.Errorf("Failed to reset VPP Agent: %s", err)
+		logrus.Errorf("Failed to reset VPP Agent: %v", err)
 		return nil
 	}
 
 	return self
 }
 
-func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), 120*time.Second)
-		defer cancel()
-	}
-	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, 100*time.Millisecond); err != nil {
-		return err
+func createConnection(endpoint string) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	if err := tools.WaitForPortAvailable(ctx, "tcp", endpoint, 100*time.Millisecond); err != nil {
+		return nil, err
 	}
 
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
+	rv, err := grpc.Dial(endpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
@@ -121,10 +131,14 @@ func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error
 
 	if err != nil {
 		logrus.Errorf("Can't dial grpc server: %v", err)
-		return err
+		return nil, err
 	}
-	defer func() { _ = conn.Close() }()
-	client := configurator.NewConfiguratorClient(conn)
+
+	return rv, nil
+}
+
+func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error {
+	client := configurator.NewConfiguratorClient(f.Conn)
 
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
 		logrus.Error(err)
@@ -135,28 +149,7 @@ func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error
 }
 
 func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) error {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), 120*time.Second)
-		defer cancel()
-	}
-	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, 100*time.Millisecond); err != nil {
-		return err
-	}
-
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
-	if err != nil {
-		logrus.Errorf("Can't dial grpc server: %v", err)
-		return err
-	}
-	defer func() { _ = conn.Close() }()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorClient(f.Conn)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
 		logrus.Error(err)
@@ -166,27 +159,9 @@ func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) err
 }
 
 func (f *Flush) reset() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer cancel()
-	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, 100*time.Millisecond); err != nil {
-		return err
-	}
+	client := configurator.NewConfiguratorClient(f.Conn)
 
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
-	if err != nil {
-		logrus.Errorf("Can't dial grpc server: %v", err)
-		return err
-	}
-	defer func() { _ = conn.Close() }()
-	client := configurator.NewConfiguratorClient(conn)
-
-	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
+	_, err := client.Update(context.Background(), &configurator.UpdateRequest{
 		Update:     &configurator.Config{},
 		FullResync: true,
 	})
