@@ -35,6 +35,7 @@ type KernelForwarder struct {
 	common *common.DataplaneConfig
 }
 
+// CreateKernelForwarder creates an instance of the KernelForwarder
 func CreateKernelForwarder() *KernelForwarder {
 	return &KernelForwarder{}
 }

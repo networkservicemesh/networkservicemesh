@@ -25,7 +25,6 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -60,19 +59,18 @@ func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool
 		logrus.Errorf("Failed to get the configuration for local connection - %v", err)
 		return crossConnect, err
 	}
-	/* 2. Create a connection */
 	if connect {
+		/* 2. Create a connection */
 		err = createLocalConnection(cfg)
 		if err != nil {
 			logrus.Errorf("Failed to create local connection - %v", err)
-			return crossConnect, err
 		}
-	}
-	/* 3. Delete a connection */
-	err = deleteLocalConnection(cfg)
-	if err != nil {
-		logrus.Errorf("Failed to delete local connection - %v", err)
-		return crossConnect, err
+	} else {
+		/* 3. Delete a connection */
+		err = deleteLocalConnection(cfg)
+		if err != nil {
+			logrus.Errorf("Failed to delete local connection - %v", err)
+		}
 	}
 	return crossConnect, nil
 }
@@ -116,33 +114,31 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing remote connection */
 		return handleOutgoing(egress, crossConnect, connect)
-	} else {
-		logrus.Errorf("Invalid remote connection type")
 	}
-	return crossConnect, nil
+	logrus.Errorf("Invalid remote connection type")
+	return crossConnect, fmt.Errorf("Invalid remote connection type")
 }
 
 func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	logrus.Info("Incoming connection - remote source/local destination")
 	/* 1. Get the connection configuration */
 	cfg, err := getConnectionConfig(crossConnect, cINCOMING)
-	logrus.Info(spew.Sdump(cfg), egress.Name())
 	if err != nil {
 		logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
 	}
-	/* 2. Create a connection */
 	if connect {
+		/* 2. Create a connection */
 		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
 		if err != nil {
 			logrus.Errorf("Failed to create remote connection - %v", err)
 		}
-		return crossConnect, err
-	}
-	/* 3. Delete a connection */
-	err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
-	if err != nil {
-		logrus.Errorf("Failed to delete remote connection - %v", err)
+	} else {
+		/* 3. Delete a connection */
+		err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
+		if err != nil {
+			logrus.Errorf("Failed to delete remote connection - %v", err)
+		}
 	}
 	return crossConnect, err
 }
@@ -151,23 +147,22 @@ func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnec
 	logrus.Info("Outgoing connection - local source/remote destination")
 	/* 1. Get the connection configuration */
 	cfg, err := getConnectionConfig(crossConnect, cOUTGOING)
-	logrus.Info(spew.Sdump(cfg), egress.Name())
 	if err != nil {
 		logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
 	}
-	/* 2. Create a connection */
 	if connect {
+		/* 2. Create a connection */
 		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
 		if err != nil {
 			logrus.Errorf("Failed to create remote connection - %v", err)
 		}
-		return crossConnect, err
-	}
-	/* 3. Delete a connection */
-	err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
-	if err != nil {
-		logrus.Errorf("Failed to delete remote connection - %v", err)
+	} else {
+		/* 3. Delete a connection */
+		err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
+		if err != nil {
+			logrus.Errorf("Failed to delete remote connection - %v", err)
+		}
 	}
 	return crossConnect, err
 }
@@ -197,7 +192,6 @@ func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egres
 		Group:        remoteIP,
 		SrcAddr:      egressIP,
 	}
-	logrus.Info(spew.Sdump(vxlan))
 
 	/* 4. Create the VXLAN interface */
 	if err := netlink.LinkAdd(vxlan); err != nil {
