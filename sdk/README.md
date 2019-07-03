@@ -7,7 +7,7 @@ The current SDK targets Golang as the main Client and Endpoint implementation la
 NSM comes with an [admission controller](../docs/spec/admission.md) implementation, which will allow for simple init and sidecar container approach when migrating existing services. This is appraich is suitable for simpler solutions like web services, where no advanced interface knowledge is needed.
 
 ### The underlying gRPC communication
-As noted, the SDK is a higher laye abstraction of the underlying gRPC API.
+As noted, the SDK is a higher layer abstraction of the underlying gRPC API.
 
 #### Client gRPC
 
@@ -138,7 +138,7 @@ The NSM SDK Endpoint API enables plugging together different functionalities bas
 
 ### Writing a ChainedEndpoint
 
-Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implemenst the `ChainedEndpoint` interface.
+Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implements the `ChainedEndpoint` interface.
 
 `ChainedEndpoint` method description:
 
