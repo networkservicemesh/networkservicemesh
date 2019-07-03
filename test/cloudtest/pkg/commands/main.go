@@ -579,8 +579,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout int64, instances []*clusterInstance, err error, fileName string) {
 	go func() {
 		st := time.Now()
-		env := []string{
-		}
+		env := []string{}
 		// Fill Kubernetes environment variables.
 
 		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
@@ -757,7 +756,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 			}
 			logrus.Infof("cluster started...")
 		}
-		checks++;
+		checks++
 		select {
 		case <-time.After(5 * time.Second):
 			// Just pass
@@ -938,8 +937,7 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 
 func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, error) {
 	// generate and write report
-	ctx.report = &reporting.JUnitFile{
-	}
+	ctx.report = &reporting.JUnitFile{}
 
 	totalFailures := 0
 	for _, cluster := range ctx.clusters {

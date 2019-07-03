@@ -18,9 +18,9 @@ type Manager interface {
 	// GetConfigLocation - detect if KUBECONFIG variable is passed and return its value.
 	GetConfigLocation() string
 	// RunCmd - execute a command, operation with extra env
-	RunCmd(context context.Context, operation string, script [] string, env [] string) (string, error)
+	RunCmd(context context.Context, operation string, script []string, env []string) (string, error)
 	// RunRead - execute a command, operation with extra env and read response into variable
-	RunRead(context context.Context, operation string, script [] string, env [] string) (string, error)
+	RunRead(context context.Context, operation string, script []string, env []string) (string, error)
 	// PrintEnv - print environment variables into string
 	PrintEnv(processedEnv []string) string
 	// PrintArgs - print arguments to string
@@ -48,7 +48,7 @@ func NewManager(manager execmanager.ExecutionManager, id string, config *config.
 }
 
 // RunCmd -  command in context and add appropriate execution output file.
-func (si *shellInterface) RunCmd(context context.Context, operation string, script, env [] string) (string, error) {
+func (si *shellInterface) RunCmd(context context.Context, operation string, script, env []string) (string, error) {
 	fileName, _, err := si.runCmd(context, operation, script, env, false)
 	return fileName, err
 }
