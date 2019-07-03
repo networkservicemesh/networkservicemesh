@@ -21,7 +21,11 @@ jobs:
           name: Download Go Dependencies
           command: |
             ./scripts/go-mod-download.sh
-      - run: "! go fmt ./... 2>&1 | read"
+      - run:
+          name: Check code formatting
+          command: |
+            make format
+            git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: go generate ./...
