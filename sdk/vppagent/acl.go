@@ -82,6 +82,11 @@ func (a *ACL) GetOpaque(incoming interface{}) interface{} {
 	return nil
 }
 
+// Name returns the composite name
+func (a *ACL) Name() string {
+	return "acl"
+}
+
 // NewACL creates an ACL
 func NewACL(configuration *common.NSConfiguration, rules map[string]string) *ACL {
 	// ensure the env variables are processed

@@ -76,6 +76,11 @@ func (cc *ClientConnect) GetOpaque(incoming interface{}) interface{} {
 	return nil
 }
 
+// Name returns the composite name
+func (cc *ClientConnect) Name() string {
+	return "client-connect"
+}
+
 // NewClientConnect creates a ClientConnect
 func NewClientConnect(configuration *common.NSConfiguration) *ClientConnect {
 	// ensure the env variables are processed

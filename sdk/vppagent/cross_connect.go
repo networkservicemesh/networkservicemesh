@@ -77,6 +77,11 @@ func (xc *XConnect) GetOpaque(incoming interface{}) interface{} {
 	return nil
 }
 
+// Name returns the composite name
+func (xc *XConnect) Name() string {
+	return "cross-connect"
+}
+
 // NewXConnect creates a XConnect
 func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 	// ensure the env variables are processed
