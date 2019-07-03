@@ -95,6 +95,11 @@ func (mc *MemifConnect) GetOpaque(incoming interface{}) interface{} {
 	return nil
 }
 
+// Name returns the composite name
+func (mc *MemifConnect) Name() string {
+	return "memif-connect"
+}
+
 // NewMemifConnect creates a MemifConnect
 func NewMemifConnect(configuration *common.NSConfiguration, side ConnectionSide) *MemifConnect {
 	// ensure the env variables are processed

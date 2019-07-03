@@ -63,6 +63,11 @@ func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*
 	return &empty.Empty{}, nil
 }
 
+// Name returns the composite name
+func (f *Flush) Name() string {
+	return "flush"
+}
+
 // NewFlush creates a Flush
 func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 	// ensure the env variables are processed
