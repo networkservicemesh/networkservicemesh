@@ -39,7 +39,7 @@ func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServ
 
 	opaque := f.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
-		err := fmt.Errorf("received empty data from Next")
+		err = fmt.Errorf("received empty data from Next")
 		logrus.Errorf("Unable to find the DataChange: %v", err)
 		return nil, err
 	}
