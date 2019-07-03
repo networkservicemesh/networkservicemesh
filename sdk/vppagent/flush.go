@@ -48,7 +48,7 @@ func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServ
 	logrus.Infof("Sending DataChange to VPP Agent: %v", dataChange)
 	err = f.send(ctx, dataChange)
 	if err != nil {
-		logrus.Errorf("Failed to send DataChange to VPP Agent: %v", dataChange)
+		logrus.Errorf("Failed to send DataChange to VPP Agent: %v", err)
 		return nil, err
 	}
 
@@ -57,6 +57,18 @@ func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServ
 
 // Close implements the close handler
 func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	opaque := f.GetNext().GetOpaque(connection)
+	if opaque != nil {
+		dataChange := opaque.(*ConnectionData).DataChange
+
+		logrus.Infof("Removing DataChange from VPP Agent: %v", dataChange)
+		err := f.remove(ctx, dataChange)
+		if err != nil {
+			logrus.Errorf("Failed to remove DataChange from VPP Agent: %v", err)
+			return &empty.Empty{}, err
+		}
+	}
+
 	if f.GetNext() != nil {
 		return f.GetNext().Close(ctx, connection)
 	}
@@ -117,6 +129,37 @@ func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
 		logrus.Error(err)
 		_, _ = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
+		return err
+	}
+	return nil
+}
+
+func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) error {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+	}
+	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, 100*time.Millisecond); err != nil {
+		return err
+	}
+
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+
+	if err != nil {
+		logrus.Errorf("Can't dial grpc server: %v", err)
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
+
+	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
+		logrus.Error(err)
 		return err
 	}
 	return nil
