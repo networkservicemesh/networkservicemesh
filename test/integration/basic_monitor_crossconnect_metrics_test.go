@@ -46,7 +46,7 @@ func TestSimpleMetrics(t *testing.T) {
 	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
 	Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
 

@@ -144,8 +144,7 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	})
 	if len(failures) > 0 {
-		printNSMDLogs(k8s, nsmd, 0)
-		printDataplaneLogs(k8s, dataplane, 0)
+		showLogs(k8s, nil)
 	}
 	err = nil
 	return
@@ -474,41 +473,6 @@ func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service
 	return awService
 }
 
-// PrintLogs - Print deployed pod logs
-func PrintLogs(k8s *K8s, nodesSetup []*NodeConf) {
-	for k := 0; k < len(nodesSetup); k++ {
-		nsmdPod := nodesSetup[k].Nsmd
-		printNSMDLogs(k8s, nsmdPod, k)
-
-		printDataplaneLogs(k8s, nodesSetup[k].Dataplane, k)
-	}
-}
-
-func printDataplaneLogs(k8s *K8s, dataplane *v1.Pod, k int) {
-	dataplaneLogs, _ := k8s.GetLogs(dataplane, "")
-	logrus.Errorf("===================== Dataplane %d output since test is failing %v\n=====================", k, dataplaneLogs)
-}
-
-func printNSMDLogs(k8s *K8s, nsmdPod *v1.Pod, k int) {
-	nsmdUpdatedPod, err := k8s.GetPod(nsmdPod)
-	if err != nil {
-		logrus.Errorf("Failed to update POD details %v", err)
-		return
-	}
-	for _, cs := range nsmdUpdatedPod.Status.ContainerStatuses {
-		containerLogs, _ := k8s.GetLogs(nsmdPod, cs.Name)
-		if cs.RestartCount > 0 {
-			prevLogs, _ := k8s.GetLogsWithOptions(nsmdPod, &v1.PodLogOptions{
-				Container: cs.Name,
-				Previous:  true,
-			})
-			logrus.Errorf("===================== %s %d previous output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, prevLogs)
-		}
-		logrus.Errorf("===================== %s %d output since test is failing %v\n=====================", strings.ToUpper(cs.Name), k, containerLogs)
-	}
-
-}
-
 // PrintLogs - Print Client print information
 func (info *NSCCheckInfo) PrintLogs() {
 	if info == nil {
@@ -683,25 +647,11 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		PrintLogs(k8s, nodesSetup)
+		showLogs(k8s, t)
 		nscInfo.PrintLogs()
 
 		t.Fail()
 	}
-}
-
-// FailLogger prints logs from containers in case of fail or panic
-func FailLogger(k8s *K8s, nodesSetup []*NodeConf, t *testing.T) {
-	if r := recover(); r != nil {
-		PrintLogs(k8s, nodesSetup)
-		panic(r)
-	}
-
-	if t.Failed() {
-		PrintLogs(k8s, nodesSetup)
-	}
-
-	return
 }
 
 // ServiceRegistryAt creates new service registry on 5000 port

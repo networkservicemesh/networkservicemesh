@@ -25,6 +25,7 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 

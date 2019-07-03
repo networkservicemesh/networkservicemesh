@@ -140,6 +140,7 @@ func CloudTestRun(cmd *cloudTestCmd) {
 	testConfig := &config.CloudTestConfig{}
 	err = parseConfig(testConfig, configFileContent)
 	if err != nil {
+		logrus.Errorf("Failed to parse config %v", err)
 		os.Exit(1)
 	}
 
@@ -152,6 +153,7 @@ func CloudTestRun(cmd *cloudTestCmd) {
 
 	_, err = PerformTesting(testConfig, k8s.CreateFactory(), cmd.cmdArguments)
 	if err != nil {
+		logrus.Errorf("Failed to process tests %v", err)
 		os.Exit(1)
 	}
 }
@@ -204,7 +206,6 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	ctx.createTasks()
 
 	ctx.performExecution()
-
 	return ctx.generateJUnitReportFile()
 }
 
@@ -637,7 +638,6 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 				}
 				inst.taskCancel = nil
 			}
-
 			if timeoutCtx.Err() == context.Canceled && clusterNotAvailable {
 				logrus.Errorf("Test is canceled due timeout and cluster error.. Will be re-run")
 				ctx.updateTestExecution(task, fileName, model.StatusTimeout)
@@ -921,6 +921,7 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 
 func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) []*model.TestEntry {
 	st := time.Now()
+	logrus.Infof("Starting finding tests by tags %v", executionConfig.Tags)
 	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
 	if err != nil {
 		logrus.Errorf("Failed during test lookup %v", err)
@@ -1024,8 +1025,9 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
 		Name: test.test.Name,
-		Time: fmt.Sprintf("%v", test.test.Duration),
+		Time: test.test.Duration.String(),
 	}
+
 	totalTests++
 	totalTime += test.test.Duration
 	switch test.test.Status {
@@ -1033,19 +1035,18 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 		failures++
 
 		message := fmt.Sprintf("Test execution failed %v", test.test.Name)
-		result := ""
+		result := strings.Builder{}
 		for _, ex := range test.test.Executions {
 			lines, err := utils.ReadFile(ex.OutputFile)
 			if err != nil {
 				logrus.Errorf("Failed to read stored output %v", ex.OutputFile)
 				lines = []string{"Failed to read stored output:", ex.OutputFile, err.Error()}
 			}
-			result = strings.Join(lines, "\n")
+			result.WriteString(strings.Join(lines, "\n"))
 		}
-
 		testCase.Failure = &reporting.Failure{
 			Type:     "ERROR",
-			Contents: result,
+			Contents: result.String(),
 			Message:  message,
 		}
 	case model.StatusSkipped:
