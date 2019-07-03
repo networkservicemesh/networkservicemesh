@@ -32,6 +32,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
             gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
       - store_test_results:
@@ -357,6 +358,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             # export CONTAINER_FORCE_PULL="true"
             cat /home/circleci/project/data/kubeconfig
             ./scripts/prepare-circle-integration-tests.sh
@@ -368,6 +370,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             gotestsum --junitfile ~/junit/integration-tests.xml -f standard-verbose ./test/... -timeout "<<parameters.test_timeout>>" -tags="<<parameters.test_tags>>"
           no_output_timeout: 40m
       - run:
@@ -480,6 +483,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             make k8s-infra-deploy
             kubectl wait -n $NSM_NAMESPACE --timeout=150s --for condition=Ready --all pods
           no_output_timeout: 10m
@@ -488,6 +492,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             make k8s-<<parameters.example>>-deploy
             kubectl wait -n $NSM_NAMESPACE --timeout=150s --for condition=Ready --all pods
           no_output_timeout: 10m
@@ -541,6 +546,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
