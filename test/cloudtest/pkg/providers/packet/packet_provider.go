@@ -365,7 +365,7 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", pi.id)
-	if (pi.client != nil) {
+	if pi.client != nil {
 		response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
 		pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
 		for key, device := range pi.devices {

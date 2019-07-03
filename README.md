@@ -47,17 +47,10 @@ See our full documentation at the [docs](/docs/README.md) folder.
 * Mailing list
   * [![Mailing list](https://img.shields.io/badge/Mailing%20List-networkservicemesh-blue.svg?style=plastic")](https://groups.google.com/forum/#!forum/networkservicemesh)
 
-### CNCF Code of Conduct
-The Network Service Mesh community follows the [CNCF Community Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
+* CNCF Code of Conduct
+  * The Network Service Mesh community follows the [CNCF Community Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
 
 ## Upcoming events
-
-* Network Service Mesh At KubeCon + CloudNativeCon EU 2019
-  * Tuesday, May 21 - 11:55am - 12:30pm - [Intro: Network Service Mesh (NSM) - Fredrick Kautz, Doc.ai & Ed Warnicke, Cisco](https://sched.co/NxZ5)
-  * Thursday, May 23 - 11:55am - 12:30pm - [Deep Dive: Network Service Mesh (NSM) - Nikolay Nikolaev, VMware & Frederic Kautz, Doc.ai](https://sched.co/NxZi)
-
-* Network Service Mesh At KubeCon + CloudNativeCon China 2019
-  * Tuesday, June 25 - 12:05 - 12:40pm - [Intro: Network Service Mesh (NSM) - Fredrick Kautz, Doc.ai & Nikolay Nikolaev, VMware](https://sched.co/OB2V)
 
 ## References
 

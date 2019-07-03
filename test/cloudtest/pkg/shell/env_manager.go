@@ -35,8 +35,7 @@ func (em *environmentManager) GetArguments() map[string]string {
 
 // NewEnvironmentManager - creates a new environment variable manager
 func NewEnvironmentManager() EnvironmentManager {
-	return &environmentManager{
-	}
+	return &environmentManager{}
 }
 
 func (em *environmentManager) AddExtraArgs(key, value string) {
@@ -50,8 +49,6 @@ func (em *environmentManager) GetProcessedEnv() []string {
 func (em *environmentManager) GetConfigLocation() string {
 	return em.configLocation
 }
-
-
 
 func (em *environmentManager) ProcessEnvironment(clusterID, providerName, tempDir string, env []string, extraArgs map[string]string) error {
 	environment := map[string]string{}

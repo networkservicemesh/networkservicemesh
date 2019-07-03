@@ -45,8 +45,7 @@ func (*testValidationFactory) CreateValidator(config *config.ClusterProviderConf
 func TestShellProvider(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
@@ -110,8 +109,7 @@ func createProvider(testConfig *config.CloudTestConfig, name string) *config.Clu
 func TestInvalidProvider(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
@@ -140,8 +138,7 @@ func TestInvalidProvider(t *testing.T) {
 func TestRequireEnvVars(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
@@ -175,8 +172,7 @@ func TestRequireEnvVars(t *testing.T) {
 func TestRequireEnvVars_DEPS(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
@@ -224,8 +220,7 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 func TestShellProviderShellTest(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
@@ -283,8 +278,7 @@ func TestShellProviderShellTest(t *testing.T) {
 func TestUsedClusterCancel(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
@@ -330,8 +324,7 @@ func TestUsedClusterCancel(t *testing.T) {
 func TestMultiClusterTest(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 
