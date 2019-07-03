@@ -5,13 +5,12 @@ spec:
   selector:
     matchLabels:
       networkservicemesh.io/app: "icmp-responder-nsc"
-  replicas: 1
+  replicas: 4
   template:
     metadata:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
-      nodeName: kube-worker1
       containers:
         - name: alpine-img
           image: alpine:latest

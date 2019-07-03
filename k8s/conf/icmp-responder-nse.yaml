@@ -6,14 +6,13 @@ spec:
     matchLabels:
       networkservicemesh.io/app: "icmp-responder"
       networkservicemesh.io/impl: "icmp-responder"
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
         networkservicemesh.io/app: "icmp-responder"
         networkservicemesh.io/impl: "icmp-responder"
     spec:
-      nodeName: kube-master
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
