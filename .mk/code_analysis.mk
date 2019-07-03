@@ -1,6 +1,6 @@
 .PHONY: lint-fix
 lint-fix:
-	golangci-lint run --new-from-rev=origin/master --fix
+	golangci-lint run --new-from-rev=origin/$${LINT_BRANCH:=master} --fix
 
 .PHONY: lint-install
 lint-install:
@@ -8,7 +8,7 @@ lint-install:
 
 .PHONY: lint-check-diff
 lint-check-diff:
-	golangci-lint run --new-from-rev=origin/master
+	golangci-lint run --new-from-rev=origin/$${LINT_BRANCH:=master}
 
 .PHONY: lint-check-all
 lint-check-all:

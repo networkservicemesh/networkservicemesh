@@ -52,6 +52,7 @@ jobs:
       - run:
           name: lint
           command: |
+            export LINT_BRANCH=${CIRCLE_BRANCH}
             make lint-install
             make lint-check-diff
     environment:
