@@ -90,7 +90,7 @@ func NewClientConnect(configuration *common.NSConfiguration) *ClientConnect {
 	}
 }
 
-func (cc *ClientConnect) createDataChange(interfaceName string, socketFileName string) *configurator.Config {
+func (cc *ClientConnect) createDataChange(interfaceName, socketFileName string) *configurator.Config {
 	return &configurator.Config{
 		VppConfig: &vpp.ConfigData{
 			Interfaces: []*interfaces.Interface{

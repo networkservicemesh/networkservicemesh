@@ -19,18 +19,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Acl is a VPP Agent Acl composite
-type Acl struct {
+// ACL is a VPP Agent ACL composite
+type ACL struct {
 	endpoint.BaseCompositeEndpoint
 	Rules       map[string]string
 	Connections map[string]*ConnectionData
 }
 
 // Request implements the request handler
-func (a *Acl) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if a.GetNext() == nil {
-		logrus.Fatal("The VPP Agent Acl composite requires that there is Next set")
+		logrus.Fatal("The VPP Agent ACL composite requires that there is Next set")
 	}
 
 	incomingConnection, err := a.GetNext().Request(ctx, request)
@@ -41,14 +41,14 @@ func (a *Acl) Request(ctx context.Context, request *networkservice.NetworkServic
 
 	opaque := a.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
-		err := fmt.Errorf("received empty data from Next")
+		err = fmt.Errorf("received empty data from Next")
 		logrus.Errorf("Unable to find connection data: %v", err)
 		return nil, err
 	}
 	connectionData := opaque.(*ConnectionData)
 
 	if connectionData.SrcName == "" {
-		err := fmt.Errorf("found empty source name")
+		err = fmt.Errorf("found empty source name")
 		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *Acl) Request(ctx context.Context, request *networkservice.NetworkServic
 }
 
 // Close implements the close handler
-func (a *Acl) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (a *ACL) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if a.GetNext() != nil {
 		return a.GetNext().Close(ctx, connection)
 	}
@@ -73,7 +73,7 @@ func (a *Acl) Close(ctx context.Context, connection *connection.Connection) (*em
 }
 
 // GetOpaque will return the corresponding connection data
-func (a *Acl) GetOpaque(incoming interface{}) interface{} {
+func (a *ACL) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)
 	if connectionData, ok := a.Connections[incomingConnection.GetId()]; ok {
 		return connectionData
@@ -82,21 +82,21 @@ func (a *Acl) GetOpaque(incoming interface{}) interface{} {
 	return nil
 }
 
-// NewAcl creates an Acl
-func NewAcl(configuration *common.NSConfiguration, rules map[string]string) *Acl {
+// NewACL creates an ACL
+func NewACL(configuration *common.NSConfiguration, rules map[string]string) *ACL {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	return &Acl{
+	return &ACL{
 		Rules:       rules,
 		Connections: map[string]*ConnectionData{},
 	}
 }
 
-func (a *Acl) appendDataChange(rv *configurator.Config, ingressInterface string) (*configurator.Config, error) {
+func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string) (*configurator.Config, error) {
 	if rv == nil {
 		rv = &configurator.Config{}
 	}
@@ -151,7 +151,7 @@ func getAction(parsed map[string]string) (acl.ACL_Rule_Action, error) {
 	return acl.ACL_Rule_Action(action), nil
 }
 
-func getIp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
+func getIP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
 	dstNet, dstNetOk := parsed["dstnet"]
 	srcNet, srcNetOk := parsed["srcnet"]
 	if dstNetOk {
@@ -181,7 +181,7 @@ func getIp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
 	return nil, nil
 }
 
-func getIcmp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Icmp, error) {
+func getICMP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Icmp, error) {
 	icmpType, ok := parsed["icmptype"]
 	if !ok {
 		return nil, nil
@@ -216,7 +216,7 @@ func getPort(name string, parsed map[string]string) (uint16, bool, error) {
 	return uint16(port16), true, nil
 }
 
-func getTcp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Tcp, error) {
+func getTCP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Tcp, error) {
 	lowerPort, lpFound, lpErr := getPort("tcplowport", parsed)
 	if !lpFound {
 		return nil, nil
@@ -245,7 +245,7 @@ func getTcp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Tcp, error) {
 	}, nil
 }
 
-func getUdp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Udp, error) {
+func getUDP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Udp, error) {
 	lowerPort, lpFound, lpErr := getPort("udplowport", parsed)
 	if !lpFound {
 		return nil, nil
@@ -272,23 +272,23 @@ func getUdp(parsed map[string]string) (*acl.ACL_Rule_IpRule_Udp, error) {
 	}, nil
 }
 
-func getIpRule(parsed map[string]string) (*acl.ACL_Rule_IpRule, error) {
-	ip, err := getIp(parsed)
+func getIPRule(parsed map[string]string) (*acl.ACL_Rule_IpRule, error) {
+	ip, err := getIP(parsed)
 	if err != nil {
 		return nil, err
 	}
 
-	icmp, err := getIcmp(parsed)
+	icmp, err := getICMP(parsed)
 	if err != nil {
 		return nil, err
 	}
 
-	tcp, err := getTcp(parsed)
+	tcp, err := getTCP(parsed)
 	if err != nil {
 		return nil, err
 	}
 
-	udp, err := getUdp(parsed)
+	udp, err := getUDP(parsed)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func getIpRule(parsed map[string]string) (*acl.ACL_Rule_IpRule, error) {
 }
 
 func getMatch(parsed map[string]string) (*acl.ACL_Rule, error) {
-	ipRule, err := getIpRule(parsed)
+	ipRule, err := getIPRule(parsed)
 	if err != nil {
 		return nil, err
 	}

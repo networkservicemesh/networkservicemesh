@@ -91,7 +91,7 @@ func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 	}
 }
 
-func (xc *XConnect) appendDataChange(rv *configurator.Config, srcName string, dstName string) *configurator.Config {
+func (xc *XConnect) appendDataChange(rv *configurator.Config, srcName, dstName string) *configurator.Config {
 	if rv == nil {
 		rv = &configurator.Config{}
 	}
