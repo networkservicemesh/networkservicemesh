@@ -44,8 +44,8 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
-		newVppAgentAclComposite(configuration),
 		vppagent.NewFlush(configuration, "localhost:9112"),
+		vppagent.NewAcl(configuration, getAclRulesConfig()),
 		vppagent.NewXConnect(configuration),
 		vppagent.NewMemifConnect(configuration, vppagent.SOURCE),
 		vppagent.NewClientConnect(configuration),
