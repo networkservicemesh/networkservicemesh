@@ -27,7 +27,7 @@ func ParseCommandLine(cmdLine string) []string {
 	count := len(cmdLine)
 	result := []string{}
 
-	for ; pos < count; {
+	for pos < count {
 
 		charAt := cmdLine[pos]
 
@@ -76,7 +76,7 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 
 	count := len(variable)
 
-	for ; pos < count; {
+	for pos < count {
 
 		charAt := variable[pos]
 
@@ -128,7 +128,7 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 
 func readString(pos, count int, variable string, delim uint8) (string, int) {
 	varName := strings.Builder{}
-	for ; pos < count; {
+	for pos < count {
 		tChar := variable[pos]
 		if tChar == delim {
 			break
@@ -142,7 +142,7 @@ func readString(pos, count int, variable string, delim uint8) (string, int) {
 
 func readStringEscaping(pos, count int, variable string, delim uint8) (string, int) {
 	varName := strings.Builder{}
-	for ; pos < count; {
+	for pos < count {
 		tChar := variable[pos]
 		if tChar == '\\' {
 			pos++
@@ -168,7 +168,6 @@ func ParseScript(s string) []string {
 // RunCommand - run shell command and put output into file, command variables are substituted.
 func RunCommand(context context.Context, cmd string, logger func(str string), writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
 	finalEnv := append(os.Environ(), env...)
-
 	environment := map[string]string{}
 	for _, k := range finalEnv {
 		key, value, err := ParseVariable(k)
@@ -184,7 +183,6 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 	}
 
 	cmdLine := ParseCommandLine(finalCmd)
-
 	proc, err := ExecProc(context, cmdLine, finalEnv)
 	if err != nil {
 		return "", fmt.Errorf("failed to run %s %v", finalCmd, err)
@@ -217,7 +215,7 @@ func processOutput(stream io.Reader, writer *bufio.Writer, logger func(str strin
 			}
 			_, _ = writer.WriteString(s)
 			_ = writer.Flush()
-			if (len(strings.TrimSpace(s)) > 0) {
+			if len(strings.TrimSpace(s)) > 0 {
 				logger(fmt.Sprintf("%s => %v", pattern, s))
 			}
 			if returnStdout {

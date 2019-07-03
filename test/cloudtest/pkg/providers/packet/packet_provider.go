@@ -365,7 +365,7 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", pi.id)
-	if (pi.client != nil) {
+	if pi.client != nil {
 		response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
 		pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
 		for key, device := range pi.devices {
@@ -431,7 +431,7 @@ func (pi *packetInstance) updateProject() error {
 
 func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	today := time.Now()
-	genID := fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), shell.NewRandomStr(10))
+	genID := fmt.Sprintf("%d-%d-%d-%s", today.Year(), today.Month(), today.Day(), utils.NewRandomStr(10))
 	pi.keyID = "dev-ci-cloud-" + genID
 
 	out := strings.Builder{}

@@ -7,7 +7,7 @@ The current SDK targets Golang as the main Client and Endpoint implementation la
 NSM comes with an [admission controller](../docs/spec/admission.md) implementation, which will allow for simple init and sidecar container approach when migrating existing services. This is appraich is suitable for simpler solutions like web services, where no advanced interface knowledge is needed.
 
 ### The underlying gRPC communication
-As noted, the SDK is a higher laye abstraction of the underlying gRPC API.
+As noted, the SDK is a higher layer abstraction of the underlying gRPC API.
 
 #### Client gRPC
 
@@ -138,12 +138,14 @@ The NSM SDK Endpoint API enables plugging together different functionalities bas
 
 ### Writing a ChainedEndpoint
 
-Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implemenst the `ChainedEndpoint` interface.
+Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implements the `ChainedEndpoint` interface.
 
 `ChainedEndpoint` method description:
 
  * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`
  * `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
+ * `Name() string` - returns the name of the composite.
+ * `Init(context *InitContext) error` - an init function to be called before the endpoint GRPC listener is started but after the NSM endpoint is created.
  * `GetNext() CompositeEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
  * `GetOpaque(interface{}) interface{}` - get an arbitrary data from the composite. Both the parameter and the return are freely interpreted data and specific to the composite. See `GetOpaque` in `sdk/endpoint/composite/client.go`.
 

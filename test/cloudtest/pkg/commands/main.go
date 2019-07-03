@@ -119,6 +119,7 @@ type executionContext struct {
 	clusterReadyTime time.Time
 	factory          k8s.ValidationFactory
 	arguments        *Arguments
+	clusterWaitGroup sync.WaitGroup // Wait group for clusters destroying
 }
 
 // CloudTestRun - CloudTestRun
@@ -140,6 +141,7 @@ func CloudTestRun(cmd *cloudTestCmd) {
 	testConfig := &config.CloudTestConfig{}
 	err = parseConfig(testConfig, configFileContent)
 	if err != nil {
+		logrus.Errorf("Failed to parse config %v", err)
 		os.Exit(1)
 	}
 
@@ -152,6 +154,7 @@ func CloudTestRun(cmd *cloudTestCmd) {
 
 	_, err = PerformTesting(testConfig, k8s.CreateFactory(), cmd.cmdArguments)
 	if err != nil {
+		logrus.Errorf("Failed to process tests %v", err)
 		os.Exit(1)
 	}
 }
@@ -204,7 +207,6 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	ctx.createTasks()
 
 	ctx.performExecution()
-
 	return ctx.generateJUnitReportFile()
 }
 
@@ -222,7 +224,6 @@ func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []by
 func (ctx *executionContext) performShutdown() {
 	// We need to stop all clusters we started
 	if !ctx.arguments.instanceOptions.NoStop {
-		var wg sync.WaitGroup
 		for _, clG := range ctx.clusters {
 			group := clG
 			for _, cInst := range group.instances {
@@ -232,16 +233,16 @@ func (ctx *executionContext) performShutdown() {
 					curInst.taskCancel()
 				}
 				logrus.Infof("Schedule Closing cluster %v %v", group.config.Name, curInst.id)
-				wg.Add(1)
+				ctx.clusterWaitGroup.Add(1)
 
 				go func() {
-					defer wg.Done()
+					defer ctx.clusterWaitGroup.Done()
 					logrus.Infof("Closing cluster %v %v", group.config.Name, curInst.id)
 					ctx.destroyCluster(curInst, false, false)
 				}()
 			}
 		}
-		wg.Wait()
+		ctx.clusterWaitGroup.Wait()
 	}
 	logrus.Infof("All clusters destroyed")
 }
@@ -578,8 +579,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout int64, instances []*clusterInstance, err error, fileName string) {
 	go func() {
 		st := time.Now()
-		env := []string{
-		}
+		env := []string{}
 		// Fill Kubernetes environment variables.
 
 		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
@@ -637,7 +637,6 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 				}
 				inst.taskCancel = nil
 			}
-
 			if timeoutCtx.Err() == context.Canceled && clusterNotAvailable {
 				logrus.Errorf("Test is canceled due timeout and cluster error.. Will be re-run")
 				ctx.updateTestExecution(task, fileName, model.StatusTimeout)
@@ -757,7 +756,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 			}
 			logrus.Infof("cluster started...")
 		}
-		checks++;
+		checks++
 		select {
 		case <-time.After(5 * time.Second):
 			// Just pass
@@ -784,7 +783,9 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 	}
 	timeout := ctx.getClusterTimeout(ci.group)
 	if fork {
+		ctx.clusterWaitGroup.Add(1)
 		go func() {
+			defer ctx.clusterWaitGroup.Done()
 			err := ci.instance.Destroy(timeout)
 			if err != nil {
 				logrus.Errorf("Failed to destroy cluster")
@@ -921,6 +922,7 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 
 func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) []*model.TestEntry {
 	st := time.Now()
+	logrus.Infof("Starting finding tests by tags %v", executionConfig.Tags)
 	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
 	if err != nil {
 		logrus.Errorf("Failed during test lookup %v", err)
@@ -937,8 +939,7 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 
 func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, error) {
 	// generate and write report
-	ctx.report = &reporting.JUnitFile{
-	}
+	ctx.report = &reporting.JUnitFile{}
 
 	totalFailures := 0
 	for _, cluster := range ctx.clusters {
@@ -1024,8 +1025,9 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
 		Name: test.test.Name,
-		Time: fmt.Sprintf("%v", test.test.Duration),
+		Time: test.test.Duration.String(),
 	}
+
 	totalTests++
 	totalTime += test.test.Duration
 	switch test.test.Status {
@@ -1033,19 +1035,18 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 		failures++
 
 		message := fmt.Sprintf("Test execution failed %v", test.test.Name)
-		result := ""
+		result := strings.Builder{}
 		for _, ex := range test.test.Executions {
 			lines, err := utils.ReadFile(ex.OutputFile)
 			if err != nil {
 				logrus.Errorf("Failed to read stored output %v", ex.OutputFile)
 				lines = []string{"Failed to read stored output:", ex.OutputFile, err.Error()}
 			}
-			result = strings.Join(lines, "\n")
+			result.WriteString(strings.Join(lines, "\n"))
 		}
-
 		testCase.Failure = &reporting.Failure{
 			Type:     "ERROR",
-			Contents: result,
+			Contents: result.String(),
 			Message:  message,
 		}
 	case model.StatusSkipped:

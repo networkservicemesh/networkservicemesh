@@ -13,8 +13,7 @@ import (
 func TestClusterInstancesFailed(t *testing.T) {
 	RegisterTestingT(t)
 
-	testConfig := &config.CloudTestConfig{
-	}
+	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
 

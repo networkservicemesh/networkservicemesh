@@ -10,12 +10,12 @@ import (
 
 // Utils - basic Kubernetes utils.
 type Utils struct {
-	config *rest.Config
+	config    *rest.Config
 	clientset *kubernetes.Clientset
 }
 
 // NewK8sUtils - Creates a new k8s utils with config file.
-func NewK8sUtils (configPath string) (*Utils, error) {
+func NewK8sUtils(configPath string) (*Utils, error) {
 	utils := &Utils{}
 	config, err := clientcmd.BuildConfigFromFlags("", configPath)
 	if err != nil {

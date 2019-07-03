@@ -13,6 +13,9 @@ reporting:
   junit-report: "results/junit.xml"
 executions:
   - name: "Single cluster tests"
+    env:
+      - WRITE_POD_LOGS_IN_FILES=true
+      - WRITE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - basic
       - recover
