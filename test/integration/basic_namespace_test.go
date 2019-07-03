@@ -16,10 +16,12 @@ func Test_createNSMNamespace(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
+	defer kubetest.ShowLogs(k8s, t)
 
 	namespaceName := k8s.GetK8sNamespace()
 	namespace, err := k8s.GetNamespace(namespaceName)
 
 	Expect(err).To(BeNil())
 	Expect(namespace.Status.Phase).To(Equal(v1.NamespaceActive))
+
 }

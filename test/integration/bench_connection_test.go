@@ -17,7 +17,7 @@ func TestOneTimeConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeConnection(1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
+	testOneTimeConnection(t, 1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 func TestOneTimeConnection(t *testing.T) {
 	RegisterTestingT(t)
@@ -25,7 +25,7 @@ func TestOneTimeConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeConnection(2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
+	testOneTimeConnection(t, 2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
 }
 
 func TestMovingConnection(t *testing.T) {
@@ -52,7 +52,7 @@ func TestOneToOneConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneToOneConnection(2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
+	testOneToOneConnection(t, 2, kubetest.DeployNSC, kubetest.DeployICMP, kubetest.IsNsePinged)
 }
 
 func TestOneToOneConnectionMemif(t *testing.T) {
@@ -61,15 +61,15 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneToOneConnection(1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
+	testOneToOneConnection(t, 1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 
-func testOneTimeConnection(nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, nsePing kubetest.NsePinger) {
+func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, nsePing kubetest.NsePinger) {
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
+	defer kubetest.ShowLogs(k8s, t)
 	nodes := createNodes(k8s, nodeCount)
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 
@@ -91,13 +91,13 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
+	defer kubetest.ShowLogs(k8s, t)
 	nodes := createNodes(k8s, nodeCount)
 
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
-	defer kubetest.FailLogger(k8s, nodes, t)
+
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		for count := nscCount; count > 0; count-- {
@@ -112,12 +112,12 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 	}
 }
 
-func testOneToOneConnection(nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
+func testOneToOneConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
+	defer kubetest.ShowLogs(k8s, t)
 	nodes := createNodes(k8s, nodeCount)
 	doneChannel := make(chan nscPingResult, 1)
 	defer close(doneChannel)

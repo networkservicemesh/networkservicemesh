@@ -23,7 +23,7 @@ func TestDataplaneVersion(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	gomega.Expect(err).To(gomega.BeNil())
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 
 	gomega.Expect(len(nodes) > 0).Should(gomega.BeTrue())
 	dataplane := nodes[0].Dataplane

@@ -21,8 +21,8 @@ func TestExec(t *testing.T) {
 
 	k8s, err := kubetest.NewK8sWithoutRoles(false)
 	defer k8s.Cleanup()
-
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 
 	k8s.Prepare("alpine-pod")
 

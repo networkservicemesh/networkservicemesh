@@ -24,8 +24,9 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 	logrus.Print("Running NSMgr Deploy test")
 
 	k8s, err := kubetest.NewK8s(true)
-	Expect(err).To(BeNil())
 	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
