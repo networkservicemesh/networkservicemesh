@@ -53,6 +53,7 @@ type connectionConfig struct {
 }
 
 func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	logrus.Info("Incoming connection - local source/local destination")
 	/* 1. Get the connection configuration */
 	cfg, err := getConnectionConfig(crossConnect, cLOCAL)
 	if err != nil {
@@ -76,7 +77,8 @@ func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool
 }
 
 func createLocalConnection(cfg *connectionConfig) error {
-	/* 1. Get namespace handlers from their path - source and destination */
+	logrus.Info("Creating local connection...")
+	/* 1. Get handlers for source and destination namespaces */
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
 	defer srcNsHandle.Close()
 	if err != nil {
@@ -89,19 +91,70 @@ func createLocalConnection(cfg *connectionConfig) error {
 		logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
 		return err
 	}
-	/* 2. Create a VETH pair and inject each end in the corresponding namespace */
-	if err = createVETH(cfg, srcNsHandle, dstNsHandle); err != nil {
+
+	/* 2. Prepare interface - VETH */
+	iface := getVETH(cfg.srcName, cfg.dstName)
+
+	/* 3. Create the VETH pair - host namespace */
+	if err := netlink.LinkAdd(iface); err != nil {
 		logrus.Errorf("Failed to create the VETH pair - %v", err)
 		return err
 	}
-	/* 3. Bring up and configure each pair end with its IP address */
-	setupVETHEnd(srcNsHandle, cfg.srcName, cfg.srcIP)
-	setupVETHEnd(dstNsHandle, cfg.dstName, cfg.dstIP)
+
+	/* 4. Setup interface - source namespace */
+	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, true); err != nil {
+		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		return err
+	}
+
+	/* 5. Setup interface - destination namespace */
+	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, true); err != nil {
+		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		return err
+	}
 	return nil
 }
 
 func deleteLocalConnection(cfg *connectionConfig) error {
-	logrus.Errorf("Delete for local connection is not supported yet")
+	logrus.Info("Delete local connection...")
+	/* 1. Get handlers for source and destination namespaces */
+	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
+	defer srcNsHandle.Close()
+	if err != nil {
+		logrus.Errorf("Failed to get source namespace handler from path - %v", err)
+		return err
+	}
+	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
+	defer dstNsHandle.Close()
+	if err != nil {
+		logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
+		return err
+	}
+
+	/* 2. Extract the interface - source namespace */
+	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, false); err != nil {
+		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		return err
+	}
+
+	/* 3. Extract the interface - destination namespace */
+	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, false); err != nil {
+		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		return err
+	}
+
+	/* 4. Get a link object for the interface */
+	ifaceLink, err := netlink.LinkByName(cfg.srcName)
+	if err != nil {
+		logrus.Errorf("Failed to get link for %q - %v", cfg.srcName, err)
+		return err
+	}
+
+	/* 5. Delete the VETH pair - host namespace */
+	if err := netlink.LinkDel(ifaceLink); err != nil {
+		logrus.Errorf("Failed to delete the VETH pair - %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -168,82 +221,136 @@ func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnec
 }
 
 func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
-	/* 1. Get namespace handler from path */
-	srcNsHandle, err := netns.GetFromPath(NsPath)
-	defer srcNsHandle.Close()
+	logrus.Info("Creating remote connection...")
+	/* 1. Get handler for container namespace */
+	containerNs, err := netns.GetFromPath(NsPath)
+	defer containerNs.Close()
 	if err != nil {
 		logrus.Errorf("Failed to get namespace handler from path - %v", err)
 		return err
 	}
 
-	/* 2. Get the host link object from the egress interface */
-	egressLink, err := netlink.LinkByName(egressName)
+	/* 2. Prepare interface - VXLAN */
+	iface, err := getVXLAN(ifaceName, egressName, egressIP, remoteIP, vni)
 	if err != nil {
-		logrus.Errorf("Failed to get egress VXLAN interface - %v", err)
+		logrus.Errorf("Failed to get VXLAN interface configuration - %v", err)
+		return err
 	}
 
-	/* 3. Populate the VXLAN interface configuration */
-	vxlan := &netlink.Vxlan{
-		LinkAttrs: netlink.LinkAttrs{
-			Name: ifaceName,
-		},
-		VxlanId:      vni,
-		VtepDevIndex: egressLink.Attrs().Index,
-		Group:        remoteIP,
-		SrcAddr:      egressIP,
-	}
-
-	/* 4. Create the VXLAN interface */
-	if err := netlink.LinkAdd(vxlan); err != nil {
+	/* 3. Create interface - host namespace */
+	if err := netlink.LinkAdd(iface); err != nil {
 		logrus.Errorf("Failed to create VXLAN interface - %v", err)
 	}
 
-	/* 5. Get a link object for it */
-	egressLink, err = netlink.LinkByName(ifaceName)
-	if err != nil {
-		logrus.Errorf("Failed to get link for the created VXLAN interface - %v", err)
+	/* 4. Setup interface */
+	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, true); err != nil {
+		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		return err
 	}
-	nsHandle := srcNsHandle
+	return nil
+}
 
-	/* 6. Inject the VXLAN interface into the desired namespace */
-	if err = netlink.LinkSetNsFd(egressLink, int(nsHandle)); err != nil {
-		logrus.Errorf("Failed to inject the VXLAN end in the namespace - %v", err)
+func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject bool) error {
+	if inject {
+		/* 1. Get a link object for the interface */
+		ifaceLink, err := netlink.LinkByName(ifaceName)
+		if err != nil {
+			logrus.Errorf("Failed to get link for %q - %v", ifaceName, err)
+			return err
+		}
+		/* 2. Inject the interface into the desired container namespace */
+		if err = netlink.LinkSetNsFd(ifaceLink, int(containerNs)); err != nil {
+			logrus.Errorf("Failed to inject %q in namespace - %v", ifaceName, err)
+			return err
+		}
 	}
-
-	/* 7. Lock the OS thread so we don't accidentally switch namespaces */
+	/* 3. Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-
-	/* 8. Save the current network namespace */
-	oNsHandle, _ := netns.Get()
-	defer oNsHandle.Close()
-
-	/* 9. Switch to the new namespace */
-	netns.Set(nsHandle)
-	defer nsHandle.Close()
-
-	/* 10. Get a link for the interface name */
+	/* 4. Save the current network namespace */
+	currentNs, err := netns.Get()
+	defer currentNs.Close()
+	if err != nil {
+		logrus.Errorf("Failed to get current namespace: %v", err)
+		return err
+	}
+	/* 5. Switch to the new namespace */
+	if err := netns.Set(containerNs); err != nil {
+		logrus.Errorf("Failed to switch to container namespace: %v", err)
+		return err
+	}
+	defer containerNs.Close()
+	/* 6. Get a link for the interface name */
 	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
 		logrus.Errorf("Failed to lookup %q, %v", ifaceName, err)
+		return err
 	}
-
-	/* 11. Setup the interface with an IP address */
-	addr, _ := netlink.ParseAddr(ifaceIP)
-	netlink.AddrAdd(link, addr)
-
-	/* 12. Bring the interface UP */
-	if err = netlink.LinkSetUp(link); err != nil {
-		logrus.Errorf("Failed to set %q up: %v", ifaceName, err)
+	if inject {
+		/* 7. Parse the IP address */
+		addr, err := netlink.ParseAddr(ifaceIP)
+		if err != nil {
+			logrus.Errorf("Failed to parse IP %q: %v", ifaceIP, err)
+			return err
+		}
+		/* 8. Set IP address */
+		if err = netlink.AddrAdd(link, addr); err != nil {
+			logrus.Errorf("Failed to set IP %q: %v", ifaceIP, err)
+			return err
+		}
+		/* 9. Bring the interface UP */
+		if err = netlink.LinkSetUp(link); err != nil {
+			logrus.Errorf("Failed to bring %q up: %v", ifaceName, err)
+			return err
+		}
+	} else {
+		/* 9. Bring the interface DOWN */
+		if err = netlink.LinkSetDown(link); err != nil {
+			logrus.Errorf("Failed to bring %q down: %v", ifaceName, err)
+			return err
+		}
+		/* 2. Inject the interface back into the host namespace */
+		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
+			logrus.Errorf("Failed to inject %q in namespace - %v", ifaceName, err)
+			return err
+		}
 	}
-
-	/* 13. Switch back to the original namespace */
-	netns.Set(oNsHandle)
+	/* 10. Switch back to the original namespace */
+	if err = netns.Set(currentNs); err != nil {
+		logrus.Errorf("Failed to switch back to original namespace: %v", err)
+		return err
+	}
 	return nil
 }
 
 func deleteRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
-	logrus.Errorf("Delete for remote connection is not supported yet")
+	logrus.Info("Deleting remote connection...")
+	/* 1. Get handler for container namespace */
+	containerNs, err := netns.GetFromPath(NsPath)
+	defer containerNs.Close()
+	if err != nil {
+		logrus.Errorf("Failed to get namespace handler from path - %v", err)
+		return err
+	}
+
+	/* 2. Setup interface */
+	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, false); err != nil {
+		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		return err
+	}
+
+	/* 3. Get a link object for the interface */
+	ifaceLink, err := netlink.LinkByName(ifaceName)
+	if err != nil {
+		logrus.Errorf("Failed to get link for %q - %v", ifaceName, err)
+		return err
+	}
+
+	/* 4. Delete the VXLAN interface - host namespace */
+	if err := netlink.LinkDel(ifaceLink); err != nil {
+		logrus.Errorf("Failed to delete the VXLAN - %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -304,74 +411,32 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	}
 }
 
-func setupVETHEnd(nsHandle netns.NsHandle, ifName, addrIP string) {
-	/* Lock the OS thread so we don't accidentally switch namespaces */
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	/* Save the current network namespace */
-	oNsHandle, _ := netns.Get()
-	defer oNsHandle.Close()
-
-	/* Switch to the new namespace */
-	netns.Set(nsHandle)
-	defer nsHandle.Close()
-
-	/* Get a link for the interface name */
-	link, err := netlink.LinkByName(ifName)
-	if err != nil {
-		logrus.Errorf("Failed to lookup %q, %v", ifName, err)
-	}
-
-	/* Setup the interface with an IP address */
-	addr, _ := netlink.ParseAddr(addrIP)
-	netlink.AddrAdd(link, addr)
-
-	/* Bring the interface UP */
-	if err = netlink.LinkSetUp(link); err != nil {
-		logrus.Errorf("Failed to set %q up: %v", ifName, err)
-	}
-
-	/* Switch back to the original namespace */
-	netns.Set(oNsHandle)
-}
-
-func createVETH(cfg *connectionConfig, srcNsHandle, dstNsHandle netns.NsHandle) error {
-	/* Initial VETH configuration */
-	cfgVETH := &netlink.Veth{
+func getVETH(srcName, dstName string) *netlink.Veth {
+	/* Populate the VETH interface configuration */
+	return &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
-			Name: cfg.srcName,
+			Name: srcName,
 			MTU:  16000,
 		},
-		PeerName: cfg.dstName,
+		PeerName: dstName,
 	}
+}
 
-	/* Create the VETH pair - host namespace */
-	if err := netlink.LinkAdd(cfgVETH); err != nil {
-		logrus.Errorf("Failed to create the VETH pair - %v", err)
-		return err
-	}
-
-	/* Get a link for each VETH pair ends */
-	srcLink, err := netlink.LinkByName(cfg.srcName)
+func getVXLAN(ifaceName, egressName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vxlan, error) {
+	/* Get a link object for the egress interface on the host */
+	egressLink, err := netlink.LinkByName(egressName)
 	if err != nil {
-		logrus.Errorf("Failed to get source link from name - %v", err)
-		return err
+		logrus.Errorf("Failed to get egress VXLAN interface - %v", err)
+		return nil, err
 	}
-	dstLink, err := netlink.LinkByName(cfg.dstName)
-	if err != nil {
-		logrus.Errorf("Failed to get destination link from name - %v", err)
-		return err
-	}
-
-	/* Inject each end in its corresponding client/endpoint namespace */
-	if err = netlink.LinkSetNsFd(srcLink, int(srcNsHandle)); err != nil {
-		logrus.Errorf("Failed to inject the VETH end in the source namespace - %v", err)
-		return err
-	}
-	if err = netlink.LinkSetNsFd(dstLink, int(dstNsHandle)); err != nil {
-		logrus.Errorf("Failed to inject the VETH end in the destination namespace - %v", err)
-		return err
-	}
-	return nil
+	/* Populate the VXLAN interface configuration */
+	return &netlink.Vxlan{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: ifaceName,
+		},
+		VxlanId:      vni,
+		VtepDevIndex: egressLink.Attrs().Index,
+		Group:        remoteIP,
+		SrcAddr:      egressIP,
+	}, nil
 }
