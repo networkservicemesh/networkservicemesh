@@ -20,7 +20,7 @@ K8S_CONF_DIR = k8s/conf
 spire-start: spire-server-start spire-agent-start
 
 .PHONY: spire-delete
-spire-delete: spire-server-delete spire-agent-delete
+spire-delete:  spire-agent-delete spire-server-delete
 
 .PHONY: spire-server-start
 spire-server-start:
@@ -42,12 +42,12 @@ spire-agent-start:
 .PHONY: spire-server-delete
 spire-server-delete:
 	@echo "Deleting spire-server...";
-	@kubectl delete -f ${K8S_CONF_DIR}/spire/spire-namespace.yaml || \
+	@kubectl delete -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-account.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-configmap.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-secrets.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-service.yaml || \
-	kubectl delete -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml;
+	kubectl delete -f ${K8S_CONF_DIR}/spire/spire-namespace.yaml;
 
 .PHONY: spire-agent-delete
 spire-agent-delete:
