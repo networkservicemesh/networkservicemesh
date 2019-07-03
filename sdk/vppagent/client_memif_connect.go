@@ -16,27 +16,27 @@ import (
 	"path"
 )
 
-// ClientConnect is a VPP Agent Client Connect composite
-type ClientConnect struct {
+// ClientMemifConnect is a VPP Agent Client Memif Connect composite
+type ClientMemifConnect struct {
 	endpoint.BaseCompositeEndpoint
 	Workspace   string
 	Connections map[string]*ConnectionData
 }
 
 // Request implements the request handler
-func (cc *ClientConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
-	if cc.GetNext() == nil {
-		logrus.Fatal("The VPP Agent Client Connect composite requires that there is Next set")
+	if cmc.GetNext() == nil {
+		logrus.Fatal("The VPP Agent Client Memif Connect composite requires that there is Next set")
 	}
 
-	incomingConnection, err := cc.GetNext().Request(ctx, request)
+	incomingConnection, err := cmc.GetNext().Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
-	opaque := cc.GetNext().GetOpaque(incomingConnection)
+	opaque := cmc.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
 		err := fmt.Errorf("received empty data from Next")
 		logrus.Errorf("Unable to find the outgoing connection: %v", err)
@@ -46,11 +46,11 @@ func (cc *ClientConnect) Request(ctx context.Context, request *networkservice.Ne
 	incomingConnection.Context = outgoingConnection.GetContext()
 
 	interfaceName := outgoingConnection.GetId()
-	socketFileName := path.Join(cc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
+	socketFileName := path.Join(cmc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
 
-	dataChange := cc.createDataChange(interfaceName, socketFileName)
+	dataChange := cmc.createDataChange(interfaceName, socketFileName)
 
-	cc.Connections[incomingConnection.GetId()] = &ConnectionData{
+	cmc.Connections[incomingConnection.GetId()] = &ConnectionData{
 		DstName:    interfaceName,
 		DataChange: dataChange,
 	}
@@ -59,17 +59,17 @@ func (cc *ClientConnect) Request(ctx context.Context, request *networkservice.Ne
 }
 
 // Close implements the close handler
-func (cc *ClientConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if cc.GetNext() != nil {
-		return cc.GetNext().Close(ctx, connection)
+func (cmc *ClientMemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if cmc.GetNext() != nil {
+		return cmc.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
 // GetOpaque will return the corresponding connection data
-func (cc *ClientConnect) GetOpaque(incoming interface{}) interface{} {
+func (cmc *ClientMemifConnect) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)
-	if connectionData, ok := cc.Connections[incomingConnection.GetId()]; ok {
+	if connectionData, ok := cmc.Connections[incomingConnection.GetId()]; ok {
 		return connectionData
 	}
 	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
@@ -77,25 +77,25 @@ func (cc *ClientConnect) GetOpaque(incoming interface{}) interface{} {
 }
 
 // Name returns the composite name
-func (cc *ClientConnect) Name() string {
-	return "client-connect"
+func (cmc *ClientMemifConnect) Name() string {
+	return "client-memif-connect"
 }
 
-// NewClientConnect creates a ClientConnect
-func NewClientConnect(configuration *common.NSConfiguration) *ClientConnect {
+// NewClientMemifConnect creates a ClientMemifConnect
+func NewClientMemifConnect(configuration *common.NSConfiguration) *ClientMemifConnect {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	return &ClientConnect{
+	return &ClientMemifConnect{
 		Workspace:   configuration.Workspace,
 		Connections: map[string]*ConnectionData{},
 	}
 }
 
-func (cc *ClientConnect) createDataChange(interfaceName, socketFileName string) *configurator.Config {
+func (cmc *ClientMemifConnect) createDataChange(interfaceName, socketFileName string) *configurator.Config {
 	return &configurator.Config{
 		VppConfig: &vpp.ConfigData{
 			Interfaces: []*interfaces.Interface{

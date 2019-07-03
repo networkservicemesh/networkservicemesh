@@ -48,7 +48,7 @@ func main() {
 		vppagent.NewACL(configuration, getAclRulesConfig()),
 		vppagent.NewXConnect(configuration),
 		vppagent.NewMemifConnect(configuration, vppagent.SOURCE),
-		vppagent.NewClientConnect(configuration),
+		vppagent.NewClientMemifConnect(configuration),
 		endpoint.NewClientEndpoint(configuration),
 		endpoint.NewConnectionEndpoint(configuration))
 
