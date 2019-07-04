@@ -59,7 +59,7 @@ func (c *BaseCompositeEndpoint) GetNext() ChainedEndpoint {
 	return c.next
 }
 
-// GetOpaque is an implementation specific method to get arbitrary data out of a comosable
+// GetOpaque is an implementation specific method to get arbitrary data out of a composite
 func (c *BaseCompositeEndpoint) GetOpaque(interface{}) interface{} {
 	return nil
 }

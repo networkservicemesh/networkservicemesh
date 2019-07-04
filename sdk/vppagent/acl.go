@@ -139,10 +139,8 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 			Name:  "IngressACL",
 			Rules: rules,
 			Interfaces: &acl.ACL_Interfaces{
-				Egress: []string{},
-				Ingress: []string{
-					ingressInterface,
-				},
+				Egress:  []string{},
+				Ingress: []string{ingressInterface},
 			},
 		})
 	}

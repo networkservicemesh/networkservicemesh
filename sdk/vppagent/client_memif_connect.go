@@ -3,6 +3,7 @@ package vppagent
 import (
 	"context"
 	"fmt"
+	"path"
 	"reflect"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -14,7 +15,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/sirupsen/logrus"
-	"path"
 )
 
 // ClientMemifConnect is a VPP Agent Client Memif Connect composite
