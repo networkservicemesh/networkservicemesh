@@ -12,7 +12,7 @@ import (
 func OpenFile(root, fileName string) (string, *os.File, error) {
 	// Create folder if it doesn't exists
 	joinedRoot := path.Join(root, fileName)
-	root,fileName = path.Split(joinedRoot)
+	root, fileName = path.Split(joinedRoot)
 	if !FileExists(root) {
 		_ = os.MkdirAll(root, os.ModePerm)
 	}
@@ -30,7 +30,7 @@ func ReadFile(fileName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {_ = f.Close()}()
+	defer func() { _ = f.Close() }()
 
 	reader := bufio.NewReader(f)
 	output := []string{}
@@ -76,6 +76,7 @@ func ClearFolder(root string, recreate bool) {
 		CreateFolders(root)
 	}
 }
+
 // CreateFolders - Create folder and all parents.
 func CreateFolders(root string) {
 	err := os.MkdirAll(root, os.ModePerm)

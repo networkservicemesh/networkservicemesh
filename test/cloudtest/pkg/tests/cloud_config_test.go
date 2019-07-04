@@ -16,7 +16,6 @@ func TestClusterConfiguration(t *testing.T) {
 	file1, err := ioutil.ReadFile("./config1.yaml")
 	Expect(err).To(BeNil())
 
-
 	err = yaml.Unmarshal(file1, &testConfig)
 	Expect(err).To(BeNil())
 	Expect(len(testConfig.Providers)).To(Equal(3))

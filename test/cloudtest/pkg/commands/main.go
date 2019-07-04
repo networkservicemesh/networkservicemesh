@@ -119,6 +119,7 @@ type executionContext struct {
 	clusterReadyTime time.Time
 	factory          k8s.ValidationFactory
 	arguments        *Arguments
+	clusterWaitGroup sync.WaitGroup // Wait group for clusters destroying
 }
 
 // CloudTestRun - CloudTestRun
@@ -223,7 +224,6 @@ func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []by
 func (ctx *executionContext) performShutdown() {
 	// We need to stop all clusters we started
 	if !ctx.arguments.instanceOptions.NoStop {
-		var wg sync.WaitGroup
 		for _, clG := range ctx.clusters {
 			group := clG
 			for _, cInst := range group.instances {
@@ -233,16 +233,16 @@ func (ctx *executionContext) performShutdown() {
 					curInst.taskCancel()
 				}
 				logrus.Infof("Schedule Closing cluster %v %v", group.config.Name, curInst.id)
-				wg.Add(1)
+				ctx.clusterWaitGroup.Add(1)
 
 				go func() {
-					defer wg.Done()
+					defer ctx.clusterWaitGroup.Done()
 					logrus.Infof("Closing cluster %v %v", group.config.Name, curInst.id)
 					ctx.destroyCluster(curInst, false, false)
 				}()
 			}
 		}
-		wg.Wait()
+		ctx.clusterWaitGroup.Wait()
 	}
 	logrus.Infof("All clusters destroyed")
 }
@@ -579,8 +579,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout int64, instances []*clusterInstance, err error, fileName string) {
 	go func() {
 		st := time.Now()
-		env := []string{
-		}
+		env := []string{}
 		// Fill Kubernetes environment variables.
 
 		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
@@ -757,7 +756,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 			}
 			logrus.Infof("cluster started...")
 		}
-		checks++;
+		checks++
 		select {
 		case <-time.After(5 * time.Second):
 			// Just pass
@@ -784,7 +783,9 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 	}
 	timeout := ctx.getClusterTimeout(ci.group)
 	if fork {
+		ctx.clusterWaitGroup.Add(1)
 		go func() {
+			defer ctx.clusterWaitGroup.Done()
 			err := ci.instance.Destroy(timeout)
 			if err != nil {
 				logrus.Errorf("Failed to destroy cluster")
@@ -938,8 +939,7 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 
 func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, error) {
 	// generate and write report
-	ctx.report = &reporting.JUnitFile{
-	}
+	ctx.report = &reporting.JUnitFile{}
 
 	totalFailures := 0
 	for _, cluster := range ctx.clusters {

@@ -41,7 +41,7 @@ spec:
             - name: TRACER_ENABLED
               value: "true"
             - name: IP_ADDRESS
-              value: "10.30.1.1"
+              value: "10.30.1.0/24"
           resources:
             limits:
               networkservicemesh.io/socket: 1
