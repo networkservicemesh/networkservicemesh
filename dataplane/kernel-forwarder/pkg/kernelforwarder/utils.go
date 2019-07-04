@@ -311,7 +311,7 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 		}
 		/* 2. Inject the interface back into the host namespace */
 		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
-			logrus.Errorf("Failed to inject %q in namespace - %v", ifaceName, err)
+			logrus.Errorf("Failed to inject %q bach to host namespace - %v", ifaceName, err)
 			return err
 		}
 	}
