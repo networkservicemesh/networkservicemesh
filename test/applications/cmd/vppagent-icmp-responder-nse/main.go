@@ -38,7 +38,7 @@ func main() {
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
 		vppagent.NewFlush(configuration, "localhost:9112"),
-		vppagent.NewMemifConnect(configuration, vppagent.DESTINATION),
+		vppagent.NewMemifConnect(configuration),
 		endpoint.NewIpamEndpoint(nil),
 		endpoint.NewConnectionEndpoint(configuration))
 

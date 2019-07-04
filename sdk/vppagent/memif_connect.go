@@ -19,9 +19,8 @@ import (
 // MemifConnect is a VPP Agent Memif Connect composite
 type MemifConnect struct {
 	endpoint.BaseCompositeEndpoint
-	Workspace      string
-	ConnectionSide ConnectionSide
-	Connections    map[string]*ConnectionData
+	Workspace   string
+	Connections map[string]*ConnectionData
 }
 
 // Request implements the request handler
@@ -54,20 +53,17 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 	}
 
 	name := incomingConnection.GetId()
+	connectionData.InConnName = name
 
 	var ipAddresses []string
-	if mc.ConnectionSide == DESTINATION && incomingConnection.GetContext().DstIpAddr != "" {
-		ipAddresses = []string{incomingConnection.GetContext().DstIpAddr}
+	dstIpAddr := incomingConnection.GetContext().DstIpAddr
+	if dstIpAddr != "" {
+		ipAddresses = []string{dstIpAddr}
 	}
 
 	connectionData.DataChange = mc.appendDataChange(connectionData.DataChange, name, ipAddresses, socketFilename)
 
 	mc.Connections[incomingConnection.GetId()] = connectionData
-	if mc.ConnectionSide == DESTINATION {
-		mc.Connections[incomingConnection.GetId()].DstName = name
-	} else {
-		mc.Connections[incomingConnection.GetId()].SrcName = name
-	}
 
 	return incomingConnection, nil
 }
@@ -96,7 +92,7 @@ func (mc *MemifConnect) Name() string {
 }
 
 // NewMemifConnect creates a MemifConnect
-func NewMemifConnect(configuration *common.NSConfiguration, side ConnectionSide) *MemifConnect {
+func NewMemifConnect(configuration *common.NSConfiguration) *MemifConnect {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
@@ -104,9 +100,8 @@ func NewMemifConnect(configuration *common.NSConfiguration, side ConnectionSide)
 	configuration.CompleteNSConfiguration()
 
 	return &MemifConnect{
-		Workspace:      configuration.Workspace,
-		ConnectionSide: side,
-		Connections:    map[string]*ConnectionData{},
+		Workspace:   configuration.Workspace,
+		Connections: map[string]*ConnectionData{},
 	}
 }
 
