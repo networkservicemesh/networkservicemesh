@@ -28,19 +28,18 @@ type Flush struct {
 func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if f.GetNext() == nil {
-		logrus.Fatal("The VPP Agent Flush composite requires that there is Next set")
+		err := fmt.Errorf("composite requires that there is Next set")
+		return nil, err
 	}
 
 	incomingConnection, err := f.GetNext().Request(ctx, request)
 	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
 	opaque := f.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
-		err = fmt.Errorf("received empty data from Next")
-		logrus.Errorf("Unable to find the DataChange: %v", err)
+		err = fmt.Errorf("received empty opaque data from Next")
 		return nil, err
 	}
 	dataChange := opaque.(*ConnectionData).DataChange

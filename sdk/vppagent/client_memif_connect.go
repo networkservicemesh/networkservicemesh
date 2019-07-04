@@ -27,19 +27,18 @@ type ClientMemifConnect struct {
 func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if cmc.GetNext() == nil {
-		logrus.Fatal("The VPP Agent Client Memif Connect composite requires that there is Next set")
+		err := fmt.Errorf("composite requires that there is Next set")
+		return nil, err
 	}
 
 	incomingConnection, err := cmc.GetNext().Request(ctx, request)
 	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
 	opaque := cmc.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
-		err := fmt.Errorf("received empty data from Next")
-		logrus.Errorf("Unable to find the outgoing connection: %v", err)
+		err = fmt.Errorf("received empty opaque data from Next")
 		return nil, err
 	}
 	outgoingConnection := opaque.(*connection.Connection)

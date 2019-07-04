@@ -2,6 +2,7 @@ package vppagent
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 
@@ -27,12 +28,12 @@ type MemifConnect struct {
 func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if mc.GetNext() == nil {
-		logrus.Fatal("The VPP Agent Memif Connect composite requires that there is Next set")
+		err := fmt.Errorf("composite requires that there is Next set")
+		return nil, err
 	}
 
 	incomingConnection, err := mc.GetNext().Request(ctx, request)
 	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 

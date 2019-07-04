@@ -25,31 +25,28 @@ type XConnect struct {
 func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	if xc.GetNext() == nil {
-		logrus.Fatal("The VPP Agent Cross Connect composite requires that there is Next set")
+		err := fmt.Errorf("composite requires that there is Next set")
+		return nil, err
 	}
 
 	incomingConnection, err := xc.GetNext().Request(ctx, request)
 	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
 	opaque := xc.GetNext().GetOpaque(incomingConnection)
 	if opaque == nil {
-		err := fmt.Errorf("received empty data from Next")
-		logrus.Errorf("Unable to find connection data: %v", err)
+		err = fmt.Errorf("received empty opaque data from Next")
 		return nil, err
 	}
 	connectionData := opaque.(*ConnectionData)
 
 	if connectionData.InConnName == "" {
 		err := fmt.Errorf("found empty incoming connection name")
-		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
 	if connectionData.OutConnName == "" {
 		err := fmt.Errorf("found empty outgoing connection name")
-		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
 
