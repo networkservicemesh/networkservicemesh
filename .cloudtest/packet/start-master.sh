@@ -1,8 +1,16 @@
 #!/bin/sh
-kubeadm init --pod-network-cidr=192.168.0.0/16 --skip-token-print
+cat <<EOF >> kubeletconf.yaml
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+networking:
+    podSubnet: "192.168.0.0/16"
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+readOnlyPort: 10255
+EOF
 
-echo "KUBELET_EXTRA_ARGS= --read-only-port=10255" > /etc/default/kubelet
-service kubelet restart
+kubeadm init --config kubeletconf.yaml --skip-token-print
 
 mkdir -p "$HOME"/.kube
 sudo cp -f /etc/kubernetes/admin.conf "$HOME"/.kube/config

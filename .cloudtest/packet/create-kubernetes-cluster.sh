@@ -30,9 +30,7 @@ chmod +x /tmp/join-cluster.sh || exit 6
 
 # Upload and run worker join script
 scp ${SSH_OPTS} /tmp/join-cluster.sh root@${worker_ip}:join-cluster.sh || exit 7
-ssh ${SSH_OPTS} root@${worker_ip} ./join-cluster.sh && \
-    echo "KUBELET_EXTRA_ARGS= --read-only-port=10255" > /etc/default/kubelet && \
-    service kubelet restart &
+ssh ${SSH_OPTS} root@${worker_ip} ./join-cluster.sh &
 
 wait
 
