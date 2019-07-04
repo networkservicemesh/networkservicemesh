@@ -18,6 +18,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	createConnectionTimeout = 120*time.Second
+	createConnectionSleep   = 100*time.Millisecond
+)
+
 // Flush is a VPP Agent Flush composite
 type Flush struct {
 	endpoint.BaseCompositeEndpoint
@@ -114,10 +119,10 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 }
 
 func createConnection(endpoint string) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
 	defer cancel()
 
-	if err := tools.WaitForPortAvailable(ctx, "tcp", endpoint, 100*time.Millisecond); err != nil {
+	if err := tools.WaitForPortAvailable(ctx, "tcp", endpoint, createConnectionSleep); err != nil {
 		return nil, err
 	}
 
