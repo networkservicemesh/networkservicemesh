@@ -21,7 +21,7 @@ import (
 // Flush is a VPP Agent Flush composite
 type Flush struct {
 	endpoint.BaseCompositeEndpoint
-	Conn     *grpc.ClientConn
+	Conn *grpc.ClientConn
 }
 
 // Request implements the request handler
