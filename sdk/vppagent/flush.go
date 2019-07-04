@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	createConnectionTimeout = 120*time.Second
-	createConnectionSleep   = 100*time.Millisecond
+	createConnectionTimeout = 120 * time.Second
+	createConnectionSleep   = 100 * time.Millisecond
 )
 
 // Flush is a VPP Agent Flush composite
