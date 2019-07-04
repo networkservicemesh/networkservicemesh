@@ -47,7 +47,7 @@ func main() {
 		vppagent.NewFlush(configuration, "localhost:9112"),
 		vppagent.NewACL(configuration, getAclRulesConfig()),
 		vppagent.NewXConnect(configuration),
-		vppagent.NewMemifConnect(configuration, vppagent.SOURCE),
+		vppagent.NewMemifConnect(configuration),
 		vppagent.NewClientMemifConnect(configuration),
 		endpoint.NewClientEndpoint(configuration),
 		endpoint.NewConnectionEndpoint(configuration))

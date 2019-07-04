@@ -45,14 +45,14 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 	outgoingConnection := opaque.(*connection.Connection)
 	incomingConnection.Context = outgoingConnection.GetContext()
 
-	interfaceName := outgoingConnection.GetId()
+	name := outgoingConnection.GetId()
 	socketFileName := path.Join(cmc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
 
-	dataChange := cmc.createDataChange(interfaceName, socketFileName)
+	dataChange := cmc.createDataChange(name, socketFileName)
 
 	cmc.Connections[incomingConnection.GetId()] = &ConnectionData{
-		DstName:    interfaceName,
-		DataChange: dataChange,
+		OutConnName: name,
+		DataChange:  dataChange,
 	}
 
 	return incomingConnection, nil

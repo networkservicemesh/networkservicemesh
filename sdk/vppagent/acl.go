@@ -47,13 +47,13 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 	}
 	connectionData := opaque.(*ConnectionData)
 
-	if connectionData.SrcName == "" {
-		err = fmt.Errorf("found empty source name")
+	if connectionData.InConnName == "" {
+		err = fmt.Errorf("found empty incoming connection name")
 		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
 
-	connectionData.DataChange, err = a.appendDataChange(connectionData.DataChange, connectionData.SrcName)
+	connectionData.DataChange, err = a.appendDataChange(connectionData.DataChange, connectionData.InConnName)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

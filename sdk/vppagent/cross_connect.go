@@ -42,18 +42,18 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 	}
 	connectionData := opaque.(*ConnectionData)
 
-	if connectionData.DstName == "" {
-		err := fmt.Errorf("found empty destination name")
+	if connectionData.InConnName == "" {
+		err := fmt.Errorf("found empty incoming connection name")
 		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
-	if connectionData.SrcName == "" {
-		err := fmt.Errorf("found empty source name")
+	if connectionData.OutConnName == "" {
+		err := fmt.Errorf("found empty outgoing connection name")
 		logrus.Errorf("Invalid connection data: %v", err)
 		return nil, err
 	}
 
-	connectionData.DataChange = xc.appendDataChange(connectionData.DataChange, connectionData.SrcName, connectionData.DstName)
+	connectionData.DataChange = xc.appendDataChange(connectionData.DataChange, connectionData.InConnName, connectionData.OutConnName)
 
 	xc.Connections[incomingConnection.GetId()] = connectionData
 	return incomingConnection, nil
@@ -96,7 +96,7 @@ func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 	}
 }
 
-func (xc *XConnect) appendDataChange(rv *configurator.Config, srcName, dstName string) *configurator.Config {
+func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) *configurator.Config {
 	if rv == nil {
 		rv = &configurator.Config{}
 	}
@@ -106,12 +106,12 @@ func (xc *XConnect) appendDataChange(rv *configurator.Config, srcName, dstName s
 
 	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs,
 		&l2.XConnectPair{
-			ReceiveInterface:  srcName,
-			TransmitInterface: dstName,
+			ReceiveInterface:  in,
+			TransmitInterface: out,
 		},
 		&l2.XConnectPair{
-			ReceiveInterface:  dstName,
-			TransmitInterface: srcName,
+			ReceiveInterface:  out,
+			TransmitInterface: in,
 		},
 	)
 
