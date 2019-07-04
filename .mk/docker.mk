@@ -13,7 +13,7 @@
 # limitations under the License.
 
 BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s
-BUILD_CONTAINERS+=devenv crossconnect-monitor
+BUILD_CONTAINERS+=crossconnect-monitor
 BUILD_CONTAINERS+=nsm-init
 BUILD_CONTAINERS+=test-common
 
