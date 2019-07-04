@@ -19,6 +19,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	action     = "action"     // DENY, PERMIT, REFLECT
+	dstNet     = "dstnet"     // IPv4 or IPv6 CIDR
+	srcNet     = "srcnet"     // IPv4 or IPv6 CIDR
+	icmpType   = "icmptype"   // 8-bit unsigned integer
+	tcpLowPort = "tcplowport" // 16-bit unsigned integer
+	tcpUpPort  = "tcpupport"  // 16-bit unsigned integer
+	udpLowPort = "udplowport" // 16-bit unsigned integer
+	udpUpPort  = "udpupport"  // 16-bit unsigned integer
+)
+
 // ACL is a VPP Agent ACL composite
 type ACL struct {
 	endpoint.BaseCompositeEndpoint
@@ -145,7 +156,7 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 }
 
 func getAction(parsed map[string]string) (acl.ACL_Rule_Action, error) {
-	actionName, ok := parsed["action"]
+	actionName, ok := parsed[action]
 	if !ok {
 		return acl.ACL_Rule_Action(0), fmt.Errorf("rule should have 'action' set")
 	}
@@ -157,8 +168,8 @@ func getAction(parsed map[string]string) (acl.ACL_Rule_Action, error) {
 }
 
 func getIP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
-	dstNet, dstNetOk := parsed["dstnet"]
-	srcNet, srcNetOk := parsed["srcnet"]
+	dstNet, dstNetOk := parsed[dstNet]
+	srcNet, srcNetOk := parsed[srcNet]
 	if dstNetOk {
 		_, _, err := net.ParseCIDR(dstNet)
 		if err != nil {
@@ -187,7 +198,7 @@ func getIP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
 }
 
 func getICMP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Icmp, error) {
-	icmpType, ok := parsed["icmptype"]
+	icmpType, ok := parsed[icmpType]
 	if !ok {
 		return nil, nil
 	}
@@ -222,14 +233,14 @@ func getPort(name string, parsed map[string]string) (uint16, bool, error) {
 }
 
 func getTCP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Tcp, error) {
-	lowerPort, lpFound, lpErr := getPort("tcplowport", parsed)
+	lowerPort, lpFound, lpErr := getPort(tcpLowPort, parsed)
 	if !lpFound {
 		return nil, nil
 	} else if lpErr != nil {
 		return nil, lpErr
 	}
 
-	upperPort, upFound, upErr := getPort("tcpupport", parsed)
+	upperPort, upFound, upErr := getPort(tcpUpPort, parsed)
 	if !upFound {
 		return nil, nil
 	} else if upErr != nil {
@@ -251,14 +262,14 @@ func getTCP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Tcp, error) {
 }
 
 func getUDP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Udp, error) {
-	lowerPort, lpFound, lpErr := getPort("udplowport", parsed)
+	lowerPort, lpFound, lpErr := getPort(udpLowPort, parsed)
 	if !lpFound {
 		return nil, nil
 	} else if lpErr != nil {
 		return nil, lpErr
 	}
 
-	upperPort, upFound, upErr := getPort("udpupport", parsed)
+	upperPort, upFound, upErr := getPort(udpUpPort, parsed)
 	if !upFound {
 		return nil, nil
 	} else if upErr != nil {
