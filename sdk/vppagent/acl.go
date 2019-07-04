@@ -39,7 +39,6 @@ type ACL struct {
 
 // Request implements the request handler
 func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	if a.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
@@ -50,12 +49,10 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 		return nil, err
 	}
 
-	opaque := a.GetNext().GetOpaque(incomingConnection)
-	if opaque == nil {
-		err = fmt.Errorf("received empty opaque data from Next")
+	connectionData, err := getConnectionData(a.GetNext(), incomingConnection, false)
+	if err != nil {
 		return nil, err
 	}
-	connectionData := opaque.(*ConnectionData)
 
 	if connectionData.InConnName == "" {
 		err = fmt.Errorf("found empty incoming connection name")

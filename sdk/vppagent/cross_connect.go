@@ -3,6 +3,7 @@ package vppagent
 import (
 	"context"
 	"fmt"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -23,7 +24,6 @@ type XConnect struct {
 
 // Request implements the request handler
 func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	if xc.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
@@ -34,19 +34,17 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 		return nil, err
 	}
 
-	opaque := xc.GetNext().GetOpaque(incomingConnection)
-	if opaque == nil {
-		err = fmt.Errorf("received empty opaque data from Next")
+	connectionData, err := getConnectionData(xc.GetNext(), incomingConnection, false)
+	if err != nil {
 		return nil, err
 	}
-	connectionData := opaque.(*ConnectionData)
 
 	if connectionData.InConnName == "" {
-		err := fmt.Errorf("found empty incoming connection name")
+		err := fmt.Errorf("received empty incoming connection name")
 		return nil, err
 	}
 	if connectionData.OutConnName == "" {
-		err := fmt.Errorf("found empty outgoing connection name")
+		err := fmt.Errorf("received empty outgoing connection name")
 		return nil, err
 	}
 

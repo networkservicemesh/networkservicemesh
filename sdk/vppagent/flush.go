@@ -31,7 +31,6 @@ type Flush struct {
 
 // Request implements the request handler
 func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	if f.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
@@ -42,12 +41,16 @@ func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServ
 		return nil, err
 	}
 
-	opaque := f.GetNext().GetOpaque(incomingConnection)
-	if opaque == nil {
-		err = fmt.Errorf("received empty opaque data from Next")
+	connectionData, err := getConnectionData(f.GetNext(), incomingConnection, false)
+	if err != nil {
 		return nil, err
 	}
-	dataChange := opaque.(*ConnectionData).DataChange
+
+	dataChange := connectionData.DataChange
+	if dataChange == nil {
+		err = fmt.Errorf("received empty DataChange")
+		return nil, err
+	}
 
 	logrus.Infof("Sending DataChange to VPP Agent: %v", dataChange)
 	err = f.send(ctx, dataChange)
@@ -61,19 +64,25 @@ func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServ
 
 // Close implements the close handler
 func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	opaque := f.GetNext().GetOpaque(connection)
-	if opaque != nil {
-		dataChange := opaque.(*ConnectionData).DataChange
-
-		logrus.Infof("Removing DataChange from VPP Agent: %v", dataChange)
-		err := f.remove(ctx, dataChange)
-		if err != nil {
-			logrus.Errorf("Failed to remove DataChange from VPP Agent: %v", err)
-			return &empty.Empty{}, err
-		}
+	connectionData, err := getConnectionData(f.GetNext(), connection, false)
+	if err != nil {
+		return &empty.Empty{}, err
 	}
 
-	err := f.Conn.Close()
+	dataChange := connectionData.DataChange
+	if dataChange == nil {
+		err = fmt.Errorf("received empty DataChange")
+		return &empty.Empty{}, err
+	}
+
+	logrus.Infof("Removing DataChange from VPP Agent: %v", dataChange)
+	err = f.remove(ctx, dataChange)
+	if err != nil {
+		logrus.Errorf("Failed to remove DataChange from VPP Agent: %v", err)
+		return &empty.Empty{}, err
+	}
+
+	err = f.Conn.Close()
 	if err != nil {
 		logrus.Errorf("Failed to close connection to VPP Agent: %v", err)
 		return &empty.Empty{}, err

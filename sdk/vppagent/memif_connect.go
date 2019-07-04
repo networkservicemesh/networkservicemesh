@@ -26,7 +26,6 @@ type MemifConnect struct {
 
 // Request implements the request handler
 func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	if mc.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
@@ -37,10 +36,9 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 		return nil, err
 	}
 
-	var connectionData *ConnectionData
-	opaque := mc.GetNext().GetOpaque(incomingConnection)
-	if opaque != nil {
-		connectionData = opaque.(*ConnectionData)
+	connectionData, err := getConnectionData(mc.GetNext(), incomingConnection, true)
+	if err != nil {
+		return nil, err
 	}
 	if connectionData == nil {
 		connectionData = &ConnectionData{}

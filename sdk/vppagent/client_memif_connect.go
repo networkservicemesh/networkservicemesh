@@ -3,6 +3,7 @@ package vppagent
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -25,7 +26,6 @@ type ClientMemifConnect struct {
 
 // Request implements the request handler
 func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	if cmc.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
@@ -41,7 +41,13 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 		err = fmt.Errorf("received empty opaque data from Next")
 		return nil, err
 	}
-	outgoingConnection := opaque.(*connection.Connection)
+
+	outgoingConnection, ok := opaque.(*connection.Connection)
+	if !ok {
+		err := fmt.Errorf("unexpected opaque data type: expected connection.Connection, received %v", reflect.TypeOf(opaque))
+		return nil, err
+	}
+
 	incomingConnection.Context = outgoingConnection.GetContext()
 
 	name := outgoingConnection.GetId()
