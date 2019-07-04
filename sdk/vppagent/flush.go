@@ -82,6 +82,7 @@ func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*
 		return &empty.Empty{}, err
 	}
 
+	logrus.Info("Closing connection to VPP Agent")
 	err = f.Conn.Close()
 	if err != nil {
 		logrus.Errorf("Failed to close connection to VPP Agent: %v", err)
@@ -117,7 +118,7 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 		Conn: conn,
 	}
 
-	logrus.Infof("Resetting VPP Agent")
+	logrus.Info("Resetting VPP Agent")
 	err = self.reset()
 	if err != nil {
 		logrus.Errorf("Failed to reset VPP Agent: %v", err)
