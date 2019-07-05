@@ -116,12 +116,6 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 }
 
 func (f *Flush) createConnection(ctx context.Context) (*grpc.ClientConn, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), createConnectionTimeout)
-		defer cancel()
-	}
-
 	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, createConnectionSleep); err != nil {
 		return nil, err
 	}
@@ -173,7 +167,10 @@ func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) err
 }
 
 func (f *Flush) reset() error {
-	conn, err := f.createConnection(nil)
+	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
+	defer cancel()
+
+	conn, err := f.createConnection(ctx)
 	if err != nil {
 		return nil
 	}
