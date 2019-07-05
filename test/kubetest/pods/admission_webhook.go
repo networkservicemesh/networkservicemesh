@@ -41,7 +41,7 @@ func AdmissionWebhookDeployment(name, image string) *appsv1.Deployment {
 									Value: containerTag,
 								},
 								{
-									Name:  "CONTAINER_REPO",
+									Name:  "REPO",
 									Value: containerRepo,
 								},
 							},
