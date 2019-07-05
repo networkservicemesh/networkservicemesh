@@ -107,7 +107,8 @@ func createDataplaneConfig() *DataplaneConfig {
 	err := tools.SocketCleanup(cfg.DataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
-		SetSocketCleanFailed()
+	} else {
+		SetSocketCleanReady()
 	}
 
 	cfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
@@ -172,17 +173,20 @@ func createDataplaneConfig() *DataplaneConfig {
 	srcIPStr, ok := os.LookupEnv(DataplaneSrcIPKey)
 	if !ok {
 		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
-		SetSrcIPFailed()
+	} else {
+		SetSrcIPReady()
 	}
 	cfg.SrcIP = net.ParseIP(srcIPStr)
 	if cfg.SrcIP == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
-		SetValidIPFailed()
+	} else {
+		SetValidIPReady()
 	}
 	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
-		SetNewEgressIFFailed()
+	} else {
+		SetNewEgressIFReady()
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
 
@@ -209,7 +213,8 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 	config.Listener, err = net.Listen(config.DataplaneSocketType, config.DataplaneSocket)
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
-		SetSocketListenFailed()
+	} else {
+		SetSocketListenReady()
 	}
 	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
 

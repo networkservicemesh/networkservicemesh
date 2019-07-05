@@ -27,31 +27,31 @@ const (
 )
 
 var (
-	srcIPOK        = true
-	validIPOK      = true
-	egressOK       = true
-	socketCleanOK  = true
-	socketListenOK = true
+	srcIPOK        = false
+	validIPOK      = false
+	egressOK       = false
+	socketCleanOK  = false
+	socketListenOK = false
 )
 
-func SetSrcIPFailed() {
-	srcIPOK = false
+func SetSrcIPReady() {
+	srcIPOK = true
 }
 
-func SetValidIPFailed() {
-	validIPOK = false
+func SetValidIPReady() {
+	validIPOK = true
 }
 
-func SetNewEgressIFFailed() {
-	egressOK = false
+func SetNewEgressIFReady() {
+	egressOK = true
 }
 
-func SetSocketCleanFailed() {
-	socketCleanOK = false
+func SetSocketCleanReady() {
+	socketCleanOK = true
 }
 
-func SetSocketListenFailed() {
-	socketListenOK = false
+func SetSocketListenReady() {
+	socketListenOK = true
 }
 
 func readiness(w http.ResponseWriter, r *http.Request) {

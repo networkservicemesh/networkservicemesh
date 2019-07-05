@@ -41,10 +41,10 @@ func main() {
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)
-		nsmd.SetNSMServerFailed()
 		return
 	}
 	defer server.Stop()
+	nsmd.SetNSMServerReady()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
@@ -54,25 +54,36 @@ func main() {
 	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(); err != nil {
 		logrus.Errorf("Error starting dataplane service: %+v", err)
-		nsmd.SetDPServerFailed()
+		return
 	}
 
 	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(nsmd.DataplaneTimeout); err != nil {
 		logrus.Errorf("Error waiting for dataplane..")
+		return
 	}
+	nsmd.SetDPServerReady()
 
 	// Choose a public API listener
 	sock, err := apiRegistry.NewPublicListener()
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
-		nsmd.SetPublicListenerFailed()
+		return
 	}
+	nsmd.SetPublicListenerReady()
 
-	server.StartAPIServerAt(sock)
+
+	quit := make(chan error)
+	server.StartAPIServerAt(sock, quit)
+	nsmd.SetAPIServerReady()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting NSMD took: %s", elapsed)
 
-	<-c
+	select {
+		case osSignal := <-c:
+			logrus.Errorf("Exited with OS signal: %s", osSignal.String())
+		case err = <-quit:
+			logrus.Errorf("Failed to start gRPC NSMD API server: %+v", err)
+	}
 }
