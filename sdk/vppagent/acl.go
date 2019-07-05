@@ -138,8 +138,10 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 		rules = append(rules, match)
 	}
 
+	name := "ingress-acl-" + ingressInterface
+
 	rv.VppConfig.Acls = append(rv.VppConfig.Acls, &acl.ACL{
-		Name:  "IngressACL",
+		Name:  name,
 		Rules: rules,
 		Interfaces: &acl.ACL_Interfaces{
 			Egress:  []string{},
