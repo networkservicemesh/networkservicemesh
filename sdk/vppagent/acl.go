@@ -113,6 +113,9 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
 	}
+	if len(a.Rules) == 0 {
+		return rv, nil
+	}
 
 	rules := []*acl.ACL_Rule{}
 
@@ -133,16 +136,16 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 
 		match.Action = action
 		rules = append(rules, match)
-
-		rv.VppConfig.Acls = append(rv.VppConfig.Acls, &acl.ACL{
-			Name:  "IngressACL",
-			Rules: rules,
-			Interfaces: &acl.ACL_Interfaces{
-				Egress:  []string{},
-				Ingress: []string{ingressInterface},
-			},
-		})
 	}
+
+	rv.VppConfig.Acls = append(rv.VppConfig.Acls, &acl.ACL{
+		Name:  "IngressACL",
+		Rules: rules,
+		Interfaces: &acl.ACL_Interfaces{
+			Egress:  []string{},
+			Ingress: []string{ingressInterface},
+		},
+	})
 
 	return rv, nil
 }
