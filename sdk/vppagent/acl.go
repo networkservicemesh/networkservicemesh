@@ -61,7 +61,6 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 
 	connectionData.DataChange, err = a.appendDataChange(connectionData.DataChange, connectionData.InConnName)
 	if err != nil {
-		logrus.Error(err)
 		return nil, err
 	}
 
@@ -131,8 +130,8 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 			logrus.Errorf("Parsing rule %s failed with %v", rule, err)
 			return nil, err
 		}
-		match.Action = action
 
+		match.Action = action
 		rules = append(rules, match)
 
 		rv.VppConfig.Acls = append(rv.VppConfig.Acls, &acl.ACL{

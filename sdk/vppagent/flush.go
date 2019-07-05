@@ -155,7 +155,6 @@ func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error
 	client := configurator.NewConfiguratorClient(f.Conn)
 
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
-		logrus.Error(err)
 		_, _ = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 		return err
 	}
@@ -166,7 +165,6 @@ func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) err
 	client := configurator.NewConfiguratorClient(f.Conn)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
-		logrus.Error(err)
 		return err
 	}
 	return nil
