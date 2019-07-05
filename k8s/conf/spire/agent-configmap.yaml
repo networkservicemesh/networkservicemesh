@@ -18,7 +18,7 @@ data:
       NodeAttestor "k8s_sat" {
         plugin_data {
           # NOTE: Change this to your cluster name
-          cluster = "demo-cluster"
+          cluster = "kubernetes"
         }
       }
       KeyManager "memory" {
@@ -27,7 +27,7 @@ data:
       }
       WorkloadAttestor "k8s" {
         plugin_data {
-            kubelet_read_only_port = "10255"
+          skip_kubelet_verification = true
         }
       }
     }

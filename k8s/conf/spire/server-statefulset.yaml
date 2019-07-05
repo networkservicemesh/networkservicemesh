@@ -23,7 +23,7 @@ spec:
       containers:
         - name: spire-server
           image: lobkovilya/spire-registration
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
           volumeMounts:

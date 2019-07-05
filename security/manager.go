@@ -152,7 +152,10 @@ func (m *certificateManager) GenerateJWT(networkService string, obo string) (str
 		}
 	}
 
-	certStr := base64.StdEncoding.EncodeToString(m.GetCertificate().Certificate[0])
+	var certs []string
+	for i := 0; i < len(m.GetCertificate().Certificate); i++ {
+		certs = append(certs, base64.StdEncoding.EncodeToString(m.GetCertificate().Certificate[i]))
+	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, &NSMClaims{
 		StandardClaims: jwt.StandardClaims{
@@ -162,7 +165,7 @@ func (m *certificateManager) GenerateJWT(networkService string, obo string) (str
 			ExpiresAt: time.Now().Add(2 * time.Second).Unix(),
 		},
 		Obo:  obo,
-		Cert: certStr,
+		Cert: certs,
 	})
 
 	return token.SignedString(m.GetCertificate().PrivateKey)
@@ -323,7 +326,7 @@ func (m *certificateManager) createServerInterceptor(spiffeIDFunc func() string)
 
 		jwt := md["authorization"][0]
 		if err := m.VerifyJWT(spiffeIDFunc(), jwt); err != nil {
-			return nil, status.Errorf(codes.Unauthenticated, "token is not valid")
+			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
 		}
 
 		_, _, claims, _ := parseJWTWithClaims(jwt)

@@ -12,6 +12,7 @@ data:
       data_dir = "/run/spire/data"
       log_level = "DEBUG"
       svid_ttl = "1h"
+      upstream_bundle = true
       ca_subject = {
         Country = ["US"],
         Organization = ["SPIFFE"],
@@ -29,7 +30,7 @@ data:
         plugin_data {
           clusters = {
             # NOTE: Change this to your cluster name
-            "demo-cluster" = {
+            "kubernetes" = {
               service_account_key_file = "/run/k8s-certs/sa.pub"
               service_account_whitelist = ["spire:spire-agent"]
             }

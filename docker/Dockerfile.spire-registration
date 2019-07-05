@@ -1,4 +1,4 @@
-FROM gcr.io/spiffe-io/spire-server:0.7.3 as builder
+FROM gcr.io/spiffe-io/spire-server:0.8.0 as builder
 
 FROM alpine
 RUN apk add dumb-init

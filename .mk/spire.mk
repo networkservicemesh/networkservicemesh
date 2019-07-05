@@ -30,6 +30,7 @@ spire-server-start:
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-configmap.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-secrets.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-service.yaml;
+	@kubectl apply -f ${K8S_CONF_DIR}/spire/pod-reader.yaml;
 	@kubectl apply -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml;
 
 .PHONY: spire-agent-start
@@ -43,6 +44,7 @@ spire-agent-start:
 spire-server-delete:
 	@echo "Deleting spire-server...";
 	@kubectl delete -f ${K8S_CONF_DIR}/spire/server-statefulset.yaml || \
+	@kubectl delete -f ${K8S_CONF_DIR}/spire/pod-reader.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-account.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-configmap.yaml || \
 	kubectl delete -f ${K8S_CONF_DIR}/spire/server-secrets.yaml || \

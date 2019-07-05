@@ -103,6 +103,8 @@ func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, er
 	crt, err := certToPemBlocks(svid.GetX509Svid())
 	if err != nil {
 		return nil, err
+	} else {
+		logrus.Infof("PUBLIC PEM: %v", string(crt))
 	}
 
 	key := keyToPem(svid.GetX509SvidKey())
@@ -111,6 +113,22 @@ func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, er
 		return nil, err
 	}
 
+	logrus.Infof("crt len %v", len(keyPair.Certificate))
+	if len(keyPair.Certificate) > 1 {
+		if x509crt, err := x509.ParseCertificate(keyPair.Certificate[1]); err == nil {
+			//logrus.Infof("Length of DNSNames = %v", len(x509crt.DNSNames))
+			//logrus.Infof("DNSNames[0] = %v", x509crt.DNSNames[0])
+			logrus.Infof("Length of DNSNames = %v", len(x509crt.URIs))
+			logrus.Infof("URI[0] = %v", *x509crt.URIs[0])
+			logrus.Info("crt %v", *x509crt)
+			//logrus.Infof("Length of x509crt.Extensions = %v", len(x509crt.Extensions))
+			//for _, ext := range x509crt.Extensions {
+			//	if oidEqual(ext.Id, []int{2, 5, 29, 17}) {
+			//
+			//	}
+			//}
+		}
+	}
 	if x509crt, err := x509.ParseCertificate(keyPair.Certificate[0]); err == nil {
 		//logrus.Infof("Length of DNSNames = %v", len(x509crt.DNSNames))
 		//logrus.Infof("DNSNames[0] = %v", x509crt.DNSNames[0])
@@ -127,14 +145,44 @@ func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, er
 	}
 
 	caBundle, err := certToPemBlocks(svid.GetBundle())
+	// test
+	c, _ := x509.ParseCertificates(svid.GetBundle())
+	logrus.Info("CA_BUNDLE: %v", *c[0])
+	logrus.Info("CA_BUNDLE len: %v", len(c))
+	// test end
 	if err != nil {
 		return nil, err
+	} else {
+		logrus.Infof("CA_BUNDLE PEM: %v", string(caBundle))
 	}
 
 	caPool := x509.NewCertPool()
 	if ok := caPool.AppendCertsFromPEM(caBundle); !ok {
 		return nil, errors.New("failed to append ca cert to pool")
 	}
+
+	//verify
+	leaf, _ := x509.ParseCertificate(keyPair.Certificate[0])
+	interm, _ := x509.ParseCertificate(keyPair.Certificate[1])
+
+	intermPool := x509.NewCertPool()
+	intermPool.AddCert(interm)
+
+	_, err1 := leaf.Verify(x509.VerifyOptions{
+		Roots:         caPool,
+		Intermediates: intermPool,
+	})
+	_, err2 := leaf.Verify(x509.VerifyOptions{
+		Roots: caPool,
+	})
+
+	caPool.AddCert(interm)
+	_, err3 := leaf.Verify(x509.VerifyOptions{
+		Roots: caPool,
+	})
+	logrus.Infof("err1 - %v", err1)
+	logrus.Infof("err2 - %v", err2)
+	logrus.Infof("err3 - %v", err3)
 
 	return &RetrievedCerts{
 		TLSCert:  &keyPair,
