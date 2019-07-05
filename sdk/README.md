@@ -155,9 +155,18 @@ Writing a new *composite* is done better by extending the `BaseCompositeEndpoint
 
 The SDK comes with a set of useful *composites*, that can be chained together and as part of more complex scenarios.
 
- * `client` - create a downlink connection, i.e. to the next endpoint. This connection is available through the `GetOpaque` method.
+ #### Basic composites
+ * `client` - creates a downlink connection, i.e. to the next endpoint. This connection is available through the `GetOpaque` method.
  * `connection` - returns a basic initialized connection, with the configured Mechanism set. Usually used at the "bottom" of the composite chain.
  * `ipam` - receives a connection from the next composite and assigns it an IP pair from the configure prefix pool.
  * `monitor` - receives a connection from the next composite and adds it to the monitoring mechanism. Typically would be at the top of the composite chain.
  * `route` - receives a connection from the next composite and assigns it routes.
  * `neighbor` - receives a connection from the next composite and assigns it all available neighbors.
+ 
+ #### VPP Agent composites
+ * `memif-connect` - receives a connection from the next composite and creates a DataChange (or appends an existing DataChange) with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
+ * `client-memif-connect` - receives a downlink connection from the `client` composite's Opaque Data and creates a DataChange with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
+ * `cross-connect` - receives names of created interfaces from the next composite's Opaque Data and creates a DataChange (or appends an existing DataChange) with cross-connect configuration. This DataChange is available through the `GetOpaque` method.
+ * `acl` - receives a name of created interface from the next composite's Opaque Data and creates a DataChange (or appends an existing DataChange) with ACLs for this interface. This DataChange is available through the `GetOpaque` method.
+ * `flush` - receives a DataChange from the next composite's Opaque Data and writes it to VPP Agent.
+ 
