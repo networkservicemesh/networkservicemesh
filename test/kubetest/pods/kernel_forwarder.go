@@ -5,14 +5,17 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// KernelDataplanePod creates a pod
 func KernelDataplanePod(name string, node *v1.Node) *v1.Pod {
 	return createKernelDataplanePod(name, node, nil, nil, nil)
 }
 
+// KernelDataplanePodConfig creates a pod with config
 func KernelDataplanePodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
 	return createKernelDataplanePod(name, node, nil, nil, variables)
 }
 
+// KernelDataplanePodLiveCheck creates a pod with live check
 func KernelDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
 	return createKernelDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
 }

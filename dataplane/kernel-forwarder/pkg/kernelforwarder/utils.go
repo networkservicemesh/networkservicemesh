@@ -82,13 +82,13 @@ func createLocalConnection(cfg *connectionConfig) error {
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
 	defer srcNsHandle.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get source namespace handler from path - %v", err)
+		logrus.Errorf("failed to get source namespace handler from path - %v", err)
 		return err
 	}
 	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
 	defer dstNsHandle.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
+		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
 		return err
 	}
 
@@ -96,20 +96,20 @@ func createLocalConnection(cfg *connectionConfig) error {
 	iface := getVETH(cfg.srcName, cfg.dstName)
 
 	/* 3. Create the VETH pair - host namespace */
-	if err := netlink.LinkAdd(iface); err != nil {
-		logrus.Errorf("Failed to create the VETH pair - %v", err)
+	if err = netlink.LinkAdd(iface); err != nil {
+		logrus.Errorf("failed to create the VETH pair - %v", err)
 		return err
 	}
 
 	/* 4. Setup interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, true); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", cfg.srcName, err)
+		logrus.Errorf("failed to setup container interface %q: %v", cfg.srcName, err)
 		return err
 	}
 
 	/* 5. Setup interface - destination namespace */
 	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, true); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", cfg.dstName, err)
+		logrus.Errorf("failed to setup container interface %q: %v", cfg.dstName, err)
 		return err
 	}
 	return nil
@@ -121,38 +121,38 @@ func deleteLocalConnection(cfg *connectionConfig) error {
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
 	defer srcNsHandle.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get source namespace handler from path - %v", err)
+		logrus.Errorf("failed to get source namespace handler from path - %v", err)
 		return err
 	}
 	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
 	defer dstNsHandle.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get destination namespace handler from path - %v", err)
+		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
 		return err
 	}
 
 	/* 2. Extract the interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, false); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", cfg.srcName, err)
+		logrus.Errorf("failed to setup container interface %q: %v", cfg.srcName, err)
 		return err
 	}
 
 	/* 3. Extract the interface - destination namespace */
 	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, false); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", cfg.dstName, err)
+		logrus.Errorf("failed to setup container interface %q: %v", cfg.dstName, err)
 		return err
 	}
 
 	/* 4. Get a link object for the interface */
 	ifaceLink, err := netlink.LinkByName(cfg.srcName)
 	if err != nil {
-		logrus.Errorf("Failed to get link for %q - %v", cfg.srcName, err)
+		logrus.Errorf("failed to get link for %q - %v", cfg.srcName, err)
 		return err
 	}
 
 	/* 5. Delete the VETH pair - host namespace */
 	if err := netlink.LinkDel(ifaceLink); err != nil {
-		logrus.Errorf("Failed to delete the VETH pair - %v", err)
+		logrus.Errorf("failed to delete the VETH pair - %v", err)
 		return err
 	}
 	return nil
@@ -168,8 +168,8 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 		/* 2. Outgoing remote connection */
 		return handleOutgoing(egress, crossConnect, connect)
 	}
-	logrus.Errorf("Invalid remote connection type")
-	return crossConnect, fmt.Errorf("Invalid remote connection type")
+	logrus.Errorf("invalid remote connection type")
+	return crossConnect, fmt.Errorf("invalid remote connection type")
 }
 
 func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
@@ -177,20 +177,20 @@ func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnec
 	/* 1. Get the connection configuration */
 	cfg, err := getConnectionConfig(crossConnect, cINCOMING)
 	if err != nil {
-		logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
+		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
 	}
 	if connect {
 		/* 2. Create a connection */
 		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
 		if err != nil {
-			logrus.Errorf("Failed to create remote connection - %v", err)
+			logrus.Errorf("failed to create remote connection - %v", err)
 		}
 	} else {
 		/* 3. Delete a connection */
-		err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
+		err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName)
 		if err != nil {
-			logrus.Errorf("Failed to delete remote connection - %v", err)
+			logrus.Errorf("failed to delete remote connection - %v", err)
 		}
 	}
 	return crossConnect, err
@@ -201,50 +201,50 @@ func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnec
 	/* 1. Get the connection configuration */
 	cfg, err := getConnectionConfig(crossConnect, cOUTGOING)
 	if err != nil {
-		logrus.Errorf("Failed to get the configuration for remote connection - %v", err)
+		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
 	}
 	if connect {
 		/* 2. Create a connection */
 		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
 		if err != nil {
-			logrus.Errorf("Failed to create remote connection - %v", err)
+			logrus.Errorf("failed to create remote connection - %v", err)
 		}
 	} else {
 		/* 3. Delete a connection */
-		err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
+		err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName)
 		if err != nil {
-			logrus.Errorf("Failed to delete remote connection - %v", err)
+			logrus.Errorf("failed to delete remote connection - %v", err)
 		}
 	}
 	return crossConnect, err
 }
 
-func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
+func createRemoteConnection(nsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
 	logrus.Info("Creating remote connection...")
 	/* 1. Get handler for container namespace */
-	containerNs, err := netns.GetFromPath(NsPath)
+	containerNs, err := netns.GetFromPath(nsPath)
 	defer containerNs.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get namespace handler from path - %v", err)
+		logrus.Errorf("failed to get namespace handler from path - %v", err)
 		return err
 	}
 
 	/* 2. Prepare interface - VXLAN */
 	iface, err := getVXLAN(ifaceName, egressName, egressIP, remoteIP, vni)
 	if err != nil {
-		logrus.Errorf("Failed to get VXLAN interface configuration - %v", err)
+		logrus.Errorf("failed to get VXLAN interface configuration - %v", err)
 		return err
 	}
 
 	/* 3. Create interface - host namespace */
-	if err := netlink.LinkAdd(iface); err != nil {
-		logrus.Errorf("Failed to create VXLAN interface - %v", err)
+	if err = netlink.LinkAdd(iface); err != nil {
+		logrus.Errorf("failed to create VXLAN interface - %v", err)
 	}
 
 	/* 4. Setup interface */
 	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, true); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", ifaceName, err)
+		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
 	return nil
@@ -255,12 +255,12 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 		/* 1. Get a link object for the interface */
 		ifaceLink, err := netlink.LinkByName(ifaceName)
 		if err != nil {
-			logrus.Errorf("Failed to get link for %q - %v", ifaceName, err)
+			logrus.Errorf("failed to get link for %q - %v", ifaceName, err)
 			return err
 		}
 		/* 2. Inject the interface into the desired container namespace */
 		if err = netlink.LinkSetNsFd(ifaceLink, int(containerNs)); err != nil {
-			logrus.Errorf("Failed to inject %q in namespace - %v", ifaceName, err)
+			logrus.Errorf("failed to inject %q in namespace - %v", ifaceName, err)
 			return err
 		}
 	}
@@ -271,84 +271,85 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 	currentNs, err := netns.Get()
 	defer currentNs.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get current namespace: %v", err)
+		logrus.Errorf("failed to get current namespace: %v", err)
 		return err
 	}
 	/* 5. Switch to the new namespace */
-	if err := netns.Set(containerNs); err != nil {
-		logrus.Errorf("Failed to switch to container namespace: %v", err)
+	if err = netns.Set(containerNs); err != nil {
+		logrus.Errorf("failed to switch to container namespace: %v", err)
 		return err
 	}
 	defer containerNs.Close()
 	/* 6. Get a link for the interface name */
 	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
-		logrus.Errorf("Failed to lookup %q, %v", ifaceName, err)
+		logrus.Errorf("failed to lookup %q, %v", ifaceName, err)
 		return err
 	}
 	if inject {
+		var addr *netlink.Addr
 		/* 7. Parse the IP address */
-		addr, err := netlink.ParseAddr(ifaceIP)
+		addr, err = netlink.ParseAddr(ifaceIP)
 		if err != nil {
-			logrus.Errorf("Failed to parse IP %q: %v", ifaceIP, err)
+			logrus.Errorf("failed to parse IP %q: %v", ifaceIP, err)
 			return err
 		}
 		/* 8. Set IP address */
 		if err = netlink.AddrAdd(link, addr); err != nil {
-			logrus.Errorf("Failed to set IP %q: %v", ifaceIP, err)
+			logrus.Errorf("failed to set IP %q: %v", ifaceIP, err)
 			return err
 		}
 		/* 9. Bring the interface UP */
 		if err = netlink.LinkSetUp(link); err != nil {
-			logrus.Errorf("Failed to bring %q up: %v", ifaceName, err)
+			logrus.Errorf("failed to bring %q up: %v", ifaceName, err)
 			return err
 		}
 	} else {
 		/* 9. Bring the interface DOWN */
 		if err = netlink.LinkSetDown(link); err != nil {
-			logrus.Errorf("Failed to bring %q down: %v", ifaceName, err)
+			logrus.Errorf("failed to bring %q down: %v", ifaceName, err)
 			return err
 		}
 		/* 2. Inject the interface back into the host namespace */
 		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
-			logrus.Errorf("Failed to inject %q bach to host namespace - %v", ifaceName, err)
+			logrus.Errorf("failed to inject %q bach to host namespace - %v", ifaceName, err)
 			return err
 		}
 	}
 	/* 10. Switch back to the original namespace */
 	if err = netns.Set(currentNs); err != nil {
-		logrus.Errorf("Failed to switch back to original namespace: %v", err)
+		logrus.Errorf("failed to switch back to original namespace: %v", err)
 		return err
 	}
 	return nil
 }
 
-func deleteRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
+func deleteRemoteConnection(nsPath, ifaceName string) error {
 	logrus.Info("Deleting remote connection...")
 	/* 1. Get handler for container namespace */
-	containerNs, err := netns.GetFromPath(NsPath)
+	containerNs, err := netns.GetFromPath(nsPath)
 	defer containerNs.Close()
 	if err != nil {
-		logrus.Errorf("Failed to get namespace handler from path - %v", err)
+		logrus.Errorf("failed to get namespace handler from path - %v", err)
 		return err
 	}
 
 	/* 2. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, false); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", ifaceName, err)
+	if err = setupLinkInNs(containerNs, ifaceName, "", false); err != nil {
+		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
 
 	/* 3. Get a link object for the interface */
 	ifaceLink, err := netlink.LinkByName(ifaceName)
 	if err != nil {
-		logrus.Errorf("Failed to get link for %q - %v", ifaceName, err)
+		logrus.Errorf("failed to get link for %q - %v", ifaceName, err)
 		return err
 	}
 
 	/* 4. Delete the VXLAN interface - host namespace */
 	if err := netlink.LinkDel(ifaceLink); err != nil {
-		logrus.Errorf("Failed to delete the VXLAN - %v", err)
+		logrus.Errorf("failed to delete the VXLAN - %v", err)
 		return err
 	}
 	return nil
@@ -359,12 +360,12 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	case cLOCAL:
 		srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
 		if err != nil {
-			logrus.Errorf("Failed to get source namespace path - %v", err)
+			logrus.Errorf("failed to get source namespace path - %v", err)
 			return nil, err
 		}
 		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
 		if err != nil {
-			logrus.Errorf("Failed to get destination namespace path - %v", err)
+			logrus.Errorf("failed to get destination namespace path - %v", err)
 			return nil, err
 		}
 		return &connectionConfig{
@@ -378,7 +379,7 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	case cINCOMING:
 		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
 		if err != nil {
-			logrus.Errorf("Failed to get destination namespace path - %v", err)
+			logrus.Errorf("failed to get destination namespace path - %v", err)
 			return nil, err
 		}
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANVNI])
@@ -393,7 +394,7 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	case cOUTGOING:
 		srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
 		if err != nil {
-			logrus.Errorf("Failed to get destination namespace path - %v", err)
+			logrus.Errorf("failed to get destination namespace path - %v", err)
 			return nil, err
 		}
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANVNI])
@@ -406,8 +407,8 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			vni:        vni,
 		}, nil
 	default:
-		logrus.Error("Connection configuration: invalid connection type")
-		return nil, fmt.Errorf("Invalid connection type")
+		logrus.Error("connection configuration: invalid connection type")
+		return nil, fmt.Errorf("invalid connection type")
 	}
 }
 

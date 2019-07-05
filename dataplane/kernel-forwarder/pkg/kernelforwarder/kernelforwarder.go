@@ -31,6 +31,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+// KernelForwarder instance
 type KernelForwarder struct {
 	common *common.DataplaneConfig
 }
@@ -52,28 +53,26 @@ func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv datapl
 		logrus.Errorf("Kernel forwarding plane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
-	for {
-		select {
-		// Waiting for any updates which might occur during a life of dataplane module and communicating
-		// them back to NSM.
-		case update := <-v.common.MechanismsUpdateChannel:
-			v.common.Mechanisms = update
-			logrus.Infof("Sending MonitorMechanisms update: %v", update)
-			if err := updateSrv.Send(&dataplane.MechanismUpdate{
-				RemoteMechanisms: update.RemoteMechanisms,
-				LocalMechanisms:  update.LocalMechanisms,
-			}); err != nil {
-				logrus.Errorf("Kernel forwarding plane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
-				return nil
-			}
+	// Waiting for any updates which might occur during a life of dataplane module and communicating
+	// them back to NSM.
+	for update := range v.common.MechanismsUpdateChannel {
+		v.common.Mechanisms = update
+		logrus.Infof("Sending MonitorMechanisms update: %v", update)
+		if err := updateSrv.Send(&dataplane.MechanismUpdate{
+			RemoteMechanisms: update.RemoteMechanisms,
+			LocalMechanisms:  update.LocalMechanisms,
+		}); err != nil {
+			logrus.Errorf("Kernel forwarding plane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+			return nil
 		}
 	}
+	return nil
 }
 
 // Request handler for connections
 func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)
-	xcon, err := v.connectOrDisconnect(ctx, crossConnect, cCONNECT)
+	xcon, err := v.connectOrDisconnect(crossConnect, cCONNECT)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +81,7 @@ func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 	return xcon, err
 }
 
-func (v *KernelForwarder) connectOrDisconnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+func (v *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	/* 1. Handle local connection */
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
@@ -95,7 +94,7 @@ func (v *KernelForwarder) connectOrDisconnect(ctx context.Context, crossConnect 
 // Close handler for connections
 func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("Close() called with %#v", crossConnect)
-	xcon, err := v.connectOrDisconnect(ctx, crossConnect, cDISCONNECT)
+	xcon, err := v.connectOrDisconnect(crossConnect, cDISCONNECT)
 	if err != nil {
 		logrus.Warn(err)
 	}
