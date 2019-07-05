@@ -2,7 +2,7 @@ version: 1.0
 providers:
   - name: "packet"
     kind: "packet"
-    instances: 1
+    instances: 2
     retry: 5
     node-count: 2
     enabled: true
@@ -40,9 +40,4 @@ providers:
         ssh-keygen -t rsa -f $(tempdir)/sshkey -q -N ""
         ssh-add $(tempdir)/sshkey
       start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
-      prepare: |
-        make k8s-config
-        sleep 10
-        kubectl get nodes --show-labels
-        kubectl get pods -n spire
-        kubectl describe pods -n spire
+      prepare: make k8s-config

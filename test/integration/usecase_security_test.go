@@ -1,4 +1,4 @@
-// +build security
+// +build usecase
 
 package nsmd_integration_tests
 
