@@ -103,13 +103,13 @@ func createLocalConnection(cfg *connectionConfig) error {
 
 	/* 4. Setup interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, true); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		logrus.Errorf("Failed to setup container interface %q: %v", cfg.srcName, err)
 		return err
 	}
 
 	/* 5. Setup interface - destination namespace */
 	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, true); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		logrus.Errorf("Failed to setup container interface %q: %v", cfg.dstName, err)
 		return err
 	}
 	return nil
@@ -133,13 +133,13 @@ func deleteLocalConnection(cfg *connectionConfig) error {
 
 	/* 2. Extract the interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, false); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		logrus.Errorf("Failed to setup container interface %q: %v", cfg.srcName, err)
 		return err
 	}
 
 	/* 3. Extract the interface - destination namespace */
 	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, false); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		logrus.Errorf("Failed to setup container interface %q: %v", cfg.dstName, err)
 		return err
 	}
 
@@ -244,7 +244,7 @@ func createRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egres
 
 	/* 4. Setup interface */
 	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, true); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		logrus.Errorf("Failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
 	return nil
@@ -335,7 +335,7 @@ func deleteRemoteConnection(NsPath, ifaceName, ifaceIP, egressName string, egres
 
 	/* 2. Setup interface */
 	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, false); err != nil {
-		logrus.Errorf("Failed to setup container interface %q: %v", err)
+		logrus.Errorf("Failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
 
