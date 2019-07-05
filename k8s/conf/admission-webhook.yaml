@@ -22,6 +22,8 @@ spec:
           env:
             - name: TAG
               value: "latest"
+            - name: REPO
+              value: "networkservicemesh"
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
