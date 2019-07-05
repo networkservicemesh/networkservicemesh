@@ -19,20 +19,25 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
-
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/sirupsen/logrus"
 )
 
 // MonitorEndpoint is a monitoring composite
 type MonitorEndpoint struct {
 	BaseCompositeEndpoint
 	monitorConnectionServer local.MonitorServer
+}
+
+// Init will be called upon NSm ENdpoint instantioation with the proper context
+func (mce *MonitorEndpoint) Init(context *InitContext) error {
+	grpcServer := context.GrpcServer
+	connection.RegisterMonitorConnectionServer(grpcServer, mce.monitorConnectionServer)
+	return nil
 }
 
 // Request implements the request handler
@@ -64,6 +69,16 @@ func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Co
 		return mce.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
+}
+
+// Name returns the composite name
+func (mce *MonitorEndpoint) Name() string {
+	return "monitor"
+}
+
+// GetOpaque will return the monitor server
+func (mce *MonitorEndpoint) GetOpaque(incoming interface{}) interface{} {
+	return mce.monitorConnectionServer
 }
 
 // NewMonitorEndpoint creates a MonitorEndpoint

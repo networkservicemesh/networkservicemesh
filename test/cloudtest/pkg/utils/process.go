@@ -20,7 +20,7 @@ type ProcWrapper struct {
 }
 
 // ExitCode - wait for completion and return exit code
-func (w* ProcWrapper) ExitCode() int {
+func (w *ProcWrapper) ExitCode() int {
 	err := w.Cmd.Wait()
 	if err != nil {
 		logrus.Errorf("Error during waiting for process exit code: %v %v", w.Cmd.Args, err)
@@ -30,7 +30,7 @@ func (w* ProcWrapper) ExitCode() int {
 }
 
 // ExecRead - execute command and return output as result, stderr is ignored.
-func ExecRead( ctx context.Context, args []string) ([]string, error) {
+func ExecRead(ctx context.Context, args []string) ([]string, error) {
 	proc, error := ExecProc(ctx, args, nil)
 	if error != nil {
 		return nil, error

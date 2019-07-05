@@ -27,5 +27,5 @@ func TestTimeoutTag(t *testing.T) {
 	RegisterTestingT(t)
 
 	logrus.Infof("test timeout for 5 seconds")
-	<- time.After(5*time.Second)
+	<-time.After(5 * time.Second)
 }

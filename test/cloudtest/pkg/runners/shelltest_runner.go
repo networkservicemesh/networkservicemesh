@@ -19,7 +19,7 @@ type shellTestRunner struct {
 	manager execmanager.ExecutionManager
 }
 
-func (runner *shellTestRunner) Run(timeoutCtx context.Context, env [] string, writer *bufio.Writer) error {
+func (runner *shellTestRunner) Run(timeoutCtx context.Context, env []string, writer *bufio.Writer) error {
 	return runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
 }
 

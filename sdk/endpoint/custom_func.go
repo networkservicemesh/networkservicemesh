@@ -3,6 +3,7 @@ package endpoint
 import (
 	"context"
 	"fmt"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -48,6 +49,11 @@ func (cf *CustomFuncEndpoint) Close(ctx context.Context, connection *connection.
 		return cf.GetNext().Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
+}
+
+// Name returns the composite name
+func (cf *CustomFuncEndpoint) Name() string {
+	return "custom"
 }
 
 // NewCustomFuncEndpoint create CustomFuncEndpoint

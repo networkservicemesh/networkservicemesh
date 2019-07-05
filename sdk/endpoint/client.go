@@ -75,6 +75,11 @@ func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Con
 	return &empty.Empty{}, nil
 }
 
+// Name returns the composite name
+func (cce *ClientEndpoint) Name() string {
+	return "client"
+}
+
 // GetOpaque will return the corresponding outgoing connection
 func (cce *ClientEndpoint) GetOpaque(incoming interface{}) interface{} {
 	incomingConnection := incoming.(*connection.Connection)

@@ -105,9 +105,9 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	}
 	s1 := time.Now()
 
-	nsmdNodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
+	_, err = kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
-	defer kubetest.FailLogger(k8s, nsmdNodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 
 	{
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
@@ -125,8 +125,8 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	}
 
 	pingCommand := "ping"
-	addressPool := "10.60.1.0/24"
-	srcIP, dstIP := "10.60.1.1", "10.60.1.2"
+	addressPool := "172.16.1.0/24"
+	srcIP, dstIP := "172.16.1.1", "172.16.1.2"
 
 	/* Change stuff related to IPv6 */
 	if k8s.UseIPv6() {

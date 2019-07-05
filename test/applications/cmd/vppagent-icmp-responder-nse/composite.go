@@ -65,6 +65,11 @@ func (ns *vppagentComposite) Close(ctx context.Context, connection *connection.C
 	return &empty.Empty{}, nil
 }
 
+// Name returns the composite name
+func (ns *vppagentComposite) Name() string {
+	return "VPP Agent"
+}
+
 // NewVppAgentComposite creates a new VPP Agent composite
 func newVppAgentComposite(configuration *common.NSConfiguration) *vppagentComposite {
 	// ensure the env variables are processed

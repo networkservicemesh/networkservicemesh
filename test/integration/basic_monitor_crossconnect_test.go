@@ -26,6 +26,7 @@ func TestSingleCrossConnect(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
@@ -70,6 +71,7 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 
 	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
 	Expect(err).To(BeNil())
@@ -115,6 +117,7 @@ func TestSeveralCrossConnects(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)

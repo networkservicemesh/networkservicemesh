@@ -2,7 +2,6 @@ package nsm
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ import (
 )
 
 type networkServiceHealProcessor interface {
-	Heal(connection nsm.ClientConnection, healState nsm.HealState)
+	Heal(clientConnection nsm.ClientConnection, healState nsm.HealState)
 }
 
 type healProcessor struct {
@@ -31,7 +30,7 @@ type healProcessor struct {
 }
 
 type connectionManager interface {
-	request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error)
+	request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error)
 	Close(ctx context.Context, clientConnection nsm.ClientConnection) error
 }
 
@@ -61,18 +60,14 @@ func newNetworkServiceHealProcessor(
 	return p
 }
 
-func (p *healProcessor) Heal(connection nsm.ClientConnection, healState nsm.HealState) {
-	healID := create_logid()
-	logrus.Infof("NSM_Heal(%v) %v", healID, connection)
+func (p *healProcessor) Heal(clientConnection nsm.ClientConnection, healState nsm.HealState) {
+	cc := clientConnection.(*model.ClientConnection)
 
-	cc := connection.(*model.ClientConnection)
-	if cc.ConnectionState != model.ClientConnectionReady {
-		//means that we already closing/healing
-		return
-	}
+	healID := create_logid()
+	logrus.Infof("NSM_Heal(%v) %v", healID, cc)
 
 	if !p.properties.HealEnabled {
-		logrus.Infof("NSM_Heal(%v) Is Disabled/Closing connection %v", healID, connection)
+		logrus.Infof("NSM_Heal(%v) Is Disabled/Closing connection %v", healID, cc)
 
 		err := p.conManager.Close(context.Background(), cc)
 		if err != nil {
@@ -81,8 +76,16 @@ func (p *healProcessor) Heal(connection nsm.ClientConnection, healState nsm.Heal
 		return
 	}
 
-	p.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
-		cc.ConnectionState = model.ClientConnectionHealing
+	if modelCC := p.model.GetClientConnection(cc.GetID()); modelCC == nil {
+		logrus.Errorf("NSM_Heal(%v) Trying to heal not existing connection", healID)
+		return
+	} else if modelCC.ConnectionState != model.ClientConnectionReady {
+		logrus.Errorf("NSM_Heal(%v) Trying to heal connection in bad state", healID)
+		return
+	}
+
+	p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+		modelCC.ConnectionState = model.ClientConnectionHealing
 	})
 
 	p.eventCh <- healEvent{
@@ -100,6 +103,10 @@ func (p *healProcessor) serve() {
 		}
 
 		go func() {
+			defer func() {
+				logrus.Infof("NSM_Heal(%v) Connection %v healing state is finished...", e.healID, e.cc.GetID())
+			}()
+
 			healed := false
 
 			switch e.healState {
@@ -114,9 +121,7 @@ func (p *healProcessor) serve() {
 			}
 
 			if healed {
-				e.cc = p.model.ApplyClientConnectionChanges(e.cc.GetID(), func(cc *model.ClientConnection) {
-					cc.ConnectionState = model.ClientConnectionReady
-				})
+				logrus.Infof("NSM_Heal(%v) Heal: Connection recovered: %v", e.healID, e.cc)
 			} else {
 				// Close both connection and dataplane
 				err := p.conManager.Close(context.Background(), e.cc)
@@ -124,8 +129,6 @@ func (p *healProcessor) serve() {
 					logrus.Errorf("NSM_Heal(%v) Error in Recovery: %v", e.healID, err)
 				}
 			}
-
-			logrus.Infof("NSM_Heal(%v) Connection %v healing state is finished...", e.healID, e.cc.GetID())
 		}()
 	}
 }
@@ -154,32 +157,31 @@ func (p *healProcessor) healDstDown(healID string, cc *model.ClientConnection) b
 		// NSMd id remote one, we just need to close and return.
 		logrus.Infof("NSM_Heal(2.1-%v) Remote NSE heal is done on source side", healID)
 		return false
-	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), p.properties.HealTimeout*3)
-		defer cancel()
-
-		logrus.Infof("NSM_Heal(2.2-%v) Starting DST Heal...", healID)
-		// We are client NSMd, we need to try recover our connection srv.
-
-		endpointName := cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
-		// Wait for NSE not equal to down one, since we know it will be re-registered with new EndpointName.
-		if !p.waitNSE(ctx, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
-			cc.GetConnectionDestination().SetID("-")
-		}
-		// Fallback to heal with choose of new NSE.
-		requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
-		defer requestCancel()
-		logrus.Errorf("NSM_Heal(2.3.0-%v) Starting Heal by calling request: %v", healID, cc.Request)
-
-		recoveredConnection, err := p.conManager.request(requestCtx, cc.Request, cc)
-		if err != nil {
-			logrus.Errorf("NSM_Heal(2.3.1-%v) Failed to heal connection: %v", healID, err)
-			return false
-		} else {
-			logrus.Infof("NSM_Heal(2.4-%v) Heal: Connection recovered: %v", healID, recoveredConnection)
-			return true
-		}
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), p.properties.HealTimeout*3)
+	defer cancel()
+
+	logrus.Infof("NSM_Heal(2.2-%v) Starting DST Heal...", healID)
+	// We are client NSMd, we need to try recover our connection srv.
+
+	endpointName := cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
+	// Wait for NSE not equal to down one, since we know it will be re-registered with new EndpointName.
+	if !p.waitNSE(ctx, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
+		cc.GetConnectionDestination().SetID("-") // We need to mark this as new connection.
+	}
+
+	// Fallback to heal with choose of new NSE.
+	requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
+	defer requestCancel()
+
+	logrus.Infof("NSM_Heal(2.3.0-%v) Starting Heal by calling request: %v", healID, cc.Request)
+	if _, err := p.conManager.request(requestCtx, cc.Request, cc); err != nil {
+		logrus.Errorf("NSM_Heal(2.3.1-%v) Failed to heal connection: %v", healID, err)
+		return false
+	}
+
+	return true
 }
 
 func (p *healProcessor) healDataplaneDown(healID string, cc *model.ClientConnection) bool {
@@ -195,22 +197,26 @@ func (p *healProcessor) healDataplaneDown(healID string, cc *model.ClientConnect
 	}
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
 
-	p.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
-		cc.GetConnectionSource().SetConnectionState(connection.StateDown)
+	// 3.3. Set source connection down
+	p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+		modelCC.GetConnectionSource().SetConnectionState(connection.StateDown)
 	})
 
 	if cc.Xcon.GetRemoteSource() != nil {
 		// NSMd id remote one, we just need to close and return.
 		// Recovery will be performed by NSM client side.
-		logrus.Infof("NSM_Heal(3.3-%v)  Healing will be continued on source side...", healID)
+		logrus.Infof("NSM_Heal(3.4-%v)  Healing will be continued on source side...", healID)
 		return true
 	}
 
-	// We have Dataplane now, let's try request all again.
-	// Update request to contain a proper connection object from previous attempt.
 	request := cc.Request.Clone()
 	request.SetRequestConnection(cc.GetConnectionSource())
-	p.requestOrClose(ctx, fmt.Sprintf("NSM_Heal(3.4-%v) ", healID), request, cc)
+
+	if _, err := p.conManager.request(ctx, request, cc); err != nil {
+		logrus.Errorf("NSM_Heal(3.5-%v) Failed to heal connection: %v", healID, err)
+		return false
+	}
+
 	return true
 }
 
@@ -221,14 +227,19 @@ func (p *healProcessor) healDstUpdate(healID string, cc *model.ClientConnection)
 	// Destination is updated.
 	// Update request to contain a proper connection object from previous attempt.
 	logrus.Infof("NSM_Heal(5.1-%v) Healing Src Update... %v", healID, cc)
-	if cc.Request != nil {
-		request := cc.Request.Clone()
-		request.SetRequestConnection(cc.GetConnectionSource())
-
-		p.requestOrClose(ctx, fmt.Sprintf("NSM_Heal(5.2-%v) ", healID), request, cc)
-		return true
+	if cc.Request == nil {
+		return false
 	}
-	return false
+
+	request := cc.Request.Clone()
+	request.SetRequestConnection(cc.GetConnectionSource())
+
+	if _, err := p.conManager.request(ctx, request, cc); err != nil {
+		logrus.Errorf("NSM_Heal(5.2-%v) Failed to heal connection: %v", healID, err)
+		return false
+	}
+
+	return true
 }
 
 func (p *healProcessor) healDstNmgrDown(healID string, cc *model.ClientConnection) bool {
@@ -244,58 +255,37 @@ func (p *healProcessor) healDstNmgrDown(healID string, cc *model.ClientConnectio
 	if cc.Endpoint != nil {
 		endpointName = cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
 		if !p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsSameAndAvailable) {
-			cc.GetConnectionDestination().SetID("-")
+			cc.GetConnectionDestination().SetID("-") // We need to mark this as new connection.
 		}
 	}
+
 	requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
 	defer requestCancel()
-	recoveredConnection, err := p.conManager.request(requestCtx, cc.Request, cc)
-	if err != nil {
-		logrus.Errorf("NSM_Heal(6.2.1-%v) Failed to heal connection with same NSE from registry: %v", healID, err)
-		if endpointName != "" {
-			logrus.Infof("NSM_Heal(6.2.2-%v) Waiting for another NSEs...", healID)
-			// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
-			if p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsNewAndAvailable) {
-				// Ok we have NSE, lets retry request
-				requestCtx, requestCancel := context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
-				defer requestCancel()
-				recoveredConnection, err = p.conManager.request(requestCtx, cc.Request, cc)
-				if err != nil {
-					if err != nil {
-						logrus.Errorf("NSM_Heal(6.2.3-%v) Error in Recovery Close: %v", healID, err)
-					}
-				} else {
-					logrus.Infof("NSM_Heal(6.3-%v) Heal: Connection recovered: %v", healID, recoveredConnection)
-					return true
-				}
-			}
+
+	if _, err := p.conManager.request(requestCtx, cc.Request, cc); err != nil {
+		logrus.Warnf("NSM_Heal(6.2.1-%v) Failed to heal connection with same NSE from registry: %v", healID, err)
+
+		// 6.2.2. We are still healing
+		p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+			modelCC.ConnectionState = model.ClientConnectionHealing
+		})
+
+		// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
+		if endpointName == "" || !p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsNewAndAvailable) {
+			return false
 		}
 
-		logrus.Errorf("NSM_Heal(6.4.1-%v) Failed to heal connection: %v", healID, err)
-		// We need to delete connection, since we are not able to Heal it
-		p.model.DeleteClientConnection(cc.ConnectionID)
-		if err != nil {
-			logrus.Errorf("NSM_Heal(6.4.2-%v) Error in Recovery Close: %v", healID, err)
-		}
-	} else {
-		logrus.Infof("NSM_Heal(6.5-%v) Heal: Connection recovered: %v", healID, recoveredConnection)
-		return true
-	}
-	return false
-}
+		// Ok we have NSE, lets retry request
+		requestCtx, requestCancel = context.WithTimeout(context.Background(), p.properties.HealRequestTimeout)
+		defer requestCancel()
 
-func (p *healProcessor) requestOrClose(ctx context.Context, logPrefix string, request networkservice.Request, cc *model.ClientConnection) {
-	logrus.Infof("%v delegate to Request %v", logPrefix, request)
-	connection, err := p.conManager.request(ctx, request, cc)
-	if err != nil {
-		logrus.Errorf("%v Failed to heal connection: %v", logPrefix, err)
-		// Close in case of any errors in recovery.
-		if err = p.conManager.Close(context.Background(), cc); err != nil {
-			logrus.Errorf("%v Error in Recovery Close: %v", logPrefix, err)
+		if _, err := p.conManager.request(requestCtx, cc.Request, cc); err != nil {
+			logrus.Errorf("NSM_Heal(6.2.3-%v) Failed to heal connection: %v", healID, err)
+			return false
 		}
-	} else {
-		logrus.Infof("%v Heal: Connection recovered: %v", logPrefix, connection)
 	}
+
+	return true
 }
 
 type nseValidator func(ctx context.Context, endpoint string, reg *registry.NSERegistration) bool

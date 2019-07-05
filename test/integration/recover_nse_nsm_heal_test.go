@@ -28,6 +28,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
 
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
@@ -103,7 +104,7 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse kubetest.
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
+	kubetest.ShowLogs(k8s, t)
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())

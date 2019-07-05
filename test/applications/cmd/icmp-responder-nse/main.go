@@ -27,6 +27,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -57,8 +58,9 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
+	monitorEndpoint := endpoint.NewMonitorEndpoint(nil)
 	endpoints := []endpoint.ChainedEndpoint{
-		endpoint.NewMonitorEndpoint(nil),
+		monitorEndpoint,
 	}
 
 	if neighbors {
@@ -103,7 +105,7 @@ func main() {
 		logrus.Fatalf("%v", err)
 	}
 
-	monitorServer = nsmEndpoint.MonitorServer()
+	monitorServer = monitorEndpoint.GetOpaque(nil).(local.MonitorServer)
 
 	_ = nsmEndpoint.Start()
 	if !dirty {

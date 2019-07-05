@@ -22,7 +22,7 @@ func TestNSMDDP(t *testing.T) {
 	defer k8s.Cleanup()
 
 	Expect(err).To(BeNil())
-
+	defer kubetest.ShowLogs(k8s, t)
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
 	icmpPod := kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)

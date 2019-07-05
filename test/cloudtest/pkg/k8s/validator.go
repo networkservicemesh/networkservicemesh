@@ -1,14 +1,17 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
-	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+	"time"
 )
 
 // KubernetesValidator - a validator to check periodically of cluster livenes.
 type KubernetesValidator interface {
 	Validate() error
+	WaitValid(context context.Context) error
 }
 
 // ValidationFactory - factory to create validator
@@ -26,17 +29,49 @@ type k8sValidator struct {
 	utils    *Utils
 }
 
+func (v *k8sValidator) WaitValid(context context.Context) error {
+	for {
+		err := v.Validate()
+		if err == nil {
+			break
+		}
+		// Waiting a bit.
+		select {
+		case <-time.After(1 * time.Second):
+		case <-context.Done():
+			return err
+		}
+	}
+	return nil
+}
+
+func isNodeReady(node *v1.Node) bool {
+	conditions := node.Status.Conditions
+	for idx := range conditions {
+		if conditions[idx].Type == v1.NodeReady {
+			resultValue := conditions[idx].Status == v1.ConditionTrue
+			return resultValue
+		}
+	}
+	return false
+}
 func (v *k8sValidator) Validate() error {
 	requiedNodes := v.config.NodeCount
 	nodes, err := v.utils.GetNodes()
 	if err != nil {
 		return err
 	}
-	if len(nodes) >= requiedNodes {
+
+	ready := 0
+	for idx := range nodes {
+		if isNodeReady(&nodes[idx]) {
+			ready++
+		}
+	}
+	if ready >= requiedNodes {
 		return nil
 	}
 	msg := fmt.Sprintf("Cluster doesn't have required number of nodes to be available. Required: %v Available: %v\n", requiedNodes, len(nodes))
-	logrus.Errorf(msg)
 	err = fmt.Errorf(msg)
 	return err
 }
@@ -53,6 +88,7 @@ func (*k8sFactory) CreateValidator(config *config.ClusterProviderConfig, locatio
 		utils:    utils,
 	}, nil
 }
+
 // CreateFactory - creates a validation factory.
 func CreateFactory() ValidationFactory {
 	return &k8sFactory{}
