@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SSH_OPTS := -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+SSH_OPTS := -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes
 
 ifeq ($(wildcard ./scripts/terraform/packet.tfvars),) 
 	TF_PACKET_VARS = -auto-approve
@@ -42,18 +42,16 @@ packet-restart: packet-stop packet-start
 .PHONY: packet-stop
 packet-stop:
 	@pushd scripts/terraform && \
-	terraform destroy ${TF_PACKET_VARS} && \
 	popd
 
 .PHONY: packet-%-load-images
 packet-%-load-images:
 	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
 		pushd scripts/terraform; \
-		echo "Loading image $*.tar to master"; \
-		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:~/
+		echo "Loading image $*.tar to master and worker"; \
+		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:~/ & \
+		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/ 
 		ssh ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
-		echo "Loading image $*.tar to worker"; \
-		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/
 		ssh ${SSH_OPTS} root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
 		popd ; \
 	else \
