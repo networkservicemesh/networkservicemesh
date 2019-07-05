@@ -40,12 +40,6 @@ func CreateKernelForwarder() *KernelForwarder {
 	return &KernelForwarder{}
 }
 
-// Mechanisms is a message used to communicate any changes in operational parameters and constraints
-type Mechanisms struct {
-	remoteMechanisms []*remote.Mechanism
-	localMechanisms  []*local.Mechanism
-}
-
 // MonitorMechanisms handler
 func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
