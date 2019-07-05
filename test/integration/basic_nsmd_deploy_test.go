@@ -3,7 +3,9 @@
 package nsmd_integration_tests
 
 import (
+	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -15,15 +17,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestNSMgrDdataplaneDeploy(t *testing.T) {
-	testNSMgrDdataplaneDeploy(t, pods.NSMgrPod, pods.ForwardingPlane)
+func TestNSMgrDataplaneDeploy(t *testing.T) {
+	testNSMgrDataplaneDeploy(t, 2, pods.NSMgrPod, pods.ForwardingPlane)
 }
 
-func TestNSMgrDdataplaneDeployLiveCheck(t *testing.T) {
-	testNSMgrDdataplaneDeploy(t, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
+func TestNSMgrDataplaneDeployLiveCheck(t *testing.T) {
+	testNSMgrDataplaneDeploy(t, 2, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
 }
 
-func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node, string) *v1.Pod) {
+func testNSMgrDataplaneDeploy(t *testing.T, nodesCount int, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node, string) *v1.Pod) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -39,16 +41,39 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 	Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
-	nodes := k8s.GetNodesWait(2, defaultTimeout)
+	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 
-	if len(nodes) < 2 {
+	if len(nodes) < nodesCount {
 		logrus.Printf("At least two Kubernetes nodes are required for this test")
-		Expect(len(nodes)).To(Equal(2))
+		Expect(len(nodes)).To(Equal(nodesCount))
 		return
 	}
 
-	_, err = kubetest.SetupNodes(k8s, 2, defaultTimeout)
-	Expect(err).To(BeNil())
+	var wg sync.WaitGroup
+	for i := 0; i < nodesCount; i++ {
+		wg.Add(1)
+		node := i
+		go func() {
+			defer wg.Done()
+			nsmdName := fmt.Sprintf("nsmgr-%s", nodes[node].Name)
+			dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", nodes[node].Name)
+			corePod := nsmdPodFactory(nsmdName, &nodes[node], k8s.GetK8sNamespace())
+			dataplanePod := dataplanePodFactory(dataplaneName, &nodes[node], k8s.GetForwardingPlane())
+			corePods, err := k8s.CreatePodsRaw(defaultTimeout, true, corePod, dataplanePod)
+			Expect(err).To(BeNil())
+			failures := InterceptGomegaFailures(func() {
+				k8s.WaitLogsContains(corePods[1], "", "Sending MonitorMechanisms update", defaultTimeout)
+				_ = k8s.WaitLogsContainsRegex(corePods[0], "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
+				k8s.WaitLogsContains(corePods[0], "nsmdp", "nsmdp: successfully started", defaultTimeout)
+				k8s.WaitLogsContains(corePods[0], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
+			})
+			if len(failures) > 0 {
+				kubetest.ShowLogs(k8s, nil)
+			}
+		}()
+	}
+	wg.Wait()
+
 	k8s.Cleanup()
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {
