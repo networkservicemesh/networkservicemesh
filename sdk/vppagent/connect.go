@@ -29,7 +29,7 @@ func getConnectionData(endpoint endpoint.ChainedEndpoint, conn *connection.Conne
 
 	connectionData, ok := opaque.(*ConnectionData)
 	if !ok {
-		err := fmt.Errorf("unexpected opaque data type: expected ConnectionData, received %v", reflect.TypeOf(opaque))
+		err := fmt.Errorf("unexpected opaque data type: expected *vppagent.ConnectionData, received %v", reflect.TypeOf(opaque))
 		return nil, err
 	}
 

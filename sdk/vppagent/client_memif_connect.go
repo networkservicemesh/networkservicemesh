@@ -44,7 +44,7 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 
 	outgoingConnection, ok := opaque.(*connection.Connection)
 	if !ok {
-		err := fmt.Errorf("unexpected opaque data type: expected connection.Connection, received %v", reflect.TypeOf(opaque))
+		err := fmt.Errorf("unexpected opaque data type: expected *connection.Connection, received %v", reflect.TypeOf(opaque))
 		return nil, err
 	}
 
