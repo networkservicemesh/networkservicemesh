@@ -26,7 +26,7 @@ const (
 // Flush is a VPP Agent Flush composite
 type Flush struct {
 	endpoint.BaseCompositeEndpoint
-	Conn *grpc.ClientConn
+	Endpoint string
 }
 
 // Request implements the request handler
@@ -82,13 +82,6 @@ func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*
 		return &empty.Empty{}, err
 	}
 
-	logrus.Info("Closing connection to VPP Agent")
-	err = f.Conn.Close()
-	if err != nil {
-		logrus.Errorf("Failed to close connection to VPP Agent: %v", err)
-		return &empty.Empty{}, err
-	}
-
 	if f.GetNext() != nil {
 		return f.GetNext().Close(ctx, connection)
 	}
@@ -108,18 +101,12 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 	}
 	configuration.CompleteNSConfiguration()
 
-	conn, err := createConnection(endpoint)
-	if err != nil {
-		logrus.Errorf("Failed to create connection to VPP Agent: %v", err)
-		return nil
-	}
-
 	self := &Flush{
-		Conn: conn,
+		Endpoint: endpoint,
 	}
 
 	logrus.Info("Resetting VPP Agent")
-	err = self.reset()
+	err := self.reset()
 	if err != nil {
 		logrus.Errorf("Failed to reset VPP Agent: %v", err)
 		return nil
@@ -128,16 +115,19 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 	return self
 }
 
-func createConnection(endpoint string) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
-	defer cancel()
+func (f *Flush) createConnection(ctx context.Context) (*grpc.ClientConn, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), createConnectionTimeout)
+		defer cancel()
+	}
 
-	if err := tools.WaitForPortAvailable(ctx, "tcp", endpoint, createConnectionSleep); err != nil {
+	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, createConnectionSleep); err != nil {
 		return nil, err
 	}
 
 	tracer := opentracing.GlobalTracer()
-	rv, err := grpc.Dial(endpoint, grpc.WithInsecure(),
+	rv, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
@@ -152,7 +142,13 @@ func createConnection(endpoint string) (*grpc.ClientConn, error) {
 }
 
 func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error {
-	client := configurator.NewConfiguratorClient(f.Conn)
+	conn, err := f.createConnection(ctx)
+	if err != nil {
+		return nil
+	}
+
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
 
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
 		_, _ = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
@@ -162,7 +158,13 @@ func (f *Flush) send(ctx context.Context, dataChange *configurator.Config) error
 }
 
 func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) error {
-	client := configurator.NewConfiguratorClient(f.Conn)
+	conn, err := f.createConnection(ctx)
+	if err != nil {
+		return nil
+	}
+
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
 		return err
@@ -171,9 +173,15 @@ func (f *Flush) remove(ctx context.Context, dataChange *configurator.Config) err
 }
 
 func (f *Flush) reset() error {
-	client := configurator.NewConfiguratorClient(f.Conn)
+	conn, err := f.createConnection(nil)
+	if err != nil {
+		return nil
+	}
 
-	_, err := client.Update(context.Background(), &configurator.UpdateRequest{
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
+
+	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
 		Update:     &configurator.Config{},
 		FullResync: true,
 	})
