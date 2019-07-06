@@ -17,7 +17,6 @@ package endpoint
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -31,24 +30,13 @@ import (
 )
 
 type IpamEndpoint struct {
-	BaseCompositeEndpoint
 	PrefixPool prefix_pool.PrefixPool
 }
 
 // Request implements the request handler
+// Consumes from ctx context.Context:
+//	   Next
 func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
-	if ice.GetNext() == nil {
-		err := fmt.Errorf("IPAM needs next")
-		logrus.Errorf("%v", err)
-		return nil, err
-	}
-
-	newConnection, err := ice.GetNext().Request(ctx, request)
-	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
-		return nil, err
-	}
 
 	/* Exclude the prefixes from the pool of available prefixes */
 	excludedPrefixes, err := ice.PrefixPool.ExcludePrefixes(request.Connection.Context.ExcludedPrefixes)
@@ -68,28 +56,27 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	/* Release the actual prefixes that were excluded during IPAM */
+	// TODO - this will vary per Request... so releasing Prefixes globally that are excluded locally
+	// is incorrect behavior.  It should simply *not* draw on those prefixes for this connection.
 	err = ice.PrefixPool.ReleaseExcludedPrefixes(excludedPrefixes)
 	if err != nil {
 		return nil, err
 	}
 
 	// Update source/dst IP's
-	newConnection.Context.SrcIpAddr = srcIP.String()
-	newConnection.Context.DstIpAddr = dstIP.String()
+	request.GetConnection().GetContext().SrcIpAddr = srcIP.String()
+	request.GetConnection().GetContext().DstIpAddr = dstIP.String()
 
-	newConnection.Context.ExtraPrefixes = prefixes
-
-	err = newConnection.IsComplete()
-	if err != nil {
-		logrus.Errorf("New connection is not complete: %v", err)
-		return nil, err
+	request.GetConnection().GetContext().ExtraPrefixes = prefixes
+	if Next(ctx) != nil {
+		return Next(ctx).Request(ctx, request)
 	}
-
-	logrus.Infof("IPAM completed on connection: %v", newConnection)
-	return newConnection, nil
+	return request.GetConnection(), nil
 }
 
 // Close implements the close handler
+// Consumes from ctx context.Context:
+//	   Next
 func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	prefix, requests, err := ice.PrefixPool.GetConnectionInformation(connection.GetId())
 	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
@@ -100,8 +87,8 @@ func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Conne
 	if err != nil {
 		logrus.Error("Release error: ", err)
 	}
-	if ice.GetNext() != nil {
-		return ice.GetNext().Close(ctx, connection)
+	if Next(ctx) != nil {
+		return Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }

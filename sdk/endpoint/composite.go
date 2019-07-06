@@ -31,70 +31,54 @@ type InitContext struct {
 }
 
 // ChainedEndpoint is the basic endpoint composition interface
-type ChainedEndpoint interface {
-	networkservice.NetworkServiceServer
-	Name() string
-	Init(context *InitContext) error
-	GetNext() ChainedEndpoint
-	GetOpaque(interface{}) interface{}
-	setNext(service ChainedEndpoint)
-}
-
-// BaseCompositeEndpoint is the base for building endpoints
-type BaseCompositeEndpoint struct {
-	next ChainedEndpoint
-}
-
-func (c *BaseCompositeEndpoint) setNext(service ChainedEndpoint) {
-	c.next = service
-}
-
-// Init is called for each composite in the chain during NSM Endpoint instantiation
-func (c *BaseCompositeEndpoint) Init(context *InitContext) error {
-	return nil
-}
-
-// GetNext returns the next endpoint in the composition chain
-func (c *BaseCompositeEndpoint) GetNext() ChainedEndpoint {
-	return c.next
-}
-
-// GetOpaque is an implementation specific method to get arbitrary data out of a composite
-func (c *BaseCompositeEndpoint) GetOpaque(interface{}) interface{} {
-	return nil
-}
 
 // CompositeEndpoint is the base service composition struct
 type CompositeEndpoint struct {
-	chainedEndpoints []ChainedEndpoint
+	endpoints []networkservice.NetworkServiceServer
 }
 
 // Request implements a dummy request handler
 func (bce *CompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if len(bce.chainedEndpoints) == 0 {
+	if len(bce.endpoints) == 0 {
 		return request.Connection, nil
 	}
-	return bce.chainedEndpoints[0].Request(ctx, request)
+	ctx = withNext(ctx, &nextEndpoint{composite: bce, index: 0})
+	return bce.endpoints[0].Request(ctx, request)
 }
 
 // Close implements a dummy close handler
 func (bce *CompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if len(bce.chainedEndpoints) == 0 {
+	if len(bce.endpoints) == 0 {
 		return &empty.Empty{}, nil
 	}
-	return bce.chainedEndpoints[0].Close(ctx, connection)
+	ctx = withNext(ctx, &nextEndpoint{composite: bce, index: 0})
+	return bce.endpoints[0].Close(ctx, connection)
 }
 
 // NewCompositeEndpoint creates a new composed endpoint
-func NewCompositeEndpoint(endpoints ...ChainedEndpoint) *CompositeEndpoint {
-	for i := 0; i < len(endpoints); i++ {
-		var nextEndpoint ChainedEndpoint
-		if i != len(endpoints)-1 {
-			nextEndpoint = endpoints[i+1]
-		}
-		endpoints[i].setNext(nextEndpoint)
-	}
+func NewCompositeEndpoint(endpoints ...networkservice.NetworkServiceServer) networkservice.NetworkServiceServer {
 	return &CompositeEndpoint{
-		chainedEndpoints: endpoints,
+		endpoints: endpoints,
 	}
+}
+
+type nextEndpoint struct {
+	composite *CompositeEndpoint
+	index     int
+}
+
+func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	ctx = withNext(ctx, nil)
+	if n.index < len(n.composite.endpoints) {
+		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
+	}
+	return n.composite.endpoints[n.index].Request(ctx, request)
+}
+
+func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	ctx = withNext(ctx, nil)
+	if n.index < len(n.composite.endpoints) {
+		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
+	}
+	return n.composite.endpoints[n.index].Close(ctx, connection)
 }

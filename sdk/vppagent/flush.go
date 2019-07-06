@@ -25,65 +25,60 @@ const (
 
 // Flush is a VPP Agent Flush composite
 type Flush struct {
-	endpoint.BaseCompositeEndpoint
 	Endpoint string
 }
 
+type callType int
+
+const (
+	isRequest callType = iota + 1
+	isClose
+)
+
 // Request implements the request handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//	   Next
 func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if f.GetNext() == nil {
-		err := fmt.Errorf("composite requires that there is Next set")
-		return nil, err
+	ctx = WithVppAgentConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := VppAgentConfig(ctx)
+	if vppAgentConfig == nil {
+		return nil, fmt.Errorf("received empty VppAgentConfig")
 	}
 
-	incomingConnection, err := f.GetNext().Request(ctx, request)
-	if err != nil {
+	logrus.Infof("Sending VppAgentConfig to VPP Agent: %v", vppAgentConfig)
+
+	if err := f.send(ctx, vppAgentConfig); err != nil {
+		logrus.Errorf("Failed to send vppAgentConfig to VPP Agent: %v", err)
 		return nil, err
 	}
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Request(ctx, request)
+	}
+	return request.GetConnection(), nil
+}
 
-	connectionData, err := getConnectionData(f.GetNext(), incomingConnection, false)
-	if err != nil {
-		return nil, err
+// Close implements the close handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//	   Next
+func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	ctx = WithVppAgentConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := VppAgentConfig(ctx)
+
+	if vppAgentConfig == nil {
+		return nil, fmt.Errorf("received empty vppAgentConfig")
 	}
 
-	dataChange := connectionData.DataChange
-	if dataChange == nil {
-		err = fmt.Errorf("received empty DataChange")
-		return nil, err
-	}
+	logrus.Infof("Sending vppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
-	logrus.Infof("Sending DataChange to VPP Agent: %v", dataChange)
-	err = f.send(ctx, dataChange)
-	if err != nil {
+	if err := f.remove(ctx, vppAgentConfig); err != nil {
 		logrus.Errorf("Failed to send DataChange to VPP Agent: %v", err)
 		return nil, err
 	}
 
-	return incomingConnection, nil
-}
-
-// Close implements the close handler
-func (f *Flush) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	connectionData, err := getConnectionData(f.GetNext(), connection, false)
-	if err != nil {
-		return &empty.Empty{}, err
-	}
-
-	dataChange := connectionData.DataChange
-	if dataChange == nil {
-		err = fmt.Errorf("received empty DataChange")
-		return &empty.Empty{}, err
-	}
-
-	logrus.Infof("Removing DataChange from VPP Agent: %v", dataChange)
-	err = f.remove(ctx, dataChange)
-	if err != nil {
-		logrus.Errorf("Failed to remove DataChange from VPP Agent: %v", err)
-		return &empty.Empty{}, err
-	}
-
-	if f.GetNext() != nil {
-		return f.GetNext().Close(ctx, connection)
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
@@ -104,15 +99,12 @@ func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
 	self := &Flush{
 		Endpoint: endpoint,
 	}
-
-	logrus.Info("Resetting VPP Agent")
-	err := self.reset()
-	if err != nil {
-		logrus.Errorf("Failed to reset VPP Agent: %v", err)
-		return nil
-	}
-
 	return self
+}
+
+func (f *Flush) Init(context *endpoint.InitContext) error {
+	logrus.Info("Resetting VPP Agent")
+	return f.reset()
 }
 
 func (f *Flush) createConnection(ctx context.Context) (*grpc.ClientConn, error) {
