@@ -3,15 +3,12 @@ package vppagent
 import (
 	"context"
 	"fmt"
-	"path"
-	"reflect"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -20,66 +17,52 @@ import (
 
 // ClientMemifConnect is a VPP Agent Client Memif Connect composite
 type ClientMemifConnect struct {
-	endpoint.BaseCompositeEndpoint
-	Workspace   string
-	Connections map[string]*ConnectionData
+	Workspace string
 }
 
 // Request implements the request handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//     ClientConnection
+//	   Next
 func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if cmc.GetNext() == nil {
-		err := fmt.Errorf("composite requires that there is Next set")
+	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := Config(ctx)
+	con := endpoint.ClientConnection(ctx)
+	if con == nil {
+		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
+	}
+	if err := appendMemifInterface(vppAgentConfig, request.GetConnection(), cmc.Workspace, false); err != nil {
 		return nil, err
 	}
-
-	incomingConnection, err := cmc.GetNext().Request(ctx, request)
-	if err != nil {
-		return nil, err
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Request(ctx, request)
 	}
 
-	opaque := cmc.GetNext().GetOpaque(incomingConnection)
-	if opaque == nil {
-		err = fmt.Errorf("received empty opaque data from Next")
-		return nil, err
-	}
-
-	outgoingConnection, ok := opaque.(*connection.Connection)
-	if !ok {
-		err := fmt.Errorf("unexpected opaque data type: expected *connection.Connection, received %v", reflect.TypeOf(opaque))
-		return nil, err
-	}
-
-	incomingConnection.Context = outgoingConnection.GetContext()
-
-	name := outgoingConnection.GetId()
-	socketFileName := path.Join(cmc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
-
-	dataChange := cmc.createDataChange(name, socketFileName)
-
-	cmc.Connections[incomingConnection.GetId()] = &ConnectionData{
-		OutConnName: name,
-		DataChange:  dataChange,
-	}
-
-	return incomingConnection, nil
+	return request.GetConnection(), nil
 }
 
 // Close implements the close handler
+// Request implements the request handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//     ClientConnection
+//	   Next
 func (cmc *ClientMemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if cmc.GetNext() != nil {
-		return cmc.GetNext().Close(ctx, connection)
+	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := Config(ctx)
+	con := endpoint.ClientConnection(ctx)
+	if con == nil {
+		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
 	}
-	return &empty.Empty{}, nil
-}
+	if err := appendMemifInterface(vppAgentConfig, connection, cmc.Workspace, false); err != nil {
+		return nil, err
+	}
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Close(ctx, connection)
+	}
 
-// GetOpaque will return the corresponding connection data
-func (cmc *ClientMemifConnect) GetOpaque(incoming interface{}) interface{} {
-	incomingConnection := incoming.(*connection.Connection)
-	if connectionData, ok := cmc.Connections[incomingConnection.GetId()]; ok {
-		return connectionData
-	}
-	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
-	return nil
+	return &empty.Empty{}, nil
 }
 
 // Name returns the composite name
@@ -96,27 +79,6 @@ func NewClientMemifConnect(configuration *common.NSConfiguration) *ClientMemifCo
 	configuration.CompleteNSConfiguration()
 
 	return &ClientMemifConnect{
-		Workspace:   configuration.Workspace,
-		Connections: map[string]*ConnectionData{},
-	}
-}
-
-func (cmc *ClientMemifConnect) createDataChange(interfaceName, socketFileName string) *configurator.Config {
-	return &configurator.Config{
-		VppConfig: &vpp.ConfigData{
-			Interfaces: []*interfaces.Interface{
-				{
-					Name:    interfaceName,
-					Type:    interfaces.Interface_MEMIF,
-					Enabled: true,
-					Link: &interfaces.Interface_Memif{
-						Memif: &interfaces.MemifLink{
-							Master:         false,
-							SocketFilename: socketFileName,
-						},
-					},
-				},
-			},
-		},
+		Workspace: configuration.Workspace,
 	}
 }

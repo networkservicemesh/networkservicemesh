@@ -43,15 +43,18 @@ func main() {
 		MechanismType: "mem",
 	}
 
+	commit := vppagent.NewCommit(configuration, "localhost:9112", true)
+
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
-		vppagent.NewFlush(configuration, "localhost:9112"),
-		vppagent.NewACL(configuration, getAclRulesConfig()),
-		vppagent.NewXConnect(configuration),
-		vppagent.NewMemifConnect(configuration),
-		vppagent.NewClientMemifConnect(configuration),
+		endpoint.NewConnectionEndpoint(configuration),
 		endpoint.NewClientEndpoint(configuration),
-		endpoint.NewConnectionEndpoint(configuration))
+		vppagent.NewClientMemifConnect(configuration),
+		vppagent.NewMemifConnect(configuration),
+		vppagent.NewXConnect(configuration),
+		vppagent.NewACL(configuration, getAclRulesConfig()),
+		commit,
+	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {

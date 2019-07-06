@@ -30,7 +30,6 @@ import (
 
 // MonitorEndpoint is a monitoring composite
 type MonitorEndpoint struct {
-	BaseCompositeEndpoint
 	monitorConnectionServer local.MonitorServer
 }
 
@@ -42,44 +41,43 @@ func (mce *MonitorEndpoint) Init(context *InitContext) error {
 }
 
 // Request implements the request handler
+// Consumes from ctx context.Context:
+//     MonitorServer
+//	   Next
 func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	if Next(ctx) != nil {
+		incomingConnection, err := Next(ctx).Request(ctx, request)
+		if err != nil {
+			logrus.Errorf("Next request failed: %v", err)
+			return nil, err
+		}
 
-	if mce.GetNext() == nil {
-		err := fmt.Errorf("Monitor needs next")
-		logrus.Errorf("%v", err)
-		return nil, err
+		logrus.Infof("Monitor UpdateConnection: %v", incomingConnection)
+		MonitorServer(ctx).Update(incomingConnection)
+
+		return incomingConnection, nil
 	}
-
-	incomingConnection, err := mce.GetNext().Request(ctx, request)
-	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
-		return nil, err
-	}
-
-	logrus.Infof("Monitor UpdateConnection: %v", incomingConnection)
-	mce.monitorConnectionServer.Update(incomingConnection)
-
-	return incomingConnection, nil
+	return nil, fmt.Errorf("MonitorEndpoint.Request - cannot create requested connection")
 }
 
 // Close implements the close handler
+// Request implements the request handler
+// Consumes from ctx context.Context:
+//     MonitorServer
+//	   Next
 func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("Monitor DeleteConnection: %v", connection)
-	mce.monitorConnectionServer.Delete(connection)
-	if mce.GetNext() != nil {
-		return mce.GetNext().Close(ctx, connection)
+	if Next(ctx) != nil {
+		rv, err := Next(ctx).Close(ctx, connection)
+		MonitorServer(ctx).Delete(connection)
+		return rv, err
 	}
-	return &empty.Empty{}, nil
+	return nil, fmt.Errorf("monitor DeleteConnection cannot close connection")
 }
 
 // Name returns the composite name
 func (mce *MonitorEndpoint) Name() string {
 	return "monitor"
-}
-
-// GetOpaque will return the monitor server
-func (mce *MonitorEndpoint) GetOpaque(incoming interface{}) interface{} {
-	return mce.monitorConnectionServer
 }
 
 // NewMonitorEndpoint creates a MonitorEndpoint

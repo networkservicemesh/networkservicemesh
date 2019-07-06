@@ -17,29 +17,29 @@ package endpoint
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"github.com/teris-io/shortid"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
+// ConnectionEndpoint makes basic Mechanism selection for the incoming connection
 type ConnectionEndpoint struct {
-	BaseCompositeEndpoint
 	mechanismType connection.MechanismType
-	id            *shortid.Shortid
+	// TODO - id doesn't seem to be used, and should be
+	id *shortid.Shortid
 }
 
 // Request implements the request handler
+// Consumes from ctx context.Context:
+//	   Next
 func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	err := request.IsValid()
@@ -54,36 +54,20 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 		return nil, err
 	}
 
-	var newConnection *connection.Connection
-	if cce.GetNext() != nil {
-		newConnection, err = cce.GetNext().Request(ctx, request)
-		if err != nil {
-			logrus.Errorf("Next request failed: %v", err)
-			return nil, err
-		}
-	} else {
-		newConnection = &connection.Connection{
-			Id:             request.GetConnection().GetId(),
-			NetworkService: request.GetConnection().GetNetworkService(),
-			Mechanism:      mechanism,
-			Context:        proto.Clone(request.Connection.Context).(*connectioncontext.ConnectionContext),
-		}
-	}
+	request.GetConnection().Mechanism = mechanism
 
-	if newConnection == nil {
-		err := fmt.Errorf("Unabel to create a new connection")
-		logrus.Errorf("%v", err)
-		return nil, err
+	if Next(ctx) != nil {
+		return Next(ctx).Request(ctx, request)
 	}
-
-	logrus.Infof("New connection created: %v", newConnection)
-	return newConnection, nil
+	return request.GetConnection(), nil
 }
 
 // Close implements the close handler
+// Consumes from ctx context.Context:
+//	   Next
 func (cce *ConnectionEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if cce.GetNext() != nil {
-		return cce.GetNext().Close(ctx, connection)
+	if Next(ctx) != nil {
+		return Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }

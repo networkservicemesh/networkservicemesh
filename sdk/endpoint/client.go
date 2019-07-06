@@ -27,50 +27,47 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
+// ClientEndpoint - opens a Client connection to another Network Service
 type ClientEndpoint struct {
-	BaseCompositeEndpoint
 	nsmClient     *client.NsmClient
 	mechanismType string
 	ioConnMap     map[string]*connection.Connection
 }
 
 // Request implements the request handler
+// Consumes from ctx context.Context:
+//	   Next
 func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
-	if cce.GetNext() == nil {
-		logrus.Fatal("The connection composite requires that there is Next set.")
-	}
-
-	incomingConnection, err := cce.GetNext().Request(ctx, request)
-	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
-		return nil, err
-	}
-
-	var outgoingConnection *connection.Connection
 	name := request.GetConnection().GetId()
-	outgoingConnection, err = cce.nsmClient.Connect(name, cce.mechanismType, "Describe "+name)
+	outgoingConnection, err := cce.nsmClient.Connect(name, cce.mechanismType, "Describe "+name)
 	if err != nil {
 		logrus.Errorf("Error when creating the connection %v", err)
 		return nil, err
 	}
+	ctx = WithClientConnection(ctx, outgoingConnection)
+	incomingConnection := request.GetConnection()
+	if Next(ctx) != nil {
+		incomingConnection, err = Next(ctx).Request(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	// TODO: check this. Hack??
-	outgoingConnection.GetMechanism().GetParameters()[connection.Workspace] = ""
-
-	cce.ioConnMap[incomingConnection.GetId()] = outgoingConnection
+	cce.ioConnMap[request.GetConnection().GetId()] = outgoingConnection
 	logrus.Infof("outgoingConnection: %v", outgoingConnection)
 
 	return incomingConnection, nil
 }
 
 // Close implements the close handler
+// Consumes from ctx context.Context:
+//	   Next
 func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
 		cce.nsmClient.Close(outgoingConnection)
 	}
-	if cce.GetNext() != nil {
-		return cce.GetNext().Close(ctx, connection)
+	if Next(ctx) != nil {
+		return Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
@@ -78,16 +75,6 @@ func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Con
 // Name returns the composite name
 func (cce *ClientEndpoint) Name() string {
 	return "client"
-}
-
-// GetOpaque will return the corresponding outgoing connection
-func (cce *ClientEndpoint) GetOpaque(incoming interface{}) interface{} {
-	incomingConnection := incoming.(*connection.Connection)
-	if outgoingConnection, ok := cce.ioConnMap[incomingConnection.GetId()]; ok {
-		return outgoingConnection
-	}
-	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
-	return nil
 }
 
 // NewClientEndpoint creates a ClientEndpoint
