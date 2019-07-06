@@ -34,13 +34,15 @@ func main() {
 	configuration := &common.NSConfiguration{
 		MechanismType: "mem",
 	}
+	commit := vppagent.NewCommit(configuration, "localhost:9112", true)
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
-		vppagent.NewFlush(configuration, "localhost:9112"),
-		vppagent.NewMemifConnect(configuration),
+		endpoint.NewConnectionEndpoint(configuration),
 		endpoint.NewIpamEndpoint(nil),
-		endpoint.NewConnectionEndpoint(configuration))
+		vppagent.NewMemifConnect(configuration),
+		commit,
+	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {

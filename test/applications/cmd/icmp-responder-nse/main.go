@@ -26,8 +26,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -58,9 +58,9 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	monitorEndpoint := endpoint.NewMonitorEndpoint(nil)
-	endpoints := []endpoint.ChainedEndpoint{
-		monitorEndpoint,
+	endpoints := []networkservice.NetworkServiceServer{
+		endpoint.NewMonitorEndpoint(nil),
+		endpoint.NewConnectionEndpoint(nil),
 	}
 
 	if neighbors {
@@ -70,15 +70,13 @@ func main() {
 	}
 
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
-
-	routeAddr := makeRouteMutator([]string{"8.8.8.8/30"})
-	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
-		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
-	}
-
+	endpoints = append(endpoints, ipamEndpoint)
 	if routes {
-		logrus.Infof("Adding routes endpoint to chain")
-		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
+		prefixes := []string{"8.8.8.8/30"}
+		if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
+			prefixes = []string{"2001:4860:4860::8888/126"}
+		}
+		endpoints = append(endpoints, endpoint.NewRoutesEndpoint(prefixes))
 	}
 
 	var monitorServer monitor.Server
@@ -94,18 +92,12 @@ func main() {
 			}))
 	}
 
-	endpoints = append(endpoints,
-		ipamEndpoint,
-		endpoint.NewConnectionEndpoint(nil))
-
 	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
-
-	monitorServer = monitorEndpoint.GetOpaque(nil).(local.MonitorServer)
 
 	_ = nsmEndpoint.Start()
 	if !dirty {

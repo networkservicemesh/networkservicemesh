@@ -17,6 +17,7 @@ package endpoint
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 
@@ -29,17 +30,25 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
+// NsmEndpoint  provides the grpc mechanics for an NsmEndpoint
+type NsmEndpoint interface {
+	Start() error
+	Delete() error
+}
+
 type nsmEndpoint struct {
 	*common.NsmConnection
-	service        *CompositeEndpoint
-	grpcServer     *grpc.Server
-	registryClient registry.NetworkServiceRegistryClient
-	endpointName   string
-	tracerCloser   io.Closer
+	service                 networkservice.NetworkServiceServer
+	grpcServer              *grpc.Server
+	registryClient          registry.NetworkServiceRegistryClient
+	endpointName            string
+	monitorConnectionServer local.MonitorServer
+	tracerCloser            io.Closer
 }
 
 func (nsme *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
@@ -83,23 +92,13 @@ func (nsme *nsmEndpoint) Start() error {
 
 	nsme.grpcServer = grpc.NewServer(grpcOptions...)
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
+	connection.RegisterMonitorConnectionServer(nsme.grpcServer, nsme.monitorConnectionServer)
 
 	listener, err := nsme.setupNSEServerConnection()
 
 	if err != nil {
 		logrus.Errorf("Unable to setup NSE")
 		return err
-	}
-
-	initContext := &InitContext{
-		GrpcServer: nsme.grpcServer,
-	}
-	for _, c := range nsme.service.chainedEndpoints {
-		logrus.Infof("About to init composite [%s]", c.Name())
-		if err = c.Init(initContext); err != nil {
-			logrus.Errorf("Unable to setup composite %s: %v", c.Name(), err)
-			return err
-		}
 	}
 
 	// spawn the listnening thread
@@ -151,6 +150,7 @@ func (nsme *nsmEndpoint) Delete() error {
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Request for Network Service received %v", request)
+	ctx = withMonitorServer(ctx, nsme.monitorConnectionServer)
 
 	incomingConnection, err := nsme.service.Request(ctx, request)
 	if err != nil {
@@ -163,6 +163,7 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 }
 
 func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
+	ctx = withMonitorServer(ctx, nsme.monitorConnectionServer)
 	_, _ = nsme.service.Close(ctx, incomingConnection)
 	_, _ = nsme.NsClient.Close(ctx, incomingConnection)
 
@@ -170,14 +171,14 @@ func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connecti
 }
 
 // NewNSMEndpoint creates a new NSM endpoint
-func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service *CompositeEndpoint) (*nsmEndpoint, error) {
+func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service networkservice.NetworkServiceServer) (NsmEndpoint, error) {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
 	if service == nil {
-		service = &CompositeEndpoint{}
+		return nil, fmt.Errorf("NewNSMEndpoint must be provided a non-nil service *networkservice.NewNetworkServiceServer argument")
 	}
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
@@ -187,8 +188,9 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 	}
 
 	endpoint := &nsmEndpoint{
-		NsmConnection: nsmConnection,
-		service:       service,
+		NsmConnection:           nsmConnection,
+		service:                 service,
+		monitorConnectionServer: local.NewMonitorServer(),
 	}
 
 	return endpoint, nil
