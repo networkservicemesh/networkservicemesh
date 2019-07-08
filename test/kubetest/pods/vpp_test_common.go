@@ -1,13 +1,16 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // VppTestCommonPod creates a new vpp-based testing pod
-func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string) *v1.Pod {
+func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string, sa string) *v1.Pod {
+	ht := new(v1.HostPathType)
+	*ht = v1.HostPathDirectoryOrCreate
+
 	envVars := []v1.EnvVar{{Name: "TEST_APPLICATION", Value: app}}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -25,6 +28,18 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: sa,
+			Volumes: []v1.Volume{
+				{
+					Name: "spire-agent-socket",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Path: "/run/spire/sockets",
+							Type: ht,
+						},
+					},
+				},
+			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            container,
@@ -36,6 +51,13 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 						},
 					},
 					Env: envVars,
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "spire-agent-socket",
+							MountPath: "/run/spire/sockets",
+							ReadOnly:  true,
+						},
+					},
 				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,

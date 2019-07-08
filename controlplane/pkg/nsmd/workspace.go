@@ -16,7 +16,7 @@ package nsmd
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/security"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -185,7 +185,8 @@ func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(w.NsmClientSocket()))
+	//nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(w.NsmClientSocket()))
+	nseConn, err := security.GetSecurityManager().DialContext(ctx, fmt.Sprintf("unix:%s", w.NsmClientSocket()))
 	if err != nil {
 		return false
 	}

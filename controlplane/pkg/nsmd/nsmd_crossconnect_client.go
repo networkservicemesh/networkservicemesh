@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"net"
 	"time"
 
@@ -228,6 +229,7 @@ func (client *NsmMonitorCrossConnectClient) monitor(
 	defer monitorClient.Close()
 
 	for {
+		logrus.Infof(logFormat, name, "New iteration of event loop")
 		select {
 		case <-ctx.Done():
 			logrus.Infof(logFormat, name, "Removed")
@@ -258,6 +260,8 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Connecting to", endpoint.SocketLocation)
 		return client.connectToEndpoint(endpoint)
+		//target := fmt.Sprintf("unix:%s", endpoint.SocketLocation)
+		//return security.GetSecurityManager().DialContext(context.Background(), target)
 	}
 
 	err := client.monitor(
@@ -267,6 +271,7 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 		client.handleLocalConnection, nil)
 
 	if err != nil {
+		logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to start monitor", err)
 		if err = client.endpointManager.DeleteEndpointWithBrokenConnection(endpoint); err != nil {
 			logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to delete endpoint", err)
 		}
@@ -278,7 +283,9 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 	var err error
 
 	for st := time.Now(); time.Since(st) < endpointConnectionTimeout; <-time.After(100 * time.Millisecond) {
-		if conn, err = tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation)); err == nil {
+		logrus.Info("ATTEMPT TO CONNECT")
+		target := fmt.Sprintf("unix:%s", endpoint.SocketLocation)
+		if conn, err = tools.SocketOperationCheckSecure(tools.SocketPath(target)); err == nil {
 			break
 		}
 	}
@@ -375,7 +382,8 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer *registry.NetworkServiceManager) {
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return grpc.Dial(remotePeer.Url, grpc.WithInsecure())
+		return security.GetSecurityManager().DialContext(ctx, remotePeer.GetUrl())
+		//return grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{

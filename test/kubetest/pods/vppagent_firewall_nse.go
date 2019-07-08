@@ -50,5 +50,5 @@ func VppAgentFirewallNSEPodWithConfigMap(name string, node *v1.Node, env map[str
 
 // VppAgentFirewallNSEPod creates a new 'vppagent-firewall-nse' pod
 func VppAgentFirewallNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
-	return VppTestCommonPod("vppagent-firewall-nse", name, "firewall-nse", node, env)
+	return VppTestCommonPod("vppagent-firewall-nse", name, "firewall-nse", node, env, NSEServiceAccount)
 }

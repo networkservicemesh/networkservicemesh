@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 	"strings"
 	"sync"
@@ -90,20 +91,29 @@ func NewManager() Manager {
 }
 
 func (m *certificateManager) DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
-	cred, spiffeIDFunc := m.clientCredentials()
+	cred := credentials.NewTLS(&tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{*m.GetCertificate()},
+		RootCAs:            m.GetCABundle(),
+	})
 
 	opts = append(opts,
 		grpc.WithTransportCredentials(cred),
-		grpc.WithUnaryInterceptor(m.createClientInterceptor(spiffeIDFunc)))
+		grpc.WithUnaryInterceptor(m.clientInterceptor))
 
 	return grpc.DialContext(ctx, target, opts...)
 }
 
 func (m *certificateManager) NewServer(opts ...grpc.ServerOption) *grpc.Server {
-	cred, spiffeIDFunc := m.serverCredentials()
+	cred := credentials.NewTLS(&tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{*m.GetCertificate()},
+		ClientCAs:    m.GetCABundle(),
+	})
+
 	opts = append(opts,
 		grpc.Creds(cred),
-		grpc.UnaryInterceptor(m.createServerInterceptor(spiffeIDFunc)))
+		grpc.UnaryInterceptor(m.serverInterceptor))
 
 	return grpc.NewServer(opts...)
 }
@@ -205,138 +215,88 @@ func (m *certificateManager) SignResponse(resp interface{}, obo string) error {
 	return nil
 }
 
-func cachingReadFirst(ch chan string) func() string {
-	var cache string
-	cached := false
-	return func() string {
-		if cached {
-			return cache
-		}
-		cache = <-ch
-		cached = true
-		return cache
+func spiffeIDFromContext(ctx context.Context) (string, error) {
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return "", status.Errorf(codes.InvalidArgument, "missing peer TLSCred")
 	}
+
+	return p.AuthInfo.(credentials.TLSInfo).State.PeerCertificates[0].URIs[0].String(), nil
 }
 
-func parseSpiffeID(rawCert []byte) (string, error) {
-	crt, err := x509.ParseCertificate(rawCert)
+func (m *certificateManager) clientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	request, ok := req.(networkservice.Request)
+	if !ok {
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+
+	logrus.Infof("ClientInterceptor start working...")
+
+	var obo string
+	if ctx.Value("obo") != nil {
+		obo = ctx.Value("obo").(string)
+	}
+
+	token, err := m.GenerateJWT(request.GetRequestConnection().GetNetworkService(), obo)
 	if err != nil {
-		return "", err
+		logrus.Error(err)
+		return err
 	}
-	return crt.URIs[0].String(), nil
-}
 
-func (m *certificateManager) clientCredentials() (credentials.TransportCredentials, func() string) {
-	spiffeIDCh := make(chan string, 1)
+	logrus.Infof("JWT sucessfully generated: %v", token)
 
-	return credentials.NewTLS(&tls.Config{
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{*m.GetCertificate()},
-		RootCAs:            m.GetCABundle(),
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			if len(rawCerts) == 0 {
-				return errors.New("no certificates from peer")
-			}
-			spiffeID, err := parseSpiffeID(rawCerts[0])
-			if err != nil {
-				return err
-			}
-			spiffeIDCh <- spiffeID
-			logrus.Infof("%v", spiffeID)
-			return nil
-		},
-	}), cachingReadFirst(spiffeIDCh)
-}
-
-func (m *certificateManager) serverCredentials() (credentials.TransportCredentials, func() string) {
-	spiffeIDCh := make(chan string, 1)
-
-	return credentials.NewTLS(&tls.Config{
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{*m.GetCertificate()},
-		ClientCAs:    m.GetCABundle(),
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			if len(rawCerts) == 0 {
-				return errors.New("no certificates from peer")
-			}
-			spiffeID, err := parseSpiffeID(rawCerts[0])
-			if err != nil {
-				return err
-			}
-			spiffeIDCh <- spiffeID
-			logrus.Infof("%v", spiffeID)
-			return nil
-		},
-	}), cachingReadFirst(spiffeIDCh)
-}
-
-func (m *certificateManager) createClientInterceptor(spiffeIDFunc func() string) grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		request, ok := req.(networkservice.Request)
-		if !ok {
-			return invoker(ctx, method, req, reply, cc, opts...)
-		}
-
-		logrus.Infof("ClientInterceptor start working...")
-
-		var obo string
-		if ctx.Value("obo") != nil {
-			obo = ctx.Value("obo").(string)
-		}
-
-		token, err := m.GenerateJWT(request.GetRequestConnection().GetNetworkService(), obo)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-
-		if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}))...); err != nil {
-			return err
-		}
-
-		conn, ok := reply.(connection.Connection)
-		if !ok {
-			return errors.New("can't verify response: wrong type")
-		}
-
-		if err := m.VerifyJWT(spiffeIDFunc(), conn.GetResponseJWT()); err != nil {
-			return status.Errorf(codes.Unauthenticated, "response jwt is not valid")
-		}
-
-		return nil
+	peer := new(peer.Peer)
+	if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(peer))...); err != nil {
+		return err
 	}
+
+	logrus.Info("invoker successfully called")
+	spiffeID := peer.AuthInfo.(credentials.TLSInfo).State.PeerCertificates[0].URIs[0].String()
+	logrus.Infof("SPIFFE ID: %v", spiffeID)
+
+	conn, ok := reply.(connection.Connection)
+	if !ok {
+		return errors.New("can't verify response: wrong type")
+	}
+
+	if err := m.VerifyJWT(spiffeID, conn.GetResponseJWT()); err != nil {
+		return status.Errorf(codes.Unauthenticated, "response jwt is not valid")
+	}
+
+	return nil
 }
 
-func (m *certificateManager) createServerInterceptor(spiffeIDFunc func() string) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		_, ok := req.(networkservice.Request)
-		if !ok {
-			return handler(ctx, req)
-		}
-
-		logrus.Infof("ServerInterceptor start working...")
-		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
-			return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
-		}
-
-		if len(md["authorization"]) == 0 {
-			return nil, status.Errorf(codes.Unauthenticated, "no token provided")
-		}
-
-		jwt := md["authorization"][0]
-		if err := m.VerifyJWT(spiffeIDFunc(), jwt); err != nil {
-			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
-		}
-
-		_, _, claims, _ := parseJWTWithClaims(jwt)
-
-		newCtx := context.WithValue(ctx, "spiffeID", spiffeIDFunc())
-		newCtx = context.WithValue(newCtx, "obo", jwt)
-		newCtx = context.WithValue(newCtx, "aud", claims.Audience)
-
-		return handler(newCtx, req)
+func (m *certificateManager) serverInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	_, ok := req.(networkservice.Request)
+	if !ok {
+		return handler(ctx, req)
 	}
+
+	logrus.Infof("ServerInterceptor start working...")
+	spiffeID, _ := spiffeIDFromContext(ctx)
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
+	}
+
+	if len(md["authorization"]) == 0 {
+		return nil, status.Errorf(codes.Unauthenticated, "no token provided")
+	}
+
+	jwt := md["authorization"][0]
+	if err := m.VerifyJWT(spiffeID, jwt); err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
+	}
+
+	_, _, claims, _ := parseJWTWithClaims(jwt)
+
+	newCtx := context.WithValue(ctx, "spiffeID", spiffeID)
+	newCtx = context.WithValue(newCtx, "obo", jwt)
+	newCtx = context.WithValue(newCtx, "aud", claims.Audience)
+
+	return handler(newCtx, req)
+
 }
 
 func (m *certificateManager) setCertificates(c *RetrievedCerts) {

@@ -17,7 +17,7 @@ package tools
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/credentials"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"io"
 	"net"
 	"net/url"
@@ -103,10 +103,13 @@ func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
 	return SocketOperationCheckContext(ctx, endpoint)
 }
 
-func SocketOperationCheckSecure(endpoint net.Addr, cred credentials.TransportCredentials) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	return grpc.DialContext(ctx, endpoint.String(), grpc.WithTransportCredentials(cred))
+func SocketOperationCheckSecure(listenEndpoint net.Addr) (*grpc.ClientConn, error) {
+	conn, err := security.GetSecurityManager().DialContext(context.Background(), listenEndpoint.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 func SocketOperationCheckContext(ctx context.Context, listenEndpoint net.Addr) (*grpc.ClientConn, error) {
