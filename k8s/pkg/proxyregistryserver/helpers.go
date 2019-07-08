@@ -21,12 +21,12 @@ func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkSer
 	}
 }
 
-func mapNseFromCustomResource(cr *v1.NetworkServiceEndpoint, payload string) *registry.NetworkServiceEndpoint {
+func mapNseFromCustomResource(cr *v1.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	return &registry.NetworkServiceEndpoint{
 		EndpointName:              cr.Name,
 		NetworkServiceName:        cr.Spec.NetworkServiceName,
 		NetworkServiceManagerName: cr.Spec.NsmName,
-		Payload:                   payload,
+		Payload:                   cr.Spec.Payload,
 		Labels:                    cr.ObjectMeta.Labels,
 		State:                     string(cr.Status.State),
 	}
