@@ -26,45 +26,61 @@ const (
 	healthcheckProbesPort = "0.0.0.0:5555"
 )
 
-var (
-	dpStatusOK       = false
-	nsmStatusOK      = false
-	apiStatusOK      = false
-	listenerStatusOK = false
-)
-
-func SetDPServerReady() {
-	dpStatusOK = true
+// Probes - Network Service Manager readiness probes
+type Probes struct {
+	dpStatusOK       bool
+	nsmStatusOK      bool
+	apiStatusOK      bool
+	listenerStatusOK bool
 }
 
-func SetNSMServerReady() {
-	nsmStatusOK = true
+// NewProbes creates new Network Service Manager readiness probes
+func NewProbes() *Probes {
+	return &Probes{
+		false,
+		false,
+		false,
+		false,
+	}
 }
 
-func SetAPIServerReady() {
-	apiStatusOK = true
+// SetDPServerReady notifies that dataplane is available
+func (probes *Probes) SetDPServerReady() {
+	probes.dpStatusOK = true
 }
 
-func SetPublicListenerReady() {
-	listenerStatusOK = true
+// SetNSMServerReady notifies that NSM Server is started
+func (probes *Probes) SetNSMServerReady() {
+	probes.nsmStatusOK = true
 }
 
-func readiness(w http.ResponseWriter, r *http.Request) {
-	if !dpStatusOK || !nsmStatusOK || !apiStatusOK || !listenerStatusOK {
-		errMsg := fmt.Sprintf("NSMD not ready. DPServer - %t, NSMServer - %t, APIServer - %t, PublicListener - %t", dpStatusOK, nsmStatusOK, apiStatusOK, listenerStatusOK)
+// SetAPIServerReady notifies that API Server is started
+func (probes *Probes) SetAPIServerReady() {
+	probes.apiStatusOK = true
+}
+
+// SetPublicListenerReady notifies that Public API server is started
+func (probes *Probes) SetPublicListenerReady() {
+	probes.listenerStatusOK = true
+}
+
+func (probes *Probes) readiness(w http.ResponseWriter, r *http.Request) {
+	if !probes.dpStatusOK || !probes.nsmStatusOK || !probes.apiStatusOK || !probes.listenerStatusOK {
+		errMsg := fmt.Sprintf("NSMD not ready. DPServer - %t, NSMServer - %t, APIServer - %t, PublicListener - %t", probes.dpStatusOK, probes.nsmStatusOK, probes.apiStatusOK, probes.listenerStatusOK)
 		http.Error(w, errMsg, http.StatusServiceUnavailable)
 	} else {
 		w.Write([]byte("OK"))
 	}
 }
 
-func liveness(w http.ResponseWriter, r *http.Request) {
+func (probes *Probes) liveness(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func BeginHealthCheck() {
+// BeginHealthCheck starts listening 5555 port for health check
+func (probes *Probes) BeginHealthCheck() {
 	logrus.Debug("Starting NSMD liveness/readiness healthcheck")
-	http.HandleFunc("/liveness", liveness)
-	http.HandleFunc("/readiness", readiness)
+	http.HandleFunc("/liveness", probes.liveness)
+	http.HandleFunc("/readiness", probes.readiness)
 	http.ListenAndServe(healthcheckProbesPort, nil)
 }

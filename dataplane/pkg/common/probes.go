@@ -26,50 +26,68 @@ const (
 	healthcheckProbesPort = "0.0.0.0:5555"
 )
 
-var (
-	srcIPOK        = false
-	validIPOK      = false
-	egressOK       = false
-	socketCleanOK  = false
-	socketListenOK = false
-)
-
-func SetSrcIPReady() {
-	srcIPOK = true
+// DataplaneProbes - Dataplane readiness probes
+type DataplaneProbes struct {
+	srcIPOK        bool
+	validIPOK      bool
+	egressOK       bool
+	socketCleanOK  bool
+	socketListenOK bool
 }
 
-func SetValidIPReady() {
-	validIPOK = true
+// NewDataplaneProbes create a new dataplane readness probes
+func NewDataplaneProbes() * DataplaneProbes {
+	return &DataplaneProbes{
+		false,
+		false,
+		false,
+		false,
+		false,
+	}
 }
 
-func SetNewEgressIFReady() {
-	egressOK = true
+// SetSrcIPReady notifies that Dataplane Src IP is configured
+func (probes *DataplaneProbes) SetSrcIPReady() {
+	probes.srcIPOK = true
 }
 
-func SetSocketCleanReady() {
-	socketCleanOK = true
+// SetValidIPReady notifies that configured Dataplane IP is valid
+func (probes *DataplaneProbes) SetValidIPReady() {
+	probes.validIPOK = true
 }
 
-func SetSocketListenReady() {
-	socketListenOK = true
+// SetNewEgressIFReady notifies that Egress Interface is found
+func (probes *DataplaneProbes) SetNewEgressIFReady() {
+	probes.egressOK = true
 }
 
-func readiness(w http.ResponseWriter, r *http.Request) {
-	if !srcIPOK || !validIPOK || !egressOK || !socketCleanOK || !socketListenOK {
-		errMsg := fmt.Sprintf("VPP Agent not ready. srcIPOK - %t, validIPOK - %t, egressOK - %t, socketCleanOK - %t, socketListenOK - %t", srcIPOK, validIPOK, egressOK, socketCleanOK, socketListenOK)
+// SetSocketCleanReady notifies that socket is cleaned up
+func (probes *DataplaneProbes) SetSocketCleanReady() {
+	probes.socketCleanOK = true
+}
+
+// SetSocketListenReady notifies that listening on socket is started
+func (probes *DataplaneProbes) SetSocketListenReady() {
+	probes.socketListenOK = true
+}
+
+func (probes *DataplaneProbes) readiness(w http.ResponseWriter, r *http.Request) {
+	if !probes.srcIPOK || !probes.validIPOK || !probes.egressOK || !probes.socketCleanOK || !probes.socketListenOK {
+		errMsg := fmt.Sprintf("VPP Agent not ready. srcIPOK - %t, validIPOK - %t, egressOK - %t, socketCleanOK - %t, socketListenOK - %t", probes.srcIPOK, probes.validIPOK, probes.egressOK, probes.socketCleanOK, probes.socketListenOK)
 		http.Error(w, errMsg, http.StatusServiceUnavailable)
 	} else {
 		w.Write([]byte("OK"))
 	}
 }
 
-func liveness(w http.ResponseWriter, r *http.Request) {
+func (probes *DataplaneProbes) liveness(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func BeginHealthCheck() {
+// BeginHealthCheck starts listening 5555 port for health check
+func (probes *DataplaneProbes) BeginHealthCheck() {
 	logrus.Debug("Starting VPP Agent liveness/readiness healthcheck")
-	http.HandleFunc("/liveness", liveness)
-	http.HandleFunc("/readiness", readiness)
+	http.HandleFunc("/liveness", probes.liveness)
+	http.HandleFunc("/readiness", probes.readiness)
 	http.ListenAndServe(healthcheckProbesPort, nil)
 }

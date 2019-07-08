@@ -387,6 +387,8 @@ func (nsm *nsmServer) Stop() {
 	}
 }
 
+// StartNSMServer registers and starts gRPC server which is listening for
+//// Network Service requests.
 func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry, quit chan error) (NSMServer, error) {
 	var err error
 	if err = tools.SocketCleanup(ServerSock); err != nil {

@@ -86,7 +86,7 @@ type Mechanisms struct {
 	LocalMechanisms  []*local.Mechanism
 }
 
-func createDataplaneConfig() *DataplaneConfig {
+func createDataplaneConfig(dataplaneProbes *DataplaneProbes) *DataplaneConfig {
 	cfg := &DataplaneConfig{}
 	var ok bool
 
@@ -108,7 +108,7 @@ func createDataplaneConfig() *DataplaneConfig {
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
 	} else {
-		SetSocketCleanReady()
+		dataplaneProbes.SetSocketCleanReady()
 	}
 
 	cfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
@@ -174,29 +174,30 @@ func createDataplaneConfig() *DataplaneConfig {
 	if !ok {
 		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
 	} else {
-		SetSrcIPReady()
+		dataplaneProbes.SetSrcIPReady()
 	}
 	cfg.SrcIP = net.ParseIP(srcIPStr)
 	if cfg.SrcIP == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
 	} else {
-		SetValidIPReady()
+		dataplaneProbes.SetValidIPReady()
 	}
 	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 	} else {
-		SetNewEgressIFReady()
+		dataplaneProbes.SetNewEgressIFReady()
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
 
 	return cfg
 }
 
-func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
+// CreateDataplane creates new Dataplane Registrar client
+func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *DataplaneRegistration {
 	start := time.Now()
 	// Populate common configuration
-	config := createDataplaneConfig()
+	config := createDataplaneConfig(dataplaneProbes)
 
 	// Initialize the dataplane
 	err := dp.Init(config)
@@ -214,7 +215,7 @@ func CreateDataplane(dp NSMDataplane) *dataplaneRegistration {
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
 	} else {
-		SetSocketListenReady()
+		dataplaneProbes.SetSocketListenReady()
 	}
 	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
 
