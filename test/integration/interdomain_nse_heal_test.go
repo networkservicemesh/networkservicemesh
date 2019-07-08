@@ -55,9 +55,6 @@ func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
 	}, kubetest.HealTestingPodFixture())
 }
 
-/**
-If passed 1 both will be on same node, if not on different.
-*/
 func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture) {
 	k8ss := []* kubetest.ExtK8s{}
 

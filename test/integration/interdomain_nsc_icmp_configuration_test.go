@@ -45,9 +45,6 @@ func TestInterdomainNSCAndICMPProxyRemote(t *testing.T) {
 	testInterdomainNSCAndICMP(t, 2, 2,false)
 }
 
-/**
-If passed 1 both will be on same node, if not on different.
-*/
 func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, disableVHost bool) {
 	k8ss := []* kubetest.ExtK8s{}
 

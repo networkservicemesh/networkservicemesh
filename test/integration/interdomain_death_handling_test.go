@@ -47,9 +47,6 @@ func TestInterdomainNSEDies(t *testing.T) {
 	testInterdomainNSMDies(t, 2, false)
 }
 
-/**
-If passed 1 both will be on same node, if not on different.
-*/
 func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	k8ss := []* kubetest.ExtK8s{}
 

@@ -50,9 +50,6 @@ func TestInterdomainNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 }
 
 
-/**
-If passed 1 both will be on same node, if not on different.
-*/
 func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, deleteNSE bool) {
 	k8ss := []* kubetest.ExtK8s{}
 

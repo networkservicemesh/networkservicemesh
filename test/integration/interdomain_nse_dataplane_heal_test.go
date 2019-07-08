@@ -37,9 +37,6 @@ func TestInterdomainNSCAndICMPDataplaneHealRemote(t *testing.T) {
 	testInterdomainDataplaneHeal(t, 2, 2,1)
 }
 
-/**
-If passed 1 both will be on same node, if not on different.
-*/
 func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount int, killIndex int) {
 	k8ss := []* kubetest.ExtK8s{}
 
