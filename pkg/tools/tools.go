@@ -104,7 +104,7 @@ func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
 }
 
 func SocketOperationCheckSecure(listenEndpoint net.Addr) (*grpc.ClientConn, error) {
-	conn, err := security.GetSecurityManager().DialContext(context.Background(), listenEndpoint.String())
+	conn, err := security.GetSecurityManager().DialContext(context.Background(), listenEndpoint.String(), grpc.WithBlock())
 	if err != nil {
 		return nil, err
 	}
