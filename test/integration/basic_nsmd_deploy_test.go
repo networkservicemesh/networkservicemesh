@@ -61,15 +61,11 @@ func testNSMgrDataplaneDeploy(t *testing.T, nodesCount int, nsmdPodFactory func(
 			dataplanePod := dataplanePodFactory(dataplaneName, &nodes[node], k8s.GetForwardingPlane())
 			corePods, err := k8s.CreatePodsRaw(defaultTimeout, true, corePod, dataplanePod)
 			Expect(err).To(BeNil())
-			failures := InterceptGomegaFailures(func() {
-				k8s.WaitLogsContains(corePods[1], "", "Sending MonitorMechanisms update", defaultTimeout)
-				_ = k8s.WaitLogsContainsRegex(corePods[0], "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
-				k8s.WaitLogsContains(corePods[0], "nsmdp", "nsmdp: successfully started", defaultTimeout)
-				k8s.WaitLogsContains(corePods[0], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
-			})
-			if len(failures) > 0 {
-				kubetest.ShowLogs(k8s, nil)
-			}
+
+			k8s.WaitLogsContains(corePods[1], "", "Sending MonitorMechanisms update", defaultTimeout)
+			_ = k8s.WaitLogsContainsRegex(corePods[0], "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
+			k8s.WaitLogsContains(corePods[0], "nsmdp", "nsmdp: successfully started", defaultTimeout)
+			k8s.WaitLogsContains(corePods[0], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 		}()
 	}
 	wg.Wait()
