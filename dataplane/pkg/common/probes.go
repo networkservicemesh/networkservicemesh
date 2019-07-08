@@ -36,7 +36,7 @@ type DataplaneProbes struct {
 }
 
 // NewDataplaneProbes create a new dataplane readness probes
-func NewDataplaneProbes() * DataplaneProbes {
+func NewDataplaneProbes() *DataplaneProbes {
 	return &DataplaneProbes{
 		false,
 		false,
