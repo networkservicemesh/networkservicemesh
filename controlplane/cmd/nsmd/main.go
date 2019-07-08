@@ -81,9 +81,9 @@ func main() {
 	logrus.Debugf("Starting NSMD took: %s", elapsed)
 
 	select {
-		case osSignal := <-c:
-			logrus.Errorf("Exited with OS signal: %s", osSignal.String())
-		case err = <-quit:
-			logrus.Errorf("Failed to start gRPC NSMD API server: %+v", err)
+	case osSignal := <-c:
+		logrus.Errorf("Exited with OS signal: %s", osSignal.String())
+	case err = <-quit:
+		logrus.Errorf("Failed to start gRPC NSMD API server: %+v", err)
 	}
 }
