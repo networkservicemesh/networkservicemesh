@@ -169,10 +169,10 @@ func (m *certificateManager) GenerateJWT(networkService string, obo string) (str
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, &NSMClaims{
 		StandardClaims: jwt.StandardClaims{
-			Audience:  networkService,
-			Issuer:    "test",
-			Subject:   spiffeID,
-			ExpiresAt: time.Now().Add(2 * time.Second).Unix(),
+			Audience: networkService,
+			Issuer:   "test",
+			Subject:  spiffeID,
+			//ExpiresAt: time.Now().Add(2 * time.Second).Unix(),
 		},
 		Obo:  obo,
 		Cert: certs,
