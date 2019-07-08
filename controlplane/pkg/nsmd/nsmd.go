@@ -387,7 +387,7 @@ func (nsm *nsmServer) Stop() {
 	}
 }
 
-func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
+func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry, quit chan error) (NSMServer, error) {
 	var err error
 	if err = tools.SocketCleanup(ServerSock); err != nil {
 		return nil, err
@@ -421,7 +421,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 	}
 	go func() {
 		if err := nsm.registerServer.Serve(nsm.registerSock); err != nil {
-			logrus.Error("failed to start device plugin grpc server")
+			quit <- fmt.Errorf("failed to start device plugin grpc server")
 		}
 	}()
 	endpoints, err := setLocalNSM(model, serviceRegistry)

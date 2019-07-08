@@ -36,10 +36,12 @@ func main() {
 
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry)
 
+	quit := make(chan error) // Will let know if mistake when servers starting
+
 	var server nsmd.NSMServer
 	var err error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
-	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
+	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry, quit); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)
 		return
 	}
@@ -72,8 +74,6 @@ func main() {
 	}
 	nsmd.SetPublicListenerReady()
 
-
-	quit := make(chan error)
 	server.StartAPIServerAt(sock, quit)
 	nsmd.SetAPIServerReady()
 
