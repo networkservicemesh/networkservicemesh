@@ -544,8 +544,11 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 		logrus.Errorf("Failed to start Public API server...")
 		return nil
 	}
+
+	quit := make(chan error) // Will let know if mistake when servers starting
+
 	// Lets start NSMD NSE registry service
-	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry, quit)
 	srv.nsmServer = nsmServer
 	Expect(err).To(BeNil())
 
@@ -553,7 +556,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	srv.testModel.AddListener(monitorCrossConnectClient)
 
 	// Start API Server
-	nsmServer.StartAPIServerAt(sock)
+	nsmServer.StartAPIServerAt(sock, quit)
 
 	return srv
 }
