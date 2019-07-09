@@ -54,9 +54,9 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 		Mechanism:      mechanism,
 		Context: &connectioncontext.ConnectionContext{
 			IpContext: &connectioncontext.IPContext{
-			SrcIpAddr: impl.srcIp,
-			DstIpAddr: impl.dstIp,
-		},
+				SrcIpAddr: impl.srcIp,
+				DstIpAddr: impl.dstIp,
+			},
 		},
 	}
 

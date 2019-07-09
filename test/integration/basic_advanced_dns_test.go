@@ -70,4 +70,3 @@ func TestAdvancedDNSRemote(t *testing.T) {
 	Expect(kubetest.PingByHostName(k8s, nsc, "my.domain2")).Should(BeTrue())
 
 }
-
