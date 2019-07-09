@@ -37,7 +37,6 @@ func TestInterdomainNSMHealRemoteDieNSMD(t *testing.T) {
 	testInterdomainNSMHeal(t, 2, 1, false)
 }
 
-
 func TestInterdomainNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -49,12 +48,11 @@ func TestInterdomainNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	testInterdomainNSMHeal(t, 2, 1, true)
 }
 
-
 func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, deleteNSE bool) {
-	k8ss := []* kubetest.ExtK8s{}
+	k8ss := []*kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
-		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i + 1))
+		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		Expect(len(kubeconfig)).ToNot(Equal(0))
 
 		k8s, err := kubetest.NewK8sForConfig(true, kubeconfig)
@@ -75,7 +73,7 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		Expect(err).To(BeNil())
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
-			K8s:      k8s,
+			K8s:        k8s,
 			NodesSetup: nodesSetup,
 		})
 
@@ -89,11 +87,11 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 	}
 
 	// Run ICMP
-	icmpPod := kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmpPod := kubetest.DeployICMP(k8ss[clustersCount-1].K8s, k8ss[clustersCount-1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
+	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
 	if err != nil {
-		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
+		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
 		Expect(err).To(BeNil())
 	}
 
@@ -144,13 +142,13 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 	}
 }
 
-func testInterdomainHealLocalNSMD(k8ss []* kubetest.ExtK8s, clustersCount int) {
+func testInterdomainHealLocalNSMD(k8ss []*kubetest.ExtK8s, clustersCount int) {
 
 	logrus.Infof("Delete Local NSMD")
 	k8ss[0].K8s.DeletePods(k8ss[0].NodesSetup[0].Nsmd)
 
 	logrus.Infof("Waiting for NSE with network service")
-	k8ss[clustersCount - 1].K8s.WaitLogsContains(k8ss[clustersCount - 1].NodesSetup[0].Nsmd, "nsmd", "NSM: Remote opened connection is not monitored and put into Healing state", defaultTimeout)
+	k8ss[clustersCount-1].K8s.WaitLogsContains(k8ss[clustersCount-1].NodesSetup[0].Nsmd, "nsmd", "NSM: Remote opened connection is not monitored and put into Healing state", defaultTimeout)
 
 	// Now we are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("%s-recovered", k8ss[0].NodesSetup[0].Nsmd.Name)
@@ -166,14 +164,14 @@ func testInterdomainHealLocalNSMD(k8ss []* kubetest.ExtK8s, clustersCount int) {
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), k8ss[0].NodesSetup[0].Node.Name)
 }
 
-func testInterdomainHealRemoteNSMD(k8ss []* kubetest.ExtK8s, clustersCount int, icmpPod *v1.Pod, deleteNSE bool) {
+func testInterdomainHealRemoteNSMD(k8ss []*kubetest.ExtK8s, clustersCount int, icmpPod *v1.Pod, deleteNSE bool) {
 
 	logrus.Infof("Delete Remote NSMD")
-	k8ss[clustersCount - 1].K8s.DeletePods(k8ss[clustersCount - 1].NodesSetup[0].Nsmd)
+	k8ss[clustersCount-1].K8s.DeletePods(k8ss[clustersCount-1].NodesSetup[0].Nsmd)
 
 	if deleteNSE {
 		logrus.Infof("Delete Remote ICMP responder NSE")
-		k8ss[clustersCount - 1].K8s.DeletePods(icmpPod)
+		k8ss[clustersCount-1].K8s.DeletePods(icmpPod)
 	}
 
 	logrus.Infof("Waiting for NSE with network service")
@@ -183,18 +181,16 @@ func testInterdomainHealRemoteNSMD(k8ss []* kubetest.ExtK8s, clustersCount int, 
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
-	k8ss[clustersCount - 1].NodesSetup[0].Nsmd = k8ss[clustersCount - 1].K8s.CreatePod(
+	k8ss[clustersCount-1].NodesSetup[0].Nsmd = k8ss[clustersCount-1].K8s.CreatePod(
 		pods.NSMgrPodWithConfig(
 			nsmdName,
-			k8ss[clustersCount - 1].NodesSetup[0].Node,
-			&pods.NSMgrPodConfig{Namespace: k8ss[clustersCount - 1].K8s.GetK8sNamespace()},
+			k8ss[clustersCount-1].NodesSetup[0].Node,
+			&pods.NSMgrPodConfig{Namespace: k8ss[clustersCount-1].K8s.GetK8sNamespace()},
 		)) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), k8ss[0].NodesSetup[0].Node.Name)
 
 	if deleteNSE {
 		// Restore ICMP responder pod.
-		kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[0].Node, "icmp-responder-nse-2", defaultTimeout)
+		kubetest.DeployICMP(k8ss[clustersCount-1].K8s, k8ss[clustersCount-1].NodesSetup[0].Node, "icmp-responder-nse-2", defaultTimeout)
 	}
 }
-
-

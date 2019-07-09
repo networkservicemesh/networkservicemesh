@@ -80,7 +80,6 @@ func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.Service
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
 	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 

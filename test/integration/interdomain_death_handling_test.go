@@ -48,10 +48,10 @@ func TestInterdomainNSEDies(t *testing.T) {
 }
 
 func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
-	k8ss := []* kubetest.ExtK8s{}
+	k8ss := []*kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
-		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i + 1))
+		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		Expect(len(kubeconfig)).ToNot(Equal(0))
 
 		k8s, err := kubetest.NewK8sForConfig(true, kubeconfig)
@@ -69,7 +69,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		defer kubetest.ShowLogs(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
-			K8s:      k8s,
+			K8s:        k8s,
 			NodesSetup: nodesSetup,
 		})
 
@@ -83,11 +83,11 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	}
 
 	// Run ICMP
-	icmpPodNode := kubetest.DeployICMP(k8ss[clustersCount - 1].K8s, k8ss[clustersCount - 1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	icmpPodNode := kubetest.DeployICMP(k8ss[clustersCount-1].K8s, k8ss[clustersCount-1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
+	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
 	if err != nil {
-		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount - 1].NodesSetup[0].Node)
+		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
 		Expect(err).To(BeNil())
 	}
 
@@ -97,7 +97,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	})
 
 	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
-	ipResponse, errOut, err := k8ss[clustersCount - 1].K8s.Exec(icmpPodNode, icmpPodNode.Spec.Containers[0].Name, "ip", "addr")
+	ipResponse, errOut, err := k8ss[clustersCount-1].K8s.Exec(icmpPodNode, icmpPodNode.Spec.Containers[0].Name, "ip", "addr")
 	Expect(err).To(BeNil())
 	Expect(errOut).To(Equal(""))
 	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
@@ -132,4 +132,3 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 
 	Expect(success).To(Equal(true))
 }
-

@@ -68,7 +68,6 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 	}
 
-
 	respNetworkServiceManager := endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()]
 	respNetworkService := endpointResponse.GetNetworkService()
 

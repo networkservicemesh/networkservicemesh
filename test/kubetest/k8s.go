@@ -272,7 +272,7 @@ type K8s struct {
 
 // ExtK8s - K8s ClientSet with nodes config
 type ExtK8s struct {
-	K8s *K8s
+	K8s        *K8s
 	NodesSetup []*NodeConf
 }
 

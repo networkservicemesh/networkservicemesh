@@ -73,12 +73,11 @@ func TestInterdomainVPNNSCRemote(t *testing.T) {
 
 func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, affinity map[string]int, verbose bool) {
 	RegisterTestingT(t)
-	k8ss := []* kubetest.ExtK8s{}
-	clusterNodes := [] []v1.Node{}
-
+	k8ss := []*kubetest.ExtK8s{}
+	clusterNodes := [][]v1.Node{}
 
 	for i := 0; i < clustersCount; i++ {
-		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i + 1))
+		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		Expect(len(kubeconfig)).ToNot(Equal(0))
 
 		k8s, err := kubetest.NewK8sForConfig(true, kubeconfig)
@@ -100,11 +99,11 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 		defer kubetest.ShowLogs(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
-			K8s:      k8s,
+			K8s:        k8s,
 			NodesSetup: nodesSetup,
 		})
 
-		for j := 0; j < nodesCount; j ++ {
+		for j := 0; j < nodesCount; j++ {
 			pnsmdName := fmt.Sprintf("pnsmgr-%s", nodesSetup[j].Node.Name)
 			kubetest.DeployProxyNSMgr(k8s, nodesSetup[j].Node, pnsmdName, defaultTimeout)
 		}
