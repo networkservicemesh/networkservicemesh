@@ -10,7 +10,7 @@ func InjectCorednsWithSharedFolder(template *v1.Pod) {
 	template.Spec.Containers = append(template.Spec.Containers,
 		v1.Container{
 			Name:            "coredns",
-			Image:           "coredns/coredns:latest",
+			Image:           "coredns:latest",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
 		})
@@ -41,7 +41,7 @@ func InjectCoredns(pod *v1.Pod, corednsConfigName string) {
 	pod.Spec.Containers = append(pod.Spec.Containers,
 		v1.Container{
 			Name:            "coredns",
-			Image:           "coredns/coredns:latest",
+			Image:           "coredns:latest",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
 			VolumeMounts: []v1.VolumeMount{{
