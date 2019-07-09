@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	NSEServiceAccount = "nse-acc"
-	NSCServiceAccount = "nsc-acc"
+	NSEServiceAccount   = "nse-acc"
+	NSCServiceAccount   = "nsc-acc"
+	NSMgrServiceAccount = "nsmgr-acc"
 )
 
 // TestCommonPod creates a new alpine-based testing pod

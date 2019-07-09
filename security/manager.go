@@ -215,15 +215,6 @@ func (m *certificateManager) SignResponse(resp interface{}, obo string) error {
 	return nil
 }
 
-func spiffeIDFromContext(ctx context.Context) (string, error) {
-	p, ok := peer.FromContext(ctx)
-	if !ok {
-		return "", status.Errorf(codes.InvalidArgument, "missing peer TLSCred")
-	}
-
-	return p.AuthInfo.(credentials.TLSInfo).State.PeerCertificates[0].URIs[0].String(), nil
-}
-
 func (m *certificateManager) clientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	request, ok := req.(networkservice.Request)
 	if !ok {
@@ -243,16 +234,15 @@ func (m *certificateManager) clientInterceptor(ctx context.Context, method strin
 		return err
 	}
 
-	logrus.Infof("JWT sucessfully generated: %v", token)
-
-	peer := new(peer.Peer)
-	if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(peer))...); err != nil {
+	p := new(peer.Peer)
+	if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...); err != nil {
 		return err
 	}
 
-	logrus.Info("invoker successfully called")
-	spiffeID := peer.AuthInfo.(credentials.TLSInfo).State.PeerCertificates[0].URIs[0].String()
-	logrus.Infof("SPIFFE ID: %v", spiffeID)
+	spiffeID, err := spiffeIDFromPeer(p)
+	if err != nil {
+		return err
+	}
 
 	conn, ok := reply.(connection.Connection)
 	if !ok {
@@ -260,7 +250,7 @@ func (m *certificateManager) clientInterceptor(ctx context.Context, method strin
 	}
 
 	if err := m.VerifyJWT(spiffeID, conn.GetResponseJWT()); err != nil {
-		return status.Errorf(codes.Unauthenticated, "response jwt is not valid")
+		return status.Errorf(codes.Unauthenticated, "response jwt is not valid: %v", err)
 	}
 
 	return nil
@@ -273,7 +263,10 @@ func (m *certificateManager) serverInterceptor(ctx context.Context, req interfac
 	}
 
 	logrus.Infof("ServerInterceptor start working...")
-	spiffeID, _ := spiffeIDFromContext(ctx)
+	spiffeID, err := spiffeIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+	}
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

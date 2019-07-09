@@ -3,7 +3,6 @@ package security
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"
@@ -83,20 +82,6 @@ func (s *spireCertObtainer) Error() error {
 	return <-s.errorCh
 }
 
-func oidEqual(o1, o2 []int) bool {
-	if len(o1) != len(o2) {
-		return false
-	}
-
-	for i := 0; i < len(o1); i++ {
-		if o1[i] != o2[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
 func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, error) {
 	svid := svidResponse.Svids[0]
 
@@ -112,16 +97,8 @@ func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, er
 	}
 
 	if x509crt, err := x509.ParseCertificate(keyPair.Certificate[0]); err == nil {
-		//logrus.Infof("Length of DNSNames = %v", len(x509crt.DNSNames))
-		//logrus.Infof("DNSNames[0] = %v", x509crt.DNSNames[0])
-		logrus.Infof("Length of DNSNames = %v", len(x509crt.URIs))
-		logrus.Infof("DNSNames[0] = %v", *x509crt.URIs[0])
-		//logrus.Infof("Length of x509crt.Extensions = %v", len(x509crt.Extensions))
-		//for _, ext := range x509crt.Extensions {
-		//	if oidEqual(ext.Id, []int{2, 5, 29, 17}) {
-		//
-		//	}
-		//}
+		logrus.Infof("Length of URIs = %v", len(x509crt.URIs))
+		logrus.Infof("URIs[0] = %v", *x509crt.URIs[0])
 	} else {
 		logrus.Error(err)
 	}
@@ -140,30 +117,4 @@ func readCertificates(svidResponse *proto.X509SVIDResponse) (*RetrievedCerts, er
 		TLSCert:  &keyPair,
 		CABundle: caPool,
 	}, nil
-}
-
-func certToPemBlocks(data []byte) ([]byte, error) {
-	certs, err := x509.ParseCertificates(data)
-	if err != nil {
-		return nil, err
-	}
-
-	pemData := []byte{}
-	for _, cert := range certs {
-		b := &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert.Raw,
-		}
-		pemData = append(pemData, pem.EncodeToMemory(b)...)
-	}
-
-	return pemData, nil
-}
-
-func keyToPem(data []byte) []byte {
-	b := &pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: data,
-	}
-	return pem.EncodeToMemory(b)
 }

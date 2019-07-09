@@ -274,7 +274,10 @@ func NewK8s(prepare bool) (*K8s, error) {
 
 	client, err := NewK8sWithoutRoles(prepare)
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
-	client.sa, _ = client.CreateServiceAccounts("nsc-acc", "nse-acc", "nsmgr-acc")
+	client.sa, _ = client.CreateServiceAccounts(
+		pods.NSCServiceAccount,
+		pods.NSEServiceAccount,
+		pods.NSMgrServiceAccount)
 	return client, err
 }
 
