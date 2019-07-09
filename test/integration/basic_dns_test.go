@@ -22,7 +22,7 @@ func TestBasicLocalDns(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 	kubetest.CreateCorednsConfig(k8s, "nsc-dns-core-file", `. {
 	log
 	hosts {
@@ -48,7 +48,7 @@ func TestBasicProxyDns(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 
 	kubetest.CreateCorednsConfig(k8s, "nsc-dns-core-file", `. {
 	log

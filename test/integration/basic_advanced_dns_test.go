@@ -30,7 +30,7 @@ func TestAdvancedDNSLocal(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 
 	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "core", defaultTimeout)
 
@@ -61,7 +61,7 @@ func TestAdvancedDNSRemote(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	Expect(err).To(BeNil())
-	defer kubetest.FailLogger(k8s, nodes, t)
+	defer kubetest.ShowLogs(k8s, t)
 
 	kubetest.DeployICMPAndCoredns(k8s, nodes[1].Node, "icmp-responder", "core", defaultTimeout)
 

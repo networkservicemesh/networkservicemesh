@@ -26,7 +26,8 @@ func TestSimpleMemifConnection(t *testing.T) {
 	Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
-	kubetest.DeployVppAgentICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
-	vppagentNsc := kubetest.DeployVppAgentNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
-	Expect(true, kubetest.IsVppAgentNsePinged(k8s, vppagentNsc))
+	kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder", defaultTimeout)
+	vppagentNsc := kubetest.DeployNSC(k8s, nodes[0].Node, "vppagent-nsc", defaultTimeout)
+	kubetest.ShowLogs(k8s, t)
+	Expect(true, kubetest.IsNsePinged(k8s, vppagentNsc))
 }

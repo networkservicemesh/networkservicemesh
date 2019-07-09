@@ -16,6 +16,7 @@ K8S_CONF_DIR = k8s/conf
 
 # Deployments - common
 DEPLOY_TRACING = jaeger
+PATH_TO_COREDNS = $(GOPATH)src/github.com/coredns
 DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
@@ -164,6 +165,21 @@ k8s-icmp-responder-nse-delete:
 	@$(kubectl) delete -f ${K8S_CONF_DIR}/icmp-responder-nse.yaml > /dev/null 2>&1 || echo "icmp-responder-nse does not exist and thus cannot be deleted"
 	@echo "Deleting networkservice icmp-responder"
 	@$(kubectl) delete networkservice icmp-responder > /dev/null 2>&1 || echo "icmp-responder does not exist and thus cannot be deleted"
+
+.PHONY: k8s-coredns-save
+k8s-coredns-save:
+	@echo "Starting saving coredns"
+	@if test -d ${PATH_TO_COREDNS}; then \
+	    echo "found coredns in ${PATH_TO_COREDNS}"; \
+	else \
+	    echo "Coredns not found in ${PATH_TO_COREDNS}"; \
+	    git clone https://github.com/coredns/coredns.git ${PATH_TO_COREDNS}; \
+	fi; \
+	cp -rf extensions/coredns/plugin/ ${PATH_TO_COREDNS}/plugin/; \
+	cp -f extensions/coredns/plugin.cfg ${PATH_TO_COREDNS}/plugin.cfg
+	make -C ${PATH_TO_COREDNS} SYSTEM="GOOS=linux"
+	docker build -t coredns ${PATH_TO_COREDNS}
+	docker save -o scripts/vagrant/images/coredns.tar coredns:latest
 
 .PHONY: k8s-load-images
 k8s-load-images: $(addsuffix -load-images,$(addprefix k8s-,$(DEPLOYS)))

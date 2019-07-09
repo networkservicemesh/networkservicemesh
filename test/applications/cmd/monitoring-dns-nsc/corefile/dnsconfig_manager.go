@@ -1,6 +1,7 @@
 package corefile
 
 import (
+	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"strings"
 )
@@ -8,6 +9,7 @@ import (
 const (
 	defaultCoreFileLocation = "/etc/coredns/Corefile"
 	anyDomain               = "."
+	bindAddr                = "127.0.0.1:1"
 )
 
 //DNSConfigManager - Manager of DNS configs
@@ -24,7 +26,7 @@ func NewDefaultDNSConfigManager() (DNSConfigManager, error) {
 //NewDNSConfigManager - Creates new instance of DNSConfigManager with custom Corefile path
 func NewDNSConfigManager(coreFilePath string) (DNSConfigManager, error) {
 	c := NewCorefile(coreFilePath)
-	c.WriteScope(anyDomain + ":54").Write("log").Write("reload 5s")
+	c.WriteScope(anyDomain + ":54").Write(fmt.Sprintf("bind %v", bindAddr)).Write("log").Write("reload 5s")
 	err := c.Save()
 	if err != nil {
 		return nil, err
@@ -49,7 +51,7 @@ func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) 
 	if domains == "" {
 		domains = anyDomain
 	}
-	s := m.corefile.WriteScope(domains).Write("log").Write("forward . " + ips)
+	s := m.corefile.WriteScope(domains).Write(fmt.Sprintf("bind %v", bindAddr)).Write("log").Write("fanout . " + ips)
 	if config.Prioritize {
 		s.Prioritize()
 	}
