@@ -114,6 +114,7 @@ k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete
 	@until ! $$($(kubectl) get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
 	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml \
 		| sed "N; s/\(name:[ \t]*TAG\n[ \t]*value:[ \t]*\).*/\1\"${COMMIT}\"/" \
+		| sed 's;value: "networkservicemesh";value: "networkservicemeshci";' \
 		| $(kubectl) apply -f -
 	@echo "Installing webhook..."
 	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) apply -f -

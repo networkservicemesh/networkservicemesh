@@ -33,7 +33,7 @@ type MonitorEndpoint struct {
 	monitorConnectionServer local.MonitorServer
 }
 
-// Init will be called upon NSm ENdpoint instantioation with the proper context
+// Init will be called upon NSM Endpoint instantiation with the proper context
 func (mce *MonitorEndpoint) Init(context *InitContext) error {
 	grpcServer := context.GrpcServer
 	connection.RegisterMonitorConnectionServer(grpcServer, mce.monitorConnectionServer)

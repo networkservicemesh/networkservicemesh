@@ -58,17 +58,19 @@ The following code snippet illustrates its usage.
 
 ```go
 import "github.com/networkservicemesh/networkservicemesh/sdk/client"
+
 ...
+
 client, err := client.NewNSMClient(context.Background(), nil)
 if err != nil {
-   // Handle the error
+    // Handle the error
 }
-// ensure the client is terminated at the end
+// Ensure the client is terminated at the end
 defer client.Destroy()
 
 conn, err := client.Connect("eth101", "kernel", "Primary interface")
 
-// run the actual code
+// Run the actual code
 
 // Close the current active connection
 client.Close(conn)
@@ -96,16 +98,15 @@ import "github.com/networkservicemesh/networkservicemesh/sdk/client"
 
 ...
 
-	client, err := client.NewNSMClientList(nil, nil)
-	if err != nil {
-		// Handle the error
-	}
-	// ensure the client is terminated at the end
-	defer client.Destroy()
+client, err := client.NewNSMClientList(nil, nil)
+if err != nil {
+    // Handle the error
+}
+// Ensure the client is terminated at the end
+defer client.Destroy()
 
-	if err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
-		// Handle the error
-	}
+if err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
+    // Handle the error
 }
 ```
 
@@ -114,13 +115,13 @@ import "github.com/networkservicemesh/networkservicemesh/sdk/client"
 The following code implements a simple *endpoint* that upon request will create an empty connection object and assign it a pair of IP addresses.
 
 ```go
-import (
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-)
+import "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 
-	composite := endpoint.NewCompositeEndpoint(
-		endpoint.NewIpamEndpoint(nil),
-		endpoint.NewConnectionEndpoint(nil))
+...
+
+composite := endpoint.NewCompositeEndpoint(
+    endpoint.NewIpamEndpoint(nil),
+    endpoint.NewConnectionEndpoint(nil))
 
 nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
 if err != nil {
@@ -130,7 +131,8 @@ if err != nil {
 nsmEndpoint.Start()
 defer nsmEndpoint.Delete()
 ```
-As there is no explicit configuration, the *ConnectionEndpoint*, *IpamEndpoint* and the composed *nsmEndpoint* are initalized with the matching environment variables.
+
+As there is no explicit configuration, the *ConnectionEndpoint*, *IpamEndpoint* and the composed *nsmEndpoint* are initialized with the matching environment variables.
 
 ## Creating an Advanced Endpoint
 
@@ -138,11 +140,11 @@ The NSM SDK Endpoint API enables plugging together different functionalities bas
 
 ### Writing a ChainedEndpoint
 
-Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` strucure. It already implements the `ChainedEndpoint` interface.
+Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` structure. It already implements the `ChainedEndpoint` interface.
 
 `ChainedEndpoint` method description:
 
- * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`
+ * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`.
  * `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
  * `Name() string` - returns the name of the composite.
  * `Init(context *InitContext) error` - an init function to be called before the endpoint GRPC listener is started but after the NSM endpoint is created.
@@ -153,9 +155,18 @@ Writing a new *composite* is done better by extending the `BaseCompositeEndpoint
 
 The SDK comes with a set of useful *composites*, that can be chained together and as part of more complex scenarios.
 
- * `client` - create a downlink connection, i.e. to the next endpoint. This connection is available through the `GetOpaque` method.
+ #### Basic composites
+ * `client` - creates a downlink connection, i.e. to the next endpoint. This connection is available through the `GetOpaque` method.
  * `connection` - returns a basic initialized connection, with the configured Mechanism set. Usually used at the "bottom" of the composite chain.
- * `ipam` - receives a connection from the next composite and assigns it an iP pair from the configure prefix pool.
+ * `ipam` - receives a connection from the next composite and assigns it an IP pair from the configure prefix pool.
  * `monitor` - receives a connection from the next composite and adds it to the monitoring mechanism. Typically would be at the top of the composite chain.
- * `route` - receives a connection from the next composite and assigns it routes
- * `neighbor` - receives a connection from the next composite and assigns it all available neighbors
+ * `route` - receives a connection from the next composite and assigns it routes.
+ * `neighbor` - receives a connection from the next composite and assigns it all available neighbors.
+ 
+ #### VPP Agent composites
+ * `memif-connect` - receives a connection from the next composite and creates a DataChange (or appends an existing DataChange) with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
+ * `client-memif-connect` - receives a downlink connection from the `client` composite's Opaque Data and creates a DataChange with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
+ * `cross-connect` - receives names of created interfaces from the next composite's Opaque Data and creates a DataChange (or appends an existing DataChange) with cross-connect configuration. This DataChange is available through the `GetOpaque` method.
+ * `acl` - receives a name of created interface from the next composite's Opaque Data and creates a DataChange (or appends an existing DataChange) with ACLs for this interface. This DataChange is available through the `GetOpaque` method.
+ * `flush` - receives a DataChange from the next composite's Opaque Data and writes it to VPP Agent.
+ 
