@@ -34,8 +34,7 @@ func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect
 
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
-	dstCtx, dstCancel := context.WithCancel(src.Context())
-	dst, err := monitorClient.MonitorCrossConnects(dstCtx, empty)
+	dst, err := monitorClient.MonitorCrossConnects(src.Context(), empty)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -48,21 +47,17 @@ func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect
 			return err
 		}
 
-		logrus.Info("Receive event: %v", event)
+		logrus.Infof("Receive event: %v", event)
 		if err := src.Send(event); err != nil {
 			logrus.Error(err)
 			return err
 		}
 
-		logrus.Info("Send event: %v", event)
+		logrus.Infof("Send event: %v", event)
 
 		select {
 		case <-src.Context().Done():
 			logrus.Info("src context is done")
-			dstCancel()
-			return nil
-		case <-dst.Context().Done():
-			logrus.Info("dst context is done")
 			return nil
 		default:
 		}
