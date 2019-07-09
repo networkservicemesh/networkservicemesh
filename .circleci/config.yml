@@ -276,7 +276,7 @@ workflows:
 
 # push
       - docker-push-tag:
-          tag: "latest"
+          tag: "master"
           requires:
             - test-integration
           filters:
