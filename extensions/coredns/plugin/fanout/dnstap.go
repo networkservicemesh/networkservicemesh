@@ -30,7 +30,6 @@ func toDnstap(ctx context.Context, host string, f *Fanout, state request.Request
 	}
 	tapper.TapMessage(m)
 
-	// Response
 	if reply != nil {
 		if tapper.Pack() {
 			b.Msg(reply)

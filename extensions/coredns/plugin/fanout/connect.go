@@ -11,9 +11,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-// limitTimeout is a utility function to auto-tune timeout values
-// average observed time is moved towards the last observed delay moderated by a weight
-// next timeout to use will be the double of the computed average, limited by min and max frame.
 func limitTimeout(currentAvg *int64, minValue time.Duration, maxValue time.Duration) time.Duration {
 	rt := time.Duration(atomic.LoadInt64(currentAvg))
 	if rt < minValue {
@@ -73,7 +70,6 @@ func (p *DnsServerDefinition) Connect(ctx context.Context, state request.Request
 		return nil, err
 	}
 
-	// Set buffer size correctly for this client.
 	conn.UDPSize = uint16(state.Size())
 	if conn.UDPSize < 512 {
 		conn.UDPSize = 512
@@ -93,13 +89,12 @@ func (p *DnsServerDefinition) Connect(ctx context.Context, state request.Request
 	for {
 		ret, err = conn.ReadMsg()
 		if err != nil {
-			conn.Close() // not giving it back
+			conn.Close()
 			if err == io.EOF && cached {
 				return nil, ErrCachedClosed
 			}
 			return ret, err
 		}
-		// drop out-of-order responses
 		if state.Req.Id == ret.Id {
 			break
 		}

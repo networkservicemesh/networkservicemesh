@@ -39,9 +39,6 @@ func (h *dnsHc) SetTLSConfig(cfg *tls.Config) {
 	h.c.TLSConfig = cfg
 }
 
-// For HC we send to . IN NS +norec message to the upstream. Dial timeouts and empty
-// replies are considered fails, basically anything else constitutes a healthy upstream.
-
 // Check is used as the up.Func in the up.Probe.
 func (h *dnsHc) Check(p *DnsServerDefinition) error {
 	err := h.send(p.addr)
@@ -56,9 +53,7 @@ func (h *dnsHc) send(addr string) error {
 	ping.SetQuestion(".", dns.TypeNS)
 
 	m, _, err := h.c.Exchange(ping, addr)
-	// If we got a header, we're alright, basically only care about I/O errors 'n stuff.
 	if err != nil && m != nil {
-		// Silly check, something sane came back.
 		if m.Response || m.Opcode == dns.OpcodeQuery {
 			err = nil
 		}

@@ -17,9 +17,9 @@ type persistConn struct {
 
 // Transport hold the persistent cache.
 type Transport struct {
-	avgDialTime int64                     // kind of average time of dial time
-	conns       map[string][]*persistConn // Buckets for udp, tcp and tcp-tls.
-	expire      time.Duration             // After this duration a connection is expired.
+	avgDialTime int64
+	conns       map[string][]*persistConn
+	expire      time.Duration
 	addr        string
 	tlsConfig   *tls.Config
 
@@ -120,8 +120,6 @@ func (t *Transport) cleanup(all bool) {
 		}
 		if all {
 			t.conns[proto] = nil
-			// now, the connections being passed to closeConns() are not reachable from
-			// transport methods anymore. So, it's safe to close them in a separate goroutine
 			go closeConns(stack)
 			continue
 		}
@@ -129,13 +127,10 @@ func (t *Transport) cleanup(all bool) {
 			continue
 		}
 
-		// connections in stack are sorted by "used"
 		good := sort.Search(len(stack), func(i int) bool {
 			return stack[i].used.After(staleTime)
 		})
 		t.conns[proto] = stack[good:]
-		// now, the connections being passed to closeConns() are not reachable from
-		// transport methods anymore. So, it's safe to close them in a separate goroutine
 		go closeConns(stack[:good])
 	}
 }
@@ -159,7 +154,5 @@ const (
 	defaultExpire  = 10 * time.Second
 	minDialTimeout = 1 * time.Second
 	maxDialTimeout = 30 * time.Second
-
-	// Some resolves might take quite a while, usually (cached) responses are fast. Set to 2s to give us some time to retry a different upstream.
 	readTimeout = 2 * time.Second
 )
