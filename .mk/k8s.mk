@@ -16,7 +16,7 @@ K8S_CONF_DIR = k8s/conf
 
 # Deployments - common
 DEPLOY_TRACING = jaeger
-PATH_TO_COREDNS = $(GOPATH)src/github.com/coredns
+PATH_TO_COREDNS = $(GOPATH)/src/github.com/coredns
 DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
