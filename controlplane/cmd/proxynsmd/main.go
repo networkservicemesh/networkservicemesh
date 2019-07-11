@@ -22,7 +22,7 @@ import (
 // Default values and environment variables of proxy connection
 const (
 	ProxyNsmdAPIAddressEnv      = "PROXY_NSMD_API_ADDRESS"
-	ProxyNsmdAPIAddressDefaults = "0.0.0.0:5006"
+	ProxyNsmdAPIAddressDefaults = ":5006"
 )
 
 func main() {
