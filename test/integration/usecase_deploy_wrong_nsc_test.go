@@ -29,8 +29,6 @@ func TestDeployWrongNsc(t *testing.T) {
 	gomega.Expect(err).To(gomega.BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
-	gomega.Expect(err).To(gomega.BeNil())
-
 	awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())
 	defer kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 

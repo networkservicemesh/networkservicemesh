@@ -11,6 +11,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 )
@@ -68,24 +69,20 @@ func validateAnnotationValue(value string) error {
 func createInitContainerPatch(annotationValue, path string) []patchOperation {
 	var patch []patchOperation
 
-	value := []interface{}{
-		map[string]interface{}{
-			"name":            initContainerName,
-			"image":           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
-			"imagePullPolicy": "IfNotPresent",
-			"env": []interface{}{
-				map[string]string{
-					"name":  client.AnnotationEnv,
-					"value": annotationValue,
-				},
-			},
-			"resources": map[string]interface{}{
-				"limits": map[string]interface{}{
-					"networkservicemesh.io/socket": 1,
-				},
+	value := []corev1.Container{{
+		Name:  initContainerName,
+		Image: fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
+		Env: []corev1.EnvVar{{
+			Name:  client.AnnotationEnv,
+			Value: annotationValue,
+		},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"networkservicemesh.io/socket": resource.MustParse("1"),
 			},
 		},
-	}
+	}}
 
 	patch = append(patch, patchOperation{
 		Op:    "add",

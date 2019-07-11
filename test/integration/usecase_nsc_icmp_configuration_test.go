@@ -91,7 +91,7 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
-
+	defer kubetest.ShowLogs(k8s, t)
 	Expect(err).To(BeNil())
 
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
@@ -125,7 +125,7 @@ If passed 1 both will be on same node, if not on different.
 func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
 	k8s, err := kubetest.NewK8s(true)
 	defer k8s.Cleanup()
-
+	defer kubetest.ShowLogs(k8s, t)
 	Expect(err).To(BeNil())
 
 	if useWebhook {
@@ -165,7 +165,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	// Do dumping of container state to dig into what is happened.
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		defer kubetest.ShowLogs(k8s, t)
+
 		nscInfo.PrintLogs()
 
 		t.Fail()
