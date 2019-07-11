@@ -1,4 +1,4 @@
-// +build usecase
+// +build interdomain
 
 package nsmd_integration_tests
 
