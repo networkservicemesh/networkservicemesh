@@ -28,4 +28,3 @@ func init() {
 
 	deserializer = serializer.NewCodecFactory(runtimeScheme).UniversalDeserializer()
 }
-

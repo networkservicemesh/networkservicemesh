@@ -40,7 +40,7 @@ func TestDeployWrongNsc(t *testing.T) {
 		p := &list[i]
 		if strings.Contains(p.Name, awDeployment.Name) {
 			admissionWebhookPod = p
-			break;
+			break
 		}
 	}
 	gomega.Expect(admissionWebhookPod).ShouldNot(gomega.BeNil())
