@@ -36,12 +36,7 @@ type Probes struct {
 
 // NewProbes creates new Network Service Manager readiness probes
 func NewProbes() *Probes {
-	return &Probes{
-		false,
-		false,
-		false,
-		false,
-	}
+	return &Probes{}
 }
 
 // SetDPServerReady notifies that dataplane is available

@@ -37,13 +37,7 @@ type DataplaneProbes struct {
 
 // NewDataplaneProbes create a new dataplane readness probes
 func NewDataplaneProbes() *DataplaneProbes {
-	return &DataplaneProbes{
-		false,
-		false,
-		false,
-		false,
-		false,
-	}
+	return &DataplaneProbes{}
 }
 
 // SetSrcIPReady notifies that Dataplane Src IP is configured

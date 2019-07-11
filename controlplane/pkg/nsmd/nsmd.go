@@ -40,7 +40,7 @@ const (
 type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
-	StartAPIServerAt(sock net.Listener, quit chan error)
+	StartAPIServerAt(sock net.Listener)
 
 	XconManager() *services.ClientConnectionManager
 	Manager() nsm.NetworkServiceManager
@@ -388,8 +388,8 @@ func (nsm *nsmServer) Stop() {
 }
 
 // StartNSMServer registers and starts gRPC server which is listening for
-//// Network Service requests.
-func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry, quit chan error) (NSMServer, error) {
+// Network Service requests.
+func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
 	var err error
 	if err = tools.SocketCleanup(ServerSock); err != nil {
 		return nil, err
@@ -423,7 +423,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 	}
 	go func() {
 		if err := nsm.registerServer.Serve(nsm.registerSock); err != nil {
-			quit <- fmt.Errorf("failed to start device plugin grpc server")
+			logrus.Fatalf("Failed to start NSM grpc server")
 		}
 	}()
 	endpoints, err := setLocalNSM(model, serviceRegistry)
@@ -490,7 +490,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 }
 
 // StartAPIServerAt starts GRPC API server at sock
-func (nsm *nsmServer) StartAPIServerAt(sock net.Listener, quit chan error) {
+func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -509,7 +509,7 @@ func (nsm *nsmServer) StartAPIServerAt(sock net.Listener, quit chan error) {
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			quit <- err
+			logrus.Fatalf("Failed to start NSM API server: %+v", err)
 		}
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())

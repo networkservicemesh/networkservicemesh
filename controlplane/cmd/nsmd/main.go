@@ -37,12 +37,10 @@ func main() {
 
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry)
 
-	quit := make(chan error) // Will let know if mistake when servers starting
-
 	var server nsmd.NSMServer
 	var err error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
-	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry, quit); err != nil {
+	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)
 		return
 	}
@@ -75,16 +73,11 @@ func main() {
 	}
 	nsmdProbes.SetPublicListenerReady()
 
-	server.StartAPIServerAt(sock, quit)
+	server.StartAPIServerAt(sock)
 	nsmdProbes.SetAPIServerReady()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting NSMD took: %s", elapsed)
 
-	select {
-	case osSignal := <-c:
-		logrus.Errorf("Exited with OS signal: %s", osSignal.String())
-	case err = <-quit:
-		logrus.Errorf("Failed to start gRPC NSMD API server: %+v", err)
-	}
+	<-c
 }
