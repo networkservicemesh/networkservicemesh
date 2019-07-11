@@ -83,7 +83,7 @@ func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.Service
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Fatalf("Failed to start gRPC NSMD API server %+v", err)
+			logrus.Fatalf("Failed to start NSM API server %+v", err)
 		}
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
