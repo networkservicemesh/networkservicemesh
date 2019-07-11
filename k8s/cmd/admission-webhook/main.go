@@ -3,16 +3,19 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var version string
+
+var (
+	repo          string
+	initContainer string
+	tag           string
+)
 
 func main() {
 	// Capture signals to cleanup before exiting
@@ -41,7 +44,7 @@ func main() {
 		logrus.Fatalf("Failed to load key pair: %v", err)
 	}
 
-	whsvr := &webhookServer{
+	whsvr := &nsmAdmissionWebhook{
 		server: &http.Server{
 			Addr:      fmt.Sprintf(":%v", 443),
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
@@ -51,6 +54,7 @@ func main() {
 	// define http server and server handler
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", whsvr.serve)
+	mux.HandleFunc("/validate", whsvr.serve)
 	whsvr.server.Handler = mux
 
 	// start webhook server in new routine
