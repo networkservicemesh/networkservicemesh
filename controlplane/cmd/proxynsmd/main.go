@@ -54,25 +54,19 @@ func main() {
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
 		nsmd.SetPublicListenerFailed()
+		return
 	}
 
-	quit := make(chan error)
-	startAPIServerAt(sock, serviceRegistry, quit)
+	startAPIServerAt(sock, serviceRegistry)
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting Proxy NSMD took: %s", elapsed)
 
-	select {
-	case osSignal := <-c:
-		logrus.Errorf("Exited with OS signal: %s", osSignal.String())
-	case err = <-quit:
-		logrus.Errorf("Failed to start gRPC NSMD API server %+v", err)
-		nsmd.SetAPIServerFailed()
-	}
+	<-c
 }
 
 // StartAPIServerAt starts GRPC API server at sock
-func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, quit chan error) {
+func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry) {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -89,7 +83,7 @@ func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.Service
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			quit <- err
+			logrus.Fatalf("Failed to start gRPC NSMD API server %+v", err)
 		}
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
