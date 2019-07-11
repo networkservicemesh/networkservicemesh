@@ -1,11 +1,13 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func errorReviewResponse(err error) *v1beta1.AdmissionResponse {
+	logrus.Error(err)
 	return &v1beta1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),

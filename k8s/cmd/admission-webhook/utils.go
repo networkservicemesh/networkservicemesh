@@ -43,6 +43,8 @@ func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) 
 			logrus.Errorf("Could not unmarshal raw object: %v", err)
 			return nil, err
 		}
+		result.meta = &pod.ObjectMeta
+		result.spec = &pod.Spec
 	}
 	return result, nil
 }
@@ -63,13 +65,13 @@ func validateAnnotationValue(value string) error {
 	return err
 }
 
-func createPatch(annotationValue, path string) ([]byte, error) {
+func createInitContainerPatch(annotationValue, path string) []patchOperation {
 	var patch []patchOperation
 
 	value := []interface{}{
 		map[string]interface{}{
 			"name":            initContainerName,
-			"image":           fmt.Sprintf("%s/%s:%s", repo, initContainer, tag),
+			"image":           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
 			"imagePullPolicy": "IfNotPresent",
 			"env": []interface{}{
 				map[string]string{
@@ -91,14 +93,14 @@ func createPatch(annotationValue, path string) ([]byte, error) {
 		Value: value,
 	})
 
-	return json.Marshal(patch)
+	return patch
 }
 
-func checkNsmInitDuplication(spec *corev1.PodSpec) error {
-	for i, _ := range spec.InitContainers {
+func checkNsmInitContainerDuplication(spec *corev1.PodSpec) error {
+	for i := 0; i < len(spec.InitContainers); i++ {
 		c := &spec.InitContainers[i]
-		if c.Name == initContainer {
-			return errors.New("do not use init-container and nsm annotation. Please remove annotation or init-container.")
+		if c.Name == getInitContainer() {
+			return errors.New("do not use init-container and nsm annotation\nplease remove annotation or init-container")
 		}
 	}
 	return nil

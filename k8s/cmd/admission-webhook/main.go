@@ -11,33 +11,12 @@ import (
 
 var version string
 
-var (
-	repo          string
-	initContainer string
-	tag           string
-)
-
 func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
 	logrus.Info("Admission Webhook starting...")
 	logrus.Infof("Version: %v", version)
-
-	repo = os.Getenv(repoEnv)
-	if repo == "" {
-		repo = repoDefault
-	}
-
-	initContainer = os.Getenv(initContainerEnv)
-	if initContainer == "" {
-		initContainer = initContainerDefault
-	}
-
-	tag = os.Getenv(tagEnv)
-	if tag == "" {
-		tag = tagDefault
-	}
 
 	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -53,8 +32,8 @@ func main() {
 
 	// define http server and server handler
 	mux := http.NewServeMux()
-	mux.HandleFunc("/mutate", whsvr.serve)
 	mux.HandleFunc("/validate", whsvr.serve)
+	mux.HandleFunc("/mutate", whsvr.serve)
 	whsvr.server.Handler = mux
 
 	// start webhook server in new routine
@@ -66,4 +45,28 @@ func main() {
 
 	logrus.Info("Server started")
 	<-c
+}
+
+func getRepo() string {
+	repo := os.Getenv(repoEnv)
+	if repo == "" {
+		repo = repoDefault
+	}
+	return repo
+}
+
+func getTag() string {
+	tag := os.Getenv(tagEnv)
+	if tag == "" {
+		tag = tagDefault
+	}
+	return tag
+}
+
+func getInitContainer() string {
+	initContainer := os.Getenv(initContainerEnv)
+	if initContainer == "" {
+		initContainer = initContainerDefault
+	}
+	return initContainer
 }

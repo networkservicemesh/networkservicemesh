@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 )
@@ -19,8 +20,16 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 		logrus.Infof("Skipping validation for %s/%s due to policy check", metaAndSpec.meta.Namespace, metaAndSpec.meta.Name)
 		return okReviewResponse()
 	}
-
-	patchBytes, err := createPatch(value, getInitContainerPatchPath(request))
+	if err = validateAnnotationValue(value); err != nil {
+		return errorReviewResponse(err)
+	}
+	if err = checkNsmInitContainerDuplication(metaAndSpec.spec); err != nil {
+		logrus.Error(err)
+		return errorReviewResponse(err)
+	}
+	patch := createInitContainerPatch(value, getInitContainerPatchPath(request))
+	//append another patches
+	patchBytes, err := json.Marshal(patch)
 	if err != nil {
 		return errorReviewResponse(err)
 	}

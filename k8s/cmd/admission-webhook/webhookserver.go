@@ -28,9 +28,7 @@ func (s *nsmAdmissionWebhook) serve(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 	} else {
-		if r.URL.Path == validateMethod {
-			nsmAdmissionWebhookReview.Response = s.validate(requestReview.Request)
-		} else if r.URL.Path == mutateMethod {
+		if r.URL.Path == mutateMethod {
 			nsmAdmissionWebhookReview.Response = s.mutate(requestReview.Request)
 		}
 	}

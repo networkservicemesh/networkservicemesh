@@ -2,7 +2,6 @@ package main
 
 const (
 	emptyBody                    = "empty body"
-	validateMethod               = "/validate"
 	mutateMethod                 = "/mutate"
 	invalidContentType           = "invalid Content-Type=%v, expect \"application/json\""
 	couldNotEncodeReview         = "could not encode response: %v"
