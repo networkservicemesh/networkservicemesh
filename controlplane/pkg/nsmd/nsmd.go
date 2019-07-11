@@ -387,6 +387,8 @@ func (nsm *nsmServer) Stop() {
 	}
 }
 
+// StartNSMServer registers and starts gRPC server which is listening for
+// Network Service requests.
 func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
 	var err error
 	if err = tools.SocketCleanup(ServerSock); err != nil {
@@ -421,7 +423,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 	}
 	go func() {
 		if err := nsm.registerServer.Serve(nsm.registerSock); err != nil {
-			logrus.Error("failed to start device plugin grpc server")
+			logrus.Fatalf("Failed to start NSM grpc server")
 		}
 	}()
 	endpoints, err := setLocalNSM(model, serviceRegistry)
@@ -507,7 +509,7 @@ func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
+			logrus.Fatalf("Failed to start NSM API server: %+v", err)
 		}
 	}()
 	logrus.Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
