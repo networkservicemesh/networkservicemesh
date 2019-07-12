@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
 	"os"
 	"path/filepath"
@@ -24,6 +25,32 @@ func showLogs(k8s *K8s, t *testing.T) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
+	}
+	checkSpire(k8s)
+}
+
+func checkSpire(k8s *K8s) {
+	cs, err := k8s.GetClientSet()
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	pl, err := cs.CoreV1().Pods("spire").List(v12.ListOptions{})
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	for _, p := range pl.Items {
+		logrus.Infof("====== %v ======", p.Name)
+		raw, err := cs.CoreV1().Pods("spire").GetLogs(p.Name, &v1.PodLogOptions{}).DoRaw()
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+		logrus.Info(string(raw))
+		logrus.Info("================", p.Name)
 	}
 }
 
