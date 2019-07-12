@@ -12,6 +12,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 )
 
 var version string
