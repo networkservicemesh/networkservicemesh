@@ -145,18 +145,6 @@ jobs:
           command: |
             echo "SUCCESS"
 
-  pull-coredns:
-    docker:
-      - image: circleci/golang
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            make k8s-coredns-save
-            make k8s-coredns-load-images
-
   # docker push
   docker-push-tag:
     docker:
@@ -207,14 +195,15 @@ workflows:
           requires:
             - test-sanity-check
 
-      - pull-coredns:
-          name: "pull-coredns"
-          requires:
-            - test-sanity-check
 # build
       - build-container:
           name: "build-nsmd"
           container: "nsmd"
+          requires:
+            - test-sanity-check
+      - build-container:
+          name: "build-nsm-coredns"
+          container: "nsm-coredns"
           requires:
             - test-sanity-check
       - build-container:
