@@ -1,0 +1,16 @@
+FROM golang:1.12.6-alpine as builder
+RUN apk add build-base git
+RUN git clone https://github.com/spiffe/spire.git
+RUN cd ./spire && go mod download
+RUN cd ./spire && make cmd/spire-agent
+RUN pwd
+
+# Image stage
+FROM alpine
+RUN apk add dumb-init
+RUN apk add ca-certificates
+RUN mkdir -p /opt/spire/bin
+COPY --from=builder /go/spire/cmd/spire-agent/spire-agent /opt/spire/bin/spire-agent
+WORKDIR /opt/spire
+ENTRYPOINT ["/usr/bin/dumb-init", "/opt/spire/bin/spire-agent", "run"]
+CMD []
