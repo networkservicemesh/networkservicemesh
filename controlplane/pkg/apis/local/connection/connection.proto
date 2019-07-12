@@ -20,7 +20,7 @@ syntax = "proto3";
 
 package local.connection;
 option go_package = "connection";
-import "github.com/golang/protobuf@v1.3.2/ptypes/empty/empty.proto";
+import "ptypes/empty/empty.proto";
 
 import "controlplane/pkg/apis/connectioncontext/connectioncontext.proto";
 

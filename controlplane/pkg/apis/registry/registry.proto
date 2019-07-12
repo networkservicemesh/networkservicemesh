@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package registry;
 
-import "github.com/golang/protobuf@v1.3.2/ptypes/empty/empty.proto";
-import "github.com/golang/protobuf@v1.3.2/ptypes/timestamp/timestamp.proto";
+import "ptypes/empty/empty.proto";
+import "ptypes/timestamp/timestamp.proto";
 
 message NetworkServiceEndpoint {
     string network_service_name = 1;

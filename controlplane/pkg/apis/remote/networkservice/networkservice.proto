@@ -23,14 +23,14 @@ package remote.networkservice;
 option go_package = "networkservice";
 
 import "controlplane/pkg/apis/remote/connection/connection.proto";
-import "github.com/golang/protobuf@v1.3.2/ptypes/empty/empty.proto";
+import "ptypes/empty/empty.proto";
 
 message NetworkServiceRequest {
-    remote.connection.Connection connection = 1;
-    repeated remote.connection.Mechanism mechanism_preferences = 2;
+  remote.connection.Connection connection = 1;
+  repeated remote.connection.Mechanism mechanism_preferences = 2;
 }
 
 service NetworkService {
-    rpc Request(NetworkServiceRequest) returns (remote.connection.Connection);
-    rpc Close(remote.connection.Connection) returns (google.protobuf.Empty);
+  rpc Request(NetworkServiceRequest) returns (remote.connection.Connection);
+  rpc Close(remote.connection.Connection) returns (google.protobuf.Empty);
 }

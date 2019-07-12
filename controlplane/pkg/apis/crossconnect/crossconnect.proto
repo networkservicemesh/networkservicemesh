@@ -4,7 +4,7 @@ package crossconnect;
 
 import "controlplane/pkg/apis/local/connection/connection.proto";
 import "controlplane/pkg/apis/remote/connection/connection.proto";
-import "github.com/golang/protobuf@v1.3.2/ptypes/empty/empty.proto";
+import "ptypes/empty/empty.proto";
 
 enum CrossConnectEventType {
   INITIAL_STATE_TRANSFER = 0;

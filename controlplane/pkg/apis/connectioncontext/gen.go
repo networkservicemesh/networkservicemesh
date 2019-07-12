@@ -1,3 +1,3 @@
 package connectioncontext
 
-//go:generate protoc -I . connectioncontext.proto --go_out=plugins=grpc:.
+//go:generate bash -c "protoc -I . connectioncontext.proto --go_out=plugins=grpc:."

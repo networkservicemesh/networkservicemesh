@@ -19,4 +19,4 @@
 
 package nsmdapi
 
-//go:generate protoc -I . nsmd.proto --go_out=plugins=grpc:. --proto_path=../
+//go:generate bash -c "protoc -I . nsmd.proto --go_out=plugins=grpc:. --proto_path=../"
