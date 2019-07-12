@@ -109,6 +109,10 @@ issues:
     - path: test/integration/const.go
       linters:
         - deadcode
+    - path: k8s/cmd/admission-webhook/init.go
+      linters:
+        - gochecknoglobals
+        - gochecknoinits
     - path: controlplane/pkg/monitor/
       linters:
         - dupl

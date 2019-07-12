@@ -37,7 +37,8 @@ type DataplaneRegistrarClient struct {
 	registrarSocket           net.Addr
 }
 
-type dataplaneRegistration struct {
+// DataplaneRegistration contains Dataplane registrar client info and connection events callbacks
+type DataplaneRegistration struct {
 	registrar       *DataplaneRegistrarClient
 	dataplaneName   string
 	dataplaneSocket string
@@ -51,7 +52,7 @@ type dataplaneRegistration struct {
 type OnConnectFunc func() error
 type OnDisConnectFunc func() error
 
-func (dr *dataplaneRegistration) register(ctx context.Context) {
+func (dr *DataplaneRegistration) register(ctx context.Context) {
 	logrus.Info("Registering with NetworkServiceManager")
 	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
 
@@ -71,7 +72,7 @@ func (dr *dataplaneRegistration) register(ctx context.Context) {
 	}
 }
 
-func (dr *dataplaneRegistration) tryRegistration(ctx context.Context) error {
+func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
 	logrus.Infof("Trying to register %s on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
 	if dr.registrar.registrarSocket.Network() == "unix" {
 		if _, err := os.Stat(dr.registrar.registrarSocket.String()); err != nil {
@@ -108,7 +109,7 @@ func (dr *dataplaneRegistration) tryRegistration(ctx context.Context) error {
 // livenessMonitor is a stream initiated by NSM to inform the dataplane that NSM is still alive and
 // no re-registration is required. Detection a failure on this "channel" will mean
 // that NSM is gone and the dataplane needs to start re-registration logic.
-func (dr *dataplaneRegistration) livenessMonitor(ctx context.Context) {
+func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 	logrus.Infof("Starting DataplaneRegistrarClient liveliness monitor")
 	stream, err := dr.client.RequestLiveness(context.Background())
 	if err != nil {
@@ -139,7 +140,8 @@ func (dr *dataplaneRegistration) livenessMonitor(ctx context.Context) {
 	}
 }
 
-func (dr *dataplaneRegistration) Close() {
+// Close dataplane registrar client
+func (dr *DataplaneRegistration) Close() {
 	dr.cancelFunc()
 
 	if dr.wasRegistered {
@@ -172,9 +174,10 @@ func NewDataplaneRegistrarClient(network, registrarSocket string) *DataplaneRegi
 	}
 }
 
-func (n *DataplaneRegistrarClient) Register(ctx context.Context, dataplaneName, dataplaneSocket string, onConnect OnConnectFunc, onDisconnect OnDisConnectFunc) *dataplaneRegistration {
+// Register creates and register new DataplaneRegistration client
+func (n *DataplaneRegistrarClient) Register(ctx context.Context, dataplaneName, dataplaneSocket string, onConnect OnConnectFunc, onDisconnect OnDisConnectFunc) *DataplaneRegistration {
 	ctx, cancelFunc := context.WithCancel(ctx)
-	rv := &dataplaneRegistration{
+	rv := &DataplaneRegistration{
 		registrar:       n,
 		dataplaneName:   dataplaneName,
 		dataplaneSocket: dataplaneSocket,
