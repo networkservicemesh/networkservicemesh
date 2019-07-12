@@ -39,7 +39,11 @@ func main() {
 		}
 	}()
 
-	go nsmd.BeginHealthCheck()
+	nsmdProbes := nsmd.NewProbes()
+	go nsmdProbes.BeginHealthCheck()
+	// Proxy NSM doesn't start some services - pass that probes by default
+	nsmdProbes.SetDPServerReady()
+	nsmdProbes.SetNSMServerReady()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -53,11 +57,12 @@ func main() {
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
-		nsmd.SetPublicListenerFailed()
 		return
 	}
+	nsmdProbes.SetPublicListenerReady()
 
 	startAPIServerAt(sock, serviceRegistry)
+	nsmdProbes.SetAPIServerReady()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting Proxy NSMD took: %s", elapsed)
