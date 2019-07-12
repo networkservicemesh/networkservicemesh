@@ -123,11 +123,6 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 	}
 
 	nscCluster := affinity["vpn-gateway-nsc-1"]
-	/*nscExternalIP, err := kubetest.GetNodeExternalIP(k8ss[nscCluster].NodesSetup[0].Node)
-	if err != nil {
-		nscExternalIP, err = kubetest.GetNodeInternalIP(k8ss[nscCluster].NodesSetup[0].Node)
-		Expect(err).To(BeNil())
-	}*/
 
 	nseCluster := affinity["vpn-gateway-nse-1"]
 	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[nseCluster].NodesSetup[0].Node)
@@ -146,7 +141,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 	s1 := time.Now()
 
 	{
-		nscrd, err := crds.NewNSCRD(k8ss[0].K8s.GetK8sNamespace())
+		nscrd, err := crds.NewNSCRDWithConfig(k8ss[0].K8s.GetK8sNamespace(), os.Getenv("KUBECONFIG_CLUSTER_1"))
 		Expect(err).To(BeNil())
 
 		nsSecureIntranetConnectivity := crds.SecureIntranetConnectivity(ptnum)
