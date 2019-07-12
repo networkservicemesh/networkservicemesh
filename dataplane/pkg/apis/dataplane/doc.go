@@ -19,4 +19,4 @@
 
 package dataplane
 
-//go:generate protoc -I . dataplane.proto --go_out=plugins=grpc:. --proto_path=$GOPATH/src --proto_path=$GOPATH/pkg/mod/
+//go:generate protoc -I . dataplane.proto --go_out=plugins=grpc:. --proto_path=../../../../ --proto_path=$GOPATH/pkg/mod/
