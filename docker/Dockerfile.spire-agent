@@ -1,6 +1,7 @@
-FROM golang:1.12.6-alpine as builder
+FROM golang:1.12.1-alpine as builder
 RUN apk add build-base git
 RUN git clone https://github.com/spiffe/spire.git
+RUN cd ./spire && git checkout 0.8.0 && git cherry-pick -n 569faa44228091e2a4ca998af4b1bf455f98fa73 4a12c5228a1373549aedf60d8bd7ee2cdc4511d9 && git status
 RUN cd ./spire && go mod download
 RUN cd ./spire && make cmd/spire-agent
 RUN pwd
