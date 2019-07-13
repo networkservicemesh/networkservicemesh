@@ -18,8 +18,6 @@ spec:
         app: spire-server
     spec:
       serviceAccountName: spire-server
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
       containers:
         - name: spire-server
           image: lobkovilya/spire-registration
