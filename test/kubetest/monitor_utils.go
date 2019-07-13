@@ -3,15 +3,16 @@ package kubetest
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"k8s.io/api/core/v1"
-	"testing"
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MonitorClient is shorter name for crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
@@ -217,11 +218,11 @@ func srcConnToString(xcon *crossconnect.CrossConnect) string {
 	var distance string
 
 	if ls := xcon.GetLocalSource(); ls != nil {
-		ip = ls.Context.GetSrcIpAddr()
+		ip = ls.GetContext().GetIpContext().GetSrcIpAddr()
 		state = ls.GetState().String()
 		distance = "local"
 	} else {
-		ip = xcon.GetRemoteSource().Context.GetSrcIpAddr()
+		ip = xcon.GetRemoteSource().GetContext().GetIpContext().GetSrcIpAddr()
 		state = xcon.GetRemoteSource().GetState().String()
 		distance = "remote"
 
@@ -237,12 +238,12 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 	var endpoint string
 
 	if ls := xcon.GetLocalDestination(); ls != nil {
-		ip = ls.Context.GetDstIpAddr()
+		ip = ls.GetContext().GetIpContext().GetDstIpAddr()
 		state = ls.GetState().String()
 		distance = "local"
 		endpoint = ls.GetMechanism().GetParameters()[connection.WorkspaceNSEName]
 	} else {
-		ip = xcon.GetRemoteDestination().Context.GetDstIpAddr()
+		ip = xcon.GetRemoteDestination().GetContext().GetIpContext().GetDstIpAddr()
 		state = xcon.GetRemoteDestination().GetState().String()
 		distance = "remote"
 		endpoint = xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection.WorkspaceNSEName]

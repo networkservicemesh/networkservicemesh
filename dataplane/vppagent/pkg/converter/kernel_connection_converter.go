@@ -59,10 +59,10 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 	var ipAddresses []string
 	if c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
 	}
 	if c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -146,19 +146,20 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	// Process static routes
-
-	for _, route := range c.Connection.GetContext().GetRoutes() {
-		rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
-			DstNetwork:        route.Prefix,
-			OutgoingInterface: c.conversionParameters.Name,
-			Scope:             linux_l3.Route_GLOBAL,
-			GwAddr:            extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
-		})
+	if c.conversionParameters.Side == SOURCE {
+		for _, route := range c.Connection.GetContext().GetIpContext().GetSrcRoutes() {
+			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
+				DstNetwork:        route.Prefix,
+				OutgoingInterface: c.conversionParameters.Name,
+				Scope:             linux_l3.Route_GLOBAL,
+				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+			})
+		}
 	}
 
 	// Process IP Neighbor entries
 	if c.conversionParameters.Side == SOURCE {
-		for _, neightbour := range c.Connection.GetContext().GetIpNeighbors() {
+		for _, neightbour := range c.Connection.GetContext().GetIpContext().GetIpNeighbors() {
 			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
 				IpAddress: neightbour.Ip,
 				Interface: c.conversionParameters.Name,

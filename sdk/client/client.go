@@ -66,9 +66,11 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 		Connection: &connection.Connection{
 			NetworkService: nsmc.Configuration.OutgoingNscName,
 			Context: &connectioncontext.ConnectionContext{
-				SrcIpRequired: true,
-				DstIpRequired: true,
-				Routes:        routes,
+				IpContext: &connectioncontext.IPContext{
+					SrcIpRequired: true,
+					DstIpRequired: true,
+					SrcRoutes:     routes,
+				},
 			},
 			Labels: nsmc.OutgoingNscLabels,
 		},

@@ -65,10 +65,10 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 
 	var ipAddresses []string
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext().DstIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
 	}
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext().SrcIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
 	}
 
 	if c.conversionParameters.Name == "" {
@@ -89,14 +89,16 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	})
 
 	// Process static routes
-	for _, route := range c.Connection.GetContext().GetRoutes() {
-		route := &vpp.Route{
-			Type:              vpp_l3.Route_INTER_VRF,
-			DstNetwork:        route.Prefix,
-			NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().DstIpAddr),
-			OutgoingInterface: c.conversionParameters.Name,
+	if c.conversionParameters.Side == SOURCE {
+		for _, route := range c.Connection.GetContext().GetIpContext().GetDstRoutes() {
+			route := &vpp.Route{
+				Type:              vpp_l3.Route_INTER_VRF,
+				DstNetwork:        route.Prefix,
+				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+				OutgoingInterface: c.conversionParameters.Name,
+			}
+			rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
 		}
-		rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
 	}
 	return rv, nil
 }
