@@ -31,7 +31,7 @@ data:
           clusters = {
             # NOTE: Change this to your cluster name
             "kubernetes" = {
-              service_account_key_file = "/run/k8s-certs/sa.pub"
+              use_token_review_api_validation = true
               service_account_whitelist = ["spire:spire-agent"]
             }
           }
