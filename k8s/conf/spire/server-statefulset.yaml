@@ -34,9 +34,6 @@ spec:
             - name: spire-data
               mountPath: /run/spire/data
               readOnly: false
-            - name: k8s-sa-cert
-              mountPath: /run/k8s-certs/sa.pub
-              readOnly: true
           livenessProbe:
             tcpSocket:
               port: 8081
@@ -51,11 +48,6 @@ spec:
         - name: spire-secrets
           secret:
             secretName: spire-server
-        - name: k8s-sa-cert
-          hostPath:
-            # NOTE: Change to the kube-apiserver's service account certificate
-            path: /etc/kubernetes/pki/sa.pub
-            type: File
         - name: spire-data
           hostPath:
             path: /var/spire-data
