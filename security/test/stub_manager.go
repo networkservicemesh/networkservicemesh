@@ -43,6 +43,7 @@ func (*stubManager) VerifyJWT(spiffeID, tokeString string) error {
 	return nil
 }
 
+// NewStubSecurityManager create stubbed Manager
 func NewStubSecurityManager() security.Manager {
 	return &stubManager{}
 }

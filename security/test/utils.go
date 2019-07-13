@@ -40,12 +40,12 @@ type intermediary struct {
 }
 
 func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	spiffeId, ok := ctx.Value("spiffeID").(string)
+	spiffeID, ok := ctx.Value("spiffeID").(string)
 	if !ok {
 		return nil, errors.New("context doesn't contain spiffeID")
 	}
 
-	logrus.Infof("Receive Request, spiffeID = %s", spiffeId)
+	logrus.Infof("Receive Request, spiffeID = %s", spiffeID)
 	logrus.Infof("obo = %s", ctx.Value("obo"))
 	logrus.Infof("aud = %s", ctx.Value("aud"))
 	logrus.Infof("next = %s", s.next)
@@ -61,7 +61,7 @@ func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceR
 		if r.GetConnection().GetLabels() == nil {
 			r.Connection.Labels = map[string]string{}
 		}
-		r.GetConnection().GetLabels()[s.me] = spiffeId
+		r.GetConnection().GetLabels()[s.me] = spiffeID
 
 		response, err := client.Request(ctx, r)
 		if err != nil {
@@ -83,7 +83,7 @@ func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceR
 	if r.GetConnection().GetLabels() == nil {
 		r.Connection.Labels = map[string]string{}
 	}
-	r.GetConnection().GetLabels()[s.me] = spiffeId
+	r.GetConnection().GetLabels()[s.me] = spiffeID
 	response := &connection.Connection{
 		Id:     "testId",
 		Labels: r.GetConnection().GetLabels(),

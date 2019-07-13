@@ -26,4 +26,8 @@ providers:
       start: make gke-start
       stop: make gke-destroy
       #config: # We do not need it since we put KUBECONFIG into env.
-      prepare: make k8s-config
+      prepare: |
+        make k8s-config
+        sleep 10
+        kubectl get pods -n spire
+        kubectl describe pods -n spire
