@@ -263,7 +263,7 @@ workflows:
             - build-nsm-init
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
-            - pull-coredns
+            - build-nsm-coredns
 
 # Integration testing
       - integration-tests:
