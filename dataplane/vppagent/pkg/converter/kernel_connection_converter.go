@@ -13,6 +13,7 @@ import (
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
@@ -146,15 +147,21 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	// Process static routes
-	if c.conversionParameters.Side == SOURCE {
-		for _, route := range c.Connection.GetContext().GetIpContext().GetSrcRoutes() {
-			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
-				DstNetwork:        route.Prefix,
-				OutgoingInterface: c.conversionParameters.Name,
-				Scope:             linux_l3.Route_GLOBAL,
-				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
-			})
-		}
+	routes := []*connectioncontext.Route{}
+	switch c.conversionParameters.Side {
+	case SOURCE:
+		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()
+	case DESTINATION:
+		routes = c.Connection.GetContext().GetIpContext().GetSrcRoutes()
+	}
+
+	for _, route := range routes {
+		rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
+			DstNetwork:        route.Prefix,
+			OutgoingInterface: c.conversionParameters.Name,
+			Scope:             linux_l3.Route_GLOBAL,
+			GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+		})
 	}
 
 	// Process IP Neighbor entries
