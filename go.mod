@@ -33,7 +33,7 @@ require (
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59 // indirect
-	google.golang.org/grpc v1.21.1
+	google.golang.org/grpc v1.22.0
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
 	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
