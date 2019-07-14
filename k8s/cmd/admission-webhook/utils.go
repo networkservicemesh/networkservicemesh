@@ -3,17 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/go-errors/errors"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 )
 
 type podSpecAndMeta struct {
@@ -70,8 +71,9 @@ func createInitContainerPatch(annotationValue, path string) []patchOperation {
 	var patch []patchOperation
 
 	value := []corev1.Container{{
-		Name:  initContainerName,
-		Image: fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
+		Name:            initContainerName,
+		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{{
 			Name:  client.AnnotationEnv,
 			Value: annotationValue,
