@@ -20,6 +20,17 @@ func TestPrefixConnectionContext(t *testing.T) {
 
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
+			SrcRoutes: []*connectioncontext.Route{
+				&connectioncontext.Route{
+					Prefix: "",
+				},
+			},
+		},
+	}
+	Expect(ctx.IsValid().Error()).To(Equal("ConnectionContext.Route.Prefix is required and cannot be empty/nil: src_routes:<> "))
+
+	ctx = &connectioncontext.ConnectionContext{
+		IpContext: &connectioncontext.IPContext{
 			DstRoutes: []*connectioncontext.Route{
 				&connectioncontext.Route{
 					Prefix: "",
@@ -34,6 +45,17 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
+			SrcRoutes: []*connectioncontext.Route{
+				&connectioncontext.Route{
+					Prefix: "8.8.8.8",
+				},
+			},
+		},
+	}
+	Expect(ctx.IsValid().Error()).To(Equal("ConnectionContext.Route.Prefix should be a valid CIDR address: src_routes:<prefix:\"8.8.8.8\" > "))
+
+	ctx = &connectioncontext.ConnectionContext{
+		IpContext: &connectioncontext.IPContext{
 			DstRoutes: []*connectioncontext.Route{
 				&connectioncontext.Route{
 					Prefix: "8.8.8.8",
@@ -47,6 +69,17 @@ func TestPrefixFineConnectionContext(t *testing.T) {
 	RegisterTestingT(t)
 
 	ctx := &connectioncontext.ConnectionContext{
+		IpContext: &connectioncontext.IPContext{
+			SrcRoutes: []*connectioncontext.Route{
+				&connectioncontext.Route{
+					Prefix: "8.8.8.8/30",
+				},
+			},
+		},
+	}
+	Expect(ctx.IsValid()).To(BeNil())
+
+	ctx = &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			DstRoutes: []*connectioncontext.Route{
 				&connectioncontext.Route{
