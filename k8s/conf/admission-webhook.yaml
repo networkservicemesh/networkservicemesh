@@ -20,10 +20,10 @@ spec:
           image: networkservicemesh/admission-webhook
           imagePullPolicy: IfNotPresent
           env:
-            - name: TAG
-              value: "latest"
             - name: REPO
               value: "networkservicemesh"
+            - name: TAG
+              value: "latest"
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
