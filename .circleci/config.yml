@@ -169,7 +169,7 @@ jobs:
             export REPO="networkservicemesh"
             export PULL_REPO="networkservicemeshci"
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
-            export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init admission-webhook)
+            export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
@@ -242,6 +242,11 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
+          name: "build-nsm-monitor"
+          container: "nsm-monitor"
+          requires:
+            - test-sanity-check
+      - build-container:
           name: "build-vppagent-dataplane"
           container: "vppagent-dataplane"
           requires:
@@ -261,6 +266,7 @@ workflows:
             - build-test-common
             - build-vpp-test-common
             - build-nsm-init
+            - build-nsm-monitor
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
 

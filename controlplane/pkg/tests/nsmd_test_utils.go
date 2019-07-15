@@ -483,12 +483,17 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 
 func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	response, conn := srv.requestNSM(clientName)
-
 	// Now we could try to connect via Client API
-	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
-	Expect(err).To(BeNil())
+	nsmClient := srv.createNSClient(conn, response)
 	return nsmClient, conn
 }
+
+func (srv *nsmdFullServerImpl) createNSClient(conn *grpc.ClientConn, response *nsmdapi.ClientConnectionReply) local_networkservice.NetworkServiceClient {
+	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
+	Expect(err).To(BeNil())
+	return nsmClient
+}
+
 
 func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientConnectionReply, *grpc.ClientConn) {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()

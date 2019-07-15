@@ -82,6 +82,51 @@ func WrongNSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 
 // NSCPod creates a new 'nsc' pod with init container
 func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
+	initContainer := newInitContainer(env)
+
+	pod := &v1.Pod{
+		ObjectMeta: v12.ObjectMeta{
+			Name: name,
+		},
+		TypeMeta: v12.TypeMeta{
+			Kind: "Deployment",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				newAlpineContainer(),
+			},
+			InitContainers: []v1.Container{
+				initContainer,
+			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
+		},
+	}
+	if node != nil {
+		pod.Spec.NodeSelector = map[string]string{
+			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
+		}
+	}
+	return pod
+}
+
+func NSCMonitorPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
+	pod := NSCPod(name, node, env)
+	pod.Spec.Containers = append(pod.Spec.Containers, )
+	return pod
+}
+
+func newAlpineContainer() v1.Container {
+	return v1.Container{
+		Name:            "alpine-img",
+		Image:           "alpine:latest",
+		ImagePullPolicy: v1.PullIfNotPresent,
+		Command: []string{
+			"tail", "-f", "/dev/null",
+		},
+	}
+}
+
+func newInitContainer(env map[string]string) v1.Container {
 	initContainer := containerMod(&v1.Container{
 		Name:            "nsm-init",
 		Image:           "networkservicemesh/nsm-init:latest",
@@ -99,35 +144,5 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 				Value: v,
 			})
 	}
-
-	pod := &v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
-			Name: name,
-		},
-		TypeMeta: v12.TypeMeta{
-			Kind: "Deployment",
-		},
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
-				{
-					Name:            "alpine-img",
-					Image:           "alpine:latest",
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Command: []string{
-						"tail", "-f", "/dev/null",
-					},
-				},
-			},
-			InitContainers: []v1.Container{
-				initContainer,
-			},
-			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
-		},
-	}
-	if node != nil {
-		pod.Spec.NodeSelector = map[string]string{
-			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
-		}
-	}
-	return pod
+	return initContainer
 }
