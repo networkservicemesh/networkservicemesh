@@ -886,7 +886,10 @@ func (ctx *executionContext) findTests() error {
 			return fmt.Errorf("execution name should be specified")
 		}
 		if exec.Kind == "" || exec.Kind == "gotest" {
-			tests := ctx.findGoTest(exec)
+			tests, err := ctx.findGoTest(exec)
+			if err != nil {
+				return err
+			}
 			if len(tests) > 0 {
 				ctx.tests = append(ctx.tests, tests...)
 			}
@@ -920,12 +923,13 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 	}
 }
 
-func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) []*model.TestEntry {
+func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) ([]*model.TestEntry,error) {
 	st := time.Now()
 	logrus.Infof("Starting finding tests by tags %v", executionConfig.Tags)
 	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
 	if err != nil {
 		logrus.Errorf("Failed during test lookup %v", err)
+		return nil, err
 	}
 	logrus.Infof("Tests found: %v Elapsed: %v", len(execTests), time.Since(st))
 	result := []*model.TestEntry{}
@@ -934,7 +938,7 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 		t.ExecutionConfig = executionConfig
 		result = append(result, t)
 	}
-	return result
+	return result, nil
 }
 
 func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, error) {

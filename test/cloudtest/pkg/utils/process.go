@@ -44,7 +44,10 @@ func ExecRead(ctx context.Context, args []string) ([]string, error) {
 		}
 		output = append(output, strings.TrimSpace(s))
 	}
-	_ = proc.Cmd.Wait()
+	err := proc.Cmd.Wait()
+	if err != nil {
+		return output, err
+	}
 	return output, nil
 }
 
