@@ -16,14 +16,11 @@ func TestCached(t *testing.T) {
 		w.WriteMsg(ret)
 	})
 	defer s.Close()
-
 	tr := newTransport(s.Addr)
 	tr.Start()
 	defer tr.Stop()
-
 	c1, cache1, _ := tr.Dial("udp")
 	c2, cache2, _ := tr.Dial("udp")
-
 	if cache1 || cache2 {
 		t.Errorf("Expected non-cached connection")
 	}
@@ -49,15 +46,15 @@ func TestCached(t *testing.T) {
 }
 
 func TestCleanupByTimer(t *testing.T) {
-	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	})
-	defer s.Close()
+	}, ".")
+	defer s.close()
 
 	tr := newTransport(s.Addr)
-	tr.SetExpire(100 * time.Millisecond)
+	tr.setExpire(100 * time.Millisecond)
 	tr.Start()
 	defer tr.Stop()
 
@@ -83,15 +80,15 @@ func TestCleanupByTimer(t *testing.T) {
 }
 
 func TestPartialCleanup(t *testing.T) {
-	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	})
-	defer s.Close()
+	}, ".")
+	defer s.close()
 
 	tr := newTransport(s.Addr)
-	tr.SetExpire(100 * time.Millisecond)
+	tr.setExpire(100 * time.Millisecond)
 	tr.Start()
 	defer tr.Stop()
 
@@ -144,7 +141,7 @@ func TestCleanupAll(t *testing.T) {
 	c2, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
 	c3, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
 
-	tr.conns["udp"] = []*persistConn{
+	tr.connections["udp"] = []*persistConn{
 		{c1, time.Now()},
 		{c2, time.Now()},
 		{c3, time.Now()},

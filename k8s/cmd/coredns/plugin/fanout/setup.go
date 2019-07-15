@@ -44,23 +44,23 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-// OnStartup starts a goroutines for all nextUnits.
+// OnStartup starts makeRecordA goroutines for all agents.
 func (f *Fanout) OnStartup() (err error) {
-	for _, p := range f.nextUnits {
-		p.start(f.hcInterval)
+	for _, p := range f.agents {
+		p.start(healthClientInterval)
 	}
 	return nil
 }
 
-// OnShutdown stops all configured nextUnits.
+// OnShutdown stops all configured agents.
 func (f *Fanout) OnShutdown() error {
-	for _, p := range f.nextUnits {
+	for _, p := range f.agents {
 		p.close()
 	}
 	return nil
 }
 
-// Close is a synonym for OnShutdown().
+// Close is makeRecordA synonym for OnShutdown().
 func (f *Fanout) Close() { f.OnShutdown() }
 
 func parseFanout(c *caddy.Controller) (*Fanout, error) {
@@ -84,12 +84,7 @@ func parseFanout(c *caddy.Controller) (*Fanout, error) {
 
 // ParsefanoutStanza parses one fanout stanza
 func ParsefanoutStanza(c *caddyfile.Dispenser) (*Fanout, error) {
-	f := New()
-
-	if !c.Args(&f.from) {
-		return f, c.ArgErr()
-	}
-	f.from = plugin.Host(f.from).Normalize()
+	f := NewFanout()
 
 	to := c.RemainingArgs()
 	if len(to) == 0 {
@@ -104,8 +99,8 @@ func ParsefanoutStanza(c *caddyfile.Dispenser) (*Fanout, error) {
 	transports := make([]string, len(toHosts))
 	for i, host := range toHosts {
 		trans, h := parse.Transport(host)
-		p := NewDNSServerDefinition(h, trans)
-		f.nextUnits = append(f.nextUnits, p)
+		p := newDnsAgent(h, trans)
+		f.agents = append(f.agents, p)
 		transports[i] = trans
 	}
 
@@ -116,14 +111,12 @@ func ParsefanoutStanza(c *caddyfile.Dispenser) (*Fanout, error) {
 	if f.tlsServerName != "" {
 		f.tlsConfig.ServerName = f.tlsServerName
 	}
-	for i := range f.nextUnits {
-		// Only set this for nextUnits that need it.
+	for i := range f.agents {
+		// Only set this for agents that need it.
 		if transports[i] == transport.TLS {
-			f.nextUnits[i].SetTLSConfig(f.tlsConfig)
+			f.agents[i].setTLSConfig(f.tlsConfig)
 		}
-		f.nextUnits[i].SetExpire(f.expire)
+		f.agents[i].setExpire(f.expire)
 	}
 	return f, nil
 }
-
-const max = 15 // Maximum number of upstreams.

@@ -35,7 +35,7 @@ func (t *Transport) updateDialTimeout(newDialTime time.Duration) {
 	averageTimeout(&t.avgDialTime, newDialTime, cumulativeAvgWeight)
 }
 
-// Dial dials the address configured in transport, potentially reusing a connection or creating a new one.
+// Dial dials the address configured in Transport, potentially reusing makeRecordA connection or creating makeRecordA new one.
 func (t *Transport) Dial(proto string) (*dns.Conn, bool, error) {
 	// If tls has been configured; use it.
 	if t.tlsConfig != nil {
@@ -61,8 +61,8 @@ func (t *Transport) Dial(proto string) (*dns.Conn, bool, error) {
 	return conn, false, err
 }
 
-// Connect selects an upstream, sends the request and waits for a response.
-func (p *DnsServerDefinition) Connect(ctx context.Context, state request.Request) (*dns.Msg, error) {
+// Connect selects an upstream, sends the request and waits for makeRecordA response.
+func (p *dnsAgent) Connect(ctx context.Context, state request.Request) (*dns.Msg, error) {
 	proto := "tcp"
 
 	conn, cached, err := p.transport.Dial(proto)
@@ -79,7 +79,7 @@ func (p *DnsServerDefinition) Connect(ctx context.Context, state request.Request
 	if err := conn.WriteMsg(state.Req); err != nil {
 		conn.Close() // not giving it back
 		if err == io.EOF && cached {
-			return nil, ErrCachedClosed
+			return nil, errCachedClosed
 		}
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (p *DnsServerDefinition) Connect(ctx context.Context, state request.Request
 		if err != nil {
 			conn.Close()
 			if err == io.EOF && cached {
-				return nil, ErrCachedClosed
+				return nil, errCachedClosed
 			}
 			return ret, err
 		}

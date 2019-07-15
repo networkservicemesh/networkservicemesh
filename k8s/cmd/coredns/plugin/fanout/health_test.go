@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/test"
 
@@ -16,19 +15,19 @@ import (
 func TestHealth(t *testing.T) {
 	const expected = 0
 	i := uint32(0)
-	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		if r.Question[0].Name == "." {
 			atomic.AddUint32(&i, 1)
 		}
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	})
-	defer s.Close()
-
-	p := NewDNSServerDefinition(s.Addr, transport.DNS)
-	f := New()
-	f.SetProxy(p)
+	}, ".")
+	defer s.close()
+	<-time.After(time.Second)
+	p := newDnsAgent(s.Addr, transport.DNS)
+	f := NewFanout()
+	f.setProxy(p)
 	defer f.Close()
 
 	req := new(dns.Msg)
@@ -36,7 +35,7 @@ func TestHealth(t *testing.T) {
 
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
 
-	time.Sleep(1 * time.Second)
+	<-time.After(time.Second)
 	i1 := atomic.LoadUint32(&i)
 	if i1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got %d", expected, i1)
@@ -47,8 +46,8 @@ func TestHealthFailTwice(t *testing.T) {
 	const expected = 2
 	i := uint32(0)
 	q := uint32(0)
-	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
-		if r.Question[0].Name == "example.org." {
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		if r.Question[0].Name == "." {
 			atomic.AddUint32(&i, 1)
 			i1 := atomic.LoadUint32(&i)
 			// Timeout health until we get the second one
@@ -68,12 +67,12 @@ func TestHealthFailTwice(t *testing.T) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	})
-	defer s.Close()
+	}, ".")
+	defer s.close()
 
-	p := NewDNSServerDefinition(s.Addr, transport.DNS)
-	f := New()
-	f.SetProxy(p)
+	p := newDnsAgent(s.Addr, transport.DNS)
+	f := NewFanout()
+	f.setProxy(p)
 	defer f.Close()
 
 	req := new(dns.Msg)
@@ -81,7 +80,7 @@ func TestHealthFailTwice(t *testing.T) {
 
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
 
-	time.Sleep(3 * time.Second)
+	<-time.After(time.Second * 10)
 	i1 := atomic.LoadUint32(&i)
 	if i1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got %d", expected, i1)
@@ -91,21 +90,20 @@ func TestHealthFailTwice(t *testing.T) {
 func TestHealthNoMaxFails(t *testing.T) {
 	const expected = 0
 	i := uint32(0)
-	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
-		if r.Question[0].Name == "example.org." {
-			// health check, answer
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		if r.Question[0].Name == "." {
 			atomic.AddUint32(&i, 1)
 			ret := new(dns.Msg)
 			ret.SetReply(r)
 			w.WriteMsg(ret)
 		}
-	})
-	defer s.Close()
+	}, ".")
+	defer s.close()
 
-	p := NewDNSServerDefinition(s.Addr, transport.DNS)
-	f := New()
+	p := newDnsAgent(s.Addr, transport.DNS)
+	f := NewFanout()
 	f.failLimit = 0
-	f.SetProxy(p)
+	f.setProxy(p)
 	defer f.Close()
 
 	req := new(dns.Msg)

@@ -51,7 +51,7 @@ func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) 
 	if domains == "" {
 		domains = anyDomain
 	}
-	s := m.corefile.WriteScope(domains).Write(fmt.Sprintf("bind %v", bindAddr)).Write("log").Write("fanout . " + ips)
+	s := m.corefile.WriteScope(domains).Write(fmt.Sprintf("bind %v", bindAddr)).Write("log").Write("fanout " + ips)
 	if config.Prioritize {
 		s.Prioritize()
 	}

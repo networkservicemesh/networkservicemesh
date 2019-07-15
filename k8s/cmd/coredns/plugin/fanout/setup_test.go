@@ -3,7 +3,6 @@ package fanout
 import (
 	"io/ioutil"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -16,20 +15,20 @@ func TestSetup(t *testing.T) {
 		shouldErr       bool
 		expectedFrom    string
 		expectedIgnored []string
-		expectedFails   uint32
+		expectedFails   int
 
 		expectedErr string
 	}{
 		// positive
-		{"fanout . 127.0.0.1", false, ".", nil, 2, ""},
-		{"fanout . 127.0.0.1:53", false, ".", nil, 2, ""},
-		{"fanout . 127.0.0.1:8080", false, ".", nil, 2, ""},
-		{"fanout . [::1]:53", false, ".", nil, 2, ""},
-		{"fanout . [2003::1]:53", false, ".", nil, 2, ""},
+		{"fanout 127.0.0.1", false, ".", nil, 2, ""},
+		{"fanout 127.0.0.1:53", false, ".", nil, 2, ""},
+		{"fanout 127.0.0.1:8080", false, ".", nil, 2, ""},
+		{"fanout [::1]:53", false, ".", nil, 2, ""},
+		{"fanout [2003::1]:53", false, ".", nil, 2, ""},
 		// negative
-		{"fanout . a27.0.0.1", true, "", nil, 0, "not an IP"},
-		{"fanout . 127.0.0.1 {\nblaatl\n}\n", true, "", nil, 0, "unknown property"},
-		{`fanout . ::1
+		{"fanout a27.0.0.1", true, "", nil, 0, "not an IP"},
+		{"fanout 127.0.0.1 {\nblaatl\n}\n", true, "", nil, 0, "unknown property"},
+		{`fanout ::1
 		fanout com ::2`, true, "", nil, 0, "plugin"},
 	}
 
@@ -51,14 +50,6 @@ func TestSetup(t *testing.T) {
 			}
 		}
 
-		if !test.shouldErr && f.from != test.expectedFrom {
-			t.Errorf("Test %d: expected: %s, got: %s", i, test.expectedFrom, f.from)
-		}
-		if !test.shouldErr && test.expectedIgnored != nil {
-			if !reflect.DeepEqual(f.ignored, test.expectedIgnored) {
-				t.Errorf("Test %d: expected: %q, actual: %q", i, test.expectedIgnored, f.ignored)
-			}
-		}
 		if !test.shouldErr && f.failLimit != test.expectedFails {
 			t.Errorf("Test %d: expected: %d, got: %d", i, test.expectedFails, f.failLimit)
 		}
@@ -80,8 +71,7 @@ nameserver 10.10.255.253`), 0666); err != nil {
 		expectedErr   string
 		expectedNames []string
 	}{
-		// pass
-		{`fanout . ` + resolv, false, "", []string{"10.10.255.252:53", "10.10.255.253:53"}},
+		{`fanout ` + resolv, false, "", []string{"10.10.255.252:53", "10.10.255.253:53"}},
 	}
 
 	for i, test := range tests {
@@ -105,13 +95,13 @@ nameserver 10.10.255.253`), 0666); err != nil {
 
 		if !test.shouldErr {
 			for j, n := range test.expectedNames {
-				addr := f.nextUnits[j].addr
+				addr := f.agents[j].addr
 				if n != addr {
 					t.Errorf("Test %d, expected %q, got %q", j, n, addr)
 				}
 			}
 		}
-		for _, p := range f.nextUnits {
+		for _, p := range f.agents {
 			p.health.Check(p) // this should almost always err, we don't care it shoulnd't crash
 		}
 	}

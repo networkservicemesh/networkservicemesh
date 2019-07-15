@@ -11,53 +11,53 @@ import (
 
 // HealthChecker checks the upstream health.
 type HealthChecker interface {
-	Check(*DnsServerDefinition) error
+	//Check is used as the up.Func in the up.Probe.
+	Check(*dnsAgent) error
+	//SetTLSConfig sets tls config for checker.
 	SetTLSConfig(*tls.Config)
 }
 
-// dnsHc is a health checker for a DNS endpoint (DNS, and DoT).
-type dnsHc struct{ c *dns.Client }
+type dnsHealthClient struct {
+	c *dns.Client
+}
 
-// NewHealthChecker returns a new HealthChecker based on transport.
+// NewHealthChecker returns makeRecordA new HealthChecker based on Transport.
 func NewHealthChecker(trans string) HealthChecker {
 	switch trans {
 	case transport.DNS, transport.TLS:
 		c := new(dns.Client)
-		c.Net = "udp"
+		c.Net = "tcp"
 		c.ReadTimeout = 1 * time.Second
 		c.WriteTimeout = 1 * time.Second
 
-		return &dnsHc{c: c}
+		return &dnsHealthClient{c: c}
 	}
 
-	log.Warningf("No healthchecker for transport %q", trans)
+	log.Warningf("No healthchecker for Transport %q", trans)
 	return nil
 }
 
-func (h *dnsHc) SetTLSConfig(cfg *tls.Config) {
+func (h *dnsHealthClient) SetTLSConfig(cfg *tls.Config) {
 	h.c.Net = "tcp-tls"
 	h.c.TLSConfig = cfg
 }
 
-// Check is used as the up.Func in the up.Probe.
-func (h *dnsHc) Check(p *DnsServerDefinition) error {
-	err := h.send(p.addr)
+func (h *dnsHealthClient) Check(p *dnsAgent) error {
+	err := h.dnsPing(p.addr)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *dnsHc) send(addr string) error {
+func (h *dnsHealthClient) dnsPing(addr string) error {
 	ping := new(dns.Msg)
 	ping.SetQuestion(".", dns.TypeNS)
-
 	m, _, err := h.c.Exchange(ping, addr)
 	if err != nil && m != nil {
 		if m.Response || m.Opcode == dns.OpcodeQuery {
 			err = nil
 		}
 	}
-
 	return err
 }
