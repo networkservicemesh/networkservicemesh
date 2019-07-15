@@ -31,6 +31,7 @@ jobs:
       - run: go generate ./...
       - run: make vet check
       - run: go build ./...
+      - run: go test ./test/integration --list .* -tags basic recover usecase
       - run: mkdir -p ~/junit/
       - run:
           command: |
