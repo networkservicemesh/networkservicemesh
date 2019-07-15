@@ -30,11 +30,12 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	go common.BeginHealthCheck()
+	dataplaneProbes := common.NewDataplaneProbes()
+	go dataplaneProbes.BeginHealthCheck()
 
 	agent := vppagent.CreateVPPAgent()
 
-	registration := common.CreateDataplane(agent)
+	registration := common.CreateDataplane(agent, dataplaneProbes)
 
 	select {
 	case <-c:

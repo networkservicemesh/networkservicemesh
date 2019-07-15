@@ -58,8 +58,8 @@ executions:
       - KUBECONFIG
     run: |
       make k8s-infra-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make k8s-vpn-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make k8s-check
       make k8s-delete

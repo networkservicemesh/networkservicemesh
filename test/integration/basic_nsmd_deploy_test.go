@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -15,15 +16,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestNSMgrDdataplaneDeploy(t *testing.T) {
-	testNSMgrDdataplaneDeploy(t, pods.NSMgrPod, pods.ForwardingPlane)
+func TestNSMgrDataplaneDeploy(t *testing.T) {
+	testNSMgrDataplaneDeploy(t, pods.NSMgrPod, pods.ForwardingPlane)
 }
 
-func TestNSMgrDdataplaneDeployLiveCheck(t *testing.T) {
-	testNSMgrDdataplaneDeploy(t, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
+func TestNSMgrDataplaneDeployLiveCheck(t *testing.T) {
+	testNSMgrDataplaneDeploy(t, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
 }
 
-func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node, string) *v1.Pod) {
+func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node, string) *v1.Pod) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -39,16 +40,20 @@ func testNSMgrDdataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Nod
 	Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
-	nodes := k8s.GetNodesWait(2, defaultTimeout)
+	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
-	if len(nodes) < 2 {
-		logrus.Printf("At least two Kubernetes nodes are required for this test")
-		Expect(len(nodes)).To(Equal(2))
-		return
-	}
-
-	_, err = kubetest.SetupNodes(k8s, 2, defaultTimeout)
+	nsmdName := fmt.Sprintf("nsmgr-%s", nodes[0].Name)
+	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", nodes[0].Name)
+	corePod := nsmdPodFactory(nsmdName, &nodes[0], k8s.GetK8sNamespace())
+	dataplanePod := dataplanePodFactory(dataplaneName, &nodes[0], k8s.GetForwardingPlane())
+	corePods, err := k8s.CreatePodsRaw(defaultTimeout, true, corePod, dataplanePod)
 	Expect(err).To(BeNil())
+
+	k8s.WaitLogsContains(corePods[1], "", "Sending MonitorMechanisms update", defaultTimeout)
+	_ = k8s.WaitLogsContainsRegex(corePods[0], "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
+	k8s.WaitLogsContains(corePods[0], "nsmdp", "nsmdp: successfully started", defaultTimeout)
+	k8s.WaitLogsContains(corePods[0], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
+
 	k8s.Cleanup()
 	var count int = 0
 	for _, lpod := range k8s.ListPods() {

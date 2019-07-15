@@ -12,6 +12,8 @@ import (
 	connection1 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -186,6 +188,20 @@ type DataplaneServer interface {
 	Request(context.Context, *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error)
 	Close(context.Context, *crossconnect.CrossConnect) (*empty.Empty, error)
 	MonitorMechanisms(*empty.Empty, Dataplane_MonitorMechanismsServer) error
+}
+
+// UnimplementedDataplaneServer can be embedded to have forward compatible implementations.
+type UnimplementedDataplaneServer struct {
+}
+
+func (*UnimplementedDataplaneServer) Request(ctx context.Context, req *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Request not implemented")
+}
+func (*UnimplementedDataplaneServer) Close(ctx context.Context, req *crossconnect.CrossConnect) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
+}
+func (*UnimplementedDataplaneServer) MonitorMechanisms(req *empty.Empty, srv Dataplane_MonitorMechanismsServer) error {
+	return status.Errorf(codes.Unimplemented, "method MonitorMechanisms not implemented")
 }
 
 func RegisterDataplaneServer(s *grpc.Server, srv DataplaneServer) {

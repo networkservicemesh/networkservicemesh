@@ -36,6 +36,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
             gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
       - store_test_results:
@@ -104,6 +105,8 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export REPO="networkservicemeshci"
+            export CONTAINER_REPO=${REPO}
 
             CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
             ./cloudtest
@@ -133,6 +136,7 @@ jobs:
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
+            export CONTAINER_REPO="networkservicemeshci"
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
@@ -162,14 +166,15 @@ jobs:
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
+            export PULL_REPO="networkservicemeshci"
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init admission-webhook)
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
-              docker pull ${REPO}/${c}:${PULL_TAG}
-              docker tag ${REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
+              docker pull ${PULL_REPO}/${c}:${PULL_TAG}
+              docker tag ${PULL_REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
               docker push ${REPO}/${c}:${TAG}
             done
 
@@ -271,7 +276,7 @@ workflows:
 
 # push
       - docker-push-tag:
-          tag: "latest"
+          tag: "master"
           requires:
             - test-integration
           filters:

@@ -44,8 +44,10 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 		Connection: &local.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
-				DstIpRequired: true,
-				SrcIpRequired: true,
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
 			},
 			Labels: make(map[string]string),
 		},
@@ -126,8 +128,10 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 		Connection: &local.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
-				DstIpRequired: true,
-				SrcIpRequired: true,
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
 			},
 			Labels: make(map[string]string),
 		},
@@ -199,8 +203,10 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 		Connection: &local.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
-				DstIpRequired: true,
-				SrcIpRequired: true,
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
 			},
 			Labels: make(map[string]string),
 		},

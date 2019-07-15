@@ -26,7 +26,8 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	go nsmd.BeginHealthCheck()
+	nsmdProbes := nsmd.NewProbes()
+	go nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -41,10 +42,10 @@ func main() {
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)
-		nsmd.SetNSMServerFailed()
 		return
 	}
 	defer server.Stop()
+	nsmdProbes.SetNSMServerReady()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
@@ -54,22 +55,26 @@ func main() {
 	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(); err != nil {
 		logrus.Errorf("Error starting dataplane service: %+v", err)
-		nsmd.SetDPServerFailed()
+		return
 	}
 
 	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(nsmd.DataplaneTimeout); err != nil {
 		logrus.Errorf("Error waiting for dataplane..")
+		return
 	}
+	nsmdProbes.SetDPServerReady()
 
 	// Choose a public API listener
 	sock, err := apiRegistry.NewPublicListener()
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
-		nsmd.SetPublicListenerFailed()
+		return
 	}
+	nsmdProbes.SetPublicListenerReady()
 
 	server.StartAPIServerAt(sock)
+	nsmdProbes.SetAPIServerReady()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting NSMD took: %s", elapsed)

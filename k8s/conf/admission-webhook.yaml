@@ -20,6 +20,8 @@ spec:
           image: networkservicemesh/admission-webhook
           imagePullPolicy: IfNotPresent
           env:
+            - name: REPO
+              value: "networkservicemesh"
             - name: TAG
               value: "latest"
           volumeMounts:

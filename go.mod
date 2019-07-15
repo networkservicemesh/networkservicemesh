@@ -1,7 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh
 
 require (
-	github.com/aws/aws-sdk-go v1.20.0
+	github.com/aws/aws-sdk-go v1.20.20
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.7
@@ -33,7 +33,8 @@ require (
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/grpc v1.21.1
+	golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59 // indirect
+	google.golang.org/grpc v1.22.0
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
 	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
