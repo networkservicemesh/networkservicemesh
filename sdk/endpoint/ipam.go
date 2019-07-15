@@ -51,7 +51,7 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	/* Exclude the prefixes from the pool of available prefixes */
-	excludedPrefixes, err := ice.PrefixPool.ExcludePrefixes(request.Connection.Context.ExcludedPrefixes)
+	excludedPrefixes, err := ice.PrefixPool.ExcludePrefixes(request.Connection.GetContext().GetIpContext().GetExcludedPrefixes())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		currentIPFamily = connectioncontext.IpFamily_IPV6
 	}
 
-	srcIP, dstIP, prefixes, err := ice.PrefixPool.Extract(request.Connection.Id, currentIPFamily, request.Connection.Context.ExtraPrefixRequest...)
+	srcIP, dstIP, prefixes, err := ice.PrefixPool.Extract(request.Connection.Id, currentIPFamily, request.Connection.GetContext().GetIpContext().GetExtraPrefixRequest()...)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +74,10 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	// Update source/dst IP's
-	newConnection.Context.SrcIpAddr = srcIP.String()
-	newConnection.Context.DstIpAddr = dstIP.String()
+	newConnection.GetContext().GetIpContext().SrcIpAddr = srcIP.String()
+	newConnection.GetContext().GetIpContext().DstIpAddr = dstIP.String()
 
-	newConnection.Context.ExtraPrefixes = prefixes
+	newConnection.GetContext().GetIpContext().ExtraPrefixes = prefixes
 
 	err = newConnection.IsComplete()
 	if err != nil {
