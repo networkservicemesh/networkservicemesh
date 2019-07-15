@@ -7,7 +7,7 @@ import:
   - .cloudtest/kind.yaml
   - .cloudtest/vagrant.yaml
   - .cloudtest/aws.yaml
-  - .cloudtest/azure.yaml
+#  - .cloudtest/azure.yaml
 
 reporting:
   junit-report: "results/junit.xml"
