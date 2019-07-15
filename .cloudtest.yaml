@@ -20,7 +20,7 @@ executions:
 #      - basic
 #      - recover
 #      - usecase
-      - security
+#      - security
     root: ./test/integration
     timeout: 300
     cluster-count: 1

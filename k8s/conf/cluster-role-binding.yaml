@@ -9,5 +9,8 @@ roleRef:
   name: nsm-role
 subjects:
   - kind: ServiceAccount
+    name: default
+    namespace: nsm-system
+  - kind: ServiceAccount
     name: nsmgr-acc
     namespace: nsm-system

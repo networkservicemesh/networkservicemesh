@@ -13,11 +13,21 @@ spec:
         networkservicemesh.io/app: "vpn-gateway-nsc"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nsc-acc
       containers:
         - name: alpine-img
           image: alpine:latest
           imagePullPolicy: IfNotPresent
           command: ['tail', '-f', '/dev/null']
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+      volumes:
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
 metadata:
   name: vpn-gateway-nsc
   namespace: nsm-system
