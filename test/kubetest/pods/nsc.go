@@ -111,7 +111,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 
 func NSCMonitorPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	pod := NSCPod(name, node, env)
-	pod.Spec.Containers = append(pod.Spec.Containers, )
+	pod.Spec.Containers = append(pod.Spec.Containers, newMonitorContainer(env))
 	return pod
 }
 
@@ -130,6 +130,26 @@ func newInitContainer(env map[string]string) v1.Container {
 	initContainer := containerMod(&v1.Container{
 		Name:            "nsm-init",
 		Image:           "networkservicemesh/nsm-init:latest",
+		ImagePullPolicy: v1.PullIfNotPresent,
+		Resources: v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+			},
+		},
+	})
+	for k, v := range env {
+		initContainer.Env = append(initContainer.Env,
+			v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+	}
+	return initContainer
+}
+func newMonitorContainer(env map[string]string) v1.Container {
+	initContainer := containerMod(&v1.Container{
+		Name:            "nsm-monitor",
+		Image:           "networkservicemesh/nsm-monitor:latest",
 		ImagePullPolicy: v1.PullIfNotPresent,
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{

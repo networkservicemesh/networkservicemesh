@@ -12,11 +12,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 const (
 	nscLogFormat          = "NSM Monitor: %v"
 	nscLogWithParamFormat = "NSM Monitor: %v: %v"
+
+	retryDelay = 5 // in seconds
 )
 
 // NSMMonitorHelper - helper to perform configuration of monitoring app required for testing.
@@ -70,7 +73,7 @@ func (c *nsmMonitorApp) Run(version string) {
 func NewNSMMonitorApp() NSMMonitorApp {
 	return &nsmMonitorApp{
 		connections: map[string]*connection.Connection{},
-		stop: make(chan bool),
+		stop:        make(chan bool),
 	}
 }
 
@@ -80,16 +83,22 @@ func (c *nsmMonitorApp) beginMonitoring() {
 		if c.helper != nil {
 			configuration = c.helper.GetConfiguration()
 		}
-		nsc, err := client.NewNSMClient(context.Background(), configuration)
+		nsmClient, err := client.NewNSMClient(context.Background(), configuration)
 		if err != nil {
 			logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
+
+			c.waitRetry()
+			continue
 		}
 
-		logrus.Info(nscLogFormat, "connection to NSM established")
+		logrus.Infof(nscLogFormat, "connection to NSM established")
 
-		monitorClient, err := local.NewMonitorClient(nsc.NsmConnection.GrpcClient)
+		monitorClient, err := local.NewMonitorClient(nsmClient.NsmConnection.GrpcClient)
 		if err != nil {
 			logrus.Fatalf(nscLogWithParamFormat, "failed to start monitor client", err)
+
+			c.waitRetry()
+			continue
 		}
 		defer monitorClient.Close()
 
@@ -102,55 +111,12 @@ func (c *nsmMonitorApp) beginMonitoring() {
 				if c.helper != nil {
 					c.helper.Connected(c.connections)
 				}
-				recovery = true
 				// Since NSMD will setup public socket only when all connections will be ok, we need to perform request only on ones it loose.
-				logrus.Infof(nscLogFormat, "Performing recovery if needed...")
-
-				needRetry := false
-				for _, conn := range c.connections {
-					if conn.State == connection.State_UP {
-						continue
-					}
-					cClone := (conn.Clone()).(*connection.Connection)
-
-					ipCtx := cClone.Context.IpContext
-					if ipCtx != nil {
-						if ipCtx.DstIpAddr != "" {
-							ipCtx.DstIpRequired = true
-						}
-						if ipCtx.SrcIpAddr != "" {
-							ipCtx.SrcIpRequired = true
-						}
-					}
-
-					outgoingRequest := networkservice.NetworkServiceRequest{
-						Connection: cClone,
-						MechanismPreferences: []*connection.Mechanism{
-							conn.Mechanism,
-						},
-					}
-					if c.helper != nil {
-						c.helper.Healing(cClone)
-					}
-
-					newConn, err := nsc.PerformRequest(&outgoingRequest)
-					if err != nil {
-						logrus.Errorf(nscLogWithParamFormat, "failed to restore connection. Will retry", err)
-						// Let's drop connection id, since we failed one time.
-						conn.Id = "-"
-						needRetry = true
-						continue;
-					} else {
-						logrus.Errorf(nscLogWithParamFormat, "connection restored", newConn)
-						delete(c.connections, conn.Id)
-						c.connections[newConn.Id] = newConn
-					}
-					if c.helper != nil {
-						c.helper.ProcessHealing(newConn, err)
-					}
-				}
-				if needRetry {
+				if c.performRecovery(nsmClient) {
+					// since we not recovered, we will continue after delay
 					continue
+				} else {
+					recovery = true
 				}
 			}
 			select {
@@ -193,4 +159,62 @@ func (c *nsmMonitorApp) beginMonitoring() {
 			}
 		}
 	}
+}
+
+func (c *nsmMonitorApp) waitRetry() {
+	logrus.Errorf(nscLogWithParamFormat, "Retry delay %v sec", retryDelay)
+	<-time.After(retryDelay * time.Second)
+}
+
+func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
+	logrus.Infof(nscLogFormat, "Performing recovery if needed...")
+
+	needRetry := false
+	for _, conn := range c.connections {
+		if conn.State == connection.State_UP {
+			continue
+		}
+		cClone := (conn.Clone()).(*connection.Connection)
+
+		ipCtx := cClone.Context.IpContext
+		if ipCtx != nil {
+			if ipCtx.DstIpAddr != "" {
+				ipCtx.DstIpRequired = true
+			}
+			if ipCtx.SrcIpAddr != "" {
+				ipCtx.SrcIpRequired = true
+			}
+		}
+
+		outgoingRequest := networkservice.NetworkServiceRequest{
+			Connection: cClone,
+			MechanismPreferences: []*connection.Mechanism{
+				conn.Mechanism,
+			},
+		}
+		if c.helper != nil {
+			c.helper.Healing(cClone)
+		}
+
+		newConn, err := nsmClient.PerformRequest(&outgoingRequest)
+		if err != nil {
+			logrus.Errorf(nscLogWithParamFormat, "failed to restore connection. Will retry", err)
+			// Let's drop connection id, since we failed one time.
+			conn.Id = "-"
+			needRetry = true
+			continue;
+		} else {
+			logrus.Errorf(nscLogWithParamFormat, "connection restored", newConn)
+			delete(c.connections, conn.Id)
+			c.connections[newConn.Id] = newConn
+		}
+		if c.helper != nil {
+			c.helper.ProcessHealing(newConn, err)
+		}
+	}
+	if needRetry {
+		c.waitRetry()
+		return true
+	}
+	return false
 }

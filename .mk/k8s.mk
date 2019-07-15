@@ -18,7 +18,7 @@ K8S_CONF_DIR = k8s/conf
 DEPLOY_TRACING = jaeger
 DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_MONITOR = crossconnect-monitor skydive
-DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
+DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc nsm-monitor
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL)
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
