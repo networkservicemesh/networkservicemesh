@@ -23,4 +23,11 @@ providers:
       start: make aws-start
       stop: |
         make aws-destroy
-      prepare: make k8s-config
+      prepare: |
+        make k8s-config
+        sleep 10
+        kubectl get nodes -o wide
+        kubectl describe nodes
+        kubectl get pods -n spire
+        kubectl describe pods -n spire
+
