@@ -19,7 +19,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
-
 var version string
 
 func main() {

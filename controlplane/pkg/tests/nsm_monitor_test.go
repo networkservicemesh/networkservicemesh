@@ -38,8 +38,8 @@ func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
 	return &common.NSConfiguration{
 		NsmClientSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmClientSocket,
 		NsmServerSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmServerSocket,
-		Workspace: h.response.HostBasedir + "/" + h.response.Workspace,
-		TracerEnabled: false,
+		Workspace:       h.response.HostBasedir + "/" + h.response.Workspace,
+		TracerEnabled:   false,
 	}
 }
 
@@ -79,7 +79,7 @@ func TestNSMMonitorInit(t *testing.T) {
 		response:  response,
 		connected: connected,
 		healing:   healing,
-		stopped: stoped,
+		stopped:   stoped,
 	})
 	monitorApp.Run("1.0")
 

@@ -29,10 +29,9 @@ type NSMClientApp interface {
 }
 
 type nsmClientApp struct {
-
 }
 
-func(c *nsmClientApp) Run(version string) {
+func (c *nsmClientApp) Run(version string) {
 	logrus.Info("Starting nsm-init...")
 	logrus.Infof("Version: %v", version)
 	tracer, closer := tools.InitJaeger("nsc")

@@ -488,14 +488,13 @@ func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (local_ne
 	return nsmClient, conn
 }
 
-func (srv *nsmdFullServerImpl) createNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient,*grpc.ClientConn) {
+func (srv *nsmdFullServerImpl) createNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
 	Expect(err).To(BeNil())
 	return nsmClient, conn
 }
 
-
-func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientConnectionReply) {
+func (srv *nsmdFullServerImpl) requestNSM(clientName string) *nsmdapi.ClientConnectionReply {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()
 	Expect(err).To(BeNil())
 	defer con.Close()
