@@ -23,6 +23,7 @@ const (
 	InterdomainPtNum = 5 // Number of Passthrough Endpoints to deploy
 )
 
+/* Disable Firewall Remote test while vxlan has vni conflict
 func TestInterdomainVPNFirewallRemote(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -38,6 +39,7 @@ func TestInterdomainVPNFirewallRemote(t *testing.T) {
 		"vpn-gateway-nsc-1":        0,
 	}, false)
 }
+*/
 
 func TestInterdomainVPNNSERemote(t *testing.T) {
 	RegisterTestingT(t)
