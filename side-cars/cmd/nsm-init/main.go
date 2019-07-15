@@ -14,7 +14,7 @@
 
 package main
 
-import nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm-sidecars"
+import nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 
 var version string
 

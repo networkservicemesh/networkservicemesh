@@ -1,4 +1,4 @@
-package nsm_sidecars
+package sidecars
 
 import (
 	"context"
@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	nscLogFormat          = "NSM Monitor: %v"
-	nscLogWithParamFormat = "NSM Monitor: %v: %v"
+	nsmMonitorLogFormat          = "NSM Monitor: %v"
+	nsmMonitorLogWithParamFormat = "NSM Monitor: %v: %v"
 
-	retryDelay = 5 // in seconds
+	nsmMonitorRetryDelay = 5 // in seconds
 )
 
 // NSMMonitorHelper - helper to perform configuration of monitoring app required for testing.
@@ -57,7 +57,7 @@ func (c *nsmMonitorApp) SetHelper(listener NSMMonitorHelper) {
 }
 
 func (c *nsmMonitorApp) Run(version string) {
-	logrus.Infof(nscLogFormat, "Starting")
+	logrus.Infof(nsmMonitorLogFormat, "Starting")
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	if c.helper == nil || c.helper.IsEnableJaeger() {
@@ -85,17 +85,17 @@ func (c *nsmMonitorApp) beginMonitoring() {
 		}
 		nsmClient, err := client.NewNSMClient(context.Background(), configuration)
 		if err != nil {
-			logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
+			logrus.Fatalf(nsmMonitorLogWithParamFormat, "Unable to create the NSM client", err)
 
 			c.waitRetry()
 			continue
 		}
 
-		logrus.Infof(nscLogFormat, "connection to NSM established")
+		logrus.Infof(nsmMonitorLogFormat, "connection to NSM established")
 
 		monitorClient, err := local.NewMonitorClient(nsmClient.NsmConnection.GrpcClient)
 		if err != nil {
-			logrus.Fatalf(nscLogWithParamFormat, "failed to start monitor client", err)
+			logrus.Fatalf(nsmMonitorLogWithParamFormat, "failed to start monitor client", err)
 
 			c.waitRetry()
 			continue
@@ -121,39 +121,30 @@ func (c *nsmMonitorApp) beginMonitoring() {
 			}
 			select {
 			case err = <-monitorClient.ErrorChannel():
-				logrus.Fatalf(nscLogWithParamFormat, "NSM die, re-connecting", err)
+				logrus.Fatalf(nsmMonitorLogWithParamFormat, "NSM die, re-connecting", err)
 				for _, c := range c.connections {
 					c.State = connection.State_DOWN // Mark all as down.
 				}
 				continue
 			case event := <-monitorClient.EventChannel():
 				if event.EventType() == monitor.EventTypeInitialStateTransfer {
-					logrus.Infof(nscLogFormat, "Monitor started")
+					logrus.Infof(nsmMonitorLogFormat, "Monitor started")
 					initRecieved = true
 				}
 
 				for _, entity := range event.Entities() {
 					switch event.EventType() {
 					case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
-						conn, ok := entity.(*connection.Connection)
-						// update connections
-						if ok {
-							if existingConn, exists := c.connections[conn.Id]; exists {
-								logrus.Infof(nscLogWithParamFormat, "Connection updated", fmt.Sprint("%v %v", existingConn, conn))
-							} else {
-								logrus.Infof(nscLogWithParamFormat, "Initial connection accepted", conn)
-							}
-							c.connections[conn.Id] = conn
-						}
+						c.updateConnection(entity)
 					case monitor.EventTypeDelete:
-						logrus.Infof(nscLogFormat, "Connection closed")
+						logrus.Infof(nsmMonitorLogFormat, "Connection closed")
 						return
 					}
 				}
 			case <-c.stop:
 				if c.helper != nil {
 					c.helper.Stopped()
-					logrus.Infof(nscLogFormat, "Processing stop")
+					logrus.Infof(nsmMonitorLogFormat, "Processing stop")
 					return
 				}
 			}
@@ -161,13 +152,26 @@ func (c *nsmMonitorApp) beginMonitoring() {
 	}
 }
 
+func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
+	conn, ok := entity.(*connection.Connection)
+	// update connections
+	if ok {
+		if existingConn, exists := c.connections[conn.Id]; exists {
+			logrus.Infof(nsmMonitorLogWithParamFormat, "Connection updated", fmt.Sprintf("%v %v", existingConn, conn))
+		} else {
+			logrus.Infof(nsmMonitorLogWithParamFormat, "Initial connection accepted", conn)
+		}
+		c.connections[conn.Id] = conn
+	}
+}
+
 func (c *nsmMonitorApp) waitRetry() {
-	logrus.Errorf(nscLogWithParamFormat, "Retry delay %v sec", retryDelay)
-	<-time.After(retryDelay * time.Second)
+	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay %v sec", nsmMonitorRetryDelay)
+	<-time.After(nsmMonitorRetryDelay * time.Second)
 }
 
 func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
-	logrus.Infof(nscLogFormat, "Performing recovery if needed...")
+	logrus.Infof(nsmMonitorLogFormat, "Performing recovery if needed...")
 
 	needRetry := false
 	for _, conn := range c.connections {
@@ -198,13 +202,13 @@ func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
 
 		newConn, err := nsmClient.PerformRequest(&outgoingRequest)
 		if err != nil {
-			logrus.Errorf(nscLogWithParamFormat, "failed to restore connection. Will retry", err)
+			logrus.Errorf(nsmMonitorLogWithParamFormat, "failed to restore connection. Will retry", err)
 			// Let's drop connection id, since we failed one time.
 			conn.Id = "-"
 			needRetry = true
 			continue;
 		} else {
-			logrus.Errorf(nscLogWithParamFormat, "connection restored", newConn)
+			logrus.Errorf(nsmMonitorLogWithParamFormat, "connection restored", newConn)
 			delete(c.connections, conn.Id)
 			c.connections[newConn.Id] = newConn
 		}

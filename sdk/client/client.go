@@ -111,6 +111,7 @@ func (nsmc *NsmClient) Destroy() error {
 	return nil
 }
 
+//PerformRequest - perform request
 func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	var outgoingConnection *connection.Connection
 	start := time.Now()

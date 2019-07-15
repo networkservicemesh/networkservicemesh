@@ -15,7 +15,7 @@
 package main
 
 import (
-	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm-sidecars"
+	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsm_sidecars
+package sidecars
 
 import (
 	"context"

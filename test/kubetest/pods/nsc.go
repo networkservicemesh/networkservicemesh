@@ -108,7 +108,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	}
 	return pod
 }
-
+// NSCMonitorPod - creates client with nsm-init and nsm-monitor as side-car
 func NSCMonitorPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	pod := NSCPod(name, node, env)
 	pod.Spec.Containers = append(pod.Spec.Containers, newMonitorContainer(env))

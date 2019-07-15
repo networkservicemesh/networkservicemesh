@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
-	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm-sidecars"
+	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -58,9 +58,9 @@ func TestNSMMonitorInit(t *testing.T) {
 
 	monitorApp := nsm_sidecars.NewNSMMonitorApp()
 
-	response, conn := srv.requestNSM("nsm")
+	response := srv.requestNSM("nsm")
 	// Now we could try to connect via Client API
-	nsmClient := srv.createNSClient(conn, response)
+	nsmClient, conn := srv.createNSClient(response)
 	defer conn.Close()
 
 	request := createRequest(false)
