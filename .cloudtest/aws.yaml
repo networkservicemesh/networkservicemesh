@@ -30,4 +30,3 @@ providers:
         kubectl describe nodes
         kubectl get pods -n spire
         kubectl describe pods -n spire
-
