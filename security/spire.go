@@ -31,8 +31,8 @@ func newWorkloadAPIClient(agentAddress string, timeout time.Duration) workload.X
 		Name: agentAddress,
 	}
 	config := &workload.X509ClientConfig{
-		Addr:    addr,
-		Timeout: timeout,
+		Addr: addr,
+		//Timeout: timeout,
 	}
 	return workload.NewX509Client(config)
 }

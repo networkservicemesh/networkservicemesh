@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 	"strings"
 	"testing"
@@ -204,6 +205,8 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	k8s.WaitLogsContains(nscPodNode, "nsm-init", "nsm client: initialization is completed successfully", defaultTimeout)
 	logrus.Printf("VPN Gateway NSC started done: %v", time.Since(s1))
 
+	printContainerIds(k8s)
+
 	var ipResponse = ""
 	var routeResponse = ""
 	var pingResponse = ""
@@ -247,5 +250,21 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		Expect(err).To(Not(BeNil()))
 		Expect(strings.Contains(wgetResponse, "download timed out")).To(Equal(true))
 		logrus.Printf("%d VPN NSC wget request succeeded: %s", i, wgetResponse)
+	}
+}
+
+func printContainerIds(k8s *kubetest.K8s) {
+	cs, err := k8s.GetClientSet()
+	Expect(err).To(BeNil())
+
+	pods, err := cs.CoreV1().Pods(k8s.GetK8sNamespace()).List(v1.ListOptions{})
+	Expect(err).To(BeNil())
+
+	logrus.Info("================CONTAINER IDs================")
+	for _, p := range pods.Items {
+		logrus.Infof("Pod: %v >", p.Name)
+		for _, c := range p.Status.ContainerStatuses {
+			logrus.Infof("%s", c.ContainerID)
+		}
 	}
 }
