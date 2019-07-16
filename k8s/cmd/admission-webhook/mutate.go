@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/api/core/v1"
 )
 
 func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
@@ -28,6 +29,20 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 		return errorReviewResponse(err)
 	}
 	patch := createInitContainerPatch(value, getInitContainerPatchPath(request))
+
+	ht := v1.HostPathDirectoryOrCreate
+	patch = append(patch, addVolume(metaAndSpec.spec.Volumes, []v1.Volume{
+		{
+			Name: spireSocketVolume,
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: spireSocketPath,
+					Type: &ht,
+				},
+			},
+		},
+	}, getVolumePatchPath(request))...)
+
 	//append another patches
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {

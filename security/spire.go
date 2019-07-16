@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"
-	proto "github.com/spiffe/spire/proto/spire/api/workload"
+	proto "github.com/spiffe/spire/proto/api/workload"
 	"net"
 	"time"
 )
