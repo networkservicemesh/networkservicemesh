@@ -98,8 +98,9 @@ func NewManager() Manager {
 
 func (m *certificateManager) DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
 	cred := credentials.NewTLS(&tls.Config{
-		Certificates: []tls.Certificate{*m.GetCertificate()},
-		RootCAs:      m.GetCABundle(),
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{*m.GetCertificate()},
+		RootCAs:            m.GetCABundle(),
 	})
 
 	opts = append(opts,
