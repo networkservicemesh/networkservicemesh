@@ -38,7 +38,7 @@ func TestSimpleCertObtainer(t *testing.T) {
 
 	crt := mgr.GetCertificate()
 	ca := mgr.GetCABundle()
-	verify(crt, ca)
+	Expect(verify(crt, ca)).To(BeNil())
 }
 
 func TestTamperToken(t *testing.T) {
@@ -52,6 +52,7 @@ func TestTamperToken(t *testing.T) {
 	Expect(err).To(BeNil())
 
 	ptoken, parts, err := new(jwt.Parser).ParseUnverified(token, &security.NSMClaims{})
+	Expect(err).To(BeNil())
 	ptoken.Claims.(*security.NSMClaims).Audience = "hacked"
 
 	ss, err := ptoken.SigningString()

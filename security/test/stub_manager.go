@@ -15,7 +15,7 @@ func (*stubManager) DialContext(ctx context.Context, target string, opts ...grpc
 	return grpc.DialContext(ctx, target, append(opts, grpc.WithInsecure())...)
 }
 
-func (*stubManager) GenerateJWT(networkService string, obo string) (string, error) {
+func (*stubManager) GenerateJWT(networkService, obo string) (string, error) {
 	return "", nil
 }
 

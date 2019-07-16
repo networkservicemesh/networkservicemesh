@@ -955,9 +955,9 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 	return nsNamespace.GetName(), nil
 }
 
+// CreateServiceAccounts create service accounts with passed names
 func (k8s *K8s) CreateServiceAccounts(names ...string) ([]*v1.ServiceAccount, error) {
-	var rv []*v1.ServiceAccount
-
+	rv := make([]*v1.ServiceAccount, 0, len(names))
 	for _, n := range names {
 		sa, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
 			ObjectMeta: metaV1.ObjectMeta{
@@ -973,6 +973,7 @@ func (k8s *K8s) CreateServiceAccounts(names ...string) ([]*v1.ServiceAccount, er
 	return rv, nil
 }
 
+// DeleteServiceAccounts deletes passed service accounts from cluster
 func (k8s *K8s) DeleteServiceAccounts(sa ...*v1.ServiceAccount) error {
 	var lastErr error
 	for _, s := range sa {

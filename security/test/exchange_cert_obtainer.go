@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	frequency = 3 * time.Second
-)
-
 type testExchangeCertificateObtainer struct {
 	caTLS     *tls.Certificate
 	frequency time.Duration
@@ -59,10 +55,10 @@ func (*testExchangeCertificateObtainer) Error() error {
 	return nil
 }
 
-func newExchangeCertObtainerWithCA(spiffeID string, caTLS *tls.Certificate, frequency time.Duration) (security.CertificateObtainer, error) {
+func newExchangeCertObtainerWithCA(spiffeID string, caTLS *tls.Certificate, frequency time.Duration) security.CertificateObtainer {
 	return &testExchangeCertificateObtainer{
 		frequency: frequency,
 		caTLS:     caTLS,
 		spiffeID:  spiffeID,
-	}, nil
+	}
 }

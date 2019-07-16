@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// NSMClaims jwt claims for NSM token
 type NSMClaims struct {
 	jwt.StandardClaims
 	Obo  string   `json:"obo"`
@@ -22,6 +23,9 @@ func (c *NSMClaims) getCertificate() (certs []*x509.Certificate, err error) {
 			return nil, err
 		}
 		c, err := x509.ParseCertificate(b)
+		if err != nil {
+			return nil, err
+		}
 		certs = append(certs, c)
 	}
 	return
@@ -83,16 +87,19 @@ func parseJWTWithClaims(tokenString string) (*jwt.Token, []string, *NSMClaims, e
 	return token, parts, claims, err
 }
 
+// NSMToken is implementation of PerRPCCredentials for NSM
 type NSMToken struct {
 	Token string
 }
 
+// RequireTransportSecurity implements methods from PerRPCCredentials
 func (t *NSMToken) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
 	return map[string]string{
 		"authorization": t.Token,
 	}, nil
 }
 
+// RequireTransportSecurity implements methods from PerRPCCredentials
 func (t *NSMToken) RequireTransportSecurity() bool {
 	return true
 }

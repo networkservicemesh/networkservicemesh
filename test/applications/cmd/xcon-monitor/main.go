@@ -30,7 +30,7 @@ func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect
 		logrus.Error(err)
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
@@ -75,7 +75,7 @@ func main() {
 		logrus.Error(err)
 		return
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	srv := grpc.NewServer()
 	crossconnect.RegisterMonitorCrossConnectServer(srv, &proxyMonitor{

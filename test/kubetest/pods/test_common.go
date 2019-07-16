@@ -7,8 +7,13 @@ import (
 )
 
 const (
-	NSEServiceAccount   = "nse-acc"
-	NSCServiceAccount   = "nsc-acc"
+	// NSEServiceAccount service account for Network Service Endpoints
+	NSEServiceAccount = "nse-acc"
+
+	// NSCServiceAccount service account for Network Service Clients
+	NSCServiceAccount = "nsc-acc"
+
+	// NSMgrServiceAccount service accout for Network Service Managers
 	NSMgrServiceAccount = "nsmgr-acc"
 )
 

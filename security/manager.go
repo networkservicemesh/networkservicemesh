@@ -24,26 +24,28 @@ import (
 
 const (
 	agentAddress = "/run/spire/sockets/agent.sock"
-	timeout      = 5 * time.Second
 )
 
+// Manager provides methods for secure grpc communication
 type Manager interface {
 	DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error)
 	NewServer(opts ...grpc.ServerOption) *grpc.Server
+	SignResponse(resp interface{}, obo string) error
 	GetCertificate() *tls.Certificate
 	GetCABundle() *x509.CertPool
 	GenerateJWT(networkService string, obo string) (string, error)
 	VerifyJWT(spiffeID, tokeString string) error
-	SignResponse(resp interface{}, obo string) error
 	GetSpiffeID() string
 }
 
+// CertificateObtainer abstracts certificates obtaining
 type CertificateObtainer interface {
 	ObtainCertificates() <-chan *RetrievedCerts
 	Stop()
 	Error() error
 }
 
+// RetrievedCerts represents struct returned by CertificateObtainer
 type RetrievedCerts struct {
 	TLSCert  *tls.Certificate
 	CABundle *x509.CertPool
@@ -60,6 +62,7 @@ type certificateManager struct {
 var once sync.Once
 var manager Manager
 
+// GetSecurityManager returns instance of Manager
 func GetSecurityManager() Manager {
 	logrus.Info("Getting SecurityManager...")
 	once.Do(func() {
@@ -69,6 +72,7 @@ func GetSecurityManager() Manager {
 	return manager
 }
 
+// InitSecurityManagerWithExisting allows initialize global standalone Manager with passed one
 func InitSecurityManagerWithExisting(mgr Manager) {
 	logrus.Info("Initializing Security Manager with existing one...")
 	once.Do(func() {
@@ -76,6 +80,7 @@ func InitSecurityManagerWithExisting(mgr Manager) {
 	})
 }
 
+// NewManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer
 func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {
 	cm := &certificateManager{
 		readyCh:       make(chan struct{}),
@@ -85,16 +90,16 @@ func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {
 	return cm
 }
 
+// NewManager creates new security.Manager using SpireCertObtainer
 func NewManager() Manager {
-	obt := NewSpireCertObtainer(agentAddress, timeout)
+	obt := NewSpireCertObtainer(agentAddress)
 	return NewManagerWithCertObtainer(obt)
 }
 
 func (m *certificateManager) DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
 	cred := credentials.NewTLS(&tls.Config{
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{*m.GetCertificate()},
-		RootCAs:            m.GetCABundle(),
+		Certificates: []tls.Certificate{*m.GetCertificate()},
+		RootCAs:      m.GetCABundle(),
 	})
 
 	opts = append(opts,

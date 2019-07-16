@@ -23,8 +23,6 @@ import (
 	"time"
 )
 
-var oidSanExtension = []int{2, 5, 29, 17}
-
 const nameTypeURI = 6
 
 type testSrv struct {
@@ -114,11 +112,7 @@ func createSimpleIntermediary(spiffeID string, port int, ca *tls.Certificate, ne
 }
 
 func createExchangeIntermediary(spiffeID string, port int, ca *tls.Certificate, next, name string) (*intermediary, error) {
-	obt, err := newExchangeCertObtainerWithCA(spiffeID, ca, 3*time.Second)
-	if err != nil {
-		return nil, err
-	}
-
+	obt := newExchangeCertObtainerWithCA(spiffeID, ca, 3*time.Second)
 	return createIntermediaryWithObt(obt, port, next, name)
 }
 
@@ -136,7 +130,12 @@ func createIntermediaryWithObt(obt security.CertificateObtainer, port int, next,
 	if err != nil {
 		return nil, err
 	}
-	go srv.Serve(ln)
+
+	go func() {
+		if err := srv.Serve(ln); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	return &intermediary{
 		Manager: mgr,
@@ -212,6 +211,7 @@ func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, 
 		return tls.Certificate{}, err
 	}
 
+	oidSanExtension := []int{2, 5, 29, 17}
 	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{

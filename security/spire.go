@@ -8,7 +8,6 @@ import (
 	"github.com/spiffe/spire/api/workload"
 	proto "github.com/spiffe/spire/proto/api/workload"
 	"net"
-	"time"
 )
 
 type spireCertObtainer struct {
@@ -17,22 +16,22 @@ type spireCertObtainer struct {
 	workloadAPIClient workload.X509Client
 }
 
-func NewSpireCertObtainer(agentAddress string, timeout time.Duration) CertificateObtainer {
+// NewSpireCertObtainer creates CertificateObtainer that fetch certificates from spire-agent
+func NewSpireCertObtainer(agentAddress string) CertificateObtainer {
 	return &spireCertObtainer{
 		stopCh:            make(chan struct{}),
 		errorCh:           make(chan error),
-		workloadAPIClient: newWorkloadAPIClient(agentAddress, timeout),
+		workloadAPIClient: newWorkloadAPIClient(agentAddress),
 	}
 }
 
-func newWorkloadAPIClient(agentAddress string, timeout time.Duration) workload.X509Client {
+func newWorkloadAPIClient(agentAddress string) workload.X509Client {
 	addr := &net.UnixAddr{
 		Net:  "unix",
 		Name: agentAddress,
 	}
 	config := &workload.X509ClientConfig{
 		Addr: addr,
-		//Timeout: timeout,
 	}
 	return workload.NewX509Client(config)
 }

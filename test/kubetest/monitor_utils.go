@@ -59,7 +59,9 @@ func XconProxyMonitor(k8s *K8s, conf *NodeConf, suffix string) (<-chan *crosscon
 		fmt.Sprintf("xcon-proxy-monitor-%s", suffix),
 		[]string{"/bin/proxy-xcon-monitor", fmt.Sprintf("-address=%s", address)},
 		conf.Node,
-		map[string]string{}))
+		map[string]string{},
+		pods.NSMgrServiceAccount,
+	))
 
 	eventCh, closeFunc := CrossConnectClientAt(k8s, xconProxy)
 	return eventCh, func() {
