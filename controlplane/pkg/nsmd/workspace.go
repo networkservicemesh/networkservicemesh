@@ -186,7 +186,7 @@ func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
 	defer cancel()
 
 	//nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(w.NsmClientSocket()))
-	nseConn, err := security.GetSecurityManager().DialContext(ctx, fmt.Sprintf("unix:%s", w.NsmClientSocket()))
+	nseConn, err := security.GetSecurityManager().DialContext(ctx, fmt.Sprintf("unix:%s", w.NsmClientSocket()), grpc.WithBlock())
 	if err != nil {
 		return false
 	}

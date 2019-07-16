@@ -1,3 +1,5 @@
+// +build basic
+
 package nsmd_integration_tests
 
 import (
@@ -6,7 +8,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -28,6 +30,8 @@ func TestNSMgrRestartRestoreNSE(t *testing.T) {
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	Expect(err).To(BeNil())
+
+	defer kubetest.ShowLogs(k8s, t)
 
 	nsMgrName := nodesConf[0].Nsmd.GetName()
 
@@ -62,21 +66,18 @@ func TestNSMgrRestartRestoreNSE(t *testing.T) {
 	}))
 	Expect(nsMgrPod).NotTo(BeNil())
 
-	failures := InterceptGomegaFailures(func() {
-		_ = k8s.WaitLogsContainsRegex(nsMgrPod, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
+	_ = k8s.WaitLogsContainsRegex(nsMgrPod, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
 
-		networkServices, err := k8s.GetNetworkServices()
-		Expect(err).To(BeNil())
-		Expect(networkServices).To(HaveLen(1))
-		Expect(networkServices[0].GetName()).To(Equal("icmp-responder"))
+	networkServices, err := k8s.GetNetworkServices()
+	Expect(err).To(BeNil())
+	Expect(networkServices).To(HaveLen(1))
+	Expect(networkServices[0].GetName()).To(Equal("icmp-responder"))
 
-		nses, err := k8s.GetNSEs()
-		Expect(err).To(BeNil())
-		Expect(nses).To(HaveLen(2))
-		Expect(nses[0].GetName()).To(Or(Equal(name2), Equal(name3)))
-		Expect(nses[1].GetName()).To(Or(Equal(name2), Equal(name3)))
-	})
-	kubetest.PrintErrors(failures, k8s, nodesConf, nil, t)
+	nses, err := k8s.GetNSEs()
+	Expect(err).To(BeNil())
+	Expect(nses).To(HaveLen(2))
+	Expect(nses[0].GetName()).To(Or(Equal(name2), Equal(name3)))
+	Expect(nses[1].GetName()).To(Or(Equal(name2), Equal(name3)))
 }
 
 func deployNSEPod(k8s *kubetest.K8s, node *v1.Node, name string) (*v1.Pod, string, error) {
