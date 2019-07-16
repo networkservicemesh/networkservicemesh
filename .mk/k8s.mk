@@ -279,22 +279,22 @@ k8s-vpn-gateway-nse-save: k8s-icmp-responder-nse-save
 k8s-vpn-gateway-nse-load-images: k8s-icmp-responder-nse-load-images
 
 .PHONY: k8s-vpn-gateway-nsc-build
-k8s-vpn-gateway-nsc-build: k8s-nsc-build
+k8s-vpn-gateway-nsc-build:
 
 .PHONY: k8s-vpn-gateway-nsc-save
-k8s-vpn-gateway-nsc-save: k8s-nsc-save
+k8s-vpn-gateway-nsc-save:
 
 .PHONY: k8s-vpn-gateway-nsc-load-images
-k8s-vpn-gateway-nsc-load-images: k8s-nsc-load-images
+k8s-vpn-gateway-nsc-load-images:
 
 .PHONY: k8s-nsc-build
-k8s-nsc-build: ${CONTAINER_BUILD_PREFIX}-nsm-init-build
+k8s-nsc-build:
 
 .PHONY: k8s-nsc-save
-k8s-nsc-save: ${CONTAINER_BUILD_PREFIX}-nsm-init-save
+k8s-nsc-save:
 
 .PHONY: k8s-nsc-load-images
-k8s-nsc-load-images: k8s-nsm-init-load-images
+k8s-nsc-load-images:
 
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-common-build
@@ -342,14 +342,15 @@ k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-sa
 .PHONY: k8s-crossconnect-load-images
 k8s-crossconnect-monitor-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,crossconnect-monitor))
 
+ADMISSION_WEBHOOK_CONTAINERS= admission-webhook nsm-init
 .PHONY: k8s-admission-webhook-build
-k8s-admission-webhook-build: ${CONTAINER_BUILD_PREFIX}-admission-webhook-build
+k8s-admission-webhook-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(ADMISSION_WEBHOOK_CONTAINERS)))
 
 .PHONY: k8s-admission-webhook-save
-k8s-admission-webhook-save: ${CONTAINER_BUILD_PREFIX}-admission-webhook-save
+k8s-admission-webhook-save: $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(ADMISSION_WEBHOOK_CONTAINERS)))
 
 .PHONY: k8s-admission-webhook-load-images
-k8s-admission-webhook-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,admission-webhook))
+k8s-admission-webhook-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,${ADMISSION_WEBHOOK_CONTAINERS}))
 
 .PHONY: k8s-admission-webhook-create-cert
 k8s-admission-webhook-create-cert:

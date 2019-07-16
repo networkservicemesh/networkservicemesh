@@ -373,8 +373,8 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstNsPath: dstNsPath,
 			srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			srcIP:     crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
-			dstIP:     crossConnect.GetLocalSource().GetContext().GetDstIpAddr(),
+			srcIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			dstIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
 		}, nil
 	case cINCOMING:
 		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
@@ -386,7 +386,7 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		return &connectionConfig{
 			dstNsPath:  dstNsPath,
 			dstName:    crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			dstIP:      crossConnect.GetLocalDestination().GetContext().GetDstIpAddr(),
+			dstIP:      crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
@@ -401,7 +401,7 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		return &connectionConfig{
 			srcNsPath:  srcNsPath,
 			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			srcIP:      crossConnect.GetLocalSource().GetContext().GetSrcIpAddr(),
+			srcIP:      crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,

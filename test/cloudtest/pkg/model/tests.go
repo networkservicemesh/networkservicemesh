@@ -85,7 +85,7 @@ func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tag
 func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag string) (map[string]*TestEntry, error) {
 	result, err := utils.ExecRead(context.Background(), gotestCmd)
 	if err != nil {
-		logrus.Errorf("Error getting list of tests %v", err)
+		logrus.Errorf("Error getting list of tests: %v\nOutput: %v\nCmdLine: %v", err, result, gotestCmd)
 		return nil, err
 	}
 

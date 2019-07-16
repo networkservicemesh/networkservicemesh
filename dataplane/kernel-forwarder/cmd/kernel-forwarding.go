@@ -28,11 +28,12 @@ func main() {
 	logrus.Info("Starting the Kernel-based forwarding plane!")
 	c := tools.NewOSSignalChannel()
 
-	go common.BeginHealthCheck()
+	dataplaneProbes := common.NewDataplaneProbes()
+	go dataplaneProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(plane)
+	registration := common.CreateDataplane(plane, dataplaneProbes)
 
 	select {
 	case <-c:
