@@ -193,12 +193,12 @@ func readRequest(r *http.Request) ([]byte, error) {
 func addVolume(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
-	for _, add := range added {
-		value = add
+	for i := 0; i < len(added); i++ {
+		value = added[i]
 		path := basePath
 		if first {
 			first = false
-			value = []corev1.Volume{add}
+			value = []corev1.Volume{added[i]}
 		} else {
 			path = path + "/-"
 		}

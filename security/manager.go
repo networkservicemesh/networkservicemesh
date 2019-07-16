@@ -80,6 +80,21 @@ func InitSecurityManagerWithExisting(mgr Manager) {
 	})
 }
 
+// Dial securely dials target
+func Dial(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	return DialContext(context.Background(), target, opts...)
+}
+
+// DialContext securely dials target with passed context
+func DialContext(ctx context.Context, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	return GetSecurityManager().DialContext(ctx, target, opts...)
+}
+
+// NewServer creates grpc.Server with TLS and certificate validation
+func NewServer(opts ...grpc.ServerOption) *grpc.Server {
+	return GetSecurityManager().NewServer(opts...)
+}
+
 // NewManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer
 func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {
 	cm := &certificateManager{
@@ -150,7 +165,7 @@ func (m *certificateManager) GetSpiffeID() string {
 	return x509crt.URIs[0].String()
 }
 
-func (m *certificateManager) GenerateJWT(networkService string, obo string) (string, error) {
+func (m *certificateManager) GenerateJWT(networkService, obo string) (string, error) {
 	spiffeID := m.GetSpiffeID()
 
 	if obo != "" {
@@ -222,26 +237,29 @@ func (m *certificateManager) SignResponse(resp interface{}, obo string) error {
 }
 
 func (m *certificateManager) clientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	request, ok := req.(networkservice.Request)
-	if !ok {
+	var networkService string
+	if request, ok := req.(networkservice.Request); ok {
+		networkService = request.GetRequestConnection().GetNetworkService()
+	} else {
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 
-	logrus.Infof("ClientInterceptor start working...")
+	logrus.Infof("ClientInterceptor start working, networkService = %v ...", networkService)
 
 	var obo string
-	if ctx.Value("obo") != nil {
-		obo = ctx.Value("obo").(string)
+	if claims, ok := ctx.Value(NSMClaimsContextKey).(*NSMClaims); ok {
+		obo = claims.Obo
 	}
 
-	token, err := m.GenerateJWT(request.GetRequestConnection().GetNetworkService(), obo)
+	token, err := m.GenerateJWT(networkService, obo)
 	if err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	p := new(peer.Peer)
-	if err := invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...); err != nil {
+	err = invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...)
+	if err != nil {
 		return err
 	}
 
@@ -289,10 +307,7 @@ func (m *certificateManager) serverInterceptor(ctx context.Context, req interfac
 	}
 
 	_, _, claims, _ := parseJWTWithClaims(jwt)
-
-	newCtx := context.WithValue(ctx, "spiffeID", spiffeID)
-	newCtx = context.WithValue(newCtx, "obo", jwt)
-	newCtx = context.WithValue(newCtx, "aud", claims.Audience)
+	newCtx := context.WithValue(ctx, NSMClaimsContextKey, claims)
 
 	return handler(newCtx, req)
 
@@ -335,7 +350,7 @@ func (m *certificateManager) verifyJWTChain(token *jwt.Token, parts []string, cl
 			return err
 		}
 
-		currentToken, currentParts, currentClaims, err = currentClaims.getObo()
+		currentToken, currentParts, currentClaims, err = currentClaims.parseObo()
 		if err != nil {
 			return err
 		}

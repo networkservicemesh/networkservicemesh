@@ -62,7 +62,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	//securityMgr := security.NewManager()
 	target := fmt.Sprintf("unix:%s", tools.SocketPath(configuration.NsmServerSocket))
 	// Check if the socket of Endpoint Connection Server is operable
-	testSocket, err := security.GetSecurityManager().DialContext(ctx, target)
+	testSocket, err := security.DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the nsm on socket %s with error: %v", configuration.NsmServerSocket, err)
 		return nil, err
@@ -74,7 +74,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 		return nil, err
 	}
 
-	conn.GrpcClient, err = security.GetSecurityManager().DialContext(ctx, target)
+	conn.GrpcClient, err = security.DialContext(ctx, target)
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err

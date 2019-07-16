@@ -38,14 +38,14 @@ type intermediary struct {
 }
 
 func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	spiffeID, ok := ctx.Value("spiffeID").(string)
+	claims, ok := ctx.Value(security.NSMClaimsContextKey).(*security.NSMClaims)
 	if !ok {
-		return nil, errors.New("context doesn't contain spiffeID")
+		return nil, errors.New("context doesn't contain nsmClaims")
 	}
 
-	logrus.Infof("Receive Request, spiffeID = %s", spiffeID)
-	logrus.Infof("obo = %s", ctx.Value("obo"))
-	logrus.Infof("aud = %s", ctx.Value("aud"))
+	logrus.Infof("Receive Request, spiffeID = %s", claims.Subject)
+	logrus.Infof("obo = %s", claims.Obo)
+	logrus.Infof("aud = %s", claims.Audience)
 	logrus.Infof("next = %s", s.next)
 	logrus.Infof("me = %s", s.me)
 
@@ -54,12 +54,13 @@ func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceR
 		if err != nil {
 			return nil, err
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
+
 		client := networkservice.NewNetworkServiceClient(conn)
 		if r.GetConnection().GetLabels() == nil {
 			r.Connection.Labels = map[string]string{}
 		}
-		r.GetConnection().GetLabels()[s.me] = spiffeID
+		r.GetConnection().GetLabels()[s.me] = claims.Subject
 
 		response, err := client.Request(ctx, r)
 		if err != nil {
@@ -81,12 +82,14 @@ func (s *testSrv) Request(ctx context.Context, r *networkservice.NetworkServiceR
 	if r.GetConnection().GetLabels() == nil {
 		r.Connection.Labels = map[string]string{}
 	}
-	r.GetConnection().GetLabels()[s.me] = spiffeID
+	r.GetConnection().GetLabels()[s.me] = claims.Subject
 	response := &connection.Connection{
 		Id:     "testId",
 		Labels: r.GetConnection().GetLabels(),
 	}
-	s.p.SignResponse(response, "")
+	if err := s.p.SignResponse(response, ""); err != nil {
+		return nil, err
+	}
 	return response, nil
 }
 

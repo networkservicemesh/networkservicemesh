@@ -492,7 +492,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 
 // StartAPIServerAt starts GRPC API server at sock
 func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
-	grpcServer := security.GetSecurityManager().NewServer()
+	grpcServer := security.NewServer()
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)

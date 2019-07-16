@@ -109,7 +109,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	//		otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 	//mgr := security.NewManager()
-	w.grpcServer = security.GetSecurityManager().NewServer()
+	w.grpcServer = security.NewServer()
 	//grpc.UnaryInterceptor(
 	//	otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 	//grpc.StreamInterceptor(
@@ -186,7 +186,7 @@ func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
 	defer cancel()
 
 	//nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(w.NsmClientSocket()))
-	nseConn, err := security.GetSecurityManager().DialContext(ctx, fmt.Sprintf("unix:%s", w.NsmClientSocket()), grpc.WithBlock())
+	nseConn, err := security.DialContext(ctx, fmt.Sprintf("unix:%s", w.NsmClientSocket()), grpc.WithBlock())
 	if err != nil {
 		return false
 	}

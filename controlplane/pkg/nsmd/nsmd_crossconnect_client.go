@@ -382,7 +382,7 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer *registry.NetworkServiceManager) {
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return security.GetSecurityManager().DialContext(ctx, remotePeer.GetUrl())
+		return security.Dial(remotePeer.GetUrl())
 		//return grpc.Dial(remotePeer.Url, grpc.WithInsecure())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {

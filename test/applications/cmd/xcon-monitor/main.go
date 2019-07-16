@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -10,6 +9,8 @@ import (
 	"google.golang.org/grpc"
 	"net"
 )
+
+const proxyMonitorAddress = ":6001"
 
 func parseFlags() string {
 	address := flag.String("address", "", "address of crossconnect monitor server")
@@ -25,7 +26,7 @@ type proxyMonitor struct {
 func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
 	logrus.Infof("MonitorCrossConnects called, address - %v", p.address)
 
-	conn, err := security.GetSecurityManager().DialContext(context.Background(), p.address)
+	conn, err := security.Dial(p.address)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -70,7 +71,7 @@ func main() {
 
 	logrus.Infof("address=%v", address)
 
-	ln, err := net.Listen("tcp", ":6001")
+	ln, err := net.Listen("tcp", proxyMonitorAddress)
 	if err != nil {
 		logrus.Error(err)
 		return

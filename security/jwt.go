@@ -9,6 +9,12 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type contextKey int
+
+const (
+	NSMClaimsContextKey contextKey = iota
+)
+
 // NSMClaims jwt claims for NSM token
 type NSMClaims struct {
 	jwt.StandardClaims
@@ -65,7 +71,7 @@ func (c *NSMClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Cert
 	return crt[0], nil
 }
 
-func (c *NSMClaims) getObo() (*jwt.Token, []string, *NSMClaims, error) {
+func (c *NSMClaims) parseObo() (*jwt.Token, []string, *NSMClaims, error) {
 	if c.Obo == "" {
 		return nil, nil, nil, nil
 	}
@@ -92,7 +98,7 @@ type NSMToken struct {
 	Token string
 }
 
-// RequireTransportSecurity implements methods from PerRPCCredentials
+// GetRequestMetadata implements methods from PerRPCCredentials
 func (t *NSMToken) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
 	return map[string]string{
 		"authorization": t.Token,

@@ -42,15 +42,16 @@ func checkSpire(k8s *K8s) {
 		return
 	}
 
-	for _, p := range pl.Items {
-		logrus.Infof("====== %v ======", p.Name)
-		raw, err := cs.CoreV1().Pods("spire").GetLogs(p.Name, &v1.PodLogOptions{}).DoRaw()
+	//for _, p := range pl.Items {
+	for i := 0; i < len(pl.Items); i++ {
+		logrus.Infof("====== %v ======", pl.Items[i].Name)
+		raw, err := cs.CoreV1().Pods("spire").GetLogs(pl.Items[i].Name, &v1.PodLogOptions{}).DoRaw()
 		if err != nil {
 			logrus.Error(err)
 			continue
 		}
 		logrus.Info(string(raw))
-		logrus.Info("================", p.Name)
+		logrus.Info("================", pl.Items[i].Name)
 	}
 }
 
