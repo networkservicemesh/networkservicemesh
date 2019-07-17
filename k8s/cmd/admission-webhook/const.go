@@ -1,10 +1,10 @@
 package main
 
 const (
-	emptyBody                    = "empty body"
-	mutateMethod                 = "/mutate"
-	invalidContentType           = "invalid Content-Type=%v, expect \"application/json\""
-	couldNotEncodeReview         = "could not encode response: %v"
+	emptyBody            = "empty body"
+	mutateMethod         = "/mutate"
+	invalidContentType   = "invalid Content-Type=%v, expect \"application/json\""
+	couldNotEncodeReview = "could not encode response: %v"
 	couldNotWriteReview  = "could not write response: %v"
 	deployment           = "Deployment"
 	pod                  = "Pod"
