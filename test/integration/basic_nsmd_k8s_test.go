@@ -7,7 +7,6 @@ import (
 	"fmt"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
-	"net"
 	"testing"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNSMDDRegistryNSE(t *testing.T) {
@@ -349,57 +347,58 @@ func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
 	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].GetUrl()
 }
 
-func TestClusterInfo(t *testing.T) {
-	RegisterTestingT(t)
-
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	k8s, err := kubetest.NewK8s(true)
-	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
-
-	clientset, err := k8s.GetClientSet()
-	Expect(err).To(BeNil())
-	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
-
-	if cm == nil || err != nil {
-		t.Skip("Skip, no kubeadm-config")
-		return
-	}
-
-	k8s.Prepare("nsmgr")
-	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
-
-	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
-
-	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
-	Expect(err).To(BeNil())
-	defer fwd.Stop()
-
-	e := fwd.Start()
-	if e != nil {
-		logrus.Printf("Error on forward: %v retrying", e)
-	}
-
-	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	clusterInfo, err := serviceRegistry.ClusterInfoClient()
-	Expect(err).To(BeNil())
-
-	config, err := clusterInfo.GetClusterConfiguration(context.Background(), &empty.Empty{})
-	Expect(err).To(BeNil())
-	Expect(config.PodSubnet).ToNot(BeNil())
-	Expect(config.ServiceSubnet).ToNot(BeNil())
-
-	_, _, err = net.ParseCIDR(config.PodSubnet)
-	Expect(err).To(BeNil())
-
-	_, _, err = net.ParseCIDR(config.ServiceSubnet)
-	Expect(err).To(BeNil())
-}
+// TODO: remove the test
+//func TestClusterInfo(t *testing.T) {
+//	RegisterTestingT(t)
+//
+//	if testing.Short() {
+//		t.Skip("Skip, please run without -short")
+//		return
+//	}
+//
+//	k8s, err := kubetest.NewK8s(true)
+//	defer k8s.Cleanup()
+//	Expect(err).To(BeNil())
+//
+//	clientset, err := k8s.GetClientSet()
+//	Expect(err).To(BeNil())
+//	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
+//
+//	if cm == nil || err != nil {
+//		t.Skip("Skip, no kubeadm-config")
+//		return
+//	}
+//
+//	k8s.Prepare("nsmgr")
+//	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+//	Expect(err).To(BeNil())
+//
+//	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
+//
+//	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
+//	Expect(err).To(BeNil())
+//	defer fwd.Stop()
+//
+//	e := fwd.Start()
+//	if e != nil {
+//		logrus.Printf("Error on forward: %v retrying", e)
+//	}
+//
+//	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+//	clusterInfo, err := serviceRegistry.ClusterInfoClient()
+//	Expect(err).To(BeNil())
+//
+//	config, err := clusterInfo.GetClusterConfiguration(context.Background(), &empty.Empty{})
+//	Expect(err).To(BeNil())
+//	Expect(config.PodSubnet).ToNot(BeNil())
+//	Expect(config.ServiceSubnet).ToNot(BeNil())
+//
+//	_, _, err = net.ParseCIDR(config.PodSubnet)
+//	Expect(err).To(BeNil())
+//
+//	_, _, err = net.ParseCIDR(config.ServiceSubnet)
+//	Expect(err).To(BeNil())
+//}
 
 func createSingleNsmgr(k8s *kubetest.K8s, name string) *v1.Pod {
 	nsmgr := k8s.CreatePod(pods.NSMgrPod(name, nil, k8s.GetK8sNamespace()))

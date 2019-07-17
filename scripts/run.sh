@@ -23,7 +23,7 @@ if [ "$1" = "nsmdp" ]; then
 fi
 
 if [ "$1" = "nsmd-k8s" ]; then
-    go_file=./k8s/cmd/nsmdp-k8s
+    go_file=./k8s/cmd/nsmd-k8s
     output=/bin/$1
 fi
 

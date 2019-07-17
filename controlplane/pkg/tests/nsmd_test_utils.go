@@ -358,10 +358,6 @@ func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryCl
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) ClusterInfoClient() (registry.ClusterInfoClient, error) {
-	return impl.nseRegistry, nil
-}
-
 func (impl *nsmdTestServiceRegistry) Stop() {
 	logrus.Printf("Delete temporary workspace root: %s", impl.rootDir)
 	os.RemoveAll(impl.rootDir)

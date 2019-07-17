@@ -8,7 +8,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
 
 // ClientConnection is an interface for client connection
@@ -50,6 +49,4 @@ type NetworkServiceManager interface {
 	WaitForDataplane(duration time.Duration) error
 	RemoteConnectionLost(clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
-	GetExcludePrefixes() prefix_pool.PrefixPool
-	SetExcludePrefixes(prefix_pool.PrefixPool)
 }

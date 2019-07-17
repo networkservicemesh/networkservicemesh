@@ -27,6 +27,8 @@ spec:
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
+            - name: nsm-plugin-socket
+              mountPath: /var/lib/networkservicemesh/plugins
           livenessProbe:
             httpGet:
               path: /liveness
@@ -44,6 +46,9 @@ spec:
         - name: nsmd-k8s
           image: {{ .Values.registry }}/networkservicemesh/nsmd-k8s:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+          volumeMounts:
+            - name: nsm-plugin-socket
+              mountPath: /var/lib/networkservicemesh/plugins
           env:
             - name: NODE_NAME
               valueFrom:
@@ -58,3 +63,7 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: nsm-socket
+        - hostPath:
+            path: /var/lib/networkservicemesh/plugins
+            type: DirectoryOrCreate
+          name: nsm-plugin-socket

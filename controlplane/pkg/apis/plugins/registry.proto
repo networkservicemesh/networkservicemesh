@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package plugins;
+
+import "github.com/golang/protobuf@v1.3.1/ptypes/empty/empty.proto";
+
+message PluginInfo {
+    string endpoint = 1;
+}
+
+service PluginRegistry {
+    rpc Register (PluginInfo) returns (google.protobuf.Empty);
+}
