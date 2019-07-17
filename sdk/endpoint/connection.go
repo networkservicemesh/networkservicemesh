@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"github.com/teris-io/shortid"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -44,13 +43,13 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 
 	err := request.IsValid()
 	if err != nil {
-		logrus.Errorf("Request is not valid: %v", err)
+		Log(ctx).Errorf("Request is not valid: %v", err)
 		return nil, err
 	}
 
 	mechanism, err := connection.NewMechanism(cce.mechanismType, cce.generateIfName(), "NSM Endpoint")
 	if err != nil {
-		logrus.Errorf("Mechanism not created: %v", err)
+		Log(ctx).Errorf("Mechanism not created: %v", err)
 		return nil, err
 	}
 

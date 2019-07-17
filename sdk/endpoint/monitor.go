@@ -24,7 +24,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/sirupsen/logrus"
 )
 
 // MonitorEndpoint is a monitoring composite
@@ -47,11 +46,11 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 	if Next(ctx) != nil {
 		incomingConnection, err := Next(ctx).Request(ctx, request)
 		if err != nil {
-			logrus.Errorf("Next request failed: %v", err)
+			Log(ctx).Errorf("Next request failed: %v", err)
 			return nil, err
 		}
 
-		logrus.Infof("Monitor UpdateConnection: %v", incomingConnection)
+		Log(ctx).Infof("Monitor UpdateConnection: %v", incomingConnection)
 		MonitorServer(ctx).Update(incomingConnection)
 
 		return incomingConnection, nil
@@ -65,7 +64,7 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 //     MonitorServer
 //	   Next
 func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	logrus.Infof("Monitor DeleteConnection: %v", connection)
+	Log(ctx).Infof("Monitor DeleteConnection: %v", connection)
 	if Next(ctx) != nil {
 		rv, err := Next(ctx).Close(ctx, connection)
 		MonitorServer(ctx).Delete(connection)

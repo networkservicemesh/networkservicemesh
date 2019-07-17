@@ -6,6 +6,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	"github.com/sirupsen/logrus"
 )
 
 type contextKeyType string
@@ -14,6 +15,7 @@ const (
 	clientConnectionKey contextKeyType = "ClientConnection"
 	monitorServerKey    contextKeyType = "MonitorServer"
 	nextKey             contextKeyType = "Next"
+	logKey              contextKeyType = "Log"
 )
 
 // WithClientConnection -
@@ -72,7 +74,7 @@ func MonitorServer(ctx context.Context) local.MonitorServer {
 //    Should only be set in CompositeEndpoint.Request/Close
 func withNext(parent context.Context, next networkservice.NetworkServiceServer) context.Context {
 	if parent == nil {
-		parent = context.Background()
+		parent = context.TODO()
 	}
 	return context.WithValue(parent, nextKey, next)
 }
@@ -84,4 +86,21 @@ func Next(ctx context.Context) networkservice.NetworkServiceServer {
 		return rv
 	}
 	return nil
+}
+
+// withLog -
+//   Provides a FieldLogger in context
+func withLog(parent context.Context, log logrus.FieldLogger) context.Context {
+	if parent == nil {
+		parent = context.TODO()
+	}
+	return context.WithValue(parent, logKey, log)
+}
+
+// Log - return FieldLogger from context
+func Log(ctx context.Context) logrus.FieldLogger {
+	if rv, ok := ctx.Value(logKey).(logrus.FieldLogger); ok {
+		return rv
+	}
+	return logrus.New()
 }

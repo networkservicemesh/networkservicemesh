@@ -26,7 +26,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/sirupsen/logrus"
 )
 
 // IpamEndpoint - provides Ipam functionality
@@ -80,13 +79,13 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 //	   Next
 func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	prefix, requests, err := ice.PrefixPool.GetConnectionInformation(connection.GetId())
-	logrus.Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
+	Log(ctx).Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
 	if err != nil {
-		logrus.Errorf("Error: %v", err)
+		Log(ctx).Errorf("Error: %v", err)
 	}
 	err = ice.PrefixPool.Release(connection.GetId())
 	if err != nil {
-		logrus.Error("Release error: ", err)
+		Log(ctx).Error("Release error: ", err)
 	}
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)
