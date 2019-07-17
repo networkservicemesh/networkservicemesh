@@ -7,7 +7,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
-	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -60,13 +59,7 @@ func (c *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset)
 	}
 
 	go func() {
-		for {
-			pool, ok := <-poolCh
-			if !ok {
-				logrus.Error("Prefix Collector is not responding, exclude prefixes won't be updating") // TODO: review
-				return
-			}
-
+		for pool := range poolCh {
 			c.setExcludedPrefixes(pool)
 		}
 	}()

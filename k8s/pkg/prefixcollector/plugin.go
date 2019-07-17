@@ -97,5 +97,6 @@ func registerPlugin(endpoint string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

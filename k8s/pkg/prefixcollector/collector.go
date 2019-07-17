@@ -112,14 +112,14 @@ func monitorReservedSubnets(poolCh chan<- prefix_pool.PrefixPool, errCh chan<- e
 		case podSubnet := <-pw.ResultChan():
 			pool, err := getPrefixPool(podSubnet.String(), additionalPrefixes)
 			if err != nil {
-				logrus.Error(err) // TODO: review
+				logrus.Error(err)
 				continue
 			}
 			poolCh <- pool
 		case serviceSubnet := <-sw.ResultChan():
 			pool, err := getPrefixPool(serviceSubnet.String(), additionalPrefixes)
 			if err != nil {
-				logrus.Error(err) // TODO: review
+				logrus.Error(err)
 				continue
 			}
 			poolCh <- pool
