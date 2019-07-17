@@ -16,10 +16,7 @@ package vppagent
 
 import (
 	"context"
-	"github.com/opentracing/opentracing-go"
-
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
-
 	"os"
 	"time"
 
@@ -34,6 +31,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"

@@ -14,8 +14,8 @@ const (
 
 //DNSConfigManager - Manager of DNS configs
 type DNSConfigManager interface {
-	UpdateDNSConfig(config *connectioncontext.DNSConfig) error
-	RemoveDNSConfig(config *connectioncontext.DNSConfig) error
+	UpdateDNSConfig(config *connectioncontext.DNSContext) error
+	RemoveDNSConfig(config *connectioncontext.DNSContext) error
 }
 
 //NewDefaultDNSConfigManager - Creates new instance of DNSConfigManager with default Corefile path
@@ -41,7 +41,7 @@ type dnsConfigManager struct {
 }
 
 //UpdateDNSConfig - Updates Corefile with new DNSConfig
-func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) error {
+func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSContext) error {
 	err := config.Validate()
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (m *dnsConfigManager) UpdateDNSConfig(config *connectioncontext.DNSConfig) 
 }
 
 //RemoveDNSConfig - Removes DNSConfig from Corefile
-func (m *dnsConfigManager) RemoveDNSConfig(config *connectioncontext.DNSConfig) error {
+func (m *dnsConfigManager) RemoveDNSConfig(config *connectioncontext.DNSContext) error {
 	err := config.Validate()
 	if err != nil {
 		return err

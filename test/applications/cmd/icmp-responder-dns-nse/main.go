@@ -47,7 +47,7 @@ func main() {
 
 func dnsConfigMutator(c *connection.Connection) error {
 	dnsIP := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
-	c.Context.DnsConfig = &connectioncontext.DNSConfig{
+	c.Context.DnsContext = &connectioncontext.DNSContext{
 		DnsServerIps:    []string{dnsIP},
 		ResolvesDomains: []string{"my.domain1", "my.domain2"},
 		Prioritize:      true,

@@ -51,7 +51,7 @@ func (c *ConnectionContext) MeetsRequirements(original *ConnectionContext) error
 }
 
 //Validate - Checks DNSConfig and returns error if DNSConfig is not valid
-func (c *DNSConfig) Validate() error {
+func (c *DNSContext) Validate() error {
 	if c == nil {
 		return fmt.Errorf("dnsConfig should not be nil")
 	}

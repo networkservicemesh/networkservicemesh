@@ -16,7 +16,6 @@ K8S_CONF_DIR = k8s/conf
 
 # Deployments - common
 DEPLOY_TRACING = jaeger
-PATH_TO_COREDNS = $(GOPATH)/src/github.com/coredns
 DEPLOY_WEBHOOK = admission-webhook
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
@@ -194,7 +193,7 @@ k8s-restart: $(CLUSTER_RULES_PREFIX)-restart
 .PHONY: k8s-build
 k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 
-.PHONY: k8s-jaeger-save
+.PHONY: k8s-nsm-coredns-save
 k8s-nsm-coredns-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,nsm-coredns))
 
 .PHONY: k8s-jaeger-build

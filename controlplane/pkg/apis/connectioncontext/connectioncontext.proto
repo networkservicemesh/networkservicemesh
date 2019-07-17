@@ -63,7 +63,7 @@ message IPContext {
     repeated string extra_prefixes = 10; /* A list of extra prefixes requested */
 }
 
-message DNSConfig {
+message DNSContext {
     /* ips of DNS Servers for this DNSConfig.  Any given IP may be IPv4 or IPv6 */
     repeated string dns_server_ips = 1;
     /* domains for which this DNSConfig provides resolution.  If empty, all domains. */
@@ -77,5 +77,5 @@ message DNSConfig {
 
 message ConnectionContext {
     IPContext ip_context = 1; /* IP related context */
-    DNSConfig dns_config = 2; /* DNS related context */
+    DNSContext dns_context = 2; /* DNS related context */
 }

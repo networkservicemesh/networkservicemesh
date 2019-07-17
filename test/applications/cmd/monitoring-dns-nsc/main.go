@@ -62,20 +62,20 @@ func startMonitor(nsc *client.NsmClient, manager corefile.DNSConfigManager) {
 				}
 				switch event.EventType() {
 				case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
-					if currentConn.Context.DnsConfig != nil {
-						if err := manager.UpdateDNSConfig(currentConn.Context.DnsConfig); err != nil {
+					if currentConn.Context.DnsContext != nil {
+						if err := manager.UpdateDNSConfig(currentConn.Context.DnsContext); err != nil {
 							logrus.Errorf("An error during updating dns config %v", err)
 						} else {
-							logrus.Infof("dns config %v has been successfully updated", currentConn.Context.DnsConfig)
+							logrus.Infof("dns config %v has been successfully updated", currentConn.Context.DnsContext)
 						}
 					}
 				case monitor.EventTypeDelete:
 					logrus.Info("Connection closed")
-					if currentConn.Context.DnsConfig != nil {
-						if err := manager.RemoveDNSConfig(currentConn.Context.DnsConfig); err != nil {
+					if currentConn.Context.DnsContext != nil {
+						if err := manager.RemoveDNSConfig(currentConn.Context.DnsContext); err != nil {
 							logrus.Errorf("An error during removing dns config %v", err)
 						} else {
-							logrus.Infof("dns config %v has been successfully deleted", currentConn.Context.DnsConfig)
+							logrus.Infof("dns config %v has been successfully deleted", currentConn.Context.DnsContext)
 						}
 					}
 					return
