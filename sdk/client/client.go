@@ -55,6 +55,13 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 		return nil, err
 	}
 
+	routes := []*connectioncontext.Route{}
+	for _, r := range nsmc.Configuration.Routes {
+		routes = append(routes, &connectioncontext.Route{
+			Prefix: r,
+		})
+	}
+
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			NetworkService: nsmc.Configuration.OutgoingNscName,
@@ -62,6 +69,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 				IpContext: &connectioncontext.IPContext{
 					SrcIpRequired: true,
 					DstIpRequired: true,
+					SrcRoutes:     routes,
 				},
 			},
 			Labels: nsmc.OutgoingNscLabels,

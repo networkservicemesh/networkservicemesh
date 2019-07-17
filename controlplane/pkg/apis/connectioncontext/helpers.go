@@ -5,29 +5,48 @@ import (
 	"net"
 )
 
-//Validate - Checks IPContext and returns error if IPContext is not valid
-func (c *IPContext) Validate() error {
+func (c *ConnectionContext) IsValid() error {
 	if c == nil {
-		return fmt.Errorf("connectionContext should not be nil")
+		return fmt.Errorf("ConnectionContext should not be nil...")
 	}
-	for _, route := range c.GetRoutes() {
+	ip := c.GetIpContext()
+	for _, route := range append(ip.GetSrcRoutes(), ip.GetDstRoutes()...) {
 		if route.GetPrefix() == "" {
-			return fmt.Errorf("connectionContext.Route.Prefix is required and cannot be empty/nil: %v", c)
+			return fmt.Errorf("ConnectionContext.Route.Prefix is required and cannot be empty/nil: %v", ip)
 		}
 		_, _, err := net.ParseCIDR(route.GetPrefix())
 		if err != nil {
-			return fmt.Errorf("connectionContext.Route.Prefix should be a valid CIDR address: %v", c)
+			return fmt.Errorf("ConnectionContext.Route.Prefix should be a valid CIDR address: %v", ip)
 		}
 	}
 
-	for _, neighbor := range c.GetIpNeighbors() {
+	for _, neighbor := range ip.GetIpNeighbors() {
 		if neighbor.GetIp() == "" {
-			return fmt.Errorf("connectionContext.IpNeighbors.Ip is required and cannot be empty/nil: %v", c)
+			return fmt.Errorf("ConnectionContext.IpNeighbors.Ip is required and cannot be empty/nil: %v", ip)
 		}
 		if neighbor.GetHardwareAddress() == "" {
-			return fmt.Errorf("connectionContext.IpNeighbors.HardwareAddress is required and cannot be empty/nil: %v", c)
+			return fmt.Errorf("ConnectionContext.IpNeighbors.HardwareAddress is required and cannot be empty/nil: %v", ip)
 		}
 	}
+	return nil
+}
+
+func (c *ConnectionContext) MeetsRequirements(original *ConnectionContext) error {
+	if c == nil {
+		return fmt.Errorf("ConnectionContext should not be nil...")
+	}
+
+	err := c.IsValid()
+	if err != nil {
+		return err
+	}
+	if original.GetIpContext().GetDstIpRequired() && c.GetIpContext().GetDstIpAddr() == "" {
+		return fmt.Errorf("ConnectionContext.DestIp is required and cannot be empty/nil: %v", c)
+	}
+	if original.GetIpContext().GetSrcIpRequired() && c.GetIpContext().GetSrcIpAddr() == "" {
+		return fmt.Errorf("ConnectionContext.SrcIp is required cannot be empty/nil: %v", c)
+	}
+
 	return nil
 }
 
@@ -42,26 +61,6 @@ func (c *DNSConfig) Validate() error {
 	if len(c.DnsServerIps) == 0 {
 		return fmt.Errorf("dnsConfig should have recoreds")
 	}
-	return nil
-}
-
-//MeetsRequirements - Checks IPContext with required fields and returns error if IPContext is not valid
-func (c *IPContext) MeetsRequirements(original *IPContext) error {
-	if c == nil {
-		return fmt.Errorf("connectionContext should not be nil")
-	}
-
-	err := c.Validate()
-	if err != nil {
-		return err
-	}
-	if original.GetDstIpRequired() && c.GetDstIpAddr() == "" {
-		return fmt.Errorf("connectionContext.DestIp is required and cannot be empty/nil: %v", c)
-	}
-	if original.GetSrcIpRequired() && c.GetSrcIpAddr() == "" {
-		return fmt.Errorf("connectionContext.SrcIp is required cannot be empty/nil: %v", c)
-	}
-
 	return nil
 }
 

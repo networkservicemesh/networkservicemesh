@@ -55,7 +55,7 @@ func (c *Connection) SetContext(context *connectioncontext.ConnectionContext) {
 
 // UpdateContext checks and tries to set connection context
 func (c *Connection) UpdateContext(context *connectioncontext.ConnectionContext) error {
-	if err := context.IpContext.MeetsRequirements(c.Context.IpContext); err != nil {
+	if err := context.MeetsRequirements(c.Context); err != nil {
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (c *Connection) IsComplete() error {
 		return fmt.Errorf("connection.Id cannot be empty: %v", c)
 	}
 
-	if err := c.GetContext().IpContext.Validate(); err != nil {
+	if err := c.GetContext().IsValid(); err != nil {
 		return err
 	}
 

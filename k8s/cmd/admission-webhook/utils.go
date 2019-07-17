@@ -3,15 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/go-errors/errors"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 )
 
 type podSpecAndMeta struct {

@@ -24,6 +24,7 @@ import (
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
@@ -65,10 +66,10 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 
 	var ipAddresses []string
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext().IpContext.DstIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
 	}
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext().IpContext.SrcIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
 	}
 
 	if c.conversionParameters.Name == "" {
@@ -89,16 +90,24 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	})
 
 	// Process static routes
-	if c.conversionParameters.Side == SOURCE {
-		for _, route := range c.Connection.GetContext().IpContext.GetRoutes() {
-			route := &vpp.Route{
-				Type:              vpp_l3.Route_INTER_VRF,
-				DstNetwork:        route.Prefix,
-				NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().IpContext.DstIpAddr),
-				OutgoingInterface: c.conversionParameters.Name,
-			}
-			rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
-		}
+
+	routes := []*connectioncontext.Route{}
+	switch c.conversionParameters.Side {
+	case SOURCE:
+		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()
+	case DESTINATION:
+		routes = c.Connection.GetContext().GetIpContext().GetSrcRoutes()
 	}
+
+	for _, route := range routes {
+		route := &vpp.Route{
+			Type:              vpp_l3.Route_INTER_VRF,
+			DstNetwork:        route.Prefix,
+			NextHopAddr:       extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+			OutgoingInterface: c.conversionParameters.Name,
+		}
+		rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
+	}
+
 	return rv, nil
 }

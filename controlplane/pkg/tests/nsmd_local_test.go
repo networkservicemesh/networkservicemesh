@@ -61,7 +61,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 	}
 
 	if impl.need_ip_neighbors {
-		conn.GetContext().IpContext.IpNeighbors = []*connectioncontext.IpNeighbor{
+		conn.GetContext().GetIpContext().IpNeighbors = []*connectioncontext.IpNeighbor{
 			&connectioncontext.IpNeighbor{
 				Ip:              "127.0.0.1",
 				HardwareAddress: "ff-ee-ff-ee-ff",
@@ -95,7 +95,7 @@ func createRequest(add_exclude bool) *networkservice.NetworkServiceRequest {
 		},
 	}
 	if add_exclude {
-		request.Connection.Context.IpContext.ExcludedPrefixes = append(request.Connection.Context.IpContext.ExcludedPrefixes, "127.0.0.1")
+		request.Connection.GetContext().GetIpContext().ExcludedPrefixes = append(request.Connection.GetContext().GetIpContext().GetExcludedPrefixes(), "127.0.0.1")
 	}
 
 	return request
@@ -151,7 +151,7 @@ func TestNSENoSrc(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: connectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
+	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
 	Expect(nsmResponse).To(BeNil())
 }
 
@@ -176,7 +176,7 @@ func TestNSEExcludePrefixes(t *testing.T) {
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.IpContext.ExcludedPrefixes).To(Equal([]string{"127.0.0.1", "127.0.0.0/24", "127.0.1.0/24"}))
+	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"127.0.0.1", "127.0.0.0/24", "127.0.1.0/24"}))
 }
 
 func TestNSEExcludePrefixes2(t *testing.T) {
@@ -200,7 +200,7 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.IpContext.ExcludedPrefixes).To(Equal([]string{"127.0.0.0/24", "127.0.1.0/24"}))
+	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"127.0.0.0/24", "127.0.1.0/24"}))
 }
 
 func TestExcludePrefixesMonitor(t *testing.T) {
@@ -279,7 +279,7 @@ func checkPrefixes(srv *nsmdFullServerImpl, expected []string) {
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.Context.IpContext.ExcludedPrefixes).To(Equal(expected))
+	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal(expected))
 }
 
 func TestExcludePrefixesMonitorFails(t *testing.T) {
@@ -351,9 +351,9 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	originl, ok := srv.serviceRegistry.localTestNSE.(*nseWithOptions)
 	Expect(ok).To(Equal(true))
 
-	Expect(len(originl.connection.Context.IpContext.IpNeighbors)).To(Equal(1))
-	Expect(originl.connection.Context.IpContext.IpNeighbors[0].Ip).To(Equal("127.0.0.1"))
-	Expect(originl.connection.Context.IpContext.IpNeighbors[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
+	Expect(len(originl.connection.GetContext().GetIpContext().GetIpNeighbors())).To(Equal(1))
+	Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].Ip).To(Equal("127.0.0.1"))
+	Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
 }
 
 func TestSlowNSE(t *testing.T) {

@@ -71,9 +71,9 @@ func main() {
 
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
 
-	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
+	routeAddr := makeRouteMutator([]string{"8.8.8.8/30"})
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
-		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
+		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 
 	if routes {
@@ -116,6 +116,17 @@ func main() {
 	<-c
 }
 
+func makeRouteMutator(routes []string) endpoint.ConnectionMutator {
+	return func(c *connection.Connection) error {
+		for _, r := range routes {
+			c.GetContext().GetIpContext().DstRoutes = append(c.GetContext().GetIpContext().GetDstRoutes(), &connectioncontext.Route{
+				Prefix: r,
+			})
+		}
+		return nil
+	}
+}
+
 func ipNeighborMutator(c *connection.Connection) error {
 	addrs, err := net.Interfaces()
 	if err != nil {
@@ -132,7 +143,7 @@ func ipNeighborMutator(c *connection.Connection) error {
 		for _, a := range adrs {
 			addr, _, _ := net.ParseCIDR(a.String())
 			if !addr.IsLoopback() {
-				c.Context.IpContext.IpNeighbors = append(c.Context.IpContext.IpNeighbors,
+				c.GetContext().GetIpContext().IpNeighbors = append(c.GetContext().GetIpContext().GetIpNeighbors(),
 					&connectioncontext.IpNeighbor{
 						Ip:              addr.String(),
 						HardwareAddress: iface.HardwareAddr.String(),
@@ -147,8 +158,8 @@ func ipNeighborMutator(c *connection.Connection) error {
 func updateConnections(monitorServer monitor.Server) {
 	for _, entity := range monitorServer.Entities() {
 		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
-		localConnection.GetContext().IpContext.ExcludedPrefixes =
-			append(localConnection.GetContext().IpContext.ExcludedPrefixes, "255.255.255.255/32")
+		localConnection.GetContext().GetIpContext().ExcludedPrefixes =
+			append(localConnection.GetContext().GetIpContext().GetExcludedPrefixes(), "255.255.255.255/32")
 
 		monitorServer.Update(localConnection)
 	}

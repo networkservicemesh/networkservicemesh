@@ -257,7 +257,7 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *l
 	}
 
 	// TODO take into consideration LocalMechnism preferences sent in request
-	srcIP, dstIP, requested, err := impl.prefixPool.Extract(in.Connection.Id, connectioncontext.IpFamily_IPV4, in.Connection.Context.IpContext.ExtraPrefixRequest...)
+	srcIP, dstIP, requested, err := impl.prefixPool.Extract(in.Connection.Id, connectioncontext.IpFamily_IPV4, in.Connection.GetContext().GetIpContext().ExtraPrefixRequest...)
 	if err != nil {
 		return nil, err
 	}

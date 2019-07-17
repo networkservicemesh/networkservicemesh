@@ -13,6 +13,7 @@ import (
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
@@ -59,10 +60,10 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 	var ipAddresses []string
 	if c.conversionParameters.Side == DESTINATION {
-		ipAddresses = []string{c.Connection.GetContext().IpContext.DstIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
 	}
 	if c.conversionParameters.Side == SOURCE {
-		ipAddresses = []string{c.Connection.GetContext().IpContext.SrcIpAddr}
+		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -146,20 +147,26 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	// Process static routes
-	if c.conversionParameters.Side == SOURCE {
-		for _, route := range c.Connection.GetContext().IpContext.GetRoutes() {
-			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
-				DstNetwork:        route.Prefix,
-				OutgoingInterface: c.conversionParameters.Name,
-				Scope:             linux_l3.Route_GLOBAL,
-				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().IpContext.DstIpAddr),
-			})
-		}
+	routes := []*connectioncontext.Route{}
+	switch c.conversionParameters.Side {
+	case SOURCE:
+		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()
+	case DESTINATION:
+		routes = c.Connection.GetContext().GetIpContext().GetSrcRoutes()
+	}
+
+	for _, route := range routes {
+		rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
+			DstNetwork:        route.Prefix,
+			OutgoingInterface: c.conversionParameters.Name,
+			Scope:             linux_l3.Route_GLOBAL,
+			GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+		})
 	}
 
 	// Process IP Neighbor entries
 	if c.conversionParameters.Side == SOURCE {
-		for _, neightbour := range c.Connection.GetContext().IpContext.GetIpNeighbors() {
+		for _, neightbour := range c.Connection.GetContext().GetIpContext().GetIpNeighbors() {
 			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
 				IpAddress: neightbour.Ip,
 				Interface: c.conversionParameters.Name,

@@ -32,6 +32,7 @@ type NSConfiguration struct {
 	TracerEnabled      bool   // TRACER_ENABLED
 	MechanismType      string // MECHANISM_TYPE
 	IPAddress          string // IP_ADDRESS
+	Routes             []string // ROUTES
 }
 ```
 
@@ -47,6 +48,7 @@ Note that some of the members of this structure can be initialized through the e
  * `TracerEnabled` - [ `TRACER_ENABLED` ], enable the Jager tracing for an *endpoint*
  * `MechanismType` - [ `MECHANISM_TYPE` ], enforce a particular Mechanism type. Currently `kernel` or `mem`. Defaults to `kernel`
  * `IPAddress` - [ `IP_ADDRESS` ], the IP network to initalize a prefix pool in the IPAM composite
+ * `Routes` - [ `ROUTES` ], list of routes that will be set into connection's context by *Client*
 
 ## Implementing a Client
 
@@ -160,9 +162,8 @@ The SDK comes with a set of useful *composites*, that can be chained together an
  * `connection` - returns a basic initialized connection, with the configured Mechanism set. Usually used at the "bottom" of the composite chain.
  * `ipam` - receives a connection from the next composite and assigns it an IP pair from the configure prefix pool.
  * `monitor` - receives a connection from the next composite and adds it to the monitoring mechanism. Typically would be at the top of the composite chain.
- * `route` - receives a connection from the next composite and assigns it routes.
- * `neighbor` - receives a connection from the next composite and assigns it all available neighbors.
- 
+ * `customfunc` - allows for specifying a custom connection mutator
+
  #### VPP Agent composites
  * `memif-connect` - receives a connection from the next composite and creates a DataChange (or appends an existing DataChange) with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
  * `client-memif-connect` - receives a downlink connection from the `client` composite's Opaque Data and creates a DataChange with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.

@@ -55,7 +55,7 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 	connectionData.InConnName = name
 
 	var ipAddresses []string
-	dstIPAddr := incomingConnection.GetContext().IpContext.DstIpAddr
+	dstIPAddr := incomingConnection.GetContext().GetIpContext().GetDstIpAddr()
 	if dstIPAddr != "" {
 		ipAddresses = []string{dstIPAddr}
 	}
