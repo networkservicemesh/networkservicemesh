@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"github.com/go-errors/errors"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 )
@@ -21,12 +19,17 @@ type podSpecAndMeta struct {
 	spec *corev1.PodSpec
 }
 
-type patchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
+func applyDeploymentKind(patches []patchOperation, kind string) {
+	if kind == pod {
+		return
+	}
+	if kind != deployment {
+		panic(fmt.Sprintf(unsupportedKind, kind))
+	}
+	for i := 0; i < len(patches); i++ {
+		patches[i].Path = deploymentSubPath + patches[i].Path
+	}
 }
-
 func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) {
 	result := &podSpecAndMeta{}
 	if request.Kind.Kind == deployment {
@@ -50,47 +53,10 @@ func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) 
 	return result, nil
 }
 
-func getInitContainerPatchPath(request *v1beta1.AdmissionRequest) string {
-	if request.Kind.Kind == pod {
-		return pathPodInitContainers
-	}
-	if request.Kind.Kind == deployment {
-		return pathDeploymentInitContainers
-	}
-	panic("unsupported request kind")
-}
-
 func validateAnnotationValue(value string) error {
 	urls, err := tools.ParseAnnotationValue(value)
 	logrus.Infof("Annotation result: %v", urls)
 	return err
-}
-
-func createInitContainerPatch(annotationValue, path string) []patchOperation {
-	var patch []patchOperation
-
-	value := []corev1.Container{{
-		Name:  initContainerName,
-		Image: fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
-		Env: []corev1.EnvVar{{
-			Name:  client.AnnotationEnv,
-			Value: annotationValue,
-		},
-		},
-		Resources: corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				"networkservicemesh.io/socket": resource.MustParse("1"),
-			},
-		},
-	}}
-
-	patch = append(patch, patchOperation{
-		Op:    "add",
-		Path:  path,
-		Value: value,
-	})
-
-	return patch
 }
 
 func checkNsmInitContainerDuplication(spec *corev1.PodSpec) error {

@@ -27,8 +27,10 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 		logrus.Error(err)
 		return errorReviewResponse(err)
 	}
-	patch := createInitContainerPatch(value, getInitContainerPatchPath(request))
+	patch := createNsmInitContainerPatch(value)
+	patch = append(patch, createDnsPatch(metaAndSpec, value)...)
 	//append another patches
+	applyDeploymentKind(patch, request.Kind.Kind)
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
 		return errorReviewResponse(err)
