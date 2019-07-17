@@ -4,8 +4,13 @@ package plugins;
 
 import "github.com/golang/protobuf@v1.3.1/ptypes/empty/empty.proto";
 
+enum PluginType { // TODO: improve naming
+    CONNECTION = 0;
+}
+
 message PluginInfo {
     string endpoint = 1;
+    repeated PluginType features = 2;
 }
 
 service PluginRegistry {

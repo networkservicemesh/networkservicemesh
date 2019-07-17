@@ -92,6 +92,7 @@ func registerPlugin(endpoint string) error {
 
 	_, err = client.Register(ctx, &plugins.PluginInfo{
 		Endpoint: endpoint,
+		Features: []plugins.PluginType{plugins.PluginType_CONNECTION},
 	})
 	if err != nil {
 		return err

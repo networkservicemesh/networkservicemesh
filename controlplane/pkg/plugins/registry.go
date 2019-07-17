@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -22,10 +23,11 @@ type PluginRegistry interface {
 
 type pluginRegistry struct {
 	connectionPluginRegistry ConnectionPluginRegistry
+	connections              []*grpc.ClientConn
 }
 
 type pluginManager interface { // TODO: improve naming
-	registerPlugin(string) error
+	registerPlugin(*grpc.ClientConn)
 }
 
 func NewPluginRegistry() PluginRegistry {
@@ -55,7 +57,7 @@ func (pr *pluginRegistry) Start() error {
 
 	go func() {
 		if err := server.Serve(sock); err != nil {
-			logrus.Fatalf("failed to serve: %v", err)
+			logrus.Fatalf("Failed to serve: %v", err)
 		}
 	}()
 
@@ -63,13 +65,44 @@ func (pr *pluginRegistry) Start() error {
 }
 
 func (pr *pluginRegistry) Stop() error {
-	// TODO: close all client connections
+	for _, conn := range pr.connections {
+		err := conn.Close()
+		if err != nil {
+			logrus.Errorf("Failed to close connection: %v", err)
+		}
+	}
 	return nil
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
-	err := pr.connectionPluginRegistry.registerPlugin(info.Endpoint) // TODO: implement capabilities
-	return &empty.Empty{}, err
+	conn, err := pr.createConnection(info.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	for _, feature := range info.Features {
+		if feature == plugins.PluginType_CONNECTION {
+			pr.connectionPluginRegistry.registerPlugin(conn)
+		}
+	}
+	return &empty.Empty{}, nil
+}
+
+func (pr *pluginRegistry) createConnection(endpoint string) (*grpc.ClientConn, error) {
+	tracer := opentracing.GlobalTracer()
+	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
+		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+			return net.DialTimeout("unix", addr, timeout)
+		}),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
+		grpc.WithStreamInterceptor(
+			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	if err != nil {
+		return nil, err
+	}
+
+	pr.connections = append(pr.connections, conn)
+	return conn, nil
 }
 
 func (pr *pluginRegistry) GetConnectionPluginRegistry() ConnectionPluginRegistry {
