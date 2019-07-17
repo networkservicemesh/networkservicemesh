@@ -14,7 +14,7 @@ type patchOperation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
-func createDnsPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patchOperation) {
+func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patchOperation) {
 	patch = append(patch, addVolume(tuple.spec,
 		[]corev1.Volume{{
 			Name: "empty-dir-volume",
@@ -47,6 +47,10 @@ func createDnsPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "test-common", getTag()),
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Command:         []string{"/bin/monitoring-dns-nsc"},
+				Env: []corev1.EnvVar{{
+					Name:  client.AnnotationEnv,
+					Value: annotationValue,
+				}},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
 						"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
@@ -54,7 +58,7 @@ func createDnsPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				},
 			},
 		})...)
-	return
+	return patch
 }
 
 func createNsmInitContainerPatch(annotationValue string) (patch []patchOperation) {
@@ -123,8 +127,9 @@ func addContainer(spec *corev1.PodSpec, containers []corev1.Container) (patch []
 }
 
 func addVolumeMounts(spec *corev1.PodSpec, added []corev1.VolumeMount) (patch []patchOperation) {
-	for index, container := range spec.Containers {
-		path := containersPath + "/" + strconv.Itoa(index) + "/volumeMounts"
+	for i := 0; i < len(spec.Containers); i++ {
+		container := &spec.Containers[i]
+		path := containersPath + "/" + strconv.Itoa(i) + "/volumeMounts"
 		first := len(container.VolumeMounts) == 0
 		if !first {
 			path = path + "/-"

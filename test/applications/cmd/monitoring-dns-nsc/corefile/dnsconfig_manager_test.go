@@ -14,7 +14,7 @@ func TestDNSConfigManager(t *testing.T) {
 	mngr, err := NewDNSConfigManager(coreFilePath)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(mngr).ShouldNot(gomega.BeNil())
-	dnsConfig := connectioncontext.DNSConfig{
+	dnsConfig := connectioncontext.DNSContext{
 		DnsServerIps: []string{"9.9.9.9"},
 	}
 	gomega.Expect(mngr.UpdateDNSConfig(&dnsConfig)).Should(gomega.BeNil())
