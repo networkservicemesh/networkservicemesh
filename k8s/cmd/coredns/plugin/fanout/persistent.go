@@ -108,7 +108,6 @@ func closeConnections(conns []*persistConn) {
 	}
 }
 
-
 func (t *Transport) cleanup(all bool) {
 	staleTime := time.Now().Add(-t.expire)
 	for proto, stack := range t.connections {

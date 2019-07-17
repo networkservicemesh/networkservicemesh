@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAdvancedDNSLocal(t *testing.T) {
+func TestSDKDNSLocal(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {
@@ -39,7 +39,7 @@ func TestAdvancedDNSLocal(t *testing.T) {
 	Expect(kubetest.PingByHostName(k8s, nsc, "my.domain2")).Should(BeTrue())
 }
 
-func TestAdvancedDNSRemote(t *testing.T) {
+func TestSDKDNSRemote(t *testing.T) {
 	RegisterTestingT(t)
 
 	if testing.Short() {

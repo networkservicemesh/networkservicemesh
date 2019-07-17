@@ -84,6 +84,7 @@ func TestFanout2(t *testing.T) {
 		t.Errorf("Expected %s, got %s", "example.org.", x)
 	}
 }
+
 type server struct {
 	Addr  string
 	inner *dns.Server
@@ -120,6 +121,6 @@ func newServer(f dns.HandlerFunc, zone string) *server {
 }
 
 func makeRecordA(rr string) *dns.A {
-	r, _ := dns.NewRR(rr);
+	r, _ := dns.NewRR(rr)
 	return r.(*dns.A)
 }

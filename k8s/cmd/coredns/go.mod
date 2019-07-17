@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/zstd v1.4.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/Shopify/sarama v1.23.0 // indirect
-	github.com/aws/aws-sdk-go v1.20.19 // indirect
+	github.com/aws/aws-sdk-go v1.20.20 // indirect
 	github.com/bifurcation/mint v0.0.0-20190129141059-83ba9bc2ead9 // indirect
 	github.com/caddyserver/caddy v1.0.1
 	github.com/coredns/coredns v1.5.2
@@ -52,15 +52,16 @@ require (
 	golang.org/x/image v0.0.0-20190703141733-d6a02ce849c9 // indirect
 	golang.org/x/mobile v0.0.0-20190711165009-e47acb2ca7f9 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
-	golang.org/x/sys v0.0.0-20190710143415-6ec70d6a5542 // indirect
-	golang.org/x/tools v0.0.0-20190711191110-9a621aea19f8 // indirect
+	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
+	golang.org/x/tools v0.0.0-20190715044752-607ca053a137 // indirect
 	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
 	google.golang.org/grpc v1.22.0 // indirect
 	gopkg.in/jcmturner/gokrb5.v7 v7.3.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
 	k8s.io/api v0.0.0-20190712022805-31fe033ae6f9 // indirect
+	k8s.io/apimachinery v0.0.0-20190712095106-75ce4d1e60f1 // indirect
 	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a // indirect
 	k8s.io/kube-openapi v0.0.0-20190709113604-33be087ad058 // indirect
-	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
+	k8s.io/utils v0.0.0-20190712204705-3dccf664f023 // indirect
 	sigs.k8s.io/structured-merge-diff v0.0.0-20190711200306-eaa53bff5a75 // indirect
 )

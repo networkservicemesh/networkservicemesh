@@ -228,16 +228,7 @@ func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout
 	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
 	pods.InjectCorednsWithSharedFolder(template)
 	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
-	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
-	return result
-}
-
-//DeployNSCAndCoredns - Deploys pod of  NSC and coredns
-func DeployNSCAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfig string, timeout time.Duration) *v1.Pod {
-	template := pods.NSCPod(name, node, defaultNSCEnv())
-	pods.InjectCoredns(template, corednsConfig)
-	result := deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, template)
-	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
+	k8s.WaitLogsContains(result, "nsm-coredns", "CoreDNS-", timeout)
 	return result
 }
 
