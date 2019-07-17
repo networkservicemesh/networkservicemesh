@@ -18,21 +18,21 @@ type PluginRegistry interface {
 	Start() error
 	Stop() error
 
-	GetConnectionPluginRegistry() ConnectionPluginRegistry
+	GetConnectionPluginManager() ConnectionPluginManager
 }
 
 type pluginRegistry struct {
-	connectionPluginRegistry ConnectionPluginRegistry
-	connections              []*grpc.ClientConn
+	connectionPluginManager ConnectionPluginManager
+	connections             []*grpc.ClientConn
 }
 
-type pluginManager interface { // TODO: improve naming
-	registerPlugin(*grpc.ClientConn)
+type pluginManager interface {
+	register(*grpc.ClientConn)
 }
 
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
-		connectionPluginRegistry: &connectionPluginRegistry{},
+		connectionPluginManager: &connectionPluginManager{},
 	}
 }
 
@@ -81,7 +81,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 	}
 	for _, feature := range info.Features {
 		if feature == plugins.PluginType_CONNECTION {
-			pr.connectionPluginRegistry.registerPlugin(conn)
+			pr.connectionPluginManager.register(conn)
 		}
 	}
 	return &empty.Empty{}, nil
@@ -105,6 +105,6 @@ func (pr *pluginRegistry) createConnection(endpoint string) (*grpc.ClientConn, e
 	return conn, nil
 }
 
-func (pr *pluginRegistry) GetConnectionPluginRegistry() ConnectionPluginRegistry {
-	return pr.connectionPluginRegistry
+func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {
+	return pr.connectionPluginManager
 }

@@ -362,7 +362,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		srv.pluginRegistry.GetConnectionPluginRegistry().UpdateConnection(nseConn)
+		srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(nseConn)
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
@@ -528,7 +528,7 @@ func (srv *networkServiceManager) validateConnection(conn connection.Connection)
 		return err
 	}
 
-	err = srv.pluginRegistry.GetConnectionPluginRegistry().ValidateConnection(conn)
+	err = srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn)
 	if err != nil {
 		return err
 	}

@@ -82,7 +82,7 @@ func registerPlugin(endpoint string) error {
 			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 	defer func() { _ = conn.Close() }()
 	if err != nil {
-		logrus.Fatalf("cannot connect to the service: %v", err)
+		logrus.Fatalf("Cannot connect to the service: %v", err)
 	}
 
 	client := plugins.NewPluginRegistryClient(conn)

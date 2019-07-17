@@ -11,24 +11,24 @@ import (
 	"google.golang.org/grpc"
 )
 
-type ConnectionPluginRegistry interface {
+type ConnectionPluginManager interface {
 	pluginManager
 	UpdateConnection(connection.Connection)
 	ValidateConnection(connection.Connection) error
 }
 
-type connectionPluginRegistry struct {
-	connectionPlugins []plugins.ConnectionPluginClient
+type connectionPluginManager struct {
+	pluginClients []plugins.ConnectionPluginClient
 }
 
-func (cpr *connectionPluginRegistry) registerPlugin(conn *grpc.ClientConn) {
+func (cpm *connectionPluginManager) register(conn *grpc.ClientConn) {
 	client := plugins.NewConnectionPluginClient(conn)
-	cpr.connectionPlugins = append(cpr.connectionPlugins, client)
+	cpm.pluginClients = append(cpm.pluginClients, client)
 }
 
-func (cpr *connectionPluginRegistry) UpdateConnection(conn connection.Connection) {
+func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) {
 	connCtx := conn.GetContext()
-	for _, plugin := range cpr.connectionPlugins {
+	for _, plugin := range cpm.pluginClients {
 		ctx, cancel := context.WithTimeout(context.Background(), 100 * time.Second)
 
 		var err error
@@ -42,8 +42,8 @@ func (cpr *connectionPluginRegistry) UpdateConnection(conn connection.Connection
 	conn.SetContext(connCtx)
 }
 
-func (cpr *connectionPluginRegistry) ValidateConnection(conn connection.Connection) error {
-	for _, plugin := range cpr.connectionPlugins {
+func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connection) error {
+	for _, plugin := range cpm.pluginClients {
 		ctx, cancel := context.WithTimeout(context.Background(), 100 * time.Second)
 
 		result, err := plugin.ValidateConnectionContext(ctx, conn.GetContext())
