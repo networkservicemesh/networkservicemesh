@@ -41,8 +41,13 @@ func (d *DirectMemifConnector) connect(crossConnect *crossconnect.CrossConnect) 
 	fullyQualifiedDstSocketFilename := path.Join(d.baseDir, dst.GetWorkspace(), dst.GetSocketFilename())
 	fullyQualifiedSrcSocketFilename := path.Join(d.baseDir, src.GetWorkspace(), src.GetSocketFilename())
 
-	value, exist := d.proxyMap.LoadOrStore(crossConnect.Id, memifproxy.NewProxy(fullyQualifiedSrcSocketFilename, fullyQualifiedDstSocketFilename))
-	proxy := value.(*memifproxy.Proxy)
+	proxy, err := memifproxy.NewProxy(fullyQualifiedSrcSocketFilename, fullyQualifiedDstSocketFilename)
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, exist := d.proxyMap.LoadOrStore(crossConnect.Id, proxy)
 
 	if exist {
 		logrus.Warnf("Proxy for cross connect with id=%s already exists", crossConnect.Id)
