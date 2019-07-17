@@ -26,7 +26,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/sirupsen/logrus"
 )
 
 type BridgeConnect struct {
@@ -39,7 +38,7 @@ func (vbc *BridgeConnect) Request(ctx context.Context, request *networkservice.N
 
 	err := vbc.insertInterfaceIntoBridge(ctx, request.GetConnection())
 	if err != nil {
-		logrus.Error(err)
+		endpoint.Log(ctx).Error(err)
 		return nil, err
 	}
 	if endpoint.Next(ctx) != nil {
@@ -51,7 +50,7 @@ func (vbc *BridgeConnect) Request(ctx context.Context, request *networkservice.N
 func (vbc *BridgeConnect) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	err := vbc.insertInterfaceIntoBridge(ctx, conn)
 	if err != nil {
-		logrus.Error(err)
+		endpoint.Log(ctx).Error(err)
 		return &empty.Empty{}, err
 	}
 	if endpoint.Next(ctx) != nil {

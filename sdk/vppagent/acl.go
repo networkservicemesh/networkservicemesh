@@ -145,14 +145,12 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 
 		action, err := getAction(parsed)
 		if err != nil {
-			logrus.Errorf("Parsing rule %s failed with %v", rule, err)
-			return err
+			return fmt.Errorf("Parsing rule %s failed with %v", rule, err)
 		}
 
 		match, err := getMatch(parsed)
 		if err != nil {
-			logrus.Errorf("Parsing rule %s failed with %v", rule, err)
-			return err
+			return fmt.Errorf("Parsing rule %s failed with %v", rule, err)
 		}
 
 		match.Action = action

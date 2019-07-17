@@ -12,7 +12,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -38,11 +37,10 @@ func (f *Commit) Request(ctx context.Context, request *networkservice.NetworkSer
 		return nil, fmt.Errorf("received empty VppAgentConfig")
 	}
 
-	logrus.Infof("Sending VppAgentConfig to VPP Agent: %v", vppAgentConfig)
+	endpoint.Log(ctx).Infof("Sending VppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
 	if err := f.send(ctx, vppAgentConfig); err != nil {
-		logrus.Errorf("Failed to send vppAgentConfig to VPP Agent: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Failed to send vppAgentConfig to VPP Agent: %v", err)
 	}
 	if endpoint.Next(ctx) != nil {
 		return endpoint.Next(ctx).Request(ctx, request)
@@ -62,11 +60,10 @@ func (f *Commit) Close(ctx context.Context, connection *connection.Connection) (
 		return nil, fmt.Errorf("received empty vppAgentConfig")
 	}
 
-	logrus.Infof("Sending vppAgentConfig to VPP Agent: %v", vppAgentConfig)
+	endpoint.Log(ctx).Infof("Sending vppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
 	if err := f.remove(ctx, vppAgentConfig); err != nil {
-		logrus.Errorf("Failed to send DataChange to VPP Agent: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Failed to send DataChange to VPP Agent: %v", err)
 	}
 
 	if endpoint.Next(ctx) != nil {
@@ -89,12 +86,15 @@ func NewCommit(configuration *common.NSConfiguration, endpoint string, shouldRes
 		Endpoint:       endpoint,
 		shouldResetVpp: shouldResetVpp,
 	}
-	// TODO - think hard about failing fatally here.  Likely right... but should be thought about.
-	err := self.init()
-	if err != nil {
-		logrus.Fatalf("NewCommit failed fatally with error: %+v", err)
-	}
 	return self
+}
+
+// Init will reset the vpp shouldResetVpp is true
+func (mce *Commit) Init(context *endpoint.InitContext) error {
+	if mce.shouldResetVpp {
+		return mce.init()
+	}
+	return nil
 }
 
 func (f *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error) {
@@ -104,8 +104,7 @@ func (f *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error)
 
 	rv, err := tools.DialTCP(f.Endpoint)
 	if err != nil {
-		logrus.Errorf("Can't dial grpc server: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Can't dial grpc server: %v", err)
 	}
 
 	return rv, nil

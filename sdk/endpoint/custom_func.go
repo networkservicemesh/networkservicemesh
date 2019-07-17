@@ -24,7 +24,7 @@ type CustomFuncEndpoint struct {
 //	   Next
 func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	if err := cf.connectionMutator(request.GetConnection()); err != nil {
-		logrus.Error(err)
+		Log(ctx).Error(err)
 		return nil, err
 	}
 
@@ -32,7 +32,7 @@ func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservi
 		return Next(ctx).Request(ctx, request)
 	}
 
-	logrus.Infof("%v endpoint completed on connection: %v", cf.name, request.GetConnection())
+	Log(ctx).Infof("%v endpoint completed on connection: %v", cf.name, request.GetConnection())
 	return request.GetConnection(), nil
 }
 

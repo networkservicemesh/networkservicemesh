@@ -17,7 +17,6 @@ package endpoint
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -78,37 +77,5 @@ func (bce *CompositeEndpoint) Init(initContext *InitContext) error {
 func NewCompositeEndpoint(endpoints ...networkservice.NetworkServiceServer) networkservice.NetworkServiceServer {
 	return &CompositeEndpoint{
 		endpoints: endpoints,
-	}
-}
-
-type nextEndpoint struct {
-	composite *CompositeEndpoint
-	index     int
-}
-
-func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	ctx = withNext(ctx, nil)
-	if n.index+1 < len(n.composite.endpoints) {
-		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
-	}
-	logrus.Infof("Calling %s.Request(ctx=%+v,request=%+v)", getType(n.composite.endpoints[n.index]), ctx, request)
-	rv, err := n.composite.endpoints[n.index].Request(ctx, request)
-	logrus.Infof("Return from %s.Request(ctx=%+v,request=%+v): connection=%+v, err=%+v", getType(n.composite.endpoints[n.index]), ctx, request, rv, err)
-	return rv, err
-}
-
-func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	ctx = withNext(ctx, nil)
-	if n.index < len(n.composite.endpoints) {
-		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
-	}
-	return n.composite.endpoints[n.index].Close(ctx, connection)
-}
-
-func getType(myvar interface{}) string {
-	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
-		return "*" + t.Elem().Name()
-	} else {
-		return t.Name()
 	}
 }
