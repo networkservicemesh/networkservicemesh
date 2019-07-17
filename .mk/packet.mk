@@ -42,6 +42,7 @@ packet-restart: packet-stop packet-start
 .PHONY: packet-stop
 packet-stop:
 	@pushd scripts/terraform && \
+	terraform destroy ${TF_PACKET_VARS} && \
 	popd
 
 .PHONY: packet-%-load-images
