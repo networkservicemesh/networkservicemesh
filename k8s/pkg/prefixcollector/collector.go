@@ -110,16 +110,18 @@ func monitorReservedSubnets(poolCh chan<- prefix_pool.PrefixPool, errCh chan<- e
 	for {
 		select {
 		case podSubnet := <-pw.ResultChan():
-			pool, err := getPrefixPool(podSubnet.String(), additionalPrefixes)
+			subnet := podSubnet.String()
+			pool, err := getPrefixPool(subnet, additionalPrefixes)
 			if err != nil {
-				logrus.Error(err)
+				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %+v", subnet, err)
 				continue
 			}
 			poolCh <- pool
 		case serviceSubnet := <-sw.ResultChan():
-			pool, err := getPrefixPool(serviceSubnet.String(), additionalPrefixes)
+			subnet := serviceSubnet.String()
+			pool, err := getPrefixPool(subnet, additionalPrefixes)
 			if err != nil {
-				logrus.Error(err)
+				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %+v", subnet, err)
 				continue
 			}
 			poolCh <- pool
