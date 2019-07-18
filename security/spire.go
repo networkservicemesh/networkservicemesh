@@ -32,6 +32,7 @@ func newWorkloadAPIClient(agentAddress string) workload.X509Client {
 	}
 	config := &workload.X509ClientConfig{
 		Addr: addr,
+		Log:  logrus.StandardLogger(),
 	}
 	return workload.NewX509Client(config)
 }
