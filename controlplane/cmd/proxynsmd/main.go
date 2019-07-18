@@ -19,6 +19,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var version string
+
 // Default values and environment variables of proxy connection
 const (
 	ProxyNsmdAPIAddressEnv      = "PROXY_NSMD_API_ADDRESS"
@@ -26,6 +28,8 @@ const (
 )
 
 func main() {
+	logrus.Info("Starting proxy nsmd...")
+	logrus.Infof("Version: %v", version)
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting
