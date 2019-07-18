@@ -15,29 +15,18 @@ type patchOperation struct {
 }
 
 func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patchOperation) {
-	patch = append(patch, addVolume(tuple.spec,
-		[]corev1.Volume{{
-			Name: "empty-dir-volume",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{
-					Medium:    corev1.StorageMediumDefault,
-					SizeLimit: nil,
-				},
-			},
-		}})...)
-	patch = append(patch, addVolumeMounts(tuple.spec,
-		[]corev1.VolumeMount{{
-			ReadOnly:  false,
-			Name:      "empty-dir-volume",
-			MountPath: "/etc/coredns",
-		}})...)
 	patch = append(patch, addContainer(tuple.spec,
 		[]corev1.Container{
 			{
 				Name:            "nsm-coredns",
-				Image:           "networkservicemesh/nsm-coredns:latest",
+				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-coredns", getTag()),
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Args:            []string{"-conf", "/etc/coredns/Corefile"},
+				VolumeMounts: []corev1.VolumeMount{{
+					ReadOnly:  false,
+					Name:      "nsm-coredns-volume",
+					MountPath: "/etc/coredns",
+				}},
 			},
 		})...)
 	patch = append(patch, addContainer(tuple.spec,
@@ -48,20 +37,43 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Command:         []string{"/bin/monitoring-dns-nsc"},
 				Env: []corev1.EnvVar{{
-					Name:  client.AnnotationEnv,
-					Value: annotationValue,
+					Name:  "DO_NOT_CREATE_INTERFACE",
+					Value: "true",
+				}, {
+					Name:  "OUTGOING_NSC_LABELS",
+					Value: "app=icmp",
+				}, {
+					Name:  "OUTGOING_NSC_NAME",
+					Value: "icmp-responder",
 				}},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
 						"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 					},
 				},
+				VolumeMounts: []corev1.VolumeMount{{
+					ReadOnly:  false,
+					Name:      "nsm-coredns-volume",
+					MountPath: "/etc/coredns",
+				}},
 			},
 		})...)
+	patch = append(patch, addVolume(tuple.spec,
+		[]corev1.Volume{{
+			Name: "nsm-coredns-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium:    corev1.StorageMediumDefault,
+					SizeLimit: nil,
+				},
+			},
+		}})...)
+	patch = append(patch, replaceDNSConfig()...)
+	//patch = append(patch, replaceDNSPolicy()...)
 	return patch
 }
 
-func createNsmInitContainerPatch(annotationValue string) (patch []patchOperation) {
+func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 	value := []corev1.Container{{
 		Name:  initContainerName,
 		Image: fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
@@ -69,20 +81,39 @@ func createNsmInitContainerPatch(annotationValue string) (patch []patchOperation
 			Name:  client.AnnotationEnv,
 			Value: annotationValue,
 		}},
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"networkservicemesh.io/socket": resource.MustParse("1"),
 			},
 		},
 	}}
-
-	patch = append(patch, patchOperation{
+	patch := append([]patchOperation{}, patchOperation{
 		Op:    "add",
-		Path:  pathInitContainers,
+		Path:  initContainersPath,
 		Value: value,
 	})
 
-	return
+	return patch
+}
+
+func replaceDNSConfig() []patchOperation {
+	return []patchOperation{{
+		Op:   "replace",
+		Path: dnsConfigPath,
+		Value: &corev1.PodDNSConfig{
+			Nameservers: []string{"127.0.0.1"},
+			Searches:    []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
+		},
+	}}
+}
+
+func replaceDNSPolicy() []patchOperation {
+	return []patchOperation{{
+		Op:    "replace",
+		Path:  dnsConfigPath,
+		Value: corev1.DNSNone,
+	}}
 }
 
 func addVolume(spec *corev1.PodSpec, added []corev1.Volume) (patch []patchOperation) {

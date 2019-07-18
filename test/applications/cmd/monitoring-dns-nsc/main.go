@@ -10,9 +10,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/monitoring-dns-nsc/corefile"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 var version string
+
+const DO_NOT_CREATE_INTERFACE = "DO_NOT_CREATE_INTERFACE"
 
 func main() {
 	logrus.Info("Starting monitoring-dns-nsc...")
@@ -38,10 +41,14 @@ func main() {
 }
 
 func startMonitor(nsc *client.NsmClient, manager corefile.DNSConfigManager) {
-	currentConn, err := nsc.Connect("nsm", "kernel", "Primary interface")
-	if err != nil {
-		logrus.Errorf("An error during nsc connecting: %v", err)
+	if os.Getenv(DO_NOT_CREATE_INTERFACE) == "true" {
+	} else {
+		_, err := nsc.Connect("nsm", "kernel", "Primary interface")
+		if err != nil {
+			logrus.Errorf("An error during nsc connecting: %v", err)
+		}
 	}
+
 	monitorClient, err := local.NewMonitorClient(nsc.NsmConnection.GrpcClient)
 	if err != nil {
 		logrus.Errorf("An error during creating monitor client: %v", err)
@@ -57,25 +64,25 @@ func startMonitor(nsc *client.NsmClient, manager corefile.DNSConfigManager) {
 			}
 			for _, entity := range event.Entities() {
 				conn, ok := entity.(*connection.Connection)
-				if !ok || conn.GetId() != currentConn.GetId() {
+				if !ok {
 					continue
 				}
 				switch event.EventType() {
 				case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
-					if currentConn.Context.DnsContext != nil {
-						if err := manager.UpdateDNSConfig(currentConn.Context.DnsContext); err != nil {
+					if conn.Context.DnsContext != nil {
+						if err := manager.UpdateDNSConfig(conn.Context.DnsContext); err != nil {
 							logrus.Errorf("An error during updating dns config %v", err)
 						} else {
-							logrus.Infof("dns config %v has been successfully updated", currentConn.Context.DnsContext)
+							logrus.Infof("dns config %v has been successfully updated", conn.Context.DnsContext)
 						}
 					}
 				case monitor.EventTypeDelete:
 					logrus.Info("Connection closed")
-					if currentConn.Context.DnsContext != nil {
-						if err := manager.RemoveDNSConfig(currentConn.Context.DnsContext); err != nil {
+					if conn.Context.DnsContext != nil {
+						if err := manager.RemoveDNSConfig(conn.Context.DnsContext); err != nil {
 							logrus.Errorf("An error during removing dns config %v", err)
 						} else {
-							logrus.Infof("dns config %v has been successfully deleted", currentConn.Context.DnsContext)
+							logrus.Infof("dns config %v has been successfully deleted", conn.Context.DnsContext)
 						}
 					}
 					return
