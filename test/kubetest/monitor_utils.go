@@ -2,7 +2,9 @@ package kubetest
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"testing"
 	"time"
 
@@ -12,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 // MonitorClient is shorter name for crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
@@ -29,7 +31,7 @@ type EventDescription struct {
 
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
-	fwd, err := k8s.NewPortForwarder(pod, 5001)
+	fwd, err := k8s.NewPortForwarder(pod, 6001)
 	Expect(err).To(BeNil())
 
 	err = fwd.Start()
@@ -47,6 +49,23 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 	}
 
 	return getEventCh(client, cancel, stopCh), closeFunc
+}
+
+// XconProxyMonitor deploys proxy monitor to node and returns channel of events from it
+func XconProxyMonitor(k8s *K8s, conf *NodeConf, suffix string) (<-chan *crossconnect.CrossConnectEvent, func()) {
+	address := fmt.Sprintf("%s:5001", conf.Nsmd.Status.PodIP)
+
+	xconProxy := k8s.CreatePod(pods.TestCommonPod(
+		fmt.Sprintf("xcon-proxy-monitor-%s", suffix),
+		[]string{"/bin/proxy-xcon-monitor", fmt.Sprintf("-address=%s", address)},
+		conf.Node,
+		map[string]string{}))
+
+	eventCh, closeFunc := CrossConnectClientAt(k8s, xconProxy)
+	return eventCh, func() {
+		k8s.DeletePods(xconProxy)
+		closeFunc()
+	}
 }
 
 const defaultNextTimeout = 10 * time.Second
@@ -253,43 +272,24 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 	return fmt.Sprintf("[DST:%s:%s:%s:%s]", endpoint, distance, ip, state)
 }
 
-// GetCrossConnectsFromMonitor returns xconAmount events from stream
-func GetCrossConnectsFromMonitor(stream MonitorClient, cancel context.CancelFunc,
-	xconAmount int, timeout time.Duration) (map[string]*crossconnect.CrossConnect, error) {
-
-	xcons := map[string]*crossconnect.CrossConnect{}
-	events := make(chan *crossconnect.CrossConnectEvent)
-
-	go func() {
-		for {
-			select {
-			case <-stream.Context().Done():
-				return
-			default:
-				event, _ := stream.Recv()
-				if event != nil {
-					events <- event
-				}
-			}
-		}
-	}()
-
+// CollectXcons takes n crossconencts from event channel
+func CollectXcons(ch <-chan *crossconnect.CrossConnectEvent,
+	n int, timeout time.Duration) (map[string]*crossconnect.CrossConnect, error) {
+	rv := map[string]*crossconnect.CrossConnect{}
 	for {
 		select {
-		case event := <-events:
-			logrus.Infof("Receive event type: %v", event.GetType())
-
-			for _, xcon := range event.CrossConnects {
-				logrus.Infof("xcon: %v", xcon)
-				xcons[xcon.GetId()] = xcon
+		case event, ok := <-ch:
+			if !ok && len(rv) < n {
+				return nil, errors.New("reached end of CrossConnectEvent channel")
 			}
-			if len(xcons) == xconAmount {
-				cancel()
-				return xcons, nil
+			for id, xcon := range event.GetCrossConnects() {
+				rv[id] = xcon
+			}
+			if len(rv) == n {
+				return rv, nil
 			}
 		case <-time.After(timeout):
-			cancel()
-			return nil, fmt.Errorf("timeout exceeded")
+			return nil, fmt.Errorf("no events during %v", timeout)
 		}
 	}
 }

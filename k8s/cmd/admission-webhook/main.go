@@ -69,3 +69,11 @@ func getInitContainer() string {
 	}
 	return initContainer
 }
+
+func getJaegerHost() string {
+	return os.Getenv(jaegerHostEnv)
+}
+
+func getJaegerPort() string {
+	return os.Getenv(jaegerPortEnv)
+}

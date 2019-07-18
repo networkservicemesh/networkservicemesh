@@ -70,15 +70,33 @@ func validateAnnotationValue(value string) error {
 func createInitContainerPatch(annotationValue, path string) []patchOperation {
 	var patch []patchOperation
 
+	envVals := []corev1.EnvVar{{
+		Name:  client.AnnotationEnv,
+		Value: annotationValue,
+	},
+	}
+	jaegerHost := getJaegerHost()
+	if jaegerHost != "" {
+		envVals = append(envVals,
+			corev1.EnvVar{
+				Name:  jaegerHostEnv,
+				Value: jaegerHost,
+			})
+	}
+	jaegerPort := getJaegerPort()
+	if jaegerPort != "" {
+		envVals = append(envVals,
+			corev1.EnvVar{
+				Name:  jaegerPortEnv,
+				Value: jaegerPort,
+			})
+	}
+
 	value := []corev1.Container{{
 		Name:            initContainerName,
 		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Env: []corev1.EnvVar{{
-			Name:  client.AnnotationEnv,
-			Value: annotationValue,
-		},
-		},
+		Env:             envVals,
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"networkservicemesh.io/socket": resource.MustParse("1"),
