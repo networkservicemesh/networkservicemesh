@@ -60,6 +60,7 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 	return srv.properties
 }
 
+// NewNetworkServiceManager creates an instance of NetworkServiceManager
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
 	properties := nsm.NewNsmProperties()
 	nseManager := &nseManager{

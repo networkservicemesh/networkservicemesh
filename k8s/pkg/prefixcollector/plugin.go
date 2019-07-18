@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// StartPrefixPlugin creates an instance of a prefix plugin and registers it
 func StartPrefixPlugin(config *rest.Config) error {
 	endpoint := path.Join(plugins.PluginRegistryPath, "k8s-prefixes.sock")
 	if err := tools.SocketCleanup(endpoint); err != nil {
@@ -87,7 +88,7 @@ func registerPlugin(endpoint string) error {
 
 	client := plugins.NewPluginRegistryClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	_, err = client.Register(ctx, &plugins.PluginInfo{

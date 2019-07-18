@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	pluginManager
 	UpdateConnection(connection.Connection)
@@ -29,7 +30,7 @@ func (cpm *connectionPluginManager) register(conn *grpc.ClientConn) {
 func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.pluginClients {
-		ctx, cancel := context.WithTimeout(context.Background(), 100 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		var err error
 		connCtx, err = plugin.UpdateConnectionContext(ctx, connCtx)
@@ -44,7 +45,7 @@ func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection)
 
 func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connection) error {
 	for _, plugin := range cpm.pluginClients {
-		ctx, cancel := context.WithTimeout(context.Background(), 100 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		result, err := plugin.ValidateConnectionContext(ctx, conn.GetContext())
 		cancel()

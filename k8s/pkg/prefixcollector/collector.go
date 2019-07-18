@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// ExcludedPrefixesEnv is the name of the env variable to define excluded prefixes
 	ExcludedPrefixesEnv = "EXCLUDED_PREFIXES"
 )
 
@@ -113,7 +114,7 @@ func monitorReservedSubnets(poolCh chan<- prefix_pool.PrefixPool, errCh chan<- e
 			subnet := podSubnet.String()
 			pool, err := getPrefixPool(subnet, additionalPrefixes)
 			if err != nil {
-				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %+v", subnet, err)
+				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %v", subnet, err)
 				continue
 			}
 			poolCh <- pool
@@ -121,7 +122,7 @@ func monitorReservedSubnets(poolCh chan<- prefix_pool.PrefixPool, errCh chan<- e
 			subnet := serviceSubnet.String()
 			pool, err := getPrefixPool(subnet, additionalPrefixes)
 			if err != nil {
-				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %+v", subnet, err)
+				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %v", subnet, err)
 				continue
 			}
 			poolCh <- pool

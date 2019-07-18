@@ -79,7 +79,7 @@ func main() {
 	}()
 
 	if err = prefixcollector.StartPrefixPlugin(config); err != nil {
-		logrus.Fatalln("Failed to start Prefix Plugin: %v", err)
+		logrus.Fatalln("Failed to start Prefix Plugin", err)
 	}
 
 	<-c

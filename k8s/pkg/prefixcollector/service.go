@@ -85,7 +85,7 @@ func (c *prefixService) ValidateConnectionContext(ctx context.Context, connCtx *
 		}
 		if intersect {
 			return &plugins.ConnectionValidationResult{
-				Status: plugins.ConnectionValidationStatus_FAIL,
+				Status:       plugins.ConnectionValidationStatus_FAIL,
 				ErrorMessage: "srcIP intersects excluded prefixes list",
 			}, nil
 		}
@@ -98,7 +98,7 @@ func (c *prefixService) ValidateConnectionContext(ctx context.Context, connCtx *
 		}
 		if intersect {
 			return &plugins.ConnectionValidationResult{
-				Status: plugins.ConnectionValidationStatus_FAIL,
+				Status:       plugins.ConnectionValidationStatus_FAIL,
 				ErrorMessage: "dstIP intersects excluded prefixes list",
 			}, nil
 		}

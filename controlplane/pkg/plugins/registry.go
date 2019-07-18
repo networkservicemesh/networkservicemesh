@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// PluginRegistry stores a plugin manager for each plugin type
 type PluginRegistry interface {
 	Start() error
 	Stop() error
@@ -30,6 +31,7 @@ type pluginManager interface {
 	register(*grpc.ClientConn)
 }
 
+// NewPluginRegistry creates an instance of PluginRegistry
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
 		connectionPluginManager: &connectionPluginManager{},
