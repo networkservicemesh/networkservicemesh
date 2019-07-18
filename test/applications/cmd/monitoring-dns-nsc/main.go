@@ -1,3 +1,4 @@
+//TODO: refactor this after https://github.com/networkservicemesh/networkservicemesh/pull/1352 will be merged
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 
 var version string
 
+//TODO: remove this.
 const DO_NOT_CREATE_INTERFACE = "DO_NOT_CREATE_INTERFACE"
 
 func main() {
