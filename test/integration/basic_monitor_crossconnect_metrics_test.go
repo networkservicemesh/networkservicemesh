@@ -4,8 +4,6 @@ package nsmd_integration_tests
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
@@ -47,18 +45,11 @@ func TestSimpleMetrics(t *testing.T) {
 	Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	defer kubetest.ShowLogs(k8s, t)
-	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
-	Expect(err).To(BeNil())
 
-	defer fwd.Stop()
+	eventCh, closeFunc := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
+	defer closeFunc()
 
-	err = fwd.Start()
-	Expect(err).To(BeNil())
-
-	nsmdMonitor, close := crossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	defer close()
-	metricsCh := make(chan map[string]string)
-	monitorCrossConnectsMetrics(nsmdMonitor, metricsCh)
+	metricsCh := metricsFromEventCh(eventCh)
 	nsc := kubetest.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
 
 	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
@@ -100,33 +91,30 @@ func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_Monito
 	return stream, closeFunc
 }
 
-func monitorCrossConnectsMetrics(stream crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, metricsCh chan<- map[string]string) {
+func metricsFromEventCh(eventCh <-chan *crossconnect.CrossConnectEvent) chan map[string]string {
+	metricsCh := make(chan map[string]string)
 	go func() {
+		defer close(metricsCh)
 		for {
-			select {
-			case <-stream.Context().Done():
+			event, ok := <-eventCh
+			if !ok {
 				return
-			default:
-				event, err := stream.Recv()
-				if err != nil {
-					logrus.Infof("An error during receive event %v", err)
+			}
+			logrus.Infof("Received event %v", event)
+			if event.Metrics == nil {
+				continue
+			}
+			for k, v := range event.Metrics {
+				logrus.Infof("New statistics: %v %v", k, v)
+				if isMetricsEmpty(v.Metrics) {
+					logrus.Infof("Statistics: %v %v is empty", k, v)
 					continue
 				}
-				logrus.Infof("Received event %v", event)
-				if event.Metrics == nil {
-					continue
-				}
-				for k, v := range event.Metrics {
-					logrus.Infof("New statistics: %v %v", k, v)
-					if isMetricsEmpty(v.Metrics) {
-						logrus.Infof("Statistics: %v %v is empty", k, v)
-						continue
-					}
-					metricsCh <- v.Metrics
-				}
+				metricsCh <- v.Metrics
 			}
 		}
 	}()
+	return metricsCh
 }
 
 func isMetricsEmpty(metrics map[string]string) bool {
