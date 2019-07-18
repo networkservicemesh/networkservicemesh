@@ -10,6 +10,10 @@ import (
 	"net"
 )
 
+const (
+	proxyMonitorAddress = "127.0.0.1:6001"
+)
+
 func parseFlags() string {
 	address := flag.String("address", "", "address of crossconnect monitor server")
 	flag.Parse()
@@ -24,16 +28,18 @@ type proxyMonitor struct {
 func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
 	logrus.Infof("MonitorCrossConnects called, address - %v", p.address)
 
-	conn, err := grpc.Dial(p.address)
+	conn, err := grpc.Dial(p.address, grpc.WithInsecure())
 	if err != nil {
 		logrus.Error(err)
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
 	dstCtx, dstCancel := context.WithCancel(src.Context())
+	defer dstCancel()
+
 	dst, err := monitorClient.MonitorCrossConnects(dstCtx, empty)
 	if err != nil {
 		logrus.Error(err)
@@ -47,13 +53,13 @@ func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect
 			return err
 		}
 
-		logrus.Info("Receive event: %v", event)
+		logrus.Infof("Receive event: %v", event)
 		if err := src.Send(event); err != nil {
 			logrus.Error(err)
 			return err
 		}
 
-		logrus.Info("Send event: %v", event)
+		logrus.Infof("Send event: %v", event)
 
 		select {
 		case <-src.Context().Done():
@@ -74,12 +80,12 @@ func main() {
 
 	logrus.Infof("address=%v", address)
 
-	ln, err := net.Listen("tcp", ":6001")
+	ln, err := net.Listen("tcp", proxyMonitorAddress)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	srv := grpc.NewServer()
 	crossconnect.RegisterMonitorCrossConnectServer(srv, &proxyMonitor{

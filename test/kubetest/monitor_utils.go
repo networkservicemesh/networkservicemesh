@@ -51,6 +51,7 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 	return getEventCh(client, cancel, stopCh), closeFunc
 }
 
+// XconProxyMonitor deploys proxy monitor to node and returns channel of events from it
 func XconProxyMonitor(k8s *K8s, conf *NodeConf) (<-chan *crossconnect.CrossConnectEvent, func()) {
 	address := fmt.Sprintf("%s:5001", conf.Nsmd.Status.PodIP)
 
@@ -271,6 +272,7 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 	return fmt.Sprintf("[DST:%s:%s:%s:%s]", endpoint, distance, ip, state)
 }
 
+// CollectXcons takes n crossconencts from event channel
 func CollectXcons(ch <-chan *crossconnect.CrossConnectEvent,
 	n int, timeout time.Duration) (map[string]*crossconnect.CrossConnect, error) {
 	rv := map[string]*crossconnect.CrossConnect{}
