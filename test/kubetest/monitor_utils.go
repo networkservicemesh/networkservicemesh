@@ -52,11 +52,11 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 }
 
 // XconProxyMonitor deploys proxy monitor to node and returns channel of events from it
-func XconProxyMonitor(k8s *K8s, conf *NodeConf) (<-chan *crossconnect.CrossConnectEvent, func()) {
+func XconProxyMonitor(k8s *K8s, conf *NodeConf, suffix string) (<-chan *crossconnect.CrossConnectEvent, func()) {
 	address := fmt.Sprintf("%s:5001", conf.Nsmd.Status.PodIP)
 
 	xconProxy := k8s.CreatePod(pods.TestCommonPod(
-		fmt.Sprintf("xcon-proxy-monitor-%s", conf.Node.GetName()),
+		fmt.Sprintf("xcon-proxy-monitor-%s", suffix),
 		[]string{"/bin/proxy-xcon-monitor", fmt.Sprintf("-address=%s", address)},
 		conf.Node,
 		map[string]string{}))
