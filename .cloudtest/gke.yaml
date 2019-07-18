@@ -2,8 +2,8 @@ version: 1.0
 providers:
   - name: "gke"
     kind: "shell"
-    instances: 1
-    retry: 1
+    instances: 2
+    retry: 5
     node-count: 2
     enabled: true
     timeout: 900 # 15 minutes to start cluster
@@ -26,10 +26,4 @@ providers:
       start: make gke-start
       stop: make gke-destroy
       #config: # We do not need it since we put KUBECONFIG into env.
-      prepare: |
-        make k8s-config
-        sleep 10
-        kubectl get nodes -o wide
-        kubectl describe nodes
-        kubectl get pods -n spire
-        kubectl describe pods -n spire
+      prepare: make k8s-config

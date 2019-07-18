@@ -25,10 +25,4 @@ providers:
       install: az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
       start: make azure-start
       stop: make azure-destroy
-      prepare: |
-        make k8s-config
-        sleep 10
-        kubectl get nodes -o wide
-        kubectl describe nodes
-        kubectl get pods -n spire
-        kubectl describe pods -n spire
+      prepare: make k8s-config
