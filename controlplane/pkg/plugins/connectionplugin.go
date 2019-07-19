@@ -14,7 +14,7 @@ import (
 
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
-	pluginManager
+	PluginManager
 	UpdateConnection(connection.Connection)
 	ValidateConnection(connection.Connection) error
 }
@@ -24,7 +24,7 @@ type connectionPluginManager struct {
 	pluginClients []plugins.ConnectionPluginClient
 }
 
-func (cpm *connectionPluginManager) register(conn *grpc.ClientConn) {
+func (cpm *connectionPluginManager) Register(conn *grpc.ClientConn) {
 	client := plugins.NewConnectionPluginClient(conn)
 	cpm.addClient(client)
 }

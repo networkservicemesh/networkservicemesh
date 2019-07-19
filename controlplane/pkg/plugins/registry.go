@@ -28,8 +28,11 @@ type pluginRegistry struct {
 	connectionPluginManager ConnectionPluginManager
 }
 
-type pluginManager interface {
-	register(*grpc.ClientConn)
+// TODO: review
+
+// PluginManager allows to register a client connection
+type PluginManager interface {
+	Register(*grpc.ClientConn)
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
@@ -84,7 +87,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 	}
 	for _, feature := range info.Features {
 		if feature == plugins.PluginType_CONNECTION {
-			pr.connectionPluginManager.register(conn)
+			pr.connectionPluginManager.Register(conn)
 		}
 	}
 	return &empty.Empty{}, nil

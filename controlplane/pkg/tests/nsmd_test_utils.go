@@ -27,6 +27,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
@@ -139,6 +140,41 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 			},
 		},
 	}, nil
+}
+
+type testPluginRegistry struct {
+	connectionPluginManager plugins.ConnectionPluginManager // TODO: review
+}
+
+type testConnectionPluginManager struct {
+}
+
+func newTestPluginRegistry() *testPluginRegistry {
+	return &testPluginRegistry{
+		connectionPluginManager: &testConnectionPluginManager{},
+	}
+}
+
+func (pr *testPluginRegistry) Start() error {
+	return nil
+}
+
+func (pr *testPluginRegistry) Stop() error {
+	return nil
+}
+
+func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
+	return pr.connectionPluginManager
+}
+
+func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
+}
+
+func (cpm *testConnectionPluginManager) UpdateConnection(connection.Connection) {
+}
+
+func (cpm *testConnectionPluginManager) ValidateConnection(connection.Connection) error {
+	return nil
 }
 
 //func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.ClusterConfiguration, error) {
@@ -411,6 +447,7 @@ type nsmdFullServer interface {
 type nsmdFullServerImpl struct {
 	apiRegistry     *testApiRegistry
 	nseRegistry     *nsmdTestServiceDiscovery
+	pluginRegistry  *testPluginRegistry
 	serviceRegistry *nsmdTestServiceRegistry
 	testModel       model.Model
 	manager         nsm2.NetworkServiceManager
@@ -515,6 +552,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
+	srv.pluginRegistry = newTestPluginRegistry()
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -533,7 +571,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, nil)
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()
