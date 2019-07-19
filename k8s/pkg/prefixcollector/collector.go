@@ -127,8 +127,8 @@ func sendPrefixPool(poolCh chan prefix_pool.PrefixPool, podSubnet, serviceSubnet
 		return
 	}
 	select {
-		case <-poolCh:
-		default:
+	case <-poolCh:
+	default:
 	}
 	poolCh <- pool
 }
