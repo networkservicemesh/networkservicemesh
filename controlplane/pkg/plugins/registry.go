@@ -3,7 +3,7 @@ package plugins
 import (
 	"context"
 	"net"
-	"time"
+	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -23,8 +23,9 @@ type PluginRegistry interface {
 }
 
 type pluginRegistry struct {
-	connectionPluginManager ConnectionPluginManager
+	sync.RWMutex
 	connections             []*grpc.ClientConn
+	connectionPluginManager ConnectionPluginManager
 }
 
 type pluginManager interface {
@@ -67,7 +68,7 @@ func (pr *pluginRegistry) Start() error {
 }
 
 func (pr *pluginRegistry) Stop() error {
-	for _, conn := range pr.connections {
+	for _, conn := range pr.getConnections() {
 		err := conn.Close()
 		if err != nil {
 			logrus.Errorf("Failed to close connection: %v", err)
@@ -91,10 +92,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 
 func (pr *pluginRegistry) createConnection(endpoint string) (*grpc.ClientConn, error) {
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
+	conn, err := grpc.Dial("unix:"+endpoint, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
@@ -103,8 +101,22 @@ func (pr *pluginRegistry) createConnection(endpoint string) (*grpc.ClientConn, e
 		return nil, err
 	}
 
-	pr.connections = append(pr.connections, conn)
+	pr.addConnection(conn)
 	return conn, nil
+}
+
+func (pr *pluginRegistry) addConnection(conn *grpc.ClientConn) {
+	pr.Lock()
+	defer pr.Unlock()
+
+	pr.connections = append(pr.connections, conn)
+}
+
+func (pr *pluginRegistry) getConnections() []*grpc.ClientConn {
+	pr.RLock()
+	defer pr.RUnlock()
+
+	return pr.connections
 }
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {

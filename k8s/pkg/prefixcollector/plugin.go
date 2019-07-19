@@ -73,10 +73,7 @@ func createPlugin(config *rest.Config, endpoint string) error {
 
 func registerPlugin(endpoint string) error {
 	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(plugins.PluginRegistrySocket, grpc.WithInsecure(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
+	conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket, grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(

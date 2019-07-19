@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
@@ -19,17 +20,32 @@ type ConnectionPluginManager interface {
 }
 
 type connectionPluginManager struct {
+	sync.RWMutex
 	pluginClients []plugins.ConnectionPluginClient
 }
 
 func (cpm *connectionPluginManager) register(conn *grpc.ClientConn) {
 	client := plugins.NewConnectionPluginClient(conn)
+	cpm.addClient(client)
+}
+
+func (cpm *connectionPluginManager) addClient(client plugins.ConnectionPluginClient) {
+	cpm.Lock()
+	defer cpm.Unlock()
+
 	cpm.pluginClients = append(cpm.pluginClients, client)
+}
+
+func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClient {
+	cpm.RLock()
+	defer cpm.RUnlock()
+
+	return cpm.pluginClients
 }
 
 func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) {
 	connCtx := conn.GetContext()
-	for _, plugin := range cpm.pluginClients {
+	for _, plugin := range cpm.getClients() {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		var err error
@@ -44,7 +60,7 @@ func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection)
 }
 
 func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connection) error {
-	for _, plugin := range cpm.pluginClients {
+	for _, plugin := range cpm.getClients() {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 
 		result, err := plugin.ValidateConnectionContext(ctx, conn.GetContext())
