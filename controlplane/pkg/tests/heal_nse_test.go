@@ -18,8 +18,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
-	srv2 := newNSMDFullServer(Worker, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
+	srv2 := newNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 

@@ -89,7 +89,7 @@ func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registr
 	return nil, nil
 }
 
-func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage, clusterConfiguration interface{} /*registry.ClusterConfiguration*/) *nsmdTestServiceDiscovery {
+func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
 		storage:     storage,
 		apiRegistry: testApi,
@@ -502,19 +502,19 @@ func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientCon
 	return response, con
 }
 
-func newNSMDFullServer(nsmgrName string, storage *sharedStorage, cfg interface{} /*registry.ClusterConfiguration*/) *nsmdFullServerImpl {
+func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	return newNSMDFullServerAt(nsmgrName, storage, rootDir, cfg)
+	return newNSMDFullServerAt(nsmgrName, storage, rootDir)
 }
 
-func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, cfg interface{} /*registry.ClusterConfiguration*/) *nsmdFullServerImpl {
+func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, cfg)
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -562,8 +562,6 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 //		ServiceSubnet: serviceCIDR,
 //	}
 //}
-
-var defaultClusterConfiguration interface{} = nil
 
 //var defaultClusterConfiguration = &registry.ClusterConfiguration{
 //	PodSubnet:     "127.0.1.0/24",

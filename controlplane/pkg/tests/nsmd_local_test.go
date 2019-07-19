@@ -110,7 +110,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
@@ -131,7 +131,7 @@ func TestNSENoSrc(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -325,7 +325,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns:             "12",
@@ -359,7 +359,7 @@ func TestSlowNSE(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -392,7 +392,7 @@ func TestSlowDP(t *testing.T) {
 	RegisterTestingT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
