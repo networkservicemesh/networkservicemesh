@@ -91,8 +91,11 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
-	Expect(kubetest.CollectXcons(eventCh0, 2, fastTimeout)).To(BeNil())
-	Expect(kubetest.CollectXcons(eventCh1, 2, fastTimeout)).To(BeNil())
+	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
+	Expect(err).To(BeNil())
+
+	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
+	Expect(err).To(BeNil())
 }
 
 func TestSeveralCrossConnects(t *testing.T) {
@@ -124,8 +127,11 @@ func TestSeveralCrossConnects(t *testing.T) {
 	eventCh1, closeFunc1 := kubetest.XconProxyMonitor(k8s, nodes[1], "1")
 	defer closeFunc1()
 
-	Expect(kubetest.CollectXcons(eventCh0, 2, fastTimeout)).To(BeNil())
-	Expect(kubetest.CollectXcons(eventCh1, 2, fastTimeout)).To(BeNil())
+	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
+	Expect(err).To(BeNil())
+
+	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
+	Expect(err).To(BeNil())
 }
 
 func TestCrossConnectMonitorRestart(t *testing.T) {
@@ -151,12 +157,15 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 	// monitor client for node0
 	eventCh0, closeFunc0 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
 
-	Expect(kubetest.CollectXcons(eventCh0, 2, fastTimeout)).To(BeNil())
+	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
+	Expect(err).To(BeNil())
 	closeFunc0()
 
 	logrus.Info("Restarting monitor")
 
 	eventCh1, closeFunc1 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
 	defer closeFunc1()
-	Expect(kubetest.CollectXcons(eventCh1, 2, fastTimeout)).To(BeNil())
+
+	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
+	Expect(err).To(BeNil())
 }
