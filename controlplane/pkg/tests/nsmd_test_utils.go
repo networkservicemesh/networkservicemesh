@@ -90,14 +90,14 @@ func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registr
 	return nil, nil
 }
 
-func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage) *nsmdTestServiceDiscovery {
+func newNSMDTestServiceDiscovery(testAPI *testApiRegistry, nsmgrName string, storage *sharedStorage) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
 		storage:     storage,
-		apiRegistry: testApi,
+		apiRegistry: testAPI,
 		nsmCounter:  0,
 		nsmgrName:   nsmgrName,
-		//subnetStreamCh:       make(chan *dummySubnetStream),
-		//clusterConfiguration: clusterConfiguration,
+		//subnetStreamCh:       make(chan *dummySubnetStream), // TODO: remove
+		//clusterConfiguration: clusterConfiguration, // TODO: remove
 	}
 }
 
