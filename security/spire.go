@@ -8,6 +8,7 @@ import (
 	"github.com/spiffe/spire/api/workload"
 	proto "github.com/spiffe/spire/proto/spire/api/workload"
 	"net"
+	"time"
 )
 
 type spireCertObtainer struct {
@@ -48,9 +49,9 @@ func (s *spireCertObtainer) ObtainCertificates() <-chan *RetrievedCerts {
 			return
 		}
 	}()
-	defer s.workloadAPIClient.Stop()
 
 	go func() {
+		defer s.workloadAPIClient.Stop()
 		defer close(certCh)
 
 		updateCh := s.workloadAPIClient.UpdateChan()
@@ -65,6 +66,8 @@ func (s *spireCertObtainer) ObtainCertificates() <-chan *RetrievedCerts {
 					s.errorCh <- err
 					return
 				}
+			case <-time.After(10 * time.Second):
+				logrus.Info("no events for 10s")
 			case <-s.stopCh:
 				return
 			}
