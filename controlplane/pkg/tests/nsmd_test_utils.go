@@ -54,10 +54,10 @@ func newSharedStorage() *sharedStorage {
 }
 
 type nsmdTestServiceDiscovery struct {
-	apiRegistry          *testApiRegistry
-	storage              *sharedStorage
-	nsmCounter           int
-	nsmgrName            string
+	apiRegistry *testApiRegistry
+	storage     *sharedStorage
+	nsmCounter  int
+	nsmgrName   string
 	//clusterConfiguration *registry.ClusterConfiguration
 	//subnetStreamCh       chan *dummySubnetStream
 }
@@ -91,10 +91,10 @@ func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registr
 
 func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage, clusterConfiguration interface{} /*registry.ClusterConfiguration*/) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
-		storage:              storage,
-		apiRegistry:          testApi,
-		nsmCounter:           0,
-		nsmgrName:            nsmgrName,
+		storage:     storage,
+		apiRegistry: testApi,
+		nsmCounter:  0,
+		nsmgrName:   nsmgrName,
 		//subnetStreamCh:       make(chan *dummySubnetStream),
 		//clusterConfiguration: clusterConfiguration,
 	}
