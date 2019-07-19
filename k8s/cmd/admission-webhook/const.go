@@ -12,6 +12,8 @@ const (
 	repoEnv                      = "REPO"
 	initContainerEnv             = "INITCONTAINER"
 	tagEnv                       = "TAG"
+	jaegerHostEnv                = "JAEGER_SERVICE_HOST"
+	jaegerPortEnv                = "JAEGER_SERVICE_PORT_JAEGER"
 	repoDefault                  = "networkservicemesh"
 	initContainerDefault         = "nsm-init"
 	tagDefault                   = "latest"
