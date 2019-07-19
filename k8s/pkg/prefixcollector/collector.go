@@ -79,11 +79,11 @@ func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string
 
 func monitorSubnets(clientset *kubernetes.Clientset, additionalPrefixes ...string) <-chan prefix_pool.PrefixPool {
 	logrus.Infof("Start monitoring prefixes to exclude")
-	poolCh := make(chan prefix_pool.PrefixPool)
+	poolCh := make(chan prefix_pool.PrefixPool, 1)
 
 	go func() {
 		for {
-			errCh := make(chan error, 1)
+			errCh := make(chan error)
 			go monitorReservedSubnets(poolCh, errCh, clientset, additionalPrefixes)
 			err := <-errCh
 			logrus.Error(err)
@@ -93,7 +93,7 @@ func monitorSubnets(clientset *kubernetes.Clientset, additionalPrefixes ...strin
 	return poolCh
 }
 
-func monitorReservedSubnets(poolCh chan<- prefix_pool.PrefixPool, errCh chan<- error, clientset *kubernetes.Clientset, additionalPrefixes []string) {
+func monitorReservedSubnets(poolCh chan prefix_pool.PrefixPool, errCh chan<- error, clientset *kubernetes.Clientset, additionalPrefixes []string) {
 	pw, err := WatchPodCIDR(clientset)
 	if err != nil {
 		errCh <- err
@@ -108,32 +108,38 @@ func monitorReservedSubnets(poolCh chan<- prefix_pool.PrefixPool, errCh chan<- e
 	}
 	defer sw.Stop()
 
+	var podSubnet, serviceSubnet string
 	for {
 		select {
-		case podSubnet := <-pw.ResultChan():
-			subnet := podSubnet.String()
-			pool, err := getPrefixPool(subnet, additionalPrefixes)
-			if err != nil {
-				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %v", subnet, err)
-				continue
-			}
-			poolCh <- pool
-		case serviceSubnet := <-sw.ResultChan():
-			subnet := serviceSubnet.String()
-			pool, err := getPrefixPool(subnet, additionalPrefixes)
-			if err != nil {
-				logrus.Errorf("Failed to create a prefix pool for '%s' subnet: %v", subnet, err)
-				continue
-			}
-			poolCh <- pool
+		case subnet := <-pw.ResultChan():
+			podSubnet = subnet.String()
+		case subnet := <-sw.ResultChan():
+			serviceSubnet = subnet.String()
 		}
+		sendPrefixPool(poolCh, podSubnet, serviceSubnet, additionalPrefixes)
 	}
 }
 
-func getPrefixPool(subnet string, additionalPrefixes []string) (prefix_pool.PrefixPool, error) {
+func sendPrefixPool(poolCh chan prefix_pool.PrefixPool, podSubnet, serviceSubnet string, additionalPrefixes []string) {
+	pool, err := getPrefixPool(podSubnet, serviceSubnet, additionalPrefixes)
+	if err != nil {
+		logrus.Errorf("Failed to create a prefix pool: %v", err)
+		return
+	}
+	select {
+		case <-poolCh:
+		default:
+	}
+	poolCh <- pool
+}
+
+func getPrefixPool(podSubnet, serviceSubnet string, additionalPrefixes []string) (prefix_pool.PrefixPool, error) {
 	prefixes := additionalPrefixes
-	if len(subnet) > 0 {
-		prefixes = append(prefixes, subnet)
+	if len(podSubnet) > 0 {
+		prefixes = append(prefixes, podSubnet)
+	}
+	if len(serviceSubnet) > 0 {
+		prefixes = append(prefixes, serviceSubnet)
 	}
 
 	pool, err := prefix_pool.NewPrefixPool(prefixes...)
