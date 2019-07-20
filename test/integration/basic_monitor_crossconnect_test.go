@@ -3,7 +3,7 @@
 package nsmd_integration_tests
 
 import (
-	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -30,29 +30,36 @@ func TestSingleCrossConnect(t *testing.T) {
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
-	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd.Stop()
+	// monitor client for node0
+	eventCh0, closeFunc0 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
+	defer closeFunc0()
 
-	err = fwd.Start()
-	Expect(err).To(BeNil())
+	// monitor client for node1
+	eventCh1, closeFunc1 := kubetest.XconProxyMonitor(k8s, nodes[1], "1")
+	defer closeFunc1()
 
-	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd2.Stop()
+	// checking goroutine for node0
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
 
-	err = fwd2.Start()
-	Expect(err).To(BeNil())
+	// checking goroutine for node1
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
-	nsmdMonitor1, close1, cancel1 := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	defer close1()
-	nsmdMonitor2, close2, cancel2 := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
-	defer close2()
+	expectedFunc0(kubetest.EventDescription{
+		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
+		SrcUp:     true,
+		DstUp:     true,
+		LastEvent: true,
+	})
 
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, fastTimeout)
-	Expect(err).To(BeNil())
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, fastTimeout)
-	Expect(err).To(BeNil())
+	expectedFunc1(kubetest.EventDescription{
+		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
+		SrcUp:     true,
+		DstUp:     true,
+		LastEvent: true,
+	})
+
+	waitFunc0()
+	waitFunc1()
 }
 
 func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
@@ -73,31 +80,21 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
-	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd.Stop()
+	// monitor client for node0
+	eventCh0, closeFunc0 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
+	defer closeFunc0()
 
-	err = fwd.Start()
-	Expect(err).To(BeNil())
-
-	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd2.Stop()
-
-	err = fwd2.Start()
-	Expect(err).To(BeNil())
-
-	nsmdMonitor1, close1, cancel1 := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	defer close1()
-	nsmdMonitor2, close2, cancel2 := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
-	defer close2()
+	// monitor client for node1
+	eventCh1, closeFunc1 := kubetest.XconProxyMonitor(k8s, nodes[1], "1")
+	defer closeFunc1()
 
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 1, fastTimeout)
+	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
 	Expect(err).To(BeNil())
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 1, fastTimeout)
+
+	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
 	Expect(err).To(BeNil())
 }
 
@@ -122,29 +119,18 @@ func TestSeveralCrossConnects(t *testing.T) {
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
 
-	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd.Stop()
+	// monitor client for node0
+	eventCh0, closeFunc0 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
+	defer closeFunc0()
 
-	err = fwd.Start()
-	Expect(err).To(BeNil())
+	// monitor client for node1
+	eventCh1, closeFunc1 := kubetest.XconProxyMonitor(k8s, nodes[1], "1")
+	defer closeFunc1()
 
-	fwd2, err := k8s.NewPortForwarder(nodes[1].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd2.Stop()
-
-	err = fwd2.Start()
+	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
 	Expect(err).To(BeNil())
 
-	nsmdMonitor1, close1, cancel1 := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	defer close1()
-
-	nsmdMonitor2, close2, cancel2 := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd2.ListenPort))
-	defer close2()
-
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor1, cancel1, 2, fastTimeout)
-	Expect(err).To(BeNil())
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor2, cancel2, 2, fastTimeout)
+	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
 	Expect(err).To(BeNil())
 }
 
@@ -168,21 +154,18 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
 
-	fwd, err := k8s.NewPortForwarder(nodes[0].Nsmd, 5001)
-	Expect(err).To(BeNil())
-	defer fwd.Stop()
+	// monitor client for node0
+	eventCh0, closeFunc0 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
 
-	err = fwd.Start()
+	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
 	Expect(err).To(BeNil())
-
-	nsmdMonitor, closeFunc, cancel := kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, fastTimeout)
-	Expect(err).To(BeNil())
-	closeFunc()
+	closeFunc0()
 
 	logrus.Info("Restarting monitor")
-	nsmdMonitor, closeFunc, cancel = kubetest.CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	defer closeFunc()
-	_, err = kubetest.GetCrossConnectsFromMonitor(nsmdMonitor, cancel, 2, fastTimeout)
+
+	eventCh1, closeFunc1 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
+	defer closeFunc1()
+
+	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
 	Expect(err).To(BeNil())
 }

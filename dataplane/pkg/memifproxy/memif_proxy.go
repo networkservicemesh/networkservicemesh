@@ -16,11 +16,12 @@ const (
 )
 
 type Proxy struct {
-	sourceSocket string
-	targetSocket string
-	network      string
-	stopCh       chan struct{}
-	errCh        chan error
+	network        string
+	stopCh         chan struct{}
+	errCh          chan error
+	sourceListener *net.UnixListener
+	source         *net.UnixAddr
+	target         *net.UnixAddr
 }
 
 type connectionResult struct {
@@ -28,89 +29,87 @@ type connectionResult struct {
 	conn *net.UnixConn
 }
 
-func NewProxy(sourceSocket, targetSocket string) *Proxy {
-	return NewCustomProxy(sourceSocket, targetSocket, defaultNetwork)
+//NewProxy means create a new proxy for memif connection
+func NewProxy(sourceSocket, targetSocket string) (*Proxy, error) {
+	return newCustomProxy(sourceSocket, targetSocket, defaultNetwork)
 }
 
-func NewCustomProxy(sourceSocket, targetSocket, network string) *Proxy {
-	return &Proxy{
-		sourceSocket: sourceSocket,
-		targetSocket: targetSocket,
-		network:      network,
+func newCustomProxy(sourceSocket, targetSocket, network string) (*Proxy, error) {
+	source, err := net.ResolveUnixAddr(network, sourceSocket)
+	if err != nil {
+		return nil, err
 	}
+	logrus.Infof("Resolved source socket unix address: %v", source)
+
+	target, err := net.ResolveUnixAddr(network, targetSocket)
+	if err != nil {
+		return nil, err
+	}
+
+	logrus.Infof("Resolved target socket unix address: %v", target)
+	if err := tryDeleteFileIfExist(sourceSocket); err != nil {
+		logrus.Errorf("An error during source socket file deleting %v", err.Error())
+		return nil, err
+	}
+	return &Proxy{
+		source:  source,
+		target:  target,
+		network: network,
+	}, nil
 }
 
-func (mp *Proxy) Start() error {
-	if mp.stopCh != nil {
+//Start means  start listen to source socket and wait for new connections in a separate goroutine
+func (p *Proxy) Start() error {
+	if p.sourceListener != nil {
 		return errors.New("proxy is already started")
 	}
-	mp.stopCh = make(chan struct{}, 1)
-	mp.errCh = make(chan error, 1)
-	logrus.Infof("Request proxy source: %s, target: %s", mp.sourceSocket, mp.targetSocket)
-
-	if err := tryDeleteFileIfExist(mp.sourceSocket); err != nil {
-		logrus.Errorf("An error during socket file deleting %v", err.Error())
-		return err
-	}
-
-	source, err := net.ResolveUnixAddr(mp.network, mp.sourceSocket)
+	var err error
+	p.sourceListener, err = net.ListenUnix(p.network, p.source)
 	if err != nil {
+		logrus.Errorf("can't listen unix %v", err)
 		return err
 	}
-	logrus.Infof("Resolved source socket unix address: %v", mp.sourceSocket)
+	logrus.Info("Listening source socket...")
 
-	target, err := net.ResolveUnixAddr(mp.network, mp.targetSocket)
-	if err != nil {
-		return err
-	}
-	logrus.Infof("Resolved target socket unix address: %v", mp.targetSocket)
+	p.stopCh = make(chan struct{}, 1)
+	p.errCh = make(chan error, 1)
 
 	go func() {
-		mp.errCh <- proxy(source, target, mp.network, mp.stopCh)
+		p.errCh <- p.proxy()
 	}()
 	return nil
 }
 
-func (mp *Proxy) Stop() error {
-	if mp.stopCh == nil {
+//Stop means stop listen to source socket and close  connections
+func (p *Proxy) Stop() error {
+	if p.sourceListener == nil {
 		return errors.New("proxy is not started")
 	}
-	close(mp.stopCh)
-	err := <-mp.errCh
-	close(mp.errCh)
-	mp.stopCh = nil
-	mp.errCh = nil
+	close(p.stopCh)
+	err := <-p.errCh
+	close(p.errCh)
+	if err != nil {
+		logrus.Error(err)
+	}
+	err = p.sourceListener.Close()
+	p.sourceListener = nil
 	return err
 }
 
-func proxy(source, target *net.UnixAddr, network string, stopCh <-chan struct{}) error {
-	logrus.Info("Listening source socket...")
-	sourceListener, err := net.ListenUnix(network, source)
+func (p *Proxy) proxy() error {
+	sourceConn, err := acceptConnectionAsync(p.sourceListener, p.stopCh)
 	if err != nil {
-		logrus.Error(err)
 		return err
 	}
-	defer sourceListener.Close()
-	sourceConn, err := acceptConnectionAsync(sourceListener, stopCh)
-
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-
 	if sourceConn == nil {
 		return nil
 	}
-
 	defer sourceConn.Close()
 
-	targetConn, err := connectToTargetAsync(target, network, stopCh)
-
+	targetConn, err := connectToTargetAsync(p.target, p.network, p.stopCh)
 	if err != nil {
-		logrus.Error(err)
 		return err
 	}
-
 	if targetConn == nil {
 		return nil
 	}
@@ -119,7 +118,7 @@ func proxy(source, target *net.UnixAddr, network string, stopCh <-chan struct{})
 
 	sourceFd, closeSourceFd, err := getConnFd(sourceConn)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Errorf("can't get source conn fd %v", err)
 		return err
 	}
 	defer closeSourceFd()
@@ -127,7 +126,7 @@ func proxy(source, target *net.UnixAddr, network string, stopCh <-chan struct{})
 
 	targetFd, closeTargetFd, err := getConnFd(targetConn)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Errorf("can't get target conn fd %v", err)
 		return err
 	}
 	defer closeTargetFd()
@@ -139,7 +138,7 @@ func proxy(source, target *net.UnixAddr, network string, stopCh <-chan struct{})
 	go transfer(sourceFd, targetFd, sourceStopCh)
 	go transfer(targetFd, sourceFd, targetStopCh)
 
-	<-stopCh
+	<-p.stopCh
 	close(sourceStopCh)
 	close(targetStopCh)
 	logrus.Info("Proxy has stopped")
