@@ -61,8 +61,12 @@ func TestNSMMonitorInit(t *testing.T) {
 	response := srv.requestNSM("nsm")
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.createNSClient(response)
-	defer conn.Close()
-
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			logrus.Error(err.Error())
+		}
+	}()
 	request := createRequest(false)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)

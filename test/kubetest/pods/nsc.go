@@ -148,7 +148,7 @@ func newInitContainer(env map[string]string) v1.Container {
 	return initContainer
 }
 func newMonitorContainer(env map[string]string) v1.Container {
-	initContainer := containerMod(&v1.Container{
+	result := containerMod(&v1.Container{
 		Name:            "nsm-monitor",
 		Image:           "networkservicemesh/nsm-monitor:latest",
 		ImagePullPolicy: v1.PullIfNotPresent,
@@ -159,11 +159,11 @@ func newMonitorContainer(env map[string]string) v1.Container {
 		},
 	})
 	for k, v := range env {
-		initContainer.Env = append(initContainer.Env,
+		result.Env = append(result.Env,
 			v1.EnvVar{
 				Name:  k,
 				Value: v,
 			})
 	}
-	return initContainer
+	return result
 }
