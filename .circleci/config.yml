@@ -65,7 +65,7 @@ jobs:
 # integration
   integration-tests:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     steps:
       - checkout
       - setup_remote_docker:
