@@ -36,7 +36,15 @@ type Initable interface {
 	Init(*InitContext) error
 }
 
-// ChainedEndpoint is the basic endpoint composition interface
+func Init(thing interface{}, initContext *InitContext) error {
+	if initialize, ok := thing.(Initable); ok {
+		if err := initialize.Init(initContext); err != nil {
+			logrus.Errorf("Failed to Init: %s -> err: %v", typeutils.GetTypeName(thing), err)
+			return err
+		}
+	}
+	return nil
+}
 
 // CompositeEndpoint is the base service composition struct
 type CompositeEndpoint struct {
@@ -63,11 +71,8 @@ func (bce *CompositeEndpoint) Close(ctx context.Context, connection *connection.
 
 func (bce *CompositeEndpoint) Init(initContext *InitContext) error {
 	for _, endpoint := range bce.endpoints {
-		if initialize, ok := endpoint.(Initable); ok {
-			if err := initialize.Init(initContext); err != nil {
-				logrus.Errorf("Unable to setup composite %s: %v", typeutils.GetTypeName(endpoint), err)
-				return err
-			}
+		if err := Init(endpoint, initContext); err != nil {
+			return err
 		}
 	}
 	return nil
