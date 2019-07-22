@@ -51,7 +51,7 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 		}
 
 		Log(ctx).Infof("Monitor UpdateConnection: %v", incomingConnection)
-		MonitorServer(ctx).Update(incomingConnection)
+		mce.monitorConnectionServer.Update(incomingConnection)
 
 		return incomingConnection, nil
 	}
@@ -67,7 +67,7 @@ func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Co
 	Log(ctx).Infof("Monitor DeleteConnection: %v", connection)
 	if Next(ctx) != nil {
 		rv, err := Next(ctx).Close(ctx, connection)
-		MonitorServer(ctx).Delete(connection)
+		mce.monitorConnectionServer.Delete(connection)
 		return rv, err
 	}
 	return nil, fmt.Errorf("monitor DeleteConnection cannot close connection")
