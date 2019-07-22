@@ -42,8 +42,6 @@ func main() {
 		MechanismType: "mem",
 	}
 
-	commit := vppagent.NewCommit(configuration, "localhost:9112", true)
-
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
 		endpoint.NewConnectionEndpoint(configuration),
@@ -52,7 +50,7 @@ func main() {
 		vppagent.NewMemifConnect(configuration),
 		vppagent.NewXConnect(configuration),
 		vppagent.NewACL(configuration, getAclRulesConfig()),
-		commit,
+		vppagent.NewCommit(configuration, "localhost:9112", true),
 	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
