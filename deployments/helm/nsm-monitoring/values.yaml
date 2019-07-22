@@ -6,3 +6,7 @@ registry: docker.io
 org: networkservicemesh
 tag: master
 pullPolicy: IfNotPresent
+
+# The type for monitoring services, i.e. Jaeger
+# value is one of ClusterIp, NodePort, LoadBalancer
+monSvcType: ClusterIP

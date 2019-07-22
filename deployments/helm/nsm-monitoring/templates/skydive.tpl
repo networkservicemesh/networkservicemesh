@@ -2,11 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: skydive-analyzer
+  namespace: {{ .Release.Namespace }}
   labels:
     app: skydive-analyzer
   namespace: {{ .Release.Namespace }}
 spec:
-  type: NodePort
+  type: {{ .Values.monSvcType }}
   ports:
     - port: 8082
       name: api

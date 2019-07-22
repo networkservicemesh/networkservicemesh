@@ -40,6 +40,13 @@ spec:
               value: "{{ .Values.org }}"
             - name: TAG
               value: "{{ .Values.tag }}"
+{{- if .Values.global.JaegerTracing }}
+          env:
+            - name: JAEGER_SERVICE_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_SERVICE_PORT_JAEGER
+              value: "6831"
+{{- end }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
