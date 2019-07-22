@@ -16,6 +16,8 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -32,7 +35,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
 
@@ -50,6 +55,7 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
+	excludedPrefixes prefix_pool.PrefixPool
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
@@ -73,6 +79,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		serviceRegistry:  serviceRegistry,
 		pluginRegistry:   pluginRegistry,
 		model:            model,
+		excludedPrefixes: getExcludedPrefixesFromEnv(),
 		properties:       properties,
 		stateRestored:    make(chan bool, 1),
 		renamedEndpoints: make(map[string]string),
@@ -88,6 +95,23 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 	)
 
 	return srv
+}
+
+func getExcludedPrefixesFromEnv() prefix_pool.PrefixPool {
+	emptyPrefixPool, _ := prefix_pool.NewPrefixPool()
+	excludedPrefixesEnv, ok := os.LookupEnv(nsmd.ExcludedPrefixesEnv)
+	if !ok {
+		return emptyPrefixPool
+	}
+	logrus.Infof("Getting excluded prefixes from ENV: %v", excludedPrefixesEnv)
+	prefixes := strings.Split(excludedPrefixesEnv, ",")
+
+	rv, err := prefix_pool.NewPrefixPool(prefixes...)
+	if err != nil {
+		logrus.Errorf("Failed to create a prefix pool for excluded prefixes: %v", err)
+		return emptyPrefixPool
+	}
+	return rv
 }
 
 func (srv *networkServiceManager) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
@@ -363,7 +387,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(nseConn)
+		srv.updateConnection(nseConn)
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
@@ -511,6 +535,13 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
+func (srv *networkServiceManager) updateConnection(conn connection.Connection) {
+	ipCtx := conn.GetContext().GetIpContext()
+	ipCtx.ExcludedPrefixes = append(ipCtx.GetExcludedPrefixes(), srv.excludedPrefixes.GetPrefixes()...)
+
+	srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+}
+
 func (srv *networkServiceManager) updateConnectionContext(source, destination connection.Connection) error {
 	if err := srv.validateConnection(destination); err != nil {
 		return err
@@ -524,14 +555,42 @@ func (srv *networkServiceManager) updateConnectionContext(source, destination co
 }
 
 func (srv *networkServiceManager) validateConnection(conn connection.Connection) error {
-	err := conn.IsComplete()
-	if err != nil {
+	if err := conn.IsComplete(); err != nil {
 		return err
 	}
 
-	err = srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn)
-	if err != nil {
+	if err := srv.validateIPAddrs(conn.GetContext().GetIpContext()); err != nil {
 		return err
+	}
+
+	if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (srv *networkServiceManager) validateIPAddrs(ipCtx *connectioncontext.IPContext) error {
+	prefixes := srv.excludedPrefixes
+
+	if srcIP := ipCtx.GetSrcIpAddr(); srcIP != "" {
+		intersect, err := prefixes.Intersect(srcIP)
+		if err != nil {
+			return err
+		}
+		if intersect {
+			return fmt.Errorf("srcIP intersects excluded prefixes list")
+		}
+	}
+
+	if dstIP := ipCtx.GetDstIpAddr(); dstIP != "" {
+		intersect, err := prefixes.Intersect(dstIP)
+		if err != nil {
+			return err
+		}
+		if intersect {
+			return fmt.Errorf("dstIP intersects excluded prefixes list")
+		}
 	}
 
 	return nil
