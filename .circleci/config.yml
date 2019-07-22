@@ -13,7 +13,7 @@ jobs:
       - checkout
       - run:
           command: |
-            sudo apt-get install yamllint python3-pkg-resources
+            ./.circleci/install-yamllint.sh
             ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
       - run: go version
