@@ -8,7 +8,7 @@ jobs:
     resource_class: medium+
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     steps:
       - checkout
       - run:
@@ -51,7 +51,7 @@ jobs:
   test-static-code-analysis:
     resource_class: large
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     steps:
       - checkout
       - run:
@@ -65,7 +65,7 @@ jobs:
 # integration
   integration-tests:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     steps:
       - checkout
       - setup_remote_docker:
@@ -128,7 +128,7 @@ jobs:
       container:
         type: string
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     steps:
       - checkout
       - setup_remote_docker:
@@ -144,7 +144,7 @@ jobs:
 # build ready - empty job
   build-container-success:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     steps:
       - run:
           command: |
@@ -153,7 +153,7 @@ jobs:
 # docker push
   docker-push-tag:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12-stretch
     parameters:
       tag:
         type: string
