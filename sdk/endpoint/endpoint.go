@@ -29,7 +29,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -42,12 +41,11 @@ type NsmEndpoint interface {
 
 type nsmEndpoint struct {
 	*common.NsmConnection
-	service                 networkservice.NetworkServiceServer
-	grpcServer              *grpc.Server
-	registryClient          registry.NetworkServiceRegistryClient
-	endpointName            string
-	monitorConnectionServer local.MonitorServer
-	tracerCloser            io.Closer
+	service        networkservice.NetworkServiceServer
+	grpcServer     *grpc.Server
+	registryClient registry.NetworkServiceRegistryClient
+	endpointName   string
+	tracerCloser   io.Closer
 }
 
 func (nsme *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
@@ -84,7 +82,6 @@ func (nsme *nsmEndpoint) Start() error {
 
 	nsme.grpcServer = tools.NewServer()
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
-	connection.RegisterMonitorConnectionServer(nsme.grpcServer, nsme.monitorConnectionServer)
 
 	listener, err := nsme.setupNSEServerConnection()
 
@@ -142,7 +139,6 @@ func (nsme *nsmEndpoint) Delete() error {
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("Request for Network Service received %v", request)
-	ctx = withMonitorServer(ctx, nsme.monitorConnectionServer)
 
 	incomingConnection, err := nsme.service.Request(ctx, request)
 	if err != nil {
@@ -155,7 +151,6 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 }
 
 func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
-	ctx = withMonitorServer(ctx, nsme.monitorConnectionServer)
 	_, _ = nsme.service.Close(ctx, incomingConnection)
 	_, _ = nsme.NsClient.Close(ctx, incomingConnection)
 
@@ -180,9 +175,8 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 	}
 
 	endpoint := &nsmEndpoint{
-		NsmConnection:           nsmConnection,
-		service:                 service,
-		monitorConnectionServer: local.NewMonitorServer(),
+		NsmConnection: nsmConnection,
+		service:       service,
 	}
 
 	return endpoint, nil

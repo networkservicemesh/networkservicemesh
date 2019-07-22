@@ -5,7 +5,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,29 +43,6 @@ func WithClientConnection(parent context.Context, connection *connection.Connect
 //    If any is present, otherwise nil
 func ClientConnection(ctx context.Context) *connection.Connection {
 	return ctx.Value(clientConnectionKey).(*connection.Connection)
-}
-
-// withMonitorServer -
-//   Wraps 'parent' in a new Context that has the MonitorServer
-//   provided in:
-//       monitorServer local.MonitorServer
-//   using Context.Value(...) and returns the result.
-//   Note: should only be called from NSMEndpoint.Request/Close
-//
-func withMonitorServer(parent context.Context, monitorServer local.MonitorServer) context.Context {
-	if parent == nil {
-		parent = context.Background()
-	}
-	return context.WithValue(parent, monitorServerKey, monitorServer)
-}
-
-// MonitorServer -
-//    Returns a MonitorServer from:
-//      ctx context.Context
-//    If any is present, otherwise nil
-//    Should always be present if running via NSMEndpoint
-func MonitorServer(ctx context.Context) local.MonitorServer {
-	return ctx.Value(monitorServerKey).(local.MonitorServer)
 }
 
 // withNext -
