@@ -24,6 +24,7 @@ else
             --node-count 2 \
             --node-vm-size Standard_B2s \
             --generate-ssh-keys \
+            --enable-rbac \
             --no-wait && \
         echo "done" || exit 1
     else
@@ -33,6 +34,7 @@ else
             --node-count 2 \
             --node-vm-size Standard_B2s \
             --generate-ssh-keys \
+            --enable-rbac \
             --no-wait \
             --service-principal "$AZURE_SERVICE_PRINCIPAL" \
             --client-secret "$AZURE_SERVICE_PRINCIPAL_SECRET" && \
