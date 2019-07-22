@@ -28,6 +28,7 @@ data:
       WorkloadAttestor "k8s" {
         plugin_data {
           skip_kubelet_verification = true
+          token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
         }
       }
     }
