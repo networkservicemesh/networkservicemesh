@@ -17,9 +17,9 @@ executions:
       - WRITE_POD_LOGS_IN_FILES=true
       - WRITE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
-#      - basic
-#      - recover
-#      - usecase
+      - basic
+      - recover
+      - usecase
       - security
     root: ./test/integration
     timeout: 300
