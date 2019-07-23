@@ -83,8 +83,8 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 	if err != nil {
 		return nil, err
 	}
-	for _, feature := range info.GetImplementedTypes() {
-		if feature == plugins.PluginType_CONNECTION {
+	for _, feature := range info.GetFeatures() {
+		if feature == plugins.PluginFeature_CONNECTION {
 			pr.connectionPluginManager.Register(conn)
 		}
 	}
