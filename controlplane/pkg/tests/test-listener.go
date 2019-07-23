@@ -86,9 +86,13 @@ func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Dur
 	st := time.Now()
 	for {
 		<-time.After(stepTimeout)
+		impl.RLock()
 		if impl.updates == count {
+			impl.RUnlock()
 			break
 		}
+		impl.RUnlock()
+
 		if time.Since(st) > duration {
 			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
 			break
