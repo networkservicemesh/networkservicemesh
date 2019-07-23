@@ -39,7 +39,7 @@ type ClientEndpoint struct {
 //	   Next
 func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	name := request.GetConnection().GetId()
-	outgoingConnection, err := cce.nsmClient.Connect(name, cce.mechanismType, "Describe "+name)
+	outgoingConnection, err := cce.nsmClient.Connect(ctx, name, cce.mechanismType, "Describe "+name)
 	if err != nil {
 		logrus.Errorf("Error when creating the connection %v", err)
 		return nil, err
@@ -64,7 +64,7 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 //	   Next
 func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
-		cce.nsmClient.Close(outgoingConnection)
+		cce.nsmClient.Close(ctx, outgoingConnection)
 	}
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)

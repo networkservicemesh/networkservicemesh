@@ -16,6 +16,7 @@ package sidecars
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/opentracing/opentracing-go"
@@ -35,7 +36,7 @@ func (c *nsmClientApp) Run() {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	if err := clientList.Connect("nsm", "kernel", "Primary interface"); err != nil {
+	if err := clientList.Connect(context.TODO(), "nsm", "kernel", "Primary interface"); err != nil {
 		logrus.Fatalf("Client connect failed with error: %v", err)
 	}
 	logrus.Info("nsm client: initialization is completed successfully")

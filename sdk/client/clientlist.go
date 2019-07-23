@@ -39,10 +39,10 @@ type NsmClientList struct {
 }
 
 // Connect will create new interfaces with the specified name and mechanism
-func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
+func (nsmcl *NsmClientList) Connect(ctx context.Context, name, mechanism, description string) error {
 	for idx := range nsmcl.clients {
 		entry := &nsmcl.clients[idx]
-		conn, err := entry.client.Connect(name+strconv.Itoa(idx), mechanism, description)
+		conn, err := entry.client.Connect(ctx, name+strconv.Itoa(idx), mechanism, description)
 		if err != nil {
 			return err
 		}
@@ -52,11 +52,11 @@ func (nsmcl *NsmClientList) Connect(name, mechanism, description string) error {
 }
 
 // Close terminates all connections establised by Connect
-func (nsmcl *NsmClientList) Close() error {
+func (nsmcl *NsmClientList) Close(ctx context.Context) error {
 	for i := range nsmcl.clients {
 		entry := &nsmcl.clients[i]
 		for _, connection := range entry.connections {
-			err := entry.client.Close(connection)
+			err := entry.client.Close(ctx, connection)
 			if err != nil {
 				return err
 			}

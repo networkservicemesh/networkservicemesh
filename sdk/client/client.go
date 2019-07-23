@@ -43,7 +43,7 @@ type NsmClient struct {
 }
 
 // Connect implements the business logic
-func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection.Connection, error) {
+func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*connection.Connection, error) {
 	logrus.Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
 	defer nsmc.Unlock()
@@ -82,7 +82,7 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 }
 
 // Close will terminate a particular connection
-func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
+func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection.Connection) error {
 	nsmc.Lock()
 	defer nsmc.Unlock()
 

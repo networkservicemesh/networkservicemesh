@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 
 	"github.com/opentracing/opentracing-go"
@@ -46,8 +47,9 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
+
 	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
-	_, err = nsc.Connect("nsm", "kernel", "Primary interface")
+	_, err = nsc.Connect(context.TODO(), "nsm", "kernel", "Primary interface")
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
