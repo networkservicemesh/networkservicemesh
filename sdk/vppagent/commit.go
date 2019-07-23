@@ -13,6 +13,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"google.golang.org/grpc"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -22,8 +23,9 @@ const (
 
 // Commit is a VPP Agent Commit composite
 type Commit struct {
-	Endpoint       string
-	shouldResetVpp bool
+	Endpoint           string
+	shouldResetVpp     bool
+	vppagentConnection *grpc.ClientConn
 }
 
 // Request implements the request handler
@@ -90,34 +92,36 @@ func NewCommit(configuration *common.NSConfiguration, endpoint string, shouldRes
 }
 
 // Init will reset the vpp shouldResetVpp is true
-func (mce *Commit) Init(context *endpoint.InitContext) error {
-	if mce.shouldResetVpp {
-		return mce.init()
+func (c *Commit) Init(ctx *endpoint.InitContext) error {
+	conn, err := c.createConnection(context.TODO())
+	if err != nil {
+		return err
+	}
+	c.vppagentConnection = conn
+	if c.shouldResetVpp {
+		return c.init()
 	}
 	return nil
 }
 
-func (f *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error) {
-	if err := tools.WaitForPortAvailable(ctx, "tcp", f.Endpoint, createConnectionSleep); err != nil {
+func (c *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error) {
+	start := time.Now()
+	logrus.Info("Creating connection to vppagent")
+	if err := tools.WaitForPortAvailable(ctx, "tcp", c.Endpoint, createConnectionSleep); err != nil {
 		return nil, err
 	}
 
-	rv, err := tools.DialTCP(f.Endpoint)
+	rv, err := tools.DialTCP(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("Can't dial grpc server: %v", err)
 	}
+	logrus.Infof("Connection to vppagent created.  Elapsed time: %s", time.Since(start))
 
 	return rv, nil
 }
 
-func (f *Commit) send(ctx context.Context, dataChange *configurator.Config) error {
-	conn, err := f.createConnection(ctx)
-	if err != nil {
-		return nil
-	}
-
-	defer func() { _ = conn.Close() }()
-	client := configurator.NewConfiguratorClient(conn)
+func (c *Commit) send(ctx context.Context, dataChange *configurator.Config) error {
+	client := configurator.NewConfiguratorClient(c.vppagentConnection)
 
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
 		_, _ = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
@@ -126,14 +130,8 @@ func (f *Commit) send(ctx context.Context, dataChange *configurator.Config) erro
 	return nil
 }
 
-func (f *Commit) remove(ctx context.Context, dataChange *configurator.Config) error {
-	conn, err := f.createConnection(ctx)
-	if err != nil {
-		return nil
-	}
-
-	defer func() { _ = conn.Close() }()
-	client := configurator.NewConfiguratorClient(conn)
+func (c *Commit) remove(ctx context.Context, dataChange *configurator.Config) error {
+	client := configurator.NewConfiguratorClient(c.vppagentConnection)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
 		return err
@@ -142,19 +140,12 @@ func (f *Commit) remove(ctx context.Context, dataChange *configurator.Config) er
 }
 
 // Reset - Resets vppagent
-func (f *Commit) init() error {
-	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
-	defer cancel()
-
-	conn, err := f.createConnection(ctx)
-	if err != nil {
-		return nil
-	}
-
-	defer func() { _ = conn.Close() }()
-	client := configurator.NewConfiguratorClient(conn)
-	if f.shouldResetVpp {
-		_, err = client.Update(context.Background(), &configurator.UpdateRequest{
+func (c *Commit) init() error {
+	client := configurator.NewConfiguratorClient(c.vppagentConnection)
+	if c.shouldResetVpp {
+		ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
+		defer cancel()
+		_, err := client.Update(ctx, &configurator.UpdateRequest{
 			Update:     &configurator.Config{},
 			FullResync: true,
 		})

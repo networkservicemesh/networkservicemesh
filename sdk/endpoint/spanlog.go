@@ -9,7 +9,7 @@ import (
 )
 
 func LogFromSpan(span opentracing.Span) logrus.FieldLogger {
-	logger := logrus.WithField("span", span)
+	logger := logrus.New().WithField("span", span)
 	logger.Logger.AddHook(NewTraceHook(span))
 	return logger
 }
@@ -35,5 +35,6 @@ func (h *traceHook) Fire(entry *logrus.Entry) error {
 		return err
 	}
 	h.span.LogFields(log.String(fmt.Sprintf("log[%d]", h.index), msg))
+	h.index++
 	return nil
 }
