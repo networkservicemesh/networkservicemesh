@@ -22,6 +22,7 @@ import (
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -134,10 +135,11 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 }
 
 type testPluginRegistry struct {
-	connectionPluginManager plugins.ConnectionPluginManager // TODO: review
+	connectionPluginManager *testConnectionPluginManager
 }
 
 type testConnectionPluginManager struct {
+	plugins []pluginsapi.ConnectionPluginClient
 }
 
 func newTestPluginRegistry() *testPluginRegistry {
@@ -158,13 +160,29 @@ func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPlu
 	return pr.connectionPluginManager
 }
 
+func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginClient) {
+	cpm.plugins = append(cpm.plugins, plugin)
+}
+
 func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(connection.Connection) {
+func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) {
+	connCtx := conn.GetContext()
+	for _, plugin := range cpm.plugins {
+		connCtx, _ = plugin.UpdateConnectionContext(nil, connCtx)
+	}
+	conn.SetContext(connCtx)
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnection(connection.Connection) error {
+func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Connection) error {
+	connCtx := conn.GetContext()
+	for _, plugin := range cpm.plugins {
+		result, _ := plugin.ValidateConnectionContext(nil, connCtx)
+		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
+			return fmt.Errorf(result.GetErrorMessage())
+		}
+	}
 	return nil
 }
 
