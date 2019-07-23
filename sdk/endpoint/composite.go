@@ -32,10 +32,12 @@ type InitContext struct {
 	GrpcServer *grpc.Server
 }
 
+// Initable - things can be initted
 type Initable interface {
 	Init(*InitContext) error
 }
 
+// Init - initialize the thing if its initable, otherwise just fall through silently
 func Init(thing interface{}, initContext *InitContext) error {
 	if initialize, ok := thing.(Initable); ok {
 		if err := initialize.Init(initContext); err != nil {
@@ -69,6 +71,7 @@ func (bce *CompositeEndpoint) Close(ctx context.Context, connection *connection.
 	return bce.endpoints[0].Close(ctx, connection)
 }
 
+// Init initializes all the subcomponents of the composite
 func (bce *CompositeEndpoint) Init(initContext *InitContext) error {
 	for _, endpoint := range bce.endpoints {
 		if err := Init(endpoint, initContext); err != nil {
