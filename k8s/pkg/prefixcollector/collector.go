@@ -48,10 +48,10 @@ func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string
 	serviceSubnet := clusterConfiguration.Networking.ServiceSubnet
 
 	if podSubnet == "" {
-		return nil, fmt.Errorf("clusterConfiguration.Networking.PodSubnet is empty")
+		return nil, fmt.Errorf("ClusterConfiguration.Networking.PodSubnet is empty")
 	}
 	if serviceSubnet == "" {
-		return nil, fmt.Errorf("clusterConfiguration.Networking.ServiceSubnet is empty")
+		return nil, fmt.Errorf("ClusterConfiguration.Networking.ServiceSubnet is empty")
 	}
 
 	return []string{

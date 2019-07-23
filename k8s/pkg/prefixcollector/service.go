@@ -68,9 +68,6 @@ func (c *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset)
 }
 
 func (c *prefixService) UpdateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error) {
-	if connCtx == nil {
-		connCtx = &connectioncontext.ConnectionContext{}
-	}
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), c.getExcludedPrefixes().GetPrefixes()...)
 	return connCtx, nil
 }

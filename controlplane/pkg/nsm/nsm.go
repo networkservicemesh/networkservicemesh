@@ -536,10 +536,19 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 }
 
 func (srv *networkServiceManager) updateConnection(conn connection.Connection) {
-	ipCtx := conn.GetContext().GetIpContext()
-	ipCtx.ExcludedPrefixes = append(ipCtx.GetExcludedPrefixes(), srv.excludedPrefixes.GetPrefixes()...)
+	c := conn.GetContext()
+	if c == nil {
+		c = &connectioncontext.ConnectionContext{}
+	}
+
+	srv.updateExcludedPrefixes(conn)
 
 	srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+}
+
+func (srv *networkServiceManager) updateExcludedPrefixes(conn connection.Connection) {
+	ipCtx := conn.GetContext().GetIpContext()
+	ipCtx.ExcludedPrefixes = append(ipCtx.GetExcludedPrefixes(), srv.excludedPrefixes.GetPrefixes()...)
 }
 
 func (srv *networkServiceManager) updateConnectionContext(source, destination connection.Connection) error {
@@ -559,7 +568,7 @@ func (srv *networkServiceManager) validateConnection(conn connection.Connection)
 		return err
 	}
 
-	if err := srv.validateIPAddrs(conn.GetContext().GetIpContext()); err != nil {
+	if err := srv.validateIPAddrs(conn); err != nil {
 		return err
 	}
 
@@ -570,8 +579,9 @@ func (srv *networkServiceManager) validateConnection(conn connection.Connection)
 	return nil
 }
 
-func (srv *networkServiceManager) validateIPAddrs(ipCtx *connectioncontext.IPContext) error {
+func (srv *networkServiceManager) validateIPAddrs(conn connection.Connection) error {
 	prefixes := srv.excludedPrefixes
+	ipCtx := conn.GetContext().GetIpContext()
 
 	if srcIP := ipCtx.GetSrcIpAddr(); srcIP != "" {
 		intersect, err := prefixes.Intersect(srcIP)
