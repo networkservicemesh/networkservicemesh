@@ -4,13 +4,13 @@ package plugins;
 
 import "ptypes/empty/empty.proto";
 
-enum PluginType { // TODO: improve naming
+enum PluginType {
     CONNECTION = 0;
 }
 
 message PluginInfo {
     string endpoint = 1;
-    repeated PluginType features = 2;
+    repeated PluginType implementedTypes = 2;
 }
 
 service PluginRegistry {

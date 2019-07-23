@@ -22,17 +22,15 @@ type PluginRegistry interface {
 	GetConnectionPluginManager() ConnectionPluginManager
 }
 
+// PluginManager allows to register a client connection
+type PluginManager interface {
+	Register(*grpc.ClientConn)
+}
+
 type pluginRegistry struct {
 	sync.RWMutex
 	connections             []*grpc.ClientConn
 	connectionPluginManager ConnectionPluginManager
-}
-
-// TODO: review
-
-// PluginManager allows to register a client connection
-type PluginManager interface {
-	Register(*grpc.ClientConn)
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
@@ -81,11 +79,11 @@ func (pr *pluginRegistry) Stop() error {
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
-	conn, err := pr.createConnection(info.Endpoint)
+	conn, err := pr.createConnection(info.GetEndpoint())
 	if err != nil {
 		return nil, err
 	}
-	for _, feature := range info.Features {
+	for _, feature := range info.GetImplementedTypes() {
 		if feature == plugins.PluginType_CONNECTION {
 			pr.connectionPluginManager.Register(conn)
 		}
