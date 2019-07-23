@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// LogFromSpan - return a logger that has a TraceHook to also log messages to the span
 func LogFromSpan(span opentracing.Span) logrus.FieldLogger {
 	logger := logrus.New().WithField("span", span)
 	logger.Logger.AddHook(NewTraceHook(span))
@@ -19,6 +20,7 @@ type traceHook struct {
 	span  opentracing.Span
 }
 
+// NewTraceHook - create a TraceHook for also logging to a span
 func NewTraceHook(span opentracing.Span) logrus.Hook {
 	return &traceHook{
 		span: span,

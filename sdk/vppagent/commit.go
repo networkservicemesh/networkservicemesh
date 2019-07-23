@@ -32,7 +32,7 @@ type Commit struct {
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (f *Commit) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (c *Commit) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 	if vppAgentConfig == nil {
@@ -41,8 +41,8 @@ func (f *Commit) Request(ctx context.Context, request *networkservice.NetworkSer
 
 	endpoint.Log(ctx).Infof("Sending VppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
-	if err := f.send(ctx, vppAgentConfig); err != nil {
-		return nil, fmt.Errorf("Failed to send vppAgentConfig to VPP Agent: %v", err)
+	if err := c.send(ctx, vppAgentConfig); err != nil {
+		return nil, fmt.Errorf("failed to send vppAgentConfig to VPP Agent: %v", err)
 	}
 	if endpoint.Next(ctx) != nil {
 		return endpoint.Next(ctx).Request(ctx, request)
@@ -54,7 +54,7 @@ func (f *Commit) Request(ctx context.Context, request *networkservice.NetworkSer
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (f *Commit) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (c *Commit) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
@@ -64,8 +64,8 @@ func (f *Commit) Close(ctx context.Context, connection *connection.Connection) (
 
 	endpoint.Log(ctx).Infof("Sending vppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
-	if err := f.remove(ctx, vppAgentConfig); err != nil {
-		return nil, fmt.Errorf("Failed to send DataChange to VPP Agent: %v", err)
+	if err := c.remove(ctx, vppAgentConfig); err != nil {
+		return nil, fmt.Errorf("failed to send DataChange to VPP Agent: %v", err)
 	}
 
 	if endpoint.Next(ctx) != nil {
@@ -92,7 +92,7 @@ func NewCommit(configuration *common.NSConfiguration, endpoint string, shouldRes
 }
 
 // Init will reset the vpp shouldResetVpp is true
-func (c *Commit) Init(ctx *endpoint.InitContext) error {
+func (c *Commit) Init(*endpoint.InitContext) error {
 	conn, err := c.createConnection(context.TODO())
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (c *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error)
 
 	rv, err := tools.DialTCP(c.Endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("Can't dial grpc server: %v", err)
+		return nil, fmt.Errorf("can't dial grpc server: %v", err)
 	}
 	logrus.Infof("Connection to vppagent created.  Elapsed time: %s", time.Since(start))
 

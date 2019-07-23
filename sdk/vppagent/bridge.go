@@ -28,13 +28,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
-type BridgeConnect struct {
-	workspace    string
-	bridgeName   string
-	bdInterfaces []*l2.BridgeDomain_Interface
+//
+type bridgeConnect struct {
+	workspace  string
+	bridgeName string
 }
 
-func (vbc *BridgeConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+// Request - plugs interface into a Bridge domain
+func (vbc *bridgeConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 
 	err := vbc.insertInterfaceIntoBridge(ctx, request.GetConnection())
 	if err != nil {
@@ -47,34 +48,38 @@ func (vbc *BridgeConnect) Request(ctx context.Context, request *networkservice.N
 	return request.GetConnection(), nil
 }
 
-func (vbc *BridgeConnect) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
+// Close - disconnect interface from Bridge Domain
+func (vbc *bridgeConnect) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	err := vbc.insertInterfaceIntoBridge(ctx, conn)
 	if err != nil {
 		endpoint.Log(ctx).Error(err)
 		return &empty.Empty{}, err
 	}
 	if endpoint.Next(ctx) != nil {
-		endpoint.Next(ctx).Close(ctx, conn)
+		if _, err := endpoint.Next(ctx).Close(ctx, conn); err != nil {
+			return &empty.Empty{}, nil
+		}
+
 	}
 	return &empty.Empty{}, nil
 }
 
 // NewBridgeConnect creates a new Bridge Endpoint
-func NewBridgeConnect(configuration *common.NSConfiguration, bridgeName string) *BridgeConnect {
+func NewBridgeConnect(configuration *common.NSConfiguration, bridgeName string) networkservice.NetworkServiceServer {
 	// ensure the env variables are processed
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
-	bridge := &BridgeConnect{
+	bridge := &bridgeConnect{
 		workspace:  configuration.Workspace,
 		bridgeName: bridgeName,
 	}
 	return bridge
 }
 
-func (bc *BridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *connection.Connection) error {
+func (vbc *bridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *connection.Connection) error {
 	cfg := Config(ctx)
 	conMap := ConnectionMap(ctx)
 	if conMap[conn] == nil {
@@ -85,7 +90,7 @@ func (bc *BridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *co
 		cfg.VppConfig = &vpp.ConfigData{}
 	}
 	cfg.VppConfig.BridgeDomains = append(cfg.VppConfig.BridgeDomains, &l2.BridgeDomain{
-		Name:                bc.bridgeName,
+		Name:                vbc.bridgeName,
 		Flood:               false,
 		UnknownUnicastFlood: false,
 		Forward:             true,

@@ -12,7 +12,6 @@ type contextKeyType string
 
 const (
 	clientConnectionKey contextKeyType = "ClientConnection"
-	monitorServerKey    contextKeyType = "MonitorServer"
 	nextKey             contextKeyType = "Next"
 	logKey              contextKeyType = "Log"
 )

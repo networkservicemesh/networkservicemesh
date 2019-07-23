@@ -98,9 +98,12 @@ func (nsme *nsmEndpoint) Start() error {
 		return err
 	}
 
-	Init(nsme.service, &InitContext{
+	err = Init(nsme.service, &InitContext{
 		GrpcServer: nsme.grpcServer,
 	})
+	if err != nil {
+		return err
+	}
 
 	// spawn the listnening thread
 	nsme.serve(listener)
