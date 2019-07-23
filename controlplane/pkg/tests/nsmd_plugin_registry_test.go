@@ -11,7 +11,7 @@ import (
 )
 
 type dummyConnectionPlugin struct {
-	prefixes []string
+	prefixes   []string
 	shouldFail bool
 }
 
@@ -23,7 +23,7 @@ func (cp *dummyConnectionPlugin) UpdateConnectionContext(ctx context.Context, co
 func (cp *dummyConnectionPlugin) ValidateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext, opts ...grpc.CallOption) (*plugins.ConnectionValidationResult, error) {
 	if cp.shouldFail {
 		return &plugins.ConnectionValidationResult{
-			Status: plugins.ConnectionValidationStatus_FAIL,
+			Status:       plugins.ConnectionValidationStatus_FAIL,
 			ErrorMessage: "validation failed",
 		}, nil
 	}
