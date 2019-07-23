@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -24,7 +25,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	}
 
 	// Create a new span
-	span, ctx := opentracing.StartSpanFromContext(ctx, typeutils.GetTypeName(n.composite.endpoints[n.index]))
+	span, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.endpoints[n.index])))
 	defer span.Finish()
 
 	// Make sure we log to span
@@ -50,7 +51,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
 	}
 	// Create a new span
-	span, ctx := opentracing.StartSpanFromContext(ctx, typeutils.GetTypeName(n.composite.endpoints[n.index]))
+	span, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
 	defer span.Finish()
 
 	// Make sure we log to span
