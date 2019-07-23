@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"testing"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 )
 
@@ -203,7 +203,7 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 func CreateCrossConnectClient(address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := tools.DialTCP(address)
 	if err != nil {
 		Expect(err).To(BeNil())
 		return nil, nil, nil

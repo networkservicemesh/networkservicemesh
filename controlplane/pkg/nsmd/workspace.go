@@ -15,7 +15,6 @@
 package nsmd
 
 import (
-	"context"
 	"net"
 	"os"
 	"sync"
@@ -115,7 +114,8 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 			return
 		}
 	}()
-	conn, err := tools.SocketOperationCheck(tools.SocketPath(socket))
+
+	conn, err := tools.DialUnix(socket)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
 		return nil, err
@@ -167,10 +167,7 @@ func (w *Workspace) Close() {
 }
 
 func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	nseConn, err := tools.SocketOperationCheckContext(ctx, tools.SocketPath(w.NsmClientSocket()))
+	nseConn, err := tools.DialTimeoutUnix(w.NsmClientSocket(), timeout)
 	if err != nil {
 		return false
 	}

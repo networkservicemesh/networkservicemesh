@@ -35,5 +35,5 @@ func newNetworkServiceClientSocket() (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	return tools.SocketOperationCheck(tools.SocketPath(nsmServerSocket))
+	return tools.DialUnix(nsmServerSocket)
 }

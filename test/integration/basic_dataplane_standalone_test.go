@@ -175,7 +175,7 @@ func (fixture *standaloneDataplaneFixture) forwardDataplanePort(port int) {
 }
 
 func (fixture *standaloneDataplaneFixture) connectDataplane() {
-	dataplaneConn, err := tools.SocketOperationCheck(localPort(dataplaneSocketType, fixture.forwarding.ListenPort))
+	dataplaneConn, err := tools.DialTimeout(localPort(dataplaneSocketType, fixture.forwarding.ListenPort), 5*time.Second)
 	Expect(err).To(BeNil())
 	fixture.dataplaneClient = dataplaneapi.NewDataplaneClient(dataplaneConn)
 }
