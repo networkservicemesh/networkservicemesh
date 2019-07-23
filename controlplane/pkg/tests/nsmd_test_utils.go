@@ -22,6 +22,7 @@ import (
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -59,14 +60,7 @@ type nsmdTestServiceDiscovery struct {
 	storage     *sharedStorage
 	nsmCounter  int
 	nsmgrName   string
-	//clusterConfiguration *registry.ClusterConfiguration
-	//subnetStreamCh       chan *dummySubnetStream
 }
-
-//func (impl *nsmdTestServiceDiscovery) getNextSubnetStream() *dummySubnetStream {
-//	s := <-impl.subnetStreamCh
-//	return s
-//}
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
 	logrus.Infof("Register NSE: %v", in)
@@ -96,8 +90,6 @@ func newNSMDTestServiceDiscovery(testAPI *testApiRegistry, nsmgrName string, sto
 		apiRegistry: testAPI,
 		nsmCounter:  0,
 		nsmgrName:   nsmgrName,
-		//subnetStreamCh:       make(chan *dummySubnetStream), // TODO: remove
-		//clusterConfiguration: clusterConfiguration, // TODO: remove
 	}
 }
 
@@ -176,59 +168,6 @@ func (cpm *testConnectionPluginManager) UpdateConnection(connection.Connection) 
 func (cpm *testConnectionPluginManager) ValidateConnection(connection.Connection) error {
 	return nil
 }
-
-//func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.ClusterConfiguration, error) {
-//	if impl.clusterConfiguration == nil {
-//		return nil, fmt.Errorf("ClusterConfiguration is not supported")
-//	}
-//	return impl.clusterConfiguration, nil
-//}
-//
-//type dummySubnetStream struct {
-//	sync.RWMutex
-//	grpc.ClientStream
-//	isKilled  bool
-//	responses chan *registry.SubnetExtendingResponse
-//}
-//
-//func newDummySubnetStream() *dummySubnetStream {
-//	return &dummySubnetStream{
-//		isKilled:  false,
-//		responses: make(chan *registry.SubnetExtendingResponse),
-//	}
-//}
-//
-//func (d *dummySubnetStream) Recv() (*registry.SubnetExtendingResponse, error) {
-//	r := <-d.responses
-//
-//	d.RLock()
-//	if d.isKilled {
-//		return nil, fmt.Errorf("killed")
-//	}
-//	d.RUnlock()
-//
-//	return r, nil
-//}
-//
-//func (d *dummySubnetStream) dummyKill() {
-//	d.Lock()
-//	defer d.Unlock()
-//
-//	logrus.Info("Killing subnetStream")
-//	d.isKilled = true
-//	d.responses <- nil
-//}
-//
-//func (d *dummySubnetStream) addResponse(r *registry.SubnetExtendingResponse) {
-//	d.responses <- r
-//}
-//
-//func (impl *nsmdTestServiceDiscovery) MonitorSubnets(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (registry.ClusterInfo_MonitorSubnetsClient, error) {
-//	logrus.Info("New subnet stream requested")
-//	s := newDummySubnetStream()
-//	impl.subnetStreamCh <- s
-//	return s, nil
-//}
 
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
@@ -593,15 +532,3 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 
 	return srv
 }
-
-//func newClusterConfiguration(podCIDR, serviceCIDR string) *registry.ClusterConfiguration {
-//	return &registry.ClusterConfiguration{
-//		PodSubnet:     podCIDR,
-//		ServiceSubnet: serviceCIDR,
-//	}
-//}
-
-//var defaultClusterConfiguration = &registry.ClusterConfiguration{
-//	PodSubnet:     "127.0.1.0/24",
-//	ServiceSubnet: "127.0.2.0/24",
-//}
