@@ -32,7 +32,7 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 	if con == nil {
 		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
 	}
-	if err := appendMemifInterface(vppAgentConfig, request.GetConnection(), cmc.Workspace, false); err != nil {
+	if err := appendMemifInterface(vppAgentConfig, con, cmc.Workspace, false); err != nil {
 		return nil, err
 	}
 	if endpoint.Next(ctx) != nil {

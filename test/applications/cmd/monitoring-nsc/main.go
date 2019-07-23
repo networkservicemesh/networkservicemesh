@@ -47,6 +47,12 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
+
+	currentConn, err := nsc.Connect(context.TODO(), "nsm", "kernel", "Primary interface")
+	if err != nil {
+		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
+	}
+
 	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
 	_, err = nsc.Connect("nsm", "kernel", "Primary interface")
 	if err != nil {
