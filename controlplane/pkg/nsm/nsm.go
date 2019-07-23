@@ -536,9 +536,9 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 }
 
 func (srv *networkServiceManager) updateConnection(conn connection.Connection) {
-	c := conn.GetContext()
-	if c == nil {
-		c = &connectioncontext.ConnectionContext{}
+	if conn.GetContext() == nil {
+		c := &connectioncontext.ConnectionContext{}
+		conn.SetContext(c)
 	}
 
 	srv.updateExcludedPrefixes(conn)
