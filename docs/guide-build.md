@@ -210,7 +210,7 @@ The [.circleci/config.yml](https://github.com/networkservicemesh/networkservicem
 ## Code formatting
 We use `goimports` tool since it formats the code in the same style as `go fmt` and organizes imports additionally.
 
-To install goimports execute:
+To install `goimports` run:
 ```bash
 GO111MODULE=off go get golang.org/x/tools/cmd/goimports
 ```
