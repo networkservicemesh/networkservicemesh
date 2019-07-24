@@ -64,50 +64,50 @@ Registration data is provided in plugins.PluginInfo structure which has the foll
 - **Features** — list of features implemented by your plugin
 
 ```go
-    import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
-    
-    ...
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 
-    // 1. Create a gRPC server that implements a plugin
+...
 
-    endpoint := path.Join(plugins.PluginRegistryPath, "your-plugin-name.sock")
-    sock, err := net.Listen("unix", endpoint)
-    if err != nil {
-        return err
+// 1. Create a gRPC server that implements a plugin
+
+endpoint := path.Join(plugins.PluginRegistryPath, "your-plugin-name.sock")
+sock, err := net.Listen("unix", endpoint)
+if err != nil {
+    return err
+}
+
+server := grpc.NewServer(...)
+
+service := newConnectionPluginService()
+
+plugins.RegisterConnectionPluginServer(server, service)
+
+go func() {
+    if err := server.Serve(sock); err != nil {
+        logrus.Error("Failed to start Plugin gRPC server", endpoint, err)
     }
+}()
 
-    server := grpc.NewServer(...)
+// 2. Register the plugin in NSM Plugin Registry
 
-    service := newConnectionPluginService()
+conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket, ...)
+defer conn.Close()
+if err != nil {
+    logrus.Fatalf("Cannot connect to the Plugin Registry: %v", err)
+}
 
-    plugins.RegisterConnectionPluginServer(server, service)
+client := plugins.NewPluginRegistryClient(conn)
 
-    go func() {
-        if err := server.Serve(sock); err != nil {
-            logrus.Error("Failed to start Plugin gRPC server", endpoint, err)
-        }
-    }()
+ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+defer cancel()
 
-    // 2. Register the plugin in NSM Plugin Registry
-
-    conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket, ...)
-    defer conn.Close()
-    if err != nil {
-        logrus.Fatalf("Cannot connect to the Plugin Registry: %v", err)
-    }
-    
-    client := plugins.NewPluginRegistryClient(conn)
-    
-    ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
-    defer cancel()
-    
-    _, err = client.Register(ctx, &plugins.PluginInfo{
-        Endpoint: endpoint,
-        Features: []plugins.PluginFeature{plugins.PluginFeature_CONNECTION},
-    })
-    if err != nil {
-        return err
-    }
+_, err = client.Register(ctx, &plugins.PluginInfo{
+    Endpoint: endpoint,
+    Features: []plugins.PluginFeature{plugins.PluginFeature_CONNECTION},
+})
+if err != nil {
+    return err
+}
 ```
 
 References
