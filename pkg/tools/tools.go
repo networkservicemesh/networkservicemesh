@@ -145,32 +145,23 @@ func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 
 // initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
 func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
-	jaegerHost := os.Getenv("JAEGER_SERVICE_HOST")
-	jaegerPort := os.Getenv("JAEGER_SERVICE_PORT_JAEGER")
-	jaegerHostPort := fmt.Sprintf("%s:%s", jaegerHost, jaegerPort)
-
-	logrus.Infof("Using Jaeger host/port: %s", jaegerHostPort)
-
-	cfg := &config.Configuration{
-		Sampler: &config.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &config.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: jaegerHostPort,
-		},
+	cfg, err := config.FromEnv()
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot create Jaeger configuration: %v\n", err))
 	}
+
+	cfg.Sampler.Type = "const"
+	cfg.Sampler.Param = 1
+	cfg.Reporter.LogSpans = true
 
 	hostname, err := os.Hostname()
-	var serviceName string
 	if err == nil {
-		serviceName = fmt.Sprintf("%s@%s", service, hostname)
+		cfg.ServiceName = fmt.Sprintf("%s@%s", service, hostname)
 	} else {
-		serviceName = service
+		cfg.ServiceName = service
 	}
 
-	tracer, closer, err := cfg.New(serviceName, config.Logger(jaeger.StdLogger))
+	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}
