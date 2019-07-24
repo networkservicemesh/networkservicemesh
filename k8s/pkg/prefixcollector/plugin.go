@@ -26,16 +26,7 @@ func StartPrefixPlugin(config *rest.Config) error {
 		return err
 	}
 
-	conn, err := tools.SocketOperationCheck(tools.SocketPath(endpoint))
-	if err != nil {
-		return err
-	}
-
-	if err = conn.Close(); err != nil {
-		return err
-	}
-
-	if err = registerPlugin(endpoint); err != nil {
+	if err := registerPlugin(endpoint); err != nil {
 		return err
 	}
 
