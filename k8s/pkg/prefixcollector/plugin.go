@@ -66,7 +66,7 @@ func registerPlugin(endpoint string) error {
 	conn, err := tools.DialUnix(plugins.PluginRegistrySocket)
 	defer func() { _ = conn.Close() }()
 	if err != nil {
-		logrus.Fatalf("Cannot connect to the service: %v", err)
+		logrus.Fatalf("Cannot connect to the Plugin Registry: %v", err)
 	}
 
 	client := plugins.NewPluginRegistryClient(conn)

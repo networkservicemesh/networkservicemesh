@@ -1,0 +1,117 @@
+Plugins
+=======
+
+Specification
+-------------
+
+NSM provides a way to extend its functionality by creating plugins. Here is a small glossary:
+
+- **Plugin** — a gRPC server that implements one or more Plugin Features to extend NSM functionality
+- **Plugin Feature** — a gRPC service definition that specifies methods related to one small piece of NSM functionality (for example, connection feature is only responsible for updating and validating a connection)
+- **Plugin Registry** — NSM service that registers plugins and provides a way to call them from NSM
+
+NSM Plugin Registry has a registration gRPC service, so each plugin can register itself through this service. The communication between NSM Plugin Registry and plugins is happen through gRPC on a Unix socket.
+
+Each plugin is a gRPC server that implements one (or more) of the defined gRPC services. The plugin has to start the server on a Unix socket under `plugins.PluginRegistryPath` and send the socket path on registration. Once it is registered, it can serve incoming gRPC requests from NSM.
+
+Implementation details
+----------------------
+
+The model is placed in `controlplane/pkg/apis/plugins` directory. It contains the following files:
+- **constants.go** specifies `PluginRegistryPath` (the location of plugin sockets) and `PluginRegistrySocket` (the location of NSM Plugin Registry socket) constants
+- **registry.proto** defines Plugin Registry gRPC service
+- **connectionplugin.proto** defines a gRPC model for plugins implementing the connection feature
+
+Plugin Registry implementation is placed in `controlplane/pkg/plugins` directory. It contains the following files:
+- **registry.go** implements Plugin Registry that can register plugins and provide getters for plugin managers
+- **connectionplugin.go** implements a connection plugin manager that can call all plugins implementing the connection feature
+
+Plugin Registry is stored as a field inside **nsm.NetworkServiceManager** implementation and may be called in the following way:
+
+```go
+func (srv *networkServiceManager) updateConnection(conn connection.Connection) {
+    ...
+    
+    srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+}
+
+func (srv *networkServiceManager) validateConnection(conn connection.Connection) error {
+    ...
+    
+    if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn); err != nil {
+        return err
+    }
+    
+    return nil
+}
+```
+
+Example usage
+-------------
+
+#### 1. Create a gRPC server implements a plugin
+
+Create a gRPC server on a Unix socket under `plugins.PluginRegistryPath` path. Then register it with a service by calling `plugins.Register*PluginServer(server, service)`.
+
+If you implement few plugin features inside one plugin, you have to register it few times. Check `plugins.PluginFeature` enum to see the list of supported features.
+
+#### 2. Register the plugin in NSM Plugin Registry
+
+NSM Plugin Registry is a gRPC server run on the Unix socket at `plugins.PluginRegistrySocket` path. To register a plugin you have to make a gRPC call to the `Register` method and provide registration data.
+
+Registration data is provided in plugins.PluginInfo structure which has the following fields:
+- **Endpoint** — the path to the Unix socket you've started gRPC server on
+- **Features** — list of features implemented by your plugin
+
+```go
+    import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+    
+    ...
+
+    // 1. Create a gRPC server that implements a plugin
+
+    endpoint := path.Join(plugins.PluginRegistryPath, "your-plugin-name.sock")
+    sock, err := net.Listen("unix", endpoint)
+    if err != nil {
+        return err
+    }
+
+    server := grpc.NewServer(...)
+
+    service := newConnectionPluginService()
+
+    plugins.RegisterConnectionPluginServer(server, service)
+
+    go func() {
+        if err := server.Serve(sock); err != nil {
+            logrus.Error("Failed to start Plugin gRPC server", endpoint, err)
+        }
+    }()
+
+    // 2. Register the plugin in NSM Plugin Registry
+
+    conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket, ...)
+    defer conn.Close()
+    if err != nil {
+        logrus.Fatalf("Cannot connect to the Plugin Registry: %v", err)
+    }
+    
+    client := plugins.NewPluginRegistryClient(conn)
+    
+    ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+    defer cancel()
+    
+    _, err = client.Register(ctx, &plugins.PluginInfo{
+        Endpoint: endpoint,
+        Features: []plugins.PluginFeature{plugins.PluginFeature_CONNECTION},
+    })
+    if err != nil {
+        return err
+    }
+```
+
+References
+----------
+
+* Issue(s) reference - [#1339](https://github.com/networkservicemesh/networkservicemesh/issues/1339)
+* PR reference - [#1356](https://github.com/networkservicemesh/networkservicemesh/pull/1356)
