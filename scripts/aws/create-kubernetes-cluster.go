@@ -217,7 +217,6 @@ func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	err = ioutil.WriteFile(keyFile, []byte(*resp.KeyMaterial), 0400)
 
 	checkError(err)
-	log.Print(resp)
 	log.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
 }
 

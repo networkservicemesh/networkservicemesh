@@ -3,8 +3,6 @@
 package nsmd_integration_tests
 
 import (
-	"context"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 
 	"testing"
@@ -15,7 +13,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 func TestSimpleMetrics(t *testing.T) {
@@ -66,29 +63,6 @@ func TestSimpleMetrics(t *testing.T) {
 	case <-time.After(defaultTimeout):
 		t.Fatalf("Fail to get metrics during %v", defaultTimeout)
 	}
-}
-
-func crossConnectClient(address string) (crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient, func()) {
-	var err error
-	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		Expect(err).To(BeNil())
-		return nil, nil
-	}
-	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
-	stream, err := monitorClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
-	if err != nil {
-		Expect(err).To(BeNil())
-		return nil, nil
-	}
-
-	closeFunc := func() {
-		if err := conn.Close(); err != nil {
-			logrus.Errorf("Closing the stream with: %v", err)
-		}
-	}
-	return stream, closeFunc
 }
 
 func metricsFromEventCh(eventCh <-chan *crossconnect.CrossConnectEvent) chan map[string]string {

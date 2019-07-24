@@ -92,19 +92,12 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 
 // Register registers
 func Register(kubeletEndpoint string) error {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(kubeletEndpoint, grpc.WithInsecure(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-	defer conn.Close()
+	conn, err := tools.DialUnix(kubeletEndpoint)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
 	}
+	defer func() { _ = conn.Close() }()
+
 	client := pluginapi.NewRegistrationClient(conn)
 	reqt := &pluginapi.RegisterRequest{
 		Version:      pluginapi.Version,
@@ -190,7 +183,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.SocketOperationCheck(tools.SocketPath(listenEndpoint))
+	conn, err := tools.DialUnix(listenEndpoint)
 	if err != nil {
 		return err
 	}

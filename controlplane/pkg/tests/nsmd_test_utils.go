@@ -227,7 +227,7 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Cont
 	}
 
 	logrus.Println("Remote Network Service is available, attempting to connect...")
-	conn, err := grpc.Dial(nsm.Url, grpc.WithInsecure())
+	conn, err := tools.DialTCP(nsm.GetUrl())
 	if err != nil {
 		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
 		return nil, nil, err
@@ -332,7 +332,7 @@ func (impl *nsmdTestServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.
 	if err != nil {
 		return nil, nil, err
 	}
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	conn, err := tools.DialTCP(addr)
 	if err != nil {
 		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", addr, err)
 		return nil, nil, err
@@ -400,8 +400,7 @@ func newNetworkServiceClient(nsmServerSocket string) (local_networkservice.Netwo
 		return nil, nil, err
 	}
 
-	conn, err := tools.SocketOperationCheck(tools.SocketPath(nsmServerSocket))
-
+	conn, err := tools.DialUnix(nsmServerSocket)
 	if err != nil {
 		return nil, nil, err
 	}

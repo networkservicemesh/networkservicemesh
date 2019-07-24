@@ -3,18 +3,16 @@ package vppagent
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"io"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type MetricsCollector struct {
@@ -34,12 +32,7 @@ func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint
 }
 
 func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	conn, err := tools.DialTCP(endpoint)
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return

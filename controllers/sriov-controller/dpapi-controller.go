@@ -17,6 +17,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"os"
 	"path"
@@ -181,7 +182,7 @@ func (s *serviceInstanceController) startServer() error {
 	go s.server.Serve(sock)
 
 	// Wait for server to start by launching a blocking connection
-	conn, err := dial(s.socket, 5*time.Second)
+	conn, err := tools.DialUnix(s.socket)
 	if err != nil {
 		return err
 	}
@@ -200,7 +201,7 @@ func (s *serviceInstanceController) cleanup() error {
 
 // register registers service instance controller for the given network service with Kubelet.
 func (s *serviceInstanceController) register() error {
-	conn, err := dial(pluginapi.KubeletSocket, 5*time.Second)
+	conn, err := tools.DialUnix(pluginapi.KubeletSocket)
 	if err != nil {
 		return err
 	}
@@ -367,19 +368,4 @@ func (s *serviceInstanceController) checkVF(id string) bool {
 		}
 	}
 	return false
-}
-
-// dial establishes the gRPC communication with the registered device plugin.
-func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error) {
-	c, err := grpc.Dial(unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithTimeout(timeout),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
 }

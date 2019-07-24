@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -75,12 +73,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		return nil, nil, err
 	}
 
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.DialContext(ctx, nsm.Url, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	conn, err := tools.DialContextTCP(ctx, nsm.GetUrl())
 	if err != nil {
 		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
@@ -91,7 +84,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 }
 
 func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	nseConn, err := tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation))
+	nseConn, err := tools.DialUnix(endpoint.SocketLocation)
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
@@ -102,7 +95,7 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 }
 
 func (impl *nsmdServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {
-	dataplaneConn, err := tools.SocketOperationCheck(tools.SocketPath(dataplane.SocketLocation))
+	dataplaneConn, err := tools.DialUnix(dataplane.SocketLocation)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -116,7 +109,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 		return nil, nil, err
 	}
 
-	conn, err := tools.SocketOperationCheck(tools.SocketPath(ServerSock))
+	conn, err := tools.DialUnix(ServerSock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -180,7 +173,6 @@ func (impl *nsmdServiceRegistry) DiscoveryClient() (registry.NetworkServiceDisco
 }
 
 func (impl *nsmdServiceRegistry) initRegistryClient() {
-	var err error
 	if impl.registryClientConnection != nil && impl.registryClientConnection.GetState() == connectivity.Ready {
 		return // Connection already established.
 	}
@@ -188,12 +180,8 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 	for impl.stopRedial {
 		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		logrus.Println("Registry port now available, attempting to connect...")
-		tracer := opentracing.GlobalTracer()
-		conn, err := grpc.Dial(impl.registryAddress, grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(
-				otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-			grpc.WithStreamInterceptor(
-				otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+
+		conn, err := tools.DialTCP(impl.registryAddress)
 		if err != nil {
 			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
 			continue
@@ -202,8 +190,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient() {
 		logrus.Infof("Successfully connected to %s", impl.registryAddress)
 		return
 	}
-	err = fmt.Errorf("stopped before success trying to dial Network Registry Server")
-	logrus.Error(err)
+	logrus.Error("stopped before success trying to dial Network Registry Server")
 }
 
 func (impl *nsmdServiceRegistry) Stop() {

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"testing"
 
@@ -107,7 +108,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {
 	var err error
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := tools.DialTCP(address)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return nil
