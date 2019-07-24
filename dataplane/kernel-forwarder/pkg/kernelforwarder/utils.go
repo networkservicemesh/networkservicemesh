@@ -187,7 +187,7 @@ func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnec
 	}
 	if connect {
 		/* 2. Create a connection */
-		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.Name(), egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
+		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
 		if err != nil {
 			logrus.Errorf("failed to create remote connection - %v", err)
 		}
@@ -211,7 +211,7 @@ func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnec
 	}
 	if connect {
 		/* 2. Create a connection */
-		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.Name(), egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
+		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
 		if err != nil {
 			logrus.Errorf("failed to create remote connection - %v", err)
 		}
@@ -225,7 +225,7 @@ func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnec
 	return crossConnect, err
 }
 
-func createRemoteConnection(nsPath, ifaceName, ifaceIP, egressName string, egressIP, remoteIP net.IP, vni int) error {
+func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int) error {
 	logrus.Info("Creating remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -236,7 +236,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP, egressName string, egres
 	}
 
 	/* 2. Prepare interface - VXLAN */
-	iface, err := newVXLAN(ifaceName, egressName, egressIP, remoteIP, vni)
+	iface, err := newVXLAN(ifaceName, egressIP, remoteIP, vni)
 	if err != nil {
 		logrus.Errorf("failed to get VXLAN interface configuration - %v", err)
 		return err
@@ -428,21 +428,14 @@ func newVETH(srcName, dstName string) *netlink.Veth {
 	}
 }
 
-func newVXLAN(ifaceName, egressName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vxlan, error) {
-	/* Get a link object for the egress interface on the host */
-	egressLink, err := netlink.LinkByName(egressName)
-	if err != nil {
-		logrus.Errorf("Failed to get egress VXLAN interface - %v", err)
-		return nil, err
-	}
+func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vxlan, error) {
 	/* Populate the VXLAN interface configuration */
 	return &netlink.Vxlan{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: ifaceName,
 		},
-		VxlanId:      vni,
-		VtepDevIndex: egressLink.Attrs().Index,
-		Group:        remoteIP,
-		SrcAddr:      egressIP,
+		VxlanId: vni,
+		Group:   remoteIP,
+		SrcAddr: egressIP,
 	}, nil
 }
