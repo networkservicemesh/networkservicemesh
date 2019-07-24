@@ -19,5 +19,6 @@ providers:
       config: make vagrant-config-location
       prepare: |
         make k8s-load-images
+        make spire-start
         make k8s-config
       stop: make vagrant-suspend
