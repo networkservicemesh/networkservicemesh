@@ -6,14 +6,12 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -120,13 +118,7 @@ func (f *Flush) createConnection(ctx context.Context) (*grpc.ClientConn, error) 
 		return nil, err
 	}
 
-	tracer := opentracing.GlobalTracer()
-	rv, err := grpc.Dial(f.Endpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
+	rv, err := tools.DialTCP(f.Endpoint)
 	if err != nil {
 		logrus.Errorf("Can't dial grpc server: %v", err)
 		return nil, err

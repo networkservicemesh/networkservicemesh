@@ -5,23 +5,14 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vppAgentEndpoint string) error {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(vppAgentEndpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
+	conn, err := tools.DialTCP(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -55,18 +46,13 @@ func Reset(vppAgentEndpoint string) error {
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", vppAgentEndpoint, 100*time.Millisecond)
 
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial(vppAgentEndpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
+	conn, err := tools.DialTCP(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
 	}
 	defer conn.Close()
+
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{

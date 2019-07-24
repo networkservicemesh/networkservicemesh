@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"sync"
 	"testing"
@@ -17,7 +18,7 @@ import (
 )
 
 func startClient(target string) {
-	conn, err := grpc.Dial(target, grpc.WithInsecure())
+	conn, err := tools.DialTCP(target)
 	defer conn.Close()
 
 	Expect(err).To(BeNil())

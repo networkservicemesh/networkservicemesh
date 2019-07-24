@@ -17,6 +17,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"github.com/uber/jaeger-client-go/config"
 	"io"
 	"net"
 	"net/url"
@@ -28,12 +29,9 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"github.com/uber/jaeger-client-go"
-	"github.com/uber/jaeger-client-go/config"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -93,35 +91,6 @@ func NewOSSignalChannel() chan os.Signal {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	return c
-}
-
-// SocketOperationCheck checks for liveness of a gRPC server socket.
-func SocketOperationCheck(endpoint net.Addr) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	return SocketOperationCheckContext(ctx, endpoint)
-}
-func SocketOperationCheckContext(ctx context.Context, listenEndpoint net.Addr) (*grpc.ClientConn, error) {
-	conn, err := dial(ctx, listenEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
-}
-
-func dial(ctx context.Context, endpoint net.Addr) (*grpc.ClientConn, error) {
-	tracer := opentracing.GlobalTracer()
-	c, err := grpc.DialContext(ctx, endpoint.String(), grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout(endpoint.Network(), addr, timeout)
-		}),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
-	return c, err
 }
 
 // WaitForPortAvailable waits while the port will is available. Throws exception if the context is done.

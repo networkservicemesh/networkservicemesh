@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
@@ -28,7 +29,7 @@ type proxyMonitor struct {
 func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
 	logrus.Infof("MonitorCrossConnects called, address - %v", p.address)
 
-	conn, err := grpc.Dial(p.address, grpc.WithInsecure())
+	conn, err := tools.DialTCP(p.address)
 	if err != nil {
 		logrus.Error(err)
 		return err
