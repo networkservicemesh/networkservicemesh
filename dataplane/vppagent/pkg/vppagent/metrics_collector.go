@@ -6,8 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
 	"github.com/gogo/protobuf/proto"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 type MetricsCollector struct {

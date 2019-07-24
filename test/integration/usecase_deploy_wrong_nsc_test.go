@@ -4,15 +4,13 @@ package nsmd_integration_tests
 
 import (
 	"strings"
+	"testing"
 
+	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-
-	"testing"
-
-	"github.com/onsi/gomega"
 )
 
 func TestDeployWrongNsc(t *testing.T) {

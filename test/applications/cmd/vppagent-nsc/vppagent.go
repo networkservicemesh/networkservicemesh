@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ligato/vpp-agent/api/configurator"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"

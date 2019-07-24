@@ -7,8 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -16,6 +14,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func startClient(target string) {
