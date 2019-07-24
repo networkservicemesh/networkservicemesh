@@ -14,7 +14,7 @@
 
 BUILD_CONTAINERS=nsmd nsmdp nsmd-k8s
 BUILD_CONTAINERS+=crossconnect-monitor
-BUILD_CONTAINERS+=nsm-init
+BUILD_CONTAINERS+=nsm-init nsm-monitor
 BUILD_CONTAINERS+=test-common
 
 # Set the configured forwarding plane
