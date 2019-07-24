@@ -17,11 +17,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/opentracing/opentracing-go"
 	"net"
 	"path"
 	"sync"
 	"time"
+
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 

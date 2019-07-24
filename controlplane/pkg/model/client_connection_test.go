@@ -2,11 +2,12 @@ package model
 
 import (
 	"fmt"
+	"strconv"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	. "github.com/onsi/gomega"
-	"strconv"
-	"testing"
 )
 
 func TestAddAndGetСс(t *testing.T) {

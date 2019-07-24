@@ -1,11 +1,12 @@
 package tests
 
 import (
+	"io/ioutil"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"testing"
 )
 
 func TestClusterConfiguration(t *testing.T) {

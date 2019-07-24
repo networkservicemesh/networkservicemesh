@@ -1,11 +1,12 @@
 package model
 
 import (
+	"strconv"
+	"sync"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
 	"github.com/sirupsen/logrus"
-	"strconv"
-	"sync"
 )
 
 type Model interface {

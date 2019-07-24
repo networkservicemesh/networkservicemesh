@@ -2,16 +2,17 @@ package tests
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/commands"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"os"
-	"strings"
-	"testing"
 )
 
 const (

@@ -1,11 +1,12 @@
 package memifproxy
 
 import (
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"testing"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 func TestClosingOpeningMemifProxy(t *testing.T) {

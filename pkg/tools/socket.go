@@ -2,14 +2,15 @@ package tools
 
 import (
 	"context"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"net"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 const (

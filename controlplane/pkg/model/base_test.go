@@ -1,10 +1,11 @@
 package model
 
 import (
-	. "github.com/onsi/gomega"
 	"sync"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
 )
 
 type testResource struct {

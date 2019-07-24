@@ -2,12 +2,13 @@ package model
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	"github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
 
 // Status - Test Execution status

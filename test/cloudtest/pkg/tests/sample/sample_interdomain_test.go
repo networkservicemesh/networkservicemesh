@@ -3,10 +3,11 @@
 package sample
 
 import (
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"os"
 	"testing"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 func TestInterDomainPass(t *testing.T) {

@@ -3,12 +3,13 @@ package shell
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"github.com/sirupsen/logrus"
 	"math/big"
 	"os"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // EnvironmentManager - manages environment variables.

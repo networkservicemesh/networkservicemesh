@@ -5,6 +5,13 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
@@ -19,12 +26,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
-	"io"
-	"io/ioutil"
-	"os"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (

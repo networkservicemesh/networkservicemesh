@@ -2,10 +2,11 @@ package model
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	. "github.com/onsi/gomega"
 	"strconv"
 	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	. "github.com/onsi/gomega"
 )
 
 func TestAddAndGetEndpoint(t *testing.T) {

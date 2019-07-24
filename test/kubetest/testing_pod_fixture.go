@@ -1,9 +1,10 @@
 package kubetest
 
 import (
+	"time"
+
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
-	"time"
 )
 
 // TestingPodFixture - Tool for help testing pods

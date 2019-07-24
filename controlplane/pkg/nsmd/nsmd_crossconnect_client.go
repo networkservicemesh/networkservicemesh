@@ -17,8 +17,9 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

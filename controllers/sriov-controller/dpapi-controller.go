@@ -17,13 +17,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

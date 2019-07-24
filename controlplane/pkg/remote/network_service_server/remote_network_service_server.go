@@ -3,8 +3,9 @@ package network_service_server
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"

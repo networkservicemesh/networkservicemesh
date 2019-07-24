@@ -10,11 +10,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
 )
 
 var nseNoHeal = &pods.NSMgrPodConfig{

@@ -8,7 +8,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestOneTimeConnectionMemif(t *testing.T) {

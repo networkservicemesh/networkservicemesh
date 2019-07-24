@@ -17,7 +17,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/uber/jaeger-client-go/config"
 	"io"
 	"net"
 	"net/url"
@@ -27,6 +26,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/uber/jaeger-client-go/config"
 
 	"github.com/go-errors/errors"
 	"github.com/opentracing/opentracing-go"

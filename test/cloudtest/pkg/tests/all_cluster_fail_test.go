@@ -1,13 +1,14 @@
 package tests
 
 import (
+	"io/ioutil"
+	"os"
+	"testing"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/commands"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
-	"os"
-	"testing"
 )
 
 func TestClusterInstancesFailed(t *testing.T) {

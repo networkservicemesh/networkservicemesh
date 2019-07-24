@@ -4,6 +4,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"math/rand"
+	"os"
+	"path"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
@@ -12,13 +20,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	"github.com/packethost/packngo"
 	"github.com/sirupsen/logrus"
-	"io"
-	"math/rand"
-	"os"
-	"path"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
