@@ -33,11 +33,16 @@ import (
 
 // Kernel forwarding plane related constants
 const (
-	cLOCAL      = 1
-	cINCOMING   = 2
-	cOUTGOING   = 3
+	cLOCAL    = iota
+	cINCOMING = iota
+	cOUTGOING = iota
+)
+
+const (
 	cCONNECT    = true
 	cDISCONNECT = false
+	/* VETH pairs are used only for local connections(same node), so we can use a larger MTU size as there's no multi-node connection */
+	cVETHMTU = 16000
 )
 
 type connectionConfig struct {
@@ -55,7 +60,7 @@ type connectionConfig struct {
 func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	logrus.Info("Incoming connection - local source/local destination")
 	/* 1. Get the connection configuration */
-	cfg, err := getConnectionConfig(crossConnect, cLOCAL)
+	cfg, err := newConnectionConfig(crossConnect, cLOCAL)
 	if err != nil {
 		logrus.Errorf("Failed to get the configuration for local connection - %v", err)
 		return crossConnect, err
@@ -93,7 +98,7 @@ func createLocalConnection(cfg *connectionConfig) error {
 	}
 
 	/* 2. Prepare interface - VETH */
-	iface := getVETH(cfg.srcName, cfg.dstName)
+	iface := newVETH(cfg.srcName, cfg.dstName)
 
 	/* 3. Create the VETH pair - host namespace */
 	if err = netlink.LinkAdd(iface); err != nil {
@@ -175,7 +180,7 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	logrus.Info("Incoming connection - remote source/local destination")
 	/* 1. Get the connection configuration */
-	cfg, err := getConnectionConfig(crossConnect, cINCOMING)
+	cfg, err := newConnectionConfig(crossConnect, cINCOMING)
 	if err != nil {
 		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
@@ -199,7 +204,7 @@ func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnec
 func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
 	logrus.Info("Outgoing connection - local source/remote destination")
 	/* 1. Get the connection configuration */
-	cfg, err := getConnectionConfig(crossConnect, cOUTGOING)
+	cfg, err := newConnectionConfig(crossConnect, cOUTGOING)
 	if err != nil {
 		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
@@ -231,7 +236,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP, egressName string, egres
 	}
 
 	/* 2. Prepare interface - VXLAN */
-	iface, err := getVXLAN(ifaceName, egressName, egressIP, remoteIP, vni)
+	iface, err := newVXLAN(ifaceName, egressName, egressIP, remoteIP, vni)
 	if err != nil {
 		logrus.Errorf("failed to get VXLAN interface configuration - %v", err)
 		return err
@@ -355,7 +360,7 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 	return nil
 }
 
-func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
+func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
 	switch connType {
 	case cLOCAL:
 		srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
@@ -412,18 +417,18 @@ func getConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	}
 }
 
-func getVETH(srcName, dstName string) *netlink.Veth {
+func newVETH(srcName, dstName string) *netlink.Veth {
 	/* Populate the VETH interface configuration */
 	return &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: srcName,
-			MTU:  16000,
+			MTU:  cVETHMTU,
 		},
 		PeerName: dstName,
 	}
 }
 
-func getVXLAN(ifaceName, egressName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vxlan, error) {
+func newVXLAN(ifaceName, egressName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vxlan, error) {
 	/* Get a link object for the egress interface on the host */
 	egressLink, err := netlink.LinkByName(egressName)
 	if err != nil {
