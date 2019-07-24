@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var version string

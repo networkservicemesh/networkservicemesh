@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	. "github.com/onsi/gomega"
 )
 
 func TestAddAndGetСс(t *testing.T) {

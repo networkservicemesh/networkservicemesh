@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/crds"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 const (

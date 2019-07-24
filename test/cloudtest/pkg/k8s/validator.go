@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 )
 
 // KubernetesValidator - a validator to check periodically of cluster livenes.

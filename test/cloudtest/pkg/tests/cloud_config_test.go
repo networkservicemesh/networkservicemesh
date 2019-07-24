@@ -4,9 +4,10 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 )
 
 func TestClusterConfiguration(t *testing.T) {

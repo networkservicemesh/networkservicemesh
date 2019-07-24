@@ -4,9 +4,10 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
-	"github.com/sirupsen/logrus"
 )
 
 type Model interface {

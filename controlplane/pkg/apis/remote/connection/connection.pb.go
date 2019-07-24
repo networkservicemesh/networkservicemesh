@@ -9,10 +9,11 @@ import (
 	math "math"
 
 	proto "github.com/golang/protobuf/proto"
-	connectioncontext "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+
+	connectioncontext "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

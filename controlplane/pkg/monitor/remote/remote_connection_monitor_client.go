@@ -3,9 +3,10 @@ package remote
 import (
 	"context"
 
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"google.golang.org/grpc"
 )
 
 type eventStream struct {

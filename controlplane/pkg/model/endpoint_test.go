@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 func TestAddAndGetEndpoint(t *testing.T) {

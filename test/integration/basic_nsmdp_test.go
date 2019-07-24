@@ -5,10 +5,11 @@ package nsmd_integration_tests
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
 )
 
 func TestNSMDDP(t *testing.T) {

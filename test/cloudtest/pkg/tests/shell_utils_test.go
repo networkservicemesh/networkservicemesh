@@ -3,8 +3,9 @@ package tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
 
 func TestVariableSubstitutions(t *testing.T) {

@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/golang/protobuf/proto"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
