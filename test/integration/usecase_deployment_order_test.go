@@ -33,12 +33,20 @@ func TestDeploymentOrder2EndpointClient(t *testing.T) {
 }
 
 func TestDeploymentOrder2EndpointClientWebhook(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
+		return
+	}
 	testDeploymentOrder(t, []Deployment{
 		DeployEndpoint, DeployEndpoint,
 		DeployClientWebhook})
 }
 
 func TestDeploymentOrder2EndpointClientAndWebhook(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
+		return
+	}
 	testDeploymentOrder(t, []Deployment{
 		DeployEndpoint, DeployEndpoint,
 		DeployClient,
@@ -119,6 +127,10 @@ func TestDeploymentOrderServiceClientEndpointClient(t *testing.T) {
 }
 
 func TestDeploymentOrderServiceClientWebhookEndpoint(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
+		return
+	}
 	testDeploymentOrder(t, []Deployment{
 		DeployService,
 		DeployClientWebhook,
@@ -126,6 +138,10 @@ func TestDeploymentOrderServiceClientWebhookEndpoint(t *testing.T) {
 }
 
 func TestDeploymentOrderService4ClientWebhook2Endpoint(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
+		return
+	}
 	testDeploymentOrder(t, []Deployment{
 		DeployService,
 		DeployClientWebhook, DeployClientWebhook, DeployClientWebhook, DeployClientWebhook,
@@ -134,11 +150,6 @@ func TestDeploymentOrderService4ClientWebhook2Endpoint(t *testing.T) {
 
 func testDeploymentOrder(t *testing.T, order []Deployment) {
 	RegisterTestingT(t)
-
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
-		return
-	}
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
