@@ -113,6 +113,10 @@ issues:
       linters:
         - gochecknoglobals
         - gochecknoinits
+    - path: pkg/tools/socket.go
+      linters:
+        - gochecknoglobals
+        - gochecknoinits
     - path: controlplane/pkg/monitor/
       linters:
         - dupl

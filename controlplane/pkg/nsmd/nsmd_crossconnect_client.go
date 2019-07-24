@@ -18,11 +18,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	"net"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -93,20 +90,6 @@ func NewMonitorCrossConnectClient(monitorManager MonitorManager, xconManager *se
 		dataplanes:      map[string]context.CancelFunc{},
 	}
 	return rv
-}
-
-func dial(ctx context.Context, network, address string) (*grpc.ClientConn, error) {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.Dial(network, addr)
-		}),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer)),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
-
-	return conn, err
 }
 
 // EndpointAdded implements method from Listener
@@ -278,7 +261,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 	var err error
 
 	for st := time.Now(); time.Since(st) < endpointConnectionTimeout; <-time.After(100 * time.Millisecond) {
-		if conn, err = tools.SocketOperationCheck(tools.SocketPath(endpoint.SocketLocation)); err == nil {
+		if conn, err = tools.DialUnix(endpoint.SocketLocation); err == nil {
 			break
 		}
 	}
@@ -313,7 +296,7 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx context.Context, dataplane *model.Dataplane) {
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connecting to", dataplane.SocketLocation)
-		return dial(context.Background(), "unix", dataplane.SocketLocation)
+		return tools.DialUnix(dataplane.SocketLocation)
 	}
 
 	eventHandler := func(event monitor.Event) error {
@@ -375,7 +358,7 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer *registry.NetworkServiceManager) {
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return grpc.Dial(remotePeer.Url, grpc.WithInsecure())
+		return tools.DialTCP(remotePeer.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
