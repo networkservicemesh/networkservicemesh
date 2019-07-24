@@ -207,6 +207,26 @@ If you want to run it locally, you need to [install shellcheck](https://github.c
 
 The [.circleci/config.yml](https://github.com/networkservicemesh/networkservicemesh/blob/master/.circleci/config.yml) file is the canonical source of how to build Network Service Mesh in case this file becomes out of date.
 
+## Code formatting
+We use `goimports` tool since it formats the code in the same style as `go fmt` and organizes imports additionally.
+
+To install goimports execute:
+```bash
+GO111MODULE=off go get golang.org/x/tools/cmd/goimports
+```
+
+To do formatting run:
+```bash
+goimports -w .
+```
+
+or simply:
+```bash
+make format
+```
+
+It may be useful to have `goimports` installed as on save hook in your editor. [This page](https://godoc.org/golang.org/x/tools/cmd/goimports) may help you to achieve this.
+
 ## Static analysis of code
 Get code static analyzer tool:
 ```bash
