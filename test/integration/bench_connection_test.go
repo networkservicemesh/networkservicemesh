@@ -59,6 +59,47 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 	testOneToOneConnection(t, 1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 
+func TestOneTimeNseAndNscConnection(t *testing.T) {
+	RegisterTestingT(t)
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	testOneTimeNseAndNscConnection(t, 2, kubetest.DefaultTestingPodFixture())
+}
+
+func TestOneTimeNseAndNscConnectionMemif(t *testing.T) {
+	RegisterTestingT(t)
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	testOneTimeNseAndNscConnection(t, 1, kubetest.VppAgentTestingPodFixture())
+}
+
+func testOneTimeNseAndNscConnection(t *testing.T, nodeCount int, fixture kubetest.TestingPodFixture) {
+	k8s, err := kubetest.NewK8s(true)
+	defer k8s.Cleanup()
+	Expect(err).To(BeNil())
+	defer kubetest.ShowLogs(k8s, t)
+	nodes := createNodes(k8s, nodeCount)
+	doneChannel := make(chan bool, nscCount)
+
+	for i := 0; i < nscMaxCount; i++ {
+		go func(index int) {
+			nse := fixture.DeployNse(k8s, nodes[0].Node, icmpDefaultName+strconv.Itoa(index), defaultTimeout)
+			nsc := fixture.DeployNsc(k8s, nodes[nodeCount-1].Node, nscDefaultName+strconv.Itoa(index), defaultTimeout)
+			defer k8s.DeletePods(nse, nsc)
+			fixture.CheckNsc(k8s, nsc)
+			doneChannel <- true
+		}(i)
+	}
+
+	for i := 0; i < nscMaxCount; i++ {
+		<-doneChannel
+	}
+}
+
 func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, nsePing kubetest.NsePinger) {
 	g := NewWithT(t)
 
