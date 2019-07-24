@@ -6,17 +6,15 @@ package dataplane
 import (
 	context "context"
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
 	empty "github.com/golang/protobuf/ptypes/empty"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
-
 	crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	connection1 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
