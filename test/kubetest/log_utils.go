@@ -118,11 +118,11 @@ func logTransaction(name, content string) {
 		drawUnit:   TransactionLogUnit,
 	}
 	drawer.writeLine()
-	drawer.writeLineWithText(StartLogsOf + name)
+	drawer.writeLineWithText(StartLogsOf + " " + name)
 	drawer.writeLine()
 	drawer.writeText(content)
 	drawer.writeLine()
-	drawer.writeLineWithText(EndLogsOf + name)
+	drawer.writeLineWithText(EndLogsOf + " " + name)
 	drawer.writeLine()
 	logrus.Println(drawer.buff.String())
 	logrus.SetFormatter(f)
