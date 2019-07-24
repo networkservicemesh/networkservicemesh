@@ -117,7 +117,7 @@ docker-%-logs:
 # The following targets are meant to be run when working with the code locally.
 #
 format:
-	@${GOIMPORTS} -w -local github.com/networkservicemesh/networkservicemesh -d $(find . -type f -name '*.go' -not -name '*.pb.go')
+	@${GOIMPORTS} -w -local github.com/networkservicemesh/networkservicemesh -d `find . -type f -name '*.go' -not -name '*.pb.go'`
 
 generate:
 	@${GOGENERATE} ./...
