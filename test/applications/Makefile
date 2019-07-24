@@ -22,7 +22,7 @@ default: all
 
 GOPATH?=$(shell go env GOPATH)
 GOCMD=go
-GOFMT=${GOCMD} fmt
+GOIMPORTS=goimports
 GOGET=${GOCMD} get
 GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
@@ -38,7 +38,7 @@ LOG_CONTAINERS=$(KILL_CONTAINERS)
 # which are run from the Makefiles
 export GOPATH \
        GOCMD \
-       GOFMT \
+       GOIMPORTS \
        GOGET \
        GOGENERATE \
        GOINSTALL \
@@ -117,7 +117,7 @@ docker-%-logs:
 # The following targets are meant to be run when working with the code locally.
 #
 format:
-	@${GOFMT} ./...
+	@${GOIMPORTS} -w .
 
 generate:
 	@${GOGENERATE} ./...
