@@ -72,12 +72,7 @@ func createPlugin(config *rest.Config, endpoint string) error {
 }
 
 func registerPlugin(endpoint string) error {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	conn, err := tools.DialUnix(plugins.PluginRegistrySocket)
 	defer func() { _ = conn.Close() }()
 	if err != nil {
 		logrus.Fatalf("Cannot connect to the service: %v", err)

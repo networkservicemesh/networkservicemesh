@@ -92,12 +92,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 }
 
 func (pr *pluginRegistry) createConnection(endpoint string) (*grpc.ClientConn, error) {
-	tracer := opentracing.GlobalTracer()
-	conn, err := grpc.Dial("unix:"+endpoint, grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.WithStreamInterceptor(
-			otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+	conn, err := tools.DialUnix(endpoint)
 	if err != nil {
 		return nil, err
 	}
