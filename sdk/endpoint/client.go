@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
@@ -63,11 +64,16 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 // Consumes from ctx context.Context:
 //	   Next
 func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	var result error
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
-		cce.nsmClient.Close(ctx, outgoingConnection)
+		if err := cce.nsmClient.Close(ctx, outgoingConnection); err != nil {
+			result = multierror.Append(result, err)
+		}
 	}
 	if Next(ctx) != nil {
-		return Next(ctx).Close(ctx, connection)
+		if _, err := Next(ctx).Close(ctx, connection); err != nil {
+			return &empty.Empty{}, multierror.Append(result, err)
+		}
 	}
 	return &empty.Empty{}, nil
 }

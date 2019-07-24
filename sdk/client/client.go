@@ -79,6 +79,31 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 	}
 
 	return nsmc.PerformRequest(outgoingRequest)
+	// var outgoingConnection *connection.Connection
+	// for iteration := connectRetries; true; <-time.After(connectSleep) {
+	// 	var err error
+	// 	logrus.Infof("Sending outgoing request %v", outgoingRequest)
+
+	// 	newCtx, cancel := context.WithTimeout(ctx, connectTimeout)
+	// 	defer cancel()
+	// 	outgoingConnection, err = nsmc.NsClient.Request(newCtx, outgoingRequest)
+
+	// 	if err != nil {
+	// 		logrus.Errorf("failure to request connection with error: %+v", err)
+	// 		iteration--
+	// 		if iteration > 0 {
+	// 			continue
+	// 		}
+	// 		logrus.Errorf("Connect failed after %v iterations and %v", connectRetries, time.Since(start))
+	// 		return nil, err
+	// 	}
+
+	// 	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
+	// 	logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)
+	// 	break
+	// }
+
+	// return outgoingConnection, nil
 }
 
 // Close will terminate a particular connection
@@ -86,7 +111,7 @@ func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection
 	nsmc.Lock()
 	defer nsmc.Unlock()
 
-	nsmc.NsClient.Close(nsmc.Context, outgoingConnection)
+	_, err := nsmc.NsClient.Close(ctx, outgoingConnection)
 
 	arr := nsmc.OutgoingConnections
 	for i, c := range arr {
@@ -96,7 +121,7 @@ func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection
 			arr = arr[:len(arr)-1]
 		}
 	}
-	return nil
+	return err
 }
 
 // Destroy stops the whole module
