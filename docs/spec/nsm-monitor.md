@@ -4,7 +4,10 @@ Sidecar nsm-monitor
 
 Specification
 -------------
-nsm-monitor is simple sidecar for monitoring connection events into client's POD. Also, it providing API for creating custom nsm-monitor (see below).  
+`nsm-monitor` is simple sidecar for monitoring connection events into client's POD. Also, it providing API for creating custom `nsm-monitor` (see below). 
+Monitoring for connection can be used for different purposes, for example:
+* Extract data from the connection
+* Handle events related to connection removed/added/healed.
 
 Implementation details
 ---------------------------------

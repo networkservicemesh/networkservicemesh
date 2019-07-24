@@ -32,6 +32,7 @@ func (h *nsmHelper) Connected(map[string]*connection.Connection) {
 }
 
 func (h *nsmHelper) Healing(conn *connection.Connection) {
+	h.healing <- true
 }
 
 func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {

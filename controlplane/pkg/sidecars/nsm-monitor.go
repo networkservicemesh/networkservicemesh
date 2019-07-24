@@ -33,7 +33,7 @@ const (
 	nsmMonitorLogFormat          = "NSM Monitor: %v"
 	nsmMonitorLogWithParamFormat = "NSM Monitor: %v: %v"
 
-	nsmMonitorRetryDelay = 5 // in seconds
+	nsmMonitorRetryDelay = 5 * time.Second
 )
 
 // NSMMonitorHelper - helper to perform configuration of monitoring app required for testing.
@@ -58,11 +58,11 @@ type NSMMonitorApp interface {
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
 	helper      NSMMonitorHelper
-	stop        chan bool
+	stop        chan struct{}
 }
 
 func (c *nsmMonitorApp) Stop() {
-	c.stop <- true
+	close(c.stop)
 }
 
 // SetHelper - sets a helper class
@@ -87,7 +87,7 @@ func (c *nsmMonitorApp) Run(version string) {
 func NewNSMMonitorApp() NSMMonitorApp {
 	return &nsmMonitorApp{
 		connections: map[string]*connection.Connection{},
-		stop:        make(chan bool),
+		stop:        make(chan struct{}),
 	}
 }
 
@@ -128,6 +128,7 @@ func (c *nsmMonitorApp) beginMonitoring() {
 				// Since NSMD will setup public socket only when all connections will be ok, we need to perform request only on ones it loose.
 				if c.performRecovery(nsmClient) {
 					// since we not recovered, we will continue after delay
+					c.waitRetry()
 					continue
 				} else {
 					recovery = true
@@ -180,8 +181,8 @@ func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
 }
 
 func (c *nsmMonitorApp) waitRetry() {
-	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay %v sec", nsmMonitorRetryDelay)
-	<-time.After(nsmMonitorRetryDelay * time.Second)
+	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay %v sec", nsmMonitorRetryDelay/time.Second)
+	<-time.After(nsmMonitorRetryDelay)
 }
 
 func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
@@ -230,9 +231,5 @@ func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
 			c.helper.ProcessHealing(newConn, err)
 		}
 	}
-	if needRetry {
-		c.waitRetry()
-		return true
-	}
-	return false
+	return needRetry
 }
