@@ -217,11 +217,6 @@ GO111MODULE=off go get golang.org/x/tools/cmd/goimports
 
 To do formatting run:
 ```bash
-goimports -w .
-```
-
-or simply:
-```bash
 make format
 ```
 

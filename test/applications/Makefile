@@ -117,7 +117,7 @@ docker-%-logs:
 # The following targets are meant to be run when working with the code locally.
 #
 format:
-	@${GOIMPORTS} -w .
+	@${GOIMPORTS} -w -local github.com/networkservicemesh/networkservicemesh .
 
 generate:
 	@${GOGENERATE} ./...
