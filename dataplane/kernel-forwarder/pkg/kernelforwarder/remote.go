@@ -33,57 +33,35 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming remote connection */
-		return handleIncoming(egress, crossConnect, connect)
+		logrus.Info("Incoming connection - remote source/local destination")
+		return handleConnection(egress, crossConnect, connect, cINCOMING)
 	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing remote connection */
-		return handleOutgoing(egress, crossConnect, connect)
+		logrus.Info("Outgoing connection - local source/remote destination")
+		return handleConnection(egress, crossConnect, connect, cOUTGOING)
 	}
 	logrus.Errorf("invalid remote connection type")
 	return crossConnect, fmt.Errorf("invalid remote connection type")
 }
 
-func handleIncoming(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	logrus.Info("Incoming connection - remote source/local destination")
+func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool, direction uint8) (*crossconnect.CrossConnect, error) {
 	/* 1. Get the connection configuration */
-	cfg, err := newConnectionConfig(crossConnect, cINCOMING)
+	cfg, err := newConnectionConfig(crossConnect, direction)
 	if err != nil {
 		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
 	}
+	nsPath, name, ifaceIP, vxlanIP := modifyConfiguration(cfg, direction)
 	if connect {
 		/* 2. Create a connection */
-		err = createRemoteConnection(cfg.dstNsPath, cfg.dstName, cfg.dstIP, egress.SrcIPNet().IP, cfg.srcIPVXLAN, cfg.vni)
+		err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni)
 		if err != nil {
 			logrus.Errorf("failed to create remote connection - %v", err)
 		}
 	} else {
 		/* 3. Delete a connection */
-		err = deleteRemoteConnection(cfg.dstNsPath, cfg.dstName)
-		if err != nil {
-			logrus.Errorf("failed to delete remote connection - %v", err)
-		}
-	}
-	return crossConnect, err
-}
-
-func handleOutgoing(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	logrus.Info("Outgoing connection - local source/remote destination")
-	/* 1. Get the connection configuration */
-	cfg, err := newConnectionConfig(crossConnect, cOUTGOING)
-	if err != nil {
-		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
-		return crossConnect, err
-	}
-	if connect {
-		/* 2. Create a connection */
-		err = createRemoteConnection(cfg.srcNsPath, cfg.srcName, cfg.srcIP, egress.SrcIPNet().IP, cfg.dstIPVXLAN, cfg.vni)
-		if err != nil {
-			logrus.Errorf("failed to create remote connection - %v", err)
-		}
-	} else {
-		/* 3. Delete a connection */
-		err = deleteRemoteConnection(cfg.srcNsPath, cfg.srcName)
+		err = deleteRemoteConnection(nsPath, name)
 		if err != nil {
 			logrus.Errorf("failed to delete remote connection - %v", err)
 		}
@@ -102,11 +80,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 	}
 
 	/* 2. Prepare interface - VXLAN */
-	iface, err := newVXLAN(ifaceName, egressIP, remoteIP, vni)
-	if err != nil {
-		logrus.Errorf("failed to get VXLAN interface configuration - %v", err)
-		return err
-	}
+	iface := newVXLAN(ifaceName, egressIP, remoteIP, vni)
 
 	/* 3. Create interface - host namespace */
 	if err = netlink.LinkAdd(iface); err != nil {
@@ -150,4 +124,13 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 		return err
 	}
 	return nil
+}
+
+/* modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing */
+func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP) {
+	if direction == cINCOMING {
+		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN
+	}
+	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN
+
 }

@@ -38,10 +38,10 @@ const (
 )
 
 const (
+	/* VETH pairs are used only for local connections(same node), so we can use a larger MTU size as there's no multi-node connection */
+	cVETHMTU    = 16000
 	cCONNECT    = true
 	cDISCONNECT = false
-	/* VETH pairs are used only for local connections(same node), so we can use a larger MTU size as there's no multi-node connection */
-	cVETHMTU = 16000
 )
 
 type connectionConfig struct {
@@ -198,7 +198,7 @@ func newVETH(srcName, dstName string) *netlink.Veth {
 	}
 }
 
-func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vxlan, error) {
+func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) *netlink.Vxlan {
 	/* Populate the VXLAN interface configuration */
 	return &netlink.Vxlan{
 		LinkAttrs: netlink.LinkAttrs{
@@ -207,5 +207,5 @@ func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) (*netlink.Vx
 		VxlanId: vni,
 		Group:   remoteIP,
 		SrcAddr: egressIP,
-	}, nil
+	}
 }
