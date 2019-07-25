@@ -65,22 +65,22 @@ type EmptyNSMMonitorHandler struct {
 }
 
 //Connected occurs when the nsm-monitor connected
-func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection)            {}
+func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection) {}
 
 //Healing occurs when the healing started
-func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection)                    {}
+func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
 
 //GetConfiguration returns nil by default
-func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration              { return nil }
+func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration { return nil }
 
 //ProcessHealing occurs when the restore failed, the error pass as the second parameter
 func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
 
 //Stopped occurs when the invoked NSMMonitorApp.Stop()
-func (h *EmptyNSMMonitorHandler) Stopped()                                               {}
+func (h *EmptyNSMMonitorHandler) Stopped() {}
 
 //IsEnableJaeger returns false by default
-func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool                                   { return false }
+func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool { return false }
 
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
