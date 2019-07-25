@@ -314,6 +314,28 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string) (*arv1beta1
 	return awc, awDeployment, awService
 }
 
+// WaitPod returns the Pod by name. Returns nil if pod does not exist after the timeout elapsed
+func WaitPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
+	timoutChannel := time.After(timeout)
+	for {
+		select {
+		case <-timoutChannel:
+			logrus.Errorf("can find pod %v during %v", name, timeout)
+			return nil
+		default:
+			list := k8s.ListPods()
+			for i := 0; i < len(list); i++ {
+				p := &list[i]
+				if strings.Contains(p.Name, name) {
+					return p
+				}
+			}
+
+		}
+	}
+	return nil
+}
+
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {

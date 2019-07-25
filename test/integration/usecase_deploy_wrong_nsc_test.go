@@ -5,10 +5,8 @@ package nsmd_integration_tests
 import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	v1 "k8s.io/api/core/v1"
-	"strings"
-
 	"github.com/onsi/gomega"
+	"strings"
 	"testing"
 )
 
@@ -31,19 +29,9 @@ func TestDeployWrongNsc(t *testing.T) {
 
 	awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())
 	defer kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
-
-	list := k8s.ListPods()
-	var admissionWebhookPod *v1.Pod
-	for i := 0; i < len(list); i++ {
-		p := &list[i]
-		if strings.Contains(p.Name, awDeployment.Name) {
-			admissionWebhookPod = p
-			break
-		}
-	}
+	admissionWebhookPod := kubetest.WaitPod(k8s, awDeployment.Name, defaultTimeout)
 	gomega.Expect(admissionWebhookPod).ShouldNot(gomega.BeNil())
 	k8s.WaitLogsContains(admissionWebhookPod, admissionWebhookPod.Spec.Containers[0].Name, "Server started", defaultTimeout)
 	_, err = k8s.CreatePodsRaw(defaultTimeout, false, pods.WrongNSCPodWebhook("wrong-nsc-client-pod", nodes[0].Node))
 	gomega.Expect(strings.Contains(err.Error(), "do not use init-container and nsm annotation")).Should(gomega.BeTrue())
-
 }
