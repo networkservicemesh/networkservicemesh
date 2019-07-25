@@ -28,6 +28,7 @@ import (
 
 const (
 	nscLogWithParamFormat = "NSM Client: %v: %v"
+	nscLogFormat          = "NSM Client: %v"
 )
 
 type connectionUpdater struct {
@@ -60,7 +61,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
-
+	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
 	currentConn, err := nsc.Connect("nsm", "kernel", "Primary interface")
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
