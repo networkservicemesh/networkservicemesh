@@ -8,5 +8,5 @@ tag: master
 pullPolicy: IfNotPresent
 
 # The type for monitoring services, i.e. Jaeger
-# value is one of ClusterIp, NodePort, LoadBalancer
+# May be set to valid Kubernetes ServiceTypes values--ClusterIP, NodePort, LoadBalancer, ExternalName
 monSvcType: ClusterIP
