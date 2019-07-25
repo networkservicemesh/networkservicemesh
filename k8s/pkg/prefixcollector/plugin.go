@@ -75,8 +75,8 @@ func registerPlugin(endpoint string) error {
 	defer cancel()
 
 	_, err = client.Register(ctx, &plugins.PluginInfo{
-		Endpoint: endpoint,
-		Features: []plugins.PluginFeature{plugins.PluginFeature_CONNECTION},
+		Endpoint:     endpoint,
+		Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
 	})
 	if err != nil {
 		return err

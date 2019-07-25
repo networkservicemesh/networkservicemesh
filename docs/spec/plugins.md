@@ -6,8 +6,8 @@ Specification
 
 NSM provides a way to extend its functionality by creating plugins. Here is a small glossary:
 
-- **Plugin** — a gRPC server that implements one or more Plugin Features to extend NSM functionality
-- **Plugin Feature** — a gRPC service definition that specifies methods related to one small piece of NSM functionality (for example, connection feature is only responsible for updating and validating a connection)
+- **Plugin** — a gRPC server that has one or more Plugin Capabilities to extend NSM functionality
+- **Plugin Capability** — a gRPC service definition that specifies methods related to one small piece of NSM functionality (for example, connection capability is only responsible for updating and validating a connection)
 - **Plugin Registry** — NSM service that registers plugins and provides a way to call them from NSM
 
 NSM Plugin Registry has a registration gRPC service, so each plugin can register itself through this service. The communication between NSM Plugin Registry and plugins is happen through gRPC on a Unix socket.
@@ -20,11 +20,11 @@ Implementation details
 The model is placed in `controlplane/pkg/apis/plugins` directory. It contains the following files:
 - **constants.go** specifies `PluginRegistryPath` (the location of plugin sockets) and `PluginRegistrySocket` (the location of NSM Plugin Registry socket) constants
 - **registry.proto** defines Plugin Registry gRPC service
-- **connectionplugin.proto** defines a gRPC model for plugins implementing the connection feature
+- **connectionplugin.proto** defines a gRPC model for plugins have the connection capability
 
 Plugin Registry implementation is placed in `controlplane/pkg/plugins` directory. It contains the following files:
 - **registry.go** implements Plugin Registry that can register plugins and provide getters for plugin managers
-- **connectionplugin.go** implements a connection plugin manager that can call all plugins implementing the connection feature
+- **connectionplugin.go** implements a connection plugin manager that can call all plugins have the connection capability
 
 Plugin Registry is stored as a field inside **nsm.NetworkServiceManager** implementation and may be called in the following way:
 
@@ -53,7 +53,7 @@ Example usage
 
 Create a gRPC server on a Unix socket under `plugins.PluginRegistryPath` path. Then register it with a service by calling `plugins.Register*PluginServer(server, service)`.
 
-If you implement few plugin features inside one plugin, you have to register it few times. Check `plugins.PluginFeature` enum to see the list of supported features.
+If you implement a plugin with more than one capability, you have to register it few times. Check `plugins.PluginCapability` enum to see the list of supported capabilities.
 
 #### 2. Register the plugin in NSM Plugin Registry
 
@@ -61,7 +61,7 @@ NSM Plugin Registry is a gRPC server run on the Unix socket at `plugins.PluginRe
 
 Registration data is provided in plugins.PluginInfo structure which has the following fields:
 - **Endpoint** — the path to the Unix socket you've started gRPC server on
-- **Features** — list of features implemented by your plugin
+- **Capabilities** — list of capabilities supported by your plugin
 
 ```go
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
@@ -102,8 +102,8 @@ ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 defer cancel()
 
 _, err = client.Register(ctx, &plugins.PluginInfo{
-    Endpoint: endpoint,
-    Features: []plugins.PluginFeature{plugins.PluginFeature_CONNECTION},
+    Endpoint:     endpoint,
+    Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
 })
 if err != nil {
     return err
