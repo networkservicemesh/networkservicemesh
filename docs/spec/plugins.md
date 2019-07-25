@@ -7,12 +7,12 @@ Specification
 NSM provides a way to extend its functionality by creating plugins. Here is a small glossary:
 
 - **Plugin** — a gRPC server that has one or more Plugin Capabilities to extend NSM functionality
-- **Plugin Capability** — a gRPC service definition that specifies methods related to one small piece of NSM functionality (for example, connection capability is only responsible for updating and validating a connection)
+- **Plugin Capability** — a gRPC service definition that specifies methods related to one small piece of NSM functionality (for example, the connection capability is only responsible for updating and validating a connection)
 - **Plugin Registry** — NSM service that registers plugins and provides a way to call them from NSM
 
 NSM Plugin Registry has a registration gRPC service, so each plugin can register itself through this service. The communication between NSM Plugin Registry and plugins is happen through gRPC on a Unix socket.
 
-Each plugin is a gRPC server that implements one (or more) of the defined gRPC services. The plugin has to start the server on a Unix socket under `plugins.PluginRegistryPath` and send the socket path on registration. Once it is registered, it can serve incoming gRPC requests from NSM.
+Each plugin is a gRPC server that implements one (or more) of the defined gRPC services (plugin capabilities). The plugin has to start the server on a Unix socket under `plugins.PluginRegistryPath` and send the socket path on registration. Once the plugin is registered, it can serve incoming gRPC requests from NSM.
 
 Implementation details
 ----------------------
@@ -59,7 +59,7 @@ If you implement a plugin with more than one capability, you have to register it
 
 NSM Plugin Registry is a gRPC server run on the Unix socket at `plugins.PluginRegistrySocket` path. To register a plugin you have to make a gRPC call to the `Register` method and provide registration data.
 
-Registration data is provided in plugins.PluginInfo structure which has the following fields:
+Registration data is provided in `plugins.PluginInfo` structure which has the following fields:
 - **Endpoint** — the path to the Unix socket you've started gRPC server on
 - **Capabilities** — list of capabilities supported by your plugin
 
