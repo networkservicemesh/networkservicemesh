@@ -333,7 +333,6 @@ func WaitPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 
 		}
 	}
-	return nil
 }
 
 // DeleteAdmissionWebhook - Delete admission webhook
