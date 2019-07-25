@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,19 @@
 
 package main
 
-import nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
+import (
+	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+)
 
 var version string
 
 func main() {
-	clientApp := nsm_sidecars.NewNSMClientApp()
-	clientApp.Run(version)
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
+
+	app := nsm_sidecars.NewNSMMonitorApp()
+	go app.Run(version)
+
+	<-c
 }
