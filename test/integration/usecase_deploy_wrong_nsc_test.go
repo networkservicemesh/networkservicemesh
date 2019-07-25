@@ -13,6 +13,9 @@ import (
 )
 
 func TestDeployWrongNsc(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("https://github.com/networkservicemesh/networkservicemesh/issues/1384")
+	}
 	gomega.RegisterTestingT(t)
 
 	if testing.Short() {

@@ -69,6 +69,9 @@ func TestVPNNSERemote(t *testing.T) {
 }
 
 func TestVPNNSCRemote(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("https://github.com/networkservicemesh/networkservicemesh/issues/1386")
+	}
 	RegisterTestingT(t)
 
 	if testing.Short() {

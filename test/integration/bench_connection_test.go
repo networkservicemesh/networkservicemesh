@@ -56,6 +56,9 @@ func TestOneToOneConnection(t *testing.T) {
 }
 
 func TestOneToOneConnectionMemif(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("https://github.com/networkservicemesh/networkservicemesh/issues/1378")
+	}
 	RegisterTestingT(t)
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")

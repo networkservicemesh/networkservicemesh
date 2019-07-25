@@ -63,6 +63,9 @@ func TestSingleCrossConnect(t *testing.T) {
 }
 
 func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("https://github.com/networkservicemesh/networkservicemesh/issues/1385")
+	}
 	RegisterTestingT(t)
 
 	if testing.Short() {
