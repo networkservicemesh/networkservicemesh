@@ -35,20 +35,22 @@ spec:
 #### How to create custom nsm-monitor
 For creating custom nsm-monitor you need to implement next interface: 
 ```
-type NSMMonitorHelper interface {
-    //Runs on nsm-monitor connected
-    Connected(map[string]*connection.Connection)
-    //Runs on healing started
-    Healing(conn *connection.Connection)
-    //Gets custom network service configuration
-    GetConfiguration() *common.NSConfiguration
-    /Runs on restore failed, the error pass as the second parameter
-    ProcessHealing(newConn *connection.Connection, e error)
-    //Runs on invoked NSMMonitorApp.Stop()
-    Stopped()
-    //Returns is Jaeger needed
-    IsEnableJaeger() bool
+// NSMMonitorHandler - handler to perform configuration of monitoring app
+type NSMMonitorHandler interface {
+	//Connected occurs when the nsm-monitor connected
+	Connected(map[string]*connection.Connection)
+	//Healing occurs when the healing started
+	Healing(conn *connection.Connection)
+	//GetConfiguration gets custom network service configuration
+	GetConfiguration() *common.NSConfiguration
+	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
+	ProcessHealing(newConn *connection.Connection, e error)
+	//Stopped occurs when the invoked NSMMonitorApp.Stop()
+	Stopped()
+	//IsEnableJaeger returns is Jaeger needed
+	IsEnableJaeger() bool
 }
+
 ```
 After that, you could use next code for your sidecar:
 ```
@@ -67,6 +69,7 @@ For an example of usage you could take a look at tests:
 
 * TestNSMMonitorInit
 * TestDeployNSMMonitor
+* test/applications/cmd/monitoring-nsc
 
 References
 ----------

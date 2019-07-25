@@ -36,20 +36,26 @@ const (
 	nsmMonitorRetryDelay = 5 * time.Second
 )
 
-// NSMMonitorHandler - helper to perform configuration of monitoring app required for testing.
+// NSMMonitorHandler - handler to perform configuration of monitoring app
 type NSMMonitorHandler interface {
+	//Connected occurs when the nsm-monitor connected
 	Connected(map[string]*connection.Connection)
+	//Healing occurs when the healing started
 	Healing(conn *connection.Connection)
+	//GetConfiguration gets custom network service configuration
 	GetConfiguration() *common.NSConfiguration
+	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
+	//Stopped occurs when the invoked NSMMonitorApp.Stop()
 	Stopped()
+	//IsEnableJaeger returns is Jaeger needed
 	IsEnableJaeger() bool
 }
 
 // NSMMonitorApp - application to perform monitoring.
 type NSMMonitorApp interface {
 	NSMApp
-	// SetHandler - sets a helper instance.
+	// SetHandler - sets a handler instance
 	SetHandler(helper NSMMonitorHandler)
 	Stop()
 }
@@ -58,11 +64,22 @@ type NSMMonitorApp interface {
 type EmptyNSMMonitorHandler struct {
 }
 
+//Connected occurs when the nsm-monitor connected
 func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection)            {}
+
+//Healing occurs when the healing started
 func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection)                    {}
+
+//GetConfiguration returns nil by default
 func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration              { return nil }
+
+//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
+
+//Stopped occurs when the invoked NSMMonitorApp.Stop()
 func (h *EmptyNSMMonitorHandler) Stopped()                                               {}
+
+//IsEnableJaeger returns false by default
 func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool                                   { return false }
 
 type nsmMonitorApp struct {
@@ -75,7 +92,6 @@ func (c *nsmMonitorApp) Stop() {
 	close(c.stop)
 }
 
-// SetHandler - sets a helper class
 func (c *nsmMonitorApp) SetHandler(listener NSMMonitorHandler) {
 	c.helper = listener
 }
