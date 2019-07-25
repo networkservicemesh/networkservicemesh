@@ -80,13 +80,13 @@ func TestNSMMonitorInit(t *testing.T) {
 	healing := make(chan bool)
 	stoped := make(chan bool)
 
-	monitorApp.SetHelper(&nsmHelper{
+	monitorApp.SetHandler(&nsmHelper{
 		response:  response,
 		connected: connected,
 		healing:   healing,
 		stopped:   stoped,
 	})
-	monitorApp.Run("1.0")
+	monitorApp.Run()
 
 	select {
 	case <-connected:

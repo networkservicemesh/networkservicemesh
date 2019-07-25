@@ -36,8 +36,8 @@ const (
 	nsmMonitorRetryDelay = 5 * time.Second
 )
 
-// NSMMonitorHelper - helper to perform configuration of monitoring app required for testing.
-type NSMMonitorHelper interface {
+// NSMMonitorHandler - helper to perform configuration of monitoring app required for testing.
+type NSMMonitorHandler interface {
 	Connected(map[string]*connection.Connection)
 	Healing(conn *connection.Connection)
 	GetConfiguration() *common.NSConfiguration
@@ -48,16 +48,26 @@ type NSMMonitorHelper interface {
 
 // NSMMonitorApp - application to perform monitoring.
 type NSMMonitorApp interface {
-	// Run - run application with printing version
-	Run(version string)
-	// SetHelper - sets a helper instance.
-	SetHelper(helper NSMMonitorHelper)
+	NSMApp
+	// SetHandler - sets a helper instance.
+	SetHandler(helper NSMMonitorHandler)
 	Stop()
 }
 
+//EmptyNSMMonitorHandler has empty implementation of each method of interface NSMMonitorHandler
+type EmptyNSMMonitorHandler struct {
+}
+
+func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection)            {}
+func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection)                    {}
+func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration              { return nil }
+func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
+func (h *EmptyNSMMonitorHandler) Stopped()                                               {}
+func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool                                   { return false }
+
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
-	helper      NSMMonitorHelper
+	helper      NSMMonitorHandler
 	stop        chan struct{}
 }
 
@@ -65,14 +75,12 @@ func (c *nsmMonitorApp) Stop() {
 	close(c.stop)
 }
 
-// SetHelper - sets a helper class
-func (c *nsmMonitorApp) SetHelper(listener NSMMonitorHelper) {
+// SetHandler - sets a helper class
+func (c *nsmMonitorApp) SetHandler(listener NSMMonitorHandler) {
 	c.helper = listener
 }
 
-func (c *nsmMonitorApp) Run(version string) {
-	logrus.Infof(nsmMonitorLogFormat, "Starting")
-	logrus.Infof("Version: %v", version)
+func (c *nsmMonitorApp) Run() {
 	// Capture signals to cleanup before exiting
 	if c.helper == nil || c.helper.IsEnableJaeger() {
 		tracer, closer := tools.InitJaeger("nsm-monitor")

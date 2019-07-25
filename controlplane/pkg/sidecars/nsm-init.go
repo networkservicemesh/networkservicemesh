@@ -22,18 +22,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NSMClientApp - an initial client application used by nsm-init side-car
-type NSMClientApp interface {
-	// Run - run application with printing version.
-	Run(version string)
-}
-
 type nsmClientApp struct {
 }
 
-func (c *nsmClientApp) Run(version string) {
-	logrus.Info("Starting nsm-init...")
-	logrus.Infof("Version: %v", version)
+func (c *nsmClientApp) Run() {
 	tracer, closer := tools.InitJaeger("nsc")
 	opentracing.SetGlobalTracer(tracer)
 	defer func() { _ = closer.Close() }()
@@ -50,6 +42,6 @@ func (c *nsmClientApp) Run(version string) {
 }
 
 // NewNSMClientApp - creates a client application.
-func NewNSMClientApp() NSMClientApp {
+func NewNSMClientApp() NSMApp {
 	return &nsmClientApp{}
 }
