@@ -317,8 +317,6 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 	return awc, awDeployment, awService
 }
 
-
-
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
