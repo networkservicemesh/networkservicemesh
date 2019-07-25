@@ -76,7 +76,7 @@ if err != nil {
     return err
 }
 
-server := grpc.NewServer(...)
+server := grpc.NewServer()
 
 service := newConnectionPluginService()
 
@@ -90,7 +90,7 @@ go func() {
 
 // 2. Register the plugin in NSM Plugin Registry
 
-conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket, ...)
+conn, err := grpc.Dial("unix:"+plugins.PluginRegistrySocket)
 defer conn.Close()
 if err != nil {
     logrus.Fatalf("Cannot connect to the Plugin Registry: %v", err)
