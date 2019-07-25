@@ -3,11 +3,13 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"testing"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestSingleCrossConnect(t *testing.T) {
@@ -91,10 +93,10 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
-	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
+	_, err = kubetest.CollectXcons(eventCh0, 1, fastTimeout)
 	Expect(err).To(BeNil())
 
-	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
+	_, err = kubetest.CollectXcons(eventCh1, 1, fastTimeout)
 	Expect(err).To(BeNil())
 }
 
