@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"net"
 	"os"
 	"strings"
@@ -252,6 +253,17 @@ func defaultNSCEnv() map[string]string {
 		"OUTGOING_NSC_LABELS": "app=icmp",
 		"OUTGOING_NSC_NAME":   "icmp-responder",
 	}
+}
+func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
+	return []*pods.NSMgrPodConfig{{
+		Variables: map[string]string{
+			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+			nsm.NsmdHealDSTWaitTimeout:    "1",    // 1 second
+			nsm.NsmdHealEnabled:           "true",
+		},
+		Namespace:          k8s.GetK8sNamespace(),
+		DataplaneVariables: DefaultDataplaneVariables(k8s.GetForwardingPlane()),
+	}}
 }
 
 func nodeName(node *v1.Node) string {
