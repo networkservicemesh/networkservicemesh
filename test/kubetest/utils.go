@@ -255,7 +255,14 @@ func defaultNSCEnv() map[string]string {
 	}
 }
 func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
-	return []*pods.NSMgrPodConfig{{
+	return []*pods.NSMgrPodConfig{
+		noNseHeal(k8s),
+		noNseHeal(k8s),
+	}
+}
+
+func noNseHeal(k8s *K8s) *pods.NSMgrPodConfig {
+	return &pods.NSMgrPodConfig{
 		Variables: map[string]string{
 			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 			nsm.NsmdHealDSTWaitTimeout:    "1",    // 1 second
@@ -263,7 +270,7 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 		},
 		Namespace:          k8s.GetK8sNamespace(),
 		DataplaneVariables: DefaultDataplaneVariables(k8s.GetForwardingPlane()),
-	}}
+	}
 }
 
 func nodeName(node *v1.Node) string {
