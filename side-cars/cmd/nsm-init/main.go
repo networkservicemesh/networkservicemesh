@@ -23,7 +23,7 @@ var version string
 
 func main() {
 	logrus.Info("Starting nsm-init...")
-	logrus.Infof("Version", version)
+	logrus.Infof("Version: %v", version)
 	clientApp := nsm_sidecars.NewNSMClientApp()
 	clientApp.Run()
 }
