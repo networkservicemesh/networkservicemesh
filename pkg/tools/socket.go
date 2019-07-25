@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"sync"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"github.com/networkservicemesh/networkservicemesh/security"
 )
 
 const (
@@ -43,6 +46,16 @@ func GetConfig() DialConfig {
 
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(opts ...grpc.ServerOption) *grpc.Server {
+	if !cfg.Insecure {
+		mgr := security.GetSecurityManager()
+		cred := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{*mgr.GetCertificate()},
+			ClientCAs:    mgr.GetCABundle(),
+		})
+		opts = append(opts, grpc.Creds(cred))
+	}
+
 	if GetConfig().OpenTracing {
 		opts = append(opts,
 			grpc.UnaryInterceptor(

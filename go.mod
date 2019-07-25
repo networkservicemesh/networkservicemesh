@@ -8,7 +8,6 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/coredns/coredns v1.5.2
 	github.com/dnstap/golang-dnstap v0.1.0
-	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.0.1
@@ -20,7 +19,6 @@ require (
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/miekg/dns v1.1.15
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
 	github.com/pkg/errors v0.8.1
@@ -29,6 +27,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
+	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
