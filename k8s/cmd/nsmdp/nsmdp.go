@@ -17,13 +17,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"github.com/opentracing/opentracing-go"
 	"net"
 	"path"
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
