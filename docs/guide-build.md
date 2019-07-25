@@ -217,10 +217,15 @@ GO111MODULE=off go get golang.org/x/tools/cmd/goimports
 
 To do formatting run:
 ```bash
+goimports -w -local github.com/networkservicemesh/networkservicemesh -d $(find . -type f -name '*.go' -not -name '*.pb.go')
+```
+
+or simply:
+```bash
 make format
 ```
 
-It may be useful to have `goimports` installed as on save hook in your editor. [This page](https://godoc.org/golang.org/x/tools/cmd/goimports) may help you to achieve this.
+It may be useful to have `goimports -w -local github.com/networkservicemesh/networkservicemesh` installed as on save hook in your editor. [This page](https://godoc.org/golang.org/x/tools/cmd/goimports) may help you to achieve this.
 
 ## Static analysis of code
 Get code static analyzer tool:
