@@ -6,6 +6,7 @@ CONTAINERTXT=/tmp/container.txt
 docker build -t networkservicemesh/nsmd -f "${DIR}/../build/Dockerfile.nsmd" "${DIR}/../../"
 docker build -t networkservicemesh/test-common -f "${DIR}/../../test/applications/build/Dockerfile.test-common" "${DIR}/../../"
 docker build -t networkservicemesh/nsm-init -f "${DIR}/../../side-cars/build/Dockerfile.nsm-init" "${DIR}/../../"
+docker build -t networkservicemesh/nsm-monitor -f "${DIR}/../../side-cars/build/Dockerfile.nsm-monitor" "${DIR}/../../"
 
 echo "Starting nsmd..."
 docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" networkservicemesh/nsmd > "${CONTAINERTXT}"

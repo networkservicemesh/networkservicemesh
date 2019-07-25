@@ -17,6 +17,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/gogo/protobuf/proto"
+	"github.com/opentracing/opentracing-go"
 	"net"
 	"path"
 	"sync"
@@ -58,7 +60,7 @@ type nsmClientEndpoints struct {
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
-	logrus.Info("Client request for nsmdp resource...")
+	logrus.Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
 	responses := &pluginapi.AllocateResponse{}
 	for _, req := range reqs.ContainerRequests {
 		id := req.DevicesIDs[0]
