@@ -151,7 +151,8 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 	}
 
 	if cfg.ServiceName == "" {
-		hostname, err := os.Hostname()
+		var hostname string
+		hostname, err = os.Hostname()
 		if err == nil {
 			cfg.ServiceName = fmt.Sprintf("%s@%s", service, hostname)
 		} else {
