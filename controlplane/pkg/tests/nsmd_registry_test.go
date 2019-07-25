@@ -19,8 +19,7 @@ func TestNSMDRestart1(t *testing.T) {
 	srv := newNSMDFullServer("nsm1", storage, defaultClusterConfiguration)
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	reply, conn := srv.requestNSM("nsm-1")
-	defer conn.Close()
+	reply := srv.requestNSM("nsm-1")
 
 	configuration := &common.NSConfiguration{
 		Workspace:        reply.Workspace,
