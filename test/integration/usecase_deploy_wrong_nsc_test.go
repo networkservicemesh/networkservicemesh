@@ -1,4 +1,4 @@
-// +build usecase
+// +build checkfix
 
 package nsmd_integration_tests
 
@@ -9,6 +9,13 @@ import (
 	"strings"
 	"testing"
 )
+
+//TODO: remove this if test passed
+func TestFixTestDeployWrongNsc(t *testing.T) {
+	for i := 0; i < 25; i++ {
+		TestDeployWrongNsc(t)
+	}
+}
 
 func TestDeployWrongNsc(t *testing.T) {
 	gomega.RegisterTestingT(t)
