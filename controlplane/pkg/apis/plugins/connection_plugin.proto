@@ -11,7 +11,7 @@ enum ConnectionValidationStatus {
 
 message ConnectionValidationResult {
     ConnectionValidationStatus status = 1;
-    string errorMessage = 2;
+    string error_message = 2;
 }
 
 service ConnectionPlugin {
