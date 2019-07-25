@@ -469,15 +469,19 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 }
 
 func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
-	response, conn := srv.requestNSM(clientName)
-
+	response := srv.requestNSM(clientName)
 	// Now we could try to connect via Client API
+	nsmClient, conn := srv.createNSClient(response)
+	return nsmClient, conn
+}
+
+func (srv *nsmdFullServerImpl) createNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
 	Expect(err).To(BeNil())
 	return nsmClient, conn
 }
 
-func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientConnectionReply, *grpc.ClientConn) {
+func (srv *nsmdFullServerImpl) requestNSM(clientName string) *nsmdapi.ClientConnectionReply {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()
 	Expect(err).To(BeNil())
 	defer con.Close()
@@ -491,7 +495,7 @@ func (srv *nsmdFullServerImpl) requestNSM(clientName string) (*nsmdapi.ClientCon
 	logrus.Printf("workspace %s", response.Workspace)
 
 	Expect(response.Workspace).To(Equal(clientName))
-	return response, con
+	return response
 }
 
 func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {

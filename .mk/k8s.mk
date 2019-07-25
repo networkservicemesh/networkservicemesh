@@ -31,7 +31,7 @@ endif
 # Deployments - grouped
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
-DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_MONITOR) $(DEPLOY_NSM)
+DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
@@ -283,6 +283,17 @@ k8s-nsc-save:
 
 .PHONY: k8s-nsc-load-images
 k8s-nsc-load-images:
+
+
+.PHONY: k8s-nsm-monitor-build
+k8s-nsm-monitor-build: ${CONTAINER_BUILD_PREFIX}-nsm-monitor-build
+
+.PHONY: k8s-nsm-monitor-save
+k8s-nsm-monitor-save: ${CONTAINER_BUILD_PREFIX}-nsm-monitor-save
+
+.PHONY: k8s-nsm-monitor-load-images
+k8s-nsm-monitor-load-images: k8s-nsm-monitor-load-images
+
 
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-common-build
