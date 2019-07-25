@@ -150,16 +150,18 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 		panic(fmt.Sprintf("ERROR: cannot create Jaeger configuration: %v\n", err))
 	}
 
+	if cfg.ServiceName == "" {
+		hostname, err := os.Hostname()
+		if err == nil {
+			cfg.ServiceName = fmt.Sprintf("%s@%s", service, hostname)
+		} else {
+			cfg.ServiceName = service
+		}
+	}
+
 	cfg.Sampler.Type = "const"
 	cfg.Sampler.Param = 1
 	cfg.Reporter.LogSpans = true
-
-	hostname, err := os.Hostname()
-	if err == nil {
-		cfg.ServiceName = fmt.Sprintf("%s@%s", service, hostname)
-	} else {
-		cfg.ServiceName = service
-	}
 
 	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
 	if err != nil {
