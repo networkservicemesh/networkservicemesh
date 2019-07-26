@@ -138,6 +138,7 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 	return nil
 }
 
+//nolint
 func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
 	switch connType {
 	case cLOCAL:
