@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -213,6 +215,14 @@ func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Dura
 	)
 }
 
+// NoHealNSMgrPodConfig returns config for NSMgr. The config has properties for disabling healing for nse
+func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
+	return []*pods.NSMgrPodConfig{
+		noHealNSMgrPodConfig(k8s),
+		noHealNSMgrPodConfig(k8s),
+	}
+}
+
 func icmpCommand(dirty, neighbors, routes, update bool) []string {
 	command := []string{"/bin/icmp-responder-nse"}
 
@@ -251,6 +261,18 @@ func defaultNSCEnv() map[string]string {
 	return map[string]string{
 		"OUTGOING_NSC_LABELS": "app=icmp",
 		"OUTGOING_NSC_NAME":   "icmp-responder",
+	}
+}
+
+func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
+	return &pods.NSMgrPodConfig{
+		Variables: map[string]string{
+			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+			nsm.NsmdHealDSTWaitTimeout:    "1",    // 1 second
+			nsm.NsmdHealEnabled:           "true",
+		},
+		Namespace:          k8s.GetK8sNamespace(),
+		DataplaneVariables: DefaultDataplaneVariables(k8s.GetForwardingPlane()),
 	}
 }
 

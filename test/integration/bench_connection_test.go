@@ -138,9 +138,8 @@ type nscPingResult struct {
 
 func createNodes(k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
 	Expect(count > 0 && count < 3).Should(Equal(true))
-	nodes, err := kubetest.SetupNodes(k8s, count, defaultTimeout)
+	nodes, err := kubetest.SetupNodesConfig(k8s, count, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())
 	Expect(err).To(BeNil())
-
 	Expect(len(nodes), count)
 	return nodes
 }

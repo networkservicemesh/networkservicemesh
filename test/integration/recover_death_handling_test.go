@@ -11,19 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
-
-var nseNoHeal = &pods.NSMgrPodConfig{
-	Variables: map[string]string{
-		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
-		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
-		nsm.NsmdHealEnabled:          "true",
-	},
-}
 
 func TestNSCDiesSingleNode(t *testing.T) {
 	RegisterTestingT(t)
@@ -74,13 +63,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 
-	nseNoHeal.Namespace = k8s.GetK8sNamespace()
-	nseNoHeal.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
-
-	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
-		nseNoHeal,
-		nseNoHeal,
-	}, k8s.GetK8sNamespace())
+	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())
 
 	defer kubetest.ShowLogs(k8s, t)
 	Expect(err).To(BeNil())
