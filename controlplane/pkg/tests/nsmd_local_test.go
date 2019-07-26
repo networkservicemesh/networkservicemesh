@@ -108,7 +108,7 @@ func (nseWithOptions) Close(ctx context2.Context, in *connection.Connection, opt
 // Below only tests
 
 func TestNSMDRequestClientConnectionRequest(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -123,13 +123,13 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	request := createRequest(false)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 }
 
 func TestNSENoSrc(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -151,12 +151,12 @@ func TestNSENoSrc(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
-	Expect(nsmResponse).To(BeNil())
+	g.Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
+	g.Expect(nsmResponse).To(BeNil())
 }
 
 func TestNSEExcludePrefixes(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, newClusterConfiguration("127.0.0.0/24", "127.0.1.0/24"))
@@ -170,17 +170,17 @@ func TestNSEExcludePrefixes(t *testing.T) {
 	request := createRequest(true)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"127.0.0.1", "127.0.0.0/24", "127.0.1.0/24"}))
+	g.Expect(ok).To(Equal(true))
+	g.Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"127.0.0.1", "127.0.0.0/24", "127.0.1.0/24"}))
 }
 
 func TestNSEExcludePrefixes2(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, newClusterConfiguration("127.0.0.0/24", "127.0.1.0/24"))
@@ -194,17 +194,17 @@ func TestNSEExcludePrefixes2(t *testing.T) {
 	request := createRequest(false)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"127.0.0.0/24", "127.0.1.0/24"}))
+	g.Expect(ok).To(Equal(true))
+	g.Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"127.0.0.0/24", "127.0.1.0/24"}))
 }
 
 func TestExcludePrefixesMonitor(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, nil)
@@ -223,7 +223,7 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 		Subnet: "10.96.0.0/12",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
+	checkPrefixes(g, srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	ds.addResponse(&registry.SubnetExtendingResponse{
 		Type:   registry.SubnetExtendingResponse_POD,
@@ -234,7 +234,7 @@ func TestExcludePrefixesMonitor(t *testing.T) {
 		Subnet: "10.96.0.0/10",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
+	checkPrefixes(g, srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
 }
 
 func waitForExcludePrefixes(srv *nsmdFullServerImpl, expected []string, timeout time.Duration) bool {
@@ -265,25 +265,25 @@ func waitForExcludePrefixes(srv *nsmdFullServerImpl, expected []string, timeout 
 	}
 }
 
-func checkPrefixes(srv *nsmdFullServerImpl, expected []string) {
+func checkPrefixes(g *WithT, srv *nsmdFullServerImpl, expected []string) {
 	success := waitForExcludePrefixes(srv, expected, 5*time.Second)
-	Expect(success).To(BeTrue())
+	g.Expect(success).To(BeTrue())
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer func() { _ = conn.Close() }()
 
 	request := createRequest(false)
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal(expected))
+	g.Expect(ok).To(Equal(true))
+	g.Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal(expected))
 }
 
 func TestExcludePrefixesMonitorFails(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, nil)
@@ -302,11 +302,11 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 		Subnet: "10.96.0.0/12",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
+	checkPrefixes(g, srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	ds.dummyKill()
 
-	checkPrefixes(srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
+	checkPrefixes(g, srv, []string{"10.32.1.0/24", "10.96.0.0/12"})
 
 	newDs := srv.serviceRegistry.nseRegistry.getNextSubnetStream()
 
@@ -319,11 +319,11 @@ func TestExcludePrefixesMonitorFails(t *testing.T) {
 		Subnet: "10.96.0.0/10",
 	})
 
-	checkPrefixes(srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
+	checkPrefixes(g, srv, []string{"10.32.1.0/22", "10.96.0.0/10"})
 }
 
 func TestNSEIPNeghtbours(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -344,20 +344,20 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	request := createRequest(false)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*nseWithOptions)
-	Expect(ok).To(Equal(true))
+	g.Expect(ok).To(Equal(true))
 
-	Expect(len(originl.connection.GetContext().GetIpContext().GetIpNeighbors())).To(Equal(1))
-	Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].Ip).To(Equal("127.0.0.1"))
-	Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
+	g.Expect(len(originl.connection.GetContext().GetIpContext().GetIpNeighbors())).To(Equal(1))
+	g.Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].Ip).To(Equal("127.0.0.1"))
+	g.Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
 }
 
 func TestSlowNSE(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -385,12 +385,12 @@ func TestSlowNSE(t *testing.T) {
 	nsmResponse, err := nsmClient.Request(ctx, request)
 	<-time.After(1 * time.Second)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
-	Expect(nsmResponse).To(BeNil())
+	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
+	g.Expect(nsmResponse).To(BeNil())
 }
 
 func TestSlowDP(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -418,6 +418,6 @@ func TestSlowDP(t *testing.T) {
 	nsmResponse, err := nsmClient.Request(ctx, request)
 	<-time.After(1 * time.Second)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
-	Expect(nsmResponse).To(BeNil())
+	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
+	g.Expect(nsmResponse).To(BeNil())
 }

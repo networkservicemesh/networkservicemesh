@@ -20,17 +20,17 @@ import (
 )
 
 func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
@@ -48,18 +48,13 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 			DataplaneVariables: kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane()),
 		},
 	}, k8s.GetK8sNamespace())
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := kubetest.DeployICMPWithConfig(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout, 30)
 
 	nscPodNode := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.CheckNSC(k8s, nscPodNode)
 
 	logrus.Infof("Delete Remote NSMD/ICMP responder NSE")
 	k8s.DeletePods(nodes_setup[1].Nsmd)
@@ -77,47 +72,39 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
-	failures = InterceptGomegaFailures(func() {
-		// Restore ICMP responder pod.
-		icmpPod = kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-2", defaultTimeout)
+	// Restore ICMP responder pod.
+	icmpPod = kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-2", defaultTimeout)
 
-		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", time.Minute)
-		logrus.Infof("Waiting for connection recovery Done...")
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", time.Minute)
+	logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.HealNscChecker(k8s, nscPodNode)
 }
 
 func TestNSMHealRemoteDieNSMD(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
-	Expect(icmpPod).ToNot(BeNil())
+	g.Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.CheckNSC(k8s, nscPodNode)
 
 	logrus.Infof("Delete Remote NSMD")
 	k8s.DeletePods(nodes_setup[1].Nsmd)
@@ -132,52 +119,44 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
-	failures = InterceptGomegaFailures(func() {
-		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-		logrus.Infof("Waiting for connection recovery Done...")
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.HealNscChecker(k8s, nscPodNode)
 }
 
 func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
 	nodesSetup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := kubetest.DeployICMP(k8s, nodesSetup[1].Node, "icmp-responder-nse-1", defaultTimeout)
-	Expect(icmpPod).ToNot(BeNil())
+	g.Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodesSetup, nscInfo, t)
+	kubetest.CheckNSC(k8s, nscPodNode)
 
 	// Remember nse name
 	_, nsm1RegistryClient, fwd1Close := kubetest.PrepareRegistryClients(k8s, nodesSetup[1].Nsmd)
 	nseList, err := nsm1RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
 	fwd1Close()
 
-	Expect(err).To(BeNil())
-	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
 	nseName := nseList.NetworkServiceEndpoints[0].EndpointName
 
 	logrus.Infof("Delete Remote NSMD")
@@ -204,22 +183,19 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 			EndpointName:       nseName,
 		},
 	})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	nseList, err = nsm2RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-	Expect(err).To(BeNil())
-	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
 	nodesSetup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodesSetup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodesSetup[1].Node.Name)
 
-	failures = InterceptGomegaFailures(func() {
-		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-		logrus.Infof("Waiting for connection recovery Done...")
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodesSetup, nscInfo, t)
+	kubetest.HealNscChecker(k8s, nscPodNode)
 }

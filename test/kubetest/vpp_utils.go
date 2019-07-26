@@ -47,10 +47,10 @@ func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCh
 		info.ipResponse = response
 		info.errOut = errOut
 	}
-	Expect(info.ipResponse).ShouldNot(Equal(""))
-	Expect(info.errOut).Should(Equal(""))
+	k8s.g.Expect(info.ipResponse).ShouldNot(Equal(""))
+	k8s.g.Expect(info.errOut).Should(Equal(""))
 	logrus.Printf("NSC IP status Ok")
-	Expect(true, IsVppAgentNsePinged(k8s, nscPodNode))
+	k8s.g.Expect(true, IsVppAgentNsePinged(k8s, nscPodNode))
 
 	return info
 }
@@ -71,7 +71,7 @@ func parseVppAgentAddr(ipReponse string) (string, error) {
 // IsVppAgentNsePinged - Check if vpp agent NSE is pinged
 func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	nseIP, err := GetVppAgentNSEAddr(k8s, from)
-	Expect(err).Should(BeNil())
+	k8s.g.Expect(err).Should(BeNil())
 	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIP)
 	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIP.String())
 	logrus.Infof("ping result: %s", response)

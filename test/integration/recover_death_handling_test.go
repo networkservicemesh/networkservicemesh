@@ -15,8 +15,6 @@ import (
 )
 
 func TestNSCDiesSingleNode(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -26,8 +24,6 @@ func TestNSCDiesSingleNode(t *testing.T) {
 }
 
 func TestNSEDiesSingleNode(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -37,8 +33,6 @@ func TestNSEDiesSingleNode(t *testing.T) {
 }
 
 func TestNSCDiesMultiNode(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -46,8 +40,6 @@ func TestNSCDiesMultiNode(t *testing.T) {
 	testDie(t, true, 2)
 }
 func TestNSEDiesMultiNode(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -56,34 +48,36 @@ func TestNSEDiesMultiNode(t *testing.T) {
 }
 
 func testDie(t *testing.T, killSrc bool, nodesCount int) {
-	Expect(nodesCount > 0).Should(BeTrue())
+	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(true)
+	g.Expect(nodesCount > 0).Should(BeTrue())
+
+	k8s, err := kubetest.NewK8s(g, true)
 
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())
 
 	defer kubetest.ShowLogs(k8s, t)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	icmp := kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	nsc := kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
 	ipResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ip", "addr")
-	Expect(err).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
 	ipResponse, errOut, err = k8s.Exec(icmp, icmp.Spec.Containers[0].Name, "ip", "addr")
-	Expect(err).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
 	pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
-	Expect(err).To(BeNil())
-	Expect(strings.Contains(pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
+	g.Expect(err).To(BeNil())
+	g.Expect(strings.Contains(pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
 	logrus.Printf("NSC Ping is success:%s", pingResponse)
 
 	var podToKill *v1.Pod
@@ -106,6 +100,6 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 			break
 		}
 	}
-	Expect(success).To(Equal(true))
+	g.Expect(success).To(Equal(true))
 
 }

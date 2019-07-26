@@ -13,7 +13,7 @@ import (
 )
 
 func TestDeleteDirtyNSE(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -22,12 +22,12 @@ func TestDeleteDirtyNSE(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE test")
 
-	k8s, err := kubetest.NewK8s(true)
-	Expect(err).To(BeNil())
+	k8s, err := kubetest.NewK8s(g, true)
+	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	nsePod := kubetest.DeployDirtyICMP(k8s, nodesConf[0].Node, "dirty-icmp-responder-nse", defaultTimeout)
@@ -40,7 +40,7 @@ func TestDeleteDirtyNSE(t *testing.T) {
 }
 
 func TestDeleteDirtyNSEWithClient(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -49,12 +49,12 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE with client test")
 
-	k8s, err := kubetest.NewK8s(true)
-	Expect(err).To(BeNil())
+	k8s, err := kubetest.NewK8s(g, true)
+	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	nsePod := kubetest.DeployDirtyICMP(k8s, nodesConf[0].Node, "dirty-icmp-responder-nse", defaultTimeout)

@@ -18,7 +18,6 @@ package crds
 import (
 	"os"
 
-	. "github.com/onsi/gomega"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -73,7 +72,9 @@ func NewNSCRD(namespace string) (*NSCRD, error) {
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", path)
-	Expect(err).To(BeNil())
+	if err != nil {
+		return nil, err
+	}
 
 	nsmNamespace := namespace
 	client := NSCRD{
@@ -82,8 +83,9 @@ func NewNSCRD(namespace string) (*NSCRD, error) {
 		config:    config,
 	}
 	client.clientset, err = nscrd.NewForConfig(config)
-
-	Expect(err).To(BeNil())
+	if err != nil {
+		return nil, err
+	}
 
 	return &client, nil
 }

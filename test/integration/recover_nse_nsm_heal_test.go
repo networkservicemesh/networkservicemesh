@@ -18,34 +18,30 @@ import (
 )
 
 func TestNSMHealLocalDieNSMD(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-1", defaultTimeout)
-	Expect(icmpPod).ToNot(BeNil())
+	g.Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+
+	kubetest.CheckNSC(k8s, nscPodNode)
 
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
@@ -60,19 +56,14 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[0].Node.Name)
 
-	failures = InterceptGomegaFailures(func() {
-		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-		logrus.Infof("Waiting for connection recovery Done...")
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.HealNscChecker(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	kubetest.HealNscChecker(k8s, nscPodNode)
 }
 
 func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -81,8 +72,6 @@ func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {
 }
 
 func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -91,8 +80,6 @@ func TestNSMHealLocalDieNSMDOneNodeMemif(t *testing.T) {
 }
 
 func TestNSMHealLocalDieNSMDOneNodeCleanedEndpoints(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -101,26 +88,23 @@ func TestNSMHealLocalDieNSMDOneNodeCleanedEndpoints(t *testing.T) {
 }
 
 func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse kubetest.PodSupplier, nscCheck kubetest.NscChecker, cleanupEndpointsCRDs bool) {
-	k8s, err := kubetest.NewK8s(true)
+	g := NewWithT(t)
+
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	kubetest.ShowLogs(k8s, t)
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := deployNse(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
-	Expect(icmpPod).ToNot(BeNil())
+	g.Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := deployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = nscCheck(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nscCheck(k8s, nscPodNode)
 
 	logrus.Infof("Delete Local NSMD")
 	k8s.DeletePods(nodes_setup[0].Nsmd)
@@ -137,19 +121,14 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse kubetest.
 	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[0].Node.Name)
 
-	failures = InterceptGomegaFailures(func() {
-		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-		logrus.Infof("Waiting for connection recovery Done...")
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = nscCheck(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nscCheck(k8s, nscPodNode)
 }
 
 func TestNSMHealLocalDieNSMDOneNodeFakeEndpoint(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -158,33 +137,30 @@ func TestNSMHealLocalDieNSMDOneNodeFakeEndpoint(t *testing.T) {
 }
 
 func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse kubetest.PodSupplier, nscCheck kubetest.NscChecker) {
-	k8s, err := kubetest.NewK8s(true)
+	g := NewWithT(t)
+
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	icmpPod := deployNse(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
-	Expect(icmpPod).ToNot(BeNil())
+	g.Expect(icmpPod).ToNot(BeNil())
 
 	nscPodNode := deployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
-	var nscInfo *kubetest.NSCCheckInfo
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = nscCheck(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nscCheck(k8s, nscPodNode)
 
 	// Remember nse name
 	_, nsm1RegistryClient, fwd1Close := kubetest.PrepareRegistryClients(k8s, nodes_setup[0].Nsmd)
 	nseList, err := nsm1RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
 	fwd1Close()
 
-	Expect(err).To(BeNil())
-	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
 	nseName := nseList.NetworkServiceEndpoints[0].EndpointName
 
 	logrus.Info(nseName)
@@ -209,22 +185,19 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse kubetest
 			EndpointName:       nseName,
 		},
 	})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	nseList2, err := nsm2RegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-	Expect(err).To(BeNil())
-	Expect(len(nseList2.NetworkServiceEndpoints)).To(Equal(1))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(nseList2.NetworkServiceEndpoints)).To(Equal(1))
 
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
 	nodes_setup[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[0].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[0].Node.Name)
 
-	failures = InterceptGomegaFailures(func() {
-		logrus.Infof("Waiting for connection recovery...")
-		k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-		logrus.Infof("Waiting for connection recovery Done...")
+	logrus.Infof("Waiting for connection recovery...")
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = nscCheck(k8s, nscPodNode)
-	})
-	kubetest.PrintErrors(failures, k8s, nodes_setup, nscInfo, t)
+	nscCheck(k8s, nscPodNode)
 }

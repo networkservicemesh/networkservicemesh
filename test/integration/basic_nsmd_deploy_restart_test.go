@@ -14,7 +14,7 @@ import (
 )
 
 func TestNSMgrRestartDeploy(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -23,13 +23,13 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	prevLogsChan, errChan := readLogsFully(k8s, nodesConf[0].Nsmd, "nsmd")
 
@@ -66,12 +66,9 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 
 	_ = k8s.WaitLogsContainsRegex(nodesConf[0].Nsmd, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
 
-	failures := InterceptGomegaFailures(func() {
-		Expect(restarts).To(Equal(int32(1)))
-		Expect(<-errChan).To(BeNil())
-		Expect(<-prevLogsChan).To(ContainSubstring("SIGABRT: abort"))
-	})
-	kubetest.PrintErrors(failures, k8s, nodesConf, nil, t)
+	g.Expect(restarts).To(Equal(int32(1)))
+	g.Expect(<-errChan).To(BeNil())
+	g.Expect(<-prevLogsChan).To(ContainSubstring("SIGABRT: abort"))
 }
 
 func readLogsFully(k8s *kubetest.K8s, pod *v1.Pod, container string) (chan string, chan error) {
