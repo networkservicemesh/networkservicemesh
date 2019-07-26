@@ -73,7 +73,11 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 	logrus.Info("Creating remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
-	defer containerNs.Close()
+	defer func() {
+		if err = containerNs.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get namespace handler from path - %v", err)
 		return err
@@ -99,7 +103,11 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 	logrus.Info("Deleting remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
-	defer containerNs.Close()
+	defer func() {
+		if err = containerNs.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get namespace handler from path - %v", err)
 		return err

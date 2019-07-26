@@ -35,8 +35,7 @@ func main() {
 
 	registration := common.CreateDataplane(plane, dataplaneProbes)
 
-	select {
-	case <-c:
+	for range c {
 		logrus.Info("Closing Dataplane Registration")
 		registration.Close()
 	}

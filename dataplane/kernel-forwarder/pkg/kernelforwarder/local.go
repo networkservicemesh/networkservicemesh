@@ -51,13 +51,21 @@ func createLocalConnection(cfg *connectionConfig) error {
 	logrus.Info("Creating local connection...")
 	/* 1. Get handlers for source and destination namespaces */
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
-	defer srcNsHandle.Close()
+	defer func() {
+		if err = srcNsHandle.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get source namespace handler from path - %v", err)
 		return err
 	}
 	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
-	defer dstNsHandle.Close()
+	defer func() {
+		if err = dstNsHandle.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
 		return err
@@ -90,13 +98,21 @@ func deleteLocalConnection(cfg *connectionConfig) error {
 	logrus.Info("Delete local connection...")
 	/* 1. Get handlers for source and destination namespaces */
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
-	defer srcNsHandle.Close()
+	defer func() {
+		if err = srcNsHandle.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get source namespace handler from path - %v", err)
 		return err
 	}
 	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
-	defer dstNsHandle.Close()
+	defer func() {
+		if err = dstNsHandle.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
 		return err

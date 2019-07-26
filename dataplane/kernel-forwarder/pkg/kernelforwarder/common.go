@@ -75,7 +75,11 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 	defer runtime.UnlockOSThread()
 	/* 4. Save the current network namespace */
 	currentNs, err := netns.Get()
-	defer currentNs.Close()
+	defer func() {
+		if err = currentNs.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	if err != nil {
 		logrus.Errorf("failed to get current namespace: %v", err)
 		return err
@@ -85,7 +89,11 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 		logrus.Errorf("failed to switch to container namespace: %v", err)
 		return err
 	}
-	defer containerNs.Close()
+	defer func() {
+		if err = containerNs.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	/* 6. Get a link for the interface name */
 	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {

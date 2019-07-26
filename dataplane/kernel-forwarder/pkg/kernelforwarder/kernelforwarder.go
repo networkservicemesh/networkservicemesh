@@ -109,8 +109,11 @@ func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 
 	tracer, closer := tools.InitJaeger(v.common.Name)
 	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
-
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logrus.Error("error when closing:", err)
+		}
+	}()
 	v.configureKernelForwarder()
 	return nil
 }
