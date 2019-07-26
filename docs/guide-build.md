@@ -225,7 +225,7 @@ Or simply:
 make format
 ```
 
-It may be useful to have `goimports -w -local github.com/networkservicemesh/networkservicemesh` installed as on save hook in your editor. [This page](https://godoc.org/golang.org/x/tools/cmd/goimports) may help you to achieve this.
+It may be useful to have `goimports -w -local github.com/networkservicemesh/networkservicemesh` installed as on save hook in your editor. [Go imports doc page](https://godoc.org/golang.org/x/tools/cmd/goimports) may help you to achieve this.
 
 ## Static analysis of code
 Get code static analyzer tool:
