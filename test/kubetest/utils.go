@@ -304,13 +304,16 @@ func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration
 }
 
 // DeployAdmissionWebhook - Setup Admission Webhook
-func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
+func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout time.Duration) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
 	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
 	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
 
 	awDeployment := CreateAdmissionWebhookDeployment(k8s, name, image, namespace)
 	awService := CreateAdmissionWebhookService(k8s, name, namespace)
 
+	admissionWebhookPod := waitWebhookPod(k8s, awDeployment.Name, timeout)
+	Expect(admissionWebhookPod).ShouldNot(BeNil())
+	k8s.WaitLogsContains(admissionWebhookPod, admissionWebhookPod.Spec.Containers[0].Name, "Server started", timeout)
 	return awc, awDeployment, awService
 }
 
@@ -497,6 +500,28 @@ func CheckNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 	return checkNSCConfig(k8s, nscPodNode, nscLocalRemoteIPs[0], nscLocalRemoteIPs[1])
 }
 
+func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
+	timoutChannel := time.After(timeout)
+	for {
+		select {
+		case <-timoutChannel:
+			logrus.Errorf("can find pod %v during %v", name, timeout)
+			return nil
+		default:
+			list := k8s.ListPods()
+			for i := 0; i < len(list); i++ {
+				p := &list[i]
+				if strings.Contains(p.Name, name) {
+					result, err := blockUntilPodReady(k8s.clientset, timeout, p)
+					Expect(err).Should(BeNil())
+					return result
+				}
+			}
+
+		}
+		<-time.After(time.Millisecond * 100)
+	}
+}
 func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCheckInfo {
 	var err error
 	info := &NSCCheckInfo{}

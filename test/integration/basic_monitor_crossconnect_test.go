@@ -93,10 +93,10 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
-	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
+	_, err = kubetest.CollectXcons(eventCh0, 1, fastTimeout)
 	Expect(err).To(BeNil())
 
-	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
+	_, err = kubetest.CollectXcons(eventCh1, 1, fastTimeout)
 	Expect(err).To(BeNil())
 }
 
