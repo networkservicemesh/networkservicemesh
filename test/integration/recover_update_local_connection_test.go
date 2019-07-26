@@ -14,7 +14,6 @@ import (
 
 func TestUpdateConnectionOnNSEChange(t *testing.T) {
 	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -33,7 +32,7 @@ func TestUpdateConnectionOnNSEChange(t *testing.T) {
 	nsc := kubetest.DeployMonitoringNSC(k8s, nodesConf[0].Node, "monitoring-nsc", defaultTimeout)
 	k8s.WaitLogsContains(nsc, "monitoring-nsc", "Monitor started", defaultTimeout)
 
-	time.Sleep(5 * time.Second) // we need to be sure that NSC is updated only with the initial connection
+	<-time.After(5 * time.Second) // we need to be sure that NSC is updated only with the initial connection
 
 	l, err := k8s.GetLogs(nsc, "monitoring-nsc")
 	Expect(err).To(BeNil())

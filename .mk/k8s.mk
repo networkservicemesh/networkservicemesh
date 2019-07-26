@@ -291,10 +291,6 @@ k8s-nsm-monitor-build: ${CONTAINER_BUILD_PREFIX}-nsm-monitor-build
 .PHONY: k8s-nsm-monitor-save
 k8s-nsm-monitor-save: ${CONTAINER_BUILD_PREFIX}-nsm-monitor-save
 
-.PHONY: k8s-nsm-monitor-load-images
-k8s-nsm-monitor-load-images: k8s-nsm-monitor-load-images
-
-
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-common-build
 
