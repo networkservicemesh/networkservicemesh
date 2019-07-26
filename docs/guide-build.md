@@ -220,7 +220,7 @@ To do formatting run:
 goimports -w -local github.com/networkservicemesh/networkservicemesh -d $(find . -type f -name '*.go' -not -name '*.pb.go')
 ```
 
-or simply:
+Or simply:
 ```bash
 make format
 ```
