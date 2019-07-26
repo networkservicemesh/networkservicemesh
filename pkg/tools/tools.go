@@ -159,10 +159,15 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 			cfg.ServiceName = service
 		}
 	}
-
-	cfg.Sampler.Type = "const"
-	cfg.Sampler.Param = 1
-	cfg.Reporter.LogSpans = true
+	if cfg.Sampler.Type == "" {
+		cfg.Sampler.Type = "const"
+	}
+	if cfg.Sampler.Param == 0 {
+		cfg.Sampler.Param = 1
+	}
+	if !cfg.Reporter.LogSpans {
+		cfg.Reporter.LogSpans = true
+	}
 
 	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
 	if err != nil {
