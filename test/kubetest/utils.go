@@ -217,8 +217,8 @@ func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Dura
 // NoHealNSMgrPodConfig returns config for NSMgr. The config has properties for disabling healing for nse
 func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 	return []*pods.NSMgrPodConfig{
-		noNseHeal(k8s),
-		noNseHeal(k8s),
+		noHealNSMgrPodConfig(k8s),
+		noHealNSMgrPodConfig(k8s),
 	}
 }
 
@@ -263,7 +263,7 @@ func defaultNSCEnv() map[string]string {
 	}
 }
 
-func noNseHeal(k8s *K8s) *pods.NSMgrPodConfig {
+func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
 	return &pods.NSMgrPodConfig{
 		Variables: map[string]string{
 			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
