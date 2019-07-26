@@ -1,4 +1,4 @@
-// +build usecase
+// +build test_fix
 
 package nsmd_integration_tests
 

@@ -17,49 +17,50 @@ executions:
       - WRITE_POD_LOGS_IN_FILES=true
       - WRITE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
-      - basic
-      - recover
-      - usecase
+      - test_fix
+    #      - basic
+    #      - recover
+    #      - usecase
     root: ./test/integration
-    timeout: 300
+    timeout: 2400
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
-  - name: "Benchmark tests"
-    tags:
-      - bench
-    root: ./test/integration
-    timeout: 600
-    cluster-count: 1
-    cluster-selector:
-      - packet
-    kubernetes-env:
-      - KUBECONFIG
-  - name: "Example-icmp"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=nsm-system
-      - CLUSTER_RULES_PREFIX=null
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-infra-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
-      make k8s-icmp-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
-      make k8s-check
-      make k8s-delete
-  - name: "Example-vpn"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=nsm-system
-      - CLUSTER_RULES_PREFIX=null
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-infra-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
-      make k8s-vpn-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
-      make k8s-check
-      make k8s-delete
+#  - name: "Benchmark tests"
+#    tags:
+#      - bench
+#    root: ./test/integration
+#    timeout: 600
+#    cluster-count: 1
+#    cluster-selector:
+#      - packet
+#    kubernetes-env:
+#      - KUBECONFIG
+#  - name: "Example-icmp"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=nsm-system
+#      - CLUSTER_RULES_PREFIX=null
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-infra-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+#      make k8s-icmp-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+#      make k8s-check
+#      make k8s-delete
+#  - name: "Example-vpn"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=nsm-system
+#      - CLUSTER_RULES_PREFIX=null
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-infra-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+#      make k8s-vpn-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+#      make k8s-check
+#      make k8s-delete
