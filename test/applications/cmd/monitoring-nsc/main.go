@@ -30,7 +30,6 @@ const (
 	nscLogFormat          = "NSM Client: %v"
 )
 
-
 var version string
 
 func main() {
