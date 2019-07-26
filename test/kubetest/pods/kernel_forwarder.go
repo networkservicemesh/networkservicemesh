@@ -47,15 +47,6 @@ func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v
 						},
 					},
 				},
-				{
-					Name: "postmortem",
-					VolumeSource: v1.VolumeSource{
-						HostPath: &v1.HostPathVolumeSource{
-							Type: ht,
-							Path: "/var/tmp/nsm-postmortem",
-						},
-					},
-				},
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
@@ -66,11 +57,6 @@ func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v
 						{
 							Name:             "workspace",
 							MountPath:        "/var/lib/networkservicemesh/",
-							MountPropagation: &mode,
-						},
-						{
-							Name:             "postmortem",
-							MountPath:        "/var/tmp/nsm-postmortem/",
 							MountPropagation: &mode,
 						},
 					},

@@ -144,3 +144,14 @@ func deleteLocalConnection(cfg *connectionConfig) error {
 	}
 	return nil
 }
+
+func newVETH(srcName, dstName string) *netlink.Veth {
+	/* Populate the VETH interface configuration */
+	return &netlink.Veth{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: srcName,
+			MTU:  cVETHMTU,
+		},
+		PeerName: dstName,
+	}
+}

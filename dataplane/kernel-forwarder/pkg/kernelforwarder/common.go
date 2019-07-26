@@ -195,26 +195,3 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		return nil, fmt.Errorf("invalid connection type")
 	}
 }
-
-func newVETH(srcName, dstName string) *netlink.Veth {
-	/* Populate the VETH interface configuration */
-	return &netlink.Veth{
-		LinkAttrs: netlink.LinkAttrs{
-			Name: srcName,
-			MTU:  cVETHMTU,
-		},
-		PeerName: dstName,
-	}
-}
-
-func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) *netlink.Vxlan {
-	/* Populate the VXLAN interface configuration */
-	return &netlink.Vxlan{
-		LinkAttrs: netlink.LinkAttrs{
-			Name: ifaceName,
-		},
-		VxlanId: vni,
-		Group:   remoteIP,
-		SrcAddr: egressIP,
-	}
-}

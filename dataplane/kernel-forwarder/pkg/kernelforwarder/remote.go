@@ -142,3 +142,15 @@ func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string
 	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN
 
 }
+
+func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) *netlink.Vxlan {
+	/* Populate the VXLAN interface configuration */
+	return &netlink.Vxlan{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: ifaceName,
+		},
+		VxlanId: vni,
+		Group:   remoteIP,
+		SrcAddr: egressIP,
+	}
+}
