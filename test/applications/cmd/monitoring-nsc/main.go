@@ -21,7 +21,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -31,19 +30,6 @@ const (
 	nscLogFormat          = "NSM Client: %v"
 )
 
-type connectionUpdater struct {
-	sidecars.EmptyNSMMonitorHandler
-	conn *connection.Connection
-}
-
-func (c *connectionUpdater) Connected(connections map[string]*connection.Connection) {
-	for _, conn := range connections {
-		if conn.Id == c.conn.Id {
-			logrus.Infof(nscLogWithParamFormat, "Connection updated", conn)
-			c.conn = conn
-		}
-	}
-}
 
 var version string
 
@@ -62,13 +48,11 @@ func main() {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
 	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
-	currentConn, err := nsc.Connect("nsm", "kernel", "Primary interface")
+	_, err = nsc.Connect("nsm", "kernel", "Primary interface")
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
-
 	monitor := sidecars.NewNSMMonitorApp()
-	monitor.SetHandler(&connectionUpdater{conn: currentConn})
 	monitor.Run()
 	<-c
 }
