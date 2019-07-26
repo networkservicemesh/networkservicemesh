@@ -256,6 +256,11 @@ workflows:
           container: "vppagent-dataplane-dev"
           requires:
             - test-sanity-check
+      - build-container:
+          name: "build-kernel-forwarding-plane"
+          container: "kernel-forwarder"
+          requires:
+            - test-sanity-check
       - build-container-success:
           requires:
             - build-nsmd
@@ -269,6 +274,7 @@ workflows:
             - build-nsm-monitor
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
+            - build-kernel-forwarding-plane
 
 # Integration testing
       - integration-tests:
