@@ -18,9 +18,9 @@ spec:
           imagePullPolicy: {{ .Values.pullPolicy }}
 {{- if .Values.global.JaegerTracing }}
           env:
-            - name: JAEGER_SERVICE_HOST
+            - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
-            - name: JAEGER_SERVICE_PORT_JAEGER
+            - name: JAEGER_AGENT_PORT
               value: "6831"
 {{- end }}
           volumeMounts:
@@ -33,9 +33,9 @@ spec:
           imagePullPolicy: {{ .Values.pullPolicy }}
 {{- if .Values.global.JaegerTracing }}
           env:
-            - name: JAEGER_SERVICE_HOST
+            - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
-            - name: JAEGER_SERVICE_PORT_JAEGER
+            - name: JAEGER_AGENT_PORT
               value: "6831"
 {{- end }}
           volumeMounts:
@@ -66,9 +66,9 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
 {{- if .Values.global.JaegerTracing }}
-            - name: JAEGER_SERVICE_HOST
+            - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
-            - name: JAEGER_SERVICE_PORT_JAEGER
+            - name: JAEGER_AGENT_PORT
               value: "6831"
 {{- end }}
       volumes:
