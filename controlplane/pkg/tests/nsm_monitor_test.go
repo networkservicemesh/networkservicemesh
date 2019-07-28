@@ -2,14 +2,16 @@ package tests
 
 import (
 	"context"
+	"testing"
+	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 type nsmHelper struct {

@@ -3,10 +3,11 @@
 package sample
 
 import (
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 func TestPassTag(t *testing.T) {

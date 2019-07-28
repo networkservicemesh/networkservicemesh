@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"testing"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 type monitorManager struct {

@@ -17,7 +17,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"os"
 	"path"
@@ -29,6 +28,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (

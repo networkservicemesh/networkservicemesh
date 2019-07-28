@@ -1,10 +1,11 @@
 package sample
 
 import (
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 func TestPass(t *testing.T) {

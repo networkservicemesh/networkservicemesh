@@ -3,9 +3,11 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
-	v1 "k8s.io/api/core/v1"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 )
 
 // KubernetesValidator - a validator to check periodically of cluster livenes.

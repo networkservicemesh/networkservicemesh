@@ -3,13 +3,15 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestNSCDiesSingleNode(t *testing.T) {

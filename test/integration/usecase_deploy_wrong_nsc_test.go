@@ -3,11 +3,13 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	"github.com/onsi/gomega"
 	"strings"
 	"testing"
+
+	"github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 func TestDeployWrongNsc(t *testing.T) {

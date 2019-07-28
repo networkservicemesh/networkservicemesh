@@ -1,8 +1,9 @@
 package model
 
 import (
-	"github.com/sirupsen/logrus"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ModificationHandler aggregates handlers for particular events
