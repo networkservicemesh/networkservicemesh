@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 
 	"github.com/opentracing/opentracing-go"
