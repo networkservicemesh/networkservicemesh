@@ -15,9 +15,10 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
+
 	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/sirupsen/logrus"
 )
 
 var version string
