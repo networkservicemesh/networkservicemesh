@@ -3,9 +3,10 @@ package vppagent
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc"
 	"io"
 	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/gogo/protobuf/proto"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
