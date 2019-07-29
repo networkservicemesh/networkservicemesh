@@ -78,6 +78,8 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 		return
 	}
 
+	wt = NewWithT(t)
+
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
 
