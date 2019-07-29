@@ -50,7 +50,7 @@ func (*nsmHelper) ProcessHealing(newConn *connection.Connection, e error) {
 }
 
 func TestNSMMonitorInit(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -73,8 +73,8 @@ func TestNSMMonitorInit(t *testing.T) {
 	request := createRequest(false)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// Now we need to start monitor and check if it will be able to restore connections.
 

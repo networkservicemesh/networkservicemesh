@@ -12,33 +12,33 @@ import (
 )
 
 func TestNsmCacheGetNil(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	c := resource_cache.NewNetworkServiceManagerCache()
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 	var expect *v1.NetworkServiceManager = nil
-	Expect(c.Get("Justice")).Should(Equal(expect))
+	g.Expect(c.Get("Justice")).Should(Equal(expect))
 }
 
 func TestNsmCacheConcurrentModification(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	c := resource_cache.NewNetworkServiceManagerCache()
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
 	c.Add(FakeNsm("nsm-1"))
 	c.Add(FakeNsm("nsm-2"))
 
 	stopRead := RepeatAsync(func() {
 		nsm1 := c.Get("nsm-1")
-		Expect(nsm1).ShouldNot(BeNil())
-		Expect(nsm1.Name).Should(Equal("nsm-1"))
+		g.Expect(nsm1).ShouldNot(BeNil())
+		g.Expect(nsm1.Name).Should(Equal("nsm-1"))
 
 		c.Get("nsm-2")
 
@@ -59,7 +59,7 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 }
 
 func TestNsmCacheStartWithInit(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	c := resource_cache.NewNetworkServiceManagerCache()
 
 	init := []v1.NetworkServiceManager{
@@ -74,9 +74,9 @@ func TestNsmCacheStartWithInit(t *testing.T) {
 	}
 	stopFunc, err := c.Start(&fakeRegistry{}, init...)
 	defer stopFunc()
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
-	Expect(c.Get("nsm-1").Name).To(Equal("nsm-1"))
-	Expect(c.Get("nsm-2").Name).To(Equal("nsm-2"))
+	g.Expect(c.Get("nsm-1").Name).To(Equal("nsm-1"))
+	g.Expect(c.Get("nsm-2").Name).To(Equal("nsm-2"))
 }

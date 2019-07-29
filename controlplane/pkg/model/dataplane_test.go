@@ -12,7 +12,7 @@ import (
 )
 
 func TestAddAndGetDp(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	dp := &Dataplane{
 		RegisteredName: "dp1",
@@ -40,18 +40,18 @@ func TestAddAndGetDp(t *testing.T) {
 	dd.AddDataplane(dp)
 	getDp := dd.GetDataplane("dp1")
 
-	Expect(getDp.RegisteredName).To(Equal(dp.RegisteredName))
-	Expect(getDp.SocketLocation).To(Equal(dp.SocketLocation))
-	Expect(getDp.MechanismsConfigured).To(Equal(dp.MechanismsConfigured))
-	Expect(getDp.LocalMechanisms).To(Equal(dp.LocalMechanisms))
-	Expect(getDp.RemoteMechanisms).To(Equal(dp.RemoteMechanisms))
+	g.Expect(getDp.RegisteredName).To(Equal(dp.RegisteredName))
+	g.Expect(getDp.SocketLocation).To(Equal(dp.SocketLocation))
+	g.Expect(getDp.MechanismsConfigured).To(Equal(dp.MechanismsConfigured))
+	g.Expect(getDp.LocalMechanisms).To(Equal(dp.LocalMechanisms))
+	g.Expect(getDp.RemoteMechanisms).To(Equal(dp.RemoteMechanisms))
 
-	Expect(fmt.Sprintf("%p", getDp.LocalMechanisms)).ToNot(Equal(fmt.Sprintf("%p", dp.LocalMechanisms)))
-	Expect(fmt.Sprintf("%p", getDp.RemoteMechanisms)).ToNot(Equal(fmt.Sprintf("%p", dp.RemoteMechanisms)))
+	g.Expect(fmt.Sprintf("%p", getDp.LocalMechanisms)).ToNot(Equal(fmt.Sprintf("%p", dp.LocalMechanisms)))
+	g.Expect(fmt.Sprintf("%p", getDp.RemoteMechanisms)).ToNot(Equal(fmt.Sprintf("%p", dp.RemoteMechanisms)))
 }
 
 func TestDeleteDp(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	dd := newDataplaneDomain()
 	dd.AddDataplane(&Dataplane{
@@ -77,18 +77,18 @@ func TestDeleteDp(t *testing.T) {
 	})
 
 	cc := dd.GetDataplane("dp1")
-	Expect(cc).ToNot(BeNil())
+	g.Expect(cc).ToNot(BeNil())
 
 	dd.DeleteDataplane("dp1")
 
 	dpDel := dd.GetDataplane("dp1")
-	Expect(dpDel).To(BeNil())
+	g.Expect(dpDel).To(BeNil())
 
 	dd.DeleteDataplane("NotExistingId")
 }
 
 func TestSelectDp(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	amount := 5
 	dd := newDataplaneDomain()
@@ -121,17 +121,17 @@ func TestSelectDp(t *testing.T) {
 	}
 
 	selectedDp, err := dd.SelectDataplane(selector)
-	Expect(err).To(BeNil())
-	Expect(selectedDp.RegisteredName).To(Equal("dp4"))
+	g.Expect(err).To(BeNil())
+	g.Expect(selectedDp.RegisteredName).To(Equal("dp4"))
 
 	emptySelector := func(dp *Dataplane) bool {
 		return false
 	}
 	selectedDp, err = dd.SelectDataplane(emptySelector)
-	Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
-	Expect(selectedDp).To(BeNil())
+	g.Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
+	g.Expect(selectedDp).To(BeNil())
 
 	first, err := dd.SelectDataplane(nil)
-	Expect(err).To(BeNil())
-	Expect(first.RegisteredName).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
+	g.Expect(first.RegisteredName).ToNot(BeNil())
 }

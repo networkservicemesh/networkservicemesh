@@ -11,7 +11,7 @@ import (
 )
 
 func TestRestoreConnectionState(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -19,15 +19,15 @@ func TestRestoreConnectionState(t *testing.T) {
 
 	srv.addFakeDataplane("dp1", "tcp:some_address")
 
-	Expect(srv.nsmServer.Manager().WaitForDataplane(1 * time.Millisecond).Error()).To(Equal("Failed to wait for NSMD stare restore... timeout 1ms happened"))
+	g.Expect(srv.nsmServer.Manager().WaitForDataplane(1 * time.Millisecond).Error()).To(Equal("Failed to wait for NSMD stare restore... timeout 1ms happened"))
 
 	xcons := []*crossconnect.CrossConnect{}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1")
-	Expect(srv.nsmServer.Manager().WaitForDataplane(1 * time.Second)).To(BeNil())
+	g.Expect(srv.nsmServer.Manager().WaitForDataplane(1 * time.Second)).To(BeNil())
 }
 
 func TestRestoreConnectionStateWrongDst(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -63,6 +63,6 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 		},
 	}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1")
-	Expect(srv.nsmServer.Manager().WaitForDataplane(1 * time.Second)).To(BeNil())
-	Expect(len(srv.testModel.GetAllClientConnections())).To(Equal(0))
+	g.Expect(srv.nsmServer.Manager().WaitForDataplane(1 * time.Second)).To(BeNil())
+	g.Expect(len(srv.testModel.GetAllClientConnections())).To(Equal(0))
 }

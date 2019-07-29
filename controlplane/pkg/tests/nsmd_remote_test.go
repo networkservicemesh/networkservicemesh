@@ -19,7 +19,7 @@ import (
 // Below only tests
 
 func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -63,17 +63,17 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	}
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
 	cross_connections := srv2.serviceRegistry.testDataplaneConnection.connections
-	Expect(len(cross_connections)).To(Equal(1))
+	g.Expect(len(cross_connections)).To(Equal(1))
 	logrus.Print("End of test")
 }
 
 func TestNSMDCloseCrossConnection(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -147,33 +147,33 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	}
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
 	cross_connection := srv.testModel.GetClientConnection(nsmResponse.Id)
-	Expect(cross_connection).ToNot(BeNil())
+	g.Expect(cross_connection).ToNot(BeNil())
 
 	destConnectionId := cross_connection.Xcon.GetRemoteDestination().GetId()
 
 	cross_connection2 := srv2.testModel.GetClientConnection(destConnectionId)
-	Expect(cross_connection2).ToNot(BeNil())
+	g.Expect(cross_connection2).ToNot(BeNil())
 
 	//Cross connection successfully created, check it closing
 	_, err = nsmClient.Close(context.Background(), nsmResponse)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	//We need to check that xcons have been removed from model
 	cross_connection = srv.testModel.GetClientConnection(nsmResponse.Id)
-	Expect(cross_connection).To(BeNil())
+	g.Expect(cross_connection).To(BeNil())
 
 	cross_connection2 = srv2.testModel.GetClientConnection(destConnectionId)
-	Expect(cross_connection2).To(BeNil())
+	g.Expect(cross_connection2).To(BeNil())
 
 }
 
 func TestNSMDDelayRemoteMechanisms(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -240,11 +240,11 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	srv2.testModel.UpdateDataplane(testDataplane2_2)
 
 	res := <-resultChan
-	Expect(res.err).To(BeNil())
-	Expect(res.nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(res.err).To(BeNil())
+	g.Expect(res.nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for crМфвук31oss connections.
 	cross_connections := srv2.serviceRegistry.testDataplaneConnection.connections
-	Expect(len(cross_connections)).To(Equal(1))
+	g.Expect(len(cross_connections)).To(Equal(1))
 	logrus.Print("End of test")
 }

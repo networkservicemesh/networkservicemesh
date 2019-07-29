@@ -13,21 +13,21 @@ import (
 )
 
 func TestSingleCrossConnect(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
@@ -65,21 +65,21 @@ func TestSingleCrossConnect(t *testing.T) {
 }
 
 func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	// monitor client for node0
@@ -94,28 +94,28 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 
 	_, err = kubetest.CollectXcons(eventCh0, 1, fastTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	_, err = kubetest.CollectXcons(eventCh1, 1, fastTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 }
 
 func TestSeveralCrossConnects(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
@@ -130,28 +130,28 @@ func TestSeveralCrossConnects(t *testing.T) {
 	defer closeFunc1()
 
 	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 }
 
 func TestCrossConnectMonitorRestart(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
 
 	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	kubetest.DeployNSC(k8s, nodes[0].Node, "nsc-2", defaultTimeout)
@@ -160,7 +160,7 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 	eventCh0, closeFunc0 := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
 
 	_, err = kubetest.CollectXcons(eventCh0, 2, fastTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	closeFunc0()
 
 	logrus.Info("Restarting monitor")
@@ -169,5 +169,5 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 	defer closeFunc1()
 
 	_, err = kubetest.CollectXcons(eventCh1, 2, fastTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 }

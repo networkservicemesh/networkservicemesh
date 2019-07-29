@@ -25,7 +25,7 @@ func TestNSMgrDataplaneDeployLiveCheck(t *testing.T) {
 }
 
 func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node, string) *v1.Pod) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -34,10 +34,10 @@ func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
@@ -47,7 +47,7 @@ func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	corePod := nsmdPodFactory(nsmdName, &nodes[0], k8s.GetK8sNamespace())
 	dataplanePod := dataplanePodFactory(dataplaneName, &nodes[0], k8s.GetForwardingPlane())
 	corePods, err := k8s.CreatePodsRaw(defaultTimeout, true, corePod, dataplanePod)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(corePods[1], "", "Sending MonitorMechanisms update", defaultTimeout)
 	_ = k8s.WaitLogsContainsRegex(corePods[0], "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
@@ -62,5 +62,5 @@ func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 			count += 1
 		}
 	}
-	Expect(count).To(Equal(int(0)))
+	g.Expect(count).To(Equal(int(0)))
 }

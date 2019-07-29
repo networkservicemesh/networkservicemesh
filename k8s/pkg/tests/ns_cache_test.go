@@ -12,20 +12,20 @@ import (
 )
 
 func TestNsCacheConcurrentModification(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	c := resource_cache.NewNetworkServiceCache()
 	fakeRegistry := fakeRegistry{}
 
 	stopFunc, err := c.Start(&fakeRegistry)
 
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
 	c.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1"}})
 	stopRead := RepeatAsync(func() {
 		ns := c.Get("ns1")
-		Expect(ns).ShouldNot(BeNil())
+		g.Expect(ns).ShouldNot(BeNil())
 	})
 	defer stopRead()
 

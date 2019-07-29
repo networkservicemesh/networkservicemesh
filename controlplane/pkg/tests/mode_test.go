@@ -14,7 +14,7 @@ func newModel() model.Model {
 }
 
 func TestModelAddRemove(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	mdl := newModel()
 
@@ -23,15 +23,15 @@ func TestModelAddRemove(t *testing.T) {
 		SocketLocation: "location",
 	})
 
-	Expect(mdl.GetDataplane("test_name").RegisteredName).To(Equal("test_name"))
+	g.Expect(mdl.GetDataplane("test_name").RegisteredName).To(Equal("test_name"))
 
 	mdl.DeleteDataplane("test_name")
 
-	Expect(mdl.GetDataplane("test_name")).To(BeNil())
+	g.Expect(mdl.GetDataplane("test_name")).To(BeNil())
 }
 
 func TestModelSelectDataplane(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	mdl := newModel()
 
@@ -40,29 +40,29 @@ func TestModelSelectDataplane(t *testing.T) {
 		SocketLocation: "location",
 	})
 	dp, err := mdl.SelectDataplane(nil)
-	Expect(dp.RegisteredName).To(Equal("test_name"))
-	Expect(err).To(BeNil())
+	g.Expect(dp.RegisteredName).To(Equal("test_name"))
+	g.Expect(err).To(BeNil())
 }
 func TestModelSelectDataplaneNone(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	mdl := newModel()
 
 	dp, err := mdl.SelectDataplane(nil)
-	Expect(dp).To(BeNil())
-	Expect(err.Error()).To(Equal("no appropriate dataplanes found"))
+	g.Expect(dp).To(BeNil())
+	g.Expect(err.Error()).To(Equal("no appropriate dataplanes found"))
 }
 
 func TestModelAddEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	mdl := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	mdl.AddEndpoint(ep1)
-	Expect(mdl.GetEndpoint("ep1")).To(Equal(ep1))
+	g.Expect(mdl.GetEndpoint("ep1")).To(Equal(ep1))
 
-	Expect(mdl.GetEndpointsByNetworkService("golden-network")[0]).To(Equal(ep1))
+	g.Expect(mdl.GetEndpointsByNetworkService("golden-network")[0]).To(Equal(ep1))
 }
 
 func createNSERegistration(networkServiceName string, endpointName string) *model.Endpoint {
@@ -81,7 +81,7 @@ func createNSERegistration(networkServiceName string, endpointName string) *mode
 }
 
 func TestModelTwoEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	model := newModel()
 
@@ -89,14 +89,14 @@ func TestModelTwoEndpoint(t *testing.T) {
 	ep2 := createNSERegistration("golden-network", "ep2")
 	model.AddEndpoint(ep1)
 	model.AddEndpoint(ep2)
-	Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
-	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
+	g.Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
+	g.Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
-	Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(2))
+	g.Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(2))
 }
 
 func TestModelAddDeleteEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	model := newModel()
 
@@ -105,20 +105,20 @@ func TestModelAddDeleteEndpoint(t *testing.T) {
 	model.AddEndpoint(ep1)
 	model.AddEndpoint(ep2)
 	model.DeleteEndpoint("ep1")
-	Expect(model.GetEndpoint("ep1")).To(BeNil())
-	Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
+	g.Expect(model.GetEndpoint("ep1")).To(BeNil())
+	g.Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
-	Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(1))
+	g.Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(1))
 }
 
 func TestModelRestoreIds(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	mdl := newModel()
-	Expect(mdl.ConnectionID()).To(Equal("1"))
-	Expect(mdl.ConnectionID()).To(Equal("2"))
+	g.Expect(mdl.ConnectionID()).To(Equal("1"))
+	g.Expect(mdl.ConnectionID()).To(Equal("2"))
 	mdl2 := newModel()
 	mdl2.CorrectIDGenerator(mdl.ConnectionID())
-	Expect(mdl2.ConnectionID()).To(Equal("4"))
+	g.Expect(mdl2.ConnectionID()).To(Equal("4"))
 
 }

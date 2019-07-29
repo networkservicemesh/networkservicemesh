@@ -33,12 +33,12 @@ type EventDescription struct {
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
 	fwd, err := k8s.NewPortForwarder(pod, 6001)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	err = fwd.Start()
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
-	client, closeClient, cancel := CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	client, closeClient, cancel := CreateCrossConnectClient(k8s, fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
 	stopCh := make(chan struct{})
 
@@ -201,12 +201,12 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 }
 
 // CreateCrossConnectClient returns CrossConnectMonitorClient to passed address
-func CreateCrossConnectClient(address string) (MonitorClient, func(), context.CancelFunc) {
+func CreateCrossConnectClient(k8s *K8s, address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
 	conn, err := tools.DialTCP(address)
 	if err != nil {
-		Expect(err).To(BeNil())
+		k8s.g.Expect(err).To(BeNil())
 		return nil, nil, nil
 	}
 
@@ -214,7 +214,7 @@ func CreateCrossConnectClient(address string) (MonitorClient, func(), context.Ca
 	ctx, cancel := context.WithCancel(context.Background())
 	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
 	if err != nil {
-		Expect(err).To(BeNil())
+		k8s.g.Expect(err).To(BeNil())
 		cancel()
 		return nil, nil, nil
 	}

@@ -82,7 +82,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 }
 
 func TestCCServerEmpty(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	myModel := model.NewModel()
 
@@ -93,7 +93,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 	crossConnectAddress = sock.Addr().String()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	monitor.Update(&crossconnect.CrossConnect{
 		Id:      "cc1",
@@ -101,9 +101,9 @@ func TestCCServerEmpty(t *testing.T) {
 	})
 	events := readNMSDCrossConnectEvents(crossConnectAddress, 1)
 
-	Expect(len(events)).To(Equal(1))
+	g.Expect(len(events)).To(Equal(1))
 
-	Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
+	g.Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
 }
 
 func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {

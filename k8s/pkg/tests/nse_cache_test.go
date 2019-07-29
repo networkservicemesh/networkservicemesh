@@ -53,33 +53,33 @@ func (f *fakeRegistry) Delete(nse *v1.NetworkServiceEndpoint) {
 }
 
 func TestK8sRegistryAdd(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
 	nseCache := resource_cache.NewNetworkServiceEndpointCache()
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nse := newTestNse("nse1", "ns1")
 	fakeRegistry.Add(nse)
 
 	endpointList := getEndpoints(nseCache, "ns1", 1)
-	Expect(len(endpointList)).To(Equal(1))
-	Expect(endpointList[0].Name).To(Equal("nse1"))
+	g.Expect(len(endpointList)).To(Equal(1))
+	g.Expect(endpointList[0].Name).To(Equal("nse1"))
 }
 
 func TestNseCacheConcurrentModification(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	fakeRegistry := fakeRegistry{}
 	c := resource_cache.NewNetworkServiceEndpointCache()
 
 	stopFunc, err := c.Start(&fakeRegistry)
 	defer stopFunc()
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
 	c.Add(newTestNse("nse1", "ns1"))
 	c.Add(newTestNse("nse2", "ns2"))
@@ -99,34 +99,34 @@ func TestNseCacheConcurrentModification(t *testing.T) {
 	time.Sleep(time.Second * 5)
 }
 func TestNsmdRegistryAdd(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
 	nseCache := resource_cache.NewNetworkServiceEndpointCache()
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nse := newTestNse("nse1", "ns1")
 	nseCache.Add(nse)
 
 	endpointList := getEndpoints(nseCache, "ns1", 1)
-	Expect(len(endpointList)).To(Equal(1))
-	Expect(endpointList[0].Name).To(Equal("nse1"))
+	g.Expect(len(endpointList)).To(Equal(1))
+	g.Expect(endpointList[0].Name).To(Equal("nse1"))
 }
 
 func TestRegistryDelete(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
 	nseCache := resource_cache.NewNetworkServiceEndpointCache()
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
-	Expect(stopFunc).ToNot(BeNil())
-	Expect(err).To(BeNil())
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nse1 := newTestNse("nse1", "ns1")
 	nse2 := newTestNse("nse2", "ns1")
@@ -137,13 +137,13 @@ func TestRegistryDelete(t *testing.T) {
 	fakeRegistry.Add(nse3)
 
 	endpointList1 := getEndpoints(nseCache, "ns1", 2)
-	Expect(len(endpointList1)).To(Equal(2))
+	g.Expect(len(endpointList1)).To(Equal(2))
 	endpointList2 := getEndpoints(nseCache, "ns2", 1)
-	Expect(len(endpointList2)).To(Equal(1))
+	g.Expect(len(endpointList2)).To(Equal(1))
 
 	fakeRegistry.Delete(nse3)
 	endpointList3 := getEndpoints(nseCache, "ns2", 0)
-	Expect(len(endpointList3)).To(Equal(0))
+	g.Expect(len(endpointList3)).To(Equal(0))
 }
 
 func getEndpoints(nseCache *resource_cache.NetworkServiceEndpointCache,

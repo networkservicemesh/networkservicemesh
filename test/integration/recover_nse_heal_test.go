@@ -13,63 +13,63 @@ import (
 )
 
 func TestNSEHealLocal(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
+	g := NewWithT(t)
+
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	g := NewWithT(t)
 
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func TestNSEHealRemoteToLocal(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	g := NewWithT(t)
 
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func TestNSEHealRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
+	g := NewWithT(t)
+
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func TestNSEHealLocalMemif(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -79,21 +79,22 @@ func TestNSEHealLocalMemif(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.VppAgentTestingPodFixture())
+	}, kubetest.VppAgentTestingPodFixture(g))
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
-	fixture kubetest.TestingPodFixture) {
-	k8s, err := kubetest.NewK8s(true)
+func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture) {
+	g := NewWithT(t)
+
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
 	nodesSetup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	// Run ICMP
@@ -116,7 +117,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int,
 
 	if len(nodesSetup) > 1 {
 		l2, err := k8s.GetLogs(nodesSetup[1].Nsmd, "nsmd")
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 		if strings.Contains(l2, "Dataplane request failed:") {
 			logrus.Infof("Dataplane first attempt was failed: %v", l2)
 		}
