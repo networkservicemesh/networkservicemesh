@@ -67,14 +67,14 @@ func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy ku
 
 	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
-	nodes := createNodes(k8s, nodeCount)
+	nodes := createNodes(g, k8s, nodeCount)
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 
 	doneChannel := make(chan nscPingResult, nscCount)
 	defer close(doneChannel)
 
 	for count := nscCount; count > 0; count-- {
-		go createNscAndPingIcmp(k8s, count, nodes[0].Node, doneChannel, nscDeploy, nsePing)
+		go createNscAndPingIcmp(g, k8s, count, nodes[0].Node, doneChannel, nscDeploy, nsePing)
 	}
 
 	for count := nscCount; count > 0; count-- {
@@ -91,7 +91,7 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 
 	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
-	nodes := createNodes(k8s, nodeCount)
+	nodes := createNodes(g, k8s, nodeCount)
 
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 	doneChannel := make(chan nscPingResult, nscCount)
@@ -99,7 +99,7 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		for count := nscCount; count > 0; count-- {
-			go createNscAndPingIcmp(k8s, count, nodes[0].Node, doneChannel, nscDeploy, pingNse)
+			go createNscAndPingIcmp(g, k8s, count, nodes[0].Node, doneChannel, nscDeploy, pingNse)
 		}
 
 		for count := nscCount; count > 0; count-- {
@@ -118,13 +118,13 @@ func testOneToOneConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy k
 
 	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
-	nodes := createNodes(k8s, nodeCount)
+	nodes := createNodes(g, k8s, nodeCount)
 	doneChannel := make(chan nscPingResult, 1)
 	defer close(doneChannel)
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		icmp := icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
-		createNscAndPingIcmp(k8s, 1, nodes[0].Node, doneChannel, nscDeploy, pingNse)
+		createNscAndPingIcmp(g, k8s, 1, nodes[0].Node, doneChannel, nscDeploy, pingNse)
 		result := <-doneChannel
 		g.Expect(result.success).To(Equal(true))
 		k8s.DeletePods(icmp, result.nsc)
@@ -136,7 +136,7 @@ type nscPingResult struct {
 	nsc     *v1.Pod
 }
 
-func createNodes(k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
+func createNodes(g *WithT, k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
 	g.Expect(count > 0 && count < 3).Should(Equal(true))
 	nodes, err := kubetest.SetupNodesConfig(k8s, count, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
@@ -145,7 +145,7 @@ func createNodes(k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
 	return nodes
 }
 
-func createNscAndPingIcmp(k8s *kubetest.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
+func createNscAndPingIcmp(g *WithT, k8s *kubetest.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
 	nsc := nscDeploy(k8s, node, nscDefaultName+strconv.Itoa(id), defaultTimeout)
 	g.Expect(nsc.Name).To(Equal(nscDefaultName + strconv.Itoa(id)))
 	done <- nscPingResult{
