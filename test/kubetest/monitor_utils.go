@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 // MonitorClient is shorter name for crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
@@ -32,12 +33,12 @@ type EventDescription struct {
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
 	fwd, err := k8s.NewPortForwarder(pod, 6001)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	err = fwd.Start()
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
-	client, closeClient, cancel := CreateCrossConnectClient(fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	client, closeClient, cancel := CreateCrossConnectClient(k8s, fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
 	stopCh := make(chan struct{})
 
@@ -200,12 +201,12 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 }
 
 // CreateCrossConnectClient returns CrossConnectMonitorClient to passed address
-func CreateCrossConnectClient(address string) (MonitorClient, func(), context.CancelFunc) {
+func CreateCrossConnectClient(k8s *K8s, address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
 	conn, err := tools.DialTCP(address)
 	if err != nil {
-		Expect(err).To(BeNil())
+		k8s.g.Expect(err).To(BeNil())
 		return nil, nil, nil
 	}
 
@@ -213,7 +214,7 @@ func CreateCrossConnectClient(address string) (MonitorClient, func(), context.Ca
 	ctx, cancel := context.WithCancel(context.Background())
 	stream, err := monitorClient.MonitorCrossConnects(ctx, &empty.Empty{})
 	if err != nil {
-		Expect(err).To(BeNil())
+		k8s.g.Expect(err).To(BeNil())
 		cancel()
 		return nil, nil, nil
 	}

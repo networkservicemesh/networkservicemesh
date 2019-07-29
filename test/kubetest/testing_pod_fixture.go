@@ -1,9 +1,10 @@
 package kubetest
 
 import (
-	"github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
 	"time"
+
+	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 )
 
 // TestingPodFixture - Tool for help testing pods
@@ -14,25 +15,25 @@ type TestingPodFixture interface {
 }
 
 // VppAgentTestingPodFixture - Creates vpp agent specific testing tool
-func VppAgentTestingPodFixture() TestingPodFixture {
-	return NewCustomTestingPodFixture(DeployVppAgentNSC, DeployVppAgentICMP, CheckVppAgentNSC)
+func VppAgentTestingPodFixture(g *WithT) TestingPodFixture {
+	return NewCustomTestingPodFixture(g, DeployVppAgentNSC, DeployVppAgentICMP, CheckVppAgentNSC)
 }
 
 // DefaultTestingPodFixture - Creates default testing tool
-func DefaultTestingPodFixture() TestingPodFixture {
-	return NewCustomTestingPodFixture(DeployNSC, DeployICMP, CheckNSC)
+func DefaultTestingPodFixture(g *WithT) TestingPodFixture {
+	return NewCustomTestingPodFixture(g, DeployNSC, DeployICMP, CheckNSC)
 }
 
 // HealTestingPodFixture - Creates a testing tool specific for healing
-func HealTestingPodFixture() TestingPodFixture {
-	return NewCustomTestingPodFixture(DeployNSC, DeployICMP, HealNscChecker)
+func HealTestingPodFixture(g *WithT) TestingPodFixture {
+	return NewCustomTestingPodFixture(g, DeployNSC, DeployICMP, HealNscChecker)
 }
 
 // NewCustomTestingPodFixture - Creates a custom testing tool
-func NewCustomTestingPodFixture(deployNscFunc, deployNseFunc PodSupplier, checkNscFunc NscChecker) TestingPodFixture {
-	gomega.Expect(deployNscFunc).ShouldNot(gomega.BeNil())
-	gomega.Expect(deployNseFunc).ShouldNot(gomega.BeNil())
-	gomega.Expect(checkNscFunc).ShouldNot(gomega.BeNil())
+func NewCustomTestingPodFixture(g *WithT, deployNscFunc, deployNseFunc PodSupplier, checkNscFunc NscChecker) TestingPodFixture {
+	g.Expect(deployNscFunc).ShouldNot(BeNil())
+	g.Expect(deployNseFunc).ShouldNot(BeNil())
+	g.Expect(checkNscFunc).ShouldNot(BeNil())
 	return &testingPodFixtureImpl{
 		deployNscFunc: deployNscFunc,
 		deployNseFunc: deployNseFunc,

@@ -1,13 +1,15 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
 
 func TestVariableSubstitutions(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	env := map[string]string{
 		"KUBECONFIG": "~/.kube/config",
@@ -23,45 +25,43 @@ func TestVariableSubstitutions(t *testing.T) {
 	}
 
 	var1, err := utils.SubstituteVariable("qwe ${KUBECONFIG} $(uuid) BBB", env, args)
-	Expect(err).To(BeNil())
-	Expect(var1).To(Equal("qwe ~/.kube/config uu-uu BBB"))
+	g.Expect(err).To(BeNil())
+	g.Expect(var1).To(Equal("qwe ~/.kube/config uu-uu BBB"))
 
 }
 
 func TestParseCommandLine1(t *testing.T) {
-	RegisterTestingT(t)
-
 	t.Run("simple", func(t *testing.T) {
-		RegisterTestingT(t)
-		Expect(utils.ParseCommandLine("a b c")).To(Equal([]string{"a", "b", "c"}))
+		g := NewWithT(t)
+		g.Expect(utils.ParseCommandLine("a b c")).To(Equal([]string{"a", "b", "c"}))
 	})
 
 	t.Run("spaces", func(t *testing.T) {
-		RegisterTestingT(t)
-		Expect(utils.ParseCommandLine("a\\ b c")).To(Equal([]string{"a b", "c"}))
+		g := NewWithT(t)
+		g.Expect(utils.ParseCommandLine("a\\ b c")).To(Equal([]string{"a b", "c"}))
 	})
 
 	t.Run("strings", func(t *testing.T) {
-		RegisterTestingT(t)
-		Expect(utils.ParseCommandLine("a \"b    \" c")).To(Equal([]string{"a", "b    ", "c"}))
+		g := NewWithT(t)
+		g.Expect(utils.ParseCommandLine("a \"b    \" c")).To(Equal([]string{"a", "b    ", "c"}))
 	})
 
 	t.Run("empty_arg", func(t *testing.T) {
-		RegisterTestingT(t)
-		Expect(utils.ParseCommandLine("a 	-N \"\"")).To(Equal([]string{"a", "-N", ""}))
+		g := NewWithT(t)
+		g.Expect(utils.ParseCommandLine("a 	-N \"\"")).To(Equal([]string{"a", "-N", ""}))
 	})
 }
 
 func TestParseCommandLine2(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	cmdLine := utils.ParseCommandLine("go test ./test/integration -test.timeout 300s -count 1 --run \"^(TestNSMHealLocalDieNSMD)$\" --tags \"basic recover usecase\" --test.v")
-	Expect(len(cmdLine)).To(Equal(12))
+	g.Expect(len(cmdLine)).To(Equal(12))
 }
 func TestParseCommandLine3(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	cmdLine := utils.ParseCommandLine("go test ./test/integration -test.timeout 300s -count 1 --run \"^(TestNSMHealLocalDieNSMD)$\\\\z\" --tags \"basic recover usecase\" --test.v")
-	Expect(len(cmdLine)).To(Equal(12))
-	Expect(cmdLine[8]).To(Equal("^(TestNSMHealLocalDieNSMD)$\\z"))
+	g.Expect(len(cmdLine)).To(Equal(12))
+	g.Expect(cmdLine[8]).To(Equal("^(TestNSMHealLocalDieNSMD)$\\z"))
 }

@@ -7,68 +7,71 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 func TestDataplaneHealLocal(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testDataplaneHeal(t, 0, 1, kubetest.DefaultTestingPodFixture())
+	g := NewWithT(t)
+
+	testDataplaneHeal(t, 0, 1, kubetest.DefaultTestingPodFixture(g))
 }
 
 func TestDataplaneHealLocalMemif(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testDataplaneHeal(t, 0, 1, kubetest.VppAgentTestingPodFixture())
+	g := NewWithT(t)
+
+	testDataplaneHeal(t, 0, 1, kubetest.VppAgentTestingPodFixture(g))
 }
 
 func TestDataplaneHealMultiNodesLocal(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture())
+	g := NewWithT(t)
+
+	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture(g))
 }
 func TestDataplaneHealMultiNodesRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testDataplaneHeal(t, 1, 2, kubetest.HealTestingPodFixture())
+	g := NewWithT(t)
+
+	testDataplaneHeal(t, 1, 2, kubetest.HealTestingPodFixture(g))
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
 func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture kubetest.TestingPodFixture) {
-	Expect(nodesCount > 0).Should(BeTrue())
-	Expect(killDataplaneIndex >= 0 && killDataplaneIndex < nodesCount).Should(BeTrue())
-	k8s, err := kubetest.NewK8s(true)
+	g := NewWithT(t)
+
+	g.Expect(nodesCount > 0).Should(BeTrue())
+	g.Expect(killDataplaneIndex >= 0 && killDataplaneIndex < nodesCount).Should(BeTrue())
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 	// Run ICMP on latest node
 	fixture.DeployNse(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)

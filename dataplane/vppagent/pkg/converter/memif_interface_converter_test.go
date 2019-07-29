@@ -60,19 +60,19 @@ var ipAddress = map[ConnectionContextSide][]string{
 	DESTINATION: {dstIp},
 }
 
-func checkInterface(intf *vpp.Interface, side ConnectionContextSide) {
-	Expect(intf.Name).To(Equal(interfaceName))
-	Expect(intf.IpAddresses).To(Equal(ipAddress[side]))
-	Expect(intf.Type).To(Equal(vpp_interfaces.Interface_MEMIF))
+func checkInterface(g *WithT, intf *vpp.Interface, side ConnectionContextSide) {
+	g.Expect(intf.Name).To(Equal(interfaceName))
+	g.Expect(intf.IpAddresses).To(Equal(ipAddress[side]))
+	g.Expect(intf.Type).To(Equal(vpp_interfaces.Interface_MEMIF))
 }
 
-func checkMemif(memif *vpp_interfaces.Interface_Memif, isMaster bool) {
-	Expect(memif.Memif.Master).To(Equal(isMaster))
-	Expect(memif.Memif.SocketFilename).To(Equal(path.Join(baseDir, mechanismName, socketFilename)))
+func checkMemif(g *WithT, memif *vpp_interfaces.Interface_Memif, isMaster bool) {
+	g.Expect(memif.Memif.Master).To(Equal(isMaster))
+	g.Expect(memif.Memif.SocketFilename).To(Equal(path.Join(baseDir, mechanismName, socketFilename)))
 }
 
 func TestSourceSideConverter(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	conversionParameters := &ConnectionConversionParameters{
 		Terminate: true,
 		Side:      SOURCE,
@@ -81,17 +81,17 @@ func TestSourceSideConverter(t *testing.T) {
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
 	dataRequest, err := converter.ToDataRequest(nil, true)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
-	Expect(dataRequest.VppConfig.Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest.VppConfig.Interfaces[0], SOURCE)
+	g.Expect(dataRequest.VppConfig.Interfaces).ToNot(BeEmpty())
+	checkInterface(g, dataRequest.VppConfig.Interfaces[0], SOURCE)
 
-	Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif)).ToNot(BeNil())
-	checkMemif(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), false)
+	g.Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif)).ToNot(BeNil())
+	checkMemif(g, dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), false)
 }
 
 func TestDestinationSideConverter(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	conversionParameters := &ConnectionConversionParameters{
 		Terminate: false,
 		Side:      DESTINATION,
@@ -100,17 +100,17 @@ func TestDestinationSideConverter(t *testing.T) {
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
 	dataRequest, err := converter.ToDataRequest(nil, true)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
-	Expect(dataRequest.VppConfig.Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest.VppConfig.Interfaces[0], NEITHER)
+	g.Expect(dataRequest.VppConfig.Interfaces).ToNot(BeEmpty())
+	checkInterface(g, dataRequest.VppConfig.Interfaces[0], NEITHER)
 
-	Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif)).ToNot(BeNil())
-	checkMemif(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), false)
+	g.Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif)).ToNot(BeNil())
+	checkMemif(g, dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), false)
 }
 
 func TestTerminateDestinationSideConverter(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	conversionParameters := &ConnectionConversionParameters{
 		Terminate: true,
 		Side:      DESTINATION,
@@ -119,13 +119,13 @@ func TestTerminateDestinationSideConverter(t *testing.T) {
 	}
 	converter := NewMemifInterfaceConverter(createTestConnection(), conversionParameters)
 	dataRequest, err := converter.ToDataRequest(nil, true)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
-	Expect(dataRequest.VppConfig.Interfaces).ToNot(BeEmpty())
-	checkInterface(dataRequest.VppConfig.Interfaces[0], DESTINATION)
+	g.Expect(dataRequest.VppConfig.Interfaces).ToNot(BeEmpty())
+	checkInterface(g, dataRequest.VppConfig.Interfaces[0], DESTINATION)
 
-	Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif).Memif).ToNot(BeNil())
-	checkMemif(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), true)
+	g.Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif).Memif).ToNot(BeNil())
+	checkMemif(g, dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), true)
 
 	os.RemoveAll(baseDir)
 }

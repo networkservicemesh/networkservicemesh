@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"os"
 )
 
 type goTestRunner struct {

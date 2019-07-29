@@ -1,10 +1,11 @@
 package model
 
 import (
-	. "github.com/onsi/gomega"
 	"sync"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
 )
 
 type testResource struct {
@@ -18,7 +19,7 @@ func (r *testResource) clone() cloneable {
 }
 
 func TestModificationHandler(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	bd := baseDomain{}
 	resource := &testResource{"test"}
@@ -32,16 +33,16 @@ func TestModificationHandler(t *testing.T) {
 		bd.addHandler(&ModificationHandler{
 			AddFunc: func(new interface{}) {
 				defer wg.Done()
-				Expect(new.(*testResource).value).To(Equal(resource.value))
+				g.Expect(new.(*testResource).value).To(Equal(resource.value))
 			},
 			UpdateFunc: func(old interface{}, new interface{}) {
 				defer wg.Done()
-				Expect(old.(*testResource).value).To(Equal(resource.value))
-				Expect(new.(*testResource).value).To(Equal(updResource.value))
+				g.Expect(old.(*testResource).value).To(Equal(resource.value))
+				g.Expect(new.(*testResource).value).To(Equal(updResource.value))
 			},
 			DeleteFunc: func(del interface{}) {
 				defer wg.Done()
-				Expect(del.(*testResource).value).To(Equal(resource.value))
+				g.Expect(del.(*testResource).value).To(Equal(resource.value))
 			},
 		})
 	}

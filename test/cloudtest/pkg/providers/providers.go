@@ -1,10 +1,11 @@
 package providers
 
 import (
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
-	"time"
 )
 
 // InstanceOptions - instance operation parameters

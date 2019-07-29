@@ -2,6 +2,7 @@ package crossconnect
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"

@@ -8,21 +8,22 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 func TestSimpleMetrics(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	k8s, err := kubetest.NewK8s(true)
-	Expect(err).To(BeNil())
+	k8s, err := kubetest.NewK8s(g, true)
+	g.Expect(err).To(BeNil())
 
 	defer k8s.Cleanup()
 
@@ -39,7 +40,7 @@ func TestSimpleMetrics(t *testing.T) {
 		},
 	}, k8s.GetK8sNamespace())
 	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	defer kubetest.ShowLogs(k8s, t)
 
@@ -51,14 +52,14 @@ func TestSimpleMetrics(t *testing.T) {
 
 	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
 	logrus.Infof("response = %v", response)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	<-time.After(requestPeriod * 5)
 	k8s.DeletePods(nsc)
 	select {
 	case metrics := <-metricsCh:
-		Expect(isMetricsEmpty(metrics)).Should(Equal(false))
-		Expect(metrics["rx_error_packets"]).Should(Equal("0"))
-		Expect(metrics["tx_error_packets"]).Should(Equal("0"))
+		g.Expect(isMetricsEmpty(metrics)).Should(Equal(false))
+		g.Expect(metrics["rx_error_packets"]).Should(Equal("0"))
+		g.Expect(metrics["tx_error_packets"]).Should(Equal("0"))
 		return
 	case <-time.After(defaultTimeout):
 		t.Fatalf("Fail to get metrics during %v", defaultTimeout)

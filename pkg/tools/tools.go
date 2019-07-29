@@ -17,7 +17,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/uber/jaeger-client-go/config"
 	"io"
 	"net"
 	"net/url"
@@ -32,6 +31,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/config"
 )
 
 const (

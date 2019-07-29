@@ -5,13 +5,14 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -62,7 +63,7 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 // SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
-	Expect(len(nodes) >= nodesCount).To(Equal(true),
+	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 
 	var wg sync.WaitGroup
@@ -135,18 +136,14 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	nsmd = corePods[0]
 	dataplane = corePods[1]
 
-	Expect(nsmd.Name).To(Equal(corePods[0].Name))
-	Expect(dataplane.Name).To(Equal(corePods[1].Name))
+	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
+	k8s.g.Expect(dataplane.Name).To(Equal(corePods[1].Name))
 
-	failures := InterceptGomegaFailures(func() {
-		k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
-		_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
-		k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
-		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
-	})
-	if len(failures) > 0 {
-		showLogs(k8s, nil)
-	}
+	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
+	_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
+	k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
+
 	err = nil
 	return
 }
@@ -288,7 +285,7 @@ func deployICMP(k8s *K8s, nodeName, name string, timeout time.Duration, template
 
 	logrus.Infof("Starting ICMP Responder NSE on node: %s", nodeName)
 	icmp := k8s.CreatePod(template)
-	Expect(icmp.Name).To(Equal(name))
+	k8s.g.Expect(icmp.Name).To(Equal(name))
 
 	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
 
@@ -301,7 +298,7 @@ func deployDirtyNSE(k8s *K8s, nodeName, name string, timeout time.Duration, temp
 
 	logrus.Infof("Starting dirty NSE on node: %s", nodeName)
 	dirty := k8s.CreatePod(template)
-	Expect(dirty.Name).To(Equal(name))
+	k8s.g.Expect(dirty.Name).To(Equal(name))
 
 	k8s.WaitLogsContains(dirty, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
 
@@ -311,13 +308,13 @@ func deployDirtyNSE(k8s *K8s, nodeName, name string, timeout time.Duration, temp
 
 func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration, template *v1.Pod) *v1.Pod {
 	startTime := time.Now()
-	Expect(template).ShouldNot(BeNil())
+	k8s.g.Expect(template).ShouldNot(BeNil())
 
 	logrus.Infof("Starting NSC %s on node: %s", name, nodeName)
 
 	nsc := k8s.CreatePod(template)
 
-	Expect(nsc.Name).To(Equal(name))
+	k8s.g.Expect(nsc.Name).To(Equal(name))
 	k8s.WaitLogsContains(nsc, container, "nsm client: initialization is completed successfully", timeout)
 
 	logrus.Printf("NSC started done: %v", time.Since(startTime))
@@ -333,7 +330,7 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 	awService := CreateAdmissionWebhookService(k8s, name, namespace)
 
 	admissionWebhookPod := waitWebhookPod(k8s, awDeployment.Name, timeout)
-	Expect(admissionWebhookPod).ShouldNot(BeNil())
+	k8s.g.Expect(admissionWebhookPod).ShouldNot(BeNil())
 	k8s.WaitLogsContains(admissionWebhookPod, admissionWebhookPod.Spec.Containers[0].Name, "Server started", timeout)
 	return awc, awDeployment, awService
 }
@@ -343,16 +340,16 @@ func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
 
 	err := k8s.DeleteService(awService, namespace)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(awDeployment, namespace)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteMutatingWebhookConfiguration(awc)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteSecret(secretName, namespace)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 }
 
 // CreateAdmissionWebhookSecret - Create admission webhook secret
@@ -363,7 +360,7 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 		Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 	}
 	caCert, caKey, err := pkiutil.NewCertificateAuthority(caCertSpec)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	certSpec := &cert.Config{
 		CommonName: name + "-svc",
@@ -376,7 +373,7 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 	}
 	cer, key, err := pkiutil.NewCertAndKey(caCert, caKey, certSpec)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	block := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -406,7 +403,7 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 	}
 
 	awSecret, err := k8s.CreateSecret(secret, namespace)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	block = &pem.Block{
 		Type:  "CERTIFICATE",
@@ -459,7 +456,7 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 		},
 	}
 	awc, err := k8s.CreateMutatingWebhookConfiguration(mutatingWebhookConf)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	return awc
 }
@@ -469,7 +466,7 @@ func CreateAdmissionWebhookDeployment(k8s *K8s, name, image, namespace string) *
 	deployment := pods.AdmissionWebhookDeployment(name, image)
 
 	awDeployment, err := k8s.CreateDeployment(deployment, namespace)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	return awDeployment
 }
@@ -499,7 +496,7 @@ func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service
 		},
 	}
 	awService, err := k8s.CreateService(service, namespace)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	return awService
 }
@@ -534,7 +531,7 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 				p := &list[i]
 				if strings.Contains(p.Name, name) {
 					result, err := blockUntilPodReady(k8s.clientset, timeout, p)
-					Expect(err).Should(BeNil())
+					k8s.g.Expect(err).Should(BeNil())
 					return result
 				}
 			}
@@ -561,10 +558,10 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	} else {
 		info.ipResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "addr")
 	}
-	Expect(err).To(BeNil())
-	Expect(info.errOut).To(Equal(""))
-	Expect(strings.Contains(info.ipResponse, checkIP)).To(Equal(true))
-	Expect(strings.Contains(info.ipResponse, "nsm")).To(Equal(true))
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(info.errOut).To(Equal(""))
+	k8s.g.Expect(strings.Contains(info.ipResponse, checkIP)).To(Equal(true))
+	k8s.g.Expect(strings.Contains(info.ipResponse, "nsm")).To(Equal(true))
 
 	if err != nil || info.errOut != "" {
 		logrus.Println("NSC IP status, NOK")
@@ -581,10 +578,10 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 	} else {
 		info.routeResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "route")
 	}
-	Expect(err).To(BeNil())
-	Expect(info.errOut).To(Equal(""))
-	Expect(strings.Contains(info.routeResponse, publicDNSAddress)).To(Equal(true))
-	Expect(strings.Contains(info.routeResponse, "nsm")).To(Equal(true))
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(info.errOut).To(Equal(""))
+	k8s.g.Expect(strings.Contains(info.routeResponse, publicDNSAddress)).To(Equal(true))
+	k8s.g.Expect(strings.Contains(info.routeResponse, "nsm")).To(Equal(true))
 
 	if err != nil || info.errOut != "" {
 		logrus.Println("NSC Route status, NOK")
@@ -597,11 +594,11 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 
 	/* Check ping */
 	info.pingResponse, info.errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, pingCommand, pingIP, "-A", "-c", "5")
-	Expect(err).To(BeNil())
-	Expect(info.errOut).To(Equal(""))
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(info.errOut).To(Equal(""))
 
 	pingNOK := strings.Contains(info.pingResponse, "100% packet loss")
-	Expect(pingNOK).To(Equal(false))
+	k8s.g.Expect(pingNOK).To(Equal(false))
 	if err != nil || info.errOut != "" || pingNOK {
 		logrus.Printf("NSC Ping, NOK")
 		logrus.Println("pingResponse:", info.pingResponse)
@@ -629,7 +626,7 @@ func HealNscChecker(k8s *K8s, nscPod *v1.Pod) *NSCCheckInfo {
 		}
 		<-time.After(time.Second)
 	}
-	Expect(success).To(BeTrue())
+	k8s.g.Expect(success).To(BeTrue())
 	return rv
 }
 
@@ -678,7 +675,7 @@ func getNSEAddr(k8s *K8s, nsc *v1.Pod, parseIP ipParser, showIPCommand ...string
 
 func pingNse(k8s *K8s, from *v1.Pod) string {
 	nseIp, err := getNSEAddr(k8s, from, parseAddr, "ip", "addr")
-	Expect(err).Should(BeNil())
+	k8s.g.Expect(err).Should(BeNil())
 	logrus.Infof("%v trying ping to %v", from.Name, nseIp)
 	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
 	logrus.Infof("ping result: %s", response)
@@ -710,10 +707,10 @@ func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *N
 // ServiceRegistryAt creates new service registry on 5000 port
 func ServiceRegistryAt(k8s *K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry, func()) {
 	fwd, err := k8s.NewPortForwarder(nsmgr, 5000)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	err = fwd.Start()
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	sr := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 	return sr, fwd.Stop
@@ -724,10 +721,10 @@ func PrepareRegistryClients(k8s *K8s, nsmd *v1.Pod) (registry.NetworkServiceRegi
 	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
 
 	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	return nseRegistryClient, nsmRegistryClient, closeFunc
 }
@@ -747,6 +744,6 @@ func ExpectNSEsCountToBe(k8s *K8s, countWas, countExpected int) {
 
 	nses, err := k8s.GetNSEs()
 
-	Expect(err).To(BeNil())
-	Expect(len(nses)).To(Equal(countExpected), fmt.Sprint(nses))
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(len(nses)).To(Equal(countExpected), fmt.Sprint(nses))
 }

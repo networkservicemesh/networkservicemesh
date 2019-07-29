@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+
 	"github.com/sirupsen/logrus"
 )
 

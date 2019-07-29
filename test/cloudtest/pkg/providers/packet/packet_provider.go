@@ -4,14 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"github.com/packethost/packngo"
-	"github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"os"
@@ -19,6 +11,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/packethost/packngo"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/k8s"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
 
 const (

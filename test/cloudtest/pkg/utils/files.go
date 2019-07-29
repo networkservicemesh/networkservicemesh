@@ -2,10 +2,11 @@ package utils
 
 import (
 	"bufio"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // OpenFile - opens a file in folder and make folder parents if required.

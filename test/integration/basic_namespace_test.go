@@ -5,23 +5,23 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"k8s.io/api/core/v1"
-
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func Test_createNSMNamespace(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 	defer kubetest.ShowLogs(k8s, t)
 
 	namespaceName := k8s.GetK8sNamespace()
 	namespace, err := k8s.GetNamespace(namespaceName)
 
-	Expect(err).To(BeNil())
-	Expect(namespace.Status.Phase).To(Equal(v1.NamespaceActive))
+	g.Expect(err).To(BeNil())
+	g.Expect(namespace.Status.Phase).To(Equal(v1.NamespaceActive))
 
 }

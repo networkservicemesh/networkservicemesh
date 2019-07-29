@@ -1,7 +1,6 @@
 package model
 
 import (
-	. "github.com/onsi/gomega"
 	"sync"
 	"testing"
 	"time"
@@ -44,8 +43,6 @@ func (t *testListener) ClientConnectionUpdated(old, new *ClientConnection) {
 }
 
 func TestModelListener(t *testing.T) {
-	RegisterTestingT(t)
-
 	m := NewModel()
 	ln := testListener{}
 	ln.Add(8)

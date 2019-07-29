@@ -2,14 +2,16 @@ package tests
 
 import (
 	"context"
+	"testing"
+	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
 	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 type nsmHelper struct {
@@ -48,7 +50,7 @@ func (*nsmHelper) ProcessHealing(newConn *connection.Connection, e error) {
 }
 
 func TestNSMMonitorInit(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
@@ -71,8 +73,8 @@ func TestNSMMonitorInit(t *testing.T) {
 	request := createRequest(false)
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// Now we need to start monitor and check if it will be able to restore connections.
 
