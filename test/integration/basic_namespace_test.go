@@ -5,10 +5,10 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"k8s.io/api/core/v1"
-
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func Test_createNSMNamespace(t *testing.T) {

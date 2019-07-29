@@ -3,10 +3,12 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var version string

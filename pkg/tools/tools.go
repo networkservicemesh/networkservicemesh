@@ -17,7 +17,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/uber/jaeger-client-go/config"
 	"io"
 	"net"
 	"net/url"
@@ -32,6 +31,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/config"
 )
 
 const (
@@ -145,32 +145,31 @@ func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 
 // initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
 func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
-	jaegerHost := os.Getenv("JAEGER_SERVICE_HOST")
-	jaegerPort := os.Getenv("JAEGER_SERVICE_PORT_JAEGER")
-	jaegerHostPort := fmt.Sprintf("%s:%s", jaegerHost, jaegerPort)
-
-	logrus.Infof("Using Jaeger host/port: %s", jaegerHostPort)
-
-	cfg := &config.Configuration{
-		Sampler: &config.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &config.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: jaegerHostPort,
-		},
+	cfg, err := config.FromEnv()
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot create Jaeger configuration: %v\n", err))
 	}
 
-	hostname, err := os.Hostname()
-	var serviceName string
-	if err == nil {
-		serviceName = fmt.Sprintf("%s@%s", service, hostname)
-	} else {
-		serviceName = service
+	if cfg.ServiceName == "" {
+		var hostname string
+		hostname, err = os.Hostname()
+		if err == nil {
+			cfg.ServiceName = fmt.Sprintf("%s@%s", service, hostname)
+		} else {
+			cfg.ServiceName = service
+		}
+	}
+	if cfg.Sampler.Type == "" {
+		cfg.Sampler.Type = "const"
+	}
+	if cfg.Sampler.Param == 0 {
+		cfg.Sampler.Param = 1
+	}
+	if !cfg.Reporter.LogSpans {
+		cfg.Reporter.LogSpans = true
 	}
 
-	tracer, closer, err := cfg.New(serviceName, config.Logger(jaeger.StdLogger))
+	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}

@@ -7,15 +7,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var version string

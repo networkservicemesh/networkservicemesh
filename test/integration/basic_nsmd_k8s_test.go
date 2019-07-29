@@ -5,18 +5,20 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	. "github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	"github.com/sirupsen/logrus"
 )
 
 func TestNSMDDRegistryNSE(t *testing.T) {

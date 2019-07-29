@@ -17,20 +17,18 @@ package main
 import (
 	"context"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
 const (
-	nscLogFormat          = "NSM Client: %v"
 	nscLogWithParamFormat = "NSM Client: %v: %v"
+	nscLogFormat          = "NSM Client: %v"
 )
 
 var version string
@@ -49,49 +47,12 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
-
-	currentConn, err := nsc.Connect("nsm", "kernel", "Primary interface")
+	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
+	_, err = nsc.Connect("nsm", "kernel", "Primary interface")
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
-
-	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
-
-	monitorClient, err := local.NewMonitorClient(nsc.NsmConnection.GrpcClient)
-	if err != nil {
-		logrus.Fatalf(nscLogWithParamFormat, "Failed to start monitor client", err)
-	}
-	defer monitorClient.Close()
-
-	for {
-		select {
-		case sig := <-c:
-			logrus.Infof(nscLogWithParamFormat, "Received signal", sig)
-			return
-		case err = <-monitorClient.ErrorChannel():
-			logrus.Fatalf(nscLogWithParamFormat, "Monitor failed", err)
-		case event := <-monitorClient.EventChannel():
-			if event.EventType() == monitor.EventTypeInitialStateTransfer {
-				logrus.Infof(nscLogFormat, "Monitor started")
-			}
-
-			for _, entity := range event.Entities() {
-				conn, ok := entity.(*connection.Connection)
-				if !ok || conn.GetId() != currentConn.GetId() {
-					continue
-				}
-
-				switch event.EventType() {
-				case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
-					if !proto.Equal(conn, currentConn) {
-						logrus.Infof(nscLogWithParamFormat, "Connection updated", conn)
-						currentConn = conn
-					}
-				case monitor.EventTypeDelete:
-					logrus.Infof(nscLogFormat, "Connection closed")
-					return
-				}
-			}
-		}
-	}
+	monitor := sidecars.NewNSMMonitorApp()
+	monitor.Run()
+	<-c
 }

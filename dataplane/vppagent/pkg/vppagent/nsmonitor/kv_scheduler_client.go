@@ -2,10 +2,11 @@ package nsmonitor
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (

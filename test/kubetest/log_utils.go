@@ -2,13 +2,14 @@ package kubetest
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
 
 // ShowLogs prints logs from containers in case of fail/panic or enabled logging in file

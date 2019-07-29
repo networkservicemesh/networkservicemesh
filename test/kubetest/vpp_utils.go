@@ -2,14 +2,16 @@ package kubetest
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	"net"
 	"strings"
 	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE

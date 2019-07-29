@@ -16,18 +16,15 @@ package vppagent
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"os"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/ligato/vpp-agent/api/models/vpp/l3"
-
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"
@@ -38,8 +35,10 @@ import (
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 

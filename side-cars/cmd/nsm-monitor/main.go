@@ -15,6 +15,8 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
+
 	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -24,9 +26,9 @@ var version string
 func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
+	logrus.Infof("Starting nsm-monitor....")
+	logrus.Infof("Version: %v", version)
 	app := nsm_sidecars.NewNSMMonitorApp()
-	go app.Run(version)
-
+	go app.Run()
 	<-c
 }

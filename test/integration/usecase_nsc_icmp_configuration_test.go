@@ -6,13 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 func TestNSCAndICMPLocal(t *testing.T) {
@@ -129,7 +128,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	Expect(err).To(BeNil())
 
 	if useWebhook {
-		awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace())
+		awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace(), defaultTimeout)
 		defer kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 	}
 

@@ -17,6 +17,11 @@ package sidecars
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
@@ -24,9 +29,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
-	"time"
 )
 
 const (
@@ -36,28 +38,55 @@ const (
 	nsmMonitorRetryDelay = 5 * time.Second
 )
 
-// NSMMonitorHelper - helper to perform configuration of monitoring app required for testing.
-type NSMMonitorHelper interface {
+// NSMMonitorHandler - handler to perform configuration of monitoring app
+type NSMMonitorHandler interface {
+	//Connected occurs when the nsm-monitor connected
 	Connected(map[string]*connection.Connection)
+	//Healing occurs when the healing started
 	Healing(conn *connection.Connection)
+	//GetConfiguration gets custom network service configuration
 	GetConfiguration() *common.NSConfiguration
+	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
+	//Stopped occurs when the invoked NSMMonitorApp.Stop()
 	Stopped()
+	//IsEnableJaeger returns is Jaeger needed
 	IsEnableJaeger() bool
 }
 
 // NSMMonitorApp - application to perform monitoring.
 type NSMMonitorApp interface {
-	// Run - run application with printing version
-	Run(version string)
-	// SetHelper - sets a helper instance.
-	SetHelper(helper NSMMonitorHelper)
+	NSMApp
+	// SetHandler - sets a handler instance
+	SetHandler(helper NSMMonitorHandler)
 	Stop()
 }
 
+//EmptyNSMMonitorHandler has empty implementation of each method of interface NSMMonitorHandler
+type EmptyNSMMonitorHandler struct {
+}
+
+//Connected occurs when the nsm-monitor connected
+func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection) {}
+
+//Healing occurs when the healing started
+func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
+
+//GetConfiguration returns nil by default
+func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration { return nil }
+
+//ProcessHealing occurs when the restore failed, the error pass as the second parameter
+func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
+
+//Stopped occurs when the invoked NSMMonitorApp.Stop()
+func (h *EmptyNSMMonitorHandler) Stopped() {}
+
+//IsEnableJaeger returns false by default
+func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool { return false }
+
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
-	helper      NSMMonitorHelper
+	helper      NSMMonitorHandler
 	stop        chan struct{}
 }
 
@@ -65,14 +94,11 @@ func (c *nsmMonitorApp) Stop() {
 	close(c.stop)
 }
 
-// SetHelper - sets a helper class
-func (c *nsmMonitorApp) SetHelper(listener NSMMonitorHelper) {
+func (c *nsmMonitorApp) SetHandler(listener NSMMonitorHandler) {
 	c.helper = listener
 }
 
-func (c *nsmMonitorApp) Run(version string) {
-	logrus.Infof(nsmMonitorLogFormat, "Starting")
-	logrus.Infof("Version: %v", version)
+func (c *nsmMonitorApp) Run() {
 	// Capture signals to cleanup before exiting
 	if c.helper == nil || c.helper.IsEnableJaeger() {
 		tracer, closer := tools.InitJaeger("nsm-monitor")

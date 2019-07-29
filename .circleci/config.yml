@@ -24,6 +24,7 @@ jobs:
       - run:
           name: Check code formatting
           command: |
+            GO111MODULE=off go get golang.org/x/tools/cmd/goimports
             make format
             git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
       - run: ./scripts/prepare-generate.sh

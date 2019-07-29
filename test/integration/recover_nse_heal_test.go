@@ -3,10 +3,11 @@
 package nsmd_integration_tests
 
 import (
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"strings"
 	"testing"
+
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )

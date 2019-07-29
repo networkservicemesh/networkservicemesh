@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"net"
 	"sync"
 	"testing"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func startClient(target string) {
