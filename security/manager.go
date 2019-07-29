@@ -17,8 +17,9 @@ package security
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/sirupsen/logrus"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Manager provides methods for secure grpc communication
@@ -28,13 +29,13 @@ type Manager interface {
 }
 
 // CertificateObtainer abstracts certificates obtaining
-type certificateObtainer interface {
-	stop()
-	errorCh() <-chan error
-	certificateCh() <-chan *response
+type CertificateObtainer interface {
+	Stop()
+	ErrorCh() <-chan error
+	CertificateCh() <-chan *Response
 }
 
-type response struct {
+type Response struct {
 	TLSCert  *tls.Certificate
 	CABundle *x509.CertPool
 }
@@ -61,11 +62,11 @@ func GetSecurityManager() Manager {
 
 // NewManager creates new security.Manager using SpireCertObtainer
 func NewManager() Manager {
-	return newManagerWithCertObtainer(newSpireObtainer())
+	return NewManagerWithCertObtainer(newSpireObtainer())
 }
 
-// newManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer
-func newManagerWithCertObtainer(obtainer certificateObtainer) Manager {
+// NewManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer
+func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {
 	cm := &certificateManager{
 		readyCh: make(chan struct{}),
 	}
@@ -73,18 +74,18 @@ func newManagerWithCertObtainer(obtainer certificateObtainer) Manager {
 	return cm
 }
 
-func (m *certificateManager) exchangeCertificates(obtainer certificateObtainer) {
+func (m *certificateManager) exchangeCertificates(obtainer CertificateObtainer) {
 	for {
 		select {
-		case r := <-obtainer.certificateCh():
+		case r := <-obtainer.CertificateCh():
 			m.setCertificates(r)
-		case err := <-obtainer.errorCh():
+		case err := <-obtainer.ErrorCh():
 			logrus.Error(err)
 		}
 	}
 }
 
-func (m *certificateManager) setCertificates(r *response) {
+func (m *certificateManager) setCertificates(r *Response) {
 	m.Lock()
 	defer m.Unlock()
 

@@ -18,9 +18,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"net"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"
-	"net"
 
 	proto "github.com/spiffe/spire/proto/spire/api/workload"
 )
@@ -31,12 +32,12 @@ const (
 
 type spireObtainer struct {
 	errCh             chan error
-	responseCh        <-chan *response
+	responseCh        <-chan *Response
 	workloadAPIClient workload.X509Client
 }
 
-// newSpireCertObtainer creates certificateObtainer that fetch certificates from spire-agent
-func newSpireObtainer() certificateObtainer {
+// newSpireCertObtainer creates CertificateObtainer that fetch certificates from spire-agent
+func newSpireObtainer() CertificateObtainer {
 	workloadAPIClient := workload.NewX509Client(
 		&workload.X509ClientConfig{
 			Addr: &net.UnixAddr{Net: "unix", Name: agentAddress},
@@ -61,46 +62,39 @@ func newSpireObtainer() certificateObtainer {
 	}
 }
 
-func (o *spireObtainer) stop() {
+func (o *spireObtainer) Stop() {
 	o.workloadAPIClient.Stop()
 }
 
-func (o *spireObtainer) errorCh() <-chan error {
+func (o *spireObtainer) ErrorCh() <-chan error {
 	return o.errCh
 }
 
-func (o *spireObtainer) certificateCh() <-chan *response {
+func (o *spireObtainer) CertificateCh() <-chan *Response {
 	return o.responseCh
 }
 
-func certsFromSpireCh(spireCh <-chan *proto.X509SVIDResponse, errCh chan<- error) <-chan *response {
-	responseCh := make(chan *response)
+func certsFromSpireCh(spireCh <-chan *proto.X509SVIDResponse, errCh chan<- error) <-chan *Response {
+	responseCh := make(chan *Response)
 
 	go func() {
 		defer close(responseCh)
 
-		for {
-			select {
-			case svidResponse, ok := <-spireCh:
-				if !ok {
-					return
-				}
-
-				logrus.Infof("Received new SVID: %v", svidResponse.Svids[0].SpiffeId)
-				response, err := newResponse(svidResponse)
-				if err != nil {
-					errCh <- err
-					return
-				}
-				responseCh <- response
+		for svidResponse := range spireCh {
+			logrus.Infof("Received new SVID: %v", svidResponse.Svids[0].SpiffeId)
+			response, err := newResponse(svidResponse)
+			if err != nil {
+				errCh <- err
+				return
 			}
+			responseCh <- response
 		}
 	}()
 
 	return responseCh
 }
 
-func newResponse(svidResponse *proto.X509SVIDResponse) (*response, error) {
+func newResponse(svidResponse *proto.X509SVIDResponse) (*Response, error) {
 	svid := svidResponse.Svids[0]
 
 	crt, err := certToPemBlocks(svid.GetX509Svid())
@@ -131,7 +125,7 @@ func newResponse(svidResponse *proto.X509SVIDResponse) (*response, error) {
 		return nil, errors.New("failed to append ca cert to pool")
 	}
 
-	return &response{
+	return &Response{
 		TLSCert:  &keyPair,
 		CABundle: caPool,
 	}, nil
