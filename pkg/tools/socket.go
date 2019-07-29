@@ -47,7 +47,7 @@ func GetConfig() DialConfig {
 
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(opts ...grpc.ServerOption) *grpc.Server {
-	if !cfg.Insecure {
+	if !GetConfig().Insecure {
 		mgr := security.GetSecurityManager()
 		cred := credentials.NewTLS(&tls.Config{
 			ClientAuth:   tls.RequireAndVerifyClientCert,

@@ -15,7 +15,6 @@ providers:
       - GKE_CLUSTER_ZONE=$(zone-selector)
       - GKE_CLUSTER_TYPE=n1-standard-2
       - GKE_CLUSTER_NUM_NODES=2
-      - INSECURE=true
     env-check:
       - GCLOUD_SERVICE_KEY
       - CIRCLE_BUILD_NUM
