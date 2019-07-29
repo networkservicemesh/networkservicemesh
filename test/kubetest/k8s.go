@@ -337,7 +337,7 @@ func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 	}
 
 	_, err = client.CreateServiceAccounts()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	return &client, nil
 }
 
