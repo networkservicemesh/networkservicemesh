@@ -3,6 +3,7 @@ package vppagent
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"io"
 	"time"
 
@@ -33,7 +34,7 @@ func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint
 }
 
 func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
-	conn, err := tools.DialTCP(endpoint)
+	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return
