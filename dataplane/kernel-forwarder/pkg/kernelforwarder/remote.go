@@ -23,10 +23,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 )
 
 func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
