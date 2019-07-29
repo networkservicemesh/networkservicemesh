@@ -18,7 +18,7 @@ import (
 	"testing"
 )
 
-func readNsm(reader io.ReadCloser) (v1.NetworkServiceManager, error) {
+func readNsm(reader io.Reader) (v1.NetworkServiceManager, error) {
 	nsm := v1.NetworkServiceManager{}
 	msg, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -95,7 +95,7 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)
 	serverData := sync.Map{}
-	fakeRest := fakeNsmRest(&serverData)
+	fakeRest := fakeNsmRest(g, &serverData)
 	for i := 0; i < 10; i++ {
 		cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
 		err := cache.Start()
@@ -120,7 +120,7 @@ func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)
 	serverData := sync.Map{}
-	fakeRest := fakeNsmRest(&serverData)
+	fakeRest := fakeNsmRest(g, &serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
 	err := cache.Start()
 	g.Expect(err).Should(BeNil())
@@ -139,7 +139,7 @@ func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
 func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)
 	serverData := sync.Map{}
-	fakeRest := fakeNsmRest(&serverData)
+	fakeRest := fakeNsmRest(g, &serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
 	err := cache.Start()
 	g.Expect(err).Should(BeNil())

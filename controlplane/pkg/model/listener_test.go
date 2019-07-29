@@ -4,8 +4,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	. "github.com/onsi/gomega"
 )
 
 type testListener struct {

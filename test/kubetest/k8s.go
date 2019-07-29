@@ -267,7 +267,7 @@ type K8s struct {
 	apiServerHost      string
 	useIPv6            bool
 	forwardingPlane    string
-	g				   *WithT
+	g                  *WithT
 }
 
 // NewK8s - Creates a new K8s Clientset with roles for the default config
@@ -293,7 +293,7 @@ func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 
 	client := K8s{
 		pods: []*v1.Pod{},
-		g: g,
+		g:    g,
 	}
 	client.setForwardingPlane()
 	client.config = config
