@@ -47,7 +47,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 
 func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	ctx = withNext(ctx, nil)
-	if n.index < len(n.composite.endpoints) {
+	if n.index+1 < len(n.composite.endpoints) {
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
 	}
 	// Create a new span
