@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
@@ -18,7 +18,7 @@ import (
 func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.VppTestCommonPod("vppagent-icmp-responder-nse", name, "icmp-responder-nse", node,
-			defaultICMPEnv(k8s.UseIPv6()),
+			defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount,
 		),
 	)
 }
@@ -27,7 +27,7 @@ func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Durat
 func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, nodeName(node), name, "vppagent-nsc", timeout,
 		pods.VppTestCommonPod("vppagent-nsc", name, "vppagent-nsc", node,
-			defaultNSCEnv(),
+			defaultNSCEnv(), pods.NSCServiceAccount,
 		),
 	)
 }

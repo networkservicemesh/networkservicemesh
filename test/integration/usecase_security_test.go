@@ -1,12 +1,14 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"testing"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestCertSidecar(t *testing.T) {

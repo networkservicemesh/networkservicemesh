@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/cert"
@@ -213,7 +213,7 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 		Routes: true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -224,7 +224,7 @@ func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfigName strin
 		DNS:    true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())), corednsConfigName),
+		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount), corednsConfigName),
 	)
 }
 
@@ -233,7 +233,7 @@ func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Dur
 	flags := flags.ICMPResponderFlags{
 		Routes: true,
 	}
-	pod := pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()))
+	pod := pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, nodeName(node), name, timeout, pod)
 }
@@ -244,7 +244,7 @@ func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration
 		Dirty: true,
 	}
 	return deployDirtyNSE(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -254,7 +254,7 @@ func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 		Neighbors: true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -264,7 +264,7 @@ func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 		Update: true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -314,7 +314,7 @@ func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 // DeployMonitoringNSC deploys 'monitoring-nsc' pod
 func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, nodeName(node), name, "monitoring-nsc", timeout,
-		pods.TestCommonPod(name, []string{"/bin/monitoring-nsc"}, node, defaultNSCEnv()),
+		pods.TestCommonPod(name, []string{"/bin/monitoring-nsc"}, node, defaultNSCEnv(), pods.NSCServiceAccount),
 	)
 }
 

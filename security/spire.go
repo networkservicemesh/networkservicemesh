@@ -39,7 +39,7 @@ type spireObtainer struct {
 func newSpireObtainer() certificateObtainer {
 	workloadAPIClient := workload.NewX509Client(
 		&workload.X509ClientConfig{
-			Addr: &net.UnixAddr{"unix", agentAddress},
+			Addr: &net.UnixAddr{Net: "unix", Name: agentAddress},
 			Log:  logrus.StandardLogger(),
 		})
 

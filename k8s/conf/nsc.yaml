@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nsc-acc
+  namespace: nsm-system
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -11,6 +16,7 @@ spec:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
+      serviceAccount: nsc-acc
       containers:
         - name: alpine-img
           image: alpine:latest

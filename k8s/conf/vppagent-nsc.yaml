@@ -13,6 +13,12 @@ spec:
         networkservicemesh.io: "true"
         networkservicemesh.io/app: "vppagent-nsc"
     spec:
+      serviceAccount: nsc-acc
+      volumes:
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
       hostPID: true
       containers:
         - name: vppagent-nsc
@@ -25,6 +31,10 @@ spec:
               value: "app=icmp"
             - name: OUTGOING_NSC_NAME
               value: "icmp-responder"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
           resources:
             limits:
               networkservicemesh.io/socket: 1

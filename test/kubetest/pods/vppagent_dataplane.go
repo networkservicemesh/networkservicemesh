@@ -2,7 +2,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,7 +33,8 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			HostPID: true,
+			ServiceAccountName: ForwardPlaneServiceAccount,
+			HostPID:            true,
 			Volumes: []v1.Volume{
 				{
 					Name: "workspace",
@@ -53,6 +54,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 						},
 					},
 				},
+				spireVolume(),
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
@@ -70,6 +72,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 							MountPath:        "/var/tmp/nsm-postmortem/",
 							MountPropagation: &mode,
 						},
+						spireVolumeMount(),
 					},
 					Env: []v1.EnvVar{
 						{

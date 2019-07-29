@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -42,5 +42,27 @@ func createDefaultDataplaneResources() v1.ResourceRequirements {
 		Limits: v1.ResourceList{
 			v1.ResourceCPU: resource.NewScaledQuantity(1, 0).DeepCopy(),
 		},
+	}
+}
+
+func spireVolume() v1.Volume {
+	ht := v1.HostPathDirectoryOrCreate
+
+	return v1.Volume{
+		Name: "spire-agent-socket",
+		VolumeSource: v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/run/spire/sockets",
+				Type: &ht,
+			},
+		},
+	}
+}
+
+func spireVolumeMount() v1.VolumeMount {
+	return v1.VolumeMount{
+		Name:      "spire-agent-socket",
+		MountPath: "/run/spire/sockets",
+		ReadOnly:  true,
 	}
 }

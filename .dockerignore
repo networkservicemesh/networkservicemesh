@@ -5,6 +5,7 @@
 !controllers
 !controlplane
 !dataplane
+!security
 !docker
 !test/applications
 !side-cars

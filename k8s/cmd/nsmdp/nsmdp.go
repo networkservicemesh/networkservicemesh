@@ -24,6 +24,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"golang.org/x/net/context"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
@@ -88,7 +89,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 
 // Register registers
 func Register(kubeletEndpoint string) error {
-	conn, err := tools.DialUnix(kubeletEndpoint)
+	conn, err := grpc.Dial("unix:"+kubeletEndpoint, grpc.WithInsecure())
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
 	}
@@ -164,7 +165,8 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		return err
 	}
 
-	grpcServer := tools.NewServer()
+	grpcServer := grpc.NewServer()
+
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
 	logrus.Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
@@ -174,7 +176,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.DialUnix(listenEndpoint)
+	conn, err := grpc.Dial(listenEndpoint, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}

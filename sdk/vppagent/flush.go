@@ -119,7 +119,7 @@ func (f *Flush) createConnection(ctx context.Context) (*grpc.ClientConn, error) 
 		return nil, err
 	}
 
-	rv, err := tools.DialTCP(f.Endpoint)
+	rv, err := grpc.Dial(f.Endpoint, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("Can't dial grpc server: %v", err)
 		return nil, err

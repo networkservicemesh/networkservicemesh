@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -92,8 +92,12 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSCServiceAccount,
 			Containers: []v1.Container{
 				newAlpineContainer(),
+			},
+			Volumes: []v1.Volume{
+				spireVolume(),
 			},
 			InitContainers: []v1.Container{
 				initContainer,
@@ -137,6 +141,9 @@ func newInitContainer(env map[string]string) v1.Container {
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 			},
 		},
+		VolumeMounts: []v1.VolumeMount{
+			spireVolumeMount(),
+		},
 	})
 	for k, v := range env {
 		initContainer.Env = append(initContainer.Env,
@@ -156,6 +163,9 @@ func newMonitorContainer(env map[string]string) v1.Container {
 			Limits: v1.ResourceList{
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 			},
+		},
+		VolumeMounts: []v1.VolumeMount{
+			spireVolumeMount(),
 		},
 	})
 	for k, v := range env {

@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nsmgr-acc
+  namespace: nsm-system
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -13,6 +18,7 @@ spec:
       labels:
         app: nsmgr-daemonset
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: nsmdp
           image: networkservicemesh/nsmdp
@@ -22,6 +28,9 @@ spec:
               mountPath: /var/lib/kubelet/device-plugins
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
         - name: nsmd
           image: networkservicemesh/nsmd
           imagePullPolicy: IfNotPresent
@@ -30,6 +39,9 @@ spec:
               mountPath: /var/lib/networkservicemesh
             - name: nsm-plugin-socket
               mountPath: /var/lib/networkservicemesh/plugins
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /liveness
@@ -51,6 +63,9 @@ spec:
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent
           volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
             - name: nsm-plugin-socket
               mountPath: /var/lib/networkservicemesh/plugins
           env:
@@ -71,3 +86,7 @@ spec:
             path: /var/lib/networkservicemesh/plugins
             type: DirectoryOrCreate
           name: nsm-plugin-socket
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket

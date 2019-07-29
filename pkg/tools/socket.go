@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
 	"github.com/networkservicemesh/networkservicemesh/security"
 )
 
@@ -19,7 +20,7 @@ const (
 	opentracingEnv     = "OPEN_TRACING"
 	opentracingDefault = true
 	insecureEnv        = "INSECURE"
-	insecureDefault    = true
+	insecureDefault    = false
 	dialTimeoutDefault = 5 * time.Second
 )
 

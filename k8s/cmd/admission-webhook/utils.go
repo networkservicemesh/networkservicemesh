@@ -53,11 +53,19 @@ func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) 
 }
 
 func getInitContainerPatchPath(request *v1beta1.AdmissionRequest) string {
+	return getSpecPatchPath(request) + "/initContainers"
+}
+
+func getVolumePatchPath(request *v1beta1.AdmissionRequest) string {
+	return getSpecPatchPath(request) + "/volumes"
+}
+
+func getSpecPatchPath(request *v1beta1.AdmissionRequest) string {
 	if request.Kind.Kind == pod {
-		return pathPodInitContainers
+		return pathPodSpec
 	}
 	if request.Kind.Kind == deployment {
-		return pathDeploymentInitContainers
+		return pathDeploymentSpec
 	}
 	panic("unsupported request kind")
 }
@@ -98,6 +106,13 @@ func createInitContainerPatch(annotationValue, path string) []patchOperation {
 		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env:             envVals,
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      spireSocketVolume,
+				MountPath: spireSocketPath,
+				ReadOnly:  true,
+			},
+		},
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"networkservicemesh.io/socket": resource.MustParse("1"),
@@ -174,4 +189,25 @@ func readRequest(r *http.Request) ([]byte, error) {
 		return nil, errors.New(msg)
 	}
 	return body, nil
+}
+
+func addVolume(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
+	first := len(target) == 0
+	var value interface{}
+	for i := 0; i < len(added); i++ {
+		value = added[i]
+		path := basePath
+		if first {
+			first = false
+			value = []corev1.Volume{added[i]}
+		} else {
+			path = path + "/-"
+		}
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  path,
+			Value: value,
+		})
+	}
+	return patch
 }

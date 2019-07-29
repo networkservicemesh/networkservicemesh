@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,6 +28,10 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSEServiceAccount,
+			Volumes: []v1.Volume{
+				spireVolume(),
+			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "vpn-gateway",
@@ -40,6 +44,9 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
+					},
+					VolumeMounts: []v1.VolumeMount{
+						spireVolumeMount(),
 					},
 					Env: envVars,
 				}),

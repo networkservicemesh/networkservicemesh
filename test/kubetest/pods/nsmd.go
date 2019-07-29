@@ -110,6 +110,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 			//Kind: "DaemonSet",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSMgrServiceAccount,
 			Volumes: []v1.Volume{
 				{
 					Name: "kubelet-socket",
@@ -138,20 +139,21 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 						},
 					},
 				},
+				spireVolume(),
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "nsmdp",
 					Image:           "networkservicemesh/nsmdp",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					VolumeMounts:    []v1.VolumeMount{newDevMount(), newNSMMount()},
+					VolumeMounts:    []v1.VolumeMount{newDevMount(), newNSMMount(), spireVolumeMount()},
 					Resources:       createDefaultResources(),
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd",
 					Image:           "networkservicemesh/nsmd",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					VolumeMounts:    []v1.VolumeMount{newNSMMount(), newNSMPluginMount()},
+					VolumeMounts:    []v1.VolumeMount{newNSMMount(), newNSMPluginMount(), spireVolumeMount()},
 					LivenessProbe:   config.liveness,
 					ReadinessProbe:  config.readiness,
 					Resources:       createDefaultResources(),
@@ -166,7 +168,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					Name:            "nsmd-k8s",
 					Image:           "networkservicemesh/nsmd-k8s",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					VolumeMounts:    []v1.VolumeMount{newNSMPluginMount()},
+					VolumeMounts:    []v1.VolumeMount{spireVolumeMount(), newNSMPluginMount()},
 					Env: []v1.EnvVar{
 						v1.EnvVar{
 							Name:  "NODE_NAME",

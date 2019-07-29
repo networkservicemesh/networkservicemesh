@@ -1,13 +1,13 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // VppTestCommonPod creates a new vpp-based testing pod
-func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string) *v1.Pod {
+func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string, sa string) *v1.Pod {
 	envVars := []v1.EnvVar{{Name: "TEST_APPLICATION", Value: app}}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -25,6 +25,10 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: sa,
+			Volumes: []v1.Volume{
+				spireVolume(),
+			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            container,
@@ -34,6 +38,9 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
+					},
+					VolumeMounts: []v1.VolumeMount{
+						spireVolumeMount(),
 					},
 					Env: envVars,
 				}),
