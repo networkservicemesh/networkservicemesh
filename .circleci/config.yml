@@ -32,7 +32,7 @@ jobs:
       - run: go generate ./...
       - run: make vet check
       - run: go build ./...
-      - run: INSECURE=true go test ./test/integration --list .* -tags basic recover usecase
+      - run: go test ./test/integration --list .* -tags basic recover usecase
       - run: mkdir -p ~/junit/
       - run:
           command: |
@@ -40,6 +40,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
+            export INSECURE="true"
             gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
       - store_test_results:
           path: ~/junit
