@@ -108,12 +108,14 @@ func newResponse(svidResponse *proto.X509SVIDResponse) (*Response, error) {
 		return nil, err
 	}
 
-	if x509crt, err := x509.ParseCertificate(keyPair.Certificate[0]); err == nil {
-		logrus.Infof("Length of URIs = %v", len(x509crt.URIs))
-		logrus.Infof("URIs[0] = %v", *x509crt.URIs[0])
-	} else {
+	x509crt, err := x509.ParseCertificate(keyPair.Certificate[0])
+	if err != nil {
 		logrus.Error(err)
+		return nil, err
 	}
+
+	logrus.Infof("Length of URIs = %v", len(x509crt.URIs))
+	logrus.Infof("URIs[0] = %v", *x509crt.URIs[0])
 
 	caBundle, err := certToPemBlocks(svid.GetBundle())
 	if err != nil {

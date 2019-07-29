@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v12 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
@@ -29,8 +29,8 @@ func TestCertSidecar(t *testing.T) {
 	checkSpire(k8s)
 
 	logs, err := k8s.GetLogs(nsc, "nsm-init")
+	Expect(err).To(BeNil())
 	logrus.Infof(logs)
-	return
 }
 
 func checkSpire(k8s *kubetest.K8s) {
@@ -40,11 +40,12 @@ func checkSpire(k8s *kubetest.K8s) {
 	pl, err := cs.CoreV1().Pods("spire").List(v1.ListOptions{})
 	Expect(err).To(BeNil())
 
-	for _, p := range pl.Items {
-		logrus.Infof("====== %v ======", p.Name)
-		raw, err := cs.CoreV1().Pods("spire").GetLogs(p.Name, &v12.PodLogOptions{}).DoRaw()
+	//for _, p := range pl.Items {
+	for i := 0; i < len(pl.Items); i++ {
+		logrus.Infof("====== %v ======", pl.Items[i].Name)
+		raw, err := cs.CoreV1().Pods("spire").GetLogs(pl.Items[i].Name, &v12.PodLogOptions{}).DoRaw()
 		Expect(err).To(BeNil())
 		logrus.Info(string(raw))
-		logrus.Info("================", p.Name)
+		logrus.Info("================", pl.Items[i].Name)
 	}
 }

@@ -331,12 +331,13 @@ func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 		client.CleanupMutatingWebhookConfigurations()
 		client.CleanupSecrets("nsm-admission-webhook-certs")
 		client.CleanupConfigMaps()
-		client.DeleteServiceAccounts()
+		_ = client.DeleteServiceAccounts()
 		_ = nsmrbac.DeleteAllRoles(client.clientset)
 		logrus.Printf("Cleanup done: %v", time.Since(start))
 	}
 
-	client.CreateServiceAccounts()
+	_, err = client.CreateServiceAccounts()
+	Expect(err).To(BeNil())
 	return &client, nil
 }
 

@@ -35,6 +35,7 @@ type CertificateObtainer interface {
 	CertificateCh() <-chan *Response
 }
 
+// Response represents pair - TLSCert and CABundle that are returned from CertificateObtainer
 type Response struct {
 	TLSCert  *tls.Certificate
 	CABundle *x509.CertPool

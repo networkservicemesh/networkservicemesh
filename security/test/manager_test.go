@@ -32,7 +32,7 @@ func TestSecurityManager(t *testing.T) {
 			Expect(bundle).To(Equal(prevCa))
 		}
 
-		verify(crt, bundle)
+		Expect(verify(crt, bundle)).To(BeNil())
 		prevCrt, prevCa = crt, bundle
 
 		<-time.After(2 * exchangeTimeout)

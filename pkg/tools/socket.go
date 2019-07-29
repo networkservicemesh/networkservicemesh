@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
