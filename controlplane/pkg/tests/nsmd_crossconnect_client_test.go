@@ -5,6 +5,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"

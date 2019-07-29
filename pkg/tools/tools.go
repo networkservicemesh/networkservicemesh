@@ -28,6 +28,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/uber/jaeger-client-go/config"
+
 	"github.com/go-errors/errors"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
