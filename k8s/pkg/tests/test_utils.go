@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
@@ -15,7 +14,9 @@ import (
 
 func Body(content interface{}) io.ReadCloser {
 	msg, err := json.Marshal(content)
-	Expect(err).Should(BeNil())
+	if err != nil {
+		panic(err)
+	}
 	return ioutil.NopCloser(bytes.NewReader(msg))
 }
 func Ok(content interface{}) *http.Response {
@@ -46,14 +47,15 @@ func AlreadyExist(content interface{}) *http.Response {
 
 func Status(status int, content interface{}) *http.Response {
 	msg, err := json.Marshal(content)
-	Expect(err).Should(BeNil())
+	if err != nil {
+		panic(err)
+	}
 	return &http.Response{
 		StatusCode: status,
 		Body:       ioutil.NopCloser(bytes.NewReader(msg)),
 	}
 }
 func RepeatAsync(operation func()) (stopFunc func()) {
-	Expect(operation).ShouldNot(BeNil())
 	stopCh := make(chan struct{})
 	stopFunc = func() {
 		close(stopCh)

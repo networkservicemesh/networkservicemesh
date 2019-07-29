@@ -38,13 +38,15 @@ const (
 	dstIpMasked = dstIp + "/30"
 )
 
-func TestDataplaneCrossConnectBasic(t *testing.T) {
-	RegisterTestingT(t)
+var wt *WithT
 
+func TestDataplaneCrossConnectBasic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	wt = NewWithT(t)
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -54,12 +56,12 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 }
 
 func TestDataplaneCrossConnectMultiple(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	wt = NewWithT(t)
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -71,12 +73,12 @@ func TestDataplaneCrossConnectMultiple(t *testing.T) {
 }
 
 func TestDataplaneCrossConnectUpdate(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	wt = NewWithT(t)
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -92,12 +94,12 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 }
 
 func TestDataplaneCrossConnectReconnect(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	wt = NewWithT(t)
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -140,12 +142,12 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 		test:    test,
 	}
 
-	k8s, err := kubetest.NewK8s(true)
-	Expect(err).To(BeNil())
+	k8s, err := kubetest.NewK8s(wt, true)
+	wt.Expect(err).To(BeNil())
 
 	// prepare node
 	nodes := k8s.GetNodesWait(1, timeout)
-	Expect(len(nodes) >= 1).To(Equal(true), "At least one kubernetes node is required for this test")
+	wt.Expect(len(nodes) >= 1).To(Equal(true), "At least one kubernetes node is required for this test")
 
 	fixture.k8s = k8s
 	fixture.node = &nodes[0]
@@ -167,17 +169,17 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 
 func (fixture *standaloneDataplaneFixture) forwardDataplanePort(port int) {
 	fwd, err := fixture.k8s.NewPortForwarder(fixture.dataplanePod, port)
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 
 	err = fwd.Start()
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 	logrus.Infof("Forwarded port: pod=%s, remote=%d local=%d\n", fixture.dataplanePod.Name, port, fwd.ListenPort)
 	fixture.forwarding = fwd
 }
 
 func (fixture *standaloneDataplaneFixture) connectDataplane() {
 	dataplaneConn, err := tools.DialTimeout(localPort(dataplaneSocketType, fixture.forwarding.ListenPort), 5*time.Second)
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 	fixture.dataplaneClient = dataplaneapi.NewDataplaneClient(dataplaneConn)
 }
 
@@ -189,7 +191,7 @@ func (fixture *standaloneDataplaneFixture) requestCrossConnect(id, srcMech, dstM
 func (fixture *standaloneDataplaneFixture) request(req *crossconnect.CrossConnect) *crossconnect.CrossConnect {
 	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
 	conn, err := fixture.dataplaneClient.Request(ctx, req)
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 	return conn
 }
 
@@ -221,7 +223,7 @@ func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, src
 		},
 	}
 	err := mechanism.IsValid()
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 
 	return &connection.Connection{
 		Id:             id,
@@ -239,11 +241,11 @@ func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, src
 func (fixture *standaloneDataplaneFixture) getNetNS(pod *v1.Pod) string {
 	container := pod.Spec.Containers[0].Name
 	link, _, err := fixture.k8s.Exec(pod, container, "readlink", "/proc/self/ns/net")
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 
 	pattern := regexp.MustCompile("net:\\[(.*)\\]")
 	matches := pattern.FindStringSubmatch(link)
-	Expect(len(matches) >= 1).To(BeTrue())
+	wt.Expect(len(matches) >= 1).To(BeTrue())
 
 	return matches[1]
 }
@@ -257,30 +259,26 @@ func (fixture *standaloneDataplaneFixture) requestDefaultKernelConnection() *cro
 }
 
 func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
-	failures := InterceptGomegaFailures(func() {
-		srcIface := getIface(xcon.GetLocalSource())
-		dstIface := getIface(xcon.GetLocalDestination())
-		srcIp := unmaskIp(xcon.GetLocalSource().Context.IpContext.SrcIpAddr)
-		dstIp := unmaskIp(xcon.GetLocalDestination().Context.IpContext.DstIpAddr)
+	srcIface := getIface(xcon.GetLocalSource())
+	dstIface := getIface(xcon.GetLocalDestination())
+	srcIp := unmaskIp(xcon.GetLocalSource().Context.IpContext.SrcIpAddr)
+	dstIp := unmaskIp(xcon.GetLocalDestination().Context.IpContext.DstIpAddr)
 
-		out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
-		Expect(err).To(BeNil())
-		Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", srcIp))).To(BeTrue())
+	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
+	wt.Expect(err).To(BeNil())
+	wt.Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", srcIp))).To(BeTrue())
 
-		logrus.Infof("Source interface:\n%s", out)
+	logrus.Infof("Source interface:\n%s", out)
 
-		out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ifconfig", dstIface)
-		Expect(err).To(BeNil())
-		Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", dstIp))).To(BeTrue())
+	out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ifconfig", dstIface)
+	wt.Expect(err).To(BeNil())
+	wt.Expect(strings.Contains(out, fmt.Sprintf("inet addr:%s", dstIp))).To(BeTrue())
 
-		logrus.Infof("Destination interface:\n%s", out)
+	logrus.Infof("Destination interface:\n%s", out)
 
-		out, _, err = fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
-		Expect(err).To(BeNil())
-		Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
-	})
-
-	fixture.handleFailures(failures)
+	out, _, err = fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ping", dstIp, "-c", "1")
+	wt.Expect(err).To(BeNil())
+	wt.Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
 }
 
 func (fixture *standaloneDataplaneFixture) handleFailures(failures []string) {
@@ -302,30 +300,26 @@ func (fixture *standaloneDataplaneFixture) printLogs(pod *v1.Pod) {
 }
 
 func (fixture *standaloneDataplaneFixture) verifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
-	failures := InterceptGomegaFailures(func() {
-		srcIface := getIface(xcon.GetLocalSource())
-		dstIface := getIface(xcon.GetLocalDestination())
+	srcIface := getIface(xcon.GetLocalSource())
+	dstIface := getIface(xcon.GetLocalDestination())
 
-		out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ip", "a")
-		Expect(err).To(BeNil())
-		Expect(strings.Contains(out, srcIface)).To(BeFalse())
+	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ip", "a")
+	wt.Expect(err).To(BeNil())
+	wt.Expect(strings.Contains(out, srcIface)).To(BeFalse())
 
-		logrus.Infof("Source interfaces:\n%s", out)
+	logrus.Infof("Source interfaces:\n%s", out)
 
-		out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ip", "a")
-		Expect(err).To(BeNil())
-		Expect(strings.Contains(out, dstIface)).To(BeFalse())
+	out, _, err = fixture.k8s.Exec(fixture.destPod, fixture.destPod.Spec.Containers[0].Name, "ip", "a")
+	wt.Expect(err).To(BeNil())
+	wt.Expect(strings.Contains(out, dstIface)).To(BeFalse())
 
-		logrus.Infof("Destination interfaces:\n%s", out)
-	})
-
-	fixture.handleFailures(failures)
+	logrus.Infof("Destination interfaces:\n%s", out)
 }
 
 func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.CrossConnect) {
 	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
 	_, err := fixture.dataplaneClient.Close(ctx, conn)
-	Expect(err).To(BeNil())
+	wt.Expect(err).To(BeNil())
 }
 
 func unmaskIp(maskedIp string) string {

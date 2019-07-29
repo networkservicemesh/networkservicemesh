@@ -12,7 +12,7 @@ import (
 )
 
 func TestNSMDRestart1(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 
@@ -48,7 +48,7 @@ func TestNSMDRestart1(t *testing.T) {
 	l1.WaitEndpoints(1, time.Second*30, t)
 
 	endpoints1 := srv.testModel.GetEndpointsByNetworkService("test_nse")
-	Expect(len(endpoints1)).To(Equal(1))
+	g.Expect(len(endpoints1)).To(Equal(1))
 	srv.StopNoClean()
 
 	// We need to restart server
@@ -57,8 +57,8 @@ func TestNSMDRestart1(t *testing.T) {
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	endpoints2 := srv.testModel.GetEndpointsByNetworkService("test_nse")
 
-	Expect(len(endpoints2)).To(Equal(1))
-	Expect(endpoints1[0].SocketLocation).To(Equal(endpoints2[0].SocketLocation))
-	Expect(endpoints1[0].Workspace).To(Equal(endpoints2[0].Workspace))
-	Expect(endpoints1[0].Endpoint.NetworkServiceManager.Name).ToNot(Equal(endpoints2[0].Endpoint.NetworkServiceManager.Name))
+	g.Expect(len(endpoints2)).To(Equal(1))
+	g.Expect(endpoints1[0].SocketLocation).To(Equal(endpoints2[0].SocketLocation))
+	g.Expect(endpoints1[0].Workspace).To(Equal(endpoints2[0].Workspace))
+	g.Expect(endpoints1[0].Endpoint.NetworkServiceManager.Name).ToNot(Equal(endpoints2[0].Endpoint.NetworkServiceManager.Name))
 }

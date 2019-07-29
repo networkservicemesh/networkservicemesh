@@ -20,24 +20,24 @@ import (
 )
 
 func TestNSMDDRegistryNSE(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 	defer kubetest.ShowLogs(k8s, t)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	k8s.WaitLogsContains(nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer fwd.Stop()
 
 	// We need to wait unti it is started
@@ -54,20 +54,20 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
 	discovery, err := serviceRegistry.DiscoveryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	req := &registry.FindNetworkServiceRequest{
 		NetworkServiceName: "my_service",
 	}
 	response, err := discovery.FindNetworkService(context.Background(), req)
-	Expect(response).To(BeNil())
+	g.Expect(response).To(BeNil())
 	logrus.Print(err.Error())
 
-	Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = no NetworkService with name: my_service"))
+	g.Expect(err.Error()).To(Equal("rpc error: code = Unknown desc = no NetworkService with name: my_service"))
 
 	// Lets register few hundred NSEs and check how it works.
 
 	registryClient, err := serviceRegistry.NseRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nses := []string{}
 	nme := "my-network-service"
@@ -85,14 +85,14 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 		},
 	}
 	resp, err := registryClient.RegisterNSE(context.Background(), reg)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	logrus.Printf("Register time: time: %v %v", time.Since(t1), resp)
 
 	t2 := time.Now()
 	response, err = discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
 		NetworkServiceName: nme,
 	})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	logrus.Printf("Find time: time: %v %d", time.Since(t2), len(response.NetworkServiceEndpoints))
 
 	for _, lnse := range response.NetworkServiceEndpoints {
@@ -113,11 +113,11 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 			NetworkServiceName: nme,
 		})
 		logrus.Printf("Find time: time: %v %d", time.Since(t2), len(response.NetworkServiceEndpoints))
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 		if err != nil {
 			logrus.Printf("Bad")
 		}
-		Expect(err2).To(BeNil())
+		g.Expect(err2).To(BeNil())
 	}
 
 	logs, err = k8s.GetLogs(nsmd, "nsmd-k8s")
@@ -126,21 +126,21 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 }
 
 func TestUpdateNSM(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))
 
 	fwd, err := k8s.NewPortForwarder(nsmd, 5000)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer fwd.Stop()
 
 	// We need to wait until it is started
@@ -156,78 +156,62 @@ func TestUpdateNSM(t *testing.T) {
 	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
 
 	discovery, err := serviceRegistry.DiscoveryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	networkService := "icmp-responder"
 	nsmName := "master"
 	url1 := "1.1.1.1:1"
 	url2 := "2.2.2.2:2"
-	failures := InterceptGomegaFailures(func() {
-		response, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
-			Name: nsmName,
-			Url:  url1,
-		})
-		logrus.Info(response)
-		Expect(err).To(BeNil())
 
-		nseResp, err := nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
-			NetworkService: &registry.NetworkService{
-				Name:    networkService,
-				Payload: "tcp",
-			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-				NetworkServiceName: networkService,
-			},
-		})
-		Expect(err).To(BeNil())
-		logrus.Info(nseResp)
-		Expect(getNsmUrl(discovery)).To(Equal(url1))
-
-		updNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
-			Name: nsmName,
-			Url:  url2,
-		})
-		Expect(err).To(BeNil())
-		Expect(updNsm.GetUrl()).To(Equal(url2))
-		Expect(getNsmUrl(discovery)).To(Equal(url2))
+	response, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+		Name: nsmName,
+		Url:  url1,
 	})
+	logrus.Info(response)
+	g.Expect(err).To(BeNil())
 
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
+	nseResp, err := nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name:    networkService,
+			Payload: "tcp",
+		},
+		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceName: networkService,
+		},
+	})
+	g.Expect(err).To(BeNil())
+	logrus.Info(nseResp)
+	g.Expect(getNsmUrl(g, discovery)).To(Equal(url1))
 
-		nsmdLogs, _ := k8s.GetLogs(nsmd, "nsmd")
-		logrus.Errorf("===================== NSMD output since test is failing %v\n=====================", nsmdLogs)
-
-		nsmdk8sLogs, _ := k8s.GetLogs(nsmd, "nsmd-k8s")
-		logrus.Errorf("===================== NSMD K8S output since test is failing %v\n=====================", nsmdk8sLogs)
-
-		nsmdpLogs, _ := k8s.GetLogs(nsmd, "nsmdp")
-		logrus.Errorf("===================== NSMDP output since test is failing %v\n=====================", nsmdpLogs)
-
-		t.Fail()
-	}
+	updNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
+		Name: nsmName,
+		Url:  url2,
+	})
+	g.Expect(err).To(BeNil())
+	g.Expect(updNsm.GetUrl()).To(Equal(url2))
+	g.Expect(getNsmUrl(g, discovery)).To(Equal(url2))
 }
 
 func TestGetEndpoints(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
 
@@ -239,8 +223,8 @@ func TestGetEndpoints(t *testing.T) {
 	responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
 		Url: url,
 	})
-	Expect(err).To(BeNil())
-	Expect(responseNsm.Url).To(Equal(url))
+	g.Expect(err).To(BeNil())
+	g.Expect(responseNsm.Url).To(Equal(url))
 	letters := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"}
 
 	for i := 0; i < len(letters); i++ {
@@ -254,12 +238,12 @@ func TestGetEndpoints(t *testing.T) {
 				NetworkServiceName: nsName,
 			},
 		})
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 	}
 
 	nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-	Expect(err).To(BeNil())
-	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(len(letters)))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(len(letters)))
 
 	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
@@ -270,24 +254,24 @@ func TestGetEndpoints(t *testing.T) {
 			EndpointName: nseList.NetworkServiceEndpoints[0].EndpointName,
 		},
 	})
-	Expect(err).NotTo(BeNil())
-	Expect(err.Error()).To(ContainSubstring("already exists"))
+	g.Expect(err).NotTo(BeNil())
+	g.Expect(err.Error()).To(ContainSubstring("already exists"))
 }
 
 func TestDuplicateEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// We need to wait unti it is started
 	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
@@ -302,8 +286,8 @@ func TestDuplicateEndpoint(t *testing.T) {
 	responseNsm, err := nsmRegistryClient.RegisterNSM(context.Background(), &registry.NetworkServiceManager{
 		Url: url,
 	})
-	Expect(err).To(BeNil())
-	Expect(responseNsm.Url).To(Equal(url))
+	g.Expect(err).To(BeNil())
+	g.Expect(responseNsm.Url).To(Equal(url))
 
 	nsName := "icmp-responder"
 	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
@@ -315,11 +299,11 @@ func TestDuplicateEndpoint(t *testing.T) {
 			EndpointName: nsName,
 		},
 	})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nseList, err := nsmRegistryClient.GetEndpoints(context.Background(), &empty.Empty{})
-	Expect(err).To(BeNil())
-	Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
 
 	_, err = nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
@@ -330,17 +314,17 @@ func TestDuplicateEndpoint(t *testing.T) {
 			EndpointName: nsName,
 		},
 	})
-	Expect(err).NotTo(BeNil())
-	Expect(err.Error()).To(ContainSubstring("already exists"))
+	g.Expect(err).NotTo(BeNil())
+	g.Expect(err.Error()).To(ContainSubstring("already exists"))
 }
 
-func getNsmUrl(discovery registry.NetworkServiceDiscoveryClient) string {
+func getNsmUrl(g *WithT, discovery registry.NetworkServiceDiscoveryClient) string {
 	logrus.Infof("Finding NSE...")
 	response, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
 		NetworkServiceName: "icmp-responder",
 	})
-	Expect(err).To(BeNil())
-	Expect(len(response.GetNetworkServiceEndpoints()) >= 1).To(Equal(true))
+	g.Expect(err).To(BeNil())
+	g.Expect(len(response.GetNetworkServiceEndpoints()) >= 1).To(Equal(true))
 
 	endpoint := response.GetNetworkServiceEndpoints()[0]
 	logrus.Infof("Endpoint: %v", endpoint)
@@ -359,29 +343,29 @@ func createSingleNsmgr(k8s *kubetest.K8s, name string) *v1.Pod {
 }
 
 func TestLostUpdate(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
 
 	sr1, closeFunc := kubetest.ServiceRegistryAt(k8s, nsmgr1)
 
 	nsmRegistryClient, err := sr1.NsmRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	discovery, err := sr1.DiscoveryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nseRegistryClient, err := sr1.NseRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	networkService := "icmp-responder"
 	nsmName := "master"
@@ -391,7 +375,7 @@ func TestLostUpdate(t *testing.T) {
 		Url:  url1,
 	})
 	logrus.Info(response)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nseResp, err := nseRegistryClient.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
@@ -402,9 +386,9 @@ func TestLostUpdate(t *testing.T) {
 			NetworkServiceName: networkService,
 		},
 	})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	logrus.Info(nseResp)
-	Expect(getNsmUrl(discovery)).To(Equal(url1))
+	g.Expect(getNsmUrl(g, discovery)).To(Equal(url1))
 	closeFunc()
 	k8s.DeletePods(nsmgr1)
 
@@ -414,10 +398,10 @@ func TestLostUpdate(t *testing.T) {
 	defer closeFunc2()
 
 	discovery2, err := sr2.DiscoveryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nseRegistryClient2, err := sr2.NseRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nseResp, err = nseRegistryClient2.RegisterNSE(context.Background(), &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
@@ -428,22 +412,22 @@ func TestLostUpdate(t *testing.T) {
 			NetworkServiceName: networkService,
 		},
 	})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	logrus.Info(nseResp)
-	Expect(getNsmUrl(discovery2)).ToNot(Equal(url1))
+	g.Expect(getNsmUrl(g, discovery2)).ToNot(Equal(url1))
 }
 
 func TestRegistryConcurrentModification(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsmgr1 := createSingleNsmgr(k8s, "nsmgr-1")
 
@@ -451,7 +435,7 @@ func TestRegistryConcurrentModification(t *testing.T) {
 	defer closeFunc()
 
 	nsmRegistryClient, err := sr1.NsmRegistryClient()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	n := 30
 	errorCh := make(chan error)
@@ -479,7 +463,7 @@ func TestRegistryConcurrentModification(t *testing.T) {
 			k8s.CleanupCRDs()
 			logrus.Info("CleanupCRDs")
 		case err := <-errorCh:
-			Expect(err).To(BeNil())
+			g.Expect(err).To(BeNil())
 			return
 		}
 	}

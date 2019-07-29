@@ -104,7 +104,7 @@ func (nseWithOptions) Close(ctx context2.Context, in *connection.Connection, opt
 // Below only tests
 
 func TestNSMDRequestClientConnectionRequest(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -119,13 +119,13 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	request := createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 }
 
 func TestNSENoSrc(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -147,12 +147,12 @@ func TestNSENoSrc(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
-	Expect(nsmResponse).To(BeNil())
+	g.Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
+	g.Expect(nsmResponse).To(BeNil())
 }
 
-func TestNSEIPNeighbours(t *testing.T) {
-	RegisterTestingT(t)
+func TestNSEIPNeghtbours(t *testing.T) {
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -173,20 +173,20 @@ func TestNSEIPNeighbours(t *testing.T) {
 	request := createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*nseWithOptions)
-	Expect(ok).To(Equal(true))
+	g.Expect(ok).To(Equal(true))
 
-	Expect(len(originl.connection.GetContext().GetIpContext().GetIpNeighbors())).To(Equal(1))
-	Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].Ip).To(Equal("127.0.0.1"))
-	Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
+	g.Expect(len(originl.connection.GetContext().GetIpContext().GetIpNeighbors())).To(Equal(1))
+	g.Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].Ip).To(Equal("127.0.0.1"))
+	g.Expect(originl.connection.GetContext().GetIpContext().GetIpNeighbors()[0].HardwareAddress).To(Equal("ff-ee-ff-ee-ff"))
 }
 
 func TestSlowNSE(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -214,12 +214,12 @@ func TestSlowNSE(t *testing.T) {
 	nsmResponse, err := nsmClient.Request(ctx, request)
 	<-time.After(1 * time.Second)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
-	Expect(nsmResponse).To(BeNil())
+	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
+	g.Expect(nsmResponse).To(BeNil())
 }
 
 func TestSlowDP(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -247,6 +247,6 @@ func TestSlowDP(t *testing.T) {
 	nsmResponse, err := nsmClient.Request(ctx, request)
 	<-time.After(1 * time.Second)
 	println(err.Error())
-	Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
-	Expect(nsmResponse).To(BeNil())
+	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
+	g.Expect(nsmResponse).To(BeNil())
 }

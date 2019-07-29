@@ -11,21 +11,21 @@ import (
 )
 
 func TestPassTag(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	logrus.Infof("Passed test")
 }
 
 func TestFailTag(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	logrus.Infof("Failed test")
 
-	Expect("fail").To(Equal("success"))
+	g.Expect("fail").To(Equal("success"))
 }
 
 func TestTimeoutTag(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	logrus.Infof("test timeout for 5 seconds")
 	<-time.After(5 * time.Second)

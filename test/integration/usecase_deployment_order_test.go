@@ -149,17 +149,17 @@ func TestDeploymentOrderService4ClientWebhook2Endpoint(t *testing.T) {
 }
 
 func testDeploymentOrder(t *testing.T, order []Deployment) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	for _, deploy := range order {
 		if deploy == DeployClientWebhook {
@@ -170,7 +170,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	}
 
 	_, err = kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	var nseCount uint64
 	var nscPods []*v1.Pod
@@ -187,15 +187,15 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 			switch deploy {
 			case DeployService:
 				nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
-				Expect(err).To(BeNil())
+				g.Expect(err).To(BeNil())
 				nsIcmpResponder := crds.IcmpResponder(map[string]string{}, map[string]string{"app": "icmp"})
 				logrus.Printf("About to insert: %v", nsIcmpResponder)
 				var result *nsapiv1.NetworkService
 				result, err = nscrd.Create(nsIcmpResponder)
-				Expect(err).To(BeNil())
+				g.Expect(err).To(BeNil())
 				logrus.Printf("CRD applied with result: %v", result)
 				result, err = nscrd.Get(nsIcmpResponder.ObjectMeta.Name)
-				Expect(err).To(BeNil())
+				g.Expect(err).To(BeNil())
 				logrus.Printf("Registered CRD is: %v", result)
 			case DeployEndpoint:
 				kubetest.DeployICMP(k8s, nil, "nse-"+strconv.FormatUint(atomic.AddUint64(&nseCount, 1), 10), defaultTimeout)

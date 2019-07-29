@@ -140,15 +140,17 @@ type endpointVerifier struct {
 }
 
 func (v *endpointVerifier) Verify(t *testing.T) {
+	g := NewWithT(t)
+
 	nse := v.model.GetEndpoint(v.name)
 	if !v.exists {
-		Expect(nse).To(BeNil())
+		g.Expect(nse).To(BeNil())
 		return
 	}
 
-	Expect(nse).NotTo(BeNil())
+	g.Expect(nse).NotTo(BeNil())
 
-	Expect(nse.Endpoint.GetNetworkServiceManager().GetName()).To(Equal(v.nsm))
+	g.Expect(nse.Endpoint.GetNetworkServiceManager().GetName()).To(Equal(v.nsm))
 }
 
 type clientConnectionVerifier struct {
@@ -164,33 +166,37 @@ type clientConnectionVerifier struct {
 }
 
 func (v *clientConnectionVerifier) Verify(t *testing.T) {
+	g := NewWithT(t)
+
 	connection := v.model.GetClientConnection(v.connectionID)
 	if !v.exists {
-		Expect(connection).To(BeNil())
+		g.Expect(connection).To(BeNil())
 		return
 	}
 
-	Expect(connection).NotTo(BeNil())
+	g.Expect(connection).NotTo(BeNil())
 
 	v.verifyXcon(connection.Xcon, t)
-	Expect(connection.RemoteNsm.GetName()).To(Equal(v.remoteNSM))
-	Expect(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()).To(Equal(v.nse))
-	Expect(connection.DataplaneRegisteredName).To(Equal(v.dataplane))
+	g.Expect(connection.RemoteNsm.GetName()).To(Equal(v.remoteNSM))
+	g.Expect(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()).To(Equal(v.nse))
+	g.Expect(connection.DataplaneRegisteredName).To(Equal(v.dataplane))
 }
 
 func (v *clientConnectionVerifier) verifyXcon(xcon *crossconnect.CrossConnect, t *testing.T) {
+	g := NewWithT(t)
+
 	if source := xcon.GetLocalSource(); source != nil {
-		Expect(source.GetId()).To(Equal(v.srcID))
+		g.Expect(source.GetId()).To(Equal(v.srcID))
 	} else if source := xcon.GetRemoteSource(); source != nil {
-		Expect(source.GetId()).To(Equal(v.srcID))
+		g.Expect(source.GetId()).To(Equal(v.srcID))
 	} else {
 		t.Fatalf("Expected xcon.Source not to be nil")
 	}
 
 	if destination := xcon.GetLocalDestination(); destination != nil {
-		Expect(destination.GetId()).To(Equal(v.dstID))
+		g.Expect(destination.GetId()).To(Equal(v.dstID))
 	} else if destination := xcon.GetRemoteDestination(); destination != nil {
-		Expect(destination.GetId()).To(Equal(v.dstID))
+		g.Expect(destination.GetId()).To(Equal(v.dstID))
 	} else {
 		t.Fatalf("Expected xcon.Destination not to be nil")
 	}
@@ -204,11 +210,13 @@ type dataplaneVerifier struct {
 }
 
 func (v *dataplaneVerifier) Verify(t *testing.T) {
+	g := NewWithT(t)
+
 	dataplane := v.model.GetDataplane(v.name)
 	if !v.exists {
-		Expect(dataplane).To(BeNil())
+		g.Expect(dataplane).To(BeNil())
 		return
 	}
 
-	Expect(dataplane).NotTo(BeNil())
+	g.Expect(dataplane).NotTo(BeNil())
 }

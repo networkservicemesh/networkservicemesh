@@ -25,7 +25,7 @@ func createTestDataplane(name string, localMechanisms, remoteMechanisms []connec
 }
 
 func TestSelectDataplane(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testDataplane1_1 := createTestDataplane("test_data_plane_2",
 		[]connection.Mechanism{
@@ -98,8 +98,8 @@ func TestSelectDataplane(t *testing.T) {
 	}
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	request = &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{
@@ -124,8 +124,8 @@ func TestSelectDataplane(t *testing.T) {
 	}
 
 	nsmResponse, err = nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	request = &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{
@@ -150,6 +150,6 @@ func TestSelectDataplane(t *testing.T) {
 	}
 
 	nsmResponse, err = nsmClient.Request(context.Background(), request)
-	Expect(err).NotTo(BeNil())
-	Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
+	g.Expect(err).NotTo(BeNil())
+	g.Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
 }

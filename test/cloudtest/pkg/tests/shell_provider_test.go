@@ -45,7 +45,7 @@ func (*testValidationFactory) CreateValidator(config *config.ClusterProviderConf
 }
 
 func TestShellProvider(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -53,7 +53,7 @@ func TestShellProvider(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
@@ -75,14 +75,14 @@ func TestShellProvider(t *testing.T) {
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("there is failed tests 4"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 4"))
 
-	Expect(report).NotTo(BeNil())
+	g.Expect(report).NotTo(BeNil())
 
-	Expect(len(report.Suites)).To(Equal(2))
-	Expect(report.Suites[0].Failures).To(Equal(2))
-	Expect(report.Suites[0].Tests).To(Equal(6))
-	Expect(len(report.Suites[0].TestCases)).To(Equal(6))
+	g.Expect(len(report.Suites)).To(Equal(2))
+	g.Expect(report.Suites[0].Failures).To(Equal(2))
+	g.Expect(report.Suites[0].Tests).To(Equal(6))
+	g.Expect(len(report.Suites[0].TestCases)).To(Equal(6))
 
 	// Do assertions
 }
@@ -109,7 +109,7 @@ func createProvider(testConfig *config.CloudTestConfig, name string) *config.Clu
 }
 
 func TestInvalidProvider(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -117,7 +117,7 @@ func TestInvalidProvider(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
@@ -131,14 +131,14 @@ func TestInvalidProvider(t *testing.T) {
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	logrus.Error(err.Error())
-	Expect(err.Error()).To(Equal("Failed to create cluster instance. Error invalid start script"))
+	g.Expect(err.Error()).To(Equal("Failed to create cluster instance. Error invalid start script"))
 
-	Expect(report).To(BeNil())
+	g.Expect(report).To(BeNil())
 	// Do assertions
 }
 
 func TestRequireEnvVars(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -146,7 +146,7 @@ func TestRequireEnvVars(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 
@@ -164,15 +164,15 @@ func TestRequireEnvVars(t *testing.T) {
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	logrus.Error(err.Error())
-	Expect(err.Error()).To(Equal(
+	g.Expect(err.Error()).To(Equal(
 		"Failed to create cluster instance. Error environment variable are not specified  Required variables: [KUBECONFIG QWE]"))
 
-	Expect(report).To(BeNil())
+	g.Expect(report).To(BeNil())
 	// Do assertions
 }
 
 func TestRequireEnvVars_DEPS(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -180,7 +180,7 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 
@@ -213,14 +213,14 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 	})
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("there is failed tests 2"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 2"))
 
-	Expect(report).ToNot(BeNil())
+	g.Expect(report).ToNot(BeNil())
 	// Do assertions
 }
 
 func TestShellProviderShellTest(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -228,7 +228,7 @@ func TestShellProviderShellTest(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
@@ -265,20 +265,20 @@ func TestShellProviderShellTest(t *testing.T) {
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("there is failed tests 4"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 4"))
 
-	Expect(report).NotTo(BeNil())
+	g.Expect(report).NotTo(BeNil())
 
-	Expect(len(report.Suites)).To(Equal(2))
-	Expect(report.Suites[0].Failures).To(Equal(2))
-	Expect(report.Suites[0].Tests).To(Equal(5))
-	Expect(len(report.Suites[0].TestCases)).To(Equal(5))
+	g.Expect(len(report.Suites)).To(Equal(2))
+	g.Expect(report.Suites[0].Failures).To(Equal(2))
+	g.Expect(report.Suites[0].Tests).To(Equal(5))
+	g.Expect(len(report.Suites[0].TestCases)).To(Equal(5))
 
 	// Do assertions
 }
 
 func TestUsedClusterCancel(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -286,7 +286,7 @@ func TestUsedClusterCancel(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
@@ -311,20 +311,20 @@ func TestUsedClusterCancel(t *testing.T) {
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("there is failed tests 2"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 2"))
 
-	Expect(report).NotTo(BeNil())
+	g.Expect(report).NotTo(BeNil())
 
-	Expect(len(report.Suites)).To(Equal(2))
-	Expect(report.Suites[0].Failures).To(Equal(1))
-	Expect(report.Suites[0].Tests).To(Equal(3))
-	Expect(len(report.Suites[0].TestCases)).To(Equal(3))
+	g.Expect(len(report.Suites)).To(Equal(2))
+	g.Expect(report.Suites[0].Failures).To(Equal(1))
+	g.Expect(report.Suites[0].Tests).To(Equal(3))
+	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
 
 	// Do assertions
 }
 
 func TestMultiClusterTest(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -332,7 +332,7 @@ func TestMultiClusterTest(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
 	defer utils.ClearFolder(tmpDir, false)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	testConfig.ConfigRoot = tmpDir
 	p1 := createProvider(testConfig, "a_provider")
@@ -374,16 +374,16 @@ func TestMultiClusterTest(t *testing.T) {
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	Expect(err.Error()).To(Equal("there is failed tests 3"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 3"))
 
-	Expect(report).NotTo(BeNil())
+	g.Expect(report).NotTo(BeNil())
 
-	Expect(len(report.Suites)).To(Equal(4))
-	Expect(report.Suites[0].Failures).To(Equal(2))
-	Expect(report.Suites[0].Tests).To(Equal(6))
-	Expect(report.Suites[1].Tests).To(Equal(0))
-	Expect(report.Suites[2].Tests).To(Equal(3))
-	Expect(report.Suites[3].Tests).To(Equal(0))
+	g.Expect(len(report.Suites)).To(Equal(4))
+	g.Expect(report.Suites[0].Failures).To(Equal(2))
+	g.Expect(report.Suites[0].Tests).To(Equal(6))
+	g.Expect(report.Suites[1].Tests).To(Equal(0))
+	g.Expect(report.Suites[2].Tests).To(Equal(3))
+	g.Expect(report.Suites[3].Tests).To(Equal(0))
 
 	// Do assertions
 }

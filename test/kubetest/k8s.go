@@ -267,16 +267,19 @@ type K8s struct {
 	apiServerHost      string
 	useIPv6            bool
 	forwardingPlane    string
+	g                  *WithT
 }
 
-func NewK8s(prepare bool) (*K8s, error) {
+// NewK8s - Creates a new K8s Clientset with roles for the default config
+func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 
-	client, err := NewK8sWithoutRoles(prepare)
+	client, err := NewK8sWithoutRoles(g, prepare)
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
 	return client, err
 }
 
-func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
+// NewK8sWithoutRoles - Creates a new K8s Clientset for the default config
+func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
@@ -284,22 +287,29 @@ func NewK8sWithoutRoles(prepare bool) (*K8s, error) {
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", path)
-	Expect(err).To(BeNil())
+	if err != nil {
+		return nil, err
+	}
 
 	client := K8s{
 		pods: []*v1.Pod{},
+		g:    g,
 	}
 	client.setForwardingPlane()
 	client.config = config
 	client.clientset, err = kubernetes.NewForConfig(config)
-	Expect(err).To(BeNil())
+	if err != nil {
+		return nil, err
+	}
 
 	client.apiServerHost = config.Host
 	client.initNamespace()
 	client.setIPVersion()
 
 	client.versionedClientSet, err = versioned.NewForConfig(config)
-	Expect(err).To(BeNil())
+	if err != nil {
+		return nil, err
+	}
 
 	if prepare {
 		start := time.Now()
@@ -358,7 +368,7 @@ func (k8s *K8s) initNamespace() {
 	if err != nil {
 		k8s.checkAPIServerAvailable()
 	}
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 }
 
 // Delete POD with completion check
@@ -409,7 +419,7 @@ func (k8s *K8s) deletePodsForce(pods ...*v1.Pod) error {
 // GetVersion returns the k8s version
 func (k8s *K8s) GetVersion() string {
 	version, err := k8s.clientset.Discovery().ServerVersion()
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 	return fmt.Sprintf("%s", version)
 }
 
@@ -419,14 +429,14 @@ func (k8s *K8s) GetNodes() []v1.Node {
 	if err != nil {
 		k8s.checkAPIServerAvailable()
 	}
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 	return nodes.Items
 }
 
 // ListPods lists the pods
 func (k8s *K8s) ListPods() []v1.Pod {
 	podList, err := k8s.clientset.CoreV1().Pods(k8s.namespace).List(metaV1.ListOptions{})
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 	return podList.Items
 }
 
@@ -473,10 +483,10 @@ func (k8s *K8s) DescribePod(pod *v1.Pod) {
 // PrintImageVersion Prints image version pf pod.
 func (k8s *K8s) PrintImageVersion(pod *v1.Pod) {
 	logs, err := k8s.GetLogs(pod, pod.Spec.Containers[0].Name)
-	Expect(err).Should(BeNil())
+	k8s.g.Expect(err).Should(BeNil())
 	versionSubStr := "Version: "
 	index := strings.Index(logs, versionSubStr)
-	Expect(index == -1).ShouldNot(BeTrue())
+	k8s.g.Expect(index == -1).ShouldNot(BeTrue())
 	index += len(versionSubStr)
 	builder := strings.Builder{}
 	for ; index < len(logs); index++ {
@@ -484,10 +494,10 @@ func (k8s *K8s) PrintImageVersion(pod *v1.Pod) {
 			break
 		}
 		err = builder.WriteByte(logs[index])
-		Expect(err).Should(BeNil())
+		k8s.g.Expect(err).Should(BeNil())
 	}
 	version := builder.String()
-	Expect(strings.TrimSpace(version)).ShouldNot(Equal(""))
+	k8s.g.Expect(strings.TrimSpace(version)).ShouldNot(Equal(""))
 	logrus.Infof("Version of %v is %v", pod.Name, version)
 }
 
@@ -576,7 +586,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	// Make sure unit test is failed
 	var err error = nil
 	if failTest {
-		Expect(len(errs)).To(Equal(0))
+		k8s.g.Expect(len(errs)).To(Equal(0))
 	} else {
 		// Lets construct error
 		err = fmt.Errorf("Errors %v", errs)
@@ -603,7 +613,7 @@ func (k8s *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 // DeletePods delete pods
 func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 	err := k8s.deletePods(pods...)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	for _, pod := range pods {
 		for idx, pod0 := range k8s.pods {
@@ -617,7 +627,7 @@ func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 // DeletePodsForce delete pods forcefully
 func (k8s *K8s) DeletePodsForce(pods ...*v1.Pod) {
 	err := k8s.deletePodsForce(pods...)
-	Expect(err).To(BeNil())
+	k8s.g.Expect(err).To(BeNil())
 
 	for _, pod := range pods {
 		for idx, pod0 := range k8s.pods {
@@ -740,7 +750,7 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 			}
 		case <-ctx.Done():
 			logrus.Errorf("%v Last logs: %v", description, builder.String())
-			Expect(false).To(BeTrue())
+			k8s.g.Expect(false).To(BeTrue())
 			return
 		}
 	}
@@ -749,7 +759,7 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 // UpdatePod updates a pod
 func (k8s *K8s) UpdatePod(pod *v1.Pod) *v1.Pod {
 	pod, error := k8s.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
-	Expect(error).To(BeNil())
+	k8s.g.Expect(error).To(BeNil())
 	return pod
 }
 
@@ -792,7 +802,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 		}
 		since := time.Since(st)
 		if since > timeout {
-			Expect(len(nodes)).To(Equal(requiredNumber))
+			k8s.g.Expect(len(nodes)).To(Equal(requiredNumber))
 		}
 		if since > timeout/10 && !warnPrinted {
 			logrus.Warnf("Waiting for %d nodes to arrive, currently have: %d", requiredNumber, len(nodes))

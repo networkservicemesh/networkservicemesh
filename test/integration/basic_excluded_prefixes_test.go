@@ -13,16 +13,16 @@ import (
 )
 
 func TestExcludePrefixCheck(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodesCount := 1
 
@@ -45,14 +45,14 @@ func TestExcludePrefixCheck(t *testing.T) {
 			Namespace:          k8s.GetK8sNamespace(),
 		},
 	}, k8s.GetK8sNamespace())
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	defer kubetest.ShowLogs(k8s, t)
 
 	icmp := kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	clientset, err := k8s.GetClientSet()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nsc, err := clientset.CoreV1().Pods(k8s.GetK8sNamespace()).Create(pods.NSCPod("nsc", nodes[0].Node,
 		map[string]string{
@@ -63,7 +63,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 
 	defer k8s.DeletePods(nsc)
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	k8s.WaitLogsContains(icmp, "", "IPAM: The available address pool is empty, probably intersected by excludedPrefix", defaultTimeout)
 
 }

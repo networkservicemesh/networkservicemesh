@@ -61,8 +61,8 @@ func getNSCLocalRemoteIPs(k8s *K8s, nscPodNode *v1.Pod) [2]string {
 	} else {
 		ipResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "ip", "-6", "addr", "show", "nsm0", "scope", "global")
 	}
-	Expect(err).To(BeNil())
-	Expect(errOut).To(Equal(""))
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(errOut).To(Equal(""))
 	result := splitIP(ipResponse, k8s.UseIPv6())
 	return result
 }

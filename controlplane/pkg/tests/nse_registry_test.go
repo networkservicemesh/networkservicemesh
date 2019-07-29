@@ -12,17 +12,19 @@ import (
 )
 
 func TestNSEFileRegistry(t *testing.T) {
-	RegisterTestingT(t)
-	fileName := tmpFile()
+	g := NewWithT(t)
+	fileName, err := tmpFile()
+	g.Expect(err).To(BeNil())
 	defer os.Remove(fileName)
 	reg := nseregistry.NewNSERegistry(fileName)
 
-	addValues(reg)
+	err = addValues(reg)
+	g.Expect(err).To(BeNil())
 
 	clients, nses, err := reg.LoadRegistry()
-	Expect(err).To(BeNil())
-	Expect(clients).To(Equal([]string{"nsm-1", "nsm-2", "nsm-3"}))
-	Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint1": createEntry("nsm-1", "endpoint1"), "endpoint2": createEntry("nsm-2", "endpoint2")}))
+	g.Expect(err).To(BeNil())
+	g.Expect(clients).To(Equal([]string{"nsm-1", "nsm-2", "nsm-3"}))
+	g.Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint1": createEntry("nsm-1", "endpoint1"), "endpoint2": createEntry("nsm-2", "endpoint2")}))
 }
 func createEntry(workspace string, endpoint string) nseregistry.NSEEntry {
 	return nseregistry.NSEEntry{
@@ -31,51 +33,63 @@ func createEntry(workspace string, endpoint string) nseregistry.NSEEntry {
 	}
 }
 func TestNSEDeleteTest(t *testing.T) {
-	RegisterTestingT(t)
-	fileName := tmpFile()
+	g := NewWithT(t)
+	fileName, err := tmpFile()
+	g.Expect(err).To(BeNil())
 	defer os.Remove(fileName)
 	reg := nseregistry.NewNSERegistry(fileName)
 
-	addValues(reg)
+	err = addValues(reg)
+	g.Expect(err).To(BeNil())
 
-	Expect(reg.DeleteNSE("endpoint1")).To(BeNil())
+	g.Expect(reg.DeleteNSE("endpoint1")).To(BeNil())
 
 	clients, nses, err := reg.LoadRegistry()
-	Expect(err).To(BeNil())
-	Expect(clients).To(Equal([]string{"nsm-1", "nsm-2", "nsm-3"}))
-	Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint2": createEntry("nsm-2", "endpoint2")}))
+	g.Expect(err).To(BeNil())
+	g.Expect(clients).To(Equal([]string{"nsm-1", "nsm-2", "nsm-3"}))
+	g.Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint2": createEntry("nsm-2", "endpoint2")}))
 }
 
 func TestNSEDeleteClientTest(t *testing.T) {
-	RegisterTestingT(t)
-	fileName := tmpFile()
+	g := NewWithT(t)
+	fileName, err := tmpFile()
+	g.Expect(err).To(BeNil())
 	defer os.Remove(fileName)
 	reg := nseregistry.NewNSERegistry(fileName)
 
-	addValues(reg)
+	err = addValues(reg)
+	g.Expect(err).To(BeNil())
 
-	Expect(reg.DeleteClient("nsm-1")).To(BeNil())
+	g.Expect(reg.DeleteClient("nsm-1")).To(BeNil())
 
 	clients, nses, err := reg.LoadRegistry()
-	Expect(err).To(BeNil())
-	Expect(clients).To(Equal([]string{"nsm-2", "nsm-3"}))
-	Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint2": nseregistry.NSEEntry{
+	g.Expect(err).To(BeNil())
+	g.Expect(clients).To(Equal([]string{"nsm-2", "nsm-3"}))
+	g.Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint2": nseregistry.NSEEntry{
 		Workspace: "nsm-2",
 		NseReg:    createNSEReg("endpoint2"),
 	}}))
 }
 
-func addValues(reg *nseregistry.NSERegistry) {
+func addValues(reg *nseregistry.NSERegistry) error {
 	err := reg.AppendClientRequest("nsm-1")
-	Expect(err).To(BeNil())
+	if err != nil {
+		return err
+	}
 	err = reg.AppendClientRequest("nsm-2")
-	Expect(err).To(BeNil())
+	if err != nil {
+		return err
+	}
 	err = reg.AppendClientRequest("nsm-3")
-	Expect(err).To(BeNil())
+	if err != nil {
+		return err
+	}
 	err = reg.AppendNSERegRequest("nsm-1", createNSEReg("endpoint1"))
-	Expect(err).To(BeNil())
+	if err != nil {
+		return err
+	}
 	err = reg.AppendNSERegRequest("nsm-2", createNSEReg("endpoint2"))
-	Expect(err).To(BeNil())
+	return err
 }
 
 func createNSEReg(name string) *registry.NSERegistration {
@@ -91,11 +105,13 @@ func createNSEReg(name string) *registry.NSERegistration {
 	}
 }
 
-func tmpFile() string {
+func tmpFile() (string, error) {
 	regFile, err := ioutil.TempFile(os.TempDir(), "nsm_reg.data")
+	if err != nil {
+		return "", err
+	}
 	fileName := regFile.Name()
-	Expect(err).To(BeNil())
 	_ = regFile.Close()
 	_ = os.Remove(fileName)
-	return fileName
+	return fileName, nil
 }

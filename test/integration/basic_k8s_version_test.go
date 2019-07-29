@@ -12,18 +12,18 @@ import (
 )
 
 func TestKubernetesAreOk(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8sWithoutRoles(false)
+	k8s, err := kubetest.NewK8sWithoutRoles(g, false)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 	v := k8s.GetVersion()
-	Expect(strings.Contains(v, "1.")).To(Equal(true))
+	g.Expect(strings.Contains(v, "1.")).To(Equal(true))
 
 }

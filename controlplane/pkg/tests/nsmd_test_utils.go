@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -458,8 +457,12 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 		},
 	}
 	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), reg)
-	Expect(err).To(BeNil())
-	Expect(regResp.NetworkService.Name).To(Equal(networkServiceName))
+	if err != nil {
+		panic(err)
+	}
+	if regResp.NetworkService.Name != networkServiceName {
+		panic(fmt.Errorf("%s is not equal to %s", regResp.NetworkService.Name, networkServiceName))
+	}
 
 	return &model.Endpoint{
 		Endpoint:       reg,
@@ -477,31 +480,39 @@ func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (local_ne
 
 func (srv *nsmdFullServerImpl) createNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
-	Expect(err).To(BeNil())
+	if err != nil {
+		panic(err)
+	}
 	return nsmClient, conn
 }
 
 func (srv *nsmdFullServerImpl) requestNSM(clientName string) *nsmdapi.ClientConnectionReply {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()
-	Expect(err).To(BeNil())
+	if err != nil {
+		panic(err)
+	}
 	defer con.Close()
 
 	response, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{
 		Workspace: clientName,
 	})
 
-	Expect(err).To(BeNil())
+	if err != nil {
+		panic(err)
+	}
 
 	logrus.Printf("workspace %s", response.Workspace)
 
-	Expect(response.Workspace).To(Equal(clientName))
+	if response.Workspace != clientName {
+		panic(fmt.Errorf("%s is not equal to %s", response.Workspace, clientName))
+	}
 	return response
 }
 
 func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 
 	return newNSMDFullServerAt(nsmgrName, storage, rootDir)
@@ -516,7 +527,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	srv.serviceRegistry = &nsmdTestServiceRegistry{
 		nseRegistry:             srv.nseRegistry,
@@ -542,7 +553,9 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	// Lets start NSMD NSE registry service
 	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
 	srv.nsmServer = nsmServer
-	Expect(err).To(BeNil())
+	if err != nil {
+		panic(err)
+	}
 
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.testModel.AddListener(monitorCrossConnectClient)

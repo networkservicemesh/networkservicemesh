@@ -17,30 +17,30 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
-func startClient(target string) {
+func startClient(g *WithT, target string) {
 	conn, err := tools.DialTCP(target)
 	defer conn.Close()
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
 	stream, err := monitorClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	event, err := stream.Recv()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	logrus.Infof("Receive event: %v", event)
-	Expect(event).NotTo(BeNil())
-	Expect(event.Type).To(Equal(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER))
-	Expect(event.CrossConnects).NotTo(BeNil())
-	Expect(event.CrossConnects["1"]).NotTo(BeNil())
+	g.Expect(event).NotTo(BeNil())
+	g.Expect(event.Type).To(Equal(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER))
+	g.Expect(event.CrossConnects).NotTo(BeNil())
+	g.Expect(event.CrossConnects["1"]).NotTo(BeNil())
 }
 
 func TestSimple(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	listener, err := net.Listen("tcp", "localhost:0")
 	defer listener.Close()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
 	monitor := monitor_crossconnect.NewMonitorServer()
@@ -52,7 +52,7 @@ func TestSimple(t *testing.T) {
 
 	monitor.Update(&crossconnect.CrossConnect{Id: "1"})
 
-	startClient(listenerAddress(listener))
+	startClient(g, listenerAddress(listener))
 }
 
 func listenerAddress(listener net.Listener) string {
@@ -62,11 +62,11 @@ func listenerAddress(listener net.Listener) string {
 }
 
 func TestSeveralRecipient(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	listener, err := net.Listen("tcp", "localhost:0")
 	defer listener.Close()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
 	monitor := monitor_crossconnect.NewMonitorServer()
@@ -85,7 +85,7 @@ func TestSeveralRecipient(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		wg.Add(1)
 		go func() {
-			startClient(listenerAddress(listener))
+			startClient(g, listenerAddress(listener))
 			wg.Done()
 		}()
 	}

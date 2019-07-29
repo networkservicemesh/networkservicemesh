@@ -91,7 +91,7 @@ func newHealTestData() *healTestData {
 }
 
 func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	data := newHealTestData()
 
 	nse1 := data.createEndpoint(nse1Name, localNSMName)
@@ -105,7 +105,7 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 	data.model.AddClientConnection(connection)
 
 	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
-	Expect(healed).To(BeFalse())
+	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
@@ -115,7 +115,7 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 }
 
 func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	data := newHealTestData()
 
 	nse1 := data.createEndpoint(nse1Name, localNSMName)
@@ -133,7 +133,7 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
 
 	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
-	Expect(healed).To(BeTrue())
+	g.Expect(healed).To(BeTrue())
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointNotExists(nse1Name).
@@ -144,7 +144,7 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 }
 
 func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	data := newHealTestData()
 
 	nse1 := data.createEndpoint(nse1Name, localNSMName)
@@ -158,7 +158,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 	data.model.AddClientConnection(connection)
 
 	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
-	Expect(healed).To(BeFalse())
+	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
@@ -168,7 +168,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 }
 
 func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	data := newHealTestData()
 
 	nse1 := data.createEndpoint(nse1Name, localNSMName)
@@ -184,7 +184,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 	data.connectionManager.requestError = fmt.Errorf("request error")
 
 	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
-	Expect(healed).To(BeFalse())
+	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
@@ -193,7 +193,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 }
 
 func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	data := newHealTestData()
 
 	nse1 := data.createEndpoint(nse1Name, remoteNSMName)
@@ -210,10 +210,10 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 	data.connectionManager.nse = nse2
 
 	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
-	Expect(healed).To(BeTrue())
+	g.Expect(healed).To(BeTrue())
 
-	Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
-	Expect(data.nseManager.nseClients[nse2Name]).To(BeNil())
+	g.Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
+	g.Expect(data.nseManager.nseClients[nse2Name]).To(BeNil())
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointNotExists(nse1Name).
@@ -224,7 +224,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 }
 
 func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	data := newHealTestData()
 
 	nse1 := data.createEndpoint(nse1Name, remoteNSMName)
@@ -235,9 +235,9 @@ func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
 	data.model.AddClientConnection(connection)
 
 	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
-	Expect(healed).To(BeFalse())
+	g.Expect(healed).To(BeFalse())
 
-	Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
+	g.Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointNotExists(nse1Name).
@@ -252,7 +252,9 @@ type discoveryClientStub struct {
 }
 
 func (stub *discoveryClientStub) FindNetworkService(ctx net_context.Context, in *registry.FindNetworkServiceRequest, opts ...grpc.CallOption) (*registry.FindNetworkServiceResponse, error) {
-	Expect(in.GetNetworkServiceName()).To(Equal(networkServiceName))
+	if in.GetNetworkServiceName() != networkServiceName {
+		return nil, fmt.Errorf("wrong Network Service name")
+	}
 	return stub.response, stub.error
 }
 

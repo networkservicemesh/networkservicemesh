@@ -13,7 +13,7 @@ import (
 )
 
 func TestDeployPodIntoInvalidEnv(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -22,21 +22,21 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 
 	logrus.Print("Running NSMD Deploy test")
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
 	if len(nodes) < 1 {
 		logrus.Printf("At least two Kubernetes nodes are required for this test")
-		Expect(len(nodes)).To(Equal(1))
+		g.Expect(len(nodes)).To(Equal(1))
 		return
 	}
 
 	nsmdPodNode1, err := k8s.CreatePodsRaw(fastTimeout, false, pods.NSCPod("nsc-1", &nodes[0], map[string]string{}))
-	Expect(len(nsmdPodNode1)).To(Equal(1))
+	g.Expect(len(nsmdPodNode1)).To(Equal(1))
 
 	k8s.DeletePods(nsmdPodNode1...)
 

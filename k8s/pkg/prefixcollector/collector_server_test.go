@@ -61,9 +61,11 @@ func (d *dummyWatcher) send(t watch.EventType, dr *dummyResource) {
 }
 
 func checkSubnetWatcher(t *testing.T, subnetSequence, expectedSequence []string) {
+	g := NewWithT(t)
+
 	dw := NewDummyWatcher()
 	sw, err := watchSubnet(dw, keyFuncDummy, subnetFuncDummy)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	for i := 0; i < len(subnetSequence); i++ {
 		dw.send(watch.Added, &dummyResource{fmt.Sprintf("r%d", i), subnetSequence[i]})
@@ -72,7 +74,7 @@ func checkSubnetWatcher(t *testing.T, subnetSequence, expectedSequence []string)
 	for i := 0; i < len(expectedSequence); i++ {
 		select {
 		case e := <-sw.ResultChan():
-			Expect(e.String()).To(Equal(expectedSequence[i]))
+			g.Expect(e.String()).To(Equal(expectedSequence[i]))
 		case <-time.After(1 * time.Second):
 			if expectedSequence[i] != "-" {
 				logrus.Error("Timeout waiting for next subnet")
@@ -83,7 +85,6 @@ func checkSubnetWatcher(t *testing.T, subnetSequence, expectedSequence []string)
 }
 
 func TestSimpleSubnetCollector(t *testing.T) {
-	RegisterTestingT(t)
 	subnetSequence := []string{
 		"10.20.1.0/24",
 		"10.20.2.0/24",
@@ -96,7 +97,6 @@ func TestSimpleSubnetCollector(t *testing.T) {
 }
 
 func TestLastIpsAlreadyInSubnet(t *testing.T) {
-	RegisterTestingT(t)
 	subnetSequence := []string{
 		"10.96.10.10/32",
 		"10.98.2.0/32",
@@ -113,7 +113,6 @@ func TestLastIpsAlreadyInSubnet(t *testing.T) {
 }
 
 func TestIntermediateIpsAlreadyInSubnet(t *testing.T) {
-	RegisterTestingT(t)
 	subnetSequence := []string{
 		"10.96.10.10/32",
 		"10.98.2.0/32",
@@ -130,7 +129,6 @@ func TestIntermediateIpsAlreadyInSubnet(t *testing.T) {
 }
 
 func TestIpv6(t *testing.T) {
-	RegisterTestingT(t)
 	subnetSequence := []string{
 		"100::1:0/112",
 		"100::2:0/112",

@@ -4,8 +4,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	. "github.com/onsi/gomega"
 )
 
 type testListener struct {
@@ -45,8 +43,6 @@ func (t *testListener) ClientConnectionUpdated(old, new *ClientConnection) {
 }
 
 func TestModelListener(t *testing.T) {
-	RegisterTestingT(t)
-
 	m := NewModel()
 	ln := testListener{}
 	ln.Add(8)

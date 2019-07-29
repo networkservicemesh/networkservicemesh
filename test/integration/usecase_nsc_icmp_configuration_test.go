@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -15,8 +14,6 @@ import (
 )
 
 func TestNSCAndICMPLocal(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -26,8 +23,6 @@ func TestNSCAndICMPLocal(t *testing.T) {
 }
 
 func TestNSCAndICMPRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -37,8 +32,6 @@ func TestNSCAndICMPRemote(t *testing.T) {
 }
 
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -48,8 +41,6 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 }
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -59,8 +50,6 @@ func TestNSCAndICMPWebhookRemote(t *testing.T) {
 }
 
 func TestNSCAndICMPLocalVeth(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -70,8 +59,6 @@ func TestNSCAndICMPLocalVeth(t *testing.T) {
 }
 
 func TestNSCAndICMPRemoteVeth(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -81,20 +68,20 @@ func TestNSCAndICMPRemoteVeth(t *testing.T) {
 }
 
 func TestNSCAndICMPNeighbors(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 	defer kubetest.ShowLogs(k8s, t)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	_ = kubetest.DeployNeighborNSE(k8s, nodes_setup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 	nsc := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 
@@ -107,25 +94,27 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 		arpCommand = []string{"ip", "-6", "neigh", "show"}
 	}
 	pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, pingCommand, pingIP, "-A", "-c", "5")
-	Expect(err).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	Expect(strings.Contains(pingResponse, "100% packet loss")).To(Equal(false))
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(pingResponse, "100% packet loss")).To(Equal(false))
 
 	nsc2 := kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-2", defaultTimeout)
 	arpResponse, errOut, err := k8s.Exec(nsc2, nsc.Spec.Containers[0].Name, arpCommand...)
-	Expect(err).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	Expect(strings.Contains(arpResponse, pingIP)).To(Equal(true))
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(arpResponse, pingIP)).To(Equal(true))
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
 func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
-	k8s, err := kubetest.NewK8s(true)
+	g := NewWithT(t)
+
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 	defer kubetest.ShowLogs(k8s, t)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	if useWebhook {
 		awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace(), defaultTimeout)
@@ -145,7 +134,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 		config = append(config, cfg)
 	}
 	nodes_setup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
 	_ = kubetest.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
@@ -156,17 +145,6 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 	} else {
 		nscPodNode = kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	}
-	var nscInfo *kubetest.NSCCheckInfo
 
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	kubetest.CheckNSC(k8s, nscPodNode)
 }
