@@ -12,14 +12,14 @@ import (
 )
 
 func TestCertSidecar(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	checkSpire(k8s)
 
@@ -29,7 +29,7 @@ func TestCertSidecar(t *testing.T) {
 	checkSpire(k8s)
 
 	logs, err := k8s.GetLogs(nsc, "nsm-init")
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	logrus.Infof(logs)
 }
 
