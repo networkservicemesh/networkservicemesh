@@ -13,6 +13,7 @@ providers:
       - AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
       - KUBECONFIG=$(tempdir)/config
       - AZURE_CREDENTIALS_PATH=$(tempdir)/config
+      - INSECURE=true
     env-check:
       - CIRCLE_BUILD_NUM
       - CONTAINER_REPO
