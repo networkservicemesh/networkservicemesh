@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
 
 func getExcludedPrefixesChan(clientset *kubernetes.Clientset) (<-chan prefix_pool.PrefixPool, error) {

@@ -6,10 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 )
 
 // ConnectionPluginManager transmits each method call to all registered connection plugins

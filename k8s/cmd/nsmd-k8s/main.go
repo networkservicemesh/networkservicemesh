@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )

@@ -4,10 +4,11 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
-	. "github.com/onsi/gomega"
 )
 
 func newTestPrefixService(prefixes ...string) (plugins.ConnectionPluginServer, error) {

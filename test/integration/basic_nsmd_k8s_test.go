@@ -5,7 +5,6 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"net"
 	"testing"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"

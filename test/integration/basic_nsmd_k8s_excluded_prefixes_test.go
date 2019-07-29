@@ -6,12 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 func TestK8sExcludedPrefixes(t *testing.T) {

@@ -4,11 +4,12 @@ import (
 	"context"
 	"sync"
 
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type prefixService struct {

@@ -4,10 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 )
 
 type dummyConnectionPlugin struct {

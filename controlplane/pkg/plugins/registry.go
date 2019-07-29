@@ -7,11 +7,12 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // PluginRegistry stores a plugin manager for each plugin type
