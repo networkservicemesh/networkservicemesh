@@ -20,8 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 

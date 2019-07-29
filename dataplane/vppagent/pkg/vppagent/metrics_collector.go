@@ -14,7 +14,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 type MetricsCollector struct {

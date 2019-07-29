@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 
