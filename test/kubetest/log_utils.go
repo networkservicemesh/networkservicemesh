@@ -12,23 +12,27 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+func MakeSnapshot(k8s *K8s, t *testing.T, logDirFunc func() string) {
+	showLogs(k8s, t, logDirFunc)
+}
+
 // ShowLogs prints logs from containers in case of fail/panic or enabled logging in file
 func ShowLogs(k8s *K8s, t *testing.T) {
 	if r := recover(); r != nil {
-		showLogs(k8s, t)
+		showLogs(k8s, t, logsDir)
 		panic(r)
 	} else if t.Failed() || shouldShowLogs() {
-		showLogs(k8s, t)
+		showLogs(k8s, t, logsDir)
 	}
 }
-func showLogs(k8s *K8s, t *testing.T) {
+func showLogs(k8s *K8s, t *testing.T, logDirFunc func() string) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
-		showPodLogs(k8s, t, &pods[i])
+		showPodLogs(k8s, t, &pods[i], logDirFunc)
 	}
 }
 
-func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
+func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod, logDirFunc func() string) {
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
 		name := pod.Name + ":" + c.Name
@@ -37,12 +41,12 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 
 		if shouldShowLogs() && t != nil {
 			writeLogFunc = func(name string, content string) {
-				logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
+				logErr := logFile(name, filepath.Join(logDirFunc(), t.Name()), content)
 				if logErr != nil {
 					logrus.Errorf("Can't log in file, reason %v", logErr)
 					logTransaction(name, content)
 				} else {
-					logrus.Infof("Saved log for %v. Check dir %v", name, logsDir())
+					logrus.Infof("Saved log for %v. Check dir %v", name, logDirFunc())
 				}
 			}
 		}

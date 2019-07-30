@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestOneTimeConnectionMemif(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -20,6 +22,7 @@ func TestOneTimeConnectionMemif(t *testing.T) {
 	testOneTimeConnection(t, 1, kubetest.DeployVppAgentNSC, kubetest.DeployVppAgentICMP, kubetest.IsVppAgentNsePinged)
 }
 func TestOneTimeConnection(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -28,6 +31,7 @@ func TestOneTimeConnection(t *testing.T) {
 }
 
 func TestMovingConnection(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -36,6 +40,7 @@ func TestMovingConnection(t *testing.T) {
 }
 
 func TestMovingConnectionMemif(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -44,6 +49,7 @@ func TestMovingConnectionMemif(t *testing.T) {
 }
 
 func TestOneToOneConnection(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -52,6 +58,7 @@ func TestOneToOneConnection(t *testing.T) {
 }
 
 func TestOneToOneConnectionMemif(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -89,15 +96,25 @@ func testOneTimeNseAndNscConnection(t *testing.T, nodeCount int, fixture kubetes
 
 	for i := 0; i < nscMaxCount; i++ {
 		go func(index int) {
+			defer func() {
+				path := "/home/circleci/project/.tests/cloud_test/packet-1/logs/" + t.Name() + "/nsc-nse/" + strconv.Itoa(index)
+				getPath := func() string {
+					return path
+				}
+				kubetest.MakeSnapshot(k8s, t, getPath)
+			}()
 			nse := fixture.DeployNse(k8s, nodes[0].Node, icmpDefaultName+strconv.Itoa(index), defaultTimeout)
 			nsc := fixture.DeployNsc(k8s, nodes[nodeCount-1].Node, nscDefaultName+strconv.Itoa(index), defaultTimeout)
 			defer k8s.DeletePods(nse, nsc)
 			fixture.CheckNsc(k8s, nsc)
+			logrus.Infof("start write to channel, %v", index)
 			doneChannel <- true
+			logrus.Infof("done write to channel, %v", index)
 		}(i)
 	}
 
 	for i := 0; i < nscMaxCount; i++ {
+		logrus.Infof("done %v / %v", i, nscMaxCount)
 		<-doneChannel
 	}
 }
