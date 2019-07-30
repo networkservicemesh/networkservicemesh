@@ -83,6 +83,10 @@ func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 }
 
 func (v *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
+	if err := common.SanityCheckConnectionType(v.common.Mechanisms, crossConnect); err != nil {
+		return crossConnect, err
+	}
 	/* 1. Handle local connection */
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
