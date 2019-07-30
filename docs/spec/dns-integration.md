@@ -9,7 +9,7 @@ Network Service Mesh needs to be able to provide a workload with DNS service fro
 Implementation details (optional)
 ---------------------------------
 
-####nsm-coredns
+#### nsm-coredns
 `nsm-corends` is a docker image based on [coredns](https://github.com/coredns/coredns.io/blob/master/content/manual/what.md). The difference with the original `coredns` in the set of plug-ins. 
 The image uses only next `coredns` plugins:
 * `bind`
@@ -24,13 +24,13 @@ The fanout plugin re-uses already opened sockets to the upstreams. It supports T
 For each incoming DNS query that hits the CoreDNS fanout plugin, it will be replicated in parallel to each listed IP. The first non-negative response from any of the queried DNS Servers will be forwarded as a response to the request.
 
 #### How use nsm-coredns as default name server for pod?
-1) Deploy corefile configmap 
+1) Deploy configmap with corefile content.
 ```
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: coredns
-  namespace: kube-system
+  namespace: nsm-system
 data:
   Corefile: |
     {domain} {
