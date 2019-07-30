@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/security"
+	"net"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"
 	proto "github.com/spiffe/spire/proto/spire/api/workload"
 	"google.golang.org/grpc"
-	"net"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/security"
 )
 
 type spireProxy struct {

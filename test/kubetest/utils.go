@@ -5,14 +5,15 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/security"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/security"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
@@ -22,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/cert"
