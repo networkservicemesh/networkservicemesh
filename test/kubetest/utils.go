@@ -331,8 +331,7 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 
 // InitSpireSecurity deploys pod that proxy Spire certificates to test environment
 func InitSpireSecurity(k8s *K8s) func() {
-	spireProxy := k8s.CreatePod(pods.TestCommonPod("spire-test-proxy", []string{"/bin/spire-proxy"},
-		nil, map[string]string{}, pods.NSMgrServiceAccount))
+	spireProxy := k8s.CreatePod(pods.SpireProxyPod())
 
 	fwd, err := k8s.NewPortForwarder(spireProxy, 7001)
 	k8s.g.Expect(err).To(BeNil())
