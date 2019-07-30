@@ -33,7 +33,7 @@ require (
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/grpc v1.22.0
+	google.golang.org/grpc v1.22.1
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
 	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
