@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -77,5 +78,10 @@ func main() {
 			logrus.Fatalln(err)
 		}
 	}()
+
+	if err = prefixcollector.StartPrefixPlugin(config); err != nil {
+		logrus.Fatalln("Failed to start Prefix Plugin", err)
+	}
+
 	<-c
 }

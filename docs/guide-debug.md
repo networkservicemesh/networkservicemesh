@@ -58,7 +58,7 @@ Container is executed in detached mode, and logs are tailed, so after it complet
 It allows to start one the components in `debug` mode, since codebase is synchronized every call will compile
 actual code, so every restart will start the last code into debug.
 
-#### Usefull script ./scripts/run.sh 
+#### Useful script ./scripts/run.sh 
 
 It allows to start one the components in `run` mode, since codebase is synchronized every call will compile
 actual code, so every restart will start the last code.
