@@ -542,7 +542,9 @@ func (k8s *K8s) Cleanup() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		k8s.cleanupFunc()
+		if k8s.cleanupFunc != nil {
+			k8s.cleanupFunc()
+		}
 	}()
 
 	wg.Add(1)
