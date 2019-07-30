@@ -65,7 +65,8 @@ func TestOneTimeNseAndNscConnection(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeNseAndNscConnection(t, 2, kubetest.DefaultTestingPodFixture())
+	assert := NewWithT(t)
+	testOneTimeNseAndNscConnection(t, 2, kubetest.DefaultTestingPodFixture(assert), assert)
 }
 
 func TestOneTimeNseAndNscConnectionMemif(t *testing.T) {
@@ -74,15 +75,16 @@ func TestOneTimeNseAndNscConnectionMemif(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testOneTimeNseAndNscConnection(t, 1, kubetest.VppAgentTestingPodFixture())
+	assert := NewWithT(t)
+	testOneTimeNseAndNscConnection(t, 1, kubetest.VppAgentTestingPodFixture(assert), assert)
 }
 
-func testOneTimeNseAndNscConnection(t *testing.T, nodeCount int, fixture kubetest.TestingPodFixture) {
-	k8s, err := kubetest.NewK8s(true)
+func testOneTimeNseAndNscConnection(t *testing.T, nodeCount int, fixture kubetest.TestingPodFixture, assert *WithT) {
+	k8s, err := kubetest.NewK8s(assert, true)
 	defer k8s.Cleanup()
 	Expect(err).To(BeNil())
 	defer kubetest.ShowLogs(k8s, t)
-	nodes := createNodes(k8s, nodeCount)
+	nodes := createNodes(assert, k8s, nodeCount)
 	doneChannel := make(chan bool, nscCount)
 
 	for i := 0; i < nscMaxCount; i++ {
