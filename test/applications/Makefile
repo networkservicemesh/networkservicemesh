@@ -22,7 +22,6 @@ default: all
 
 GOPATH?=$(shell go env GOPATH)
 GOCMD=go
-GOIMPORTS=goimports
 GOGET=${GOCMD} get
 GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
@@ -38,7 +37,6 @@ LOG_CONTAINERS=$(KILL_CONTAINERS)
 # which are run from the Makefiles
 export GOPATH \
        GOCMD \
-       GOIMPORTS \
        GOGET \
        GOGENERATE \
        GOINSTALL \
@@ -116,9 +114,6 @@ docker-%-logs:
 #
 # The following targets are meant to be run when working with the code locally.
 #
-format:
-	@${GOIMPORTS} -w -local github.com/networkservicemesh/networkservicemesh -d `find . -type f -name '*.go' -not -name '*.pb.go'`
-
 generate:
 	@${GOGENERATE} ./...
 

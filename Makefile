@@ -23,6 +23,9 @@ FORWARDING_PLANE ?= vpp
 .PHONY: default
 default: all
 
+# Code formatting
+include .mk/formatting.mk
+
 # Static code analysis
 include .mk/code_analysis.mk
 
@@ -35,7 +38,6 @@ include .mk/integration.mk
 
 GOPATH?=$(shell go env GOPATH 2>/dev/null)
 GOCMD=go
-GOIMPORTS=goimports
 GOGET=${GOCMD} get
 GOGENERATE=${GOCMD} generate
 GOINSTALL=${GOCMD} install
@@ -46,7 +48,6 @@ GOVET=${GOCMD} vet --all
 # which are run from the Makefiles
 export GOPATH \
        GOCMD \
-       GOIMPORTS \
        GOGET \
        GOGENERATE \
        GOINSTALL \
@@ -78,9 +79,6 @@ check:
 #
 # The following targets are meant to be run when working with the code locally.
 #
-format:
-	@${GOIMPORTS} -w -local github.com/networkservicemesh/networkservicemesh -d `find . -type f -name '*.go' -not -name '*.pb.go'`
-
 deps:
 	@${GOGET} -u github.com/golang/protobuf/protoc-gen-go
 

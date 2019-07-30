@@ -210,17 +210,12 @@ The [.circleci/config.yml](https://github.com/networkservicemesh/networkservicem
 ## Code formatting
 We use `goimports` tool since it formats the code in the same style as `go fmt` and organizes imports additionally.
 
-To install `goimports` run:
+To install it run:
 ```bash
-GO111MODULE=off go get golang.org/x/tools/cmd/goimports
+make install-formatter
 ```
 
 To do formatting run:
-```bash
-goimports -w -local github.com/networkservicemesh/networkservicemesh -d $(find . -type f -name '*.go' -not -name '*.pb.go')
-```
-
-Or simply:
 ```bash
 make format
 ```
