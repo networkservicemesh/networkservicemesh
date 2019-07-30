@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -22,11 +21,13 @@ import (
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
@@ -54,17 +55,10 @@ func newSharedStorage() *sharedStorage {
 }
 
 type nsmdTestServiceDiscovery struct {
-	apiRegistry          *testApiRegistry
-	storage              *sharedStorage
-	nsmCounter           int
-	nsmgrName            string
-	clusterConfiguration *registry.ClusterConfiguration
-	subnetStreamCh       chan *dummySubnetStream
-}
-
-func (impl *nsmdTestServiceDiscovery) getNextSubnetStream() *dummySubnetStream {
-	s := <-impl.subnetStreamCh
-	return s
+	apiRegistry *testApiRegistry
+	storage     *sharedStorage
+	nsmCounter  int
+	nsmgrName   string
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
@@ -89,14 +83,12 @@ func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registr
 	return nil, nil
 }
 
-func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, storage *sharedStorage, clusterConfiguration *registry.ClusterConfiguration) *nsmdTestServiceDiscovery {
+func newNSMDTestServiceDiscovery(testAPI *testApiRegistry, nsmgrName string, storage *sharedStorage) *nsmdTestServiceDiscovery {
 	return &nsmdTestServiceDiscovery{
-		storage:              storage,
-		apiRegistry:          testApi,
-		nsmCounter:           0,
-		nsmgrName:            nsmgrName,
-		subnetStreamCh:       make(chan *dummySubnetStream),
-		clusterConfiguration: clusterConfiguration,
+		storage:     storage,
+		apiRegistry: testAPI,
+		nsmCounter:  0,
+		nsmgrName:   nsmgrName,
 	}
 }
 
@@ -141,57 +133,57 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 	}, nil
 }
 
-func (impl *nsmdTestServiceDiscovery) GetClusterConfiguration(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.ClusterConfiguration, error) {
-	if impl.clusterConfiguration == nil {
-		return nil, fmt.Errorf("ClusterConfiguration is not supported")
-	}
-	return impl.clusterConfiguration, nil
+type testPluginRegistry struct {
+	connectionPluginManager *testConnectionPluginManager
 }
 
-type dummySubnetStream struct {
-	sync.RWMutex
-	grpc.ClientStream
-	isKilled  bool
-	responses chan *registry.SubnetExtendingResponse
+type testConnectionPluginManager struct {
+	plugins []pluginsapi.ConnectionPluginClient
 }
 
-func newDummySubnetStream() *dummySubnetStream {
-	return &dummySubnetStream{
-		isKilled:  false,
-		responses: make(chan *registry.SubnetExtendingResponse),
+func newTestPluginRegistry() *testPluginRegistry {
+	return &testPluginRegistry{
+		connectionPluginManager: &testConnectionPluginManager{},
 	}
 }
 
-func (d *dummySubnetStream) Recv() (*registry.SubnetExtendingResponse, error) {
-	r := <-d.responses
+func (pr *testPluginRegistry) Start() error {
+	return nil
+}
 
-	d.RLock()
-	if d.isKilled {
-		return nil, fmt.Errorf("killed")
+func (pr *testPluginRegistry) Stop() error {
+	return nil
+}
+
+func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
+	return pr.connectionPluginManager
+}
+
+func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginClient) {
+	cpm.plugins = append(cpm.plugins, plugin)
+}
+
+func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
+}
+
+func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) error {
+	connCtx := conn.GetContext()
+	for _, plugin := range cpm.plugins {
+		connCtx, _ = plugin.UpdateConnectionContext(context.TODO(), connCtx)
 	}
-	d.RUnlock()
-
-	return r, nil
+	conn.SetContext(connCtx)
+	return nil
 }
 
-func (d *dummySubnetStream) dummyKill() {
-	d.Lock()
-	defer d.Unlock()
-
-	logrus.Info("Killing subnetStream")
-	d.isKilled = true
-	d.responses <- nil
-}
-
-func (d *dummySubnetStream) addResponse(r *registry.SubnetExtendingResponse) {
-	d.responses <- r
-}
-
-func (impl *nsmdTestServiceDiscovery) MonitorSubnets(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (registry.ClusterInfo_MonitorSubnetsClient, error) {
-	logrus.Info("New subnet stream requested")
-	s := newDummySubnetStream()
-	impl.subnetStreamCh <- s
-	return s, nil
+func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Connection) error {
+	connCtx := conn.GetContext()
+	for _, plugin := range cpm.plugins {
+		result, _ := plugin.ValidateConnectionContext(context.TODO(), connCtx)
+		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
+			return fmt.Errorf(result.GetErrorMessage())
+		}
+	}
+	return nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -357,10 +349,6 @@ func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryCl
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) ClusterInfoClient() (registry.ClusterInfoClient, error) {
-	return impl.nseRegistry, nil
-}
-
 func (impl *nsmdTestServiceRegistry) Stop() {
 	logrus.Printf("Delete temporary workspace root: %s", impl.rootDir)
 	os.RemoveAll(impl.rootDir)
@@ -414,6 +402,7 @@ type nsmdFullServer interface {
 type nsmdFullServerImpl struct {
 	apiRegistry     *testApiRegistry
 	nseRegistry     *nsmdTestServiceDiscovery
+	pluginRegistry  *testPluginRegistry
 	serviceRegistry *nsmdTestServiceRegistry
 	testModel       model.Model
 	manager         nsm2.NetworkServiceManager
@@ -521,19 +510,20 @@ func (srv *nsmdFullServerImpl) requestNSM(clientName string) *nsmdapi.ClientConn
 	return response
 }
 
-func newNSMDFullServer(nsmgrName string, storage *sharedStorage, cfg *registry.ClusterConfiguration) *nsmdFullServerImpl {
+func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		panic(err)
 	}
 
-	return newNSMDFullServerAt(nsmgrName, storage, rootDir, cfg)
+	return newNSMDFullServerAt(nsmgrName, storage, rootDir)
 }
 
-func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string, cfg *registry.ClusterConfiguration) *nsmdFullServerImpl {
+func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
-	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, cfg)
+	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
+	srv.pluginRegistry = newTestPluginRegistry()
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -552,7 +542,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry)
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()
@@ -575,16 +565,4 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	nsmServer.StartAPIServerAt(sock)
 
 	return srv
-}
-
-func newClusterConfiguration(podCIDR, serviceCIDR string) *registry.ClusterConfiguration {
-	return &registry.ClusterConfiguration{
-		PodSubnet:     podCIDR,
-		ServiceSubnet: serviceCIDR,
-	}
-}
-
-var defaultClusterConfiguration = &registry.ClusterConfiguration{
-	PodSubnet:     "127.0.1.0/24",
-	ServiceSubnet: "127.0.2.0/24",
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -31,11 +32,21 @@ func main() {
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
+	pluginRegistry := plugins.NewPluginRegistry()
+
+	if err := pluginRegistry.Start(); err != nil {
+		logrus.Errorf("Failed to start Plugin Registry: %v", err)
+		return
+	}
+	defer func() {
+		if err := pluginRegistry.Stop(); err != nil {
+			logrus.Errorf("Failed to stop Plugin Registry: %v", err)
+		}
+	}()
 
 	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
-
-	manager := nsm.NewNetworkServiceManager(model, serviceRegistry)
+	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, pluginRegistry)
 
 	var server nsmd.NSMServer
 	var err error

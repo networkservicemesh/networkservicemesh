@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -31,7 +30,7 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer func() {
 		if err := closer.Close(); err != nil {
-			logrus.Errorf("An error during cloasing: %v", err)
+			logrus.Errorf("An error during closing: %v", err)
 		}
 	}()
 
@@ -65,13 +64,6 @@ func main() {
 
 	nsmClientSet, err := versioned.NewForConfig(config)
 	server := registryserver.New(nsmClientSet, nsmName)
-
-	clusterInfoService, err := registryserver.NewK8sClusterInfoService(config)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
-	registry.RegisterClusterInfoServer(server, clusterInfoService)
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {

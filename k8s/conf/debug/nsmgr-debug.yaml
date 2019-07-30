@@ -29,6 +29,8 @@ spec:
               mountPath: /var/lib/networkservicemesh
             - name: sources
               mountPath: /go/src
+            - name: nsm-plugin-socket
+              mountPath: /var/lib/networkservicemesh/plugins
         - name: nsmd-k8s
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent
@@ -50,3 +52,7 @@ spec:
             path: /go/src
             type: DirectoryOrCreate
           name: sources
+        - hostPath:
+            path: /var/lib/networkservicemesh/plugins
+            type: DirectoryOrCreate
+          name: nsm-plugin-socket
