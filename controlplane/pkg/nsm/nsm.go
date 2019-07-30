@@ -364,7 +364,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		if err := srv.updateConnection(nseConn); err != nil {
+		if err = srv.updateConnection(nseConn); err != nil {
 			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
 		}
 
