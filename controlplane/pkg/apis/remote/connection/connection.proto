@@ -32,11 +32,11 @@ enum MechanismType {
   NONE = 0;
   VXLAN = 1;
   VXLAN_GPE = 2;
-  GRE = 3;
-  SRV6 = 4;
-  MPLSoEthernet = 5;
-  MPLSoGRE = 6;
-  MPLSoUDP = 7;
+  GRE = 4;
+  SRV6 = 8;
+  MPLSoEthernet = 16;
+  MPLSoGRE = 32;
+  MPLSoUDP = 64;
 }
 
 enum State {
