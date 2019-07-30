@@ -247,7 +247,8 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 			var updatedDevice *packngo.Device
 			updatedDevice, _, err := pi.client.Devices.Get(d.ID, &packngo.GetOptions{})
 			if err != nil {
-				logrus.Errorf("Error %v", err)
+				logrus.Errorf("%v-%v Error accessing device Error: %v", pi.id, d.ID, err)
+				continue
 			} else if updatedDevice.State == "active" {
 				alive[key] = updatedDevice
 			}
