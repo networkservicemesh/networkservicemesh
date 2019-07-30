@@ -48,6 +48,7 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 	}
 
 	wt = NewWithT(t)
+	tools.InitConfig(tools.DialConfig{Insecure: true})
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
