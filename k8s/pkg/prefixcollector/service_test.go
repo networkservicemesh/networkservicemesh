@@ -23,7 +23,7 @@ func newTestPrefixService(prefixes ...string) (plugins.ConnectionPluginServer, e
 }
 
 func TestPrefixServiceUpdateConnection(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	service, _ := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
 
@@ -34,12 +34,12 @@ func TestPrefixServiceUpdateConnection(t *testing.T) {
 	var err error
 	ctx, err = service.UpdateConnectionContext(context.TODO(), ctx)
 
-	Expect(err).To(BeNil())
-	Expect(ctx.GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24", "10.32.1.0/16"}))
+	g.Expect(err).To(BeNil())
+	g.Expect(ctx.GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24", "10.32.1.0/16"}))
 }
 
 func TestPrefixServiceValidateConnection(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	service, _ := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
 
@@ -52,13 +52,13 @@ func TestPrefixServiceValidateConnection(t *testing.T) {
 
 	result, err := service.ValidateConnectionContext(context.TODO(), ctx)
 
-	Expect(err).To(BeNil())
-	Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_SUCCESS))
-	Expect(result.GetErrorMessage()).To(Equal(""))
+	g.Expect(err).To(BeNil())
+	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_SUCCESS))
+	g.Expect(result.GetErrorMessage()).To(Equal(""))
 }
 
 func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	service, _ := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
 
@@ -70,9 +70,9 @@ func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 
 	result, err := service.ValidateConnectionContext(context.TODO(), ctx)
 
-	Expect(err).To(BeNil())
-	Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))
-	Expect(result.GetErrorMessage()).To(Equal("srcIP intersects excluded prefixes list"))
+	g.Expect(err).To(BeNil())
+	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))
+	g.Expect(result.GetErrorMessage()).To(Equal("srcIP intersects excluded prefixes list"))
 
 	ctx = &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
@@ -82,7 +82,7 @@ func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 
 	result, err = service.ValidateConnectionContext(context.TODO(), ctx)
 
-	Expect(err).To(BeNil())
-	Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))
-	Expect(result.GetErrorMessage()).To(Equal("dstIP intersects excluded prefixes list"))
+	g.Expect(err).To(BeNil())
+	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))
+	g.Expect(result.GetErrorMessage()).To(Equal("dstIP intersects excluded prefixes list"))
 }

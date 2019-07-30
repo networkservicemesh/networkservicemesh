@@ -16,19 +16,19 @@ import (
 )
 
 func TestK8sExcludedPrefixes(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(true)
+	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	clientset, err := k8s.GetClientSet()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
 
 	if cm == nil || err != nil {
@@ -39,7 +39,7 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 	clusterConfiguration := &v1alpha3.ClusterConfiguration{}
 	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(cm.Data["ClusterConfiguration"]), 4096).
 		Decode(clusterConfiguration)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	podSubnet := clusterConfiguration.Networking.PodSubnet
 	serviceSubnet := clusterConfiguration.Networking.ServiceSubnet
@@ -47,7 +47,7 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 	pattern := "context:<ip_context:<src_ip_required:true dst_ip_required:true excluded_prefixes:\\\"" + podSubnet + "\\\" excluded_prefixes:\\\"" + serviceSubnet + "\\\" > >"
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	defer kubetest.ShowLogs(k8s, t)
 
@@ -62,6 +62,6 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 
 	defer k8s.DeletePods(nsc)
 
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 	k8s.WaitLogsContains(icmp, "", pattern, defaultTimeout)
 }

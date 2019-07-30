@@ -35,7 +35,7 @@ func (cp *dummyConnectionPlugin) ValidateConnectionContext(ctx context.Context, 
 }
 
 func TestDummyConnectionPlugin(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -54,16 +54,16 @@ func TestDummyConnectionPlugin(t *testing.T) {
 	request := createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	Expect(err).To(BeNil())
-	Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24"}))
+	g.Expect(ok).To(Equal(true))
+	g.Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24"}))
 }
 
 func TestDummyConnectionPlugin2(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	storage := newSharedStorage()
 	srv := newNSMDFullServer(Master, storage)
@@ -82,10 +82,10 @@ func TestDummyConnectionPlugin2(t *testing.T) {
 	request := createRequest()
 
 	_, err := nsmClient.Request(context.Background(), request)
-	Expect(err).NotTo(BeNil())
-	Expect(err.Error()).To(ContainSubstring("failure Validating NSE Connection: validation failed"))
+	g.Expect(err).NotTo(BeNil())
+	g.Expect(err.Error()).To(ContainSubstring("failure Validating NSE Connection: validation failed"))
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
-	Expect(ok).To(Equal(true))
-	Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(BeNil())
+	g.Expect(ok).To(Equal(true))
+	g.Expect(originl.req.Connection.GetContext().GetIpContext().GetExcludedPrefixes()).To(BeNil())
 }
