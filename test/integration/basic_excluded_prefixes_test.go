@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
@@ -27,14 +28,14 @@ func TestExcludePrefixCheck(t *testing.T) {
 	nodesCount := 1
 
 	variables := map[string]string{
-		nsmd.ExcludedPrefixesEnv:     "172.16.1.0/24",
-		nsmd.NsmdDeleteLocalRegistry: "true",
+		nsmd.NsmdDeleteLocalRegistry:        "true",
+		prefixcollector.ExcludedPrefixesEnv: "172.16.1.0/24",
 	}
 
 	if k8s.UseIPv6() {
 		variables = map[string]string{
-			nsmd.ExcludedPrefixesEnv:     "100::/64",
-			nsmd.NsmdDeleteLocalRegistry: "true",
+			nsmd.NsmdDeleteLocalRegistry:        "true",
+			prefixcollector.ExcludedPrefixesEnv: "100::/64",
 		}
 	}
 

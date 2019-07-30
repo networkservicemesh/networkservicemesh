@@ -178,10 +178,12 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 	}
 	if len(config.Variables) > 0 {
 		for k, v := range config.Variables {
-			pod.Spec.Containers[1].Env = append(pod.Spec.Containers[1].Env, v1.EnvVar{
-				Name:  k,
-				Value: v,
-			})
+			for i := range pod.Spec.Containers {
+				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, v1.EnvVar{
+					Name:  k,
+					Value: v,
+				})
+			}
 		}
 	}
 	if node != nil {

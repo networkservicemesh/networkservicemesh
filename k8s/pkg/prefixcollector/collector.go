@@ -2,6 +2,7 @@ package prefixcollector
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -13,11 +14,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
 
+const (
+	// ExcludedPrefixesEnv is the name of the env variable to define excluded prefixes
+	ExcludedPrefixesEnv = "EXCLUDED_PREFIXES"
+)
+
 func getExcludedPrefixesChan(clientset *kubernetes.Clientset) (<-chan prefix_pool.PrefixPool, error) {
+	prefixes := getExcludedPrefixesFromEnv()
+
 	// trying to get excludePrefixes from kubeadm-config, if it exists
 	if configMapPrefixes, err := getExcludedPrefixesFromConfigMap(clientset); err == nil {
 		poolCh := make(chan prefix_pool.PrefixPool, 1)
-		pool, err := prefix_pool.NewPrefixPool(configMapPrefixes...)
+		pool, err := prefix_pool.NewPrefixPool(append(prefixes, configMapPrefixes...)...)
 		if err != nil {
 			return nil, err
 		}
@@ -26,7 +34,16 @@ func getExcludedPrefixesChan(clientset *kubernetes.Clientset) (<-chan prefix_poo
 	}
 
 	// seems like we don't have kubeadm-config in cluster, starting monitor client
-	return monitorSubnets(clientset), nil
+	return monitorSubnets(clientset, prefixes...), nil
+}
+
+func getExcludedPrefixesFromEnv() []string {
+	excludedPrefixesEnv, ok := os.LookupEnv(ExcludedPrefixesEnv)
+	if !ok {
+		return []string{}
+	}
+	logrus.Infof("Getting excludedPrefixes from ENV: %v", excludedPrefixesEnv)
+	return strings.Split(excludedPrefixesEnv, ",")
 }
 
 func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string, error) {
@@ -61,14 +78,14 @@ func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string
 	}, nil
 }
 
-func monitorSubnets(clientset *kubernetes.Clientset) <-chan prefix_pool.PrefixPool {
+func monitorSubnets(clientset *kubernetes.Clientset, additionalPrefixes ...string) <-chan prefix_pool.PrefixPool {
 	logrus.Infof("Start monitoring prefixes to exclude")
 	poolCh := make(chan prefix_pool.PrefixPool, 1)
 
 	go func() {
 		for {
 			errCh := make(chan error)
-			go monitorReservedSubnets(poolCh, errCh, clientset)
+			go monitorReservedSubnets(poolCh, errCh, clientset, additionalPrefixes)
 			err := <-errCh
 			logrus.Error(err)
 		}
@@ -77,7 +94,7 @@ func monitorSubnets(clientset *kubernetes.Clientset) <-chan prefix_pool.PrefixPo
 	return poolCh
 }
 
-func monitorReservedSubnets(poolCh chan prefix_pool.PrefixPool, errCh chan<- error, clientset *kubernetes.Clientset) {
+func monitorReservedSubnets(poolCh chan prefix_pool.PrefixPool, errCh chan<- error, clientset *kubernetes.Clientset, additionalPrefixes []string) {
 	pw, err := WatchPodCIDR(clientset)
 	if err != nil {
 		errCh <- err
@@ -100,12 +117,12 @@ func monitorReservedSubnets(poolCh chan prefix_pool.PrefixPool, errCh chan<- err
 		case subnet := <-sw.ResultChan():
 			serviceSubnet = subnet.String()
 		}
-		sendPrefixPool(poolCh, podSubnet, serviceSubnet)
+		sendPrefixPool(poolCh, podSubnet, serviceSubnet, additionalPrefixes)
 	}
 }
 
-func sendPrefixPool(poolCh chan prefix_pool.PrefixPool, podSubnet, serviceSubnet string) {
-	pool, err := getPrefixPool(podSubnet, serviceSubnet)
+func sendPrefixPool(poolCh chan prefix_pool.PrefixPool, podSubnet, serviceSubnet string, additionalPrefixes []string) {
+	pool, err := getPrefixPool(podSubnet, serviceSubnet, additionalPrefixes)
 	if err != nil {
 		logrus.Errorf("Failed to create a prefix pool: %v", err)
 		return
@@ -117,8 +134,8 @@ func sendPrefixPool(poolCh chan prefix_pool.PrefixPool, podSubnet, serviceSubnet
 	poolCh <- pool
 }
 
-func getPrefixPool(podSubnet, serviceSubnet string) (prefix_pool.PrefixPool, error) {
-	var prefixes []string
+func getPrefixPool(podSubnet, serviceSubnet string, additionalPrefixes []string) (prefix_pool.PrefixPool, error) {
+	prefixes := additionalPrefixes
 	if len(podSubnet) > 0 {
 		prefixes = append(prefixes, podSubnet)
 	}
