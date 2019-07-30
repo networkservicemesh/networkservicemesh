@@ -364,7 +364,9 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		srv.updateConnection(nseConn)
+		if err := srv.updateConnection(nseConn); err != nil {
+			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
+		}
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
@@ -512,13 +514,13 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
-func (srv *networkServiceManager) updateConnection(conn connection.Connection) {
+func (srv *networkServiceManager) updateConnection(conn connection.Connection) error {
 	if conn.GetContext() == nil {
 		c := &connectioncontext.ConnectionContext{}
 		conn.SetContext(c)
 	}
 
-	srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+	return srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
 }
 
 func (srv *networkServiceManager) updateConnectionContext(source, destination connection.Connection) error {

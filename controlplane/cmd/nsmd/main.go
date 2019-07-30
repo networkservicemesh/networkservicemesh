@@ -36,6 +36,7 @@ func main() {
 
 	if err := pluginRegistry.Start(); err != nil {
 		logrus.Errorf("Failed to start Plugin Registry: %v", err)
+		return
 	}
 	defer func() {
 		if err := pluginRegistry.Stop(); err != nil {

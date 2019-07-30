@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
@@ -16,7 +15,7 @@ import (
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnection(connection.Connection)
+	UpdateConnection(connection.Connection) error
 	ValidateConnection(connection.Connection) error
 }
 
@@ -44,7 +43,7 @@ func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClien
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) {
+func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.getClients() {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
@@ -54,10 +53,11 @@ func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection)
 		cancel()
 
 		if err != nil {
-			logrus.Errorf("Connection Plugin returned an error: %v", err)
+			return fmt.Errorf("connection plugin returned an error: %v", err)
 		}
 	}
 	conn.SetContext(connCtx)
+	return nil
 }
 
 func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connection) error {
@@ -68,8 +68,7 @@ func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connectio
 		cancel()
 
 		if err != nil {
-			logrus.Errorf("Connection Plugin returned an error: %v", err)
-			continue
+			return fmt.Errorf("connection plugin returned an error: %v", err)
 		}
 
 		if result.GetStatus() != plugins.ConnectionValidationStatus_SUCCESS {

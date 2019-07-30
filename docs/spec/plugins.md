@@ -4,7 +4,7 @@ Plugins
 Specification
 -------------
 
-NSM provides a way to extend its functionality by creating plugins. Here is a small glossary:
+NSM is a cluster agnostic technology and any cluster specific functionality could be provided via extensible plugins mechanism. Here is a small glossary:
 
 - **Plugin** — a gRPC server that has one or more Plugin Capabilities to extend NSM functionality
 - **Plugin Capability** — a gRPC service definition that specifies methods related to one small piece of NSM functionality (for example, the connection capability is only responsible for updating and validating a connection)
