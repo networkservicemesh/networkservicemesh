@@ -172,10 +172,13 @@ func readDialConfig() (DialConfig, error) {
 		return DialConfig{}, err
 	}
 
-	if insecure, err := ReadEnvBool(insecureEnv, insecureDefault); err == nil && insecure {
-		rv.SecurityManager = security.NewManager()
-	} else {
+	insecure, err := ReadEnvBool(insecureEnv, insecureDefault)
+	if err != nil {
 		return DialConfig{}, err
+	}
+
+	if !insecure {
+		rv.SecurityManager = security.NewManager()
 	}
 
 	return rv, nil
