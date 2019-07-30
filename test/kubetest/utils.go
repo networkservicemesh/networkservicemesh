@@ -60,6 +60,25 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
 
+//DeployCorefile - Creates configmap with Corefile content
+func DeployCorefile(k8s *K8s, name, content string) error {
+	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: k8s.GetK8sNamespace(),
+		},
+
+		BinaryData: map[string][]byte{
+			"Corefile": []byte(content),
+		},
+	})
+	return err
+}
+
 // SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
@@ -180,6 +199,13 @@ func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.TestCommonPod(name, icmpCommand(false, false, false, true), node, defaultICMPEnv(k8s.UseIPv6())),
+	)
+}
+
+// DeployNscAndNsmCoredns deploys pod of default client and nsm-coredns
+func DeployNscAndNsmCoredns(k8s *K8s, node *v1.Node, name, corefileName string, timeout time.Duration) *v1.Pod {
+	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
+		pods.InjectNSMCoredns(pods.NSCPod(name, node, defaultNSCEnv()), corefileName),
 	)
 }
 
@@ -702,6 +728,21 @@ func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *N
 
 		t.Fail()
 	}
+}
+
+//PingByHostName tries ping hostname from the first container of pod
+func PingByHostName(k8s *K8s, pod *v1.Pod, hostname string) bool {
+	for i := 0; i < 10; i++ {
+		logrus.Infof("Trying ping from container %v host by name %v", pod.Spec.Containers[0].Name, hostname)
+		response, reason, err := k8s.Exec(pod, pod.Spec.Containers[0].Name, "ping", hostname, "-c", "4")
+		if err == nil {
+			logrus.Infof("Ping by hostname is success. Response %v", response)
+			return true
+		}
+		logrus.Errorf("Can't ping by hostname. Reason: %v, error: %v", reason, err)
+		<-time.After(time.Second)
+	}
+	return false
 }
 
 // ServiceRegistryAt creates new service registry on 5000 port
