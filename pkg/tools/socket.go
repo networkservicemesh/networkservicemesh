@@ -26,8 +26,8 @@ const (
 
 // DialConfig represents configuration of grpc connection, one per instance
 type DialConfig struct {
-	OpenTracing bool
-	Insecure    bool
+	OpenTracing     bool
+	SecurityManager security.Manager
 }
 
 var cfg DialConfig
@@ -47,12 +47,11 @@ func GetConfig() DialConfig {
 
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(opts ...grpc.ServerOption) *grpc.Server {
-	if !GetConfig().Insecure {
-		mgr := security.GetSecurityManager()
+	if GetConfig().SecurityManager != nil {
 		cred := credentials.NewTLS(&tls.Config{
 			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{*mgr.GetCertificate()},
-			ClientCAs:    mgr.GetCABundle(),
+			Certificates: []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+			ClientCAs:    GetConfig().SecurityManager.GetCABundle(),
 		})
 		opts = append(opts, grpc.Creds(cred))
 	}
@@ -137,8 +136,15 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
 
-		if GetConfig().Insecure {
-			b.opts = append(b.opts, grpc.WithInsecure())
+		if GetConfig().SecurityManager != nil {
+			cred := credentials.NewTLS(&tls.Config{
+				InsecureSkipVerify: true,
+				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+				RootCAs:            GetConfig().SecurityManager.GetCABundle(),
+			})
+			opts = append(opts, grpc.WithTransportCredentials(cred))
+		} else {
+			opts = append(opts, grpc.WithInsecure())
 		}
 
 		b.opts = append(b.opts, grpc.WithBlock())
@@ -158,16 +164,17 @@ func OpenTracingDialOptions() []grpc.DialOption {
 }
 
 func readDialConfig() (DialConfig, error) {
-	var err error
 	rv := DialConfig{}
 
-	rv.OpenTracing, err = ReadEnvBool(opentracingEnv, opentracingDefault)
-	if err != nil {
+	if ot, err := ReadEnvBool(opentracingEnv, opentracingDefault); err == nil {
+		rv.OpenTracing = ot
+	} else {
 		return DialConfig{}, err
 	}
 
-	rv.Insecure, err = ReadEnvBool(insecureEnv, insecureDefault)
-	if err != nil {
+	if insecure, err := ReadEnvBool(insecureEnv, insecureDefault); err == nil && insecure {
+		rv.SecurityManager = security.NewManager()
+	} else {
 		return DialConfig{}, err
 	}
 

@@ -38,3 +38,10 @@ ARG VERSION=unspecified
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/monitoring-dns-nsc ./test/applications/cmd/monitoring-dns-nsc
 FROM runtime-3 as runtime-4
 COPY --from=build-4 /go/bin/monitoring-dns-nsc /bin/monitoring-dns-nsc
+
+# 5. spire-proxy
+FROM build-4 as build-5
+ARG VERSION=unspecified
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/spire-proxy ./test/applications/cmd/spire-proxy
+FROM runtime-4 as runtime-5
+COPY --from=build-5 /go/bin/spire-proxy /bin/spire-proxy

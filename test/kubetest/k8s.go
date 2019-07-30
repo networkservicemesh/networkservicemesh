@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -269,6 +269,7 @@ type K8s struct {
 	forwardingPlane    string
 	sa                 []string
 	g                  *WithT
+	cleanupFunc        func()
 }
 
 // NewK8s - Creates a new K8s Clientset with roles for the default config
@@ -280,6 +281,9 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		return client, err
 	}
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
+
+	client.cleanupFunc = InitSpireSecurity(client)
+
 	return client, err
 }
 
@@ -533,6 +537,12 @@ func (k8s *K8s) Cleanup() {
 	go func() {
 		defer wg.Done()
 		_ = k8s.deletePods(k8s.pods...)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		k8s.cleanupFunc()
 	}()
 
 	wg.Add(1)

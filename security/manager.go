@@ -63,7 +63,7 @@ func GetSecurityManager() Manager {
 
 // NewManager creates new security.Manager using SpireCertObtainer
 func NewManager() Manager {
-	return NewManagerWithCertObtainer(newSpireObtainer())
+	return NewManagerWithCertObtainer(NewSpireObtainer())
 }
 
 // NewManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer

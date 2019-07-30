@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	agentAddress = "/run/spire/sockets/agent.sock"
+	// DefaultAgentAddress points to unix socket used by default
+	DefaultAgentAddress = "/run/spire/sockets/agent.sock"
 )
 
 type spireObtainer struct {
@@ -36,11 +37,19 @@ type spireObtainer struct {
 	workloadAPIClient workload.X509Client
 }
 
-// newSpireCertObtainer creates CertificateObtainer that fetch certificates from spire-agent
-func newSpireObtainer() CertificateObtainer {
+// NewSpireObtainer creates CertificateObtainer that fetch certificates from spire-agent
+func NewSpireObtainer() CertificateObtainer {
+	return NewSpireObtainerWithAddress(&net.UnixAddr{
+		Net:  "unix",
+		Name: DefaultAgentAddress,
+	})
+}
+
+// NewSpireObtainerWithAddress create CertificateObtainer to passed addr
+func NewSpireObtainerWithAddress(addr net.Addr) CertificateObtainer {
 	workloadAPIClient := workload.NewX509Client(
 		&workload.X509ClientConfig{
-			Addr: &net.UnixAddr{Net: "unix", Name: agentAddress},
+			Addr: addr,
 			Log:  logrus.StandardLogger(),
 		})
 

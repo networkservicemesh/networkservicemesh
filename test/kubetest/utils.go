@@ -5,6 +5,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/security"
 	"net"
 	"os"
 	"strings"
@@ -20,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/cert"
@@ -270,7 +272,7 @@ func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 
 //DeployMonitoringNSCAndCoredns deploys pod of nsm-dns-monitoring-nsc and nsm-coredns
 func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
+	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv(), pods.NSCServiceAccount)
 	pods.InjectNSMCorednsWithSharedFolder(template)
 	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
 	k8s.WaitLogsContains(result, "nsm-coredns", "CoreDNS-", timeout)
@@ -323,6 +325,32 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 	return []*pods.NSMgrPodConfig{
 		noHealNSMgrPodConfig(k8s),
 		noHealNSMgrPodConfig(k8s),
+	}
+}
+
+// InitSpireSecurity deploys pod that proxy Spire certificates to test environment
+func InitSpireSecurity(k8s *K8s) func() {
+	spireProxy := k8s.CreatePod(pods.TestCommonPod("spire-test-proxy", []string{"/bin/spire-proxy"},
+		nil, map[string]string{}, pods.NSMgrServiceAccount))
+
+	fwd, err := k8s.NewPortForwarder(spireProxy, 7001)
+	k8s.g.Expect(err).To(BeNil())
+
+	err = fwd.Start()
+	k8s.g.Expect(err).To(BeNil())
+
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	k8s.g.Expect(err).To(BeNil())
+
+	obt := security.NewSpireObtainerWithAddress(addr)
+	mgr := security.NewManagerWithCertObtainer(obt)
+	tools.InitConfig(tools.DialConfig{
+		SecurityManager: mgr,
+	})
+
+	return func() {
+		obt.Stop()
+		fwd.Stop()
 	}
 }
 

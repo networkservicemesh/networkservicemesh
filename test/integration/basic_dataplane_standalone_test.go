@@ -48,7 +48,6 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 	}
 
 	wt = NewWithT(t)
-	tools.InitConfig(tools.DialConfig{Insecure: true})
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -64,7 +63,6 @@ func TestDataplaneCrossConnectMultiple(t *testing.T) {
 	}
 
 	wt = NewWithT(t)
-	tools.InitConfig(tools.DialConfig{Insecure: true})
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -82,7 +80,6 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 	}
 
 	wt = NewWithT(t)
-	tools.InitConfig(tools.DialConfig{Insecure: true})
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -104,7 +101,6 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 	}
 
 	wt = NewWithT(t)
-	tools.InitConfig(tools.DialConfig{Insecure: true})
 
 	fixture := createFixture(t, defaultTimeout)
 	defer fixture.cleanup()
@@ -355,7 +351,6 @@ func dataplanePodTemplate(plane string, node *v1.Node) *v1.Pod {
 	setupEnvVariables(dataplane, map[string]string{
 		"DATAPLANE_SOCKET_TYPE": dataplaneSocketType,
 		"DATAPLANE_SOCKET":      fmt.Sprintf("0.0.0.0:%d", dataplanePort),
-		"INSECURE":              "true",
 	})
 	exposePorts(dataplane,
 		v1.ContainerPort{

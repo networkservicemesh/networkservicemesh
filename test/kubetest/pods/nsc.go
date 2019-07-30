@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -19,6 +19,7 @@ func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSCServiceAccount,
 			Containers: []v1.Container{
 				{
 					Name:            "alpine-img",

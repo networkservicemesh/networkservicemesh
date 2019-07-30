@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -16,7 +16,14 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 				Value: v,
 			})
 	}
-
+	var resources v1.ResourceRequirements
+	if node != nil {
+		resources = v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+			},
+		}
+	}
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Name: name,
@@ -35,12 +42,8 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 					Image:           "networkservicemesh/test-common:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Command:         command,
-					Resources: v1.ResourceRequirements{
-						Limits: v1.ResourceList{
-							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
-						},
-					},
-					Env: envVars,
+					Resources:       resources,
+					Env:             envVars,
 					VolumeMounts: []v1.VolumeMount{
 						spireVolumeMount(),
 					},
