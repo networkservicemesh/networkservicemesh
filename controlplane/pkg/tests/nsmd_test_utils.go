@@ -166,12 +166,13 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) {
+func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.plugins {
 		connCtx, _ = plugin.UpdateConnectionContext(context.TODO(), connCtx)
 	}
 	conn.SetContext(connCtx)
+	return nil
 }
 
 func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Connection) error {
