@@ -14,7 +14,7 @@ func TestRestoreConnectionState(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 
 	srv.addFakeDataplane("dp1", "tcp:some_address")
@@ -30,7 +30,7 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
 	defer srv.Stop()
 
 	srv.addFakeDataplane("dp1", "tcp:some_address")

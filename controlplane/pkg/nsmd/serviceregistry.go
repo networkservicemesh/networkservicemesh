@@ -143,6 +143,18 @@ func (impl *nsmdServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient
 	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
 }
 
+func (impl *nsmdServiceRegistry) ClusterInfoClient() (registry.ClusterInfoClient, error) {
+	impl.RWMutex.Lock()
+	defer impl.RWMutex.Unlock()
+
+	logrus.Info("Requesting ClusterInfoClient...")
+	impl.initRegistryClient()
+	if impl.registryClientConnection != nil {
+		return registry.NewClusterInfoClient(impl.registryClientConnection), nil
+	}
+	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+}
+
 func (impl *nsmdServiceRegistry) GetPublicAPI() string {
 	return GetLocalIPAddress() + ":5001"
 }

@@ -16,7 +16,7 @@ func TestNSMDRestart1(t *testing.T) {
 
 	storage := newSharedStorage()
 
-	srv := newNSMDFullServer("nsm1", storage)
+	srv := newNSMDFullServer("nsm1", storage, defaultClusterConfiguration)
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
 	reply := srv.requestNSM("nsm-1")
@@ -53,7 +53,7 @@ func TestNSMDRestart1(t *testing.T) {
 
 	// We need to restart server
 	storage2 := newSharedStorage()
-	srv = newNSMDFullServerAt("nsm2", storage2, srv.rootDir)
+	srv = newNSMDFullServerAt("nsm2", storage2, srv.rootDir, nil)
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	endpoints2 := srv.testModel.GetEndpointsByNetworkService("test_nse")
 
