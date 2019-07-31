@@ -4,17 +4,20 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 var nseNoHealPodConfig = &pods.NSMgrPodConfig{

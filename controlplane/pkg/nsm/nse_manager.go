@@ -3,6 +3,7 @@ package nsm
 import (
 	"context"
 	"fmt"
+
 	"github.com/sirupsen/logrus"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"

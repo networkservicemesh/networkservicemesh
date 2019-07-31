@@ -2,7 +2,6 @@ package proxyregistryserver
 
 import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

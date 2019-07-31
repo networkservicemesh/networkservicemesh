@@ -10,9 +10,10 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestInterdomainNSCAndICMPDataplaneHealLocal(t *testing.T) {
@@ -42,7 +43,7 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g,true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 
 		g.Expect(err).To(BeNil())
 

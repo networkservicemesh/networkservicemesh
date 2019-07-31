@@ -1,22 +1,25 @@
 package main
 
 import (
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	proxynetworkserviceserver "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"google.golang.org/grpc"
 	"net"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	proxynetworkserviceserver "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
 )
 
 var version string

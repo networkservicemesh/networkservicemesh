@@ -4,12 +4,14 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	"os"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestInterdomainNSCAndICMPRemote(t *testing.T) {
@@ -48,7 +50,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g,true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 
 		g.Expect(err).To(BeNil())
 

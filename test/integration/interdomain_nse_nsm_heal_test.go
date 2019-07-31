@@ -4,15 +4,18 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestInterdomainNSMHealLocalDieNSMD(t *testing.T) {
@@ -51,7 +54,7 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g,true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 
 		g.Expect(err).To(BeNil())
 
