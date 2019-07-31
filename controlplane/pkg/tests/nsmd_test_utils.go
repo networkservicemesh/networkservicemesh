@@ -40,6 +40,8 @@ const (
 )
 
 type sharedStorage struct {
+	sync.RWMutex
+
 	services  map[string]*registry.NetworkService
 	managers  map[string]*registry.NetworkServiceManager
 	endpoints map[string]*registry.NetworkServiceEndpoint
@@ -48,8 +50,8 @@ type sharedStorage struct {
 func newSharedStorage() *sharedStorage {
 	return &sharedStorage{
 		services:  make(map[string]*registry.NetworkService),
-		endpoints: make(map[string]*registry.NetworkServiceEndpoint),
 		managers:  make(map[string]*registry.NetworkServiceManager),
+		endpoints: make(map[string]*registry.NetworkServiceEndpoint),
 	}
 }
 
@@ -78,14 +80,18 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 		impl.nsmCounter++
 	}
 	if in.GetNetworkserviceEndpoint() != nil {
+		impl.storage.Lock()
 		impl.storage.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
+		impl.storage.Unlock()
 	}
 	in.NetworkServiceManager = impl.storage.managers[impl.nsmgrName]
 	return in, nil
 }
 
 func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registry.RemoveNSERequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	impl.storage.Lock()
 	delete(impl.storage.endpoints, in.EndpointName)
+	impl.storage.Unlock()
 	return nil, nil
 }
 
@@ -101,10 +107,14 @@ func newNSMDTestServiceDiscovery(testApi *testApiRegistry, nsmgrName string, sto
 }
 
 func (impl *nsmdTestServiceDiscovery) FindNetworkService(ctx context.Context, in *registry.FindNetworkServiceRequest, opts ...grpc.CallOption) (*registry.FindNetworkServiceResponse, error) {
-	endpoints := []*registry.NetworkServiceEndpoint{}
+	impl.storage.RLock()
+	storageEndpoints := impl.storage.endpoints
+	impl.storage.RUnlock()
 
+	endpoints := []*registry.NetworkServiceEndpoint{}
 	managers := map[string]*registry.NetworkServiceManager{}
-	for _, ep := range impl.storage.endpoints {
+
+	for _, ep := range storageEndpoints {
 		if ep.NetworkServiceName == in.NetworkServiceName {
 			endpoints = append(endpoints, ep)
 
