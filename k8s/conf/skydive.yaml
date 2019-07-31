@@ -82,7 +82,7 @@ spec:
     spec:
       containers:
         - name: skydive-analyzer
-          image: matrohon/skydive:latest
+          image: skydive/skydive:0.24.0
           imagePullPolicy: IfNotPresent
           args:
             - analyzer
@@ -148,7 +148,7 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: matrohon/skydive:latest
+          image: skydive/skydive:0.24.0
           imagePullPolicy: IfNotPresent
           args:
             - agent
