@@ -6,19 +6,22 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, nil, nil, nil)
+// KernelDataplanePod creates a pod
+func KernelDataplanePod(name string, node *v1.Node) *v1.Pod {
+	return createKernelDataplanePod(name, node, nil, nil, nil)
 }
 
-func VPPDataplanePodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
-	return createVPPDataplanePod(name, node, nil, nil, variables)
+// KernelDataplanePodConfig creates a pod with config
+func KernelDataplanePodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
+	return createKernelDataplanePod(name, node, nil, nil, variables)
 }
 
-func VPPDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
+// KernelDataplanePodLiveCheck creates a pod with live check
+func KernelDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
+	return createKernelDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
 }
 
-func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
+func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -44,30 +47,16 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 						},
 					},
 				},
-				{
-					Name: "postmortem",
-					VolumeSource: v1.VolumeSource{
-						HostPath: &v1.HostPathVolumeSource{
-							Type: ht,
-							Path: "/var/tmp/nsm-postmortem",
-						},
-					},
-				},
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
-					Name:            "vppagent-dataplane",
-					Image:           "networkservicemesh/vppagent-dataplane-dev:latest",
+					Name:            "kernel-forwarder",
+					Image:           "networkservicemesh/kernel-forwarder:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts: []v1.VolumeMount{
 						{
 							Name:             "workspace",
 							MountPath:        "/var/lib/networkservicemesh/",
-							MountPropagation: &mode,
-						},
-						{
-							Name:             "postmortem",
-							MountPath:        "/var/tmp/nsm-postmortem/",
 							MountPropagation: &mode,
 						},
 					},

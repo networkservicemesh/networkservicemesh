@@ -10,6 +10,8 @@ import (
 func DefaultDataplaneVariables(plane string) map[string]string {
 	if plane == pods.EnvForwardingPlaneDefault {
 		return DefaultPlaneVariablesVPP()
+	} else if plane == pods.EnvForwardingPlaneKernel {
+		return DefaultPlaneVariablesKernel()
 	}
 	logrus.Error("Forwarding plane error: Unknown dataplane")
 	return nil

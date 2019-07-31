@@ -27,6 +27,9 @@ ifeq (${FORWARDING_PLANE}, vpp)
   DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
   DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
   DEPLOY_ICMP += $(DEPLOY_ICMP_VPP)
+else ifeq (${FORWARDING_PLANE}, kernel-forwarder)
+  # Deployments - Kernel plane
+  DEPLOY_FORWARDING_PLANE = kernel-forwarder
 endif
 # Deployments - grouped
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
@@ -232,6 +235,15 @@ k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_
 k8s-vppagent-dataplane-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
  .PHONY: k8s-vppagent-dataplane-load-images
 k8s-vppagent-dataplane-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
+
+KERNEL_FORWARDER_CONTAINERS = kernel-forwarder
+.PHONY: k8s-kernel-forwarder-build
+k8s-kernel-forwarder-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(KERNEL_FORWARDER_CONTAINERS)))
+ .PHONY: k8s-kernel-forwarder-save
+k8s-kernel-forwarder-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(KERNEL_FORWARDER_CONTAINERS)))
+ .PHONY: k8s-kernel-forwarder-load-images
+k8s-kernel-forwarder-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(KERNEL_FORWARDER_CONTAINERS)))
+
 
 .PHONY: k8s-secure-intranet-connectivity-build
 k8s-secure-intranet-connectivity-build:

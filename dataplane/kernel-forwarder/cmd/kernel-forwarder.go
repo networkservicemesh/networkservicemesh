@@ -1,4 +1,5 @@
-// Copyright (c) 2018-2019 Cisco and/or its affiliates.
+// Copyright 2019 VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,25 +18,22 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/kernelforwarder"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
-var version string
-
 func main() {
-	logrus.Info("Starting vppagent-dataplane...")
-	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
+	logrus.Info("Starting the Kernel-based forwarding plane!")
 	c := tools.NewOSSignalChannel()
 
 	dataplaneProbes := common.NewDataplaneProbes()
 	go dataplaneProbes.BeginHealthCheck()
 
-	agent := vppagent.CreateVPPAgent()
+	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(agent, dataplaneProbes)
+	registration := common.CreateDataplane(plane, dataplaneProbes)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+spec:
+  selector:
+    matchLabels:
+      app: nsm-kernel-plane
+  template:
+    metadata:
+      labels:
+        app: nsm-kernel-plane
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+        - name: kernel-forwarder
+          securityContext:
+            privileged: true
+          image: networkservicemesh/kernel-forwarder:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSM_DATAPLANE_SRC_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: workspace
+              mountPath: /var/lib/networkservicemesh/
+              mountPropagation: Bidirectional
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 5555
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 5555
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 1
+            requests:
+              cpu: 1m
+      volumes:
+        - hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+          name: workspace
+metadata:
+  name: nsm-kernel-forwarder
+  namespace: nsm-system
