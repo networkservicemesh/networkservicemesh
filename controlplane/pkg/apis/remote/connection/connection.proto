@@ -67,7 +67,10 @@ message ConnectionEvent {
   map<string, Connection> connections = 2;
 }
 
-message MonitorScopeSelector { string network_service_manager_name = 1; }
+message MonitorScopeSelector {
+    string network_service_manager_name = 1;
+    string destination_network_service_manager_name = 2;
+}
 
 service MonitorConnection {
   rpc MonitorConnections(MonitorScopeSelector) returns (stream ConnectionEvent);

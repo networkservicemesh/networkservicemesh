@@ -5,7 +5,7 @@ jobs:
 
 # sanity
   test-sanity-check:
-    resource_class: medium+
+    resource_class: xlarge
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.12-stretch
@@ -175,6 +175,7 @@ jobs:
             export REPO="networkservicemesh"
             export PULL_REPO="networkservicemeshci"
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
+            export CONTAINERS=(${CONTAINERS[@]} proxy-nsmd proxy-nsmd-k8s)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
@@ -228,6 +229,16 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
+          name: "build-proxy-nsmd"
+          container: "proxy-nsmd"
+          requires:
+            - test-sanity-check
+      - build-container:
+          name: "build-proxy-nsmd-k8s"
+          container: "proxy-nsmd-k8s"
+          requires:
+            - test-sanity-check
+      - build-container:
           name: "build-admission-webhook"
           container: "admission-webhook"
           requires:
@@ -277,6 +288,8 @@ workflows:
             - build-nsmd
             - build-nsmd-k8s
             - build-nsmdp
+            - build-proxy-nsmd
+            - build-proxy-nsmd-k8s
             - build-admission-webhook
             - build-crossconnect-monitor
             - build-test-common
