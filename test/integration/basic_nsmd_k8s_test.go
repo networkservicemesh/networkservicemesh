@@ -5,7 +5,6 @@ package nsmd_integration_tests
 import (
 	"context"
 	"fmt"
-	"net"
 	"testing"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -331,58 +329,6 @@ func getNsmUrl(g *WithT, discovery registry.NetworkServiceDiscoveryClient) strin
 	endpoint := response.GetNetworkServiceEndpoints()[0]
 	logrus.Infof("Endpoint: %v", endpoint)
 	return response.NetworkServiceManagers[endpoint.NetworkServiceManagerName].GetUrl()
-}
-
-func TestClusterInfo(t *testing.T) {
-	g := NewWithT(t)
-
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
-	g.Expect(err).To(BeNil())
-
-	clientset, err := k8s.GetClientSet()
-	g.Expect(err).To(BeNil())
-	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
-
-	if cm == nil || err != nil {
-		t.Skip("Skip, no kubeadm-config")
-		return
-	}
-
-	k8s.Prepare("nsmgr")
-	nsmd, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	g.Expect(err).To(BeNil())
-
-	k8s.WaitLogsContains(nsmd[0].Nsmd, "nsmd", "NSMD: Restore of NSE/Clients Complete...", defaultTimeout)
-
-	fwd, err := k8s.NewPortForwarder(nsmd[0].Nsmd, 5000)
-	g.Expect(err).To(BeNil())
-	defer fwd.Stop()
-
-	e := fwd.Start()
-	if e != nil {
-		logrus.Printf("Error on forward: %v retrying", e)
-	}
-
-	serviceRegistry := nsmd2.NewServiceRegistryAt(fmt.Sprintf("localhost:%d", fwd.ListenPort))
-	clusterInfo, err := serviceRegistry.ClusterInfoClient()
-	g.Expect(err).To(BeNil())
-
-	config, err := clusterInfo.GetClusterConfiguration(context.Background(), &empty.Empty{})
-	g.Expect(err).To(BeNil())
-	g.Expect(config.PodSubnet).ToNot(BeNil())
-	g.Expect(config.ServiceSubnet).ToNot(BeNil())
-
-	_, _, err = net.ParseCIDR(config.PodSubnet)
-	g.Expect(err).To(BeNil())
-
-	_, _, err = net.ParseCIDR(config.ServiceSubnet)
-	g.Expect(err).To(BeNil())
 }
 
 func createSingleNsmgr(k8s *kubetest.K8s, name string) *v1.Pod {

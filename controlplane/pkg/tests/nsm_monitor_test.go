@@ -53,7 +53,7 @@ func TestNSMMonitorInit(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
@@ -70,7 +70,7 @@ func TestNSMMonitorInit(t *testing.T) {
 			logrus.Error(err.Error())
 		}
 	}()
-	request := createRequest(false)
+	request := createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
