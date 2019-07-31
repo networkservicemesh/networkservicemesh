@@ -13,8 +13,6 @@ import (
 )
 
 func TestInterdomainNSCAndICMPRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -24,8 +22,6 @@ func TestInterdomainNSCAndICMPRemote(t *testing.T) {
 }
 
 func TestInterdomainNSCAndICMPRemoteVeth(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -35,8 +31,6 @@ func TestInterdomainNSCAndICMPRemoteVeth(t *testing.T) {
 }
 
 func TestInterdomainNSCAndICMPProxyRemote(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -46,15 +40,17 @@ func TestInterdomainNSCAndICMPProxyRemote(t *testing.T) {
 }
 
 func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, disableVHost bool) {
+	g := NewWithT(t)
+
 	k8ss := []*kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
-		Expect(len(kubeconfig)).ToNot(Equal(0))
+		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g,true, kubeconfig)
 
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 
 		config := []*pods.NSMgrPodConfig{}
 
@@ -69,7 +65,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 		config = append(config, cfg)
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 		defer kubetest.ShowLogs(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
@@ -94,7 +90,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
 	if err != nil {
 		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 	}
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{

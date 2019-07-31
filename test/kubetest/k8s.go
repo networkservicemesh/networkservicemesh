@@ -307,7 +307,7 @@ func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 // NewK8sWithoutRolesForConfig - Creates a new K8s Clientset for the given config
 func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) (*K8s, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	client := K8s{
 		pods: []*v1.Pod{},

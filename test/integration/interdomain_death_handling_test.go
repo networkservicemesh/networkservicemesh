@@ -26,8 +26,6 @@ var nseNoHealPodConfig = &pods.NSMgrPodConfig{
 }
 
 func TestInterdomainNSCDies(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -37,8 +35,6 @@ func TestInterdomainNSCDies(t *testing.T) {
 }
 
 func TestInterdomainNSEDies(t *testing.T) {
-	RegisterTestingT(t)
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -48,15 +44,17 @@ func TestInterdomainNSEDies(t *testing.T) {
 }
 
 func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
+	g := NewWithT(t)
+
 	k8ss := []*kubetest.ExtK8s{}
 
 	for i := 0; i < clustersCount; i++ {
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
-		Expect(len(kubeconfig)).ToNot(Equal(0))
+		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 
 		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()
 		nseNoHealPodConfig.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
@@ -65,7 +63,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 			nseNoHealPodConfig,
 			nseNoHealPodConfig,
 		}, k8s.GetK8sNamespace())
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 		defer kubetest.ShowLogs(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
@@ -88,7 +86,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	nseExternalIP, err := kubetest.GetNodeExternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
 	if err != nil {
 		nseExternalIP, err = kubetest.GetNodeInternalIP(k8ss[clustersCount-1].NodesSetup[0].Node)
-		Expect(err).To(BeNil())
+		g.Expect(err).To(BeNil())
 	}
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
@@ -98,9 +96,9 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 
 	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
 	ipResponse, errOut, err := k8ss[clustersCount-1].K8s.Exec(icmpPodNode, icmpPodNode.Spec.Containers[0].Name, "ip", "addr")
-	Expect(err).To(BeNil())
-	Expect(errOut).To(Equal(""))
-	Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(ipResponse, "nsm")).To(Equal(true))
 
 	var podToKill *v1.Pod
 	var clusterToKill int
@@ -130,5 +128,5 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		}
 	}
 
-	Expect(success).To(Equal(true))
+	g.Expect(success).To(Equal(true))
 }
