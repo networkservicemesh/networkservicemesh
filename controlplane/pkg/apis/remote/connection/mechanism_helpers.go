@@ -73,7 +73,8 @@ func (m *Mechanism) IsValid() error {
 		return fmt.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
-	if m.GetType() == MechanismType_VXLAN {
+	switch m.GetType() {
+	case MechanismType_VXLAN:
 		if _, err := m.SrcIP(); err != nil {
 			return fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANSrcIP, err)
 		}

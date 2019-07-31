@@ -183,9 +183,14 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 
 	// 3. get dataplane
 	srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, DataplaneTimeout)
+
 	dp, err := srv.model.SelectDataplane(func(dp *model.Dataplane) bool {
 		if request.IsRemote() {
-			return findMechanism(dp.RemoteMechanisms, remote_connection.MechanismType_VXLAN) != nil
+			for _, m := range request.GetRequestMechanismPreferences() {
+				if findMechanism(dp.RemoteMechanisms, m.GetMechanismType()) != nil {
+					return true
+				}
+			}
 		} else {
 			for _, m := range request.GetRequestMechanismPreferences() {
 				if findMechanism(dp.LocalMechanisms, m.GetMechanismType()) != nil {
