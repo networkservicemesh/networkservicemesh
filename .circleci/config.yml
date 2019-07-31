@@ -172,7 +172,7 @@ jobs:
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
-            export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common)
+            export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}
@@ -202,6 +202,11 @@ workflows:
           requires:
             - test-sanity-check
 # build
+      - build-container:
+          name: "build-nsm-coredns"
+          container: "nsm-coredns"
+          requires:
+            - test-sanity-check
       - build-container:
           name: "build-nsmd"
           container: "nsmd"
@@ -276,6 +281,7 @@ workflows:
             - build-vppagent-dataplane
             - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
+            - build-nsm-coredns
 
 # Integration testing
       - integration-tests:

@@ -2,8 +2,7 @@ run:
   concurrency: 4
   deadline: 15m
   issues-exit-code: 1
-
-  tests: true
+  tests: false
 
   skip-dirs:
     - build
@@ -110,6 +109,10 @@ issues:
       linters:
         - deadcode
     - path: k8s/cmd/admission-webhook/init.go
+      linters:
+        - gochecknoglobals
+        - gochecknoinits
+    - path: k8s/cmd/nsm-coredns
       linters:
         - gochecknoglobals
         - gochecknoinits

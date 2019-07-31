@@ -26,6 +26,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
+// SupportedMechanisms by Dataplane (add new mechanisms next way "connection.MechanismType_VXLAN | connection.MechanismType_SRV6 | ...")
+const SupportedMechanisms = connection.MechanismType_VXLAN
+
 // RemoteConnectionConverter described the remote connection
 type RemoteConnectionConverter struct {
 	*connection.Connection
@@ -50,8 +53,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
-	if c.GetMechanism().GetType() != connection.MechanismType_VXLAN {
-		return rv, fmt.Errorf("RemoteConnectionConverter supports only VXLAN. Attempt to use Connection.Mechanism.Type %s", c.GetMechanism().GetType())
+	if c.GetMechanism().GetType()&SupportedMechanisms == 0 {
+		return rv, fmt.Errorf("attempt to use not supported Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
 		rv = &configurator.Config{}
