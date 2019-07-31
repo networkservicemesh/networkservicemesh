@@ -38,7 +38,7 @@ func TestDummyConnectionPlugin(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage, nil)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -66,7 +66,7 @@ func TestDummyConnectionPlugin2(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, defaultClusterConfiguration)
+	srv := newNSMDFullServer(Master, storage, nil)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
