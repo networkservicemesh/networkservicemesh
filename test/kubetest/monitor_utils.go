@@ -10,12 +10,11 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
@@ -140,7 +139,7 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) e
 
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
-	fwd, err := k8s.NewPortForwarder(pod, 6001)
+	fwd, err := k8s.NewPortForwarder(pod, 5001)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = fwd.Start()
@@ -158,23 +157,6 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 	}
 
 	return getEventCh(client, cancel, stopCh), closeFunc
-}
-
-// XconProxyMonitor deploys proxy monitor to node and returns channel of events from it
-func XconProxyMonitor(k8s *K8s, conf *NodeConf, suffix string) (<-chan *crossconnect.CrossConnectEvent, func()) {
-	address := fmt.Sprintf("%s:5001", conf.Nsmd.Status.PodIP)
-
-	xconProxy := k8s.CreatePod(pods.TestCommonPod(
-		fmt.Sprintf("xcon-proxy-monitor-%s", suffix),
-		[]string{"/bin/proxy-xcon-monitor", fmt.Sprintf("-address=%s", address)},
-		conf.Node,
-		map[string]string{}, pods.NSMgrServiceAccount))
-
-	eventCh, closeFunc := CrossConnectClientAt(k8s, xconProxy)
-	return eventCh, func() {
-		k8s.DeletePods(xconProxy)
-		closeFunc()
-	}
 }
 
 // NewEventChecker starts goroutine that read events from actualCh and
@@ -262,7 +244,7 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 func CreateCrossConnectClient(k8s *K8s, address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := tools.DialTCP(address)
 	if err != nil {
 		k8s.g.Expect(err).To(BeNil())
 		return nil, nil, nil

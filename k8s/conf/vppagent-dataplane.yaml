@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: forward-plane-acc
+  namespace: nsm-system
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -10,7 +15,7 @@ spec:
       labels:
         app: nsm-vpp-dataplane
     spec:
-      serviceAccount: nse-acc
+      serviceAccount: forward-plane-acc
       hostPID: true
       hostNetwork: true
       containers:
