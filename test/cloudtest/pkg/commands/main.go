@@ -686,7 +686,7 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 	}
 
 	if ci.startCount > ci.group.config.RetryCount {
-		logrus.Infof("Marking cluster %v as not available attempts reached: %v", ci.id, ci.group.config.RetryCount )
+		logrus.Infof("Marking cluster %v as not available attempts reached: %v", ci.id, ci.group.config.RetryCount)
 		ci.state = clusterNotAvailable
 		return
 	}
