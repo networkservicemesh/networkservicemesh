@@ -46,18 +46,16 @@ func TestSingleCrossConnect(t *testing.T) {
 	// checking goroutine for node1
 	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
-	expectedFunc0(kubetest.EventDescription{
+	expectedFunc0(&kubetest.SingleEventChecker{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-		LastEvent: true,
 	})
 
-	expectedFunc1(kubetest.EventDescription{
+	expectedFunc1(&kubetest.SingleEventChecker{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
 		SrcUp:     true,
 		DstUp:     true,
-		LastEvent: true,
 	})
 
 	waitFunc0()
