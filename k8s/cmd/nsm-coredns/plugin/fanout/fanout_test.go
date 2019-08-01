@@ -22,28 +22,26 @@ func (s *server) close() {
 	s.inner.Shutdown()
 }
 
-func newServer(f dns.HandlerFunc, zone string) *server {
-	dns.HandleFunc(zone, f)
-
-	ch1 := make(chan bool)
-
-	s1 := &dns.Server{}
+func newServer(f dns.HandlerFunc) *server {
+	ch := make(chan bool)
+	s := &dns.Server{}
+	s.Handler = f
 
 	for i := 0; i < 10; i++ {
-		s1.Listener, _ = net.Listen("tcp", ":0")
-		if s1.Listener != nil {
+		s.Listener, _ = net.Listen("tcp", ":0")
+		if s.Listener != nil {
 			break
 		}
 	}
-	if s1.Listener == nil {
+	if s.Listener == nil {
 		panic("failed to create new server")
 	}
 
-	s1.NotifyStartedFunc = func() { close(ch1) }
-	go s1.ActivateAndServe()
+	s.NotifyStartedFunc = func() { close(ch) }
+	go s.ActivateAndServe()
 
-	<-ch1
-	return &server{inner: s1, Addr: s1.Listener.Addr().String()}
+	<-ch
+	return &server{inner: s, Addr: s.Listener.Addr().String()}
 }
 
 func makeRecordA(rr string) *dns.A {
@@ -52,7 +50,7 @@ func makeRecordA(rr string) *dns.A {
 }
 
 func TestFanoutTwoServers(t *testing.T) {
-	const expected = 2
+	const expected = 1
 	answerCount1 := 0
 	answerCount2 := 0
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
@@ -64,7 +62,7 @@ func TestFanoutTwoServers(t *testing.T) {
 			msg.SetReply(r)
 			w.WriteMsg(&msg)
 		}
-	}, "example1.")
+	})
 	s2 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		if r.Question[0].Name == "example2." {
 			msg := dns.Msg{
@@ -74,7 +72,7 @@ func TestFanoutTwoServers(t *testing.T) {
 			msg.SetReply(r)
 			w.WriteMsg(&msg)
 		}
-	}, "example2.")
+	})
 	defer s1.close()
 	defer s2.close()
 
@@ -88,11 +86,11 @@ func TestFanoutTwoServers(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example1.", dns.TypeA)
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
-	<-time.After(time.Second * 5)
+	<-time.After(time.Second)
 	req = new(dns.Msg)
 	req.SetQuestion("example2.", dns.TypeA)
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
-
+	<-time.After(time.Second)
 	if answerCount2 != expected || answerCount1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got s1: %d, s2: %d", expected, answerCount1, answerCount2)
 	}
@@ -104,7 +102,7 @@ func TestFanout(t *testing.T) {
 		ret.SetReply(r)
 		ret.Answer = append(ret.Answer, test.A("example.org. IN A 127.0.0.1"))
 		w.WriteMsg(ret)
-	}, ".")
+	})
 	defer s.close()
 	c := caddy.NewTestController("dns", "fanout "+s.Addr)
 	f, err := parseFanout(c)
