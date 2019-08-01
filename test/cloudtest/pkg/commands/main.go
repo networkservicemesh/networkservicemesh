@@ -574,11 +574,11 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 		return fmt.Errorf("invalid task runner")
 	}
 
-	ctx.execiteTask(task, clusterConfigs, file, ids, runner, timeout, instances, err, fileName)
+	ctx.executeTask(task, clusterConfigs, file, ids, runner, timeout, instances, err, fileName)
 	return nil
 }
 
-func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout int64, instances []*clusterInstance, err error, fileName string) {
+func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout int64, instances []*clusterInstance, err error, fileName string) {
 	go func() {
 		st := time.Now()
 		env := []string{}
@@ -639,7 +639,7 @@ func (ctx *executionContext) execiteTask(task *testTask, clusterConfigs []string
 				}
 				inst.taskCancel = nil
 			}
-			if timeoutCtx.Err() == context.Canceled && clusterNotAvailable {
+			if clusterNotAvailable {
 				logrus.Errorf("Test is canceled due timeout and cluster error.. Will be re-run")
 				ctx.updateTestExecution(task, fileName, model.StatusTimeout)
 			} else {
