@@ -176,72 +176,19 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) error {
+func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.plugins {
-		connCtx, _ = plugin.UpdateConnectionContext(context.TODO(), connCtx)
+		connCtx, _ = plugin.UpdateConnectionContext(ctx, connCtx)
 	}
 	conn.SetContext(connCtx)
 	return nil
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Connection) error {
+func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.plugins {
-		result, _ := plugin.ValidateConnectionContext(context.TODO(), connCtx)
-		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
-			return fmt.Errorf(result.GetErrorMessage())
-		}
-	}
-	return nil
-}
-
-type testPluginRegistry struct {
-	connectionPluginManager *testConnectionPluginManager
-}
-
-type testConnectionPluginManager struct {
-	plugins []pluginsapi.ConnectionPluginClient
-}
-
-func newTestPluginRegistry() *testPluginRegistry {
-	return &testPluginRegistry{
-		connectionPluginManager: &testConnectionPluginManager{},
-	}
-}
-
-func (pr *testPluginRegistry) Start() error {
-	return nil
-}
-
-func (pr *testPluginRegistry) Stop() error {
-	return nil
-}
-
-func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
-	return pr.connectionPluginManager
-}
-
-func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginClient) {
-	cpm.plugins = append(cpm.plugins, plugin)
-}
-
-func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
-}
-
-func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) error {
-	connCtx := conn.GetContext()
-	for _, plugin := range cpm.plugins {
-		connCtx, _ = plugin.UpdateConnectionContext(context.TODO(), connCtx)
-	}
-	conn.SetContext(connCtx)
-	return nil
-}
-
-func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Connection) error {
-	connCtx := conn.GetContext()
-	for _, plugin := range cpm.plugins {
-		result, _ := plugin.ValidateConnectionContext(context.TODO(), connCtx)
+		result, _ := plugin.ValidateConnectionContext(ctx, connCtx)
 		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
 			return fmt.Errorf(result.GetErrorMessage())
 		}

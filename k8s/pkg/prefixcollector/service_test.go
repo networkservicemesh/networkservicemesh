@@ -25,13 +25,13 @@ func newTestPrefixService(prefixes ...string) (plugins.ConnectionPluginServer, e
 func TestPrefixServiceUpdateConnection(t *testing.T) {
 	g := NewWithT(t)
 
-	service, _ := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
+	service, err := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
+	g.Expect(err).To(BeNil())
 
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{},
 	}
 
-	var err error
 	ctx, err = service.UpdateConnectionContext(context.TODO(), ctx)
 
 	g.Expect(err).To(BeNil())
@@ -41,7 +41,8 @@ func TestPrefixServiceUpdateConnection(t *testing.T) {
 func TestPrefixServiceValidateConnection(t *testing.T) {
 	g := NewWithT(t)
 
-	service, _ := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
+	service, err := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
+	g.Expect(err).To(BeNil())
 
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
@@ -50,7 +51,8 @@ func TestPrefixServiceValidateConnection(t *testing.T) {
 		},
 	}
 
-	result, err := service.ValidateConnectionContext(context.TODO(), ctx)
+	var result *plugins.ConnectionValidationResult
+	result, err = service.ValidateConnectionContext(context.TODO(), ctx)
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_SUCCESS))
@@ -60,7 +62,8 @@ func TestPrefixServiceValidateConnection(t *testing.T) {
 func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 	g := NewWithT(t)
 
-	service, _ := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
+	service, err := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
+	g.Expect(err).To(BeNil())
 
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
@@ -68,7 +71,8 @@ func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 		},
 	}
 
-	result, err := service.ValidateConnectionContext(context.TODO(), ctx)
+	var result *plugins.ConnectionValidationResult
+	result, err = service.ValidateConnectionContext(context.TODO(), ctx)
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))

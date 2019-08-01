@@ -29,16 +29,16 @@ Plugin Registry implementation is placed in `controlplane/pkg/plugins` directory
 Plugin Registry is stored as a field inside **nsm.NetworkServiceManager** implementation and may be called in the following way:
 
 ```go
-func (srv *networkServiceManager) updateConnection(conn connection.Connection) {
+func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) {
     ...
     
-    srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+    srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, conn)
 }
 
-func (srv *networkServiceManager) validateConnection(conn connection.Connection) error {
+func (srv *networkServiceManager) validateConnection(ctx context.Context, conn connection.Connection) error {
     ...
     
-    if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn); err != nil {
+    if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, conn); err != nil {
         return err
     }
     

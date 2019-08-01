@@ -15,8 +15,8 @@ import (
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnection(connection.Connection) error
-	ValidateConnection(connection.Connection) error
+	UpdateConnection(context.Context, connection.Connection) error
+	ValidateConnection(context.Context, connection.Connection) error
 }
 
 type connectionPluginManager struct {
@@ -43,10 +43,10 @@ func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClien
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) error {
+func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.getClients() {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
 
 		var err error
 		connCtx, err = plugin.UpdateConnectionContext(ctx, connCtx)
@@ -60,9 +60,9 @@ func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection)
 	return nil
 }
 
-func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connection) error {
+func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, conn connection.Connection) error {
 	for _, plugin := range cpm.getClients() {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
 
 		result, err := plugin.ValidateConnectionContext(ctx, conn.GetContext())
 		cancel()
