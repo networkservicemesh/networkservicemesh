@@ -376,7 +376,7 @@ func statusName(status model.Status) interface{} {
 	case model.StatusAdded:
 		return "added"
 	case model.StatusFailed:
-		return "failsed"
+		return "failed"
 	case model.StatusSkipped:
 		return "skipped"
 	case model.StatusSuccess:
@@ -681,11 +681,12 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 	defer ci.lock.Unlock()
 
 	if ci.state != clusterAdded && ci.state != clusterCrashed {
-		// Cluster is already starting.
+		// no need to start
 		return
 	}
 
 	if ci.startCount > ci.group.config.RetryCount {
+		logrus.Infof("Marking cluster %v as not available attempts reached: %v", ci.id, ci.group.config.RetryCount )
 		ci.state = clusterNotAvailable
 		return
 	}
@@ -705,9 +706,6 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 			execution.errMsg = err
 			execution.status = clusterCrashed
 			ctx.destroyCluster(ci, true, false)
-			ctx.setClusterState(ci, func(ci *clusterInstance) {
-				ci.state = clusterCrashed
-			})
 		} else {
 			execution.status = clusterReady
 		}
