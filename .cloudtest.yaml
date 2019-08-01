@@ -43,12 +43,12 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-infra-deploy
+      make helm-install-nsm
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
-      make k8s-icmp-deploy
+      make helm-install-icmp-responder
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-check
-      make k8s-delete
+      make helm-delete-icmp-responder helm-delete-nsm
   - name: "Example-vpn"
     kind: shell
     env:
