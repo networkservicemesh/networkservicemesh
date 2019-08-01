@@ -338,7 +338,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 	// Make cluster as ready
 	for _, inst := range event.task.clusterInstances {
 		ctx.setClusterState(inst, func(inst *clusterInstance) {
-			if inst.state != clusterCrashed {
+			if inst.state == clusterBusy {
 				inst.state = clusterReady
 			}
 			inst.taskCancel = nil
