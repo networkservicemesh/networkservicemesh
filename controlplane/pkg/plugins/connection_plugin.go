@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"google.golang.org/grpc"
 
@@ -46,10 +45,10 @@ func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClien
 func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.getClients() {
-		ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
+		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		var err error
-		connCtx, err = plugin.UpdateConnectionContext(ctx, connCtx)
+		connCtx, err = plugin.UpdateConnectionContext(pluginCtx, connCtx)
 		cancel()
 
 		if err != nil {
@@ -62,9 +61,9 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, conn c
 
 func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, conn connection.Connection) error {
 	for _, plugin := range cpm.getClients() {
-		ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
+		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
-		result, err := plugin.ValidateConnectionContext(ctx, conn.GetContext())
+		result, err := plugin.ValidateConnectionContext(pluginCtx, conn.GetContext())
 		cancel()
 
 		if err != nil {
