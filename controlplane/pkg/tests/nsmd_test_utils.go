@@ -22,11 +22,13 @@ import (
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
@@ -202,6 +204,59 @@ func (impl *nsmdTestServiceDiscovery) MonitorSubnets(ctx context.Context, in *em
 	s := newDummySubnetStream()
 	impl.subnetStreamCh <- s
 	return s, nil
+}
+
+type testPluginRegistry struct {
+	connectionPluginManager *testConnectionPluginManager
+}
+
+type testConnectionPluginManager struct {
+	plugins []pluginsapi.ConnectionPluginClient
+}
+
+func newTestPluginRegistry() *testPluginRegistry {
+	return &testPluginRegistry{
+		connectionPluginManager: &testConnectionPluginManager{},
+	}
+}
+
+func (pr *testPluginRegistry) Start() error {
+	return nil
+}
+
+func (pr *testPluginRegistry) Stop() error {
+	return nil
+}
+
+func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
+	return pr.connectionPluginManager
+}
+
+func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginClient) {
+	cpm.plugins = append(cpm.plugins, plugin)
+}
+
+func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
+}
+
+func (cpm *testConnectionPluginManager) UpdateConnection(conn connection.Connection) error {
+	connCtx := conn.GetContext()
+	for _, plugin := range cpm.plugins {
+		connCtx, _ = plugin.UpdateConnectionContext(context.TODO(), connCtx)
+	}
+	conn.SetContext(connCtx)
+	return nil
+}
+
+func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Connection) error {
+	connCtx := conn.GetContext()
+	for _, plugin := range cpm.plugins {
+		result, _ := plugin.ValidateConnectionContext(context.TODO(), connCtx)
+		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
+			return fmt.Errorf(result.GetErrorMessage())
+		}
+	}
+	return nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -424,6 +479,7 @@ type nsmdFullServer interface {
 type nsmdFullServerImpl struct {
 	apiRegistry     *testApiRegistry
 	nseRegistry     *nsmdTestServiceDiscovery
+	pluginRegistry  *testPluginRegistry
 	serviceRegistry *nsmdTestServiceRegistry
 	testModel       model.Model
 	manager         nsm2.NetworkServiceManager
@@ -544,6 +600,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage, cfg)
+	srv.pluginRegistry = newTestPluginRegistry()
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -562,7 +619,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry)
+	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener()

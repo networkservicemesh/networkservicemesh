@@ -27,6 +27,8 @@ spec:
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
+            - name: nsm-plugin-socket
+              mountPath: /var/lib/networkservicemesh/plugins
           livenessProbe:
             httpGet:
               path: /liveness
@@ -58,3 +60,7 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: nsm-socket
+        - hostPath:
+            path: /var/lib/networkservicemesh/plugins
+            type: DirectoryOrCreate
+          name: nsm-plugin-socket

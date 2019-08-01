@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package plugins;
+
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext/connectioncontext.proto";
+
+enum ConnectionValidationStatus {
+    SUCCESS = 0;
+    FAIL = 1;
+}
+
+message ConnectionValidationResult {
+    ConnectionValidationStatus status = 1;
+    string error_message = 2;
+}
+
+service ConnectionPlugin {
+    rpc UpdateConnectionContext (connectioncontext.ConnectionContext) returns (connectioncontext.ConnectionContext);
+    rpc ValidateConnectionContext (connectioncontext.ConnectionContext) returns (ConnectionValidationResult);
+}

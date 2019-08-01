@@ -31,7 +31,7 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer func() {
 		if err := closer.Close(); err != nil {
-			logrus.Errorf("An error during cloasing: %v", err)
+			logrus.Errorf("An error during closing: %v", err)
 		}
 	}()
 

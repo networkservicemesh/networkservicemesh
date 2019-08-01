@@ -33,6 +33,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -49,21 +50,22 @@ type networkServiceManager struct {
 	sync.RWMutex
 
 	serviceRegistry  serviceregistry.ServiceRegistry
+	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
 	excludedPrefixes prefix_pool.PrefixPool
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
 	errCh            chan error
 	renamedEndpoints map[string]string
-
-	nseManager networkServiceEndpointManager
+	nseManager       networkServiceEndpointManager
 }
 
 func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 	return srv.properties
 }
 
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
+// NewNetworkServiceManager creates an instance of NetworkServiceManager
+func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
 	emptyPrefixPool, _ := prefix_pool.NewPrefixPool()
 	properties := nsm.NewNsmProperties()
 	nseManager := &nseManager{
@@ -74,14 +76,14 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 
 	srv := &networkServiceManager{
 		serviceRegistry:  serviceRegistry,
+		pluginRegistry:   pluginRegistry,
 		model:            model,
 		excludedPrefixes: emptyPrefixPool,
 		properties:       properties,
 		stateRestored:    make(chan bool, 1),
 		errCh:            make(chan error, 1),
 		renamedEndpoints: make(map[string]string),
-
-		nseManager: nseManager,
+		nseManager:       nseManager,
 	}
 
 	srv.networkServiceHealProcessor = newNetworkServiceHealProcessor(
@@ -405,7 +407,9 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		srv.updateExcludePrefixes(nseConn)
+		if err = srv.updateConnection(nseConn); err != nil {
+			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
+		}
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
@@ -583,12 +587,39 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
+func (srv *networkServiceManager) updateConnection(conn connection.Connection) error {
+	if conn.GetContext() == nil {
+		c := &connectioncontext.ConnectionContext{}
+		conn.SetContext(c)
+	}
+
+	srv.updateExcludePrefixes(conn) // TODO: remove in the next PR
+
+	return srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+}
+
 func (srv *networkServiceManager) updateConnectionContext(source, destination connection.Connection) error {
-	if err := srv.validateNSEConnection(destination); err != nil {
+	if err := srv.validateConnection(destination); err != nil {
 		return err
 	}
 
 	if err := source.UpdateContext(destination.GetContext()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (srv *networkServiceManager) validateConnection(conn connection.Connection) error {
+	if err := conn.IsComplete(); err != nil {
+		return err
+	}
+
+	if err := srv.validateNSEConnection(conn); err != nil { // TODO: remove in the next PR
+		return err
+	}
+
+	if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn); err != nil {
 		return err
 	}
 
