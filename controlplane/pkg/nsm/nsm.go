@@ -67,6 +67,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 	properties := nsm.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
+		pluginRegistry:  pluginRegistry,
 		model:           model,
 		properties:      properties,
 	}
@@ -83,6 +84,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 
 	srv.networkServiceHealProcessor = newNetworkServiceHealProcessor(
 		serviceRegistry,
+		pluginRegistry,
 		model,
 		properties,
 		srv,

@@ -23,6 +23,7 @@ import (
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
@@ -52,6 +53,7 @@ type nsmServer struct {
 	workspaces       map[string]*Workspace
 	model            model.Model
 	serviceRegistry  serviceregistry.ServiceRegistry
+	pluginRegistry   plugins.PluginRegistry
 	manager          nsm.NetworkServiceManager
 	locationProvider serviceregistry.WorkspaceLocationProvider
 	localRegistry    *nseregistry.NSERegistry
@@ -387,7 +389,7 @@ func (nsm *nsmServer) Stop() {
 
 // StartNSMServer registers and starts gRPC server which is listening for
 // Network Service requests.
-func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
+func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
 	var err error
 	if err = tools.SocketCleanup(ServerSock); err != nil {
 		return nil, err
@@ -399,6 +401,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 		workspaces:       make(map[string]*Workspace),
 		model:            model,
 		serviceRegistry:  serviceRegistry,
+		pluginRegistry:   pluginRegistry,
 		manager:          manager,
 		locationProvider: locationProvider,
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),

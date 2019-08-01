@@ -11,6 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
 
@@ -23,6 +24,7 @@ type networkServiceEndpointManager interface {
 
 type nseManager struct {
 	serviceRegistry serviceregistry.ServiceRegistry
+	pluginRegistry  plugins.PluginRegistry
 	model           model.Model
 	properties      *nsm.NsmProperties
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
 
@@ -20,6 +21,7 @@ type networkServiceHealProcessor interface {
 
 type healProcessor struct {
 	serviceRegistry serviceregistry.ServiceRegistry
+	pluginRegistry  plugins.PluginRegistry
 	model           model.Model
 	properties      *nsm.NsmProperties
 
@@ -42,6 +44,7 @@ type healEvent struct {
 
 func newNetworkServiceHealProcessor(
 	serviceRegistry serviceregistry.ServiceRegistry,
+	pluginRegistry plugins.PluginRegistry,
 	model model.Model,
 	properties *nsm.NsmProperties,
 	conManager connectionManager,
@@ -49,6 +52,7 @@ func newNetworkServiceHealProcessor(
 
 	p := &healProcessor{
 		serviceRegistry: serviceRegistry,
+		pluginRegistry:  pluginRegistry,
 		model:           model,
 		properties:      properties,
 		conManager:      conManager,

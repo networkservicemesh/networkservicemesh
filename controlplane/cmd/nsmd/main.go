@@ -59,7 +59,7 @@ func main() {
 	var server nsmd.NSMServer
 	var err error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
-	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
+	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, pluginRegistry, apiRegistry); err != nil {
 		logrus.Errorf("Error starting nsmd service: %+v", err)
 		return
 	}
