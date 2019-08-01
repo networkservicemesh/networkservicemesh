@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: firewall-nse
-          image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: TEST_APPLICATION
@@ -55,4 +55,3 @@ data:
     aclRules:
       "Allow ICMP": "action=reflect,icmptype=8"
       "Allow TCP 80": "action=reflect,tcplowport=80,tcpupport=80"
-

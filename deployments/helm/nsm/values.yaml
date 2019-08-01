@@ -3,5 +3,6 @@
 # Declare variables to be passed into your templates.
 
 registry: docker.io
-tag: latest
+org: networkservicemesh
+tag: master
 pullPolicy: IfNotPresent

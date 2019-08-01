@@ -11,8 +11,11 @@ This document will show you how to use `Helm` for `NSM` installation.
 * `$ helm delete RELEASE_NAME` - delete release
 
 ## Using Helm for NSM installation
+
+Installing NSM with helm in the `nsm-system` namespace is as easy as:
+
 ```bash
-$ helm install deployments/helm/nsm
+$ helm install --namespace=nsm-system deployments/helm/nsm
 ```
 
 *Note: in case of `Error: no available release name found` do (according to [issue](https://github.com/helm/helm/issues/4412)):*
@@ -42,7 +45,7 @@ helm install deployments/helm/vpn
 
 Install skydive, crossconnect-monitor and jaeger:
 ```
-helm install deployments/helm/nsmd-monitoring
+helm install --namespace=nsm-system deployments/helm/nsmd-monitoring
 ```
 
 ## Values specification
@@ -50,5 +53,6 @@ Every chart has file `values.yaml`. Now there is a possibility to specify docker
 
 ```yaml
 registry: docker.io
-tag: latest
+org: networkservicemesh
+tag: master
 ```
