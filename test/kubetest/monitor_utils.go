@@ -18,16 +18,124 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
+const (
+	defaultEventTimeout = 10 * time.Second
+)
+
 // MonitorClient is shorter name for crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
 type MonitorClient crossconnect.MonitorCrossConnect_MonitorCrossConnectsClient
 
-// EventDescription describes expected event
-type EventDescription struct {
-	TillNext  time.Duration
+// EventChecker abstracts checker of particular events from channel
+type EventChecker interface {
+	Check(eventCh <-chan *crossconnect.CrossConnectEvent) error
+}
+
+// SingleEventChecker checks single event in channel
+type SingleEventChecker struct {
+	Timeout   time.Duration
 	EventType crossconnect.CrossConnectEventType
+	Empty     bool
 	SrcUp     bool
 	DstUp     bool
-	LastEvent bool
+}
+
+// Check implements method from EventChecker interface
+func (e *SingleEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) error {
+	if e.Timeout == 0 {
+		e.Timeout = defaultEventTimeout
+	}
+
+	select {
+	case actual, ok := <-eventCh:
+		if !ok {
+			return errors.New("end of channel")
+		}
+		logrus.Infof("Accept new event, type - %v", actual.GetType())
+
+		if actual.GetType() != e.EventType {
+			return fmt.Errorf("event type %v expected to be %v", actual.GetType(), e.EventType)
+		}
+
+		if actual.GetType() == crossconnect.CrossConnectEventType_DELETE {
+			// we don't care about state of connections since event is DELETE
+			return nil
+		}
+
+		if e.Empty != (len(actual.GetCrossConnects()) == 0) {
+			return fmt.Errorf("expected event with 1 cross-connect, actual - %v", len(actual.GetCrossConnects()))
+		}
+
+		for _, xcon := range actual.GetCrossConnects() {
+			logrus.Info(XconToString(xcon))
+			if err := checkXcon(xcon, e.SrcUp, e.DstUp); err != nil {
+				return err
+			}
+		}
+	case <-time.After(e.Timeout):
+		return fmt.Errorf("no event during %v seconds, type %v", e.Timeout, e.EventType)
+	}
+
+	return nil
+}
+
+// MultipleEventChecker checks subsequence of events in channel
+type MultipleEventChecker struct {
+	Events []EventChecker
+}
+
+// Check implements method from EventChecker interface
+func (e *MultipleEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) error {
+	if len(e.Events) == 0 {
+		return errors.New("events array can't be empty")
+	}
+
+	for _, event := range e.Events {
+		if err := event.Check(eventCh); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// OrEventChecker checks that one of checker - Event1 or Event2 successfully finishes
+type OrEventChecker struct {
+	Event1 EventChecker
+	Event2 EventChecker
+}
+
+// Check implements method from EventChecker interface
+func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) error {
+	copyCh := make(chan *crossconnect.CrossConnectEvent)
+	var buffer []*crossconnect.CrossConnectEvent
+	go func() {
+		for {
+			event := <-eventCh
+			buffer = append(buffer, event)
+			copyCh <- event
+		}
+	}()
+
+	err := e.Event1.Check(copyCh)
+	if err == nil {
+		return nil
+	}
+	logrus.Infof("the first condition is false: %v, checking the second...", err)
+
+	copyCh2 := make(chan *crossconnect.CrossConnectEvent)
+	go func() {
+		for _, event := range buffer {
+			copyCh2 <- event
+		}
+		event := <-eventCh
+		copyCh2 <- event
+	}()
+
+	if err := e.Event2.Check(copyCh2); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
@@ -69,86 +177,36 @@ func XconProxyMonitor(k8s *K8s, conf *NodeConf, suffix string) (<-chan *crosscon
 	}
 }
 
-const defaultNextTimeout = 10 * time.Second
-
 // NewEventChecker starts goroutine that read events from actualCh and
-// compare it with EventDescription passed to expectedFunc
-func NewEventChecker(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent) (expectedFunc func(EventDescription), waitFunc func()) {
-	expectedCh := make(chan EventDescription, 10)
+// compare it with SingleEventChecker passed to expectedFunc
+func NewEventChecker(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent) (expectedFunc func(EventChecker), waitFunc func()) {
+	expectedCh := make(chan EventChecker, 10)
 	waitCh := make(chan struct{})
 
 	go checkEventsCh(t, actualCh, expectedCh, waitCh)
 
-	expectedFunc = func(d EventDescription) {
+	expectedFunc = func(d EventChecker) {
 		expectedCh <- d
 	}
 
 	waitFunc = func() {
-		<-waitCh
 		close(expectedCh)
+		<-waitCh
 	}
 
 	return
 }
 
 func checkEventsCh(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent,
-	expectedCh <-chan EventDescription, waitCh chan struct{}) {
+	expectedCh <-chan EventChecker, waitCh chan struct{}) {
 	defer close(waitCh)
-	var nextTimeout time.Duration
 
-	for {
-		if nextTimeout == 0 {
-			nextTimeout = defaultNextTimeout
-		}
-
-		select {
-		case e, ok := <-actualCh:
-			if !ok {
-				return
-			}
-			logrus.Infof("New %v event:", e.Type)
-			for _, v := range e.CrossConnects {
-				logrus.Infof(XconToString(v))
-			}
-
-			expected := <-expectedCh
-
-			if err := checkSingleXconEvent(e, expected); err != nil {
-				t.Error(err)
-				return
-			}
-
-			if expected.LastEvent {
-				return
-			}
-			nextTimeout = expected.TillNext
-		case <-time.After(nextTimeout):
-			t.Errorf("No events during %v", nextTimeout)
+	for checker := range expectedCh {
+		if err := checker.Check(actualCh); err != nil {
+			t.Error(err)
 			return
 		}
 	}
-}
-
-func checkSingleXconEvent(actual *crossconnect.CrossConnectEvent, expected EventDescription) error {
-	if actual.GetType() != expected.EventType {
-		return fmt.Errorf("event type %v expected to be %v", actual.GetType(), expected.EventType)
-	}
-
-	if actual.GetType() == crossconnect.CrossConnectEventType_DELETE {
-		// we don't care about state of connections since event is DELETE
-		return nil
-	}
-
-	if len(actual.GetCrossConnects()) != 1 {
-		return fmt.Errorf("expected event with 1 cross-connect, actual - %v", len(actual.GetCrossConnects()))
-	}
-
-	for _, xcon := range actual.GetCrossConnects() {
-		if err := checkXcon(xcon, expected.SrcUp, expected.DstUp); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func checkXcon(actual *crossconnect.CrossConnect, srcUp, dstUp bool) error {
