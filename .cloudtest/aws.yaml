@@ -10,7 +10,7 @@ providers:
     env:
       - CLUSTER_RULES_PREFIX=aws
       - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
-      - CONTAINER_REPO=networkservicemesh
+      - CONTAINER_REPO=networkservicemeshci
       - KUBECONFIG=$(tempdir)/config
       - NSM_AWS_SERVICE_SUFFIX=${AWS_CLUSTER_NAME}
     env-check:
