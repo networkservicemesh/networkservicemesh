@@ -22,10 +22,11 @@ providers:
     scripts:
       start: |
         make aws-start
+      stop: |
+        make aws-destroy
+      prepare: |
+        make k8s-config
         helm init
         kubectl create serviceaccount --namespace kube-system tiller
         kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
         kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-      stop: |
-        make aws-destroy
-      prepare: make k8s-config
