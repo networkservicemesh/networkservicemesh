@@ -23,7 +23,12 @@ providers:
     scripts:
       install: ./.cloudtest/gke/init.sh
       zone-selector: ./.cloudtest/gke/list_zones.sh ci-management # List zones, but it need GKE_PROJECT_ID to be passed.
-      start: make gke-start
+      start: |
+        make gke-start
+        helm init
+        kubectl create serviceaccount --namespace kube-system tiller
+        kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+        kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
       stop: make gke-destroy
       #config: # We do not need it since we put KUBECONFIG into env.
       prepare: make k8s-config
