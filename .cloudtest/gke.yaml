@@ -11,7 +11,6 @@ providers:
       - GKE_PROJECT_ID=ci-management
       - CLUSTER_RULES_PREFIX=gke
       - GKE_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
-      - CONTAINER_REPO=networkservicemeshci
       - KUBECONFIG=$(tempdir)/config
       - GKE_CLUSTER_ZONE=$(zone-selector)
       - GKE_CLUSTER_TYPE=n1-standard-2
@@ -19,6 +18,8 @@ providers:
     env-check:
       - GCLOUD_SERVICE_KEY
       - CIRCLE_BUILD_NUM
+      - CONTAINER_REPO
+      - CONTAINER_TAG
       - COMMIT
     scripts:
       install: ./.cloudtest/gke/init.sh

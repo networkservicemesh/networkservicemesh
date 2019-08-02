@@ -10,12 +10,13 @@ providers:
     env:
       - CLUSTER_RULES_PREFIX=azure
       - AZURE_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
-      - CONTAINER_REPO=networkservicemeshci
       - AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
       - KUBECONFIG=$(tempdir)/config
       - AZURE_CREDENTIALS_PATH=$(tempdir)/config
     env-check:
       - CIRCLE_BUILD_NUM
+      - CONTAINER_REPO
+      - CONTAINER_TAG
       - AZURE_SERVICE_PRINCIPAL
       - AZURE_SERVICE_PRINCIPAL_SECRET
       - CIRCLE_AZURE_TENANT
