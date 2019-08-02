@@ -184,8 +184,15 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 k8s-%-config:  k8s-start
 	@$(kubectl) apply -f ${K8S_CONF_DIR}/$*.yaml
 
+.PHONY: k8s-%-deconfig
+k8s-%-deconfig:
+	@$(kubectl) delete -f ${K8S_CONF_DIR}/$*.yaml || true
+
 .PHONY: k8s-config
 k8s-config: $(addsuffix -config,$(addprefix k8s-,$(CLUSTER_CONFIGS)))
+
+.PHONY: k8s-deconfig
+k8s-deconfig: $(addsuffix -deconfig,$(addprefix k8s-,$(CLUSTER_CONFIGS)))
 
 .PHONY: k8s-start
 k8s-start: $(CLUSTER_RULES_PREFIX)-start

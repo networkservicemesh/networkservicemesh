@@ -32,4 +32,4 @@ $(INSTALL_CHARTS):
 .PHONY: $(DELETE_CHARTS)
 $(DELETE_CHARTS): export CHART=$(subst helm-delete-,,$@)
 $(DELETE_CHARTS):
-	helm delete --purge ${CHART}
+	helm delete --purge ${CHART} || true

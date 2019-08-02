@@ -38,40 +38,40 @@ executions:
   - name: "Example-icmp"
     kind: shell
     env:
-      - NSM_NAMESPACE=nsm-system
+      - NSM_NAMESPACE=default
       - CLUSTER_RULES_PREFIX=null
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make helm-install-nsm
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-deconfig helm-delete-nsm helm-install-nsm
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make helm-install-icmp-responder
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make k8s-check
       make helm-delete-icmp-responder helm-delete-nsm
   - name: "Example-vpp-icmp"
     kind: shell
     env:
-      - NSM_NAMESPACE=nsm-system
+      - NSM_NAMESPACE=default
       - CLUSTER_RULES_PREFIX=null
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make helm-install-nsm
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      make k8s-deconfig helm-delete-nsm helm-install-nsm
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make helm-install-vpp-icmp-responder
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make k8s-check
       make helm-delete-vpp-icmp-responder helm-delete-nsm
   - name: "Example-vpn"
     kind: shell
     env:
-      - NSM_NAMESPACE=nsm-system
+      - NSM_NAMESPACE=default
       - CLUSTER_RULES_PREFIX=null
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make helm-install-nsm
+      make k8s-deconfig helm-delete-nsm helm-install-nsm
       kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make helm-install-vpn
       kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
