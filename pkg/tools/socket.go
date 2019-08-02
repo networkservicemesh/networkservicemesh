@@ -125,7 +125,7 @@ func (b *builder) DialContextFunc() dialContextFunc {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
 
-		if !GetConfig().Insecure {
+		if GetConfig().Insecure {
 			b.opts = append(b.opts, grpc.WithInsecure())
 		}
 
