@@ -9,7 +9,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
-func newXcon(id string, eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty bool) *crossconnect.CrossConnectEvent {
+func newXcon(eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty bool) *crossconnect.CrossConnectEvent {
 	srcState := connection.State_DOWN
 	if srcUp {
 		srcState = connection.State_UP
@@ -23,8 +23,8 @@ func newXcon(id string, eventType crossconnect.CrossConnectEventType, srcUp, dst
 	xcons := map[string]*crossconnect.CrossConnect{}
 	if !empty {
 		xcons = map[string]*crossconnect.CrossConnect{
-			id: {
-				Id: id,
+			"newid": {
+				Id: "newid",
 				Source: &crossconnect.CrossConnect_LocalSource{
 					LocalSource: &connection.Connection{
 						Id:    "1",
@@ -58,7 +58,7 @@ func TestSingleEventChecker(t *testing.T) {
 	}
 
 	go func() {
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, true, true, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, true, true, false)
 	}()
 
 	g.Expect(ec.Check(ch)).To(BeNil())
@@ -86,9 +86,9 @@ func TestMultipleEventChecker(t *testing.T) {
 	}
 
 	go func() {
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, false, false, true)
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_UPDATE, true, true, false)
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_DELETE, false, false, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, false, false, true)
+		ch <- newXcon(crossconnect.CrossConnectEventType_UPDATE, true, true, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_DELETE, false, false, false)
 	}()
 
 	g.Expect(ec.Check(ch)).To(BeNil())
@@ -132,9 +132,9 @@ func TestOrEventChecker_FirstSuccess(t *testing.T) {
 	}
 
 	go func() {
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, false, false, true)
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_UPDATE, true, true, false)
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_DELETE, false, false, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, false, false, true)
+		ch <- newXcon(crossconnect.CrossConnectEventType_UPDATE, true, true, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_DELETE, false, false, false)
 	}()
 
 	g.Expect(ec.Check(ch)).To(BeNil())
@@ -178,8 +178,8 @@ func TestOrEventChecker_SecondSuccess(t *testing.T) {
 	}
 
 	go func() {
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, true, true, false)
-		ch <- newXcon("1", crossconnect.CrossConnectEventType_UPDATE, true, true, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, true, true, false)
+		ch <- newXcon(crossconnect.CrossConnectEventType_UPDATE, true, true, false)
 	}()
 
 	g.Expect(ec.Check(ch)).To(BeNil())
