@@ -12,16 +12,16 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// ShowLogs prints logs from containers in case of fail/panic or enabled logging in file
-func ShowLogs(k8s *K8s, t *testing.T) {
+// MakeLogsSnapshot prints logs from containers in case of fail/panic or enabled logging in file
+func MakeLogsSnapshot(k8s *K8s, t *testing.T) {
 	if r := recover(); r != nil {
-		showLogs(k8s, t)
+		makeLogsSnapshot(k8s, t)
 		panic(r)
 	} else if t.Failed() || shouldShowLogs() {
-		showLogs(k8s, t)
+		makeLogsSnapshot(k8s, t)
 	}
 }
-func showLogs(k8s *K8s, t *testing.T) {
+func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
@@ -63,14 +63,14 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 
 func logsDir() string {
 	logDir := DefaultLogDir
-	if dir, ok := os.LookupEnv(WritePodLogsDir); ok {
+	if dir, ok := os.LookupEnv(StorePodLogsDir); ok {
 		logDir = dir
 	}
 	return logDir
 }
 
 func shouldShowLogs() bool {
-	if v, ok := os.LookupEnv(WritePodLogsInFile); ok {
+	if v, ok := os.LookupEnv(StorePodLogsInFile); ok {
 		if v == "true" {
 			return true
 		}
@@ -118,11 +118,11 @@ func logTransaction(name, content string) {
 		drawUnit:   TransactionLogUnit,
 	}
 	drawer.writeLine()
-	drawer.writeLineWithText(StartLogsOf + name)
+	drawer.writeLineWithText(StartLogsOf + " " + name)
 	drawer.writeLine()
 	drawer.writeText(content)
 	drawer.writeLine()
-	drawer.writeLineWithText(EndLogsOf + name)
+	drawer.writeLineWithText(EndLogsOf + " " + name)
 	drawer.writeLine()
 	logrus.Println(drawer.buff.String())
 	logrus.SetFormatter(f)

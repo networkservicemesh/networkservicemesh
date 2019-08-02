@@ -66,7 +66,7 @@ func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy ku
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	nodes := createNodes(g, k8s, nodeCount)
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 
@@ -90,7 +90,7 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	nodes := createNodes(g, k8s, nodeCount)
 
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
@@ -117,7 +117,7 @@ func testOneToOneConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy k
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	nodes := createNodes(g, k8s, nodeCount)
 	doneChannel := make(chan nscPingResult, 1)
 	defer close(doneChannel)

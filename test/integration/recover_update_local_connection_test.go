@@ -26,7 +26,7 @@ func TestUpdateConnectionOnNSEChange(t *testing.T) {
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	nse1 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
@@ -63,7 +63,7 @@ func TestUpdateConnectionOnNSEUpdate(t *testing.T) {
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	kubetest.DeployUpdatingNSE(k8s, nodesConf[0].Node, "icmp-responder-nse", defaultTimeout)
 
