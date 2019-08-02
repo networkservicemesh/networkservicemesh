@@ -274,6 +274,10 @@ type K8s struct {
 func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 
 	client, err := NewK8sWithoutRoles(g, prepare)
+	if client == nil {
+		logrus.Errorf("Error Creating K8s %v", err)
+		return client, err
+	}
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
 	return client, err
 }
@@ -366,6 +370,7 @@ func (k8s *K8s) initNamespace() {
 	nsmNamespace := namespace.GetNamespace()
 	k8s.namespace, err = k8s.CreateTestNamespace(nsmNamespace)
 	if err != nil {
+		logrus.Errorf("Error during create of test namespace %v", err)
 		k8s.checkAPIServerAvailable()
 	}
 	k8s.g.Expect(err).To(BeNil())

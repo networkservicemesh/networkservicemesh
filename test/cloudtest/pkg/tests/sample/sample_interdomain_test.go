@@ -11,8 +11,7 @@ import (
 )
 
 func TestInterDomainPass(t *testing.T) {
-	g := NewWithT(t)
-
+	NewWithT(t)
 	logrus.Infof("Passed test")
 }
 

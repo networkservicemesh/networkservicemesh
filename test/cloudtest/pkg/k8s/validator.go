@@ -73,7 +73,7 @@ func (v *k8sValidator) Validate() error {
 	if ready >= requiedNodes {
 		return nil
 	}
-	msg := fmt.Sprintf("Cluster doesn't have required number of nodes to be available. Required: %v Available: %v\n", requiedNodes, len(nodes))
+	msg := fmt.Sprintf("Cluster doesn't have required number of nodes to be available. Required: %v Available: %v\n", requiedNodes, ready)
 	err = fmt.Errorf(msg)
 	return err
 }
