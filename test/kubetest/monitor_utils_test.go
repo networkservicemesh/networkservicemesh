@@ -1,10 +1,12 @@
 package kubetest
 
 import (
+	"testing"
+
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func newXcon(id string, eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty bool) *crossconnect.CrossConnectEvent {
