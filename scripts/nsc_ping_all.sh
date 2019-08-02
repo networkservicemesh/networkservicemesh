@@ -73,7 +73,7 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
         if [[ ${nsc} == vppagent-* ]]; then
             if [[ ${STORE_POD_LOGS_DIR} ]]; then
                 if [[ ${STORE_POD_LOGS_IN_FILES} ]]; then
-                    ${kubectl} logs "${nsc}" >> STORE_LOGS_DIR/example/${nsc}.log
+                    ${kubectl} logs "${nsc}" >> STORE_LOGS_DIR/example/"${nsc}".log
                 else
                     ${kubectl} logs "${nsc}"
                 fi
