@@ -80,7 +80,11 @@ func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
 			return err
 		}
 	}
-	conn, err := tools.DialTimeout(dr.registrar.registrarSocket, 5*time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := tools.DialContext(ctx, dr.registrar.registrarSocket)
 	if err != nil {
 		logrus.Errorf("%s: failure to communicate with the socket \"%v\" with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
 		return err
@@ -145,7 +149,10 @@ func (dr *DataplaneRegistration) Close() {
 	dr.cancelFunc()
 
 	if dr.wasRegistered {
-		conn, err := tools.DialTimeout(dr.registrar.registrarSocket, 1*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		conn, err := tools.DialContext(ctx, dr.registrar.registrarSocket)
 		if err != nil {
 			logrus.Errorf("%s: failure to communicate with the socket %v with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
 			return

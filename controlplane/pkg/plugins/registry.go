@@ -6,8 +6,6 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -51,13 +49,7 @@ func (pr *pluginRegistry) Start() error {
 		return err
 	}
 
-	tracer := opentracing.GlobalTracer()
-	server := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
+	server := tools.NewServer()
 	plugins.RegisterPluginRegistryServer(server, pr)
 
 	go func() {

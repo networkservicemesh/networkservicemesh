@@ -53,7 +53,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	if err != nil {
 		return nil, nil, sock, err
 	}
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	grpcServer := tools.NewServer()
 	serviceRegistry := nsmd.NewServiceRegistry()
 
 	xconManager := services.NewClientConnectionManager(model, nil, serviceRegistry)
