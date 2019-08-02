@@ -20,9 +20,16 @@ DELETE_CHARTS=$(addprefix helm-delete-,$(CHARTS))
 .PHONY: $(INSTALL_CHARTS)
 $(INSTALL_CHARTS): export CHART=$(subst helm-install-,,$@)
 $(INSTALL_CHARTS):
-	helm install --name=${CHART} deployments/helm/${CHART}
+	# We specifically set admission-webhook variables here as it is a subchart
+	# there might be a way to set these as global and refer to them with .Values.global.org
+	# but that seems more intrusive than this hack. Consider changign to global if the charts
+	# get even more complicated
+	helm install --name=${CHART} \
+	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
+	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
+	deployments/helm/${CHART}
 
 .PHONY: $(DELETE_CHARTS)
 $(DELETE_CHARTS): export CHART=$(subst helm-delete-,,$@)
 $(DELETE_CHARTS):
-	helm delete ${CHART}
+	helm delete --purge ${CHART}
