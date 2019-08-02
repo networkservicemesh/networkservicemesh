@@ -22,7 +22,7 @@ func TestHealth(t *testing.T) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	}, ".")
+	})
 	defer s.close()
 	<-time.After(time.Second)
 	p := createDNSClient(s.Addr, transport.DNS)
@@ -67,7 +67,7 @@ func TestHealthFailTwice(t *testing.T) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	}, ".")
+	})
 	defer s.close()
 
 	p := createDNSClient(s.Addr, transport.DNS)
@@ -97,7 +97,7 @@ func TestHealthNoMaxFails(t *testing.T) {
 			ret.SetReply(r)
 			w.WriteMsg(ret)
 		}
-	}, ".")
+	})
 	defer s.close()
 
 	p := createDNSClient(s.Addr, transport.DNS)
