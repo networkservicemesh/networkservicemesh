@@ -56,3 +56,7 @@ registry: docker.io
 org: networkservicemesh
 tag: master
 ```
+
+## Makefile integration
+
+For developers' and testing convenience, we have added a number of make targets to support helm chart deployments. They are in the form `helm-install-<chart>` and `helm-delete-<chart>`. For example a basic NSM infra installation can be achieved by issuing `make helm-install-nsm` in the root folder. It will use the default values except for `org` and `tag` which can be overwritten by setting `CONTAINER_REPO` (defaults to `networkservicemesh`) and `CONTAINER_TAG` (defaults to `latest`). The defaults allow for easy local development. Cleaning up is also ease with the `make helm-delete-nsm` command.
