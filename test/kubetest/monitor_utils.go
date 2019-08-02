@@ -109,15 +109,18 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) e
 	copyCh := make(chan *crossconnect.CrossConnectEvent)
 	var buffer []*crossconnect.CrossConnectEvent
 	go func() {
-		event := <-eventCh
-		buffer = append(buffer, event)
-		copyCh <- event
+		for {
+			event := <-eventCh
+			buffer = append(buffer, event)
+			copyCh <- event
+		}
 	}()
 
-	if err := e.Event1.Check(copyCh); err == nil {
+	err := e.Event1.Check(copyCh)
+	if err == nil {
 		return nil
 	}
-	logrus.Info("the first condition is false, checking the second...")
+	logrus.Infof("the first condition is false: %v, checking the second...", err)
 
 	copyCh2 := make(chan *crossconnect.CrossConnectEvent)
 	go func() {
