@@ -43,7 +43,7 @@ func TestCleanupByTimer(t *testing.T) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	}, ".")
+	})
 	defer s.close()
 
 	tr := newTransport(s.Addr)
@@ -77,7 +77,7 @@ func TestPartialCleanup(t *testing.T) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		w.WriteMsg(ret)
-	}, ".")
+	})
 	defer s.close()
 
 	tr := newTransport(s.Addr)
