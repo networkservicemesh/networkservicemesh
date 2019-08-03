@@ -44,9 +44,9 @@ executions:
       - KUBECONFIG
     run: |
       make k8s-deconfig helm-delete-nsm helm-install-nsm
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
       make helm-install-icmp-responder
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
       make k8s-check
       make helm-delete-icmp-responder helm-delete-nsm
   - name: "Example-vpp-icmp"
@@ -58,9 +58,9 @@ executions:
       - KUBECONFIG
     run: |
       make k8s-deconfig helm-delete-nsm helm-install-nsm
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
       make helm-install-vpp-icmp-responder
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
       make k8s-check
       make helm-delete-vpp-icmp-responder helm-delete-nsm
   - name: "Example-vpn"
@@ -72,8 +72,8 @@ executions:
       - KUBECONFIG
     run: |
       make k8s-deconfig helm-delete-nsm helm-install-nsm
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
       make helm-install-vpn
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
       make k8s-check
       make helm-delete-vpn helm-delete-nsm
