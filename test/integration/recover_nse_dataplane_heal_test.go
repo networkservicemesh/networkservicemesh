@@ -1,4 +1,4 @@
-// +build recover
+// +build unstable
 
 package nsmd_integration_tests
 
@@ -24,8 +24,7 @@ func TestDataplaneHealLocal(t *testing.T) {
 
 	testDataplaneHeal(t, 0, 1, kubetest.DefaultTestingPodFixture(g))
 }
-
-func TestDataplaneHealLocalMemif(t *testing.T) {
+func TestDataplaneHealLocalHealFixture(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -33,29 +32,41 @@ func TestDataplaneHealLocalMemif(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testDataplaneHeal(t, 0, 1, kubetest.VppAgentTestingPodFixture(g))
+	testDataplaneHeal(t, 0, 1, kubetest.HealTestingPodFixture(g))
 }
 
-func TestDataplaneHealMultiNodesLocal(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	g := NewWithT(t)
-
-	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture(g))
-}
-func TestDataplaneHealMultiNodesRemote(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	g := NewWithT(t)
-
-	testDataplaneHeal(t, 1, 2, kubetest.HealTestingPodFixture(g))
-}
+//
+//func TestDataplaneHealLocalMemif(t *testing.T) {
+//	if testing.Short() {
+//		t.Skip("Skip, please run without -short")
+//		return
+//	}
+//
+//	g := NewWithT(t)
+//
+//	testDataplaneHeal(t, 0, 1, kubetest.VppAgentTestingPodFixture(g))
+//}
+//
+//func TestDataplaneHealMultiNodesLocal(t *testing.T) {
+//	if testing.Short() {
+//		t.Skip("Skip, please run without -short")
+//		return
+//	}
+//
+//	g := NewWithT(t)
+//
+//	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture(g))
+//}
+//func TestDataplaneHealMultiNodesRemote(t *testing.T) {
+//	if testing.Short() {
+//		t.Skip("Skip, please run without -short")
+//		return
+//	}
+//
+//	g := NewWithT(t)
+//
+//	testDataplaneHeal(t, 1, 2, kubetest.HealTestingPodFixture(g))
+//}
 
 /**
 If passed 1 both will be on same node, if not on different.
