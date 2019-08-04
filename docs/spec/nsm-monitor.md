@@ -39,6 +39,8 @@ For creating custom nsm-monitor you need to implement next interface:
 type NSMMonitorHandler interface {
 	//Connected occurs when the nsm-monitor connected
 	Connected(map[string]*connection.Connection)
+	//Closed occurs when the connection closed
+	Closed(conn *connection.Connection)
 	//Healing occurs when the healing started
 	Healing(conn *connection.Connection)
 	//GetConfiguration gets custom network service configuration
@@ -70,6 +72,7 @@ For an example of usage you could take a look at tests:
 * TestNSMMonitorInit
 * TestDeployNSMMonitor
 * test/applications/cmd/monitoring-nsc
+* test/applications/cmd/monitoring-dns-nsc
 
 References
 ----------

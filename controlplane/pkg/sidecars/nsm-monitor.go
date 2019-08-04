@@ -44,6 +44,8 @@ type NSMMonitorHandler interface {
 	Connected(map[string]*connection.Connection)
 	//Healing occurs when the healing started
 	Healing(conn *connection.Connection)
+	//Closed occurs when the connection closed
+	Closed(conn *connection.Connection)
 	//GetConfiguration gets custom network service configuration
 	GetConfiguration() *common.NSConfiguration
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
@@ -71,6 +73,9 @@ func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection) {}
 
 //Healing occurs when the healing started
 func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
+
+//Closed occurs when the connection closed
+func (h *EmptyNSMMonitorHandler) Closed(conn *connection.Connection) {}
 
 //GetConfiguration returns nil by default
 func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration { return nil }
@@ -179,6 +184,12 @@ func (c *nsmMonitorApp) beginMonitoring() {
 						c.updateConnection(entity)
 					case monitor.EventTypeDelete:
 						logrus.Infof(nsmMonitorLogFormat, "Connection closed")
+						if c.helper != nil {
+							conn, ok := entity.(*connection.Connection)
+							if ok {
+								c.helper.Closed(conn)
+							}
+						}
 						return
 					}
 				}
