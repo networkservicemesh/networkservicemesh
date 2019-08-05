@@ -20,7 +20,7 @@ spec:
       serviceAccountName: spire-server
       containers:
         - name: spire-server
-          image: networkservicemesh/spire-registration
+          image: networkservicemeshci/spire-registration
           imagePullPolicy: Always
           ports:
             - containerPort: 8081
