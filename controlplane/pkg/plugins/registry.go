@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -77,6 +78,11 @@ func (pr *pluginRegistry) Stop() error {
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
+	if info.GetName() == "" || info.GetEndpoint() == "" || len(info.Capabilities) == 0 {
+		return nil, fmt.Errorf("invalid registration data, expected non-empty name, endpoint and capabilities list")
+	}
+	logrus.Infof("Registering '%s' plugin with '%s' endpoint", info.GetName(), info.GetEndpoint())
+
 	conn, err := pr.createConnection(info.GetEndpoint())
 	if err != nil {
 		return nil, err
