@@ -448,6 +448,10 @@ k8s-check:
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/nsc_ping_all.sh
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_vpn_gateway.sh
 
+.PHONY: k8s-logs-snapshot
+k8s-logs-snapshot:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh
+
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
 	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs $(kubectl) delete pods --force --grace-period 0 {}

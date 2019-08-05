@@ -71,13 +71,6 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
         ${kubectl} get pod "${nsc}" -o wide
         echo "POD ${nsc} Network dump -------------------------------"
         if [[ ${nsc} == vppagent-* ]]; then
-            if [[ ${STORE_POD_LOGS_DIR} ]]; then
-                if [[ ${STORE_POD_LOGS_IN_FILES} ]]; then
-                    ${kubectl} logs "${nsc}" >> STORE_LOGS_DIR/example/"${nsc}".log
-                else
-                    ${kubectl} logs "${nsc}"
-                fi
-            fi
             ${kubectl} exec -ti "${nsc}" -- vppctl show int
             ${kubectl} exec -ti "${nsc}" -- vppctl show int addr
             ${kubectl} exec -ti "${nsc}" -- vppctl show memif
