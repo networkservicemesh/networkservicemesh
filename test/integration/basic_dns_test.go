@@ -36,7 +36,6 @@ func TestBasicDns(t *testing.T) {
 	kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder-nse", defaultTimeout)
 	nsc := kubetest.DeployNscAndNsmCoredns(k8s, configs[0].Node, "nsc", "basic-corefile", defaultTimeout)
 	assert.Expect(kubetest.PingByHostName(k8s, nsc, "my.app")).Should(gomega.BeTrue())
-	assert.Expect(kubetest.NSLookup(k8s, nsc, "kubernetes.default")).Should(gomega.BeFalse())
 }
 
 func TestDNSMonitoringNsc(t *testing.T) {
