@@ -17,12 +17,19 @@ CHARTS=$(shell ls deployments/helm)
 INSTALL_CHARTS=$(addprefix helm-install-,$(CHARTS))
 DELETE_CHARTS=$(addprefix helm-delete-,$(CHARTS))
 
+.PHONY: helm-init
+helm-init:
+	helm init --wait
+	kubectl create serviceaccount --namespace kube-system tiller
+	kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+	kubectl patch deploy --namespace kube-system tiller-deploy -p "{\"spec\":{\"template\":{\"spec\":{\"serviceAccount\":\"tiller\"}}}}"
+
 .PHONY: $(INSTALL_CHARTS)
 $(INSTALL_CHARTS): export CHART=$(subst helm-install-,,$@)
 $(INSTALL_CHARTS):
 	# We specifically set admission-webhook variables here as it is a subchart
 	# there might be a way to set these as global and refer to them with .Values.global.org
-	# but that seems more intrusive than this hack. Consider changign to global if the charts
+	# but that seems more intrusive than this hack. Consider changing to global if the charts
 	# get even more complicated
 	helm install --name=${CHART} \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
