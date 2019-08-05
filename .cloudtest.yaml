@@ -61,7 +61,7 @@ executions:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
       - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/icmp-example
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/vpn-example
     kubernetes-env:
       - KUBECONFIG
     run: |
