@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
@@ -245,7 +246,7 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 func CreateCrossConnectClient(k8s *K8s, address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := tools.DialTCP(address)
 	if err != nil {
 		k8s.g.Expect(err).To(BeNil())
 		return nil, nil, nil
