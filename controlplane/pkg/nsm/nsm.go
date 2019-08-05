@@ -30,6 +30,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -525,7 +526,13 @@ func (srv *networkServiceManager) updateConnection(ctx context.Context, conn con
 		conn.SetContext(c)
 	}
 
-	return srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, conn)
+	connCtx, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnectionContext(ctx, conn.GetContext())
+	if err != nil {
+		return err
+	}
+
+	conn.SetContext(connCtx)
+	return nil
 }
 
 func (srv *networkServiceManager) updateConnectionContext(ctx context.Context, source, destination connection.Connection) error {
@@ -545,8 +552,13 @@ func (srv *networkServiceManager) validateConnection(ctx context.Context, conn c
 		return err
 	}
 
-	if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, conn); err != nil {
+	result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnectionContext(ctx, conn.GetContext())
+	if err != nil {
 		return err
+	}
+
+	if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
+		return fmt.Errorf(result.GetErrorMessage())
 	}
 
 	return nil
