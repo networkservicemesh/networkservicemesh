@@ -146,15 +146,27 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 
 type testPluginRegistry struct {
 	connectionPluginManager *testConnectionPluginManager
+	discoveryPluginManager  *testDiscoveryPluginManager
+	registryPluginManager   *testRegistryPluginManager
 }
 
 type testConnectionPluginManager struct {
 	plugins []pluginsapi.ConnectionPluginClient
 }
 
+type testDiscoveryPluginManager struct {
+	plugins []pluginsapi.DiscoveryPluginClient
+}
+
+type testRegistryPluginManager struct {
+	plugins []pluginsapi.RegistryPluginClient
+}
+
 func newTestPluginRegistry() *testPluginRegistry {
 	return &testPluginRegistry{
 		connectionPluginManager: &testConnectionPluginManager{},
+		discoveryPluginManager:  &testDiscoveryPluginManager{},
+		registryPluginManager:   &testRegistryPluginManager{},
 	}
 }
 
@@ -168,6 +180,14 @@ func (pr *testPluginRegistry) Stop() error {
 
 func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
 	return pr.connectionPluginManager
+}
+
+func (pr *testPluginRegistry) GetDiscoveryPluginManager() plugins.DiscoveryPluginManager {
+	return pr.discoveryPluginManager
+}
+
+func (pr *testPluginRegistry) GetRegistryPluginManager() plugins.RegistryPluginManager {
+	return pr.registryPluginManager
 }
 
 func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginClient) {
@@ -200,6 +220,78 @@ func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, 
 		}
 	}
 	return &pluginsapi.ConnectionValidationResult{Status: pluginsapi.ConnectionValidationStatus_SUCCESS}, nil
+}
+
+func (dpm *testDiscoveryPluginManager) addPlugin(plugin pluginsapi.DiscoveryPluginClient) {
+	dpm.plugins = append(dpm.plugins, plugin)
+}
+
+func (dpm *testDiscoveryPluginManager) Register(*grpc.ClientConn) {
+}
+
+func (dpm *testDiscoveryPluginManager) FindNetworkService(ctx context.Context, request *pluginsapi.FindNetworkServiceRequest) (*pluginsapi.FindNetworkServiceResponse, error) {
+	for _, plugin := range dpm.plugins {
+		response, err := plugin.FindNetworkService(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+		if response.GetFound() {
+			return response, nil
+		}
+	}
+	return &pluginsapi.FindNetworkServiceResponse{Found: false}, nil
+}
+
+func (rpm *testRegistryPluginManager) addPlugin(plugin pluginsapi.RegistryPluginClient) {
+	rpm.plugins = append(rpm.plugins, plugin)
+}
+
+func (rpm *testRegistryPluginManager) Register(*grpc.ClientConn) {
+}
+
+func (rpm *testRegistryPluginManager) RegisterNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
+	for _, plugin := range rpm.plugins {
+		var err error
+		nsm, err = plugin.RegisterNSM(ctx, nsm)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nsm, nil
+}
+
+func (rpm *testRegistryPluginManager) RegisterNSE(ctx context.Context, registration *registry.NSERegistration) (*registry.NSERegistration, error) {
+	for _, plugin := range rpm.plugins {
+		var err error
+		registration, err = plugin.RegisterNSE(ctx, registration)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return registration, nil
+}
+
+func (rpm *testRegistryPluginManager) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
+	for _, plugin := range rpm.plugins {
+		_, err := plugin.RemoveNSE(ctx, request)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rpm *testRegistryPluginManager) GetEndpoints(ctx context.Context) (*pluginsapi.NetworkServiceEndpointList, error) {
+	var endpoints []*registry.NetworkServiceEndpoint
+	for _, plugin := range rpm.plugins {
+		response, err := plugin.GetEndpoints(ctx, &empty.Empty{})
+		if err != nil {
+			return nil, err
+		}
+
+		endpoints = append(endpoints, response.GetNetworkServiceEndpoints()...)
+	}
+	return &pluginsapi.NetworkServiceEndpointList{NetworkServiceEndpoints: endpoints}, nil
 }
 
 type nsmdTestServiceRegistry struct {
