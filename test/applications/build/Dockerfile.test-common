@@ -25,16 +25,16 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.v
 FROM runtime-1 as runtime-2
 COPY --from=build-2 /go/bin/monitoring-nsc /bin/monitoring-nsc
 
-# 3. monitoring-dns-nsc
+# 3. xcon-monitor
 FROM build-2 as build-3
 ARG VERSION=unspecified
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/monitoring-dns-nsc ./test/applications/cmd/monitoring-dns-nsc
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/proxy-xcon-monitor ./test/applications/cmd/proxy-xcon-monitor
 FROM runtime-2 as runtime-3
-COPY --from=build-3 /go/bin/monitoring-dns-nsc /bin/monitoring-dns-nsc
+COPY --from=build-3 /go/bin/proxy-xcon-monitor /bin/proxy-xcon-monitor
 
-# 4. xcon-monitor
+# 4. monitoring-dns-nsc
 FROM build-3 as build-4
 ARG VERSION=unspecified
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/proxy-xcon-monitor ./test/applications/cmd/proxy-xcon-monitor
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/monitoring-dns-nsc ./test/applications/cmd/monitoring-dns-nsc
 FROM runtime-3 as runtime-4
-COPY --from=build-4 /go/bin/proxy-xcon-monitor /bin/proxy-xcon-monitor
+COPY --from=build-4 /go/bin/monitoring-dns-nsc /bin/monitoring-dns-nsc

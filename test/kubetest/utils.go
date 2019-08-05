@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 
 	. "github.com/onsi/gomega"
@@ -207,43 +209,62 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(false, false, true, false, true), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployICMPAndCoredns deploys 'icmp-responder-nse' pod with '-routes', '-dns' flag set. Also injected nsm-coredns server.
 func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfigName string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+		DNS:    true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.InjectNSMCoredns(pods.TestCommonPod(name, icmpCommand(false, false, true, false, true), node, defaultICMPEnv(k8s.UseIPv6())), corednsConfigName),
+		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())), corednsConfigName),
 	)
 }
 
 // DeployICMPWithConfig deploys 'icmp-responder-nse' pod with '-routes' flag set and given grace period
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
-	pod := pods.TestCommonPod(name, icmpCommand(false, false, true, false, false), node, defaultICMPEnv(k8s.UseIPv6()))
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+	}
+	pod := pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()))
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, nodeName(node), name, timeout, pod)
 }
 
 // DeployDirtyICMP deploys 'icmp-responder-nse' pod with '-dirty' flag set
 func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Dirty: true,
+	}
 	return deployDirtyNSE(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(true, false, false, false, false), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployNeighborNSE deploys 'icmp-responder-nse' pod with '-neighbors' flag set
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Neighbors: true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(false, true, false, false, false), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployUpdatingNSE deploys 'icmp-responder-nse' pod with '-update' flag set
 func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Update: true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(false, false, false, true, false), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
@@ -303,28 +324,6 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 		noHealNSMgrPodConfig(k8s),
 		noHealNSMgrPodConfig(k8s),
 	}
-}
-
-func icmpCommand(dirty, neighbors, routes, update, dns bool) []string {
-	command := []string{"/bin/icmp-responder-nse"}
-
-	if dirty {
-		command = append(command, "-dirty")
-	}
-	if neighbors {
-		command = append(command, "-neighbors")
-	}
-	if routes {
-		command = append(command, "-routes")
-	}
-	if update {
-		command = append(command, "-update")
-	}
-	if dns {
-		command = append(command, "-dns")
-	}
-
-	return command
 }
 
 func defaultICMPEnv(useIPv6 bool) map[string]string {

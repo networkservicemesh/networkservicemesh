@@ -9,7 +9,7 @@ import (
 func CreateRouteMutator(routes []string) ConnectionMutator {
 	return func(c *connection.Connection) error {
 		for _, r := range routes {
-			c.Context.IpContext.SrcRoutes = append(c.Context.IpContext.SrcRoutes, &connectioncontext.Route{
+			c.GetContext().GetIpContext().DstRoutes = append(c.GetContext().GetIpContext().GetDstRoutes(), &connectioncontext.Route{
 				Prefix: r,
 			})
 		}
