@@ -16,7 +16,7 @@ spec:
       hostPID: true
       containers:
         - name: vppagent-nsc
-          image: {{ .Values.registry }}/networkservicemesh/vpp-test-common:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: TEST_APPLICATION
@@ -30,4 +30,4 @@ spec:
               networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-nsc
-  namespace: nsm-system
+namespace: {{ .Release.Namespace }}

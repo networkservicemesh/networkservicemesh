@@ -25,7 +25,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: vpn-gateway
-          image: {{ .Values.registry }}/networkservicemesh/test-common:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/test-common:{{ .Values.tag }}
           command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
@@ -41,7 +41,7 @@ spec:
             limits:
               networkservicemesh.io/socket: 1
         - name: nginx
-          image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/nginx:{{ .Values.tag }}
 metadata:
   name: vpn-gateway-nse
-  namespace: {{ .Release.Namespace }}
+  namespace: nsm-system

@@ -96,6 +96,11 @@ jobs:
             ./scripts/aws/aws-init.sh
             sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
       - run:
+          name: "Install Helm"
+          command: |
+            ./scripts/install-helm.sh
+            sudo cp "$HOME/bin/helm" /usr/local/bin/helm
+      - run:
           name: Downloading go deps
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"

@@ -11,7 +11,6 @@ providers:
       - GKE_PROJECT_ID=ci-management
       - CLUSTER_RULES_PREFIX=gke
       - GKE_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
-      - CONTAINER_REPO=networkservicemesh
       - KUBECONFIG=$(tempdir)/config
       - GKE_CLUSTER_ZONE=$(zone-selector)
       - GKE_CLUSTER_TYPE=n1-standard-2
@@ -19,11 +18,19 @@ providers:
     env-check:
       - GCLOUD_SERVICE_KEY
       - CIRCLE_BUILD_NUM
+      - CONTAINER_REPO
+      - CONTAINER_TAG
       - COMMIT
     scripts:
       install: ./.cloudtest/gke/init.sh
       zone-selector: ./.cloudtest/gke/list_zones.sh ci-management # List zones, but it need GKE_PROJECT_ID to be passed.
-      start: make gke-start
+      start: |
+        make gke-start
       stop: make gke-destroy
       #config: # We do not need it since we put KUBECONFIG into env.
-      prepare: make k8s-config
+      prepare: |
+        make k8s-config
+        helm init --wait
+        kubectl create serviceaccount --namespace kube-system tiller
+        kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+        kubectl patch deploy --namespace kube-system tiller-deploy -p "{\"spec\":{\"template\":{\"spec\":{\"serviceAccount\":\"tiller\"}}}}"
