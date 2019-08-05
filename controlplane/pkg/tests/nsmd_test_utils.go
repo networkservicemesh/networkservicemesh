@@ -660,7 +660,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	// Lets start NSMD NSE registry service
-	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.pluginRegistry, srv.apiRegistry)
 	srv.nsmServer = nsmServer
 	if err != nil {
 		panic(err)
