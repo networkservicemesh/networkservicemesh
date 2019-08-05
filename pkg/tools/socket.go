@@ -3,8 +3,6 @@ package tools
 import (
 	"context"
 	"net"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -35,7 +33,7 @@ var once sync.Once
 func GetConfig() DialConfig {
 	once.Do(func() {
 		var err error
-		cfg, err = readConfiguration()
+		cfg, err = readDialConfig()
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -58,62 +56,62 @@ func NewServer(opts ...grpc.ServerOption) *grpc.Server {
 
 // DialContext allows to call DialContext using net.Addr
 func DialContext(ctx context.Context, addr net.Addr, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(builder).Network(addr.Network()).DialContextFunc()
+	dialCtx := new(dialBuilder).Network(addr.Network()).DialContextFunc()
 	return dialCtx(ctx, addr.String(), opts...)
 }
 
 // DialContextUnix establish connection with passed unix socket
 func DialContextUnix(ctx context.Context, path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(builder).Unix().DialContextFunc()
+	dialCtx := new(dialBuilder).Unix().DialContextFunc()
 	return dialCtx(ctx, path, opts...)
 }
 
 // DialUnix establish connection with passed unix socket and set default timeout
 func DialUnix(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(builder).Unix().Timeout(dialTimeoutDefault).DialContextFunc()
+	dialCtx := new(dialBuilder).Unix().Timeout(dialTimeoutDefault).DialContextFunc()
 	return dialCtx(context.Background(), path, opts...)
 }
 
 // DialContextTCP establish TCP connection with address
 func DialContextTCP(ctx context.Context, address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(builder).TCP().DialContextFunc()
+	dialCtx := new(dialBuilder).TCP().DialContextFunc()
 	return dialCtx(ctx, address, opts...)
 }
 
 // DialTCP establish TCP connection with address and set default timeout
 func DialTCP(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(builder).TCP().Timeout(dialTimeoutDefault).DialContextFunc()
+	dialCtx := new(dialBuilder).TCP().Timeout(dialTimeoutDefault).DialContextFunc()
 	return dialCtx(context.Background(), address, opts...)
 }
 
 type dialContextFunc func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error)
 
-type builder struct {
+type dialBuilder struct {
 	opts []grpc.DialOption
 	t    time.Duration
 }
 
-func (b *builder) TCP() *builder {
+func (b *dialBuilder) TCP() *dialBuilder {
 	return b.Network("tcp")
 }
 
-func (b *builder) Unix() *builder {
+func (b *dialBuilder) Unix() *dialBuilder {
 	return b.Network("unix")
 }
 
-func (b *builder) Network(network string) *builder {
+func (b *dialBuilder) Network(network string) *dialBuilder {
 	b.opts = append(b.opts, grpc.WithContextDialer(func(ctx context.Context, target string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, target)
 	}))
 	return b
 }
 
-func (b *builder) Timeout(t time.Duration) *builder {
+func (b *dialBuilder) Timeout(t time.Duration) *dialBuilder {
 	b.t = t
 	return b
 }
 
-func (b *builder) DialContextFunc() dialContextFunc {
+func (b *dialBuilder) DialContextFunc() dialContextFunc {
 	return func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
 		if b.t != 0 {
 			var cancel context.CancelFunc
@@ -145,28 +143,19 @@ func OpenTracingDialOptions() []grpc.DialOption {
 	}
 }
 
-func readConfiguration() (DialConfig, error) {
+func readDialConfig() (DialConfig, error) {
 	var err error
 	rv := DialConfig{}
 
-	rv.OpenTracing, err = readEnvBool(opentracingEnv, opentracingDefault)
+	rv.OpenTracing, err = ReadEnvBool(opentracingEnv, opentracingDefault)
 	if err != nil {
 		return DialConfig{}, err
 	}
 
-	rv.Insecure, err = readEnvBool(insecureEnv, insecureDefault)
+	rv.Insecure, err = ReadEnvBool(insecureEnv, insecureDefault)
 	if err != nil {
 		return DialConfig{}, err
 	}
 
 	return rv, nil
-}
-
-func readEnvBool(env string, value bool) (bool, error) {
-	str := os.Getenv(env)
-	if str == "" {
-		return value, nil
-	}
-
-	return strconv.ParseBool(str)
 }
