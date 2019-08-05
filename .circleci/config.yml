@@ -284,6 +284,11 @@ workflows:
           container: "kernel-forwarder"
           requires:
             - test-sanity-check
+      - build-container:
+          name: "build-spire-registration"
+          container: "spire-registration"
+          requires:
+            - test-sanity-check
       - build-container-success:
           requires:
             - build-nsmd
