@@ -21,7 +21,6 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -68,20 +67,13 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 
 func (nsme *nsmEndpoint) Start() error {
 
-	var grpcOptions []grpc.ServerOption
 	if nsme.Configuration.TracerEnabled {
 		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
-		grpcOptions = append(grpcOptions,
-			grpc.UnaryInterceptor(
-				otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())))
-		grpcOptions = append(grpcOptions,
-			grpc.StreamInterceptor(
-				otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 		opentracing.SetGlobalTracer(tracer)
 		nsme.tracerCloser = closer
 	}
 
-	nsme.grpcServer = grpc.NewServer(grpcOptions...)
+	nsme.grpcServer = tools.NewServer()
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()

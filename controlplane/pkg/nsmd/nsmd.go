@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -395,7 +393,6 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 		return nil, err
 	}
 
-	tracer := opentracing.GlobalTracer()
 	locationProvider := serviceRegistry.NewWorkspaceProvider()
 
 	nsm := &nsmServer{
@@ -407,12 +404,7 @@ func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, servic
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
 	}
 
-	nsm.registerServer = grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
+	nsm.registerServer = tools.NewServer()
 	nsmdapi.RegisterNSMDServer(nsm.registerServer, nsm)
 
 	nsm.registerSock, err = apiRegistry.NewNSMServerListener()
@@ -491,12 +483,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 
 // StartAPIServerAt starts GRPC API server at sock
 func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
-	tracer := opentracing.GlobalTracer()
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	grpcServer := tools.NewServer()
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
