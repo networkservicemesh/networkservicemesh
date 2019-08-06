@@ -3,6 +3,8 @@
 
 WORKER_COUNT = ENV['WORKER_COUNT'].nil? ? 1 : ENV['WORKER_COUNT'].to_i
 KUBERNETES_VERSION_OR_DEFAULT = ENV['KUBERNETES_VERSION'] || "1.15.1-00"
+KUBERNETES_INIT_VERSION_OR_DEFAULT = ENV['KUBERNETES_INIT_VERSION'] || "1.15.1"
+
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/go/src/github.com/networkservicemesh/networkservicemesh",
@@ -46,7 +48,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: "mkdir -p /var/lib/networkservicemesh"
   config.vm.define "master" do |master|
     master.vm.hostname = "kube-master"
-    master.vm.provision "shell", path: "scripts/configureK8smaster.sh", env: {KUBERNETES_VERSION:KUBERNETES_VERSION_OR_DEFAULT}
+    master.vm.provision "shell", path: "scripts/configureK8smaster.sh", env: {KUBERNETES_INIT_VERSION:KUBERNETES_INIT_VERSION_OR_DEFAULT}
     master.vm.provision "shell", path: "scripts/coredump.sh"
   end
   (1..WORKER_COUNT).each do |i|

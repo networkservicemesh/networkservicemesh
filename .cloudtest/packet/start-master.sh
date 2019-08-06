@@ -1,5 +1,5 @@
 #!/bin/sh
-kubeadm init --kubernetes-version "${KUBERNETES_VERSION}" --pod-network-cidr=192.168.0.0/16 --skip-token-print
+kubeadm init --kubernetes-version "${KUBERNETES_INIT_VERSION}" --pod-network-cidr=192.168.0.0/16 --skip-token-print
 
 mkdir -p "$HOME"/.kube
 sudo cp -f /etc/kubernetes/admin.conf "$HOME"/.kube/config
