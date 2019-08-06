@@ -18,17 +18,17 @@ type endpointClient struct {
 	connection *grpc.ClientConn
 }
 
-func (c *endpointClient) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
+func (c *endpointClient) Request(ctx context.Context, request networkservice.Request) (networkservice.Reply, error) {
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("NSE Connection is not initialized...")
 	}
 
-	response, err := c.client.Request(ctx, request.(*local_networkservice.NetworkServiceRequest))
+	reply, err := c.client.Request(ctx, request.(*local_networkservice.NetworkServiceRequest))
 	if err != nil {
 		return nil, err
 	}
 
-	return response.Clone(), nil
+	return reply.Clone(), nil
 }
 func (c *endpointClient) Cleanup() error {
 	if c == nil || c.client == nil {

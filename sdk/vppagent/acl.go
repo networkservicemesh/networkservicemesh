@@ -54,18 +54,18 @@ type ACL struct {
 }
 
 // Request implements the request handler
-func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	if a.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
 	}
 
-	incomingConnection, err := a.GetNext().Request(ctx, request)
+	reply, err := a.GetNext().Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	connectionData, err := getConnectionData(a.GetNext(), incomingConnection, false)
+	connectionData, err := getConnectionData(a.GetNext(), reply.GetConnection(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,9 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 		return nil, err
 	}
 
-	a.Connections[incomingConnection.GetId()] = connectionData
+	a.Connections[reply.GetConnection().GetId()] = connectionData
 
-	return incomingConnection, nil
+	return reply, nil
 }
 
 // Close implements the close handler

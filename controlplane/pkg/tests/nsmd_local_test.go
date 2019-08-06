@@ -26,7 +26,7 @@ type nseWithOptions struct {
 	connection        *connection.Connection
 }
 
-func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*networkservice.NetworkServiceReply, error) {
 	var mechanism *connection.Mechanism
 
 	if in.Connection.Labels != nil {
@@ -68,7 +68,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 		}
 	}
 	impl.connection = conn
-	return conn, nil
+	return &networkservice.NetworkServiceReply{Connection: conn}, nil
 }
 
 func createRequest() *networkservice.NetworkServiceRequest {
@@ -118,9 +118,9 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 
 	request := createRequest()
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetReplyConnection().GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 }
 
@@ -145,10 +145,10 @@ func TestNSENoSrc(t *testing.T) {
 
 	request := createRequest()
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
-	g.Expect(nsmResponse).To(BeNil())
+	g.Expect(reply).To(BeNil())
 }
 
 func TestNSEIPNeghtbours(t *testing.T) {
@@ -172,9 +172,9 @@ func TestNSEIPNeghtbours(t *testing.T) {
 
 	request := createRequest()
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*nseWithOptions)
@@ -211,11 +211,11 @@ func TestSlowNSE(t *testing.T) {
 
 	ctx, canceOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer canceOp()
-	nsmResponse, err := nsmClient.Request(ctx, request)
+	reply, err := nsmClient.Request(ctx, request)
 	<-time.After(1 * time.Second)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
-	g.Expect(nsmResponse).To(BeNil())
+	g.Expect(reply).To(BeNil())
 }
 
 func TestSlowDP(t *testing.T) {
@@ -244,9 +244,9 @@ func TestSlowDP(t *testing.T) {
 
 	ctx, cancelOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancelOp()
-	nsmResponse, err := nsmClient.Request(ctx, request)
+	reply, err := nsmClient.Request(ctx, request)
 	<-time.After(1 * time.Second)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
-	g.Expect(nsmResponse).To(BeNil())
+	g.Expect(reply).To(BeNil())
 }

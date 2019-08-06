@@ -62,9 +62,9 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 		},
 	}
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
 	cross_connections := srv2.serviceRegistry.testDataplaneConnection.connections
@@ -146,12 +146,12 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 		},
 	}
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
-	cross_connection := srv.testModel.GetClientConnection(nsmResponse.Id)
+	cross_connection := srv.testModel.GetClientConnection(reply.GetConnection().GetId())
 	g.Expect(cross_connection).ToNot(BeNil())
 
 	destConnectionId := cross_connection.Xcon.GetRemoteDestination().GetId()
@@ -160,11 +160,11 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	g.Expect(cross_connection2).ToNot(BeNil())
 
 	//Cross connection successfully created, check it closing
-	_, err = nsmClient.Close(context.Background(), nsmResponse)
+	_, err = nsmClient.Close(context.Background(), reply.GetConnection())
 	g.Expect(err).To(BeNil())
 
 	//We need to check that xcons have been removed from model
-	cross_connection = srv.testModel.GetClientConnection(nsmResponse.Id)
+	cross_connection = srv.testModel.GetClientConnection(reply.GetConnection().GetId())
 	g.Expect(cross_connection).To(BeNil())
 
 	cross_connection2 = srv2.testModel.GetClientConnection(destConnectionId)
@@ -228,8 +228,8 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	resultChan := make(chan *Response, 1)
 
 	go func(ctx context.Context, req *networkservice.NetworkServiceRequest) {
-		nsmResponse, err := nsmClient.Request(ctx, req)
-		resultChan <- &Response{nsmResponse: nsmResponse, err: err}
+		reply, err := nsmClient.Request(ctx, req)
+		resultChan <- &Response{nsmResponse: reply.GetConnection(), err: err}
 	}(context.Background(), request)
 
 	<-time.After(1 * time.Second)

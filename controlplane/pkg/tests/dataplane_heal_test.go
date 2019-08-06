@@ -66,7 +66,7 @@ func TestHealLocalDataplane(t *testing.T) {
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(nsmResponse.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
 	clientConnection1 := srv.testModel.GetClientConnection(nsmResponse.GetId())

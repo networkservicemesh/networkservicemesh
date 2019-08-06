@@ -19,7 +19,7 @@ type ClientConnection interface {
 }
 
 type NetworkServiceClient interface {
-	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
+	Request(ctx context.Context, request networkservice.Request) (networkservice.Reply, error)
 	Close(ctx context.Context, connection connection.Connection) error
 
 	Cleanup() error
@@ -41,7 +41,7 @@ const (
 )
 
 type NetworkServiceManager interface {
-	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
+	Request(ctx context.Context, request networkservice.Request) (networkservice.Reply, error)
 	Close(ctx context.Context, clientConnection ClientConnection) error
 	Heal(clientConnection ClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)

@@ -15,3 +15,10 @@ type Request interface {
 
 	IsValid() error
 }
+
+// Reply is an unified interface for local/remote network replies
+type Reply interface {
+	GetReplyConnection() connection.Connection
+	GetResponseJWT() string
+	Clone() Reply
+}

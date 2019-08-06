@@ -10,8 +10,6 @@ import (
 	empty "github.com/golang/protobuf/ptypes/empty"
 	connectioncontext "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -405,14 +403,6 @@ func (x *monitorConnectionMonitorConnectionsClient) Recv() (*ConnectionEvent, er
 // MonitorConnectionServer is the server API for MonitorConnection service.
 type MonitorConnectionServer interface {
 	MonitorConnections(*empty.Empty, MonitorConnection_MonitorConnectionsServer) error
-}
-
-// UnimplementedMonitorConnectionServer can be embedded to have forward compatible implementations.
-type UnimplementedMonitorConnectionServer struct {
-}
-
-func (*UnimplementedMonitorConnectionServer) MonitorConnections(req *empty.Empty, srv MonitorConnection_MonitorConnectionsServer) error {
-	return status.Errorf(codes.Unimplemented, "method MonitorConnections not implemented")
 }
 
 func RegisterMonitorConnectionServer(s *grpc.Server, srv MonitorConnectionServer) {

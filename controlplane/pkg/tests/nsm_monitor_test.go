@@ -72,9 +72,9 @@ func TestNSMMonitorInit(t *testing.T) {
 	}()
 	request := createRequest()
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetReplyConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	// Now we need to start monitor and check if it will be able to restore connections.
 

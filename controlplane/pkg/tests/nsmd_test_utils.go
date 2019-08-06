@@ -250,7 +250,7 @@ type localTestNSENetworkServiceClient struct {
 	prefixPool prefix_pool.PrefixPool
 }
 
-func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *local_networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*local_connection.Connection, error) {
+func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *local_networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*local_networkservice.NetworkServiceReply, error) {
 	impl.req = in
 	netns, _ := tools.GetCurrentNS()
 	if netns == "" {
@@ -287,7 +287,7 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *l
 		logrus.Error(err)
 		return nil, err
 	}
-	return conn, nil
+	return &local_networkservice.NetworkServiceReply{Connection: conn}, nil
 }
 
 func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *local_connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {

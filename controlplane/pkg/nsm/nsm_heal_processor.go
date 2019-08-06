@@ -30,7 +30,7 @@ type healProcessor struct {
 }
 
 type connectionManager interface {
-	request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error)
+	request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (networkservice.Reply, error)
 	Close(ctx context.Context, clientConnection nsm.ClientConnection) error
 }
 

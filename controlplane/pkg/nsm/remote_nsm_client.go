@@ -18,17 +18,17 @@ type nsmClient struct {
 	connection *grpc.ClientConn
 }
 
-func (c *nsmClient) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
+func (c *nsmClient) Request(ctx context.Context, request networkservice.Request) (networkservice.Reply, error) {
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("Remote NSM Connection is not initialized...")
 	}
 
-	response, err := c.client.Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
+	reply, err := c.client.Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
 	if err != nil {
 		return nil, err
 	}
 
-	return response.Clone(), nil
+	return reply.Clone(), nil
 }
 
 func (c *nsmClient) Close(ctx context.Context, conn connection.Connection) error {

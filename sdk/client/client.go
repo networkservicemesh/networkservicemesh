@@ -113,7 +113,8 @@ func (nsmc *NsmClient) Destroy() error {
 
 //PerformRequest - perform request
 func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	var outgoingConnection *connection.Connection
+	//var outgoingConnection *connection.Connection
+	var reply *networkservice.NetworkServiceReply
 	start := time.Now()
 	for iteration := connectRetries; true; <-time.After(connectSleep) {
 		var err error
@@ -121,7 +122,7 @@ func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkSer
 
 		ctx, cancel := context.WithTimeout(nsmc.Context, connectTimeout)
 		defer cancel()
-		outgoingConnection, err = nsmc.NsClient.Request(ctx, outgoingRequest)
+		reply, err = nsmc.NsClient.Request(ctx, outgoingRequest)
 
 		if err != nil {
 			logrus.Errorf("failure to request connection with error: %+v", err)
@@ -133,12 +134,12 @@ func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkSer
 			return nil, err
 		}
 
-		nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
-		logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)
+		nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, reply.GetConnection())
+		logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), reply.GetConnection())
 		break
 	}
 
-	return outgoingConnection, nil
+	return reply.GetConnection(), nil
 }
 
 // NewNSMClient creates the NsmClient

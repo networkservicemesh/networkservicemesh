@@ -84,3 +84,13 @@ func (ns *NetworkServiceRequest) IsValid() error {
 
 	return nil
 }
+
+// GetReplyConnection returns Connection
+func (r *NetworkServiceReply) GetReplyConnection() connection.Connection {
+	return r.GetConnection()
+}
+
+// Clone returns deep copy of NetworkServiceReply
+func (r *NetworkServiceReply) Clone() networkservice.Reply {
+	return proto.Clone(r).(*NetworkServiceReply)
+}

@@ -37,17 +37,17 @@ func NewNetworkServiceServer(model model.Model, workspace *Workspace, manager ns
 	return rv
 }
 
-func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (srv *networkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
 	srv.updateMechanisms(request)
 
-	conn, err := srv.manager.Request(ctx, request)
+	reply, err := srv.manager.Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	result := conn.(*connection.Connection)
-	srv.workspace.MonitorConnectionServer().Update(result)
-	return result, nil
+	conn := reply.GetReplyConnection().(*connection.Connection)
+	srv.workspace.MonitorConnectionServer().Update(conn)
+	return reply.(*networkservice.NetworkServiceReply), nil
 }
 
 func (srv *networkServiceServer) updateMechanisms(request *networkservice.NetworkServiceRequest) {

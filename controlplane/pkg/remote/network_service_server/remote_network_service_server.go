@@ -39,19 +39,19 @@ func NewRemoteNetworkServiceServer(model model.Model, manager nsm.NetworkService
 	return server
 }
 
-func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
+func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_networkservice.NetworkServiceReply, error) {
 	logrus.Infof("RemoteNSMD: Received request from client to connect to NetworkService: %v", request)
-	conn, err := srv.manager.Request(ctx, request)
+	reply, err := srv.manager.Request(ctx, request)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 
-	result := conn.(*remote_connection.Connection)
-	srv.monitor.Update(result)
+	conn := reply.GetReplyConnection().(*remote_connection.Connection)
+	srv.monitor.Update(conn)
 
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
-	return result, nil
+	return reply.(*remote_networkservice.NetworkServiceReply), nil
 }
 
 func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *remote_connection.Connection) (*empty.Empty, error) {

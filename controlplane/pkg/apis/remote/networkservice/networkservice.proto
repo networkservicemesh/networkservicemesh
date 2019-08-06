@@ -26,11 +26,16 @@ import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/r
 import "ptypes/empty/empty.proto";
 
 message NetworkServiceRequest {
-  remote.connection.Connection connection = 1;
-  repeated remote.connection.Mechanism mechanism_preferences = 2;
+    remote.connection.Connection connection = 1;
+    repeated remote.connection.Mechanism mechanism_preferences = 2;
+}
+
+message NetworkServiceReply {
+    remote.connection.Connection connection = 1;
+    string ResponseJWT = 2;
 }
 
 service NetworkService {
-  rpc Request(NetworkServiceRequest) returns (remote.connection.Connection);
-  rpc Close(remote.connection.Connection) returns (google.protobuf.Empty);
+    rpc Request (NetworkServiceRequest) returns (NetworkServiceReply);
+    rpc Close (remote.connection.Connection) returns (google.protobuf.Empty);
 }

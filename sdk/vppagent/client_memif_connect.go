@@ -26,18 +26,18 @@ type ClientMemifConnect struct {
 }
 
 // Request implements the request handler
-func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	if cmc.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
 	}
 
-	incomingConnection, err := cmc.GetNext().Request(ctx, request)
+	reply, err := cmc.GetNext().Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	opaque := cmc.GetNext().GetOpaque(incomingConnection)
+	opaque := cmc.GetNext().GetOpaque(reply.GetConnection())
 	if opaque == nil {
 		err = fmt.Errorf("received empty opaque data from Next")
 		return nil, err
@@ -49,19 +49,19 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 		return nil, err
 	}
 
-	incomingConnection.Context = outgoingConnection.GetContext()
+	reply.GetConnection().Context = outgoingConnection.GetContext()
 
 	name := outgoingConnection.GetId()
 	socketFileName := path.Join(cmc.Workspace, outgoingConnection.GetMechanism().GetSocketFilename())
 
 	dataChange := cmc.createDataChange(name, socketFileName)
 
-	cmc.Connections[incomingConnection.GetId()] = &ConnectionData{
+	cmc.Connections[reply.GetConnection().GetId()] = &ConnectionData{
 		OutConnName: name,
 		DataChange:  dataChange,
 	}
 
-	return incomingConnection, nil
+	return reply, nil
 }
 
 // Close implements the close handler

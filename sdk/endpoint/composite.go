@@ -70,9 +70,9 @@ type CompositeEndpoint struct {
 }
 
 // Request implements a dummy request handler
-func (bce *CompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (bce *CompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	if len(bce.chainedEndpoints) == 0 {
-		return request.Connection, nil
+		return &networkservice.NetworkServiceReply{Connection: request.Connection}, nil
 	}
 	return bce.chainedEndpoints[0].Request(ctx, request)
 }

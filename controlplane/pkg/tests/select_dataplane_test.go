@@ -97,9 +97,9 @@ func TestSelectDataplane(t *testing.T) {
 		},
 	}
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetReplyConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	request = &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{
@@ -123,9 +123,9 @@ func TestSelectDataplane(t *testing.T) {
 		},
 	}
 
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
+	reply, err = nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	request = &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{
@@ -149,7 +149,7 @@ func TestSelectDataplane(t *testing.T) {
 		},
 	}
 
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
+	reply, err = nsmClient.Request(context.Background(), request)
 	g.Expect(err).NotTo(BeNil())
 	g.Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
 }

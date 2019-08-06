@@ -37,7 +37,7 @@ type IpamEndpoint struct {
 }
 
 // Request implements the request handler
-func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 
 	if ice.GetNext() == nil {
 		err := fmt.Errorf("IPAM needs next")
@@ -45,7 +45,7 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return nil, err
 	}
 
-	newConnection, err := ice.GetNext().Request(ctx, request)
+	reply, err := ice.GetNext().Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
@@ -75,19 +75,19 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	// Update source/dst IP's
-	newConnection.GetContext().GetIpContext().SrcIpAddr = srcIP.String()
-	newConnection.GetContext().GetIpContext().DstIpAddr = dstIP.String()
+	reply.GetConnection().GetContext().GetIpContext().SrcIpAddr = srcIP.String()
+	reply.GetConnection().GetContext().GetIpContext().DstIpAddr = dstIP.String()
 
-	newConnection.GetContext().GetIpContext().ExtraPrefixes = prefixes
+	reply.GetConnection().GetContext().GetIpContext().ExtraPrefixes = prefixes
 
-	err = newConnection.IsComplete()
+	err = reply.GetConnection().IsComplete()
 	if err != nil {
 		logrus.Errorf("New connection is not complete: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("IPAM completed on connection: %v", newConnection)
-	return newConnection, nil
+	logrus.Infof("IPAM completed on connection: %v", reply.GetConnection())
+	return reply, nil
 }
 
 // Close implements the close handler

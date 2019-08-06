@@ -42,7 +42,7 @@ func (mce *MonitorEndpoint) Init(context *InitContext) error {
 }
 
 // Request implements the request handler
-func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 
 	if mce.GetNext() == nil {
 		err := fmt.Errorf("Monitor needs next")
@@ -50,16 +50,16 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 		return nil, err
 	}
 
-	incomingConnection, err := mce.GetNext().Request(ctx, request)
+	reply, err := mce.GetNext().Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("Monitor UpdateConnection: %v", incomingConnection)
-	mce.monitorConnectionServer.Update(incomingConnection)
+	logrus.Infof("Monitor UpdateConnection: %v", reply.GetConnection())
+	mce.monitorConnectionServer.Update(reply.GetConnection())
 
-	return incomingConnection, nil
+	return reply, nil
 }
 
 // Close implements the close handler

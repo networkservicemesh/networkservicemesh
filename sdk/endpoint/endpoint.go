@@ -141,17 +141,17 @@ func (nsme *nsmEndpoint) Delete() error {
 	return err
 }
 
-func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	logrus.Infof("Request for Network Service received %v", request)
 
-	incomingConnection, err := nsme.service.Request(ctx, request)
+	reply, err := nsme.service.Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("The composite returned an error: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
-	return incomingConnection, nil
+	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, reply)
+	return reply, nil
 }
 
 func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {

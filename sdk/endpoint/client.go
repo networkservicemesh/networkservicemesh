@@ -35,13 +35,13 @@ type ClientEndpoint struct {
 }
 
 // Request implements the request handler
-func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 
 	if cce.GetNext() == nil {
 		logrus.Fatal("The connection composite requires that there is Next set.")
 	}
 
-	incomingConnection, err := cce.GetNext().Request(ctx, request)
+	reply, err := cce.GetNext().Request(ctx, request)
 	if err != nil {
 		logrus.Errorf("Next request failed: %v", err)
 		return nil, err
@@ -58,10 +58,10 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 	// TODO: check this. Hack??
 	outgoingConnection.GetMechanism().GetParameters()[connection.Workspace] = ""
 
-	cce.ioConnMap[incomingConnection.GetId()] = outgoingConnection
+	cce.ioConnMap[reply.GetConnection().GetId()] = outgoingConnection
 	logrus.Infof("outgoingConnection: %v", outgoingConnection)
 
-	return incomingConnection, nil
+	return reply, nil
 }
 
 // Close implements the close handler

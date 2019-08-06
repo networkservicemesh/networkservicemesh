@@ -26,18 +26,18 @@ type MemifConnect struct {
 }
 
 // Request implements the request handler
-func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	if mc.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
 	}
 
-	incomingConnection, err := mc.GetNext().Request(ctx, request)
+	reply, err := mc.GetNext().Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	connectionData, err := getConnectionData(mc.GetNext(), incomingConnection, true)
+	connectionData, err := getConnectionData(mc.GetNext(), reply.GetConnection(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -45,27 +45,27 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 		connectionData = &ConnectionData{}
 	}
 
-	socketFilename := path.Join(mc.Workspace, incomingConnection.GetMechanism().GetSocketFilename())
+	socketFilename := path.Join(mc.Workspace, reply.GetConnection().GetMechanism().GetSocketFilename())
 	socketDir := path.Dir(socketFilename)
 
 	if err := os.MkdirAll(socketDir, os.ModePerm); err != nil {
 		return nil, err
 	}
 
-	name := incomingConnection.GetId()
+	name := reply.GetConnection().GetId()
 	connectionData.InConnName = name
 
 	var ipAddresses []string
-	dstIPAddr := incomingConnection.GetContext().GetIpContext().GetDstIpAddr()
+	dstIPAddr := reply.GetConnection().GetContext().GetIpContext().GetDstIpAddr()
 	if dstIPAddr != "" {
 		ipAddresses = []string{dstIPAddr}
 	}
 
 	connectionData.DataChange = mc.appendDataChange(connectionData.DataChange, name, ipAddresses, socketFilename)
 
-	mc.Connections[incomingConnection.GetId()] = connectionData
+	mc.Connections[reply.GetConnection().GetId()] = connectionData
 
-	return incomingConnection, nil
+	return reply, nil
 }
 
 // Close implements the close handler

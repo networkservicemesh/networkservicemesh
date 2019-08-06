@@ -9,8 +9,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	connectioncontext "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -172,17 +170,6 @@ func (c *connectionPluginClient) ValidateConnectionContext(ctx context.Context, 
 type ConnectionPluginServer interface {
 	UpdateConnectionContext(context.Context, *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error)
 	ValidateConnectionContext(context.Context, *connectioncontext.ConnectionContext) (*ConnectionValidationResult, error)
-}
-
-// UnimplementedConnectionPluginServer can be embedded to have forward compatible implementations.
-type UnimplementedConnectionPluginServer struct {
-}
-
-func (*UnimplementedConnectionPluginServer) UpdateConnectionContext(ctx context.Context, req *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateConnectionContext not implemented")
-}
-func (*UnimplementedConnectionPluginServer) ValidateConnectionContext(ctx context.Context, req *connectioncontext.ConnectionContext) (*ConnectionValidationResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ValidateConnectionContext not implemented")
 }
 
 func RegisterConnectionPluginServer(s *grpc.Server, srv ConnectionPluginServer) {

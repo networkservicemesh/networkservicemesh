@@ -29,18 +29,18 @@ type Flush struct {
 }
 
 // Request implements the request handler
-func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	if f.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
 	}
 
-	incomingConnection, err := f.GetNext().Request(ctx, request)
+	reply, err := f.GetNext().Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	connectionData, err := getConnectionData(f.GetNext(), incomingConnection, false)
+	connectionData, err := getConnectionData(f.GetNext(), reply.GetConnection(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (f *Flush) Request(ctx context.Context, request *networkservice.NetworkServ
 		return nil, err
 	}
 
-	return incomingConnection, nil
+	return reply, nil
 }
 
 // Close implements the close handler

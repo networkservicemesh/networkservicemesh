@@ -30,7 +30,12 @@ message NetworkServiceRequest {
     repeated local.connection.Mechanism mechanism_preferences = 2;
 }
 
+message NetworkServiceReply {
+    local.connection.Connection connection = 1;
+    string ResponseJWT = 2;
+}
+
 service NetworkService {
-    rpc Request(NetworkServiceRequest) returns (local.connection.Connection);
+    rpc Request(NetworkServiceRequest) returns (NetworkServiceReply);
     rpc Close(local.connection.Connection) returns (google.protobuf.Empty);
 }

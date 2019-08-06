@@ -24,18 +24,18 @@ type XConnect struct {
 }
 
 // Request implements the request handler
-func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.NetworkServiceReply, error) {
 	if xc.GetNext() == nil {
 		err := fmt.Errorf("composite requires that there is Next set")
 		return nil, err
 	}
 
-	incomingConnection, err := xc.GetNext().Request(ctx, request)
+	reply, err := xc.GetNext().Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	connectionData, err := getConnectionData(xc.GetNext(), incomingConnection, false)
+	connectionData, err := getConnectionData(xc.GetNext(), reply.GetConnection(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +51,8 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 
 	connectionData.DataChange = xc.appendDataChange(connectionData.DataChange, connectionData.InConnName, connectionData.OutConnName)
 
-	xc.Connections[incomingConnection.GetId()] = connectionData
-	return incomingConnection, nil
+	xc.Connections[reply.GetConnection().GetId()] = connectionData
+	return reply, nil
 }
 
 // Close implements the close handler

@@ -32,6 +32,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -91,7 +92,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 	return srv
 }
 
-func (srv *networkServiceManager) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
+func (srv *networkServiceManager) Request(ctx context.Context, request networkservice.Request) (networkservice.Reply, error) {
 	// Check if we are recovering connection, by checking passed connection Id is known to us.
 	return srv.request(ctx, request, srv.model.GetClientConnection(request.GetRequestConnection().GetId()))
 }
@@ -108,7 +109,7 @@ func create_logid() (uuid string) {
 	return
 }
 
-func (srv *networkServiceManager) request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error) {
+func (srv *networkServiceManager) request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (networkservice.Reply, error) {
 	requestID := create_logid()
 	logrus.Infof("NSM:(%v) request: %v", requestID, request)
 
@@ -293,7 +294,17 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	// 11. We are done with configuration here.
 	logrus.Infof("NSM:(11-%v) Request done...", requestID)
 
-	return cc.GetConnectionSource(), nil
+	return reply(cc.GetConnectionSource()), nil
+}
+
+func reply(c connection.Connection) networkservice.Reply {
+	if lc, ok := c.(*local_connection.Connection); ok {
+		return &local_networkservice.NetworkServiceReply{Connection: lc}
+	}
+	if rc, ok := c.(*remote_connection.Connection); ok {
+		return &remote_networkservice.NetworkServiceReply{Connection: rc}
+	}
+	return nil
 }
 
 func (srv *networkServiceManager) requestFailed(requestID string, cc, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
@@ -438,7 +449,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 		message = srv.createRemoteNSMRequest(endpoint, requestConn, dp, existingCC)
 	}
 	logrus.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestID, message)
-	nseConn, e := client.Request(ctx, message)
+	reply, e := client.Request(ctx, message)
 
 	if e != nil {
 		logrus.Errorf("NSM:(7.2.6.2.1-%v) error requesting networkservice from %+v with message %#v error: %s", requestID, endpoint, message, e)
@@ -446,16 +457,16 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	}
 
 	// 7.2.6.2.2
-	if err = srv.updateConnectionContext(ctx, requestConn, nseConn); err != nil {
+	if err = srv.updateConnectionContext(ctx, requestConn, reply.GetReplyConnection()); err != nil {
 		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestID, err)
 		return nil, err
 	}
 
 	// 7.2.6.2.3 update connection parameters, add workspace if local nse
-	srv.updateConnectionParameters(requestID, nseConn, endpoint)
+	srv.updateConnectionParameters(requestID, reply.GetReplyConnection(), endpoint)
 
 	// 7.2.6.2.4 create cross connection
-	dpAPIConnection := srv.createCrossConnect(requestConn, nseConn, endpoint)
+	dpAPIConnection := srv.createCrossConnect(requestConn, reply.GetReplyConnection(), endpoint)
 	var dpState model.DataplaneState
 	if existingCC != nil {
 		dpState = existingCC.DataplaneState

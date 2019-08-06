@@ -53,9 +53,9 @@ func TestDummyConnectionPlugin(t *testing.T) {
 
 	request := createRequest()
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	originl, ok := srv.serviceRegistry.localTestNSE.(*localTestNSENetworkServiceClient)
 	g.Expect(ok).To(Equal(true))
