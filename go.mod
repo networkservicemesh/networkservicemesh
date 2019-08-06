@@ -1,6 +1,6 @@
 module github.com/networkservicemesh/networkservicemesh
 
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190409092706-ca8df85b1798
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190805180924-10488e3b13bd
 
 require (
 	github.com/aws/aws-sdk-go v1.21.8
@@ -12,7 +12,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.0.1
-	github.com/gogo/protobuf v1.2.1
+	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
@@ -38,11 +38,11 @@ require (
 	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
 	google.golang.org/grpc v1.22.1
 	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
-	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
+	k8s.io/api v0.0.0-20190803060717-3ce214556aa9
+	k8s.io/apimachinery v0.0.0-20190802060556-6fa4771c83b3
 	k8s.io/apiserver v0.0.0-20190111033246-d50e9ac5404f // indirect
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20190313124217-0fa624df11e9 // indirect
 	k8s.io/component-base v0.0.0-20190409093041-e34633071963 // indirect
-	k8s.io/kubernetes v1.14.4
+	k8s.io/kubernetes v1.14.5
 )
