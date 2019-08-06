@@ -6,7 +6,8 @@ deb https://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 
 apt-get update
-apt-get install -y docker.io kubeadm kubectl
+apt-get install -y docker.io
+apt-get install -qy kubelet="${KUBERNETES_VERSION}" kubectl="${KUBERNETES_VERSION}" kubeadm="${KUBERNETES_VERSION}"
 
 systemctl daemon-reload
 systemctl restart kubelet
