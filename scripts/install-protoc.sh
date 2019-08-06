@@ -1,4 +1,8 @@
 #!/bin/bash
+echo "WARNING: Use this script only if you know what you're doing!!!"
+echo "You likely want to use scripts/prepare-generate.sh instead."
+echo "- protoc version <= 3.9.0 is missing UnimplementedServer* method generation."
+
 set -ex
 pushd ~/
 PROTOC_VER=3.8.0
