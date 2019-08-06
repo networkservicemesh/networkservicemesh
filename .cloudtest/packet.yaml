@@ -40,9 +40,6 @@ providers:
       setup: |
         ssh-keygen -t rsa -f $(tempdir)/sshkey -q -N ""
         ssh-add $(tempdir)/sshkey
-      start: |
-        export KUBERNETES_VERSION=1.15.1-00
-        export KUBERNETES_INIT_VERSION=1.15.1
-        ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
+      start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
       prepare: |
         make k8s-config helm-init
