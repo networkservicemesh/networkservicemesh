@@ -723,7 +723,7 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
-		showLogs(k8s, t)
+		makeLogsSnapshot(k8s, t)
 		nscInfo.PrintLogs()
 
 		t.Fail()

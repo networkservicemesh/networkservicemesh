@@ -31,7 +31,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		{

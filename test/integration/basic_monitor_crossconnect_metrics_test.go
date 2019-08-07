@@ -42,7 +42,7 @@ func TestSimpleMetrics(t *testing.T) {
 	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
 	g.Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	eventCh, closeFunc := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
 	defer closeFunc()

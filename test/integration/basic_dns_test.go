@@ -24,7 +24,7 @@ func TestBasicDns(t *testing.T) {
 
 	configs, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	assert.Expect(err).To(gomega.BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	err = kubetest.DeployCorefile(k8s, "basic-corefile", `. {
     log
     hosts {

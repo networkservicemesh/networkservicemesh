@@ -77,7 +77,7 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	g.Expect(err).To(BeNil())
 
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
@@ -113,7 +113,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	g.Expect(err).To(BeNil())
 
 	if useWebhook {
