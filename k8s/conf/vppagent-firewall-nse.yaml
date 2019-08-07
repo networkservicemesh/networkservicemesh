@@ -38,6 +38,9 @@ spec:
             - mountPath: /etc/vppagent-firewall/config.yaml
               subPath: config.yaml
               name: vppagent-firewall-config-volume
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
       volumes:
         - name: vppagent-firewall-config-volume
           configMap:

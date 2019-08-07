@@ -13,6 +13,7 @@ spec:
         networkservicemesh.io/app: "vpn-gateway-nsc"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nsc-acc
       containers:
         - name: alpine-img
           image: alpine:latest

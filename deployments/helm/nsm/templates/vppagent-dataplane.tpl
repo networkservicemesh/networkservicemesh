@@ -13,6 +13,7 @@ spec:
     spec:
       hostPID: true
       hostNetwork: true
+      serviceAccount: forward-plane-acc
       containers:
         - name: {{ (index .Values $fp).image }}
           securityContext:
@@ -28,6 +29,9 @@ spec:
             - name: workspace
               mountPath: /var/lib/networkservicemesh/
               mountPropagation: Bidirectional
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /liveness
@@ -54,6 +58,10 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: workspace
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
 metadata:
   name: nsm-{{ $fp }}-forwarder
   namespace: {{ .Release.Namespace }}

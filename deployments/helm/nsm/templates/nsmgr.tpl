@@ -12,6 +12,7 @@ spec:
       labels:
         app: nsmgr-daemonset
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: nsmdp
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmdp:{{ .Values.tag }}
@@ -28,6 +29,9 @@ spec:
               mountPath: /var/lib/kubelet/device-plugins
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
         - name: nsmd
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmd:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
@@ -43,6 +47,9 @@ spec:
               mountPath: /var/lib/networkservicemesh
             - name: nsm-plugin-socket
               mountPath: /var/lib/networkservicemesh/plugins
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /liveness
@@ -61,6 +68,9 @@ spec:
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmd-k8s:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
             - name: nsm-plugin-socket
               mountPath: /var/lib/networkservicemesh/plugins
           env:
@@ -87,3 +97,7 @@ spec:
             path: /var/lib/networkservicemesh/plugins
             type: DirectoryOrCreate
           name: nsm-plugin-socket
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
