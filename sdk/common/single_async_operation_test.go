@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/sirupsen/logrus"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -9,6 +10,11 @@ import (
 )
 
 func TestUsingSingleAsyncOperation(t *testing.T) {
+	defer func() {
+		err := recover()
+		logrus.Errorf("test should dont fails, err: %v", err)
+		t.FailNow()
+	}()
 	m := map[int]int{}
 	op := NewSingleAsyncOperation(func() {
 		m[0] = 0
