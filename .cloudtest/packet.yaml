@@ -45,3 +45,4 @@ providers:
         make k8s-config helm-init
         sleep 10
         kubectl get pods -n spire
+        kubectl describe pods -n spire

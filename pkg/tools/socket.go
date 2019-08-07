@@ -45,6 +45,13 @@ func GetConfig() DialConfig {
 	return cfg
 }
 
+// InitConfig allows init global DialConfig, should be called before any GetConfig(), otherwise do nothing
+func InitConfig(c DialConfig) {
+	once.Do(func() {
+		cfg = c
+	})
+}
+
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(opts ...grpc.ServerOption) *grpc.Server {
 	if GetConfig().SecurityManager != nil {
