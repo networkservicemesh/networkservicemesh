@@ -1,10 +1,11 @@
 package common
 
 import (
-	"github.com/sirupsen/logrus"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/onsi/gomega"
 )
