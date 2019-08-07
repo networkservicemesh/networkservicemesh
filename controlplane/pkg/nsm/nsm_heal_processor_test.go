@@ -282,7 +282,7 @@ type connectionManagerStub struct {
 	closeError error
 }
 
-func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error) {
+func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (networkservice.Reply, error) {
 	if stub.requestError != nil {
 		return nil, stub.requestError
 	}
@@ -309,7 +309,7 @@ func (stub *connectionManagerStub) request(ctx context.Context, request networks
 	existingConnection.DataplaneState = model.DataplaneStateReady
 	stub.model.UpdateClientConnection(existingConnection)
 
-	return nsmConnection, nil
+	return Reply(nsmConnection), nil
 }
 
 func (stub *connectionManagerStub) Close(ctx context.Context, clientConnection nsm.ClientConnection) error {

@@ -85,6 +85,12 @@ func (ns *NetworkServiceRequest) IsValid() error {
 	return nil
 }
 
+func NewReply(c connection.Connection) networkservice.Reply {
+	return &NetworkServiceReply{
+		Connection: c.(*local.Connection),
+	}
+}
+
 // GetReplyConnection returns Connection
 func (r *NetworkServiceReply) GetReplyConnection() connection.Connection {
 	return r.GetConnection()

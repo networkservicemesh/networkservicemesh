@@ -64,12 +64,12 @@ func TestHealLocalDataplane(t *testing.T) {
 		},
 	}
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	reply, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetConnection().GetNetworkService()).To(Equal("golden_network"))
+	g.Expect(reply.GetConnection().GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
-	clientConnection1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
+	clientConnection1 := srv.testModel.GetClientConnection(reply.GetConnection().GetId())
 	g.Expect(clientConnection1.GetID()).To(Equal("1"))
 	g.Expect(clientConnection1.Xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection2.VXLANSrcIP]).To(Equal("127.0.0.1"))
 
@@ -98,7 +98,7 @@ func TestHealLocalDataplane(t *testing.T) {
 	l1.WaitUpdate(8, timeout, t)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 
-	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
+	clientConnection1_1 := srv.testModel.GetClientConnection(reply.GetConnection().GetId())
 	g.Expect(clientConnection1_1 != nil).To(Equal(true))
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
 	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("1"))

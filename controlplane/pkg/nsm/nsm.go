@@ -294,17 +294,14 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	// 11. We are done with configuration here.
 	logrus.Infof("NSM:(11-%v) Request done...", requestID)
 
-	return reply(cc.GetConnectionSource()), nil
+	return Reply(cc.GetConnectionSource()), nil
 }
 
-func reply(c connection.Connection) networkservice.Reply {
-	if lc, ok := c.(*local_connection.Connection); ok {
-		return &local_networkservice.NetworkServiceReply{Connection: lc}
+func Reply(c connection.Connection) networkservice.Reply {
+	if c.IsRemote() {
+		return remote_networkservice.NewReply(c)
 	}
-	if rc, ok := c.(*remote_connection.Connection); ok {
-		return &remote_networkservice.NetworkServiceReply{Connection: rc}
-	}
-	return nil
+	return local_networkservice.NewReply(c)
 }
 
 func (srv *networkServiceManager) requestFailed(requestID string, cc, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
