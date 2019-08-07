@@ -38,7 +38,7 @@ func main() {
 	logrus.Infof("Starting nsm-dns-monitor....")
 	logrus.Infof("Version: %v", version)
 	app := nsm_sidecars.NewDNSNsmMonitor(
-		PathToCorefileEnv.GetOrDefaultStringValue(nsm_sidecars.DefaultPathToCorefile),
+		PathToCorefileEnv.GetStringOrDefaultS(nsm_sidecars.DefaultPathToCorefile),
 		ReloadCorefileEnvTime.GetOrDefaultDurationValue(nsm_sidecars.DefaultReloadCorefileTime))
 	go app.Run()
 	<-c

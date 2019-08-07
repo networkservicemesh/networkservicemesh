@@ -39,7 +39,7 @@ func (m *DNSConfigManager) Delete(id string) {
 	m.configs.Delete(id)
 }
 
-//Caddyfile converts all configs to canddyfile
+//Caddyfile converts all configs to caddyfile
 func (m *DNSConfigManager) Caddyfile(path string) caddyfile.Caddyfile {
 	file := caddyfile.NewCaddyfile(path)
 	m.writeDNSConfig(file, m.basicConfig)
@@ -87,7 +87,7 @@ func removeDuplicates(s string) string {
 		return ""
 	}
 	words := strings.Split(s, " ")
-	result := make([]string, 0, 8)
+	var result []string
 	set := make(map[string]bool)
 	for i := 0; i < len(words); i++ {
 		if set[words[i]] {

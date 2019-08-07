@@ -36,16 +36,16 @@ func NewCaddyfile(path string) Caddyfile {
 func (c *caddyfile) Save() error {
 	_, err := os.Stat(c.pathToFile)
 	if os.IsNotExist(err) {
-		_, err = os.Create(c.pathToFile)
+		f, err := os.Create(c.pathToFile)
+		if err != nil {
+			return err
+		}
+		err = f.Close()
 		if err != nil {
 			return err
 		}
 	}
-	err = ioutil.WriteFile(c.pathToFile, []byte(c.String()), 0)
-	if err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(c.pathToFile, []byte(c.String()), 0)
 }
 
 //String converts caddyfile to string

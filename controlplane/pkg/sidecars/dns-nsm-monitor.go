@@ -1,7 +1,6 @@
 package sidecars
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -17,17 +16,13 @@ const (
 	//DefaultReloadCorefileTime means time to reload Corefile
 	DefaultReloadCorefileTime = time.Second * 5
 	defaultK8sDNSServer       = "10.96.0.10"
-
-	notScheduled = int32(0)
-	running      = int32(1)
 )
 
 //NsmDNSMonitorHandler implements NSMMonitorHandler interface for handling dnsConfigs
 type NsmDNSMonitorHandler struct {
 	EmptyNSMMonitorHandler
-	updateCorefileState int32
-	pathToCorefile      string
-	dnsConfigManager    *common.DNSConfigManager
+	dnsConfigManager *common.DNSConfigManager
+	corefileUpdater  common.Operation
 }
 
 //DefaultDNSNsmMonitor creates default DNS nsm monitor
@@ -44,10 +39,16 @@ func NewDNSNsmMonitor(pathToCorefile string, reloadTime time.Duration) NSMApp {
 		logrus.Errorf("An error during initial saving the Corefile: %v, err: %v", corefile.String(), err.Error())
 	}
 	result := NewNSMMonitorApp()
+	corefileUpdater := common.NewSingleAsyncOperation(func() {
+		file := dnsConfigManager.Caddyfile(pathToCorefile)
+		err := file.Save()
+		if err != nil {
+			logrus.Error(err)
+		}
+	})
 	result.SetHandler(&NsmDNSMonitorHandler{
-		updateCorefileState: notScheduled,
-		pathToCorefile:      pathToCorefile,
-		dnsConfigManager:    dnsConfigManager,
+		corefileUpdater:  corefileUpdater,
+		dnsConfigManager: dnsConfigManager,
 	})
 	return result
 }
@@ -66,31 +67,14 @@ func (h *NsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection
 			h.dnsConfigManager.Store(conn.Id, *config)
 		}
 	}
-	h.scheduleUpdateCorefile()
+	h.corefileUpdater.Run()
 }
 
 //Closed removes all dns configs related to connection ID
 func (h *NsmDNSMonitorHandler) Closed(conn *connection.Connection) {
 	logrus.Infof("Deleting config with id %v", conn.Id)
 	h.dnsConfigManager.Delete(conn.Id)
-	h.scheduleUpdateCorefile()
-}
-
-func (h *NsmDNSMonitorHandler) scheduleUpdateCorefile() {
-	if !atomic.CompareAndSwapInt32(&h.updateCorefileState, notScheduled, running) {
-		return
-	}
-	go func() {
-		defer atomic.StoreInt32(&h.updateCorefileState, notScheduled)
-		logrus.Infof("Start to update corefile...")
-		corefile := h.dnsConfigManager.Caddyfile(h.pathToCorefile)
-		err := corefile.Save()
-		if err != nil {
-			logrus.Errorf("An error during saving the Corefile: %v, error: %v", corefile.String(), err.Error())
-		} else {
-			logrus.Infof("Corefile updated")
-		}
-	}()
+	h.corefileUpdater.Run()
 }
 
 func defaultBasicDNSConfig() connectioncontext.DNSConfig {

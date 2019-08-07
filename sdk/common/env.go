@@ -21,8 +21,8 @@ func (v EnvVar) StringValue() string {
 	return os.Getenv(v.Name())
 }
 
-//GetOrDefaultStringListValue returns list of string separated by space or if env variable have not a value returns default value
-func (v EnvVar) GetOrDefaultStringListValue(defaultValue []string) []string {
+//GetStringListValueOrDefault returns list of string separated by space or if env variable have not a value returns default value
+func (v EnvVar) GetStringListValueOrDefault(defaultValue []string) []string {
 	r := v.StringValue()
 	if r == "" {
 		return defaultValue
@@ -30,8 +30,8 @@ func (v EnvVar) GetOrDefaultStringListValue(defaultValue []string) []string {
 	return strings.Split(r, " ")
 }
 
-//GetOrDefaultStringValue returns env value as string or if env variable have not a value returns default value
-func (v EnvVar) GetOrDefaultStringValue(defaultValue string) string {
+//GetStringOrDefaultS returns env value as string or if env variable have not a value returns default value
+func (v EnvVar) GetStringOrDefaultS(defaultValue string) string {
 	r := v.StringValue()
 	if r == "" {
 		return defaultValue
