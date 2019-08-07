@@ -85,6 +85,7 @@ func (ns *NetworkServiceRequest) IsValid() error {
 	return nil
 }
 
+// NewReply creates new instance of Reply
 func NewReply(c connection.Connection) networkservice.Reply {
 	return &NetworkServiceReply{
 		Connection: c.(*local.Connection),

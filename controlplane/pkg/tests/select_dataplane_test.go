@@ -149,7 +149,7 @@ func TestSelectDataplane(t *testing.T) {
 		},
 	}
 
-	reply, err = nsmClient.Request(context.Background(), request)
+	_, err = nsmClient.Request(context.Background(), request)
 	g.Expect(err).NotTo(BeNil())
 	g.Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
 }

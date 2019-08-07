@@ -297,6 +297,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	return Reply(cc.GetConnectionSource()), nil
 }
 
+// Reply wraps Connection into networkservice.Reply
 func Reply(c connection.Connection) networkservice.Reply {
 	if c.IsRemote() {
 		return remote_networkservice.NewReply(c)
