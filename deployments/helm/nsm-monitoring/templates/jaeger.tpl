@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jaeger
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
@@ -29,6 +30,7 @@ metadata:
   name: jaeger
   labels:
     run: jaeger
+  namespace: {{ .Release.Namespace }}
 spec:
   ports:
     - name: http

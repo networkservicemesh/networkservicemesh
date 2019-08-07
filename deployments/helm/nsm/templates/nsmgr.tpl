@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: nsmdp
-          image: {{ .Values.registry }}/networkservicemesh/nsmdp:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/nsmdp:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
             - name: kubelet-socket
@@ -22,7 +22,7 @@ spec:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
         - name: nsmd
-          image: {{ .Values.registry }}/networkservicemesh/nsmd:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/nsmd:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
             - name: nsm-socket
@@ -44,7 +44,7 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
         - name: nsmd-k8s
-          image: {{ .Values.registry }}/networkservicemesh/nsmd-k8s:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/nsmd-k8s:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           volumeMounts:
             - name: nsm-plugin-socket

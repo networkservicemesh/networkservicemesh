@@ -16,7 +16,7 @@ spec:
         - name: vppagent-dataplane
           securityContext:
             privileged: true
-          image: {{ .Values.registry }}/networkservicemesh/vppagent-dataplane:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/vppagent-dataplane:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: NSM_DATAPLANE_SRC_IP

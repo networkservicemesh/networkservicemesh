@@ -10,12 +10,13 @@ providers:
     env:
       - CLUSTER_RULES_PREFIX=azure
       - AZURE_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
-      - CONTAINER_REPO=networkservicemesh
       - AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
       - KUBECONFIG=$(tempdir)/config
       - AZURE_CREDENTIALS_PATH=$(tempdir)/config
     env-check:
       - CIRCLE_BUILD_NUM
+      - CONTAINER_REPO
+      - CONTAINER_TAG
       - AZURE_SERVICE_PRINCIPAL
       - AZURE_SERVICE_PRINCIPAL_SECRET
       - CIRCLE_AZURE_TENANT
@@ -23,6 +24,12 @@ providers:
       - COMMIT
     scripts:
       install: az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
-      start: make azure-start
+      start: |
+        make azure-start
       stop: make azure-destroy
-      prepare: make k8s-config
+      prepare: |
+        make k8s-config
+        helm init --wait
+        kubectl create serviceaccount --namespace kube-system tiller
+        kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+        kubectl patch deploy --namespace kube-system tiller-deploy -p "{\"spec\":{\"template\":{\"spec\":{\"serviceAccount\":\"tiller\"}}}}"

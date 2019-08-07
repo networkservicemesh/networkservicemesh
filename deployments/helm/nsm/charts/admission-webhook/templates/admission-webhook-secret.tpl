@@ -33,8 +33,13 @@ spec:
     spec:
       containers:
         - name: nsm-admission-webhook
-          image: {{ .Values.registry }}/networkservicemesh/admission-webhook:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/admission-webhook:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+          env:
+            - name: REPO
+              value: "{{ .Values.org }}"
+            - name: TAG
+              value: "{{ .Values.tag }}"
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -62,6 +67,7 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   name: nsm-admission-webhook-cfg
+  namespace: {{ .Release.Namespace }}
   labels:
     app: nsm-admission-webhook
 webhooks:

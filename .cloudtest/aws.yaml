@@ -10,17 +10,24 @@ providers:
     env:
       - CLUSTER_RULES_PREFIX=aws
       - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
-      - CONTAINER_REPO=networkservicemesh
       - KUBECONFIG=$(tempdir)/config
       - NSM_AWS_SERVICE_SUFFIX=${AWS_CLUSTER_NAME}
     env-check:
       - COMMIT
       - CIRCLE_BUILD_NUM
       - CIRCLE_WORKFLOW_ID
+      - CONTAINER_REPO
+      - CONTAINER_TAG
       - NSM_AWS_ACCESS_KEY_ID
       - NSM_AWS_SECRET_ACCESS_KEY
     scripts:
-      start: make aws-start
+      start: |
+        make aws-start
       stop: |
         make aws-destroy
-      prepare: make k8s-config
+      prepare: |
+        make k8s-config
+        helm init --wait
+        kubectl create serviceaccount --namespace kube-system tiller
+        kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+        kubectl patch deploy --namespace kube-system tiller-deploy -p "{\"spec\":{\"template\":{\"spec\":{\"serviceAccount\":\"tiller\"}}}}"

@@ -23,8 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -140,12 +138,7 @@ func createDataplaneConfig(dataplaneProbes *DataplaneProbes) *DataplaneConfig {
 	}
 	logrus.Infof("RegistrarSocketType: %s", cfg.RegistrarSocketType)
 
-	tracer := opentracing.GlobalTracer()
-	cfg.GRPCserver = grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	cfg.GRPCserver = tools.NewServer()
 
 	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)

@@ -15,13 +15,12 @@
 package nsmd
 
 import (
+	"context"
 	"net"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -92,12 +91,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
 
 	logrus.Infof("Creating new GRPC MonitorServer")
-	tracer := opentracing.GlobalTracer()
-	w.grpcServer = grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	w.grpcServer = tools.NewServer()
 
 	logrus.Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
@@ -167,7 +161,10 @@ func (w *Workspace) Close() {
 }
 
 func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
-	nseConn, err := tools.DialTimeoutUnix(w.NsmClientSocket(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	nseConn, err := tools.DialContextUnix(ctx, w.NsmClientSocket())
 	if err != nil {
 		return false
 	}

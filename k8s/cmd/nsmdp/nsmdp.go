@@ -23,11 +23,8 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
@@ -166,13 +163,8 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 	if err != nil {
 		return err
 	}
-	tracer := opentracing.GlobalTracer()
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
+	grpcServer := tools.NewServer()
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
 	logrus.Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)

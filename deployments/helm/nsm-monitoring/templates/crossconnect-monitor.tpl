@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
         - name: crossconnect-monitor
-          image: {{ .Values.registry }}/networkservicemesh/crossconnect-monitor:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/crossconnect-monitor:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
 metadata:
   name: crossconnect-monitor

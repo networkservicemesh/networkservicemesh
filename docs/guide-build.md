@@ -178,17 +178,22 @@ the cluster.
 
 If you change [types.go](https://github.com/networkservicemesh/networkservicemesh/blob/master/k8s/pkg/apis/networkservice/v1alpha1/types.go) or any of the .proto files you will need to be able to run ```go generate ./...``` to regenerate the code.
 
-In order to be able to do that, you need to have installed:
+For rerunning the code generation the required dependencies are retrieved with the script:
 
-* protobuf - run ```./scripts/install-protoc.sh```
-* proto-gen-go - run ```go install ./vendor/github.com/golang/protobuf/protoc-gen-go/```
-* deep-copy-gen - run ```go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen/```
+```bash
+./scripts/prepare-generate.sh
+```
 
-Then just run:
+To regenerate code:
 
 ```bash
 go generate ./...
 ```
+
+**NOTE:**  The script `scripts/install-protoc.sh` will download a released version of `protoc`, however,
+at the time of this writing there are no `protoc` releases built with the `grpc` plugin functionality
+made use of by the `networkservicemesh` project.  Specifically, the `UnimplementedServer*` method
+generation is missing.
 
 ## Updating Deps
 
