@@ -13,8 +13,10 @@ import (
 func TestUsingSingleAsyncOperation(t *testing.T) {
 	defer func() {
 		err := recover()
-		logrus.Errorf("test should dont fails, err: %v", err)
-		t.FailNow()
+		if err != nil {
+			logrus.Errorf("test should dont fails, err: %v", err)
+			t.FailNow()
+		}
 	}()
 	m := map[int]int{}
 	op := NewSingleAsyncOperation(func() {
