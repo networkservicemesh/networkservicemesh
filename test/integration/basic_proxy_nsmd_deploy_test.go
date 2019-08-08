@@ -33,7 +33,7 @@ func testProxyNSMgrDeploy(t *testing.T, proxyNsmdPodFactory func(string, *v1.Nod
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 

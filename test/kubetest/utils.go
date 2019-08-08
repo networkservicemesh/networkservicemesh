@@ -188,7 +188,7 @@ func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 	})
 
 	if len(failures) > 0 {
-		showLogs(k8s, nil)
+		makeLogsSnapshot(k8s, nil)
 	}
 
 	logrus.Printf("Proxy NSMgr started done: %v", time.Since(startTime))
