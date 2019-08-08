@@ -17,71 +17,69 @@ executions:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
-      - basic
-      - recover
-      - usecase
+      - performance
     root: ./test/integration
-    timeout: 300
+    timeout: 3600
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
-  - name: "Benchmark tests"
-    env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
-    tags:
-      - bench
-    root: ./test/integration
-    timeout: 600
-    cluster-count: 1
-    cluster-selector:
-      - packet
-    kubernetes-env:
-      - KUBECONFIG
-  - name: "Example-icmp"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=nsm-system
-      - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/icmp-example
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-infra-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
-      make k8s-icmp-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
-      make k8s-check
-      make k8s-logs-snapshot
-      make k8s-delete
-  - name: "Example-vpn"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=nsm-system
-      - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/vpn-example
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-infra-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
-      make k8s-vpn-deploy
-      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
-      make k8s-check
-      make k8s-logs-snapshot
-      make k8s-delete
-  - name: "Example-helm-icmp"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=default
-      - CLUSTER_RULES_PREFIX=null
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-icmp-responder
-      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
-      make k8s-check
-      make helm-delete-icmp-responder helm-delete-nsm
+#  - name: "Benchmark tests"
+#    env:
+#      - STORE_POD_LOGS_IN_FILES=true
+#      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+#    tags:
+#      - bench
+#    root: ./test/integration
+#    timeout: 600
+#    cluster-count: 1
+#    cluster-selector:
+#      - packet
+#    kubernetes-env:
+#      - KUBECONFIG
+#  - name: "Example-icmp"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=nsm-system
+#      - CLUSTER_RULES_PREFIX=null
+#      - STORE_POD_LOGS_IN_FILES=true
+#      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/icmp-example
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-infra-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+#      make k8s-icmp-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
+#      make k8s-check
+#      make k8s-logs-snapshot
+#      make k8s-delete
+#  - name: "Example-vpn"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=nsm-system
+#      - CLUSTER_RULES_PREFIX=null
+#      - STORE_POD_LOGS_IN_FILES=true
+#      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/vpn-example
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-infra-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+#      make k8s-vpn-deploy
+#      kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
+#      make k8s-check
+#      make k8s-logs-snapshot
+#      make k8s-delete
+#  - name: "Example-helm-icmp"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=default
+#      - CLUSTER_RULES_PREFIX=null
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-deconfig helm-install-nsm
+#      make helm-install-icmp-responder
+#      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
+#      make k8s-check
+#      make helm-delete-icmp-responder helm-delete-nsm

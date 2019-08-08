@@ -218,6 +218,11 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
+          name: "build-nsmwh"
+          container: "nsmwh"
+          requires:
+            - test-sanity-check
+      - build-container:
           name: "build-nsmd-k8s"
           container: "nsmd-k8s"
           requires:
@@ -287,6 +292,7 @@ workflows:
             - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
             - build-nsm-coredns
+            - build-nsmwh
 
 # Integration testing
       - integration-tests:

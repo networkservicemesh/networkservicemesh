@@ -91,6 +91,125 @@ func NSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Pod {
 		Namespace: namespace})
 }
 
+func NSMgrPodWithConfig_(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
+
+	ht := new(v1.HostPathType)
+	*ht = v1.HostPathDirectoryOrCreate
+
+	nodeName := "master"
+	if node != nil {
+		nodeName = node.Name
+	}
+
+	pod := &v1.Pod{
+		ObjectMeta: v12.ObjectMeta{
+			Name: name,
+		},
+		TypeMeta: v12.TypeMeta{
+			Kind: "Deployment",
+			//Kind: "DaemonSet",
+		},
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
+				{
+					Name: "kubelet-socket",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Type: ht,
+							Path: "/var/lib/kubelet/device-plugins",
+						},
+					},
+				},
+				{
+					Name: "nsm-socket",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Type: ht,
+							Path: "/var/lib/networkservicemesh",
+						},
+					},
+				},
+				{
+					Name: "nsm-plugin-socket",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Type: ht,
+							Path: "/var/lib/networkservicemesh/plugins",
+						},
+					},
+				},
+			},
+			Containers: []v1.Container{
+				containerMod(&v1.Container{
+					Name:            "nsmd",
+					Image:           "networkservicemesh/nsmd",
+					ImagePullPolicy: v1.PullIfNotPresent,
+					VolumeMounts:    []v1.VolumeMount{newNSMMount(), newNSMPluginMount()},
+					LivenessProbe:   config.liveness,
+					ReadinessProbe:  config.readiness,
+					Resources:       createDefaultResources(),
+				}),
+				containerMod(&v1.Container{
+					Name:            "nsmd-k8s",
+					Image:           "networkservicemesh/nsmd-k8s",
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Env: []v1.EnvVar{
+						v1.EnvVar{
+							Name:  "NODE_NAME",
+							Value: nodeName,
+						},
+						v1.EnvVar{
+							Name:  namespace.NsmNamespaceEnv,
+							Value: config.Namespace,
+						},
+					},
+					Resources: createDefaultResources(),
+				}),
+			},
+		},
+	}
+	if len(config.Variables) > 0 {
+		for k, v := range config.Variables {
+			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+	}
+	if node != nil {
+		pod.Spec.NodeSelector = map[string]string{
+			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
+		}
+	}
+
+	updates := 0
+	if config.NsmdP != NSMgrContainerNormal {
+		updateSpec(pod, 0, "nsmdp", config.NsmdP)
+		updates++
+	}
+	if config.Nsmd != NSMgrContainerNormal {
+		updateSpec(pod, 1, "nsmd", config.Nsmd)
+		updates++
+	}
+	if config.NsmdK8s != NSMgrContainerNormal {
+		updateSpec(pod, 2, "nsmd-k8s", config.NsmdK8s)
+		updates++
+	}
+
+	if updates > 0 {
+		pod.Spec.Volumes = append(pod.Spec.Volumes, v1.Volume{
+			Name: "src",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Type: ht,
+					Path: getNSMDLocalHostSourcePath(),
+				},
+			},
+		})
+	}
+
+	return pod
+}
 func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
 
 	ht := new(v1.HostPathType)

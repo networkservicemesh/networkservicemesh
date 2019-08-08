@@ -87,6 +87,9 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Name: name,
+			Annotations: map[string]string{
+				"ws.networkservicemesh.io": "true",
+			},
 		},
 		TypeMeta: v12.TypeMeta{
 			Kind: "Deployment",
@@ -132,11 +135,11 @@ func newInitContainer(env map[string]string) v1.Container {
 		Name:            "nsm-init",
 		Image:           "networkservicemesh/nsm-init:latest",
 		ImagePullPolicy: v1.PullIfNotPresent,
-		Resources: v1.ResourceRequirements{
-			Limits: v1.ResourceList{
-				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
-			},
-		},
+		//Resources: v1.ResourceRequirements{
+		//	Limits: v1.ResourceList{
+		//		"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+		//	},
+		//},
 	})
 	for k, v := range env {
 		initContainer.Env = append(initContainer.Env,

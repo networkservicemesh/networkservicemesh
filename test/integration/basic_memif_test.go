@@ -1,4 +1,4 @@
-// +build basic
+// +build performance
 
 package nsmd_integration_tests
 

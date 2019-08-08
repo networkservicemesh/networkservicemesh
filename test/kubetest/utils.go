@@ -60,6 +60,10 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
 
+func SetupNodes_(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
+	return SetupNodesConfig_(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
+}
+
 //DeployCorefile - Creates configmap with Corefile content
 func DeployCorefile(k8s *K8s, name, content string) error {
 	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
@@ -77,6 +81,76 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 		},
 	})
 	return err
+}
+
+// SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
+func SetupNodesConfig_(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
+	nodes := k8s.GetNodesWait(nodesCount, timeout)
+	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
+		"At least one Kubernetes node is required for this test")
+
+	var wg sync.WaitGroup
+	confs := make([]*NodeConf, nodesCount)
+	var resultError error
+	for ii := 0; ii < nodesCount; ii++ {
+		wg.Add(1)
+		i := ii
+		go func() {
+			defer wg.Done()
+			startTime := time.Now()
+			node := &nodes[i]
+			nsmdName := fmt.Sprintf("nsmgr-%s", node.Name)
+			dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
+			var corePod *v1.Pod
+			var dataplanePod *v1.Pod
+			debug := false
+			if i >= len(conf) {
+				corePod = pods.NSMgrPodWithConfig_(nsmdName, node, &pods.NSMgrPodConfig{
+					Variables: pods.DefaultNSMD(),
+					Namespace: namespace,
+				})
+				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, DefaultDataplaneVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
+			} else {
+				conf[i].Namespace = namespace
+				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
+					debug = true
+				}
+				corePod = pods.NSMgrPodWithConfig_(nsmdName, node, conf[i])
+				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, conf[i].DataplaneVariables, k8s.GetForwardingPlane())
+			}
+			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, dataplanePod)
+			if err != nil {
+				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				resultError = err
+				return
+			}
+			if debug {
+				podContainer := "nsmd"
+				if conf[i].Nsmd == pods.NSMgrContainerDebug {
+					podContainer = "nsmd"
+				} else if conf[i].NsmdP == pods.NSMgrContainerDebug {
+					podContainer = "nsmdp"
+				}
+
+				k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
+				logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
+			}
+			nsmd, dataplane, err := deployNSMgrAndDataplane_(k8s, corePods, timeout)
+			if err != nil {
+				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				resultError = err
+				return
+			}
+			logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
+			confs[i] = &NodeConf{
+				Nsmd:      nsmd,
+				Dataplane: dataplane,
+				Node:      &nodes[i],
+			}
+		}()
+	}
+	wg.Wait()
+	return confs, resultError
 }
 
 // SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
@@ -145,7 +219,25 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	wg.Wait()
 	return confs, resultError
 }
+func deployNSMgrAndDataplane_(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, dataplane *v1.Pod, err error) {
+	for _, pod := range corePods {
+		if !k8s.IsPodReady(pod) {
+			return nil, nil, fmt.Errorf("Pod %v is not ready...", pod.Name)
+		}
+	}
+	nsmd = corePods[0]
+	dataplane = corePods[1]
 
+	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
+	k8s.g.Expect(dataplane.Name).To(Equal(corePods[1].Name))
+
+	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
+	_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
+	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
+
+	err = nil
+	return
+}
 func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, dataplane *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
@@ -347,6 +439,22 @@ func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration
 	return nsc
 }
 
+func DeployNSMWH(k8s *K8s, node *v1.Node, timeout time.Duration) func() {
+	name := "nsmwh"
+	_, caCert := CreateAdmissionWebhookSecret(k8s, name, k8s.namespace)
+	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, k8s.namespace)
+
+	awDeployment := CreateNsmwhDeployment(k8s, name, "networkservicemesh/nsmwh", k8s.namespace, node)
+	awService := CreateAdmissionWebhookService(k8s, name, k8s.namespace)
+
+	admissionWebhookPod := waitWebhookPod(k8s, awDeployment.Name, timeout)
+	k8s.g.Expect(admissionWebhookPod).ShouldNot(BeNil())
+	k8s.WaitLogsContains(admissionWebhookPod, admissionWebhookPod.Spec.Containers[0].Name, "Server started", timeout)
+	return func() {
+		DeleteAdmissionWebhook(k8s, name+"-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
+	}
+}
+
 // DeployAdmissionWebhook - Setup Admission Webhook
 func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout time.Duration) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
 	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
@@ -485,6 +593,16 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 	k8s.g.Expect(err).To(BeNil())
 
 	return awc
+}
+
+// CreateNsmwhDeployment - Setup Admission Webhook deoloyment
+func CreateNsmwhDeployment(k8s *K8s, name, image, namespace string, node *v1.Node) *appsv1.Deployment {
+	deployment := pods.NsmwhWebhookDeployment(name, image, node)
+
+	awDeployment, err := k8s.CreateDeployment(deployment, namespace)
+	k8s.g.Expect(err).To(BeNil())
+
+	return awDeployment
 }
 
 // CreateAdmissionWebhookDeployment - Setup Admission Webhook deoloyment

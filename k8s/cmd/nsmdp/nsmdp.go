@@ -100,7 +100,6 @@ func Register(kubeletEndpoint string) error {
 		Endpoint:     ServerSock,
 		ResourceName: resourceName,
 	}
-
 	_, err = client.Register(context.Background(), reqt)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot register to kubelet service: %v", err)
@@ -129,15 +128,6 @@ func enumWorkspaces(serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.E
 		return nil, err
 	}
 	return reply, nil
-}
-
-func indexOf(slice []string, value string) int {
-	for i, v := range slice {
-		if v == value {
-			return i
-		}
-	}
-	return -1
 }
 
 func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {

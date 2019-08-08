@@ -17,6 +17,7 @@ BUILD_CONTAINERS+=crossconnect-monitor
 BUILD_CONTAINERS+=nsm-init nsm-monitor
 BUILD_CONTAINERS+=test-common
 BUILD_CONTAINERS+=nsm-coredns
+BUILD_CONTAINERS+=nsmwh
 
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)

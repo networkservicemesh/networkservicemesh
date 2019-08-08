@@ -5,8 +5,7 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TestCommonPod creates a new alpine-based testing pod
-func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string) *v1.Pod {
+func NSWHPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -19,8 +18,8 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Name: name,
-			Annotations: map[string]string{
-				"ws.networkservicemesh.io": "true",
+			Labels: map[string]string{
+				"app": "nsm-admission-webhook",
 			},
 		},
 		TypeMeta: v12.TypeMeta{
@@ -30,16 +29,27 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            name,
-					Image:           "networkservicemesh/test-common:latest",
+					Image:           "networkservicemesh/nsmwh:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Command:         command,
-					//Resources: v1.ResourceRequirements{
-					//	Limits: v1.ResourceList{
-					//		"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
-					//	},
-					//},
-					Env: envVars,
+					Env:             envVars,
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "webhook-certs",
+							MountPath: "/etc/webhook/certs",
+							ReadOnly:  true,
+						},
+					},
 				}),
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: "webhook-certs",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "nsm-admission-webhook-certs",
+						},
+					},
+				},
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
