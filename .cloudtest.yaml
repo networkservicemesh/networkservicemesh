@@ -14,8 +14,8 @@ reporting:
 executions:
   - name: "Single cluster tests"
     env:
-      - WRITE_POD_LOGS_IN_FILES=true
-      - WRITE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - basic
       - recover
@@ -26,6 +26,9 @@ executions:
     kubernetes-env:
       - KUBECONFIG
   - name: "Benchmark tests"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - bench
     root: ./test/integration
@@ -40,6 +43,8 @@ executions:
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/icmp-example
     kubernetes-env:
       - KUBECONFIG
     run: |
@@ -48,12 +53,15 @@ executions:
       make k8s-icmp-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-check
+      make k8s-logs-snapshot
       make k8s-delete
   - name: "Example-vpn"
     kind: shell
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/vpn-example
     kubernetes-env:
       - KUBECONFIG
     run: |
@@ -62,6 +70,7 @@ executions:
       make k8s-vpn-deploy
       kubectl wait -n ${NSM_NAMESPACE} --timeout=300s --for condition=Ready --all pods
       make k8s-check
+      make k8s-logs-snapshot
       make k8s-delete
   - name: "Example-helm-icmp"
     kind: shell

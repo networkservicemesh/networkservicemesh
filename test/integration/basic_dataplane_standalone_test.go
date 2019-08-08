@@ -293,7 +293,7 @@ func (fixture *standaloneDataplaneFixture) handleFailures(failures []string) {
 		fixture.printLogs(fixture.sourcePod)
 		fixture.printLogs(fixture.destPod)
 		fixture.test.Fail()
-		kubetest.ShowLogs(fixture.k8s, fixture.test)
+		kubetest.MakeLogsSnapshot(fixture.k8s, fixture.test)
 	}
 }
 

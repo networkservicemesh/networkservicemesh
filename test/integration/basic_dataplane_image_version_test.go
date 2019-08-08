@@ -24,7 +24,7 @@ func TestDataplaneVersion(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	g.Expect(len(nodes) > 0).Should(BeTrue())
 	dataplane := nodes[0].Dataplane

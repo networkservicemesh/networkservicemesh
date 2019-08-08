@@ -7,10 +7,10 @@ EXIT_VAL=0
 for nsc in $(${kubectl} get pods -o=name | grep vpn-gateway-nsc | sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     for ip in $(${kubectl} exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
-        if [[ "${ip}" == 10.60.1.* ]];then
+        if [[ "${ip}" == 172.16.1.* ]];then
             lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
             nextOp=$((lastSegment + 1))
-            targetIp="10.60.1.${nextOp}"
+            targetIp="172.16.1.${nextOp}"
             endpointName="vpn-gateway-nse"
         fi
 

@@ -38,7 +38,7 @@ func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 

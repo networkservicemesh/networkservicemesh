@@ -72,7 +72,7 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.ShowLogs(k8s, t)
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 	// Run ICMP on latest node
 	fixture.DeployNse(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 

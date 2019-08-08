@@ -9,10 +9,10 @@ const (
 	MaxTransactionLineWidth = 128
 	//TransactionLogUnit - charter of header line
 	TransactionLogUnit = '#'
-	//WritePodLogsInFile - name of OS variable for enabling logging to file
-	WritePodLogsInFile = "WRITE_POD_LOGS_IN_FILES"
-	//WritePodLogsDir - name of OS variable for custom dir for logs
-	WritePodLogsDir = "WRITE_POD_LOGS_DIR"
+	//StorePodLogsInFile - name of OS variable for enabling logging to file
+	StorePodLogsInFile = "STORE_POD_LOGS_IN_FILES"
+	//StorePodLogsDir - name of OS variable for custom dir for logs
+	StorePodLogsDir = "STORE_POD_LOGS_DIR"
 	//DefaultLogDir - default name of dir for logs
 	DefaultLogDir = "logs"
 )
