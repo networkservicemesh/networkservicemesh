@@ -13,6 +13,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+const (
+	registrationTimeout = 100 * time.Second
+)
+
 // StartPrefixPlugin creates an instance of a prefix plugin and registers it
 func StartPrefixPlugin(config *rest.Config) error {
 	endpoint := path.Join(plugins.PluginRegistryPath, "k8s-prefixes.sock")
@@ -69,16 +73,13 @@ func registerPlugin(endpoint string) error {
 
 	client := plugins.NewPluginRegistryClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), registrationTimeout)
 	defer cancel()
 
 	_, err = client.Register(ctx, &plugins.PluginInfo{
 		Endpoint:     endpoint,
 		Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
 	})
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
