@@ -6,10 +6,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"k8s.io/client-go/rest"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
@@ -40,12 +37,7 @@ func createPlugin(config *rest.Config, endpoint string) error {
 		return err
 	}
 
-	tracer := opentracing.GlobalTracer()
-	server := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	server := tools.NewServer()
 
 	service, err := newPrefixService(config)
 	if err != nil {
