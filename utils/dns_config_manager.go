@@ -1,4 +1,4 @@
-package common
+package utils
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common/caddyfile"
+	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 )
 
 const anyDomain = "."
