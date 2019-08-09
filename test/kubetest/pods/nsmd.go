@@ -112,15 +112,6 @@ func NSMgrPodWithConfig_(name string, node *v1.Node, config *NSMgrPodConfig) *v1
 		Spec: v1.PodSpec{
 			Volumes: []v1.Volume{
 				{
-					Name: "kubelet-socket",
-					VolumeSource: v1.VolumeSource{
-						HostPath: &v1.HostPathVolumeSource{
-							Type: ht,
-							Path: "/var/lib/kubelet/device-plugins",
-						},
-					},
-				},
-				{
 					Name: "nsm-socket",
 					VolumeSource: v1.VolumeSource{
 						HostPath: &v1.HostPathVolumeSource{
@@ -210,6 +201,7 @@ func NSMgrPodWithConfig_(name string, node *v1.Node, config *NSMgrPodConfig) *v1
 
 	return pod
 }
+
 func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
 
 	ht := new(v1.HostPathType)
