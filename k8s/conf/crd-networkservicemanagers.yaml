@@ -13,7 +13,7 @@ spec:
       - nsm
       - nsms
     singular: networkservicemanager
-  scope: Cluster
+  scope: Namespaced
   version: v1alpha1
   versions:
     - name: v1alpha1
