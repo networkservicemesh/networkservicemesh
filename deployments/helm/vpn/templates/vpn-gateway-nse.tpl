@@ -41,7 +41,7 @@ spec:
               networkservicemesh.io/socket: 1
           command: ["/bin/icmp-responder-nse"]
         - name: nginx
-          image: {{ .Values.registry }}/networkservicemesh/nginx:{{ .Values.tag }}
+          image: nginx
 metadata:
   name: vpn-gateway-nse
   namespace: {{ .Release.Namespace }}
