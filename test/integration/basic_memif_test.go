@@ -1,4 +1,4 @@
-// +build performance
+// +build bssic
 
 package nsmd_integration_tests
 
