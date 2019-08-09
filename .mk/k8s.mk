@@ -34,7 +34,7 @@ endif
 # Deployments - grouped
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
-DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
+DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_MONITOR)
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
