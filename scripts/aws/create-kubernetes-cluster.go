@@ -113,8 +113,8 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 
 	s := string(sf)
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
-		StackName:    clusterStackName,
-		TemplateBody: &s,
+		StackName:       clusterStackName,
+		TemplateBody:    &s,
 		DisableRollback: aws.Bool(true),
 	})
 	checkError(err)
@@ -217,7 +217,7 @@ func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	err = ioutil.WriteFile(keyFile, []byte(*resp.KeyMaterial), 0400)
 
 	checkError(err)
-	log.Print(resp);
+	log.Print(resp)
 	log.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
 }
 
@@ -236,13 +236,13 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	eksAmi := aws.String("ami-04ea7cb66af82ae4a")
 
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
-		StackName:    nodesStackName,
-		TemplateBody: &s,
+		StackName:       nodesStackName,
+		TemplateBody:    &s,
 		DisableRollback: aws.Bool(true),
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		Capabilities:    []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			{
-				ParameterKey: aws.String("KeyName"),
+				ParameterKey:   aws.String("KeyName"),
 				ParameterValue: keyPairName,
 			},
 			{
@@ -250,19 +250,19 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 				ParameterValue: eksAmi,
 			},
 			{
-				ParameterKey: aws.String("ClusterName"),
+				ParameterKey:   aws.String("ClusterName"),
 				ParameterValue: clusterName,
 			},
 			{
-				ParameterKey: aws.String("NodeGroupName"),
+				ParameterKey:   aws.String("NodeGroupName"),
 				ParameterValue: nodeGroupName,
 			},
 			{
-				ParameterKey: aws.String("ClusterControlPlaneSecurityGroup"),
+				ParameterKey:   aws.String("ClusterControlPlaneSecurityGroup"),
 				ParameterValue: clusterStackOutputs.SecurityGroups,
 			},
 			{
-				ParameterKey: aws.String("VpcId"),
+				ParameterKey:   aws.String("VpcId"),
 				ParameterValue: clusterStackOutputs.VpcId,
 			},
 			{
@@ -299,7 +299,7 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 				}
 			}
 			return sequrityGroup, instanceRole
-		case  "CREATE_IN_PROGRESS":
+		case "CREATE_IN_PROGRESS":
 			time.Sleep(requestInterval)
 		default:
 			log.Fatalf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
@@ -317,8 +317,8 @@ func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
 				FromPort:   aws.Int64(22),
 				IpRanges: []*ec2.IpRange{
 					{
-						CidrIp:aws.String("0.0.0.0/0"),
-						Description:aws.String("SSH access"),
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("SSH access"),
 					},
 				},
 			},
@@ -329,7 +329,7 @@ func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
 
 func CreateSSHConfig(ec2client *ec2.EC2, vpcId *string, scpConfigFileName string) {
 	res, err := ec2client.DescribeInstances(&ec2.DescribeInstancesInput{
-		Filters: []* ec2.Filter {
+		Filters: []*ec2.Filter{
 			{
 				Name: aws.String("vpc-id"),
 				Values: []*string{
@@ -346,11 +346,11 @@ func CreateSSHConfig(ec2client *ec2.EC2, vpcId *string, scpConfigFileName string
 
 	i := 0
 	hostNames := [2]string{"<EC2MASTER>", "<EC2WORKER>"}
-	for _, reserv := range(res.Reservations) {
-		for _, v := range(reserv.Instances) {
+	for _, reserv := range res.Reservations {
+		for _, v := range reserv.Instances {
 			if len(hostNames) > i {
 				scpConfig = strings.Replace(scpConfig, hostNames[i], *v.PublicIpAddress, 1)
-				i++;
+				i++
 			}
 		}
 	}

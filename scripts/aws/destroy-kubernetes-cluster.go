@@ -90,10 +90,10 @@ func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.Clo
 	}
 
 	ec2Resp, err := ec2Client.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
-		Filters: []*ec2.Filter {
+		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("group-id"),
-				Values: []*string {sequrityGroup},
+				Name:   aws.String("group-id"),
+				Values: []*string{sequrityGroup},
 			},
 		},
 	})
@@ -102,7 +102,7 @@ func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.Clo
 		return
 	}
 
-	for _, networkInterface := range(ec2Resp.NetworkInterfaces) {
+	for _, networkInterface := range ec2Resp.NetworkInterfaces {
 		_, err := ec2Client.DeleteNetworkInterface(&ec2.DeleteNetworkInterfaceInput{
 			NetworkInterfaceId: networkInterface.NetworkInterfaceId,
 		})
