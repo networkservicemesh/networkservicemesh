@@ -50,5 +50,5 @@ Every chart has file `values.yaml`. Now there is a possibility to specify docker
 
 ```yaml
 registry: docker.io
-tag: latest
+tag: v0.1.0
 ```
