@@ -172,7 +172,9 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					},
 					Resources: createDefaultResources(),
 				}),
+
 			},
+			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
 	if len(config.Variables) > 0 {
