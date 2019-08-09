@@ -291,7 +291,7 @@ func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
 		Variables: map[string]string{
 			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 			nsm.NsmdHealDSTWaitTimeout:    "1",    // 1 second
-			nsm.NsmdHealEnabled:           "true",
+			nsm.NsmdHealEnabled:           "false",
 		},
 		Namespace:          k8s.GetK8sNamespace(),
 		DataplaneVariables: DefaultDataplaneVariables(k8s.GetForwardingPlane()),
