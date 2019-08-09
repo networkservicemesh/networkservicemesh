@@ -6,11 +6,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: nsmmgr-daemonset
+      app: nsmgr-daemonset
   template:
     metadata:
       labels:
-        app: nsmmgr-daemonset
+        app: nsmgr-daemonset
     spec:
       containers:
         - name: nsmdp
