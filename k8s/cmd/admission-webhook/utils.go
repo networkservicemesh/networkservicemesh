@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
@@ -53,19 +54,11 @@ func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) 
 }
 
 func getInitContainerPatchPath(request *v1beta1.AdmissionRequest) string {
-	return getSpecPatchPath(request) + "/initContainers"
-}
-
-func getVolumePatchPath(request *v1beta1.AdmissionRequest) string {
-	return getSpecPatchPath(request) + "/volumes"
-}
-
-func getSpecPatchPath(request *v1beta1.AdmissionRequest) string {
 	if request.Kind.Kind == pod {
-		return pathPodSpec
+		return pathPodInitContainers
 	}
 	if request.Kind.Kind == deployment {
-		return pathDeploymentSpec
+		return pathDeploymentInitContainers
 	}
 	panic("unsupported request kind")
 }
@@ -76,7 +69,7 @@ func validateAnnotationValue(value string) error {
 	return err
 }
 
-func createInitContainerPatch(annotationValue, path string) []patchOperation {
+func createInitContainerPatch(annotationValue, path string, secure bool) []patchOperation {
 	var patch []patchOperation
 
 	envVals := []corev1.EnvVar{{
@@ -101,23 +94,28 @@ func createInitContainerPatch(annotationValue, path string) []patchOperation {
 			})
 	}
 
-	value := []corev1.Container{{
-		Name:            initContainerName,
-		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
-		ImagePullPolicy: corev1.PullIfNotPresent,
-		Env:             envVals,
-		VolumeMounts: []corev1.VolumeMount{
+	var volumeMounts []corev1.VolumeMount
+	if secure {
+		volumeMounts = []corev1.VolumeMount{
 			{
 				Name:      spireSocketVolume,
 				MountPath: spireSocketPath,
 				ReadOnly:  true,
 			},
-		},
+		}
+	}
+
+	value := []corev1.Container{{
+		Name:            initContainerName,
+		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env:             envVals,
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"networkservicemesh.io/socket": resource.MustParse("1"),
 			},
 		},
+		VolumeMounts: volumeMounts,
 	}}
 
 	patch = append(patch, patchOperation{
@@ -143,24 +141,13 @@ func isSupportKind(request *v1beta1.AdmissionRequest) bool {
 	return request.Kind.Kind == pod || request.Kind.Kind == deployment
 }
 
-func getNsmAnnotationValue(ignoredNamespaceList []string, tuple *podSpecAndMeta) (string, bool) {
-
-	// skip special kubernetes system namespaces
+func isIgnoreNamespace(ignoredNamespaceList []string, tuple *podSpecAndMeta) bool {
 	for _, namespace := range ignoredNamespaceList {
 		if tuple.meta.Namespace == namespace {
-			logrus.Infof("Skip validation for %v for it's in special namespace:%v", tuple.meta.Name, tuple.meta.Namespace)
-			return "", false
+			return true
 		}
 	}
-
-	annotations := tuple.meta.GetAnnotations()
-	if annotations == nil {
-		logrus.Info("No annotations, skip")
-		return "", false
-	}
-
-	value, ok := annotations[nsmAnnotationKey]
-	return value, ok
+	return false
 }
 
 func parseAdmissionReview(body []byte) (*v1beta1.AdmissionReview, error) {
@@ -191,23 +178,58 @@ func readRequest(r *http.Request) ([]byte, error) {
 	return body, nil
 }
 
-func addVolume(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
-	first := len(target) == 0
-	var value interface{}
-	for i := 0; i < len(added); i++ {
-		value = added[i]
-		path := basePath
-		if first {
-			first = false
-			value = []corev1.Volume{added[i]}
-		} else {
-			path = path + "/-"
-		}
-		patch = append(patch, patchOperation{
-			Op:    "add",
-			Path:  path,
-			Value: value,
-		})
+func addVolumeMounts(spec *corev1.PodSpec, added corev1.VolumeMount) (patch []patchOperation) {
+	for i := 0; i < len(spec.Containers); i++ {
+		path := pathContainers + "/" + strconv.Itoa(i) + "/volumeMounts"
+		patch = append(patch, addVolumeMount(added, path, len(spec.Containers[i].VolumeMounts) == 0)...)
 	}
-	return patch
+
+	for i := 0; i < len(spec.InitContainers); i++ {
+		path := pathInitContainers + "/" + strconv.Itoa(i) + "/volumeMounts"
+		patch = append(patch, addVolumeMount(added, path, len(spec.InitContainers[i].VolumeMounts) == 0)...)
+	}
+
+	return
+}
+
+func addVolumeMount(added corev1.VolumeMount, path string, first bool) (patch []patchOperation) {
+	var value interface{}
+	value = added
+
+	if first {
+		first = false
+		value = []corev1.VolumeMount{added}
+	} else {
+		path = path + "/-"
+	}
+
+	patch = append(patch, patchOperation{
+		Op:    "add",
+		Path:  path,
+		Value: value,
+	})
+
+	return
+}
+
+func addVolume(spec *corev1.PodSpec, added corev1.Volume) (patch []patchOperation) {
+	first := len(spec.Volumes) == 0
+	path := pathVolumes
+	var value interface{}
+	value = added
+
+	if first {
+		first = false
+		value = []corev1.Volume{added}
+	} else {
+		path = path + "/-"
+	}
+
+	patch = append(patch, patchOperation{
+		Op:    "add",
+		Path:  path,
+		Value: value,
+	})
+
+	return
 }

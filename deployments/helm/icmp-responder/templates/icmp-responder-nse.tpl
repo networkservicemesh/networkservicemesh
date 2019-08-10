@@ -14,11 +14,6 @@ spec:
         networkservicemesh.io/impl: "icmp-responder"
     spec:
       serviceAccount: nse-acc
-      volumes:
-        - hostPath:
-            path: /run/spire/sockets
-            type: DirectoryOrCreate
-          name: spire-agent-socket
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -47,13 +42,11 @@ spec:
               value: "true"
             - name: IP_ADDRESS
               value: "172.16.1.0/24"
-          volumeMounts:
-            - name: spire-agent-socket
-              mountPath: /run/spire/sockets
-              readOnly: true
           resources:
             limits:
               networkservicemesh.io/socket: 1
 metadata:
   name: icmp-responder-nse
   namespace: {{ .Release.Namespace }}
+  annotations:
+    security.networkservicemesh.io: ""

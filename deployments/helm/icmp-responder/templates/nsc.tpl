@@ -21,3 +21,4 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     ns.networkservicemesh.io: icmp-responder?app=icmp
+    security.networkservicemesh.io: ""

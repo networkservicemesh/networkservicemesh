@@ -14,11 +14,6 @@ spec:
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
       serviceAccount: nse-acc
-      volumes:
-        - hostPath:
-            path: /run/spire/sockets
-            type: DirectoryOrCreate
-          name: spire-agent-socket
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -34,10 +29,6 @@ spec:
           image: networkservicemesh/test-common:latest
           command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: spire-agent-socket
-              mountPath: /run/spire/sockets
-              readOnly: true
           env:
             - name: ADVERTISE_NSE_NAME
               value: "secure-intranet-connectivity"
@@ -55,3 +46,5 @@ spec:
 metadata:
   name: vpn-gateway-nse
   namespace: nsm-system
+  annotations:
+    security.networkservicemesh.io: ""

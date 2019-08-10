@@ -26,3 +26,4 @@ metadata:
   namespace: nsm-system
   annotations:
     ns.networkservicemesh.io: icmp-responder?app=icmp
+    security.networkservicemesh.io: ""
