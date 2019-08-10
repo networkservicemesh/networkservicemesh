@@ -194,13 +194,12 @@ func addVolumeMounts(spec *corev1.PodSpec, added corev1.VolumeMount) (patch []pa
 
 func addVolumeMount(added corev1.VolumeMount, path string, first bool) (patch []patchOperation) {
 	var value interface{}
-	value = added
 
 	if first {
-		first = false
 		value = []corev1.VolumeMount{added}
 	} else {
 		path = path + "/-"
+		value = added
 	}
 
 	patch = append(patch, patchOperation{
@@ -213,16 +212,14 @@ func addVolumeMount(added corev1.VolumeMount, path string, first bool) (patch []
 }
 
 func addVolume(spec *corev1.PodSpec, added corev1.Volume) (patch []patchOperation) {
-	first := len(spec.Volumes) == 0
 	path := pathVolumes
 	var value interface{}
-	value = added
 
-	if first {
-		first = false
+	if len(spec.Volumes) == 0 {
 		value = []corev1.Volume{added}
 	} else {
 		path = path + "/-"
+		value = added
 	}
 
 	patch = append(patch, patchOperation{

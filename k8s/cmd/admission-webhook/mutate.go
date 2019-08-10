@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"k8s.io/api/core/v1"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
