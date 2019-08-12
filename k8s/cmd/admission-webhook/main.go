@@ -3,9 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 	"net/http"
 	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
 	"github.com/sirupsen/logrus"
 

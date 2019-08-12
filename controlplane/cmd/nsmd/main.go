@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 	"strings"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -88,7 +89,6 @@ func main() {
 	}
 	nsmdGoals.Done()
 	logrus.Info("Dataplane server is ready")
-
 
 	// Choose a public API listener
 	nsmdAPIAddress := os.Getenv(NsmdAPIAddressEnv)
