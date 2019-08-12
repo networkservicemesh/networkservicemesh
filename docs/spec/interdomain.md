@@ -31,66 +31,9 @@ Network service can be reached by ipv4 format address and domain name. Currently
 Example usage
 ------------------------
 
-Following is an example of the full Proxy NSMgr deployment.
+Take a look an example in interdomain integration tests
 
-```yaml
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: proxy-nsmgr
-  namespace: nsm-system
-spec:
-  selector:
-    matchLabels:
-      app: proxy-nsmgr-daemonset
-  template:
-    metadata:
-      labels:
-        app: proxy-nsmgr-daemonset
-    spec:
-      containers:
-        - name: proxy-nsmd
-          image: networkservicemesh/proxy-nsmd
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 5006
-              hostPort: 5006
-        - name: proxy-nsmd-k8s
-          image: networkservicemesh/proxy-nsmd-k8s
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
-              hostPort: 5005
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: pnsmgr-svc
-  labels:
-    app: proxy-nsmgr-daemonset
-  namespace: nsm-system
-spec:
-  ports:
-    - name: pnsmd
-      port: 5005
-      protocol: TCP
-    - name: pnsr
-      port: 5006
-      protocol: TCP
-  selector:
-    app: proxy-nsmgr-daemonset
-
-```
-
-Also take a look an example in interdomain integration tests
-
-Interdomain NSM supports and have been checked on Packet, AWS and GKE clusters. 
+Interdomain NSM supports and have been checked on Packet, AWS, AZURE and GKE clusters. 
 
 References
 ----------
