@@ -204,10 +204,6 @@ func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, 
 	return nil
 }
 
-func (impl *nsmdTestServiceDiscovery) GetNodeIPConfiguration(ctx context.Context, nodeIPConfiguration *registry.NodeIPConfiguration, opts ...grpc.CallOption) (*registry.NodeIPConfiguration, error) {
-	return nodeIPConfiguration, nil
-}
-
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
