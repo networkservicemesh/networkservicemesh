@@ -7,21 +7,26 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
+	"github.com/networkservicemesh/networkservicemesh/utils/helper/errtools"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
 
 type shellTestRunner struct {
-	test    *model.TestEntry
-	envMgr  shell.EnvironmentManager
-	id      string
-	manager execmanager.ExecutionManager
+	test   *model.TestEntry
+	envMgr shell.EnvironmentManager
+	id     string
 }
 
 func (runner *shellTestRunner) Run(timeoutCtx context.Context, env []string, writer *bufio.Writer) error {
-	return runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
+	runErr := runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
+	if runErr != nil {
+		onFailErr := runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.OnFailScript), env, writer)
+		return errtools.Combine(runErr, onFailErr)
+	}
+	return nil
 }
 
 func (runner *shellTestRunner) runCmd(context context.Context, script, env []string, writer *bufio.Writer) error {
@@ -51,14 +56,13 @@ func (runner *shellTestRunner) GetCmdLine() string {
 }
 
 // NewShellTestRunner - creates a new shell script test runner.
-func NewShellTestRunner(ids string, test *model.TestEntry, manager execmanager.ExecutionManager) TestRunner {
+func NewShellTestRunner(ids string, test *model.TestEntry) TestRunner {
 	envMgr := shell.NewEnvironmentManager()
 	_ = envMgr.ProcessEnvironment(ids, "shellrun", os.TempDir(), test.ExecutionConfig.Env, map[string]string{})
 
 	return &shellTestRunner{
-		id:      ids,
-		test:    test,
-		envMgr:  envMgr,
-		manager: manager,
+		id:     ids,
+		test:   test,
+		envMgr: envMgr,
 	}
 }

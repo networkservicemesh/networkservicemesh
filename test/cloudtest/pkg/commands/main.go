@@ -516,6 +516,7 @@ func (ctx *executionContext) createSingleTask(taskIndex int, test *model.TestEnt
 			ExecutionConfig: test.ExecutionConfig,
 			Executions:      []model.TestEntryExecution{},
 			RunScript:       test.RunScript,
+			OnFailScript:    test.OnFailScript,
 		},
 		clusters: []*clustersGroup{cluster},
 	}
@@ -567,7 +568,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 	var runner runners.TestRunner
 	switch task.test.Kind {
 	case model.TestEntryKindShellTest:
-		runner = runners.NewShellTestRunner(ids, task.test, ctx.manager)
+		runner = runners.NewShellTestRunner(ids, task.test)
 	case model.TestEntryKindGoTest:
 		runner = runners.NewGoTestRunner(ids, task.test, timeout)
 	default:
@@ -919,6 +920,7 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 			ExecutionConfig: exec,
 			Status:          model.StatusAdded,
 			RunScript:       exec.Run,
+			OnFailScript:    exec.OnFail,
 		},
 	}
 }
