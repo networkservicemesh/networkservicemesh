@@ -1,10 +1,12 @@
 package main
 
-import "github.com/networkservicemesh/networkservicemesh/sdk/common"
+import (
+	"github.com/networkservicemesh/networkservicemesh/utils"
+)
 
 const (
 	//SearchDomainsEnv means domains for dnsConfig. It used only with flag -dns
-	SearchDomainsEnv common.EnvVar = "DNS_SEARCH_DOMAINS"
+	SearchDomainsEnv utils.EnvVar = "DNS_SEARCH_DOMAINS"
 	//ServerIPsEnv means dns server ips for dnsConfig. It used only with flag -dns
-	ServerIPsEnv common.EnvVar = "DNS_SERVER_IPS"
+	ServerIPsEnv utils.EnvVar = "DNS_SERVER_IPS"
 )

@@ -15,9 +15,8 @@
 package main
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -27,9 +26,9 @@ var version string
 
 const (
 	//PathToCorefileEnv means path to corefile
-	PathToCorefileEnv common.EnvVar = "PATH_TO_COREFILE"
+	PathToCorefileEnv utils.EnvVar = "PATH_TO_COREFILE"
 	//ReloadCorefileEnvTime means time to reload corefile
-	ReloadCorefileEnvTime common.EnvVar = "RELOAD_COREFILE_TIME"
+	ReloadCorefileEnvTime utils.EnvVar = "RELOAD_COREFILE_TIME"
 )
 
 func main() {
