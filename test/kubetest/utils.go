@@ -609,16 +609,6 @@ func GetNodeExternalIP(node *v1.Node) (string, error) {
 	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
 }
 
-// GetNodeExternalIP - Pop InternalIP from node addresses
-func GetNodeExternalIP(node *v1.Node) (string, error) {
-	for i := range node.Status.Addresses {
-		if node.Status.Addresses[i].Type == "ExternalIP" {
-			return node.Status.Addresses[i].Address, nil
-		}
-	}
-	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
-}
-
 // PrintLogs - Print Client print information
 func (info *NSCCheckInfo) PrintLogs() {
 	if info == nil {
