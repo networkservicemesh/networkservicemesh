@@ -44,7 +44,8 @@ type ExecutionConfig struct {
 	KubernetesEnv   []string `yaml:"kubernetes-env"`   // Names of environment variables to put cluster names inside.
 	ClusterSelector []string `yaml:"cluster-selector"` // A cluster name to execute this tests on.
 	Env             []string `yaml:"env"`              // Additional environment variables
-	Run             string   `yaml:"run"`              // A script to execute agains required cluster
+	Run             string   `yaml:"run"`              // A script to execute against required cluster
+	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
 }
 
 type CloudTestConfig struct {
