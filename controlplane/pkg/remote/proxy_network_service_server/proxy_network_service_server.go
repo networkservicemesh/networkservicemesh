@@ -76,7 +76,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		return nil, err
 	}
 	defer func() {
-		if err := localConn.Close(); err != nil {
+		if err = localConn.Close(); err != nil {
 			logrus.Errorf("ProxyNSMD: Failed to close the local Cluster Info Client (%s). %v", localNsrURL, err)
 		}
 	}()
@@ -95,7 +95,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		return nil, err
 	}
 	defer func() {
-		if err := remoteConn.Close(); err != nil {
+		if err = remoteConn.Close(); err != nil {
 			logrus.Errorf("ProxyNSMD: Failed to close the remote Cluster Info Client (%s). %v", remoteRegistryAddress, err)
 		}
 	}()

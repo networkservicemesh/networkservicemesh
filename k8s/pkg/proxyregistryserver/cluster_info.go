@@ -16,6 +16,7 @@ type k8sClusterInfo struct {
 	clientset *kubernetes.Clientset
 }
 
+// NewK8sClusterInfoService creates a ClusterInfoServer
 func NewK8sClusterInfoService(config *rest.Config) (interdomain.ClusterInfoServer, error) {
 	cs, err := kubernetes.NewForConfig(config)
 
