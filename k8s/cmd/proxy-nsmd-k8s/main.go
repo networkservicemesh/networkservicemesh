@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 
 	"github.com/opentracing/opentracing-go"
@@ -40,7 +39,7 @@ func main() {
 	logrus.Println("Starting NSMD Kubernetes on " + address)
 	nsmClientSet, config, err := utils.NewClientSet()
 
-	clusterInfoService, err := registryserver.NewK8sClusterInfoService(config)
+	clusterInfoService, err := proxyregistryserver.NewK8sClusterInfoService(config)
 	if err != nil {
 		logrus.Fatalln("Fail to start NSMD Kubernetes service", err)
 	}

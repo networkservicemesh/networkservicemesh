@@ -1,9 +1,10 @@
-package registryserver
+package proxyregistryserver
 
 import (
 	"fmt"
 
 	"golang.org/x/net/context"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -40,9 +41,9 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 
 		for _, address := range node.Status.Addresses {
 			switch address.Type {
-			case "InternalIP":
+			case v1.NodeInternalIP:
 				nodeInternalIP = address.Address
-			case "ExternalIP":
+			case v1.NodeExternalIP:
 				nodeExternalIP = address.Address
 			}
 		}
