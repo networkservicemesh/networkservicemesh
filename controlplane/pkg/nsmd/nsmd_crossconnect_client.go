@@ -365,7 +365,8 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
-			NetworkServiceManagerName: client.xconManager.GetNsmName(),
+			NetworkServiceManagerName:            client.xconManager.GetNsmName(),
+			DestinationNetworkServiceManagerName: remotePeer.Name,
 		})
 	}
 

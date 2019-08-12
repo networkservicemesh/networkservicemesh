@@ -167,6 +167,44 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	return
 }
 
+// DeployProxyNSMgr - Setup Proxy NSMgr on Cluster
+func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duration) (pnsmd *v1.Pod, err error) {
+	startTime := time.Now()
+	template := pods.ProxyNSMgrPod(name, node, k8s.GetK8sNamespace())
+
+	logrus.Infof("Starting Proxy NSMgr %s on node: %s", name, node.Name)
+	tempPods, err := k8s.CreatePodsRaw(PodStartTimeout, true, template)
+
+	if err != nil {
+		logrus.Errorf("Failed to Started pNSMgr: %v on node %s %v", time.Since(startTime), node.Name, err)
+		return nil, err
+	}
+
+	pnsmd = tempPods[0]
+
+	failures := InterceptGomegaFailures(func() {
+		_ = k8s.WaitLogsContainsRegex(pnsmd, "proxy-nsmd", "NSM gRPC API Server: .* is operational", timeout)
+		k8s.WaitLogsContains(pnsmd, "proxy-nsmd-k8s", "proxy-nsmd-k8s initialized and waiting for connection", timeout)
+	})
+
+	if len(failures) > 0 {
+		makeLogsSnapshot(k8s, nil)
+	}
+
+	logrus.Printf("Proxy NSMgr started done: %v", time.Since(startTime))
+	return
+}
+
+// RunProxyNSMgrService deploys proxy NSMgr service to access proxy NSMgr pods with single DNS name
+func RunProxyNSMgrService(k8s *K8s) func() {
+	svc, err := k8s.CreateService(pods.ProxyNSMgrSvc(), k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	return func() {
+		_ = k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	}
+}
+
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployICMP(k8s, nodeName(node), name, timeout,
@@ -221,6 +259,12 @@ func DeployNSCMonitor(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
 		pods.NSCMonitorPod(name, node, defaultNSCEnv()),
 	)
+}
+
+// DeployNSCWithEnv - Setup Default Client with custom environment
+func DeployNSCWithEnv(k8s *K8s, node *v1.Node, name string, timeout time.Duration, env map[string]string) *v1.Pod {
+	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout, pods.NSCPod(name, node,
+		env))
 }
 
 // DeployNSCWebhook - Setup Default Client with webhook
@@ -525,6 +569,26 @@ func CreateAdmissionWebhookService(k8s *K8s, name, namespace string) *v1.Service
 	k8s.g.Expect(err).To(BeNil())
 
 	return awService
+}
+
+// GetNodeInternalIP - Pop InternalIP from node addresses
+func GetNodeInternalIP(node *v1.Node) (string, error) {
+	for i := range node.Status.Addresses {
+		if node.Status.Addresses[i].Type == "InternalIP" {
+			return node.Status.Addresses[i].Address, nil
+		}
+	}
+	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
+}
+
+// GetNodeExternalIP - Pop InternalIP from node addresses
+func GetNodeExternalIP(node *v1.Node) (string, error) {
+	for i := range node.Status.Addresses {
+		if node.Status.Addresses[i].Type == "ExternalIP" {
+			return node.Status.Addresses[i].Address, nil
+		}
+	}
+	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
 }
 
 // PrintLogs - Print Client print information

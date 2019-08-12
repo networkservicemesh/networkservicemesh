@@ -259,6 +259,10 @@ func (cpm *testConnectionPluginManager) ValidateConnection(conn connection.Conne
 	return nil
 }
 
+func (impl *nsmdTestServiceDiscovery) GetNodeIPConfiguration(ctx context.Context, nodeIPConfiguration *registry.NodeIPConfiguration, opts ...grpc.CallOption) (*registry.NodeIPConfiguration, error) {
+	return nodeIPConfiguration, nil
+}
+
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
@@ -442,8 +446,8 @@ func (impl *testApiRegistry) NewNSMServerListener() (net.Listener, error) {
 	return listener, err
 }
 
-func (impl *testApiRegistry) NewPublicListener() (net.Listener, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+func (impl *testApiRegistry) NewPublicListener(nsmdAPIAddress string) (net.Listener, error) {
+	listener, err := net.Listen("tcp", nsmdAPIAddress)
 	impl.nsmdPublicPort = listener.Addr().(*net.TCPAddr).Port
 	return listener, err
 }
@@ -622,7 +626,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
-	sock, err := srv.apiRegistry.NewPublicListener()
+	sock, err := srv.apiRegistry.NewPublicListener("127.0.0.1:0")
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
 		return nil
