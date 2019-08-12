@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"strings"
+	"testing"
+
+	"github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/runners"
-	"github.com/onsi/gomega"
-	"strings"
-	"testing"
 )
 
 func TestOnFailShellTestRunner(t *testing.T) {

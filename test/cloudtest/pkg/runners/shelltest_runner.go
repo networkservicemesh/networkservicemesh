@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/utils/helper/errtools"
 	"os"
 	"strings"
+
+	"github.com/networkservicemesh/networkservicemesh/utils/helper/errtools"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
@@ -15,9 +16,9 @@ import (
 )
 
 type shellTestRunner struct {
-	test    *model.TestEntry
-	envMgr  shell.EnvironmentManager
-	id      string
+	test   *model.TestEntry
+	envMgr shell.EnvironmentManager
+	id     string
 }
 
 func (runner *shellTestRunner) Run(timeoutCtx context.Context, env []string, writer *bufio.Writer) error {
@@ -61,8 +62,8 @@ func NewShellTestRunner(ids string, test *model.TestEntry, _ execmanager.Executi
 	_ = envMgr.ProcessEnvironment(ids, "shellrun", os.TempDir(), test.ExecutionConfig.Env, map[string]string{})
 
 	return &shellTestRunner{
-		id:      ids,
-		test:    test,
-		envMgr:  envMgr,
+		id:     ids,
+		test:   test,
+		envMgr: envMgr,
 	}
 }

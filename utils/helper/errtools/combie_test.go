@@ -2,8 +2,9 @@ package errtools
 
 import (
 	"errors"
-	"github.com/onsi/gomega"
 	"testing"
+
+	"github.com/onsi/gomega"
 )
 
 func TestCombine(t *testing.T) {
