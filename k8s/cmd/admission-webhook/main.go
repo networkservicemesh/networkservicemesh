@@ -21,7 +21,6 @@ func main() {
 	goals := probes.NewGoals(2)
 	probes := probes.NewProbes("NSM admission webhook healthcheck", goals)
 	go probes.BeginHealthCheck()
-	probes.BeginHealthCheck()
 	logrus.Info("Admission Webhook starting...")
 	logrus.Infof("Version: %v", version)
 
