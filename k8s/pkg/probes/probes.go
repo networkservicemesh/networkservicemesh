@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmd
+package probes
 
 import (
 	"fmt"
@@ -28,40 +28,21 @@ const (
 
 // Probes - Network Service Manager readiness probes
 type Probes struct {
-	dpStatusOK       bool
-	nsmStatusOK      bool
-	apiStatusOK      bool
-	listenerStatusOK bool
+	name  string
+	goals Goals
 }
 
 // NewProbes creates new Network Service Manager readiness probes
-func NewProbes() *Probes {
-	return &Probes{}
-}
-
-// SetDPServerReady notifies that dataplane is available
-func (probes *Probes) SetDPServerReady() {
-	probes.dpStatusOK = true
-}
-
-// SetNSMServerReady notifies that NSM Server is started
-func (probes *Probes) SetNSMServerReady() {
-	probes.nsmStatusOK = true
-}
-
-// SetAPIServerReady notifies that API Server is started
-func (probes *Probes) SetAPIServerReady() {
-	probes.apiStatusOK = true
-}
-
-// SetPublicListenerReady notifies that Public API server is started
-func (probes *Probes) SetPublicListenerReady() {
-	probes.listenerStatusOK = true
+func NewProbes(name string, goals Goals) *Probes {
+	return &Probes{
+		name:  name,
+		goals: goals,
+	}
 }
 
 func (probes *Probes) readiness(w http.ResponseWriter, r *http.Request) {
-	if !probes.dpStatusOK || !probes.nsmStatusOK || !probes.apiStatusOK || !probes.listenerStatusOK {
-		errMsg := fmt.Sprintf("NSMD not ready. DPServer - %t, NSMServer - %t, APIServer - %t, PublicListener - %t", probes.dpStatusOK, probes.nsmStatusOK, probes.apiStatusOK, probes.listenerStatusOK)
+	if !probes.goals.IsComplete() {
+		errMsg := fmt.Sprintf("Not all goals have done. TODO: %v", probes.goals.TODO())
 		http.Error(w, errMsg, http.StatusServiceUnavailable)
 	} else {
 		w.Write([]byte("OK"))
@@ -74,7 +55,7 @@ func (probes *Probes) liveness(w http.ResponseWriter, r *http.Request) {
 
 // BeginHealthCheck starts listening 5555 port for health check
 func (probes *Probes) BeginHealthCheck() {
-	logrus.Debug("Starting NSMD liveness/readiness healthcheck")
+	logrus.Debugf("Starting %v", probes.name)
 	http.HandleFunc("/liveness", probes.liveness)
 	http.HandleFunc("/readiness", probes.readiness)
 	http.ListenAndServe(healthcheckProbesPort, nil)
