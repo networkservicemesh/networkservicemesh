@@ -9,9 +9,12 @@ spec:
       app: nsmgr-daemonset
   template:
     metadata:
+      annotations:
+        security.networkservicemesh.io: ""
       labels:
         app: nsmgr-daemonset
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: nsmdp
           image: networkservicemesh/nsmdp

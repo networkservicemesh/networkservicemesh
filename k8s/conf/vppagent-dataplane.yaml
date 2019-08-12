@@ -12,6 +12,8 @@ spec:
       app: nsm-vpp-dataplane
   template:
     metadata:
+      annotations:
+        security.networkservicemesh.io: ""
       labels:
         app: nsm-vpp-dataplane
     spec:
@@ -60,5 +62,3 @@ spec:
 metadata:
   name: nsm-vppagent-dataplane
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""

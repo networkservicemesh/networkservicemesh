@@ -8,6 +8,8 @@ spec:
       app: nsm-{{ $fp }}-plane
   template:
     metadata:
+      annotations:
+        security.networkservicemesh.io: ""
       labels:
         app: nsm-{{ $fp }}-plane
     spec:
