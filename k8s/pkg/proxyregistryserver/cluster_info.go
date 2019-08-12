@@ -9,14 +9,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/interdomain"
 )
 
 type k8sClusterInfo struct {
 	clientset *kubernetes.Clientset
 }
 
-func NewK8sClusterInfoService(config *rest.Config) (registry.ClusterInfoServer, error) {
+func NewK8sClusterInfoService(config *rest.Config) (interdomain.ClusterInfoServer, error) {
 	cs, err := kubernetes.NewForConfig(config)
 
 	if err != nil {
@@ -28,7 +28,7 @@ func NewK8sClusterInfoService(config *rest.Config) (registry.ClusterInfoServer, 
 	}, nil
 }
 
-func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfiguration *registry.NodeIPConfiguration) (*registry.NodeIPConfiguration, error) {
+func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfiguration *interdomain.NodeIPConfiguration) (*interdomain.NodeIPConfiguration, error) {
 	nodes, err := k.clientset.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 			len(nodeInternalIP) > 0 && nodeInternalIP == nodeIPConfiguration.InternalIP ||
 			len(nodeExternalIP) > 0 && nodeExternalIP == nodeIPConfiguration.ExternalIP {
 
-			return &registry.NodeIPConfiguration{
+			return &interdomain.NodeIPConfiguration{
 				NodeName:   node.Name,
 				ExternalIP: nodeExternalIP,
 				InternalIP: nodeInternalIP,

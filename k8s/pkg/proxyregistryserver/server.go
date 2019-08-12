@@ -6,14 +6,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/interdomain"
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 )
 
 // New Proxy Registry Server - Starts Network Service Discovery Server and Cluster Info Server
-func New(clientset *nsmClientset.Clientset, clusterInfoService registry.ClusterInfoServer) *grpc.Server {
+func New(clientset *nsmClientset.Clientset, clusterInfoService interdomain.ClusterInfoServer) *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -26,7 +26,7 @@ func New(clientset *nsmClientset.Clientset, clusterInfoService registry.ClusterI
 	discovery := newDiscoveryService(cache, clusterInfoService)
 
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
-	registry.RegisterClusterInfoServer(server, clusterInfoService)
+	interdomain.RegisterClusterInfoServer(server, clusterInfoService)
 
 	if err := cache.Start(); err != nil {
 		logrus.Error(err)

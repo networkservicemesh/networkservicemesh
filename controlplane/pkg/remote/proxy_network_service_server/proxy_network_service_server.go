@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
-
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/interdomain"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // Default values and environment variables of proxy connection
@@ -68,12 +70,16 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 	if strings.TrimSpace(localNsrURL) == "" {
 		localNsrURL = ProxyNsmdK8sAddressDefaults
 	}
-	localRegistry := nsmd.NewServiceRegistryAt(localNsrURL)
-	defer localRegistry.Stop()
-	localClusterInfoClient, err := localRegistry.ClusterInfoClient()
+
+	localClusterInfoClient, localConn, err := createClusterInfoClient(ctx, localNsrURL)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := localConn.Close(); err != nil {
+			logrus.Errorf("ProxyNSMD: Failed to close the local Cluster Info Client (%s). %v", localNsrURL, err)
+		}
+	}()
 
 	remoteNsrPort := os.Getenv(ProxyNsmdK8sRemotePortEnv)
 	if strings.TrimSpace(remoteNsrPort) == "" {
@@ -82,17 +88,21 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 
 	remoteRegistryAddress := dNsmAddress[:strings.Index(dNsmAddress, ":")] + ":" + remoteNsrPort
 	logrus.Infof("ProxyNSMD: Connecting to remote service registry at %v", remoteRegistryAddress)
-	remoteRegistry := nsmd.NewServiceRegistryAt(remoteRegistryAddress)
-	defer remoteRegistry.Stop()
-	remoteClusterInfoClient, err := remoteRegistry.ClusterInfoClient()
+
+	remoteClusterInfoClient, remoteConn, err := createClusterInfoClient(ctx, remoteRegistryAddress)
 	if err != nil {
 		logrus.Errorf("ProxyNSMD: Failed connecting to remote service registry at %v: %v", remoteRegistryAddress, err)
 		return nil, err
 	}
+	defer func() {
+		if err := remoteConn.Close(); err != nil {
+			logrus.Errorf("ProxyNSMD: Failed to close the remote Cluster Info Client (%s). %v", remoteRegistryAddress, err)
+		}
+	}()
 
 	localSrcIP := request.MechanismPreferences[0].Parameters["src_ip"]
 
-	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &registry.NodeIPConfiguration{InternalIP: localSrcIP})
+	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &interdomain.NodeIPConfiguration{InternalIP: localSrcIP})
 	if err == nil {
 		if len(localNodeIPConfiguration.ExternalIP) > 0 {
 			request.MechanismPreferences[0].Parameters["src_ip"] = localNodeIPConfiguration.ExternalIP
@@ -107,7 +117,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		return response, err
 	}
 
-	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &registry.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
+	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &interdomain.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
 			response.Mechanism.Parameters["dst_ip"] = remoteNodeIPConfiguration.ExternalIP
@@ -148,4 +158,19 @@ func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *rem
 	}()
 
 	return client.Close(ctx, connection)
+}
+
+func createClusterInfoClient(ctx context.Context, address string) (interdomain.ClusterInfoClient, *grpc.ClientConn, error) {
+	err := tools.WaitForPortAvailable(ctx, "tcp", address, 100*time.Millisecond)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	conn, err := tools.DialContextTCP(ctx, address)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client := interdomain.NewClusterInfoClient(conn)
+	return client, conn, nil
 }
