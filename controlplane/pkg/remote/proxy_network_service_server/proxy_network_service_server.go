@@ -11,9 +11,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/clusterinfo"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/interdomain"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
@@ -102,7 +102,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 
 	localSrcIP := request.MechanismPreferences[0].Parameters["src_ip"]
 
-	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &interdomain.NodeIPConfiguration{InternalIP: localSrcIP})
+	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: localSrcIP})
 	if err == nil {
 		if len(localNodeIPConfiguration.ExternalIP) > 0 {
 			request.MechanismPreferences[0].Parameters["src_ip"] = localNodeIPConfiguration.ExternalIP
@@ -117,7 +117,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		return response, err
 	}
 
-	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &interdomain.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
+	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
 			response.Mechanism.Parameters["dst_ip"] = remoteNodeIPConfiguration.ExternalIP
@@ -160,7 +160,7 @@ func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *rem
 	return client.Close(ctx, connection)
 }
 
-func createClusterInfoClient(ctx context.Context, address string) (interdomain.ClusterInfoClient, *grpc.ClientConn, error) {
+func createClusterInfoClient(ctx context.Context, address string) (clusterinfo.ClusterInfoClient, *grpc.ClientConn, error) {
 	err := tools.WaitForPortAvailable(ctx, "tcp", address, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
@@ -171,6 +171,6 @@ func createClusterInfoClient(ctx context.Context, address string) (interdomain.C
 		return nil, nil, err
 	}
 
-	client := interdomain.NewClusterInfoClient(conn)
+	client := clusterinfo.NewClusterInfoClient(conn)
 	return client, conn, nil
 }
