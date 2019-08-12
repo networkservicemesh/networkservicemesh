@@ -10,7 +10,7 @@ import (
 )
 
 func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	logrus.Infof("AdmissionReview for =%v", request)
+	logrus.Infof("AdmissionReview for: Kind - %v, Resource - %v", request.Kind, request.Resource)
 	if !isSupportKind(request) {
 		return okReviewResponse()
 	}
@@ -19,6 +19,8 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 	if err != nil {
 		return errorReviewResponse(err)
 	}
+
+	logrus.Infof("Annotations: %v", metaAndSpec.meta.Annotations)
 
 	if isIgnoreNamespace(ignoredNamespaces, metaAndSpec) {
 		logrus.Infof("Skip validation for %v for it's in special namespace:%v", metaAndSpec.meta.Name, metaAndSpec.meta.Namespace)
@@ -46,13 +48,13 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 					Type: &ht,
 				},
 			},
-		})...)
+		}, getSpecPath(request))...)
 
 		patch = append(patch, addVolumeMounts(metaAndSpec.spec, v1.VolumeMount{
 			Name:      spireSocketVolume,
 			MountPath: spireSocketPath,
 			ReadOnly:  true,
-		})...)
+		}, getSpecPath(request))...)
 	}
 
 	nsmAnnotationValue, ok := annotations[nsmAnnotationKey]

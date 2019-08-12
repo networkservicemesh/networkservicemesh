@@ -54,12 +54,17 @@ func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) 
 }
 
 func getInitContainerPatchPath(request *v1beta1.AdmissionRequest) string {
+	return getSpecPath(request) + "/initContainers"
+}
+
+func getSpecPath(request *v1beta1.AdmissionRequest) string {
 	if request.Kind.Kind == pod {
-		return pathPodInitContainers
+		return pathPodSpec
 	}
 	if request.Kind.Kind == deployment {
-		return pathDeploymentInitContainers
+		return pathDeploymentSpec
 	}
+
 	panic("unsupported request kind")
 }
 
@@ -178,14 +183,14 @@ func readRequest(r *http.Request) ([]byte, error) {
 	return body, nil
 }
 
-func addVolumeMounts(spec *corev1.PodSpec, added corev1.VolumeMount) (patch []patchOperation) {
+func addVolumeMounts(spec *corev1.PodSpec, added corev1.VolumeMount, basePath string) (patch []patchOperation) {
 	for i := 0; i < len(spec.Containers); i++ {
-		path := pathContainers + "/" + strconv.Itoa(i) + "/volumeMounts"
+		path := basePath + "/containers/" + strconv.Itoa(i) + "/volumeMounts"
 		patch = append(patch, addVolumeMount(added, path, len(spec.Containers[i].VolumeMounts) == 0)...)
 	}
 
 	for i := 0; i < len(spec.InitContainers); i++ {
-		path := pathInitContainers + "/" + strconv.Itoa(i) + "/volumeMounts"
+		path := basePath + "/initContainers/" + strconv.Itoa(i) + "/volumeMounts"
 		patch = append(patch, addVolumeMount(added, path, len(spec.InitContainers[i].VolumeMounts) == 0)...)
 	}
 
@@ -211,8 +216,8 @@ func addVolumeMount(added corev1.VolumeMount, path string, first bool) (patch []
 	return
 }
 
-func addVolume(spec *corev1.PodSpec, added corev1.Volume) (patch []patchOperation) {
-	path := pathVolumes
+func addVolume(spec *corev1.PodSpec, added corev1.Volume, basePath string) (patch []patchOperation) {
+	path := basePath + "/volumes"
 	var value interface{}
 
 	if len(spec.Volumes) == 0 {
