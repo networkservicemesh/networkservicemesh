@@ -20,7 +20,7 @@ func TestOnFailShellTestRunner(t *testing.T) {
 		RunScript:       "12345",
 		OnFailScript:    "echo fail",
 		ExecutionConfig: &config.ExecutionConfig{},
-	}, nil)
+	})
 	buff := bytes.Buffer{}
 	writer := bufio.NewWriter(&buff)
 	err := runner.Run(context.TODO(), []string{}, writer)
@@ -37,7 +37,7 @@ func TestOnFailHasWrongScriptShellTestRunner(t *testing.T) {
 		RunScript:       "12345",
 		OnFailScript:    "54321",
 		ExecutionConfig: &config.ExecutionConfig{},
-	}, nil)
+	})
 	buff := bytes.Buffer{}
 	writer := bufio.NewWriter(&buff)
 	err := runner.Run(context.TODO(), []string{}, writer)
@@ -56,7 +56,7 @@ func TestOnFailNotCalledIfRunScriptSucceeded(t *testing.T) {
 		RunScript:       "echo pass",
 		OnFailScript:    "echo fail",
 		ExecutionConfig: &config.ExecutionConfig{},
-	}, nil)
+	})
 	buff := bytes.Buffer{}
 	writer := bufio.NewWriter(&buff)
 	err := runner.Run(context.TODO(), []string{}, writer)

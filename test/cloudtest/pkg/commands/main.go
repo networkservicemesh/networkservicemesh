@@ -568,7 +568,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 	var runner runners.TestRunner
 	switch task.test.Kind {
 	case model.TestEntryKindShellTest:
-		runner = runners.NewShellTestRunner(ids, task.test, ctx.manager)
+		runner = runners.NewShellTestRunner(ids, task.test)
 	case model.TestEntryKindGoTest:
 		runner = runners.NewGoTestRunner(ids, task.test, timeout)
 	default:

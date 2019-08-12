@@ -9,7 +9,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/utils/helper/errtools"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
@@ -57,7 +56,7 @@ func (runner *shellTestRunner) GetCmdLine() string {
 }
 
 // NewShellTestRunner - creates a new shell script test runner.
-func NewShellTestRunner(ids string, test *model.TestEntry, _ execmanager.ExecutionManager) TestRunner {
+func NewShellTestRunner(ids string, test *model.TestEntry) TestRunner {
 	envMgr := shell.NewEnvironmentManager()
 	_ = envMgr.ProcessEnvironment(ids, "shellrun", os.TempDir(), test.ExecutionConfig.Env, map[string]string{})
 
