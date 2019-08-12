@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 	"net"
 	"os"
 	"strings"
@@ -45,12 +46,9 @@ func main() {
 			logrus.Errorf("Failed to close tracer: %v", err)
 		}
 	}()
-
-	nsmdProbes := nsmd.NewProbes()
+	goals := probes.NewGoals(2)
+	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals)
 	go nsmdProbes.BeginHealthCheck()
-	// Proxy NSM doesn't start some services - pass that probes by default
-	nsmdProbes.SetDPServerReady()
-	nsmdProbes.SetNSMServerReady()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -66,10 +64,12 @@ func main() {
 		logrus.Errorf("Failed to start Public API server...")
 		return
 	}
-	nsmdProbes.SetPublicListenerReady()
+	logrus.Info("Public listener is ready")
+	goals.Done()
 
 	startAPIServerAt(sock, serviceRegistry)
-	nsmdProbes.SetAPIServerReady()
+	logrus.Info("Api server is ready")
+	goals.Done()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting Proxy NSMD took: %s", elapsed)
