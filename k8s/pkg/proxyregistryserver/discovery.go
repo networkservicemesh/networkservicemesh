@@ -8,11 +8,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/interdomain"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 // Default values and environment variables of proxy connection
@@ -25,10 +25,10 @@ const (
 
 type discoveryService struct {
 	cache              registryserver.RegistryCache
-	clusterInfoService registry.ClusterInfoServer
+	clusterInfoService interdomain.ClusterInfoServer
 }
 
-func newDiscoveryService(cache registryserver.RegistryCache, clusterInfoService registry.ClusterInfoServer) *discoveryService {
+func newDiscoveryService(cache registryserver.RegistryCache, clusterInfoService interdomain.ClusterInfoServer) *discoveryService {
 	return &discoveryService{
 		cache:              cache,
 		clusterInfoService: clusterInfoService,
@@ -88,7 +88,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 
 	// Swap NSMs IP to external
 	for nsmName := range response.NetworkServiceManagers {
-		nodeConfiguration, cErr := d.clusterInfoService.GetNodeIPConfiguration(ctx, &registry.NodeIPConfiguration{NodeName: nsmName})
+		nodeConfiguration, cErr := d.clusterInfoService.GetNodeIPConfiguration(ctx, &interdomain.NodeIPConfiguration{NodeName: nsmName})
 		if cErr != nil {
 			logrus.Warnf("Cannot swap Network Service Manager's IP address: %s", cErr)
 			continue
