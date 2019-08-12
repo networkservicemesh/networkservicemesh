@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package interdomain;
+package clusterinfo;
 
 message NodeIPConfiguration {
     string nodeName = 1;
