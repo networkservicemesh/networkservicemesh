@@ -689,7 +689,7 @@ func (srv *networkServiceManager) WaitForDataplane(timeout time.Duration) error 
 	if err := srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, timeout); err != nil {
 		return err
 	}
-	logrus.Infof("Dataplane is available, waiting for initial state recieved and processed...")
+	logrus.Infof("Dataplane is available, waiting for initial state received and processed...")
 	select {
 	case <-srv.stateRestored:
 		return nil
@@ -746,7 +746,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 					dstIp, err2 := m.DstIP()
 					vni, err3 := m.VNI()
 					if err != nil || err2 != nil || err3 != nil {
-						logrus.Errorf("Error retriving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+						logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
 					} else {
 						srv.serviceRegistry.VniAllocator().Restore(srcIp, dstIp, vni)
 					}
@@ -857,7 +857,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 }
 
 func (srv *networkServiceManager) closeLocalMissingNSE(cc *model.ClientConnection) {
-	logrus.Infof("Local endopoint is not available, so closing local NSE connection %v", cc)
+	logrus.Infof("Local endpoint is not available, so closing local NSE connection %v", cc)
 	err := srv.Close(context.Background(), cc)
 	if err != nil {
 		logrus.Errorf("Failed to close local NSE(missing) connection %v", err)
