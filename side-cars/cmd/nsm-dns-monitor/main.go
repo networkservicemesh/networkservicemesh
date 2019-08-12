@@ -15,8 +15,9 @@
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
