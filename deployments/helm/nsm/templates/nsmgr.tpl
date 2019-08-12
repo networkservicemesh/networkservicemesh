@@ -9,8 +9,6 @@ spec:
       app: nsmgr-daemonset
   template:
     metadata:
-      annotations:
-        security.networkservicemesh.io: ""
       labels:
         app: nsmgr-daemonset
     spec:
