@@ -6,16 +6,23 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: nsmmgr-daemonset
+      app: nsmgr-daemonset
   template:
     metadata:
       labels:
-        app: nsmmgr-daemonset
+        app: nsmgr-daemonset
     spec:
       containers:
         - name: nsmdp
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmdp:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+{{- if .Values.global.JaegerTracing }}
+          env:
+            - name: JAEGER_AGENT_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+{{- end }}
           volumeMounts:
             - name: kubelet-socket
               mountPath: /var/lib/kubelet/device-plugins
@@ -24,6 +31,13 @@ spec:
         - name: nsmd
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmd:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+{{- if .Values.global.JaegerTracing }}
+          env:
+            - name: JAEGER_AGENT_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+{{- end }}
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
@@ -54,6 +68,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+{{- if .Values.global.JaegerTracing }}
+            - name: JAEGER_AGENT_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+{{- end }}
       volumes:
         - hostPath:
             path: /var/lib/kubelet/device-plugins

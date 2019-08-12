@@ -34,7 +34,8 @@ endif
 # Deployments - grouped
 # Need nsmdp and icmp-responder-nse here as well, but missing yaml files
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
-DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM)
+DEPLOY_PROXY_NSM = proxy-nsmgr
+DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_PROXY_NSM) $(DEPLOY_MONITOR)
 DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
@@ -234,6 +235,16 @@ k8s-nsmgr-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(NSMG
 
 .PHONY: k8s-nsmgr-load-images
 k8s-nsmgr-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(NSMGR_CONTAINERS)))
+
+PROXY_NSMGR_CONTAINERS = proxy-nsmd proxy-nsmd-k8s
+.PHONY: k8s-proxy-nsmgr-build
+k8s-proxy-nsmgr-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(PROXY_NSMGR_CONTAINERS)))
+
+.PHONY: k8s-proxy-nsmgr-save
+k8s-proxy-nsmgr-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(PROXY_NSMGR_CONTAINERS)))
+
+.PHONY: k8s-proxy-nsmgr-load-images
+k8s-proxy-nsmgr-load-images:  $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(PROXY_NSMGR_CONTAINERS)))
 
 VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane vppagent-dataplane-dev
 .PHONY: k8s-vppagent-dataplane-build

@@ -74,3 +74,13 @@ service NsmRegistry {
     rpc RegisterNSM (NetworkServiceManager) returns (NetworkServiceManager);
     rpc GetEndpoints (google.protobuf.Empty) returns (NetworkServiceEndpointList);
 }
+
+message NodeIPConfiguration {
+    string nodeName = 1;
+    string internalIP = 2;
+    string externalIP = 3;
+}
+
+service ClusterInfo {
+    rpc GetNodeIPConfiguration(NodeIPConfiguration) returns (NodeIPConfiguration);
+}

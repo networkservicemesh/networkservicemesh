@@ -321,6 +321,57 @@ func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
 					},
 				},
 			},
+			{
+				IpProtocol: aws.String("tcp"),
+				ToPort:     aws.Int64(80),
+				FromPort:   aws.Int64(80),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Remote ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("Remote ip6 access"),
+					},
+				},
+			},
+			{
+				IpProtocol: aws.String("tcp"),
+				ToPort:     aws.Int64(5100),
+				FromPort:   aws.Int64(5000),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Remote ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("Remote ip6 access"),
+					},
+				},
+			},
+			{
+				IpProtocol: aws.String("udp"),
+				ToPort:     aws.Int64(4789),
+				FromPort:   aws.Int64(4789),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Remote ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("Remote ip6 access"),
+					},
+				},
+			},
 		},
 	})
 	checkError(err)

@@ -25,22 +25,17 @@ import (
 )
 
 const (
-	ServerSock             = "/var/lib/networkservicemesh/nsm.io.sock"
-	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
-	NsmdApiAddressEnv      = "NSMD_API_ADDRESS"
-	NsmdApiAddressDefaults = "0.0.0.0:5001"
+	// ServerSock defines the path of NSM client socket
+	ServerSock = "/var/lib/networkservicemesh/nsm.io.sock"
+	// NsmDevicePluginEnv is the name of the env variable to configure enabled device plugin name
+	NsmDevicePluginEnv = "NSM_DEVICE_PLUGIN"
 )
 
 type apiRegistry struct {
 }
 
-func (*apiRegistry) NewPublicListener() (net.Listener, error) {
-	nsmdApiAddress := os.Getenv(NsmdApiAddressEnv)
-	if strings.TrimSpace(nsmdApiAddress) == "" {
-		nsmdApiAddress = NsmdApiAddressDefaults
-	}
-
-	return net.Listen("tcp", nsmdApiAddress)
+func (*apiRegistry) NewPublicListener(nsmdAPIAddress string) (net.Listener, error) {
+	return net.Listen("tcp", nsmdAPIAddress)
 }
 
 func (*apiRegistry) NewNSMServerListener() (net.Listener, error) {

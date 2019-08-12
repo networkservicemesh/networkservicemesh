@@ -19,7 +19,7 @@ import (
 
 type ApiRegistry interface {
 	NewNSMServerListener() (net.Listener, error)
-	NewPublicListener() (net.Listener, error)
+	NewPublicListener(nsmdAPIAddress string) (net.Listener, error)
 }
 
 /**

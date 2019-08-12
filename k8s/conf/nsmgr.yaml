@@ -44,6 +44,9 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
+          ports:
+            - containerPort: 5001
+              hostPort: 5001
         - name: nsmd-k8s
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent

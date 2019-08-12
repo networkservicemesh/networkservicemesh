@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strings"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
@@ -14,6 +16,12 @@ import (
 )
 
 var version string
+
+// Default values and environment variables of proxy connection
+const (
+	NsmdAPIAddressEnv      = "NSMD_API_ADDRESS"
+	NsmdAPIAddressDefaults = ":5001"
+)
 
 func main() {
 	logrus.Info("Starting nsmd...")
@@ -77,7 +85,11 @@ func main() {
 	nsmdProbes.SetDPServerReady()
 
 	// Choose a public API listener
-	sock, err := apiRegistry.NewPublicListener()
+	nsmdAPIAddress := os.Getenv(NsmdAPIAddressEnv)
+	if strings.TrimSpace(nsmdAPIAddress) == "" {
+		nsmdAPIAddress = NsmdAPIAddressDefaults
+	}
+	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
 		return
