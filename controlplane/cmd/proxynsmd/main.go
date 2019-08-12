@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"google.golang.org/grpc"
