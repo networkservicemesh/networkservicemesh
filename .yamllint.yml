@@ -8,4 +8,4 @@ rules:
     level: warning
 
 ignore: |
-  vendor
+  ./vendor/*
