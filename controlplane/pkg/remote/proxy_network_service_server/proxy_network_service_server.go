@@ -40,7 +40,7 @@ func NewProxyNetworkServiceServer(serviceRegistry serviceregistry.ServiceRegistr
 	return server
 }
 
-func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
+func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_networkservice.NetworkServiceReply, error) {
 	logrus.Infof("ProxyNSMD: Received request from client to connect to NetworkService: %v", request)
 
 	destNsmName := request.Connection.DestinationNetworkServiceManagerName
@@ -117,15 +117,15 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		return response, err
 	}
 
-	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
+	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.GetConnection().Mechanism.Parameters["dst_ip"]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
-			response.Mechanism.Parameters["dst_ip"] = remoteNodeIPConfiguration.ExternalIP
+			response.GetConnection().Mechanism.Parameters["dst_ip"] = remoteNodeIPConfiguration.ExternalIP
 		}
 	}
 
-	response.Mechanism.Parameters["src_ip"] = localSrcIP
-	response.DestinationNetworkServiceManagerName = destNsmName
+	response.GetConnection().Mechanism.Parameters["src_ip"] = localSrcIP
+	response.GetConnection().DestinationNetworkServiceManagerName = destNsmName
 
 	logrus.Infof("ProxyNSMD: Received response from remote network service: %v", response)
 
