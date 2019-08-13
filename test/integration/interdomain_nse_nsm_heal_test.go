@@ -99,22 +99,7 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseExternalIP),
 	})
 
-	var nscInfo *kubetest.NSCCheckInfo
-
-	failures := InterceptGomegaFailures(func() {
-		nscInfo = kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
-	})
-	// Do dumping of container state to dig into what is happened.
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		for i := 0; i < clustersCount; i++ {
-			kubetest.PrintErrors(failures, k8ss[i].K8s, k8ss[i].NodesSetup, nscInfo, t)
-			kubetest.MakeLogsSnapshot(k8ss[i].K8s, t)
-		}
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
 
 	if killIndex == 0 {
 		testInterdomainHealLocalNSMD(k8ss, clustersCount)
@@ -122,23 +107,10 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		testInterdomainHealRemoteNSMD(k8ss, clustersCount, icmpPod, deleteNSE)
 	}
 
-	failures = InterceptGomegaFailures(func() {
-		logrus.Infof("Waiting for connection recovery...")
-		k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
-		logrus.Infof("Waiting for connection recovery Done...")
-
-		nscInfo = kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
-	})
-
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		for i := 0; i < clustersCount; i++ {
-			kubetest.MakeLogsSnapshot(k8ss[i].K8s, t)
-		}
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
+	logrus.Infof("Waiting for connection recovery...")
+	k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
+	logrus.Infof("Waiting for connection recovery Done...")
+	kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
 }
 
 func testInterdomainHealLocalNSMD(k8ss []*kubetest.ExtK8s, clustersCount int) {

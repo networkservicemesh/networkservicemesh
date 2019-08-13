@@ -184,14 +184,8 @@ func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 
 	pnsmd = tempPods[0]
 
-	failures := InterceptGomegaFailures(func() {
-		_ = k8s.WaitLogsContainsRegex(pnsmd, "proxy-nsmd", "NSM gRPC API Server: .* is operational", timeout)
-		k8s.WaitLogsContains(pnsmd, "proxy-nsmd-k8s", "proxy-nsmd-k8s initialized and waiting for connection", timeout)
-	})
-
-	if len(failures) > 0 {
-		makeLogsSnapshot(k8s, nil)
-	}
+	_ = k8s.WaitLogsContainsRegex(pnsmd, "proxy-nsmd", "NSM gRPC API Server: .* is operational", timeout)
+	k8s.WaitLogsContains(pnsmd, "proxy-nsmd-k8s", "proxy-nsmd-k8s initialized and waiting for connection", timeout)
 
 	logrus.Printf("Proxy NSMgr started done: %v", time.Since(startTime))
 	return
