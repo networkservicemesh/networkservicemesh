@@ -60,6 +60,9 @@ spec:
         - name: nsmd-k8s
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmd-k8s:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+          volumeMounts:
+            - name: nsm-plugin-socket
+              mountPath: /var/lib/networkservicemesh/plugins
           env:
             - name: NODE_NAME
               valueFrom:

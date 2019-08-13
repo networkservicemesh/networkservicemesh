@@ -38,7 +38,7 @@ func TestDummyConnectionPlugin(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, nil)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -51,7 +51,7 @@ func TestDummyConnectionPlugin(t *testing.T) {
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer func() { _ = conn.Close() }()
 
-	request := createRequest(false)
+	request := createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
@@ -66,7 +66,7 @@ func TestDummyConnectionPlugin2(t *testing.T) {
 	g := NewWithT(t)
 
 	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage, nil)
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
@@ -79,7 +79,7 @@ func TestDummyConnectionPlugin2(t *testing.T) {
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer func() { _ = conn.Close() }()
 
-	request := createRequest(false)
+	request := createRequest()
 
 	_, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).NotTo(BeNil())

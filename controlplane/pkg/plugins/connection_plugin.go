@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"google.golang.org/grpc"
 
@@ -15,8 +14,8 @@ import (
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnection(connection.Connection) error
-	ValidateConnection(connection.Connection) error
+	UpdateConnection(context.Context, connection.Connection) error
+	ValidateConnection(context.Context, connection.Connection) error
 }
 
 type connectionPluginManager struct {
@@ -43,13 +42,13 @@ func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClien
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection) error {
+func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, conn connection.Connection) error {
 	connCtx := conn.GetContext()
 	for _, plugin := range cpm.getClients() {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		var err error
-		connCtx, err = plugin.UpdateConnectionContext(ctx, connCtx)
+		connCtx, err = plugin.UpdateConnectionContext(pluginCtx, connCtx)
 		cancel()
 
 		if err != nil {
@@ -60,11 +59,11 @@ func (cpm *connectionPluginManager) UpdateConnection(conn connection.Connection)
 	return nil
 }
 
-func (cpm *connectionPluginManager) ValidateConnection(conn connection.Connection) error {
+func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, conn connection.Connection) error {
 	for _, plugin := range cpm.getClients() {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
-		result, err := plugin.ValidateConnectionContext(ctx, conn.GetContext())
+		result, err := plugin.ValidateConnectionContext(pluginCtx, conn.GetContext())
 		cancel()
 
 		if err != nil {

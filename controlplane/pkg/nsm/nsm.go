@@ -34,7 +34,6 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
 
@@ -52,10 +51,8 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	excludedPrefixes prefix_pool.PrefixPool
 	properties       *nsm.NsmProperties
 	stateRestored    chan bool
-	errCh            chan error
 	renamedEndpoints map[string]string
 	nseManager       networkServiceEndpointManager
 }
@@ -66,7 +63,6 @@ func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
-	emptyPrefixPool, _ := prefix_pool.NewPrefixPool()
 	properties := nsm.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
@@ -78,10 +74,8 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		serviceRegistry:  serviceRegistry,
 		pluginRegistry:   pluginRegistry,
 		model:            model,
-		excludedPrefixes: emptyPrefixPool,
 		properties:       properties,
 		stateRestored:    make(chan bool, 1),
-		errCh:            make(chan error, 1),
 		renamedEndpoints: make(map[string]string),
 		nseManager:       nseManager,
 	}
@@ -94,39 +88,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		nseManager,
 	)
 
-	go srv.monitorExcludePrefixes()
 	return srv
-}
-
-func (srv *networkServiceManager) monitorExcludePrefixes() {
-	poolCh, err := GetExcludedPrefixes(srv.serviceRegistry)
-	if err != nil {
-		srv.errCh <- err
-		return
-	}
-
-	for {
-		pool, ok := <-poolCh
-		if !ok {
-			srv.errCh <- fmt.Errorf("nsmd-k8s is not responding, exclude prefixes won't be updating")
-			return
-		}
-
-		srv.SetExcludePrefixes(pool)
-	}
-}
-
-func (srv *networkServiceManager) GetExcludePrefixes() prefix_pool.PrefixPool {
-	srv.RLock()
-	defer srv.RUnlock()
-
-	return srv.excludedPrefixes
-}
-
-func (srv *networkServiceManager) SetExcludePrefixes(prefixes prefix_pool.PrefixPool) {
-	srv.Lock()
-	defer srv.Unlock()
-	srv.excludedPrefixes = prefixes
 }
 
 func (srv *networkServiceManager) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
@@ -269,7 +231,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		cc.GetConnectionSource().SetConnectionState(connection.StateUp)
 
 		// 7.3 Destination context probably has been changed, so we need to update source context.
-		if err = srv.updateConnectionContext(cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
+		if err = srv.updateConnectionContext(ctx, cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
 			err = fmt.Errorf("NSM:(7.3-%v) Failed to update source connection context: %v", requestID, err)
 			srv.requestFailed(requestID, cc, existingCC, true, true)
 			return nil, err
@@ -407,7 +369,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		if err = srv.updateConnection(nseConn); err != nil {
+		if err = srv.updateConnection(ctx, nseConn); err != nil {
 			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
 		}
 
@@ -484,7 +446,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	}
 
 	// 7.2.6.2.2
-	if err = srv.updateConnectionContext(requestConn, nseConn); err != nil {
+	if err = srv.updateConnectionContext(ctx, requestConn, nseConn); err != nil {
 		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestID, err)
 		return nil, err
 	}
@@ -522,36 +484,6 @@ func (srv *networkServiceManager) createCrossConnect(requestConn, nseConn connec
 	)
 }
 
-func (srv *networkServiceManager) validateNSEConnection(nseConn connection.Connection) error {
-	err := nseConn.IsComplete()
-	if err != nil {
-		return err
-	}
-
-	prefixes := srv.GetExcludePrefixes()
-	if srcIP := nseConn.GetContext().GetIpContext().GetSrcIpAddr(); srcIP != "" {
-		intersect, err := prefixes.Intersect(srcIP)
-		if err != nil {
-			return err
-		}
-		if intersect {
-			return fmt.Errorf("srcIP intersects excludedPrefix")
-		}
-	}
-
-	if dstIP := nseConn.GetContext().GetIpContext().GetDstIpAddr(); dstIP != "" {
-		intersect, err := prefixes.Intersect(dstIP)
-		if err != nil {
-			return err
-		}
-		if intersect {
-			return fmt.Errorf("dstIP intersects excludedPrefix")
-		}
-	}
-
-	return nil
-}
-
 func (srv *networkServiceManager) createConnectionId() string {
 	return srv.model.ConnectionID()
 }
@@ -587,19 +519,17 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
-func (srv *networkServiceManager) updateConnection(conn connection.Connection) error {
+func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) error {
 	if conn.GetContext() == nil {
 		c := &connectioncontext.ConnectionContext{}
 		conn.SetContext(c)
 	}
 
-	srv.updateExcludePrefixes(conn) // TODO: remove in the next PR
-
-	return srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(conn)
+	return srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, conn)
 }
 
-func (srv *networkServiceManager) updateConnectionContext(source, destination connection.Connection) error {
-	if err := srv.validateConnection(destination); err != nil {
+func (srv *networkServiceManager) updateConnectionContext(ctx context.Context, source, destination connection.Connection) error {
+	if err := srv.validateConnection(ctx, destination); err != nil {
 		return err
 	}
 
@@ -610,16 +540,12 @@ func (srv *networkServiceManager) updateConnectionContext(source, destination co
 	return nil
 }
 
-func (srv *networkServiceManager) validateConnection(conn connection.Connection) error {
+func (srv *networkServiceManager) validateConnection(ctx context.Context, conn connection.Connection) error {
 	if err := conn.IsComplete(); err != nil {
 		return err
 	}
 
-	if err := srv.validateNSEConnection(conn); err != nil { // TODO: remove in the next PR
-		return err
-	}
-
-	if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(conn); err != nil {
+	if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, conn); err != nil {
 		return err
 	}
 
@@ -635,16 +561,6 @@ func (srv *networkServiceManager) updateConnectionParameters(requestID string, n
 		}
 		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestID, nseConn.GetConnectionMechanism())
 	}
-}
-
-func (srv *networkServiceManager) updateExcludePrefixes(requestConn connection.Connection) {
-	c := requestConn.GetContext()
-	if c == nil {
-		c = &connectioncontext.ConnectionContext{}
-	}
-	c.GetIpContext().ExcludedPrefixes = append(c.GetIpContext().GetExcludedPrefixes(), srv.GetExcludePrefixes().GetPrefixes()...)
-	// Since we do not worry about validation, just
-	requestConn.SetContext(c)
 }
 
 /**

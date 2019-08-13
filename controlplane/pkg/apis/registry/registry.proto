@@ -74,29 +74,3 @@ service NsmRegistry {
     rpc RegisterNSM (NetworkServiceManager) returns (NetworkServiceManager);
     rpc GetEndpoints (google.protobuf.Empty) returns (NetworkServiceEndpointList);
 }
-
-message ClusterConfiguration {
-    string podSubnet = 1;
-    string serviceSubnet = 2;
-}
-
-message NodeIPConfiguration {
-    string nodeName = 1;
-    string internalIP = 2;
-    string externalIP = 3;
-}
-
-message SubnetExtendingResponse {
-    enum SubnetType {
-        POD = 0;
-        SERVICE = 1;
-    }
-    SubnetType type = 1;
-    string subnet = 2;
-}
-
-service ClusterInfo {
-    rpc GetClusterConfiguration(google.protobuf.Empty) returns (ClusterConfiguration);
-    rpc MonitorSubnets(google.protobuf.Empty) returns (stream SubnetExtendingResponse);
-    rpc GetNodeIPConfiguration(NodeIPConfiguration) returns (NodeIPConfiguration);
-}

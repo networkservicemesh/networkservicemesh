@@ -31,7 +31,6 @@ type ServiceRegistry interface {
 	DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error)
 	NseRegistryClient() (registry.NetworkServiceRegistryClient, error)
 	NsmRegistryClient() (registry.NsmRegistryClient, error)
-	ClusterInfoClient() (registry.ClusterInfoClient, error)
 
 	Stop()
 	NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error)

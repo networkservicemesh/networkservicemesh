@@ -5,13 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
-
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -48,13 +47,6 @@ func main() {
 
 	server := registryserver.New(nsmClientSet, nsmName)
 
-	clusterInfoService, err := registryserver.NewK8sClusterInfoService(config)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
-	registry.RegisterClusterInfoServer(server, clusterInfoService)
-
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		logrus.Fatalln(err)
@@ -67,5 +59,10 @@ func main() {
 			logrus.Fatalln(err)
 		}
 	}()
+
+	if err = prefixcollector.StartPrefixPlugin(config); err != nil {
+		logrus.Fatalln("Failed to start Prefix Plugin", err)
+	}
+
 	<-c
 }

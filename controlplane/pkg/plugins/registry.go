@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -11,6 +12,10 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+)
+
+const (
+	pluginCallTimeout = 100 * time.Second
 )
 
 // PluginRegistry stores a plugin manager for each plugin type

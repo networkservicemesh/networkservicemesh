@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package clusterinfo;
+
+message NodeIPConfiguration {
+    string nodeName = 1;
+    string internalIP = 2;
+    string externalIP = 3;
+}
+
+service ClusterInfo {
+    rpc GetNodeIPConfiguration(NodeIPConfiguration) returns (NodeIPConfiguration);
+}
