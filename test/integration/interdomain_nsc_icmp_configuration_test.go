@@ -68,7 +68,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
-		defer kubetest.ShowLogs(k8s, t)
+		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,

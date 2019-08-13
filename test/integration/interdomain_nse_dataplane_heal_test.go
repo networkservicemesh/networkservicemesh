@@ -59,7 +59,7 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
-		defer kubetest.ShowLogs(k8s, t)
+		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,
@@ -122,5 +122,5 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 	}
 	logrus.Infof("Waiting for connection recovery Done...")
 
-	kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
+	kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
 }

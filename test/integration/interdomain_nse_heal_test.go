@@ -21,10 +21,12 @@ func TestInterdomainNSEHealLocal(t *testing.T) {
 		return
 	}
 
+	g := NewWithT(t)
+
 	testInterdomainNSEHeal(t, 2, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func TestInterdomainNSEHealRemote(t *testing.T) {
@@ -33,10 +35,12 @@ func TestInterdomainNSEHealRemote(t *testing.T) {
 		return
 	}
 
+	g := NewWithT(t)
+
 	testInterdomainNSEHeal(t, 2, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
@@ -45,10 +49,12 @@ func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
 		return
 	}
 
+	g := NewWithT(t)
+
 	testInterdomainNSEHeal(t, 2, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture())
+	}, kubetest.HealTestingPodFixture(g))
 }
 
 func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture) {
@@ -76,7 +82,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
-		defer kubetest.ShowLogs(k8s, t)
+		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,
@@ -121,5 +127,5 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 	logrus.Infof("Waiting for connection recovery...")
 	k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 
-	kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
+	kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
 }

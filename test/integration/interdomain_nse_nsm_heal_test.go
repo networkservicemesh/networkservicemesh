@@ -109,7 +109,7 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		logrus.Errorf("Failures: %v", failures)
 		for i := 0; i < clustersCount; i++ {
 			kubetest.PrintErrors(failures, k8ss[i].K8s, k8ss[i].NodesSetup, nscInfo, t)
-			kubetest.ShowLogs(k8ss[i].K8s, t)
+			kubetest.MakeLogsSnapshot(k8ss[i].K8s, t)
 		}
 		nscInfo.PrintLogs()
 
@@ -127,13 +127,13 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 		logrus.Infof("Waiting for connection recovery Done...")
 
-		nscInfo = kubetest.HealTestingPodFixture().CheckNsc(k8ss[0].K8s, nscPodNode)
+		nscInfo = kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
 	})
 
 	if len(failures) > 0 {
 		logrus.Errorf("Failures: %v", failures)
 		for i := 0; i < clustersCount; i++ {
-			kubetest.ShowLogs(k8ss[i].K8s, t)
+			kubetest.MakeLogsSnapshot(k8ss[i].K8s, t)
 		}
 		nscInfo.PrintLogs()
 
