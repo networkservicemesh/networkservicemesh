@@ -1,14 +1,11 @@
 ARG VPP_AGENT
 
 FROM golang:alpine as build
-RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
 
-RUN mkdir /root/networkservicemesh
-WORKDIR /root/networkservicemesh/
-
 ADD [".","/root/networkservicemesh"]
+WORKDIR /root/networkservicemesh/
 
 FROM ${VPP_AGENT} as runtime
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf

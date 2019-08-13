@@ -1,11 +1,9 @@
 FROM golang:alpine as build
 ARG VERSION=unspecified
-RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
-RUN apk --no-cache add git
+RUN apk update && apk add --no-cache ca-certificates tzdata && update-ca-certificates
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
 
-RUN mkdir /root/networkservicemesh
 ADD [".","/root/networkservicemesh"]
 WORKDIR /root/networkservicemesh/k8s/cmd/nsm-coredns
 
