@@ -7,5 +7,4 @@ rules:
     max: 80
     level: warning
 
-ignore: |
-  ./vendor/*
+ignore: vendor
