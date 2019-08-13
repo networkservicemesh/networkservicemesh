@@ -41,15 +41,13 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 	}
 
 	// Get endpoints, do it every time since we do not know if list are changed or not.
-	networkService := requestConnection.GetNetworkService()
 	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient()
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
-
 	nseRequest := &registry.FindNetworkServiceRequest{
-		NetworkServiceName: networkService,
+		NetworkServiceName: requestConnection.GetNetworkService(),
 	}
 	endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 	if err != nil {
@@ -69,14 +67,10 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 	}
 
-	respNetworkServiceManager := endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()]
-	respNetworkService := endpointResponse.GetNetworkService()
-
-	logrus.Printf("Response NSM: %v", respNetworkServiceManager)
 	return &registry.NSERegistration{
-		NetworkServiceManager:  respNetworkServiceManager,
+		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
 		NetworkserviceEndpoint: endpoint,
-		NetworkService:         respNetworkService,
+		NetworkService:         endpointResponse.GetNetworkService(),
 	}, nil
 }
 
