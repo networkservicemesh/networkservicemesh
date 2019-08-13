@@ -88,7 +88,7 @@ executions:
     run: |
       make k8s-deconfig helm-install-nsm
       make helm-install-icmp-responder
-      kubectl wait --all-namespaces --timeout=300s --for condition=Ready --all pods
+      kubectl wait -n ${NSM_NAMESPACE} --timeout=150s --for condition=Ready --all pods
       make k8s-check
       make k8s-logs-snapshot
       make helm-delete-icmp-responder helm-delete-nsm
