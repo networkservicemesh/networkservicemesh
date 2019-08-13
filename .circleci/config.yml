@@ -15,7 +15,7 @@ jobs:
           command: |
             sudo apt-get install yamllint python3-pkg-resources
             ./.circleci/install-shellcheck.sh
-      - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
+      - run: yamllint -c .yamllint.yml .
       - run: go version
       - run:
           name: Check code formatting
