@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package vpp.ipsec;
+
+option go_package = "github.com/ligato/vpp-agent/api/models/vpp/ipsec;vpp_ipsec";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.messagename_all) = true;
+
+/* Cryptographic algorithm for encryption */
+enum CryptoAlg { // vpp/src/vnet/ipsec/ipsec_sa.h:22
+    NONE_CRYPTO = 0;
+    AES_CBC_128 = 1;
+    AES_CBC_192 = 2;
+    AES_CBC_256 = 3;
+    AES_CTR_128 = 4;
+    AES_CTR_192 = 5;
+    AES_CTR_256 = 6;
+    AES_GCM_128 = 7;
+    AES_GCM_192 = 8;
+    AES_GCM_256 = 9;
+    DES_CBC = 10;
+    DES3_CBC = 11;  // 3DES_CBC
+}
+
+/* Cryptographic algorithm for authentication */
+enum IntegAlg { // vpp/src/vnet/ipsec/ipsec_sa.h:44
+    NONE_INTEG = 0;
+    MD5_96 = 1;         /* RFC2403 */
+    SHA1_96 = 2;        /* RFC2404 */
+    SHA_256_96 = 3;     /* draft-ietf-ipsec-ciph-sha-256-00 */
+    SHA_256_128 = 4;    /* RFC4868 */
+    SHA_384_192 = 5;    /* RFC4868 */
+    SHA_512_256 = 6;    /* RFC4868 */
+}
+
+/* Security Policy Database (SPD) */
+message SecurityPolicyDatabase {
+    string index = 1;                           /* Numerical security policy database index, serves as a unique identifier */
+
+    message Interface {
+        string name = 1;                        /* Name of the related interface */
+    }
+    repeated Interface interfaces = 2;          /* List of interfaces belonging to this SPD */
+
+    message PolicyEntry {
+        string sa_index = 1;                    /* Security association index */
+
+        int32 priority = 2;
+        bool is_outbound = 3;
+
+        string remote_addr_start = 4;
+        string remote_addr_stop = 5;
+        string local_addr_start = 6;
+        string local_addr_stop = 7;
+
+        uint32 protocol = 8;
+
+        uint32 remote_port_start = 9;
+        uint32 remote_port_stop = 10;
+        uint32 local_port_start = 11;
+        uint32 local_port_stop = 12;
+
+        enum Action {
+            BYPASS = 0;
+            DISCARD = 1;
+            RESOLVE = 2;                        /* Note: this particular action is unused in VPP */
+            PROTECT = 3;
+        }
+        Action action = 13;
+    }
+    repeated PolicyEntry policy_entries = 3;    /* List of policy entries belonging to this SPD */
+}
+
+/* Security Association (SA) */
+message SecurityAssociation {
+    string index = 1;               /* Numerical security association index, serves as a unique identifier */
+    uint32 spi = 2;                 /* Security parameter index */
+
+    enum IPSecProtocol {
+        AH = 0;                     /* Authentication Header, provides a mechanism for authentication only */
+        ESP = 1;                    /* Encapsulating Security Payload is for data confidentiality and authentication */
+    }
+    IPSecProtocol protocol = 3;
+
+    CryptoAlg crypto_alg = 4;       /* Cryptographic algorithm for encryption */
+    string crypto_key = 5;
+
+    IntegAlg integ_alg = 6;         /* Cryptographic algorithm for authentication */
+    string integ_key = 7;
+
+    bool use_esn = 8;               /* Use extended sequence number */
+    bool use_anti_replay = 9;       /* Use anti replay */
+
+    string tunnel_src_addr = 10;
+    string tunnel_dst_addr = 11;
+
+    bool enable_udp_encap = 12;     /* Enable UDP encapsulation for NAT traversal */
+}

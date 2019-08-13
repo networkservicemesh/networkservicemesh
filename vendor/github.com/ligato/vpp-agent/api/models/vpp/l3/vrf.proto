@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package vpp.l3;
+
+option go_package = "github.com/ligato/vpp-agent/api/models/vpp/l3;vpp_l3";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.messagename_all) = true;
+
+message VrfTable {
+    uint32 id = 1;   /* table ID, mandatory
+                            - do not confuse with fib index (shown by some VPP CLIs),
+                              which is VPP-internal offset in the vector of allocated tables
+                      */
+    enum Protocol {
+        IPV4 = 0;
+        IPV6 = 1;
+    }
+    Protocol protocol = 2; /* mandatory */
+    string label = 3;      /* optional label to describe the table purpose
+                                - maximum allowed length is 63 characters
+                                - included in the output from the VPP CLI command "show ip fib"
+                                - if undefined, then VPP will generate label using the template "<protocol>-VRF:<id>"
+                            */
+}

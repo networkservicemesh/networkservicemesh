@@ -18,10 +18,6 @@ jobs:
       - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
       - run: go version
       - run:
-          name: Download Go Dependencies
-          command: |
-            ./scripts/go-mod-download.sh
-      - run:
           name: Check code formatting
           command: |
             make install-formatter
@@ -31,7 +27,7 @@ jobs:
       - run: sudo ./scripts/install-protoc.sh
       - run: go generate ./...
       - run: make vet check
-      - run: go build ./...
+      - run: go build -mod vendor ./...
       - run: go test ./test/integration --list .* -tags basic recover usecase
       - run: mkdir -p ~/junit/
       - run:
@@ -101,13 +97,6 @@ jobs:
             ./scripts/install-helm.sh
             sudo cp "$HOME/bin/helm" /usr/local/bin/helm
       - run:
-          name: Downloading go deps
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
-            ./scripts/go-mod-download.sh
-          no_output_timeout: 40m
-      - run:
           name: Running integration tests
           command: |
             export COMMIT="${CIRCLE_SHA1:8:8}"
@@ -115,7 +104,7 @@ jobs:
             export REPO="networkservicemeshci"
             export CONTAINER_REPO=${REPO}
 
-            CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
+            CGO_ENABLED=0 GOOS=linux go build -mod vendor -o ./cloudtest ./test/cloudtest/cmd/cloudtest
             ./cloudtest
           no_output_timeout: 40m
       - store_test_results:
