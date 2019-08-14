@@ -50,6 +50,7 @@ jobs:
 
 # code analysis
   test-static-code-analysis:
+    resource_class: medium+
     docker:
       - image: circleci/golang:1.12-stretch
     steps:
