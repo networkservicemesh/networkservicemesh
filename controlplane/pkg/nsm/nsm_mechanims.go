@@ -8,6 +8,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
@@ -49,7 +50,8 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestID string, reques
 
 		// TODO: Add other mechanisms support
 
-		if mechanism.GetMechanismType() == remote.MechanismType_VXLAN {
+		switch mechanism.GetMechanismType() {
+		case remote.MechanismType_VXLAN:
 			parameters := mechanism.GetParameters()
 			dpParameters := dpMechanism.GetParameters()
 
@@ -65,6 +67,19 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestID string, reques
 	}
 
 	return nil, fmt.Errorf("failed to select mechanism, no matched mechanisms found")
+}
+
+func (srv *networkServiceManager) prepareRemoteMechanisms(endpoint *registry.NSERegistration, requestID string, request networkservice.Request, dp *model.Dataplane) (networkservice.Request, error) {
+	for _, mechanism := range request.GetRequestMechanismPreferences() {
+		switch mechanism.GetMechanismType() {
+		case remote.MechanismType_VXLAN:
+			parameters := mechanism.GetParameters()
+			if endpoint.GetNetworkserviceEndpoint().GetInterdomain() {
+				parameters[remote.VXLANUseExtIp] = strconv.FormatBool(true)
+			}
+		}
+	}
+	return request, nil
 }
 
 func findMechanism(mechanismPreferences []connection.Mechanism, mechanismType connection.MechanismType) connection.Mechanism {
