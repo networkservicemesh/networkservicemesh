@@ -19,7 +19,7 @@ const (
 
 // StartPrefixPlugin creates an instance of a prefix plugin and registers it
 func StartPrefixPlugin(config *rest.Config) error {
-	endpoint := path.Join(plugins.PluginRegistryPath, "k8s-prefixes.sock")
+	endpoint := path.Join(plugins.PluginRegistryPath, "k8s-plugin.sock")
 	if err := tools.SocketCleanup(endpoint); err != nil {
 		return err
 	}
