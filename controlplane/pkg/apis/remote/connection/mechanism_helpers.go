@@ -25,6 +25,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 )
 
+const (
+	useExtIpDefault = false
+)
+
 // IsRemote returns if mechanism type is remote
 func (t MechanismType) IsRemote() bool {
 	return true
@@ -96,9 +100,28 @@ func (m *Mechanism) SrcIP() (string, error) {
 	return m.getIPParameter(VXLANSrcIP)
 }
 
+// SrcExtIP returns the source external IP parameter of the Mechanism
+func (m *Mechanism) SrcExtIP() (string, error) {
+	return m.getIPParameter(VXLANSrcExtIP)
+}
+
 // DstIP returns the destination IP parameter of the Mechanism
 func (m *Mechanism) DstIP() (string, error) {
 	return m.getIPParameter(VXLANDstIP)
+}
+
+// DstExtIP returns the destination external IP parameter of the Mechanism
+func (m *Mechanism) DstExtIP() (string, error) {
+	return m.getIPParameter(VXLANDstExtIP)
+}
+
+// UseExtIP returns the value of the flag controls if it is needed to use external IP
+func (m *Mechanism) UseExtIP() (bool, error) {
+	value, ok := m.Parameters[VXLANUseExtIp]
+	if !ok {
+		return useExtIpDefault, nil
+	}
+	return strconv.ParseBool(value)
 }
 
 func (m *Mechanism) getIPParameter(name string) (string, error) {
