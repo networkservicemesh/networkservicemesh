@@ -7,15 +7,14 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 )
 
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnectionContext(context.Context, *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error)
-	ValidateConnectionContext(context.Context, *connectioncontext.ConnectionContext) (*plugins.ConnectionValidationResult, error)
+	UpdateConnection(context.Context, *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error)
+	ValidateConnection(context.Context, *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error)
 }
 
 type connectionPluginManager struct {
@@ -42,30 +41,30 @@ func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClien
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error) {
+func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error) {
 	for _, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		var err error
-		connCtx, err = plugin.UpdateConnectionContext(pluginCtx, connCtx)
+		info, err = plugin.UpdateConnection(pluginCtx, info)
 		cancel()
 
 		if err != nil {
-			return connCtx, fmt.Errorf("connection plugin returned an error: %v", err)
+			return nil, fmt.Errorf("connection plugin returned an error: %v", err)
 		}
 	}
-	return connCtx, nil
+	return info, nil
 }
 
-func (cpm *connectionPluginManager) ValidateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*plugins.ConnectionValidationResult, error) {
+func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error) {
 	for _, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
-		result, err := plugin.ValidateConnectionContext(pluginCtx, connCtx)
+		result, err := plugin.ValidateConnection(pluginCtx, info)
 		cancel()
 
 		if err != nil {
-			return result, fmt.Errorf("connection plugin returned an error: %v", err)
+			return nil, fmt.Errorf("connection plugin returned an error: %v", err)
 		}
 
 		if result.GetStatus() != plugins.ConnectionValidationStatus_SUCCESS {

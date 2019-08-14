@@ -370,7 +370,8 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		if err = srv.updateConnection(ctx, nseConn); err != nil {
+		nseConn, err = srv.updateConnection(ctx, nseConn)
+		if err != nil {
 			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
 		}
 
@@ -520,19 +521,19 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
-func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) error {
+func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
 	if conn.GetContext() == nil {
 		c := &connectioncontext.ConnectionContext{}
 		conn.SetContext(c)
 	}
 
-	connCtx, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnectionContext(ctx, conn.GetContext())
+	info := pluginsapi.NewConnectionInfo(conn)
+	info, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, info)
 	if err != nil {
-		return err
+		return conn, err
 	}
 
-	conn.SetContext(connCtx)
-	return nil
+	return info.GetConnection(), nil
 }
 
 func (srv *networkServiceManager) updateConnectionContext(ctx context.Context, source, destination connection.Connection) error {
@@ -552,7 +553,8 @@ func (srv *networkServiceManager) validateConnection(ctx context.Context, conn c
 		return err
 	}
 
-	result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnectionContext(ctx, conn.GetContext())
+	info := pluginsapi.NewConnectionInfo(conn)
+	result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, info)
 	if err != nil {
 		return err
 	}

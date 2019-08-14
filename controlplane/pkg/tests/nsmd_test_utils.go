@@ -177,20 +177,20 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error) {
+func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionInfo) (*pluginsapi.ConnectionInfo, error) {
 	for _, plugin := range cpm.plugins {
 		var err error
-		connCtx, err = plugin.UpdateConnectionContext(ctx, connCtx)
+		info, err = plugin.UpdateConnection(ctx, info)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return connCtx, nil
+	return info, nil
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*pluginsapi.ConnectionValidationResult, error) {
+func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, info *pluginsapi.ConnectionInfo) (*pluginsapi.ConnectionValidationResult, error) {
 	for _, plugin := range cpm.plugins {
-		result, err := plugin.ValidateConnectionContext(ctx, connCtx)
+		result, err := plugin.ValidateConnection(ctx, info)
 		if err != nil {
 			return nil, err
 		}
