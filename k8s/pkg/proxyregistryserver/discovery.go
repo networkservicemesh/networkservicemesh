@@ -2,7 +2,6 @@ package proxyregistryserver
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -17,8 +16,6 @@ import (
 
 // Default values and environment variables of proxy connection
 const (
-	ProxyNsmdAPIAddressEnv         = "PROXY_NSMD_ADDRESS"
-	ProxyNsmdAPIAddressDefaults    = "pnsmgr-svc:5006"
 	ProxyNsmdK8sRemotePortEnv      = "PROXY_NSMD_K8S_REMOTE_PORT"
 	ProxyNsmdK8sRemotePortDefaults = "80"
 )
@@ -67,14 +64,6 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 			return nil, dErr
 		}
 
-		for _, nsm := range response.NetworkServiceManagers {
-			nsm.Name = fmt.Sprintf("%s@%s", nsm.Name, nsm.Url)
-			nsmURL := os.Getenv(ProxyNsmdAPIAddressEnv)
-			if strings.TrimSpace(nsmURL) == "" {
-				nsmURL = ProxyNsmdAPIAddressDefaults
-			}
-			nsm.Url = nsmURL
-		}
 		response.NetworkService.Name = originNetworkService
 
 		logrus.Infof("Received response: %v", response)
