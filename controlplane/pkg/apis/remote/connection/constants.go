@@ -6,6 +6,6 @@ const (
 	VXLANSrcExtIP = "src_ext_ip"
 	VXLANDstIP    = "dst_ip"
 	VXLANDstExtIP = "dst_ext_ip"
-	VXLANUseExtIp = "use_ext_ip"
+	VXLANUseExtIP = "use_ext_ip"
 	VXLANVNI      = "vni"
 )

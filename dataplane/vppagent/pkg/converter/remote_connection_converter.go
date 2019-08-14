@@ -68,15 +68,15 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
 	srcip, _ := m.SrcIP()
 	dstip, _ := m.DstIP()
-	useExtIp, _ := m.UseExtIP()
-	if useExtIp {
+	useExtIP, _ := m.UseExtIP()
+	if useExtIP {
 		dstip, _ = m.DstExtIP()
 	}
 	if c.side == SOURCE {
 		// If the remote Connection is DESTINATION Side then srcip/dstip need to be flipped from the Connection
 		srcip, _ = m.DstIP()
 		dstip, _ = m.SrcIP()
-		if useExtIp {
+		if useExtIP {
 			dstip, _ = m.SrcExtIP()
 		}
 	}
