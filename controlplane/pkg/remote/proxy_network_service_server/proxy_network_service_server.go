@@ -100,12 +100,12 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		}
 	}()
 
-	localSrcIP := request.MechanismPreferences[0].Parameters["src_ip"]
+	localSrcIP := request.MechanismPreferences[0].Parameters[remote_connection.VXLANSrcIP]
 
 	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: localSrcIP})
 	if err == nil {
 		if len(localNodeIPConfiguration.ExternalIP) > 0 {
-			request.MechanismPreferences[0].Parameters["src_ip"] = localNodeIPConfiguration.ExternalIP
+			request.MechanismPreferences[0].Parameters[remote_connection.VXLANSrcIP] = localNodeIPConfiguration.ExternalIP
 		}
 	}
 
@@ -117,14 +117,14 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		return response, err
 	}
 
-	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
+	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters[remote_connection.VXLANDstIP]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
-			response.Mechanism.Parameters["dst_ip"] = remoteNodeIPConfiguration.ExternalIP
+			response.Mechanism.Parameters[remote_connection.VXLANDstIP] = remoteNodeIPConfiguration.ExternalIP
 		}
 	}
 
-	response.Mechanism.Parameters["src_ip"] = localSrcIP
+	response.Mechanism.Parameters[remote_connection.VXLANSrcIP] = localSrcIP
 	response.DestinationNetworkServiceManagerName = destNsmName
 
 	logrus.Infof("ProxyNSMD: Received response from remote network service: %v", response)
