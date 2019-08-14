@@ -35,6 +35,7 @@ message NetworkServiceEndpoint {
     string network_service_manager_name = 4;
     map<string, string> labels = 5;
     string state = 6;
+    bool interdomain = 7; // TODO: keep flag in nsm? can we get rid of this flag?
 }
 
 message FindNetworkServiceRequest {

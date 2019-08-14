@@ -64,6 +64,10 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 			return nil, dErr
 		}
 
+		for _, nse := range response.GetNetworkServiceEndpoints() {
+			nse.Interdomain = true
+		}
+
 		response.NetworkService.Name = originNetworkService
 
 		logrus.Infof("Received response: %v", response)
