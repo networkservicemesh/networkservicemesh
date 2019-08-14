@@ -83,6 +83,8 @@ executions:
     env:
       - NSM_NAMESPACE=default
       - CLUSTER_RULES_PREFIX=null
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/helm-icmp-example
     kubernetes-env:
       - KUBECONFIG
     run: |
