@@ -439,6 +439,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 		message = srv.createLocalNSERequest(endpoint, dp, requestConn)
 	} else {
 		message = srv.createRemoteNSMRequest(endpoint, requestConn, dp, existingCC)
+		message, err = srv.prepareRemoteMechanisms(endpoint, requestID, message, dp)
 	}
 
 	wrapper, err := srv.pluginRegistry.GetRequestPluginManager().UpdateRequest(ctx, pluginsapi.NewRequestWrapper(message))
