@@ -77,8 +77,11 @@ func registerPlugin(endpoint string) error {
 	defer cancel()
 
 	_, err = client.Register(ctx, &plugins.PluginInfo{
-		Endpoint:     endpoint,
-		Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
+		Name:     "k8s-plugin",
+		Endpoint: endpoint,
+		Capabilities: []plugins.PluginCapability{
+			plugins.PluginCapability_CONNECTION,
+		},
 	})
 
 	return err

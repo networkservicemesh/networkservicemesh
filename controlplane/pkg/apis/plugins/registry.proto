@@ -9,8 +9,9 @@ enum PluginCapability {
 }
 
 message PluginInfo {
-    string endpoint = 1;
-    repeated PluginCapability capabilities = 2;
+    string name = 1;
+    string endpoint = 2;
+    repeated PluginCapability capabilities = 3;
 }
 
 service PluginRegistry {

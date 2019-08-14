@@ -60,6 +60,7 @@ If you implement a plugin with more than one capability, you have to register it
 NSM Plugin Registry is a gRPC server run on the Unix socket at `plugins.PluginRegistrySocket` path. To register a plugin you have to make a gRPC call to the `Register` method and provide registration data.
 
 Registration data is provided in `plugins.PluginInfo` structure which has the following fields:
+- **Name** - your plugin name
 - **Endpoint** — the path to the Unix socket you've started gRPC server on
 - **Capabilities** — list of capabilities supported by your plugin
 
@@ -70,7 +71,7 @@ import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/p
 
 // 1. Create a gRPC server that implements a plugin
 
-endpoint := path.Join(plugins.PluginRegistryPath, "your-plugin-name.sock")
+endpoint := path.Join(plugins.PluginRegistryPath, "my-plugin.sock")
 sock, err := net.Listen("unix", endpoint)
 if err != nil {
     return err
@@ -102,6 +103,7 @@ ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 defer cancel()
 
 _, err = client.Register(ctx, &plugins.PluginInfo{
+	Name:         "my-plugin",
     Endpoint:     endpoint,
     Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
 })
