@@ -26,7 +26,8 @@ type shellTestRunner struct {
 func (runner *shellTestRunner) Run(timeoutCtx context.Context, env []string, writer *bufio.Writer) error {
 	runErr := runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
 	if runErr != nil {
-		onFailContext, _ := context.WithTimeout(context.Background(), onFailDefaultTimeout)
+		onFailContext, cancel := context.WithTimeout(context.Background(), onFailDefaultTimeout)
+		defer cancel()
 		onFailErr := runner.runCmd(onFailContext, utils.ParseScript(runner.test.OnFailScript), env, writer)
 		return errtools.Combine(runErr, onFailErr)
 	}
