@@ -15,26 +15,21 @@ func NewConnectionInfo(conn connection.Connection) *ConnectionInfo {
 
 // GetConnection returns connection
 func (c *ConnectionInfo) GetConnection() connection.Connection {
-	if conn := c.GetLocalConnection(); conn != nil {
-		return conn
+	if c.GetLocalConnection() != nil {
+		return c.GetLocalConnection()
 	}
-
-	if conn := c.GetRemoteConnection(); conn != nil {
-		return conn
-	}
-
-	return nil
+	return c.GetRemoteConnection()
 }
 
 // SetConnection sets connection
 func (c *ConnectionInfo) SetConnection(conn connection.Connection) {
 	if conn.IsRemote() {
-		c.Conn = &ConnectionInfo_LocalConnection{
-			LocalConnection: conn.(*local.Connection),
-		}
-	} else {
 		c.Conn = &ConnectionInfo_RemoteConnection{
 			RemoteConnection: conn.(*remote.Connection),
+		}
+	} else {
+		c.Conn = &ConnectionInfo_LocalConnection{
+			LocalConnection: conn.(*local.Connection),
 		}
 	}
 }
