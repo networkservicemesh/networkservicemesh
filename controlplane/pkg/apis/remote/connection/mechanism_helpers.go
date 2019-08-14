@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	useExtIpDefault = false
+	useExtIPDefault = false
 )
 
 // IsRemote returns if mechanism type is remote
@@ -117,9 +117,9 @@ func (m *Mechanism) DstExtIP() (string, error) {
 
 // UseExtIP returns the value of the flag controls if it is needed to use external IP
 func (m *Mechanism) UseExtIP() (bool, error) {
-	value, ok := m.Parameters[VXLANUseExtIp]
+	value, ok := m.Parameters[VXLANUseExtIP]
 	if !ok {
-		return useExtIpDefault, nil
+		return useExtIPDefault, nil
 	}
 	return strconv.ParseBool(value)
 }
