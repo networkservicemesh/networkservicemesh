@@ -113,7 +113,7 @@ ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 defer cancel()
 
 _, err = client.Register(ctx, &plugins.PluginInfo{
-	Name:         "my-plugin",
+    Name:         "my-plugin",
     Endpoint:     endpoint,
     Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
 })
