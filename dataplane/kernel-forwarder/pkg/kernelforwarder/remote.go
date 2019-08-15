@@ -57,7 +57,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 	nsPath, name, ifaceIP, vxlanIP, routes := modifyConfiguration(cfg, direction)
 	if connect {
 		/* 2. Create a connection */
-		err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes)
+		err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes, cfg.neighbors)
 		if err != nil {
 			logrus.Errorf("failed to create remote connection - %v", err)
 		}
@@ -71,7 +71,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 	return crossConnect, err
 }
 
-func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route) error {
+func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) error {
 	logrus.Info("Creating remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -94,7 +94,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 	}
 
 	/* 4. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, routes, true); err != nil {
+	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
@@ -116,7 +116,7 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 	}
 
 	/* 2. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, "", nil, false); err != nil {
+	if err = setupLinkInNs(containerNs, ifaceName, "", nil, nil, false); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
@@ -142,7 +142,6 @@ func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string
 		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes
 	}
 	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN, cfg.srcRoutes
-
 }
 
 func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) *netlink.Vxlan {
