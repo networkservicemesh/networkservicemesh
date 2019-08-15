@@ -106,7 +106,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	for _, lnse := range nses {
 		t2 := time.Now()
 		removeNSE := &registry.RemoveNSERequest{
-			EndpointName: lnse,
+			NetworkServiceEndpointName: lnse,
 		}
 		_, err = registryClient.RemoveNSE(context.Background(), removeNSE)
 		response, err2 := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
