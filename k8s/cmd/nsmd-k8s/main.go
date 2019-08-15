@@ -8,6 +8,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
@@ -60,8 +62,17 @@ func main() {
 		}
 	}()
 
-	if err = prefixcollector.StartPrefixPlugin(config); err != nil {
-		logrus.Fatalln("Failed to start Prefix Plugin", err)
+	capabilities := []pluginsapi.PluginCapability{
+		pluginsapi.PluginCapability_CONNECTION,
+	}
+
+	service, err := prefixcollector.NewPrefixService(config)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+
+	if err = plugins.StartPlugin("k8s-plugin", capabilities, service); err != nil {
+		logrus.Fatalln("Failed to start K8s Plugin", err)
 	}
 
 	<-c

@@ -16,7 +16,7 @@ type prefixService struct {
 	excludedPrefixes prefix_pool.PrefixPool
 }
 
-func newPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, error) {
+func NewPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
