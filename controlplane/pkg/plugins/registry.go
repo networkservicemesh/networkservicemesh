@@ -81,7 +81,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 	if info.GetName() == "" || info.GetEndpoint() == "" || len(info.Capabilities) == 0 {
 		return nil, fmt.Errorf("invalid registration data, expected non-empty name, endpoint and capabilities list")
 	}
-	logrus.Infof("Registering '%s' plugin with '%s' endpoint", info.GetName(), info.GetEndpoint())
+	logrus.Infof("Registering a plugin: name '%s', endpoint '%s', capabilities %v", info.GetName(), info.GetEndpoint(), info.GetCapabilities())
 
 	conn, err := pr.createConnection(info.GetEndpoint())
 	if err != nil {
