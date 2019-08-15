@@ -47,16 +47,13 @@ func setup(c *caddy.Controller) error {
 // OnStartup starts a goroutines for all clients.
 func (f *Fanout) OnStartup() (err error) {
 	for _, p := range f.clients {
-		p.start(healthClientInterval)
+		p.start()
 	}
 	return nil
 }
 
 // OnShutdown stops all configured clients.
 func (f *Fanout) OnShutdown() error {
-	for _, p := range f.clients {
-		p.close()
-	}
 	return nil
 }
 
@@ -101,7 +98,7 @@ func ParsefanoutStanza(c *caddyfile.Dispenser) (*Fanout, error) {
 	transports := make([]string, len(toHosts))
 	for i, host := range toHosts {
 		trans, h := parse.Transport(host)
-		p := createDNSClient(h, trans)
+		p := createFanoutClient(h)
 		f.clients = append(f.clients, p)
 		transports[i] = trans
 	}

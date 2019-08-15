@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
-	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
@@ -24,17 +23,16 @@ func TestDnsClientClose(t *testing.T) {
 	req := request.Request{W: &test.ResponseWriter{}, Req: msg}
 
 	for i := 0; i < 100; i++ {
-		p := createDNSClient(s.Addr, transport.DNS)
-		p.start(healthClientInterval)
+		p := createFanoutClient(s.Addr)
+		p.start()
 		go func() { p.Connect(req) }()
 		go func() { p.Connect(req) }()
 
-		p.close()
 	}
 }
 
 func TestProtocol(t *testing.T) {
-	p := createDNSClient("bad_address", transport.DNS)
+	p := createFanoutClient("bad_address")
 
 	req := request.Request{W: &test.ResponseWriter{TCP: true}, Req: new(dns.Msg)}
 

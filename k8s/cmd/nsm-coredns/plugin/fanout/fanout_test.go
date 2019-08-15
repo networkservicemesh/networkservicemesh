@@ -8,7 +8,6 @@ import (
 
 	"github.com/caddyserver/caddy"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
-	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/miekg/dns"
 )
@@ -76,8 +75,8 @@ func TestFanoutTwoServers(t *testing.T) {
 	defer s1.close()
 	defer s2.close()
 
-	c1 := createDNSClient(s1.Addr, transport.DNS)
-	c2 := createDNSClient(s2.Addr, transport.DNS)
+	c1 := createFanoutClient(s1.Addr)
+	c2 := createFanoutClient(s2.Addr)
 	f := NewFanout()
 	f.addClient(c1)
 	f.addClient(c2)

@@ -17,7 +17,7 @@ var log = clog.NewWithPlugin("fanout")
 
 // Fanout represents a plugin instance that can do async proxy requests to another (DNS) servers.
 type Fanout struct {
-	clients []*dnsClient
+	clients []*fanoutClient
 
 	tlsConfig     *tls.Config
 	tlsServerName string
@@ -28,9 +28,10 @@ type Fanout struct {
 }
 
 type connectResult struct {
-	server   *dnsClient
+	server   *fanoutClient
 	response *dns.Msg
 	start    time.Time
+	err      error
 }
 
 // NewFanout returns reference to new Fanout plugin instance with default configs.
@@ -43,10 +44,9 @@ func NewFanout() *Fanout {
 	return f
 }
 
-// addClient appends p to the proxy list and starts healthchecking.
-func (f *Fanout) addClient(p *dnsClient) {
+func (f *Fanout) addClient(p *fanoutClient) {
 	f.clients = append(f.clients, p)
-	p.start(healthClientInterval)
+	p.start()
 }
 
 // Len returns the number of configured clients.
@@ -62,37 +62,31 @@ func (f *Fanout) Name() string {
 // ServeDNS implements plugin.Handler.
 func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg) (int, error) {
 	req := request.Request{W: w, Req: m}
-	result := make(chan connectResult, len(f.clients))
-	for i := 0; i < len(f.clients); i++ {
+	clientCount := len(f.clients)
+	result := make(chan connectResult, clientCount)
+	for i := 0; i < clientCount; i++ {
 		client := f.clients[i]
-		go func() {
-			start := time.Now()
-			for attempt := 0; attempt < f.maxFailCount; attempt++ {
-				resp, err := client.Connect(req)
-				if err == errCachedClosed {
-					continue
+		go connect(client, req, result, f.maxFailCount)
+	}
+	var first *connectResult
+	for first == nil {
+		select {
+		case <-ctx.Done():
+			return dns.RcodeServerFailure, errContextDone
+		case <-time.After(defaultTimeout):
+			return dns.RcodeServerFailure, errNoHealthy
+		case conn := <-result:
+			if conn.err != nil {
+				clientCount--
+				if clientCount == 0 {
+					return dns.RcodeServerFailure, errNoHealthy
 				}
-				if err == nil && len(resp.Answer) != 0 {
-					result <- connectResult{
-						server:   client,
-						response: resp,
-						start:    start,
-					}
-					return
-				}
-				if err != nil && attempt+1 < f.maxFailCount {
-					client.healthCheck()
-				}
+				break
 			}
-		}()
+			first = &conn
+		}
 	}
-	var first connectResult
-	select {
-	case <-time.After(defaultTimeout):
-		return dns.RcodeServerFailure, errNoHealthy
-	case first = <-result:
-		break
-	}
+
 	taperr := toDnstap(ctx, first.server.addr, req, first.response, first.start)
 	if !req.Match(first.response) {
 		debug.Hexdumpf(first.response, "Wrong reply for id: %d, %s %d", first.response.Id, req.QName(), req.QType())
@@ -103,4 +97,34 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 	}
 	checkErr(w.WriteMsg(first.response))
 	return 0, taperr
+}
+
+func connect(client *fanoutClient, req request.Request, result chan<- connectResult, maxFailCount int) {
+	start := time.Now()
+	resp, err := client.Connect(req)
+	if err == nil {
+		result <- connectResult{
+			server:   client,
+			response: resp,
+			start:    start,
+		}
+		return
+	}
+	err = client.healthCheck(maxFailCount)
+	if err == nil {
+		resp, err = client.Connect(req)
+	}
+	if err == nil {
+		result <- connectResult{
+			server:   client,
+			response: resp,
+			start:    start,
+		}
+		return
+	}
+	result <- connectResult{
+		server: client,
+		start:  start,
+		err:    err,
+	}
 }

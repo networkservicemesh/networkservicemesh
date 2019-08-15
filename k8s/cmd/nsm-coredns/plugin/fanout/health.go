@@ -4,37 +4,30 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/transport"
-
 	"github.com/miekg/dns"
 )
 
 // HealthChecker checks the upstream health.
 type HealthChecker interface {
 	//Check is used as the up.Func in the up.Probe.
-	Check(*dnsClient) error
+	Check() error
 	//SetTLSConfig sets tls config for checker.
 	SetTLSConfig(*tls.Config)
 }
 
 type dnsHealthClient struct {
-	c *dns.Client
+	c    *dns.Client
+	addr string
 }
 
 // NewHealthChecker returns a new HealthChecker based on Transport.
-func NewHealthChecker(trans string) HealthChecker {
-	switch trans {
-	case transport.DNS, transport.TLS:
-		c := new(dns.Client)
-		c.Net = "tcp"
-		c.ReadTimeout = 1 * time.Second
-		c.WriteTimeout = 1 * time.Second
+func NewHealthChecker(addr string) HealthChecker {
+	c := new(dns.Client)
+	c.Net = "tcp"
+	c.ReadTimeout = 1 * time.Second
+	c.WriteTimeout = 1 * time.Second
 
-		return &dnsHealthClient{c: c}
-	}
-
-	log.Warningf("No healthchecker for Transport %q", trans)
-	return nil
+	return &dnsHealthClient{c: c, addr: addr}
 }
 
 func (h *dnsHealthClient) SetTLSConfig(cfg *tls.Config) {
@@ -42,15 +35,15 @@ func (h *dnsHealthClient) SetTLSConfig(cfg *tls.Config) {
 	h.c.TLSConfig = cfg
 }
 
-func (h *dnsHealthClient) Check(p *dnsClient) error {
-	err := h.dnsPing(p.addr)
+func (h *dnsHealthClient) Check() error {
+	err := h.askAny(h.addr)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *dnsHealthClient) dnsPing(addr string) error {
+func (h *dnsHealthClient) askAny(addr string) error {
 	ping := new(dns.Msg)
 	ping.SetQuestion(".", dns.TypeNS)
 	m, _, err := h.c.Exchange(ping, addr)
