@@ -55,10 +55,12 @@ executions:
       make k8s-check
       make k8s-logs-snapshot
       make k8s-delete
+      make k8s-deconfig k8s-config
     on_fail: |
       kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
       make k8s-logs-snapshot
       make k8s-delete
+      make k8s-deconfig k8s-config
   - name: "Example-vpn"
     kind: shell
     env:
@@ -76,10 +78,12 @@ executions:
       make k8s-check
       make k8s-logs-snapshot
       make k8s-delete
+      make k8s-deconfig k8s-config
     on_fail: |
       kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
       make k8s-logs-snapshot
       make k8s-delete
+      make k8s-deconfig k8s-config
   - name: "Example-helm-icmp"
     kind: shell
     env:
@@ -94,7 +98,9 @@ executions:
       make k8s-check
       make k8s-logs-snapshot
       make helm-delete-icmp-responder helm-delete-nsm
+      make k8s-deconfig k8s-config
     on_fail: |
       kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
       make k8s-logs-snapshot
       make helm-delete-icmp-responder helm-delete-nsm
+      make k8s-deconfig k8s-config
