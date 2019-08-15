@@ -31,9 +31,9 @@ func TestAddAndGetСс(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		DataplaneRegisteredName: "dp1",
@@ -84,9 +84,9 @@ func TestGetAllСс(t *testing.T) {
 					Name: "worker",
 					Url:  "2.2.2.2",
 				},
-				NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+				NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+					Name:               "endp1",
 					NetworkServiceName: "ns1",
-					EndpointName:       "endp1",
 				},
 			},
 			DataplaneRegisteredName: "dp1",
@@ -131,9 +131,9 @@ func TestDeleteСс(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		DataplaneRegisteredName: "dp1",
@@ -174,9 +174,9 @@ func TestUpdateExistingСс(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		DataplaneRegisteredName: "dp1",
@@ -223,9 +223,9 @@ func TestUpdateNotExistingСс(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		DataplaneRegisteredName: "dp1",
@@ -263,9 +263,9 @@ func TestApplyChanges(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		DataplaneRegisteredName: "dp1",

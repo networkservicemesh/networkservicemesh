@@ -157,7 +157,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 
 	g.Expect(err).To(BeNil())
 	g.Expect(len(nseList.NetworkServiceEndpoints)).To(Equal(1))
-	nseName := nseList.NetworkServiceEndpoints[0].EndpointName
+	nseName := nseList.NetworkServiceEndpoints[0].GetName()
 
 	logrus.Infof("Delete Remote NSMD")
 	k8s.DeletePods(nodesSetup[1].Nsmd)
@@ -178,9 +178,9 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 			Name:    "icmp-responder",
 			Payload: "IP",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:               nseName,
 			NetworkServiceName: "icmp-responder",
-			EndpointName:       nseName,
 		},
 	})
 	g.Expect(err).To(BeNil())

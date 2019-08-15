@@ -22,9 +22,9 @@ func TestAddAndGetEndpoint(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		SocketLocation: "/socket",
@@ -42,8 +42,8 @@ func TestAddAndGetEndpoint(t *testing.T) {
 	g.Expect(fmt.Sprintf("%p", getEndp.Endpoint)).ToNot(Equal(fmt.Sprintf("%p", endp.Endpoint)))
 	g.Expect(fmt.Sprintf("%p", getEndp.Endpoint.NetworkService)).
 		ToNot(Equal(fmt.Sprintf("%p", endp.Endpoint.NetworkService)))
-	g.Expect(fmt.Sprintf("%p", getEndp.Endpoint.NetworkserviceEndpoint)).
-		ToNot(Equal(fmt.Sprintf("%p", endp.Endpoint.NetworkserviceEndpoint)))
+	g.Expect(fmt.Sprintf("%p", getEndp.Endpoint.NetworkServiceEndpoint)).
+		ToNot(Equal(fmt.Sprintf("%p", endp.Endpoint.NetworkServiceEndpoint)))
 	g.Expect(fmt.Sprintf("%p", getEndp.Endpoint.NetworkServiceManager)).
 		ToNot(Equal(fmt.Sprintf("%p", endp.Endpoint.NetworkServiceManager)))
 }
@@ -64,9 +64,9 @@ func TestGetEndpointsByNs(t *testing.T) {
 					Name: "worker",
 					Url:  "2.2.2.2",
 				},
-				NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+				NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+					Name:               fmt.Sprintf("%d", i),
 					NetworkServiceName: "ns1",
-					EndpointName:       fmt.Sprintf("%d", i),
 				},
 			},
 			SocketLocation: "/socket",
@@ -116,9 +116,9 @@ func TestDeleteEndpoint(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		SocketLocation: "/socket",
@@ -148,9 +148,9 @@ func TestUpdateExistingEndpoint(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		SocketLocation: "/socket",
@@ -187,9 +187,9 @@ func TestUpdateNotExisting(t *testing.T) {
 				Name: "worker",
 				Url:  "2.2.2.2",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               "endp1",
 				NetworkServiceName: "ns1",
-				EndpointName:       "endp1",
 			},
 		},
 		SocketLocation: "/socket",

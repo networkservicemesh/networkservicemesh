@@ -70,9 +70,9 @@ func createNSERegistration(networkServiceName string, endpointName string) *mode
 		SocketLocation: "none",
 		Workspace:      "nsm-1",
 		Endpoint: &registry.NSERegistration{
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+				Name:               endpointName,
 				NetworkServiceName: networkServiceName,
-				EndpointName:       endpointName,
 			}, NetworkService: &registry.NetworkService{
 				Name: networkServiceName,
 			},

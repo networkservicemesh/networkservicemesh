@@ -34,12 +34,12 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	logrus.Infof("Received RegisterNSE(%v)", request)
 
-	labels := request.GetNetworkserviceEndpoint().GetLabels()
+	labels := request.GetNetworkServiceEndpoint().GetLabels()
 	if labels == nil {
 		labels = make(map[string]string)
 	}
 	labels["networkservicename"] = request.GetNetworkService().GetName()
-	if request.GetNetworkserviceEndpoint() != nil && request.GetNetworkService() != nil {
+	if request.GetNetworkServiceEndpoint() != nil && request.GetNetworkService() != nil {
 		_, err := rs.cache.AddNetworkService(&v1.NetworkService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: request.NetworkService.GetName(),
@@ -55,14 +55,14 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		}
 
 		var objectMeta metav1.ObjectMeta
-		if request.GetNetworkserviceEndpoint().EndpointName == "" {
+		if request.GetNetworkServiceEndpoint().GetName() == "" {
 			objectMeta = metav1.ObjectMeta{
 				GenerateName: request.GetNetworkService().GetName(),
 				Labels:       labels,
 			}
 		} else {
 			objectMeta = metav1.ObjectMeta{
-				Name:   request.GetNetworkserviceEndpoint().EndpointName,
+				Name:   request.GetNetworkServiceEndpoint().GetName(),
 				Labels: labels,
 			}
 		}
@@ -82,7 +82,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			return nil, err
 		}
 
-		request.NetworkserviceEndpoint = mapNseFromCustomResource(nseResponse)
+		request.NetworkServiceEndpoint = mapNseFromCustomResource(nseResponse)
 		nsm, err := rs.cache.GetNetworkServiceManager(rs.nsmName)
 		if err != nil {
 			return nil, err

@@ -64,7 +64,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
 	if err != nil {
 		logrus.Errorf("Failed to store NSE into local registry service: %v", err)
-		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{EndpointName: reg.NetworkserviceEndpoint.EndpointName})
+		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{EndpointName: reg.GetNetworkServiceEndpoint().GetName()})
 		return nil, err
 	}
 	return reg, nil
@@ -86,7 +86,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 		return nil, err
 	}
 
-	ep := es.nsm.model.GetEndpoint(registration.GetNetworkserviceEndpoint().GetEndpointName())
+	ep := es.nsm.model.GetEndpoint(registration.GetNetworkServiceEndpoint().GetName())
 	modelEndpoint := &model.Endpoint{
 		SocketLocation: es.workspace.NsmClientSocket(),
 		Endpoint:       registration,

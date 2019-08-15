@@ -69,7 +69,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 
 	return &registry.NSERegistration{
 		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
-		NetworkserviceEndpoint: endpoint,
+		NetworkServiceEndpoint: endpoint,
 		NetworkService:         endpointResponse.GetNetworkService(),
 	}, nil
 }
@@ -79,7 +79,7 @@ ctx - we assume it is big enought to perform connection.
 */
 func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 	if nsem.isLocalEndpoint(endpoint) {
-		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
 			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
 		}
@@ -102,7 +102,7 @@ func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.
 }
 
 func (nsem *nseManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
-	return nsem.model.GetNsm().GetName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
+	return nsem.model.GetNsm().GetName() == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName()
 }
 
 func (nsem *nseManager) checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
@@ -128,7 +128,7 @@ func (nsem *nseManager) filterEndpoints(endpoints []*registry.NetworkServiceEndp
 	result := []*registry.NetworkServiceEndpoint{}
 	// Do filter of endpoints
 	for _, candidate := range endpoints {
-		if ignoreEndpoints[candidate.GetEndpointName()] == nil {
+		if ignoreEndpoints[candidate.GetName()] == nil {
 			result = append(result, candidate)
 		}
 	}

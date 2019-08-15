@@ -74,9 +74,9 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 		in.NetworkServiceManager.Name = impl.nsmgrName
 		impl.nsmCounter++
 	}
-	if in.GetNetworkserviceEndpoint() != nil {
+	if in.GetNetworkServiceEndpoint() != nil {
 		impl.storage.Lock()
-		impl.storage.endpoints[in.GetNetworkserviceEndpoint().EndpointName] = in.GetNetworkserviceEndpoint()
+		impl.storage.endpoints[in.GetNetworkServiceEndpoint().GetName()] = in.GetNetworkServiceEndpoint()
 		impl.storage.Unlock()
 	}
 	in.NetworkServiceManager = impl.storage.managers[impl.nsmgrName]
@@ -136,9 +136,9 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSM(ctx context.Context, in *regis
 func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *empty.Empty, opts ...grpc.CallOption) (*registry.NetworkServiceEndpointList, error) {
 	return &registry.NetworkServiceEndpointList{
 		NetworkServiceEndpoints: []*registry.NetworkServiceEndpoint{
-			&registry.NetworkServiceEndpoint{
+			{
+				Name:                      "ep1",
 				NetworkServiceManagerName: "nsm1",
-				EndpointName:              "ep1",
 			},
 		},
 	}, nil
@@ -468,11 +468,11 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 			Name:    networkServiceName,
 			Payload: payload,
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceManagerName: nsmgrName,
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      endpointname,
 			Payload:                   payload,
+			NetworkServiceManagerName: nsmgrName,
 			NetworkServiceName:        networkServiceName,
-			EndpointName:              endpointname,
 		},
 	}
 	regResp, err := srv.nseRegistry.RegisterNSE(context.Background(), reg)

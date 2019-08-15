@@ -29,7 +29,7 @@ func NewModelVerifier(model model.Model) *ModelVerifier {
 }
 
 // EndpointNotExists is a builder method to add check if model.Endpoint with
-//   Endpoint.NetworkServiceEndpoint.EndpointName == name
+//   Endpoint.NetworkServiceEndpoint.Name == name
 // doesn't exist in v.model
 func (v *ModelVerifier) EndpointNotExists(name string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &endpointVerifier{
@@ -43,7 +43,7 @@ func (v *ModelVerifier) EndpointNotExists(name string) *ModelVerifier {
 }
 
 // EndpointExists is a builder method to add check if model.Endpoint with
-//   Endpoint.NetworkServiceEndpoint.EndpointName == name
+//   Endpoint.NetworkServiceEndpoint.Name == name
 //   Endpoint.NetworkServiceManager.Name == nsm
 // exists in v.model
 func (v *ModelVerifier) EndpointExists(name, nsm string) *ModelVerifier {
@@ -77,7 +77,7 @@ func (v *ModelVerifier) ClientConnectionNotExists(connectionID string) *ModelVer
 //   Xcon.Source.Id = srcID
 //   Xcon.Destination.Id = dst.ID
 //   RemoteNsm.Name = remoteNSM
-//   Endpoint.NetworkServiceEndpoint.EndpointName = nse
+//   Endpoint.NetworkServiceEndpoint.Name = nse
 //   Dataplane.RegisteredName = dataplane
 // exists in v.model
 func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remoteNSM, nse, dataplane string) *ModelVerifier {
@@ -178,7 +178,7 @@ func (v *clientConnectionVerifier) Verify(t *testing.T) {
 
 	v.verifyXcon(connection.Xcon, t)
 	g.Expect(connection.RemoteNsm.GetName()).To(Equal(v.remoteNSM))
-	g.Expect(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()).To(Equal(v.nse))
+	g.Expect(connection.Endpoint.GetNetworkServiceEndpoint().GetName()).To(Equal(v.nse))
 	g.Expect(connection.DataplaneRegisteredName).To(Equal(v.dataplane))
 }
 

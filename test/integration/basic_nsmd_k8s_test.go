@@ -80,7 +80,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 			Name:    nme,
 			Payload: "tcp",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceName: nme,
 		},
 	}
@@ -96,7 +96,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 	logrus.Printf("Find time: time: %v %d", time.Since(t2), len(response.NetworkServiceEndpoints))
 
 	for _, lnse := range response.NetworkServiceEndpoints {
-		nses = append(nses, lnse.EndpointName)
+		nses = append(nses, lnse.GetName())
 	}
 
 	logs, err = k8s.GetLogs(nsmd, "nsmd-k8s")
@@ -181,7 +181,7 @@ func TestUpdateNSM(t *testing.T) {
 			Name:    networkService,
 			Payload: "tcp",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceName: networkService,
 		},
 	})
@@ -234,7 +234,7 @@ func TestGetEndpoints(t *testing.T) {
 				Name:    nsName,
 				Payload: "IP",
 			},
-			NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+			NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
 				NetworkServiceName: nsName,
 			},
 		})
@@ -250,8 +250,8 @@ func TestGetEndpoints(t *testing.T) {
 			Payload: "IP",
 			Name:    "icmp-responder",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			EndpointName: nseList.NetworkServiceEndpoints[0].EndpointName,
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name: nseList.NetworkServiceEndpoints[0].GetName(),
 		},
 	})
 	g.Expect(err).NotTo(BeNil())
@@ -295,8 +295,8 @@ func TestDuplicateEndpoint(t *testing.T) {
 			Payload: "IP",
 			Name:    "icmp-responder",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			EndpointName: nsName,
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name: nsName,
 		},
 	})
 	g.Expect(err).To(BeNil())
@@ -310,8 +310,8 @@ func TestDuplicateEndpoint(t *testing.T) {
 			Payload: "IP",
 			Name:    "icmp-responder",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			EndpointName: nsName,
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name: nsName,
 		},
 	})
 	g.Expect(err).NotTo(BeNil())
@@ -382,7 +382,7 @@ func TestLostUpdate(t *testing.T) {
 			Name:    networkService,
 			Payload: "tcp",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceName: networkService,
 		},
 	})
@@ -408,7 +408,7 @@ func TestLostUpdate(t *testing.T) {
 			Name:    networkService,
 			Payload: "tcp",
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
 			NetworkServiceName: networkService,
 		},
 	})

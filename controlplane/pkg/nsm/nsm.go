@@ -350,7 +350,8 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 				connectionID = dst.GetId()
 			}
 
-			if connectionID != "-" && existingCC.Endpoint != nil && ignoreEndpoints[existingCC.Endpoint.NetworkserviceEndpoint.EndpointName] == nil {
+			endpointName := existingCC.Endpoint.GetNetworkServiceEndpoint().GetName()
+			if connectionID != "-" && existingCC.Endpoint != nil && ignoreEndpoints[endpointName] == nil {
 				endpoint = existingCC.Endpoint
 			}
 		}
@@ -380,7 +381,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 		if err != nil {
 			logrus.Errorf("NSM:(7.1.8-%v) NSE respond with error: %v ", requestID, err)
 			last_error = err
-			ignoreEndpoints[endpoint.NetworkserviceEndpoint.EndpointName] = endpoint
+			ignoreEndpoints[endpoint.GetNetworkServiceEndpoint().GetName()] = endpoint
 			continue
 		}
 		// 7.1.9 We are fine with NSE connection and could continue.
@@ -554,10 +555,10 @@ func (srv *networkServiceManager) validateConnection(ctx context.Context, conn c
 
 func (srv *networkServiceManager) updateConnectionParameters(requestID string, nseConn connection.Connection, endpoint *registry.NSERegistration) {
 	if srv.nseManager.isLocalEndpoint(endpoint) {
-		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+		modelEp := srv.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp != nil { // In case of tests this could be empty
 			nseConn.GetConnectionMechanism().GetParameters()[local_connection.Workspace] = modelEp.Workspace
-			nseConn.GetConnectionMechanism().GetParameters()[local_connection.WorkspaceNSEName] = modelEp.Endpoint.NetworkserviceEndpoint.EndpointName
+			nseConn.GetConnectionMechanism().GetParameters()[local_connection.WorkspaceNSEName] = modelEp.Endpoint.GetNetworkServiceEndpoint().GetName()
 		}
 		logrus.Infof("NSM:(7.2.6.2.4-%v) Update Local NSE connection parameters: %v", requestID, nseConn.GetConnectionMechanism())
 	}
@@ -685,10 +686,10 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 						logrus.Errorf("Failed to find NSE to recovery: %v", err)
 					}
 					for _, ep := range endpoints.NetworkServiceEndpoints {
-						if xcon.GetRemoteDestination() != nil && ep.EndpointName == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
+						if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
 							endpoint = &registry.NSERegistration{
 								NetworkServiceManager:  endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
-								NetworkserviceEndpoint: ep,
+								NetworkServiceEndpoint: ep,
 								NetworkService:         endpoints.NetworkService,
 							}
 							break
