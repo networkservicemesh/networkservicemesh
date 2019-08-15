@@ -369,8 +369,10 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", pi.id)
 	if pi.client != nil {
-		response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
-		pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
+		if pi.sshKey != nil {
+			response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
+			pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
+		}
 		for key, device := range pi.devices {
 			response, err := pi.client.Devices.Delete(device.ID)
 			pi.manager.AddLog(pi.id, fmt.Sprintf("delete-device-%s", key), fmt.Sprintf("%v\n%v", response, err))
@@ -455,14 +457,18 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	}
 	sshKey, response, err := pi.client.SSHKeys.Create(keyRequest)
 
-	createMsg := fmt.Sprintf("Create key %v %v %v", sshKey, response.String(), err)
+	responseMsg := ""
+	if response != nil {
+		responseMsg = response.String()
+	}
+	createMsg := fmt.Sprintf("Create key %v %v %v", sshKey, responseMsg, err)
 	_, _ = out.WriteString(createMsg)
 	logrus.Infof("%s-%v", pi.id, createMsg)
 
 	keyIds := []string{}
 	if sshKey == nil {
 		// try to find key.
-		sshKey, keyIds = pi.findKeys(&out, sshKey)
+		sshKey, keyIds = pi.findKeys(&out)
 	} else {
 		keyIds = append(keyIds, sshKey.ID)
 	}
@@ -478,12 +484,13 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	return keyIds, nil
 }
 
-func (pi *packetInstance) findKeys(out io.StringWriter, sshKey *packngo.SSHKey) (*packngo.SSHKey, []string) {
+func (pi *packetInstance) findKeys(out io.StringWriter) (*packngo.SSHKey, []string) {
 	sshKeys, response, err := pi.client.SSHKeys.List()
 	if err != nil {
 		_, _ = out.WriteString(fmt.Sprintf("List keys error %v %v\n", response, err))
 	}
 	var keyIds []string
+	var sshKey *packngo.SSHKey
 	for k := 0; k < len(sshKeys); k++ {
 		kk := &sshKeys[k]
 		if kk.Label == pi.keyID {
