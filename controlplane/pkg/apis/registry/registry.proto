@@ -5,15 +5,6 @@ package registry;
 import "ptypes/empty/empty.proto";
 import "ptypes/timestamp/timestamp.proto";
 
-message NetworkServiceEndpoint {
-    string name = 1;
-    string payload = 2;
-    string network_service_name = 3;
-    string network_service_manager_name = 4;
-    map<string, string> labels = 5;
-    string state = 6;
-}
-
 message NetworkService {
     string name = 1;
     string payload = 2;
@@ -35,6 +26,15 @@ message NetworkServiceManager {
     string url = 2;
     google.protobuf.Timestamp last_seen = 3;
     string state = 4;
+}
+
+message NetworkServiceEndpoint {
+    string name = 1;
+    string payload = 2;
+    string network_service_name = 3;
+    string network_service_manager_name = 4;
+    map<string, string> labels = 5;
+    string state = 6;
 }
 
 message FindNetworkServiceRequest {
