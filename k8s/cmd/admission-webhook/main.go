@@ -18,7 +18,7 @@ var version string
 func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	goals := probes.NewGoals(2)
+	goals := &admissionWebhookGoals{}
 	probes := probes.NewProbes("NSM admission webhook healthcheck", goals)
 	go probes.BeginHealthCheck()
 	logrus.Info("Admission Webhook starting...")
@@ -28,8 +28,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to load key pair: %v", err)
 	}
-	goals.Done()
-	logrus.Info("Loaded  key pair")
+	goals.SetKeyPairLoaded()
 	whsvr := &nsmAdmissionWebhook{
 		server: &http.Server{
 			Addr:      fmt.Sprintf(":%v", 443),
@@ -48,8 +47,8 @@ func main() {
 			logrus.Fatalf("Failed to listen and serve webhook server: %v", err)
 		}
 	}()
-	goals.Done()
 	logrus.Info("Server started")
+	goals.SetServerStarted()
 	<-c
 }
 

@@ -37,7 +37,7 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	nsmdGoals := probes.NewGoals(4)
+	nsmdGoals := &nsmdProbeGoals{}
 	nsmdProbes := probes.NewProbes("NSMD liveness/readiness healthcheck", nsmdGoals)
 	go nsmdProbes.BeginHealthCheck()
 
@@ -68,8 +68,8 @@ func main() {
 	}
 	defer server.Stop()
 
-	nsmdGoals.Done()
 	logrus.Info("NSM server is ready")
+	nsmdGoals.SetNsmServerReady()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
@@ -87,7 +87,7 @@ func main() {
 		logrus.Errorf("Error waiting for dataplane..")
 		return
 	}
-	nsmdGoals.Done()
+
 	logrus.Info("Dataplane server is ready")
 
 	// Choose a public API listener
@@ -100,11 +100,11 @@ func main() {
 		logrus.Errorf("Failed to start Public API server...")
 		return
 	}
-	nsmdGoals.Done()
 	logrus.Info("Public listener is ready")
+	nsmdGoals.SetPublicListenerReady()
 
 	server.StartAPIServerAt(sock)
-	nsmdGoals.Done()
+	nsmdGoals.SetServerAPIReady()
 	logrus.Info("Serve api is ready")
 
 	elapsed := time.Since(start)

@@ -47,7 +47,7 @@ func main() {
 			logrus.Errorf("Failed to close tracer: %v", err)
 		}
 	}()
-	goals := probes.NewGoals(2)
+	goals := &proxyNsmdProbeGoals{}
 	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals)
 	go nsmdProbes.BeginHealthCheck()
 
@@ -66,11 +66,11 @@ func main() {
 		return
 	}
 	logrus.Info("Public listener is ready")
-	goals.Done()
+	goals.SetPublicListenerReady()
 
 	startAPIServerAt(sock, serviceRegistry)
-	logrus.Info("Api server is ready")
-	goals.Done()
+	logrus.Info("API server is ready")
+	goals.SetServerAPIReady()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting Proxy NSMD took: %s", elapsed)

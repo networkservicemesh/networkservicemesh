@@ -16,7 +16,6 @@
 package probes
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -42,8 +41,7 @@ func NewProbes(name string, goals Goals) *Probes {
 
 func (probes *Probes) readiness(w http.ResponseWriter, r *http.Request) {
 	if !probes.goals.IsComplete() {
-		errMsg := fmt.Sprintf("Not all goals have done. TODO: %v", probes.goals.TODO())
-		http.Error(w, errMsg, http.StatusServiceUnavailable)
+		http.Error(w, probes.goals.TODO(), http.StatusServiceUnavailable)
 	} else {
 		w.Write([]byte("OK"))
 	}

@@ -418,7 +418,6 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 
 	admissionWebhookPod := waitWebhookPod(k8s, awDeployment.Name, timeout)
 	k8s.g.Expect(admissionWebhookPod).ShouldNot(BeNil())
-	k8s.WaitLogsContains(admissionWebhookPod, admissionWebhookPod.Spec.Containers[0].Name, "Server started", timeout)
 	return awc, awDeployment, awService
 }
 
