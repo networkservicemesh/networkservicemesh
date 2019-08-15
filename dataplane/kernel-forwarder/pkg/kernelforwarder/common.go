@@ -16,6 +16,7 @@
 package kernelforwarder
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -53,6 +54,8 @@ type connectionConfig struct {
 	dstIP      string
 	srcIPVXLAN net.IP
 	dstIPVXLAN net.IP
+	srcRoutes  []*connectioncontext.Route
+	dstRoutes  []*connectioncontext.Route
 	vni        int
 }
 
@@ -119,18 +122,18 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 			return err
 		}
 	} else {
-		/* 9. Bring the interface DOWN */
+		/* 7. Bring the interface DOWN */
 		if err = netlink.LinkSetDown(link); err != nil {
 			logrus.Errorf("failed to bring %q down: %v", ifaceName, err)
 			return err
 		}
-		/* 2. Inject the interface back into the host namespace */
+		/* 8. Inject the interface back into the host namespace */
 		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
 			logrus.Errorf("failed to inject %q bach to host namespace - %v", ifaceName, err)
 			return err
 		}
 	}
-	/* 10. Switch back to the original namespace */
+	/* Switch back to the original namespace */
 	if err = netns.Set(currentNs); err != nil {
 		logrus.Errorf("failed to switch back to original namespace: %v", err)
 		return err
@@ -159,6 +162,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
 			dstIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
+			srcRoutes: crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
+			dstRoutes: crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
 		}, nil
 	case cINCOMING:
 		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
@@ -171,6 +176,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstNsPath:  dstNsPath,
 			dstName:    crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			dstIP:      crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
+			dstRoutes:  crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
@@ -186,6 +192,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			srcNsPath:  srcNsPath,
 			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:      crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			srcRoutes:  crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
