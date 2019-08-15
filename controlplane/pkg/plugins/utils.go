@@ -24,7 +24,7 @@ func StartPlugin(name string, services map[plugins.PluginCapability]interface{})
 		return err
 	}
 
-	capabilities := make([]plugins.PluginCapability, len(services))
+	capabilities := make([]plugins.PluginCapability, 0, len(services))
 	for capability := range services {
 		capabilities = append(capabilities, capability)
 	}
