@@ -59,7 +59,7 @@ type connectionConfig struct {
 	vni        int
 }
 
-func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject bool) error {
+func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*connectioncontext.Route, inject bool) error {
 	if inject {
 		/* 1. Get a link object for the interface */
 		ifaceLink, err := netlink.LinkByName(ifaceName)
@@ -120,6 +120,17 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 		if err = netlink.LinkSetUp(link); err != nil {
 			logrus.Errorf("failed to bring %q up: %v", ifaceName, err)
 			return err
+		}
+		/* 10. Add routes */
+		for _, route := range routes {
+			_, routeNet, err := net.ParseCIDR(route.GetPrefix())
+			if err != nil {
+				logrus.Error("failed parsing route CIDR:", err)
+			}
+			route := netlink.Route{LinkIndex: link.Attrs().Index, Dst: &net.IPNet{IP: routeNet.IP, Mask: routeNet.Mask}, Src: addr.IP}
+			if err := netlink.RouteAdd(&route); err != nil {
+				logrus.Error("failed adding routes:", err)
+			}
 		}
 	} else {
 		/* 7. Bring the interface DOWN */

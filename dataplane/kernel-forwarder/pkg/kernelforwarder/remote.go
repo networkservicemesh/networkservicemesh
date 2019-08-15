@@ -16,6 +16,7 @@
 package kernelforwarder
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -53,10 +54,10 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
 		return crossConnect, err
 	}
-	nsPath, name, ifaceIP, vxlanIP := modifyConfiguration(cfg, direction)
+	nsPath, name, ifaceIP, vxlanIP, routes := modifyConfiguration(cfg, direction)
 	if connect {
 		/* 2. Create a connection */
-		err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni)
+		err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes)
 		if err != nil {
 			logrus.Errorf("failed to create remote connection - %v", err)
 		}
@@ -70,7 +71,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 	return crossConnect, err
 }
 
-func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int) error {
+func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route) error {
 	logrus.Info("Creating remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -93,7 +94,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 	}
 
 	/* 4. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, true); err != nil {
+	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, routes, true); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
@@ -115,7 +116,7 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 	}
 
 	/* 2. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, "", false); err != nil {
+	if err = setupLinkInNs(containerNs, ifaceName, "", nil, false); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
@@ -136,11 +137,11 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 }
 
 /* modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing */
-func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP) {
+func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP, []*connectioncontext.Route) {
 	if direction == cINCOMING {
-		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN
+		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes
 	}
-	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN
+	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN, cfg.srcRoutes
 
 }
 
