@@ -130,7 +130,7 @@ func (nsme *nsmEndpoint) Delete() error {
 	}
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
-		EndpointName: nsme.endpointName,
+		NetworkServiceEndpointName: nsme.endpointName,
 	}
 	_, err := nsme.registryClient.RemoveNSE(context.Background(), removeNSE)
 	if err != nil {

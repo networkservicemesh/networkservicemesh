@@ -55,7 +55,7 @@ message NSERegistration {
 }
 
 message RemoveNSERequest {
-    string endpoint_name = 1;
+    string network_service_endpoint_name = 1;
 }
 
 service NetworkServiceRegistry {

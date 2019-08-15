@@ -85,7 +85,7 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 
 func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registry.RemoveNSERequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	impl.storage.Lock()
-	delete(impl.storage.endpoints, in.EndpointName)
+	delete(impl.storage.endpoints, in.GetNetworkServiceEndpointName())
 	impl.storage.Unlock()
 	return nil, nil
 }

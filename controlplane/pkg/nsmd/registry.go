@@ -64,7 +64,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
 	if err != nil {
 		logrus.Errorf("Failed to store NSE into local registry service: %v", err)
-		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{EndpointName: reg.GetNetworkServiceEndpoint().GetName()})
+		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{NetworkServiceEndpointName: reg.GetNetworkServiceEndpoint().GetName()})
 		return nil, err
 	}
 	return reg, nil
@@ -116,7 +116,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 		logrus.Error(err)
 		return nil, err
 	}
-	es.nsm.model.DeleteEndpoint(request.EndpointName)
+	es.nsm.model.DeleteEndpoint(request.GetNetworkServiceEndpointName())
 	return &empty.Empty{}, nil
 }
 

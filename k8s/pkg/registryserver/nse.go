@@ -99,7 +99,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 
 	logrus.Infof("Received RemoveNSE(%v)", request)
 
-	if err := rs.cache.DeleteNetworkServiceEndpoint(request.EndpointName); err != nil {
+	if err := rs.cache.DeleteNetworkServiceEndpoint(request.GetNetworkServiceEndpointName()); err != nil {
 		return nil, err
 	}
 	logrus.Infof("RemoveNSE done: time %v", time.Since(st))

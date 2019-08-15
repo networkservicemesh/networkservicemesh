@@ -269,7 +269,7 @@ func (nsm *nsmServer) restoreEndpoints(nses map[string]nseregistry.NSEEntry, reg
 	for name := range registeredNSEs {
 		if _, ok := updatedNSEs[name]; !ok {
 			if _, err := registryClient.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-				EndpointName: name,
+				NetworkServiceEndpointName: name,
 			}); err != nil {
 				logrus.Errorf("Remove NSE: NSE %v", err)
 			}
@@ -346,7 +346,7 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(
 
 func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.NetworkServiceRegistryClient) error {
 	if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-		EndpointName: name,
+		NetworkServiceEndpointName: name,
 	}); err != nil {
 		return err
 	}

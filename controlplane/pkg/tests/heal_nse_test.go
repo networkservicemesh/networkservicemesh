@@ -84,7 +84,7 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	epName := clientConnection1.Endpoint.GetNetworkServiceEndpoint().GetName()
 	_, err = srv.nseRegistry.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-		EndpointName: epName,
+		NetworkServiceEndpointName: epName,
 	})
 	if err != nil {
 		t.Fatal("Err must be nil")
