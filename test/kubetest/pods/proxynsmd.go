@@ -30,6 +30,10 @@ func ProxyNSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Po
 
 // ProxyNSMgrPodWithConfig - Proxy NSMgr pod
 func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
+
+	ht := new(v1.HostPathType)
+	*ht = v1.HostPathDirectoryOrCreate
+
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Name: name,
@@ -42,6 +46,17 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 			//Kind: "DaemonSet",
 		},
 		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
+				{
+					Name: "nsm-plugin-socket",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Type: ht,
+							Path: "/var/lib/networkservicemesh/plugins",
+						},
+					},
+				},
+			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "proxy-nsmd",
@@ -61,6 +76,7 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 					Name:            "proxy-nsmd-k8s",
 					Image:           "networkservicemesh/proxy-nsmd-k8s",
 					ImagePullPolicy: v1.PullIfNotPresent,
+					VolumeMounts:    []v1.VolumeMount{newNSMPluginMount()},
 					Resources:       createDefaultResources(),
 					Ports: []v1.ContainerPort{
 						{
