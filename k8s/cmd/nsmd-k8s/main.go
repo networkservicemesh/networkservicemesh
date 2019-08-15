@@ -62,16 +62,15 @@ func main() {
 		}
 	}()
 
-	capabilities := []pluginsapi.PluginCapability{
-		pluginsapi.PluginCapability_CONNECTION,
-	}
-
-	service, err := prefixcollector.NewPrefixService(config)
+	prefixService, err := prefixcollector.NewPrefixService(config)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 
-	if err = plugins.StartPlugin("k8s-plugin", capabilities, service); err != nil {
+	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
+	services[pluginsapi.PluginCapability_CONNECTION] = prefixService
+
+	if err = plugins.StartPlugin("k8s-plugin", services); err != nil {
 		logrus.Fatalln("Failed to start K8s Plugin", err)
 	}
 

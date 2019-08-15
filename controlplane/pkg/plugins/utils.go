@@ -18,13 +18,18 @@ const (
 )
 
 // StartPlugin creates an instance of a plugin and registers it
-func StartPlugin(name string, capabilities []plugins.PluginCapability, service interface{}) error {
+func StartPlugin(name string, services map[plugins.PluginCapability]interface{}) error {
 	endpoint := path.Join(plugins.PluginRegistryPath, name+".sock")
 	if err := tools.SocketCleanup(endpoint); err != nil {
 		return err
 	}
 
-	if err := createPlugin(name, endpoint, capabilities, service); err != nil {
+	capabilities := make([]plugins.PluginCapability, len(services))
+	for capability := range services {
+		capabilities = append(capabilities, capability)
+	}
+
+	if err := createPlugin(name, endpoint, services); err != nil {
 		return err
 	}
 
@@ -35,7 +40,7 @@ func StartPlugin(name string, capabilities []plugins.PluginCapability, service i
 	return nil
 }
 
-func createPlugin(name string, endpoint string, capabilities []plugins.PluginCapability, service interface{}) error {
+func createPlugin(name, endpoint string, services map[plugins.PluginCapability]interface{}) error {
 	sock, err := net.Listen("unix", endpoint)
 	if err != nil {
 		return err
@@ -43,7 +48,7 @@ func createPlugin(name string, endpoint string, capabilities []plugins.PluginCap
 
 	server := tools.NewServer()
 
-	for _, capability := range capabilities {
+	for capability, service := range services {
 		switch capability {
 		case plugins.PluginCapability_CONNECTION:
 			connectionService, ok := service.(plugins.ConnectionPluginServer)
@@ -63,7 +68,7 @@ func createPlugin(name string, endpoint string, capabilities []plugins.PluginCap
 	return nil
 }
 
-func registerPlugin(name string, endpoint string, capabilities []plugins.PluginCapability) error {
+func registerPlugin(name, endpoint string, capabilities []plugins.PluginCapability) error {
 	conn, err := tools.DialUnix(plugins.PluginRegistrySocket)
 	if err != nil {
 		return fmt.Errorf("cannot connect to the Plugin Registry: %v", err)

@@ -16,6 +16,7 @@ type prefixService struct {
 	excludedPrefixes prefix_pool.PrefixPool
 }
 
+// NewPrefixService creates an instance of ConnectionPluginServer
 func NewPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
