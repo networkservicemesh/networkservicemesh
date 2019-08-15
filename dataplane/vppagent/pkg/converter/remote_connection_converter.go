@@ -65,22 +65,10 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 	m := c.GetMechanism()
 
-	// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
-	srcip, _ := m.SrcIP()
-	dstip, _ := m.DstIP()
-	useExtIP, _ := m.UseExtIP()
-	if useExtIP {
-		dstip, _ = m.DstExtIP()
+	srcip, dstip, vni, err := getParameters(m, c.side)
+	if err != nil {
+		return rv, nil
 	}
-	if c.side == SOURCE {
-		// If the remote Connection is DESTINATION Side then srcip/dstip need to be flipped from the Connection
-		srcip, _ = m.DstIP()
-		dstip, _ = m.SrcIP()
-		if useExtIP {
-			dstip, _ = m.SrcExtIP()
-		}
-	}
-	vni, _ := m.VNI()
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANSrcIP, srcip)
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANDstIP, dstip)
@@ -100,4 +88,54 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	})
 
 	return rv, nil
+}
+
+func getParameters(m *connection.Mechanism, side ConnectionContextSide) (string, string, uint32, error) {
+	var srcip, dstip string
+	var useExtIP bool
+	var vni uint32
+	var err error
+
+	useExtIP, err = m.UseExtIP()
+	if err != nil {
+		return srcip, dstip, vni, err
+	}
+
+	srcip, err = m.SrcIP()
+	if err != nil {
+		return srcip, dstip, vni, err
+	}
+	dstip, err = m.DstIP()
+	if err != nil {
+		return srcip, dstip, vni, err
+	}
+	if useExtIP {
+		dstip, err = m.DstExtIP()
+		if err != nil {
+			return srcip, dstip, vni, err
+		}
+	}
+	if side == SOURCE {
+		srcip, err = m.DstIP()
+		if err != nil {
+			return srcip, dstip, vni, err
+		}
+		dstip, err = m.SrcIP()
+		if err != nil {
+			return srcip, dstip, vni, err
+		}
+		if useExtIP {
+			dstip, err = m.SrcExtIP()
+			if err != nil {
+				return srcip, dstip, vni, err
+			}
+		}
+	}
+
+	vni, err = m.VNI()
+	if err != nil {
+		return srcip, dstip, vni, err
+	}
+
+	return srcip, dstip, vni, err
 }

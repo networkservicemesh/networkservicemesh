@@ -14,12 +14,18 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
+// InterdomainPlugin is a temporary interface for interdomain plugin, will be removed together with clusterinfo package and usages of it
+type InterdomainPlugin interface {
+	clusterinfo.ClusterInfoServer
+	plugins.ConnectionPluginServer
+}
+
 type k8sClusterInfo struct {
 	clientset *kubernetes.Clientset
 }
 
 // NewK8sClusterInfoService creates a ClusterInfoServer
-func NewK8sClusterInfoService(config *rest.Config) (*k8sClusterInfo, error) {
+func NewK8sClusterInfoService(config *rest.Config) (InterdomainPlugin, error) {
 	cs, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
