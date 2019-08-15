@@ -5,12 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
-
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -58,5 +59,13 @@ func main() {
 			logrus.Fatalln(err)
 		}
 	}()
+
+	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
+	services[pluginsapi.PluginCapability_CONNECTION] = clusterInfoService
+
+	if err = plugins.StartPlugin("k8s-interdomain-plugin", services); err != nil {
+		logrus.Fatalln("Failed to start K8s Interdomain Plugin", err)
+	}
+
 	<-c
 }

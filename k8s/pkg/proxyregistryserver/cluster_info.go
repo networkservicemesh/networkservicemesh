@@ -10,6 +10,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/clusterinfo"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
 type k8sClusterInfo struct {
@@ -17,9 +19,8 @@ type k8sClusterInfo struct {
 }
 
 // NewK8sClusterInfoService creates a ClusterInfoServer
-func NewK8sClusterInfoService(config *rest.Config) (clusterinfo.ClusterInfoServer, error) {
+func NewK8sClusterInfoService(config *rest.Config) (*k8sClusterInfo, error) {
 	cs, err := kubernetes.NewForConfig(config)
-
 	if err != nil {
 		return nil, err
 	}
@@ -62,4 +63,26 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 	}
 
 	return nil, fmt.Errorf("node was not found: %v", nodeIPConfiguration)
+}
+
+func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error) {
+	mechanism := info.GetConnection().GetConnectionMechanism()
+
+	switch mechanism.GetMechanismType() {
+	case remote.MechanismType_VXLAN:
+		ip := mechanism.GetParameters()[remote.VXLANSrcIP]
+
+		ipConfig, err := k.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: ip})
+		if err != nil {
+			return nil, err
+		}
+
+		mechanism.GetParameters()[remote.VXLANSrcExtIP] = ipConfig.ExternalIP
+	}
+
+	return info, nil
+}
+
+func (k *k8sClusterInfo) ValidateConnection(context.Context, *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error) {
+	return &plugins.ConnectionValidationResult{Status: plugins.ConnectionValidationStatus_SUCCESS}, nil
 }
