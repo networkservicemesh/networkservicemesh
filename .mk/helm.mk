@@ -32,8 +32,10 @@ $(INSTALL_CHARTS):
 	# but that seems more intrusive than this hack. Consider changing to global if the charts
 	# get even more complicated
 	helm install --name=${CHART} \
+	--wait --atomic \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
+	--namespace="${NSM_NAMESPACE}" \
 	deployments/helm/${CHART}
 
 .PHONY: $(DELETE_CHARTS)
