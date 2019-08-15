@@ -80,8 +80,9 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
 		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
-
 		g.Expect(err).To(BeNil())
+		defer k8s.Cleanup()
+		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		config := []*pods.NSMgrPodConfig{}
 
@@ -95,7 +96,6 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
-		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,
@@ -109,8 +109,6 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 
 		serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
 		defer serviceCleanup()
-
-		defer k8ss[i].K8s.Cleanup()
 
 		nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
 		if len(nodes) < nodesCount {

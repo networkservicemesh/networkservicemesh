@@ -56,8 +56,9 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
 		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
-
 		g.Expect(err).To(BeNil())
+		defer k8s.Cleanup()
+		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()
 		nseNoHealPodConfig.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
@@ -67,7 +68,6 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 			nseNoHealPodConfig,
 		}, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
-		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,
@@ -79,8 +79,6 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 
 		serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
 		defer serviceCleanup()
-
-		defer k8ss[i].K8s.Cleanup()
 	}
 
 	// Run ICMP

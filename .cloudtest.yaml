@@ -79,7 +79,7 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
 
-- name: "Interdomain tests aws-azure"
+  - name: "Interdomain tests aws-azure"
     tags:
       - interdomain
     root: ./test/integration

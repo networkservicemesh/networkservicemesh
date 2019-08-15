@@ -69,7 +69,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 
 	return &registry.NSERegistration{
 		NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[endpoint.GetNetworkServiceManagerName()],
-		NetworkserviceEndpoint: endpoint,
+		NetworkServiceEndpoint: endpoint,
 		NetworkService:         endpointResponse.GetNetworkService(),
 	}, nil
 }
