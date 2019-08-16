@@ -58,7 +58,7 @@ executions:
     on_fail: |
       kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
       make k8s-logs-snapshot
-      make k8s-delete
+      make helm-delete-vpn helm-delete-nsm
       make k8s-deconfig k8s-config
 
   - name: "Example-helm-icmp"

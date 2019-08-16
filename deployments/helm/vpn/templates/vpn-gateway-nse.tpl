@@ -41,7 +41,7 @@ spec:
             limits:
               networkservicemesh.io/socket: 1
         - name: nginx
-          image: {{ .Values.registry }}/{{ .Values.org }}/nginx:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/nginx:latest
 metadata:
   name: vpn-gateway-nse
   namespace: {{ .Release.Namespace }}
