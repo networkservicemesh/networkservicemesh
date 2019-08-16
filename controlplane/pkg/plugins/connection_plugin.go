@@ -52,26 +52,26 @@ func (cpm *connectionPluginManager) getClients() map[string]plugins.ConnectionPl
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
 	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		var err error
-		info, err = plugin.UpdateConnection(pluginCtx, info)
+		wrapper, err = plugin.UpdateConnection(pluginCtx, wrapper)
 		cancel()
 
 		if err != nil {
 			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)
 		}
 	}
-	return info, nil
+	return wrapper, nil
 }
 
-func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, info *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
 	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
-		result, err := plugin.ValidateConnection(pluginCtx, info)
+		result, err := plugin.ValidateConnection(pluginCtx, wrapper)
 		cancel()
 
 		if err != nil {

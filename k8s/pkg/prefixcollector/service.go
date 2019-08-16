@@ -68,15 +68,15 @@ func (c *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset)
 	return nil
 }
 
-func (c *prefixService) UpdateConnection(ctx context.Context, info *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
-	connCtx := info.GetConnection().GetContext()
+func (c *prefixService) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+	connCtx := wrapper.GetConnection().GetContext()
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), c.getExcludedPrefixes().GetPrefixes()...)
-	return info, nil
+	return wrapper, nil
 }
 
-func (c *prefixService) ValidateConnection(ctx context.Context, info *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+func (c *prefixService) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
 	prefixes := c.getExcludedPrefixes()
-	connCtx := info.GetConnection().GetContext()
+	connCtx := wrapper.GetConnection().GetContext()
 
 	if srcIP := connCtx.GetIpContext().GetSrcIpAddr(); srcIP != "" {
 		intersect, err := prefixes.Intersect(srcIP)
