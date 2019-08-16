@@ -13,8 +13,8 @@ import (
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnection(context.Context, *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error)
-	ValidateConnection(context.Context, *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error)
+	UpdateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error)
+	ValidateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error)
 }
 
 type connectionPluginManager struct {
@@ -52,7 +52,7 @@ func (cpm *connectionPluginManager) getClients() map[string]plugins.ConnectionPl
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error) {
+func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
 	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
@@ -67,7 +67,7 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *
 	return info, nil
 }
 
-func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error) {
+func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, info *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
 	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 

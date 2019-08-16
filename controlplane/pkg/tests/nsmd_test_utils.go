@@ -178,7 +178,7 @@ func (cpm *testConnectionPluginManager) Register(string, *grpc.ClientConn) error
 	return nil
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionInfo) (*pluginsapi.ConnectionInfo, error) {
+func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionWrapper, error) {
 	for _, plugin := range cpm.plugins {
 		var err error
 		info, err = plugin.UpdateConnection(ctx, info)
@@ -189,7 +189,7 @@ func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, in
 	return info, nil
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, info *pluginsapi.ConnectionInfo) (*pluginsapi.ConnectionValidationResult, error) {
+func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionValidationResult, error) {
 	for _, plugin := range cpm.plugins {
 		result, err := plugin.ValidateConnection(ctx, info)
 		if err != nil {

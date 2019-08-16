@@ -15,13 +15,13 @@ type dummyConnectionPlugin struct {
 	shouldFail bool
 }
 
-func (cp *dummyConnectionPlugin) UpdateConnection(ctx context.Context, info *plugins.ConnectionInfo, opts ...grpc.CallOption) (*plugins.ConnectionInfo, error) {
+func (cp *dummyConnectionPlugin) UpdateConnection(ctx context.Context, info *plugins.ConnectionWrapper, opts ...grpc.CallOption) (*plugins.ConnectionWrapper, error) {
 	connCtx := info.GetConnection().GetContext()
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), cp.prefixes...)
 	return info, nil
 }
 
-func (cp *dummyConnectionPlugin) ValidateConnection(ctx context.Context, info *plugins.ConnectionInfo, opts ...grpc.CallOption) (*plugins.ConnectionValidationResult, error) {
+func (cp *dummyConnectionPlugin) ValidateConnection(ctx context.Context, info *plugins.ConnectionWrapper, opts ...grpc.CallOption) (*plugins.ConnectionValidationResult, error) {
 	if cp.shouldFail {
 		return &plugins.ConnectionValidationResult{
 			Status:       plugins.ConnectionValidationStatus_FAIL,
