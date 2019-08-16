@@ -16,7 +16,15 @@ import (
 )
 
 const (
-	pluginCallTimeout = 100 * time.Second
+	registryInitTimeout = 5 * time.Second
+	pluginCallTimeout   = 100 * time.Second
+)
+
+const (
+	hasDiscoveryPlugin = 1 << iota
+	hasRegistryPlugin
+
+	hasAllRequiredPlugins = hasDiscoveryPlugin | hasRegistryPlugin
 )
 
 // PluginRegistry stores a plugin manager for each plugin type
@@ -36,6 +44,7 @@ type PluginManager interface {
 
 type pluginRegistry struct {
 	sync.RWMutex
+	status                  int
 	connections             map[string]*grpc.ClientConn
 	connectionPluginManager ConnectionPluginManager
 	discoveryPluginManager  DiscoveryPluginManager
@@ -45,6 +54,7 @@ type pluginRegistry struct {
 // NewPluginRegistry creates an instance of PluginRegistry
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
+		status:                  hasAllRequiredPlugins, // TODO: remove this when discovery and registry plugins will be implemented
 		connections:             make(map[string]*grpc.ClientConn),
 		connectionPluginManager: createConnectionPluginManager(),
 		discoveryPluginManager:  createDiscoveryPluginManager(),
@@ -71,6 +81,20 @@ func (pr *pluginRegistry) Start() error {
 		}
 	}()
 
+	return pr.waitForRequiredPlugins()
+}
+
+func (pr *pluginRegistry) waitForRequiredPlugins() error {
+	st := time.Now()
+	for {
+		if (pr.getStatus() & hasAllRequiredPlugins) != 0 {
+			break
+		}
+		if time.Since(st) > registryInitTimeout {
+			return fmt.Errorf("timeout waiting for required plugins, need at least one discovery and one registry plugin")
+		}
+		time.Sleep(1 * time.Second)
+	}
 	return nil
 }
 
@@ -101,12 +125,28 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 			pr.connectionPluginManager.Register(info.GetName(), conn)
 		case plugins.PluginCapability_DISCOVERY:
 			pr.discoveryPluginManager.Register(info.GetName(), conn)
+			pr.addStatus(hasDiscoveryPlugin)
 		case plugins.PluginCapability_REGISTRY:
 			pr.registryPluginManager.Register(info.GetName(), conn)
+			pr.addStatus(hasRegistryPlugin)
 		}
 	}
 
 	return &empty.Empty{}, nil
+}
+
+func (pr *pluginRegistry) addStatus(status int) {
+	pr.Lock()
+	defer pr.Unlock()
+
+	pr.status |= status
+}
+
+func (pr *pluginRegistry) getStatus() int {
+	pr.RLock()
+	defer pr.RUnlock()
+
+	return pr.status
 }
 
 func (pr *pluginRegistry) createConnection(name string, endpoint string) (*grpc.ClientConn, error) {
