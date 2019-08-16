@@ -2,13 +2,11 @@ package fanout
 
 import (
 	"crypto/tls"
-	"errors"
 	"runtime"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/utils/helper/errtools"
-
 	"github.com/coredns/coredns/plugin/pkg/up"
+	"github.com/pkg/errors"
 )
 
 type fanoutClient struct {
@@ -49,7 +47,11 @@ func (p *fanoutClient) healthCheck(maxFails int) error {
 		if checkErr == nil {
 			return nil
 		}
-		err = errtools.Combine(err, checkErr)
+		if err != nil {
+			err = errors.Wrap(err, checkErr.Error())
+		} else {
+			err = checkErr
+		}
 	}
 	return err
 }

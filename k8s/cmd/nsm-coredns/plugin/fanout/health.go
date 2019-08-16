@@ -36,21 +36,13 @@ func (h *dnsHealthClient) SetTLSConfig(cfg *tls.Config) {
 }
 
 func (h *dnsHealthClient) Check() error {
-	err := h.askAny(h.addr)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (h *dnsHealthClient) askAny(addr string) error {
 	ping := new(dns.Msg)
 	ping.SetQuestion(".", dns.TypeNS)
-	m, _, err := h.c.Exchange(ping, addr)
+	m, _, err := h.c.Exchange(ping, h.addr)
 	if err != nil && m != nil {
 		if m.Response || m.Opcode == dns.OpcodeQuery {
 			err = nil
 		}
 	}
-	return err
+	return nil
 }

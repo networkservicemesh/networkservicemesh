@@ -33,7 +33,7 @@ func newServer(f dns.HandlerFunc) *server {
 		}
 	}
 	if s.Listener == nil {
-		panic("failed to create new server")
+		panic("failed to create new client")
 	}
 
 	s.NotifyStartedFunc = func() { close(ch) }

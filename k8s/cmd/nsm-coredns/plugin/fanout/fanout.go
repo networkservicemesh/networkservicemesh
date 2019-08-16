@@ -28,7 +28,7 @@ type Fanout struct {
 }
 
 type connectResult struct {
-	server   *fanoutClient
+	client   *fanoutClient
 	response *dns.Msg
 	start    time.Time
 	err      error
@@ -62,19 +62,19 @@ func (f *Fanout) Name() string {
 // ServeDNS implements plugin.Handler.
 func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg) (int, error) {
 	req := request.Request{W: w, Req: m}
+	timeoutContext, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
 	clientCount := len(f.clients)
 	result := make(chan connectResult, clientCount)
 	for i := 0; i < clientCount; i++ {
 		client := f.clients[i]
-		go connect(client, req, result, f.maxFailCount)
+		go connect(timeoutContext, client, req, result, f.maxFailCount)
 	}
 	var first *connectResult
 	for first == nil {
 		select {
-		case <-ctx.Done():
+		case <-timeoutContext.Done():
 			return dns.RcodeServerFailure, errContextDone
-		case <-time.After(defaultTimeout):
-			return dns.RcodeServerFailure, errNoHealthy
 		case conn := <-result:
 			if conn.err != nil {
 				clientCount--
@@ -87,7 +87,7 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 		}
 	}
 
-	taperr := toDnstap(ctx, first.server.addr, req, first.response, first.start)
+	taperr := toDnstap(ctx, first.client.addr, req, first.response, first.start)
 	if !req.Match(first.response) {
 		debug.Hexdumpf(first.response, "Wrong reply for id: %d, %s %d", first.response.Id, req.QName(), req.QType())
 		formerr := new(dns.Msg)
@@ -99,31 +99,36 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 	return 0, taperr
 }
 
-func connect(client *fanoutClient, req request.Request, result chan<- connectResult, maxFailCount int) {
+func connect(ctx context.Context, client *fanoutClient, req request.Request, result chan<- connectResult, maxFailCount int) {
 	start := time.Now()
 	resp, err := client.Connect(req)
+	if ctx.Err() != nil {
+		return
+	}
 	if err == nil {
 		result <- connectResult{
-			server:   client,
+			client:   client,
 			response: resp,
 			start:    start,
 		}
 		return
 	}
 	err = client.healthCheck(maxFailCount)
-	if err == nil {
-		resp, err = client.Connect(req)
-	}
-	if err == nil {
-		result <- connectResult{
-			server:   client,
-			response: resp,
-			start:    start,
-		}
+	if ctx.Err() != nil {
 		return
 	}
+	if err == nil {
+		if resp, err = client.Connect(req); err == nil {
+			result <- connectResult{
+				client:   client,
+				response: resp,
+				start:    start,
+			}
+			return
+		}
+	}
 	result <- connectResult{
-		server: client,
+		client: client,
 		start:  start,
 		err:    err,
 	}

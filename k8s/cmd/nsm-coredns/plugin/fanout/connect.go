@@ -68,11 +68,6 @@ func (p *fanoutClient) Connect(request request.Request) (*dns.Msg, error) {
 		return nil, dialErr
 	}
 
-	conn.UDPSize = uint16(request.Size())
-	if conn.UDPSize < 512 {
-		conn.UDPSize = 512
-	}
-
 	err := conn.SetWriteDeadline(time.Now().Add(maxTimeout))
 	if err != nil {
 		log.Error(err)
