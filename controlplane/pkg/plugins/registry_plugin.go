@@ -96,7 +96,7 @@ func (rpm *registryPluginManager) RemoveNSE(ctx context.Context, request *regist
 }
 
 func (rpm *registryPluginManager) GetEndpoints(ctx context.Context) (*plugins.NetworkServiceEndpointList, error) {
-	var endpoints []*registry.NetworkServiceEndpoint
+	endpoints := []*registry.NetworkServiceEndpoint{}
 	for name, plugin := range rpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 

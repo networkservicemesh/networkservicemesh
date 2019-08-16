@@ -275,7 +275,7 @@ func (rpm *testRegistryPluginManager) RemoveNSE(ctx context.Context, request *re
 }
 
 func (rpm *testRegistryPluginManager) GetEndpoints(ctx context.Context) (*pluginsapi.NetworkServiceEndpointList, error) {
-	var endpoints []*registry.NetworkServiceEndpoint
+	endpoints := []*registry.NetworkServiceEndpoint{}
 	for _, plugin := range rpm.plugins {
 		response, err := plugin.GetEndpoints(ctx, &empty.Empty{})
 		if err != nil {

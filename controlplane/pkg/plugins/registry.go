@@ -148,7 +148,7 @@ func (pr *pluginRegistry) getStatus() int {
 	return pr.status
 }
 
-func (pr *pluginRegistry) createConnection(name string, endpoint string) (*grpc.ClientConn, error) {
+func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientConn, error) {
 	conn, err := tools.DialUnix(endpoint)
 	if err != nil {
 		return nil, err
