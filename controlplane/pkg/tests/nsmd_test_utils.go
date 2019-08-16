@@ -174,34 +174,32 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
-func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
+func (cpm *testConnectionPluginManager) Register(string, *grpc.ClientConn) error {
+	return nil
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, conn connection.Connection) error {
-	connCtx := conn.GetContext()
+func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionWrapper, error) {
 	for _, plugin := range cpm.plugins {
 		var err error
-		connCtx, err = plugin.UpdateConnectionContext(ctx, connCtx)
+		info, err = plugin.UpdateConnection(ctx, info)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	conn.SetContext(connCtx)
-	return nil
+	return info, nil
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, conn connection.Connection) error {
-	connCtx := conn.GetContext()
+func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionValidationResult, error) {
 	for _, plugin := range cpm.plugins {
-		result, err := plugin.ValidateConnectionContext(ctx, connCtx)
+		result, err := plugin.ValidateConnection(ctx, info)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
-			return fmt.Errorf(result.GetErrorMessage())
+			return result, nil
 		}
 	}
-	return nil
+	return &pluginsapi.ConnectionValidationResult{Status: pluginsapi.ConnectionValidationStatus_SUCCESS}, nil
 }
 
 type nsmdTestServiceRegistry struct {

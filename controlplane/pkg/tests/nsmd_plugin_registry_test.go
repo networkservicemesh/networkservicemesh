@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 )
 
@@ -16,12 +15,13 @@ type dummyConnectionPlugin struct {
 	shouldFail bool
 }
 
-func (cp *dummyConnectionPlugin) UpdateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext, opts ...grpc.CallOption) (*connectioncontext.ConnectionContext, error) {
+func (cp *dummyConnectionPlugin) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper, opts ...grpc.CallOption) (*plugins.ConnectionWrapper, error) {
+	connCtx := wrapper.GetConnection().GetContext()
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), cp.prefixes...)
-	return connCtx, nil
+	return wrapper, nil
 }
 
-func (cp *dummyConnectionPlugin) ValidateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext, opts ...grpc.CallOption) (*plugins.ConnectionValidationResult, error) {
+func (cp *dummyConnectionPlugin) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper, opts ...grpc.CallOption) (*plugins.ConnectionValidationResult, error) {
 	if cp.shouldFail {
 		return &plugins.ConnectionValidationResult{
 			Status:       plugins.ConnectionValidationStatus_FAIL,
