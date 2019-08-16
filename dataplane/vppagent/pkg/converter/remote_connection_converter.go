@@ -111,9 +111,9 @@ func getParameters(m *connection.Mechanism, side ConnectionContextSide) (string,
 	}
 
 	if useExtIP {
-		dstip, err = m.DstExtIP()
-		if err != nil {
-			return srcip, dstip, vni, err
+		extip, err1 := m.DstExtIP()
+		if err1 == nil {
+			dstip = extip
 		}
 	}
 
@@ -128,9 +128,9 @@ func getParameters(m *connection.Mechanism, side ConnectionContextSide) (string,
 		}
 
 		if useExtIP {
-			dstip, err = m.SrcExtIP()
-			if err != nil {
-				return srcip, dstip, vni, err
+			extip, err1 := m.SrcExtIP()
+			if err1 == nil {
+				dstip = extip
 			}
 		}
 	}
