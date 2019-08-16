@@ -305,10 +305,11 @@ func (ctx *executionContext) assignTasks() {
 			if !assigned {
 				if clustersAvailable == 0 {
 					// We move task to skipped since, no clusters could execute it, all attempts for clusters to recover are finished.
+					logrus.Errorf("Move task to skipped since no clusters could execute it: %s", task.test.Name)
 					task.test.Status = model.StatusSkippedSinceNoClusters
 					for _, cl := range task.clusters {
-						delete(cl.tasks, task.test.Name)
-						cl.completed[task.test.Name] = task
+						delete(cl.tasks, task.test.Key)
+						cl.completed[task.test.Key] = task
 					}
 					ctx.completed = append(ctx.completed, task)
 				} else {
@@ -358,11 +359,11 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 			len(ctx.running)+len(ctx.tasks))
 
 		for ind, cl := range event.task.clusters {
-			delete(cl.tasks, event.task.test.Name)
+			delete(cl.tasks, event.task.test.Key)
 
 			// Add test only to first cluster
 			if ind == 0 {
-				cl.completed[event.task.test.Name] = event.task
+				cl.completed[event.task.test.Key] = event.task
 			}
 		}
 	} else {
@@ -485,19 +486,31 @@ func (ctx *executionContext) createTasks() {
 		// In case of one cluster, we create task copies and execute on every cloud.
 
 		var task *testTask
-		for _, cluster := range ctx.clusters {
-			if len(selector) > 0 && utils.Contains(selector, cluster.config.Name) ||
-				len(selector) == 0 {
-				if test.ExecutionConfig.ClusterCount <= 1 || task == nil {
-					// Always create new task
+		if test.ExecutionConfig.ClusterCount > 1 {
+			for _, clusterName := range selector {
+				for _, cluster := range ctx.clusters {
+					if clusterName == cluster.config.Name {
+						if task == nil {
+							task = ctx.createSingleTask(taskIndex, test, cluster, i)
+							taskIndex++
+						} else {
+							task.clusters = append(task.clusters, cluster)
+							cluster.tasks[task.test.Key] = task
+						}
+						break
+					}
+				}
+			}
+		} else {
+			for _, cluster := range ctx.clusters {
+				if len(selector) > 0 && utils.Contains(selector, cluster.config.Name) ||
+					len(selector) == 0 {
 					task = ctx.createSingleTask(taskIndex, test, cluster, i)
 					taskIndex++
-				} else if len(task.clusters) < test.ExecutionConfig.ClusterCount {
-					task.clusters = append(task.clusters, cluster)
-					cluster.tasks[task.test.Name] = task
 				}
 			}
 		}
+
 		if task != nil && len(task.clusters) < test.ExecutionConfig.ClusterCount {
 			logrus.Errorf("not all clusters are defined for test %v %v", test.Name, task)
 			task.test.Status = model.StatusSkipped
@@ -520,8 +533,16 @@ func (ctx *executionContext) createSingleTask(taskIndex int, test *model.TestEnt
 		},
 		clusters: []*clustersGroup{cluster},
 	}
+
+	// Generate task key to avoid crossing in cluster tasks map
+	testKey := ""
+	for _, clusterName := range test.ExecutionConfig.ClusterSelector {
+		testKey = fmt.Sprintf("%s_%s", testKey, clusterName)
+	}
+	task.test.Key = fmt.Sprintf("%s_%s", testKey, test.Name)
+
 	// To track cluster task executions.
-	cluster.tasks[task.test.Name] = task
+	cluster.tasks[task.test.Key] = task
 	if ctx.arguments.count > 0 && i >= ctx.arguments.count {
 		logrus.Infof("Limit of tests for execution:: %v is reached. Skipping test %s", ctx.arguments.count, test.Name)
 		test.Status = model.StatusSkipped
@@ -1030,7 +1051,7 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
-		Name: test.test.Name,
+		Name: test.test.Key,
 		Time: test.test.Duration.String(),
 	}
 
