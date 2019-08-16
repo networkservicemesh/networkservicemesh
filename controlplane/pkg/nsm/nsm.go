@@ -527,13 +527,13 @@ func (srv *networkServiceManager) updateConnection(ctx context.Context, conn con
 		conn.SetContext(c)
 	}
 
-	info := pluginsapi.NewConnectionInfo(conn)
-	info, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, info)
+	wrapper := pluginsapi.NewConnectionWrapper(conn)
+	wrapper, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper)
 	if err != nil {
 		return conn, err
 	}
 
-	return info.GetConnection(), nil
+	return wrapper.GetConnection(), nil
 }
 
 func (srv *networkServiceManager) updateConnectionContext(ctx context.Context, source, destination connection.Connection) error {
@@ -553,8 +553,8 @@ func (srv *networkServiceManager) validateConnection(ctx context.Context, conn c
 		return err
 	}
 
-	info := pluginsapi.NewConnectionInfo(conn)
-	result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, info)
+	wrapper := pluginsapi.NewConnectionWrapper(conn)
+	result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, wrapper)
 	if err != nil {
 		return err
 	}

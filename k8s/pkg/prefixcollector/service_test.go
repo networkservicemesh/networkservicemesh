@@ -36,10 +36,10 @@ func TestPrefixServiceUpdateConnection(t *testing.T) {
 		},
 	}
 
-	info, err := service.UpdateConnection(context.TODO(), plugins.NewConnectionInfo(conn))
+	wrapper, err := service.UpdateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
-	g.Expect(info.GetConnection().GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24", "10.32.1.0/16"}))
+	g.Expect(wrapper.GetConnection().GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24", "10.32.1.0/16"}))
 }
 
 func TestPrefixServiceValidateConnection(t *testing.T) {
@@ -58,7 +58,7 @@ func TestPrefixServiceValidateConnection(t *testing.T) {
 	}
 
 	var result *plugins.ConnectionValidationResult
-	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionInfo(conn))
+	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_SUCCESS))
@@ -80,7 +80,7 @@ func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 	}
 
 	var result *plugins.ConnectionValidationResult
-	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionInfo(conn))
+	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))
@@ -94,7 +94,7 @@ func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 		},
 	}
 
-	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionInfo(conn))
+	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))

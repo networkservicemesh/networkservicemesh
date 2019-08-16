@@ -5,7 +5,7 @@ package plugins;
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection/connection.proto";
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
 
-message ConnectionInfo {
+message ConnectionWrapper {
     oneof conn {
         local.connection.Connection local_connection = 1;
         remote.connection.Connection remote_connection = 2;
@@ -23,6 +23,6 @@ message ConnectionValidationResult {
 }
 
 service ConnectionPlugin {
-    rpc UpdateConnection (ConnectionInfo) returns (ConnectionInfo);
-    rpc ValidateConnection (ConnectionInfo) returns (ConnectionValidationResult);
+    rpc UpdateConnection (ConnectionWrapper) returns (ConnectionWrapper);
+    rpc ValidateConnection (ConnectionWrapper) returns (ConnectionValidationResult);
 }
