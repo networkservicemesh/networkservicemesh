@@ -100,9 +100,8 @@ func (pr *pluginRegistry) waitForRequiredPlugins() error {
 
 func (pr *pluginRegistry) Stop() error {
 	for name, conn := range pr.getConnections() {
-		err := conn.Close()
-		if err != nil {
-			logrus.Errorf("Failed to close connection to '%s' plugin: %v", name, err)
+		if err := conn.Close(); err != nil {
+			return fmt.Errorf("failed to close connection to '%s' plugin: %v", name, err)
 		}
 	}
 	return nil
