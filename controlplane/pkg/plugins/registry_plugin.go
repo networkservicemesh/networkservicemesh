@@ -6,12 +6,10 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
 
 // RegistryPluginManager transmits each method call to all registered registry plugins
