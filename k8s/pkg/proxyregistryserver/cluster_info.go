@@ -71,8 +71,8 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 	return nil, fmt.Errorf("node was not found: %v", nodeIPConfiguration)
 }
 
-func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error) {
-	mechanism := info.GetConnection().GetConnectionMechanism()
+func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+	mechanism := wrapper.GetConnection().GetConnectionMechanism()
 
 	switch mechanism.GetMechanismType() {
 	case remote.MechanismType_VXLAN:
@@ -86,9 +86,9 @@ func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, info *plugins.Con
 		mechanism.GetParameters()[remote.VXLANSrcExtIP] = ipConfig.ExternalIP
 	}
 
-	return info, nil
+	return wrapper, nil
 }
 
-func (k *k8sClusterInfo) ValidateConnection(context.Context, *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error) {
+func (k *k8sClusterInfo) ValidateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
 	return &plugins.ConnectionValidationResult{Status: plugins.ConnectionValidationStatus_SUCCESS}, nil
 }
