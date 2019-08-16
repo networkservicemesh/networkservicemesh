@@ -36,7 +36,7 @@ import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/p
 func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
     ...
     
-    info, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, plugins.NewConnectionInfo(conn))
+    info, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, plugins.NewConnectionWrapper(conn))
     if err != nil {
         return nil, err
     }
@@ -47,7 +47,7 @@ func (srv *networkServiceManager) updateConnection(ctx context.Context, conn con
 func (srv *networkServiceManager) validateConnection(ctx context.Context, conn connection.Connection) error {
     ...
     
-    result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, plugins.NewConnectionInfo(conn))
+    result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, plugins.NewConnectionWrapper(conn))
     if err != nil {
         return err
     }
