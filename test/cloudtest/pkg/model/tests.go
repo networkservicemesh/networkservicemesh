@@ -51,6 +51,7 @@ const (
 type TestEntry struct {
 	Name            string // Test name
 	Tags            string // A list of tags
+	Key             string // Unique key
 	ExecutionConfig *config.ExecutionConfig
 
 	Executions []TestEntryExecution

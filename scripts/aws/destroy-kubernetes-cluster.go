@@ -4,9 +4,7 @@ import (
 	"log"
 	"os"
 	"time"
-)
 
-import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
