@@ -6,6 +6,8 @@ import "ptypes/empty/empty.proto";
 
 enum PluginCapability {
     CONNECTION = 0;
+    DISCOVERY = 1;
+    REGISTRY = 2;
 }
 
 message PluginInfo {

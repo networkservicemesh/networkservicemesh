@@ -25,6 +25,8 @@ type PluginRegistry interface {
 	Stop() error
 
 	GetConnectionPluginManager() ConnectionPluginManager
+	GetDiscoveryPluginManager() DiscoveryPluginManager
+	GetRegistryPluginManager() RegistryPluginManager
 }
 
 // PluginManager allows to register a client connection
@@ -36,12 +38,16 @@ type pluginRegistry struct {
 	sync.RWMutex
 	connections             []*grpc.ClientConn
 	connectionPluginManager ConnectionPluginManager
+	discoveryPluginManager  DiscoveryPluginManager
+	registryPluginManager   RegistryPluginManager
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
 		connectionPluginManager: createConnectionPluginManager(),
+		discoveryPluginManager:  createDiscoveryPluginManager(),
+		registryPluginManager:   createRegistryPluginManager(),
 	}
 }
 
@@ -93,6 +99,14 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 			if err := pr.connectionPluginManager.Register(info.GetName(), conn); err != nil {
 				return nil, err
 			}
+		case plugins.PluginCapability_DISCOVERY:
+			if err := pr.discoveryPluginManager.Register(info.GetName(), conn); err != nil {
+				return nil, err
+			}
+		case plugins.PluginCapability_REGISTRY:
+			if err := pr.registryPluginManager.Register(info.GetName(), conn); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return &empty.Empty{}, nil
@@ -124,4 +138,12 @@ func (pr *pluginRegistry) getConnections() []*grpc.ClientConn {
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {
 	return pr.connectionPluginManager
+}
+
+func (pr *pluginRegistry) GetDiscoveryPluginManager() DiscoveryPluginManager {
+	return pr.discoveryPluginManager
+}
+
+func (pr *pluginRegistry) GetRegistryPluginManager() RegistryPluginManager {
+	return pr.registryPluginManager
 }

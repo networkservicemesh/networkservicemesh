@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package plugins;
+
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry/registry.proto";
+
+message FindNetworkServiceRequest {
+    string network_service_name = 1;
+}
+
+message FindNetworkServiceResponse {
+    bool found = 1;
+    string payload = 2;
+    registry.NetworkService network_service = 3;
+    map<string, registry.NetworkServiceManager> network_service_managers = 4;
+    repeated registry.NetworkServiceEndpoint network_service_endpoints = 5;
+}
+
+service DiscoveryPlugin {
+    rpc FindNetworkService (FindNetworkServiceRequest) returns (FindNetworkServiceResponse);
+}

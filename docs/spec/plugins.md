@@ -21,10 +21,14 @@ The model is placed in `controlplane/pkg/apis/plugins` directory. It contains th
 - **constants.go** specifies `PluginRegistryPath` (the location of plugin sockets) and `PluginRegistrySocket` (the location of NSM Plugin Registry socket) constants
 - **registry.proto** defines Plugin Registry gRPC service
 - **connectionplugin.proto** defines a gRPC model for plugins have the connection capability
+- **discoveryplugin.proto** defines a gRPC model for plugins have the discovery capability
+- **registryplugin.proto** defines a gRPC model for plugins have the registry capability
 
 Plugin Registry implementation is placed in `controlplane/pkg/plugins` directory. It contains the following files:
 - **registry.go** implements Plugin Registry that can register plugins and provide getters for plugin managers
 - **connectionplugin.go** implements a connection plugin manager that can call all plugins have the connection capability
+- **discoveryplugin.go** implements a discovery plugin manager that can call all plugins have the discovery capability
+- **registryplugin.go** implements a registry plugin manager that can call all plugins have the registry capability
 
 Plugin Registry is stored as a field inside **nsm.NetworkServiceManager** implementation and may be called in the following way:
 
@@ -93,9 +97,13 @@ if err != nil {
 
 server := grpc.NewServer()
 
-service := newConnectionPluginService()
+service1 := newConnectionPluginService()
+service2 := newDiscoveryPluginService()
+service3 := newRegistryPluginService()
 
-plugins.RegisterConnectionPluginServer(server, service)
+plugins.RegisterConnectionPluginServer(server, service1)
+plugins.RegisterDiscoveryPluginServer(server, service2)
+plugins.RegisterRegistryPluginServer(server, service3)
 
 go func() {
     if err := server.Serve(sock); err != nil {
@@ -119,7 +127,11 @@ defer cancel()
 _, err = client.Register(ctx, &plugins.PluginInfo{
     Name:         "my-plugin",
     Endpoint:     endpoint,
-    Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
+    Capabilities: []plugins.PluginCapability{
+        plugins.PluginCapability_CONNECTION,
+        plugins.PluginCapability_DISCOVERY,
+        plugins.PluginCapability_REGISTRY,
+    },
 })
 if err != nil {
     return err
