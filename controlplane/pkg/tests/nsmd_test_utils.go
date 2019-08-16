@@ -174,7 +174,8 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
-func (cpm *testConnectionPluginManager) Register(*grpc.ClientConn) {
+func (cpm *testConnectionPluginManager) Register(string, *grpc.ClientConn) error {
+	return nil
 }
 
 func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionInfo) (*pluginsapi.ConnectionInfo, error) {
