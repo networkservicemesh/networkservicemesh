@@ -29,7 +29,7 @@ type PluginRegistry interface {
 
 // PluginManager allows to register a client connection
 type PluginManager interface {
-	Register(*grpc.ClientConn)
+	Register(string, *grpc.ClientConn) error
 }
 
 type pluginRegistry struct {
@@ -41,7 +41,7 @@ type pluginRegistry struct {
 // NewPluginRegistry creates an instance of PluginRegistry
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
-		connectionPluginManager: &connectionPluginManager{},
+		connectionPluginManager: createConnectionPluginManager(),
 	}
 }
 
@@ -88,8 +88,11 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 		return nil, err
 	}
 	for _, capability := range info.GetCapabilities() {
-		if capability == plugins.PluginCapability_CONNECTION {
-			pr.connectionPluginManager.Register(conn)
+		switch capability {
+		case plugins.PluginCapability_CONNECTION:
+			if err := pr.connectionPluginManager.Register(info.GetName(), conn); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return &empty.Empty{}, nil

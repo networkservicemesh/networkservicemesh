@@ -19,22 +19,33 @@ type ConnectionPluginManager interface {
 
 type connectionPluginManager struct {
 	sync.RWMutex
-	pluginClients []plugins.ConnectionPluginClient
+	pluginClients map[string]plugins.ConnectionPluginClient
 }
 
-func (cpm *connectionPluginManager) Register(conn *grpc.ClientConn) {
+func createConnectionPluginManager() ConnectionPluginManager {
+	return &connectionPluginManager{
+		pluginClients: make(map[string]plugins.ConnectionPluginClient),
+	}
+}
+
+func (cpm *connectionPluginManager) Register(name string, conn *grpc.ClientConn) error {
 	client := plugins.NewConnectionPluginClient(conn)
-	cpm.addClient(client)
+	return cpm.addClient(name, client)
 }
 
-func (cpm *connectionPluginManager) addClient(client plugins.ConnectionPluginClient) {
+func (cpm *connectionPluginManager) addClient(name string, client plugins.ConnectionPluginClient) error {
 	cpm.Lock()
 	defer cpm.Unlock()
 
-	cpm.pluginClients = append(cpm.pluginClients, client)
+	if _, ok := cpm.pluginClients[name]; ok {
+		return fmt.Errorf("already have a connection plugin with the same name")
+	}
+
+	cpm.pluginClients[name] = client
+	return nil
 }
 
-func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClient {
+func (cpm *connectionPluginManager) getClients() map[string]plugins.ConnectionPluginClient {
 	cpm.RLock()
 	defer cpm.RUnlock()
 
@@ -42,7 +53,7 @@ func (cpm *connectionPluginManager) getClients() []plugins.ConnectionPluginClien
 }
 
 func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionInfo, error) {
-	for _, plugin := range cpm.getClients() {
+	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		var err error
@@ -50,21 +61,21 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, info *
 		cancel()
 
 		if err != nil {
-			return nil, fmt.Errorf("connection plugin returned an error: %v", err)
+			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)
 		}
 	}
 	return info, nil
 }
 
 func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, info *plugins.ConnectionInfo) (*plugins.ConnectionValidationResult, error) {
-	for _, plugin := range cpm.getClients() {
+	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		result, err := plugin.ValidateConnection(pluginCtx, info)
 		cancel()
 
 		if err != nil {
-			return nil, fmt.Errorf("connection plugin returned an error: %v", err)
+			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)
 		}
 
 		if result.GetStatus() != plugins.ConnectionValidationStatus_SUCCESS {
