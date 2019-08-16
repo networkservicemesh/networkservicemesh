@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
@@ -28,14 +30,16 @@ func TestPrefixServiceUpdateConnection(t *testing.T) {
 	service, err := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
 	g.Expect(err).To(BeNil())
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{},
+	conn := &connection.Connection{
+		Context: &connectioncontext.ConnectionContext{
+			IpContext: &connectioncontext.IPContext{},
+		},
 	}
 
-	ctx, err = service.UpdateConnectionContext(context.TODO(), ctx)
+	wrapper, err := service.UpdateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
-	g.Expect(ctx.GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24", "10.32.1.0/16"}))
+	g.Expect(wrapper.GetConnection().GetContext().GetIpContext().GetExcludedPrefixes()).To(Equal([]string{"10.10.1.0/24", "10.32.1.0/16"}))
 }
 
 func TestPrefixServiceValidateConnection(t *testing.T) {
@@ -44,15 +48,17 @@ func TestPrefixServiceValidateConnection(t *testing.T) {
 	service, err := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
 	g.Expect(err).To(BeNil())
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			SrcIpAddr: "10.10.2.0/32",
-			DstIpAddr: "10.33.1.0/32",
+	conn := &connection.Connection{
+		Context: &connectioncontext.ConnectionContext{
+			IpContext: &connectioncontext.IPContext{
+				SrcIpAddr: "10.10.2.0/32",
+				DstIpAddr: "10.33.1.0/32",
+			},
 		},
 	}
 
 	var result *plugins.ConnectionValidationResult
-	result, err = service.ValidateConnectionContext(context.TODO(), ctx)
+	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_SUCCESS))
@@ -65,26 +71,30 @@ func TestPrefixServiceValidateConnectionFailed(t *testing.T) {
 	service, err := newTestPrefixService("10.10.1.0/24", "10.32.1.0/16")
 	g.Expect(err).To(BeNil())
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			SrcIpAddr: "10.10.1.0/32",
+	conn := &connection.Connection{
+		Context: &connectioncontext.ConnectionContext{
+			IpContext: &connectioncontext.IPContext{
+				SrcIpAddr: "10.10.1.0/32",
+			},
 		},
 	}
 
 	var result *plugins.ConnectionValidationResult
-	result, err = service.ValidateConnectionContext(context.TODO(), ctx)
+	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))
 	g.Expect(result.GetErrorMessage()).To(Equal("srcIP intersects excluded prefixes list"))
 
-	ctx = &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			DstIpAddr: "10.32.1.1/32",
+	conn = &connection.Connection{
+		Context: &connectioncontext.ConnectionContext{
+			IpContext: &connectioncontext.IPContext{
+				DstIpAddr: "10.32.1.1/32",
+			},
 		},
 	}
 
-	result, err = service.ValidateConnectionContext(context.TODO(), ctx)
+	result, err = service.ValidateConnection(context.TODO(), plugins.NewConnectionWrapper(conn))
 
 	g.Expect(err).To(BeNil())
 	g.Expect(result.GetStatus()).To(Equal(plugins.ConnectionValidationStatus_FAIL))

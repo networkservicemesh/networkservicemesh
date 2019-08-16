@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
@@ -17,7 +16,8 @@ type prefixService struct {
 	excludedPrefixes prefix_pool.PrefixPool
 }
 
-func newPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, error) {
+// NewPrefixService creates an instance of ConnectionPluginServer
+func NewPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -68,13 +68,15 @@ func (c *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset)
 	return nil
 }
 
-func (c *prefixService) UpdateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*connectioncontext.ConnectionContext, error) {
+func (c *prefixService) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+	connCtx := wrapper.GetConnection().GetContext()
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), c.getExcludedPrefixes().GetPrefixes()...)
-	return connCtx, nil
+	return wrapper, nil
 }
 
-func (c *prefixService) ValidateConnectionContext(ctx context.Context, connCtx *connectioncontext.ConnectionContext) (*plugins.ConnectionValidationResult, error) {
+func (c *prefixService) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
 	prefixes := c.getExcludedPrefixes()
+	connCtx := wrapper.GetConnection().GetContext()
 
 	if srcIP := connCtx.GetIpContext().GetSrcIpAddr(); srcIP != "" {
 		intersect, err := prefixes.Intersect(srcIP)

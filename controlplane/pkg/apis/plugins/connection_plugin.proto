@@ -2,7 +2,15 @@ syntax = "proto3";
 
 package plugins;
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext/connectioncontext.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection/connection.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
+
+message ConnectionWrapper {
+    oneof conn {
+        local.connection.Connection local_connection = 1;
+        remote.connection.Connection remote_connection = 2;
+    }
+}
 
 enum ConnectionValidationStatus {
     SUCCESS = 0;
@@ -15,6 +23,6 @@ message ConnectionValidationResult {
 }
 
 service ConnectionPlugin {
-    rpc UpdateConnectionContext (connectioncontext.ConnectionContext) returns (connectioncontext.ConnectionContext);
-    rpc ValidateConnectionContext (connectioncontext.ConnectionContext) returns (ConnectionValidationResult);
+    rpc UpdateConnection (ConnectionWrapper) returns (ConnectionWrapper);
+    rpc ValidateConnection (ConnectionWrapper) returns (ConnectionValidationResult);
 }

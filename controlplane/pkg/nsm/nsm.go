@@ -30,6 +30,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -369,7 +370,8 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		if err = srv.updateConnection(ctx, nseConn); err != nil {
+		nseConn, err = srv.updateConnection(ctx, nseConn)
+		if err != nil {
 			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
 		}
 
@@ -519,13 +521,19 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
-func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) error {
+func (srv *networkServiceManager) updateConnection(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
 	if conn.GetContext() == nil {
 		c := &connectioncontext.ConnectionContext{}
 		conn.SetContext(c)
 	}
 
-	return srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, conn)
+	wrapper := pluginsapi.NewConnectionWrapper(conn)
+	wrapper, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper)
+	if err != nil {
+		return conn, err
+	}
+
+	return wrapper.GetConnection(), nil
 }
 
 func (srv *networkServiceManager) updateConnectionContext(ctx context.Context, source, destination connection.Connection) error {
@@ -545,8 +553,14 @@ func (srv *networkServiceManager) validateConnection(ctx context.Context, conn c
 		return err
 	}
 
-	if err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, conn); err != nil {
+	wrapper := pluginsapi.NewConnectionWrapper(conn)
+	result, err := srv.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, wrapper)
+	if err != nil {
 		return err
+	}
+
+	if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
+		return fmt.Errorf(result.GetErrorMessage())
 	}
 
 	return nil
