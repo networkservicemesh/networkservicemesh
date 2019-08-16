@@ -151,14 +151,17 @@ type testPluginRegistry struct {
 }
 
 type testConnectionPluginManager struct {
+	plugins.PluginManager
 	plugins []pluginsapi.ConnectionPluginClient
 }
 
 type testDiscoveryPluginManager struct {
+	plugins.PluginManager
 	plugins []pluginsapi.DiscoveryPluginClient
 }
 
 type testRegistryPluginManager struct {
+	plugins.PluginManager
 	plugins []pluginsapi.RegistryPluginClient
 }
 
@@ -194,10 +197,6 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
-func (cpm *testConnectionPluginManager) Register(string, *grpc.ClientConn) error {
-	return nil
-}
-
 func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionWrapper, error) {
 	for _, plugin := range cpm.plugins {
 		var err error
@@ -226,9 +225,6 @@ func (dpm *testDiscoveryPluginManager) addPlugin(plugin pluginsapi.DiscoveryPlug
 	dpm.plugins = append(dpm.plugins, plugin)
 }
 
-func (dpm *testDiscoveryPluginManager) Register(*grpc.ClientConn) {
-}
-
 func (dpm *testDiscoveryPluginManager) FindNetworkService(ctx context.Context, request *pluginsapi.FindNetworkServiceRequest) (*pluginsapi.FindNetworkServiceResponse, error) {
 	for _, plugin := range dpm.plugins {
 		response, err := plugin.FindNetworkService(ctx, request)
@@ -244,9 +240,6 @@ func (dpm *testDiscoveryPluginManager) FindNetworkService(ctx context.Context, r
 
 func (rpm *testRegistryPluginManager) addPlugin(plugin pluginsapi.RegistryPluginClient) {
 	rpm.plugins = append(rpm.plugins, plugin)
-}
-
-func (rpm *testRegistryPluginManager) Register(*grpc.ClientConn) {
 }
 
 func (rpm *testRegistryPluginManager) RegisterNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
