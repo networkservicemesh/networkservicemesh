@@ -197,20 +197,20 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionWrapper, error) {
+func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, wrapper *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionWrapper, error) {
 	for _, plugin := range cpm.plugins {
 		var err error
-		info, err = plugin.UpdateConnection(ctx, info)
+		wrapper, err = plugin.UpdateConnection(ctx, wrapper)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return info, nil
+	return wrapper, nil
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, info *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionValidationResult, error) {
+func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, wrapper *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionValidationResult, error) {
 	for _, plugin := range cpm.plugins {
-		result, err := plugin.ValidateConnection(ctx, info)
+		result, err := plugin.ValidateConnection(ctx, wrapper)
 		if err != nil {
 			return nil, err
 		}
