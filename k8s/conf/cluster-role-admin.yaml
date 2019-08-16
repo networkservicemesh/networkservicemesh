@@ -20,5 +20,5 @@ rules:
     resources: ["configmaps"]
     verbs: ["get"]
   - apiGroups: [""]
-    resources: ["nodes", "services"]
+    resources: ["nodes", "services", "namespaces"]
     verbs: ["get", "list", "watch"]
