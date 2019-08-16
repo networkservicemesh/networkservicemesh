@@ -79,11 +79,9 @@ func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, wrapper *plugins.
 		ip := mechanism.GetParameters()[remote.VXLANSrcIP]
 
 		ipConfig, err := k.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: ip})
-		if err != nil {
-			return nil, err
+		if err == nil {
+			mechanism.GetParameters()[remote.VXLANSrcExtIP] = ipConfig.ExternalIP
 		}
-
-		mechanism.GetParameters()[remote.VXLANSrcExtIP] = ipConfig.ExternalIP
 	}
 
 	return wrapper, nil
