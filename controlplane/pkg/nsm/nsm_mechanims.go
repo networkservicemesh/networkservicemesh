@@ -56,9 +56,9 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestID string, reques
 			dpParameters := dpMechanism.GetParameters()
 
 			parameters[remote.VXLANDstIP] = dpParameters[remote.VXLANSrcIP]
-			srcExtIp, ok := dpParameters[remote.VXLANSrcExtIP]
+			srcExtIP, ok := dpParameters[remote.VXLANSrcExtIP]
 			if ok {
-				parameters[remote.VXLANDstExtIP] = srcExtIp
+				parameters[remote.VXLANDstExtIP] = srcExtIP
 			}
 
 			vni := srv.serviceRegistry.VniAllocator().Vni(parameters[remote.VXLANDstIP], parameters[remote.VXLANSrcIP])
