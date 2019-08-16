@@ -34,21 +34,16 @@ func createRegistryPluginManager() RegistryPluginManager {
 	}
 }
 
-func (rpm *registryPluginManager) Register(name string, conn *grpc.ClientConn) error {
+func (rpm *registryPluginManager) Register(name string, conn *grpc.ClientConn) {
 	client := plugins.NewRegistryPluginClient(conn)
-	return rpm.addClient(name, client)
+	rpm.addClient(name, client)
 }
 
-func (rpm *registryPluginManager) addClient(name string, client plugins.RegistryPluginClient) error {
+func (rpm *registryPluginManager) addClient(name string, client plugins.RegistryPluginClient) {
 	rpm.Lock()
 	defer rpm.Unlock()
 
-	if _, ok := rpm.pluginClients[name]; ok {
-		return fmt.Errorf("already have a registry plugin with the same name")
-	}
-
 	rpm.pluginClients[name] = client
-	return nil
 }
 
 func (rpm *registryPluginManager) getClients() map[string]plugins.RegistryPluginClient {

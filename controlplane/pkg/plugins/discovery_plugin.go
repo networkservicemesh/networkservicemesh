@@ -27,21 +27,16 @@ func createDiscoveryPluginManager() DiscoveryPluginManager {
 	}
 }
 
-func (dpm *discoveryPluginManager) Register(name string, conn *grpc.ClientConn) error {
+func (dpm *discoveryPluginManager) Register(name string, conn *grpc.ClientConn) {
 	client := plugins.NewDiscoveryPluginClient(conn)
-	return dpm.addClient(name, client)
+	dpm.addClient(name, client)
 }
 
-func (dpm *discoveryPluginManager) addClient(name string, client plugins.DiscoveryPluginClient) error {
+func (dpm *discoveryPluginManager) addClient(name string, client plugins.DiscoveryPluginClient) {
 	dpm.Lock()
 	defer dpm.Unlock()
 
-	if _, ok := dpm.pluginClients[name]; ok {
-		return fmt.Errorf("already have a discovery plugin with the same name")
-	}
-
 	dpm.pluginClients[name] = client
-	return nil
 }
 
 func (dpm *discoveryPluginManager) getClients() map[string]plugins.DiscoveryPluginClient {
