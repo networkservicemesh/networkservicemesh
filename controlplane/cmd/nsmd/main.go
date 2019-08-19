@@ -89,7 +89,7 @@ func main() {
 	}
 
 	logrus.Info("Dataplane server is ready")
-
+	nsmdGoals.SetDataplaneServerReady()
 	// Choose a public API listener
 	nsmdAPIAddress := os.Getenv(NsmdAPIAddressEnv)
 	if strings.TrimSpace(nsmdAPIAddress) == "" {

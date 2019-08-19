@@ -16,10 +16,10 @@ type nsmdProbeGoals struct {
 
 func (g *nsmdProbeGoals) TODO() string {
 	return fmt.Sprintf("NSM Server is ready: %v, Dataplane server is ready: %v, Public listener is ready: %v, Server API is ready: %v",
-		g.state&nsmServerReady == 1,
-		g.state&dataplaneServerReady == 1,
-		g.state&publicListenerReady == 1,
-		g.state&serverAPIReady == 1,
+		g.state&nsmServerReady > 0,
+		g.state&dataplaneServerReady > 0,
+		g.state&publicListenerReady > 0,
+		g.state&serverAPIReady > 0,
 	)
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
@@ -40,13 +41,21 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", whsvr.serve)
 	whsvr.server.Handler = mux
-
+	errCh := make(chan error)
 	// start webhook server in new routine
 	go func() {
 		if err := whsvr.server.ListenAndServeTLS("", ""); err != nil {
 			logrus.Fatalf("Failed to listen and serve webhook server: %v", err)
+			errCh <- err
 		}
 	}()
+	select {
+	case err := <-errCh:
+		logrus.Fatal(err)
+		return
+	case <-time.After(250 * time.Millisecond):
+		break
+	}
 	logrus.Info("Server started")
 	goals.SetServerStarted()
 	<-c

@@ -12,9 +12,6 @@ func TestAdmissionWebhookGoals(t *testing.T) {
 		t.FailNow()
 	}
 	g.SetKeyPairLoaded()
-	if g.IsComplete() {
-		t.FailNow()
-	}
 	if !g.IsComplete() {
 		t.FailNow()
 	}

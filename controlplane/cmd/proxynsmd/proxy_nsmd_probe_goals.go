@@ -14,8 +14,8 @@ type proxyNsmdProbeGoals struct {
 
 func (g *proxyNsmdProbeGoals) TODO() string {
 	return fmt.Sprintf("Public listener is ready: %v, Server api is ready: %v",
-		g.state&publicListenerReady == 1,
-		g.state&serverAPIReady == 1,
+		g.state&publicListenerReady > 0,
+		g.state&serverAPIReady > 0,
 	)
 }
 func (g *proxyNsmdProbeGoals) SetPublicListenerReady() {

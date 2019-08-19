@@ -19,11 +19,11 @@ type DataplaneProbeGoals struct {
 //TODO returns current status
 func (g *DataplaneProbeGoals) TODO() string {
 	return fmt.Sprintf("NewEgressIPReady:%v, SetSrcIPReady: %v, SetSocketCleanReady: %v, SetValidIPReady: %v, SetSocketListenrReady: %v",
-		g.state&newEgressIPReady == 1,
-		g.state&srcIPReady == 1,
-		g.state&socketCleanReady == 1,
-		g.state&validIPReady == 1,
-		g.state&socketListenReady == 1)
+		g.state&newEgressIPReady > 0,
+		g.state&srcIPReady > 0,
+		g.state&socketCleanReady > 0,
+		g.state&validIPReady > 0,
+		g.state&socketListenReady > 0)
 }
 
 //SetNewEgressIFReady sets true for NewEgressIFReady
