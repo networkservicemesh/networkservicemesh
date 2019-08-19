@@ -48,7 +48,7 @@ spec:
                 cpu: {{ (index .Values $fp).resources.limitCPU }}
               requests:
                 cpu: {{ (index .Values $fp).resources.requestsCPU }}
-          {{ - end }}
+          {{- end }}
       volumes:
         - hostPath:
             path: /var/lib/networkservicemesh
