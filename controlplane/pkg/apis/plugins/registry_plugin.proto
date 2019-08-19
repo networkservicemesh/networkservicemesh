@@ -5,7 +5,7 @@ package plugins;
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry/registry.proto";
 import "ptypes/empty/empty.proto";
 
-message NetworkServiceEndpointList {
+message NSEList {
     repeated registry.NetworkServiceEndpoint network_service_endpoints = 1;
 }
 
@@ -13,5 +13,5 @@ service RegistryPlugin {
     rpc RegisterNSM (registry.NetworkServiceManager) returns (registry.NetworkServiceManager);
     rpc RegisterNSE (registry.NSERegistration) returns (registry.NSERegistration);
     rpc RemoveNSE (registry.RemoveNSERequest) returns (google.protobuf.Empty);
-    rpc GetEndpoints (google.protobuf.Empty) returns (NetworkServiceEndpointList);
+    rpc GetNSEs (google.protobuf.Empty) returns (NSEList);
 }

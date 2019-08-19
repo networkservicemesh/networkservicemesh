@@ -274,17 +274,17 @@ func (rpm *testRegistryPluginManager) RemoveNSE(ctx context.Context, request *re
 	return nil
 }
 
-func (rpm *testRegistryPluginManager) GetEndpoints(ctx context.Context) (*pluginsapi.NetworkServiceEndpointList, error) {
+func (rpm *testRegistryPluginManager) GetNSEs(ctx context.Context) (*pluginsapi.NSEList, error) {
 	endpoints := []*registry.NetworkServiceEndpoint{}
 	for _, plugin := range rpm.plugins {
-		response, err := plugin.GetEndpoints(ctx, &empty.Empty{})
+		response, err := plugin.GetNSEs(ctx, &empty.Empty{})
 		if err != nil {
 			return nil, err
 		}
 
 		endpoints = append(endpoints, response.GetNetworkServiceEndpoints()...)
 	}
-	return &pluginsapi.NetworkServiceEndpointList{NetworkServiceEndpoints: endpoints}, nil
+	return &pluginsapi.NSEList{NetworkServiceEndpoints: endpoints}, nil
 }
 
 type nsmdTestServiceRegistry struct {

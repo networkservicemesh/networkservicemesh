@@ -95,12 +95,12 @@ func (rpm *registryPluginManager) RemoveNSE(ctx context.Context, request *regist
 	return nil
 }
 
-func (rpm *registryPluginManager) GetEndpoints(ctx context.Context) (*plugins.NetworkServiceEndpointList, error) {
+func (rpm *registryPluginManager) GetNSEs(ctx context.Context) (*plugins.NSEList, error) {
 	endpoints := []*registry.NetworkServiceEndpoint{}
 	for name, plugin := range rpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
-		response, err := plugin.GetEndpoints(pluginCtx, &empty.Empty{})
+		response, err := plugin.GetNSEs(pluginCtx, &empty.Empty{})
 		cancel()
 
 		if err != nil {
@@ -109,5 +109,5 @@ func (rpm *registryPluginManager) GetEndpoints(ctx context.Context) (*plugins.Ne
 
 		endpoints = append(endpoints, response.GetNetworkServiceEndpoints()...)
 	}
-	return &plugins.NetworkServiceEndpointList{NetworkServiceEndpoints: endpoints}, nil
+	return &plugins.NSEList{NetworkServiceEndpoints: endpoints}, nil
 }
