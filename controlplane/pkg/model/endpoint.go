@@ -33,7 +33,7 @@ func (ep *Endpoint) clone() cloneable {
 
 // EndpointName returns name of Endpoint
 func (ep *Endpoint) EndpointName() string {
-	return ep.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
+	return ep.Endpoint.GetNetworkServiceEndpoint().GetName()
 }
 
 // NetworkServiceName returns name of NetworkService of that Endpoint

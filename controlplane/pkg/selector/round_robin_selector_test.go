@@ -42,18 +42,18 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-1",
+				Name: "NSE-1",
 			},
 		},
 		{
@@ -64,18 +64,18 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 			},
 		},
 		{
@@ -86,15 +86,15 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 			},
 		},
 		{
@@ -105,15 +105,15 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-3",
+				Name: "NSE-3",
 			},
 		},
 		{
@@ -124,18 +124,18 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 			},
 		},
 		{
@@ -146,18 +146,18 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-3",
+				Name: "NSE-3",
 			},
 		},
 		{
@@ -168,15 +168,15 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 			},
 		},
 		{
@@ -187,15 +187,15 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-1",
+				Name: "NSE-1",
 			},
 		},
 		{
@@ -206,18 +206,18 @@ func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 				},
 				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
 					{
-						EndpointName: "NSE-1",
+						Name: "NSE-1",
 					},
 					{
-						EndpointName: "NSE-2",
+						Name: "NSE-2",
 					},
 					{
-						EndpointName: "NSE-3",
+						Name: "NSE-3",
 					},
 				},
 			},
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 			},
 		},
 	}

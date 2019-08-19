@@ -70,7 +70,7 @@ func FindNetworkServiceWithCache(cache RegistryCache, networkServiceName string)
 	endpointIds := []string{}
 	for i, endpoint := range endpointList {
 		NSEs[i] = mapNseFromCustomResource(endpoint)
-		endpointIds = append(endpointIds, NSEs[i].EndpointName)
+		endpointIds = append(endpointIds, NSEs[i].GetName())
 		nsm, err := cache.GetNetworkServiceManager(endpoint.Spec.NsmName)
 		if err != nil {
 			return nil, err

@@ -82,9 +82,9 @@ func TestHealRemoteNSE(t *testing.T) {
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	l1.WaitAdd(1, timeout, t)
 
-	epName := clientConnection1.Endpoint.NetworkserviceEndpoint.GetEndpointName()
+	epName := clientConnection1.Endpoint.GetNetworkServiceEndpoint().GetName()
 	_, err = srv.nseRegistry.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-		EndpointName: epName,
+		NetworkServiceEndpointName: epName,
 	})
 	if err != nil {
 		t.Fatal("Err must be nil")
