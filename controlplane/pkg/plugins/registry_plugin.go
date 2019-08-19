@@ -18,7 +18,7 @@ type RegistryPluginManager interface {
 	RegisterNSM(context.Context, *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error)
 	RegisterNSE(context.Context, *registry.NSERegistration) (*registry.NSERegistration, error)
 	RemoveNSE(context.Context, *registry.RemoveNSERequest) error
-	GetEndpoints(context.Context) (*plugins.NetworkServiceEndpointList, error)
+	GetNSEs(context.Context) (*plugins.NSEList, error)
 }
 
 type registryPluginManager struct {
