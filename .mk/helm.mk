@@ -31,6 +31,7 @@ $(INSTALL_CHARTS):
 	helm install --name=${CHART} \
 	--wait --atomic \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
+	--set forwardingPlane="${FORWARDING_PLANE}" \
 	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
 	--namespace="${NSM_NAMESPACE}" \
 	deployments/helm/${CHART}

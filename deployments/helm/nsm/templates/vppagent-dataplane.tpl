@@ -1,22 +1,23 @@
----
+{{ $fp := .Values.forwardingPlane }}
+
 apiVersion: apps/v1
 kind: DaemonSet
 spec:
   selector:
     matchLabels:
-      app: nsm-vpp-dataplane
+      app: nsm-{{ $fp }}-plane
   template:
     metadata:
       labels:
-        app: nsm-vpp-dataplane
+        app: nsm-{{ $fp }}-plane
     spec:
       hostPID: true
       hostNetwork: true
       containers:
-        - name: vppagent-dataplane
+        - name: {{ (index .Values $fp).image }}
           securityContext:
             privileged: true
-          image: {{ .Values.registry }}/{{ .Values.org }}/vppagent-dataplane:{{ .Values.tag }}
+          image: {{ .Values.registry }}/{{ .Values.org }}/{{ (index .Values $fp).image }}:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: NSM_DATAPLANE_SRC_IP
@@ -41,11 +42,18 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
+          {{- if (index .Values $fp).resources }}
+            resources:
+              limits:
+                cpu: {{ (index .Values $fp).resources.limitCPU }}
+              requests:
+                cpu: {{ (index .Values $fp).resources.requestsCPU }}
+          {{ - end }}
       volumes:
         - hostPath:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: workspace
 metadata:
-  name: nsm-vppagent-dataplane
+  name: nsm-{{ $fp }}-forwarder
   namespace: {{ .Release.Namespace }}
