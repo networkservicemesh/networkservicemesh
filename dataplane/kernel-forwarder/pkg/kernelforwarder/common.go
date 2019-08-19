@@ -123,38 +123,12 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 			return err
 		}
 		/* 10. Add routes */
-		for _, route := range routes {
-			_, routeNet, err := net.ParseCIDR(route.GetPrefix())
-			if err != nil {
-				logrus.Error("failed parsing route CIDR:", err)
-			}
-			route := netlink.Route{
-				LinkIndex: link.Attrs().Index,
-				Dst: &net.IPNet{
-					IP:   routeNet.IP,
-					Mask: routeNet.Mask,
-				},
-				Src: addr.IP,
-			}
-			if err := netlink.RouteAdd(&route); err != nil {
-				logrus.Error("failed adding routes:", err)
-			}
+		if err = addRoutes(link, addr, routes); err != nil {
+			logrus.Error("failed adding routes:", err)
 		}
 		/* 11. Add neighbors - applicable only for source side */
-		for _, neighbor := range neighbors {
-			mac, err := net.ParseMAC(neighbor.GetHardwareAddress())
-			if err != nil {
-				logrus.Error("failed parsing the MAC address for IP neighbors:", err)
-			}
-			neigh := netlink.Neigh{
-				LinkIndex:    link.Attrs().Index,
-				State:        netlink.NUD_REACHABLE,
-				IP:           net.ParseIP(neighbor.GetIp()),
-				HardwareAddr: mac,
-			}
-			if err := netlink.NeighAdd(&neigh); err != nil {
-				logrus.Error("failed adding neighbor:", err)
-			}
+		if err = addNeighbors(link, neighbors); err != nil {
+			logrus.Error("failed adding neighbors:", err)
 		}
 	} else {
 		/* 7. Bring the interface DOWN */
@@ -239,4 +213,48 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		logrus.Error("connection configuration: invalid connection type")
 		return nil, fmt.Errorf("invalid connection type")
 	}
+}
+
+func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontext.Route) error {
+	for _, route := range routes {
+		_, routeNet, err := net.ParseCIDR(route.GetPrefix())
+		if err != nil {
+			logrus.Error("failed parsing route CIDR:", err)
+			return err
+		}
+		route := netlink.Route{
+			LinkIndex: link.Attrs().Index,
+			Dst: &net.IPNet{
+				IP:   routeNet.IP,
+				Mask: routeNet.Mask,
+			},
+			Src: addr.IP,
+		}
+		if err = netlink.RouteAdd(&route); err != nil {
+			logrus.Error("failed adding routes:", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func addNeighbors(link netlink.Link, neighbors []*connectioncontext.IpNeighbor) error {
+	for _, neighbor := range neighbors {
+		mac, err := net.ParseMAC(neighbor.GetHardwareAddress())
+		if err != nil {
+			logrus.Error("failed parsing the MAC address for IP neighbors:", err)
+			return err
+		}
+		neigh := netlink.Neigh{
+			LinkIndex:    link.Attrs().Index,
+			State:        netlink.NUD_REACHABLE,
+			IP:           net.ParseIP(neighbor.GetIp()),
+			HardwareAddr: mac,
+		}
+		if err = netlink.NeighAdd(&neigh); err != nil {
+			logrus.Error("failed adding neighbor:", err)
+			return err
+		}
+	}
+	return nil
 }
