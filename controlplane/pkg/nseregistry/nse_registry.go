@@ -86,7 +86,7 @@ func (reg *NSERegistry) AppendClientRequest(workspace string) error {
 }
 
 func (reg *NSERegistry) AppendNSERegRequest(workspace string, nseReg *registry.NSERegistration) error {
-	return reg.writeLine(NSERegistered, nseReg.NetworkserviceEndpoint.EndpointName, workspace, reg.storeNSEBase64(nseReg)) // Few workspaces could contain few NSEs
+	return reg.writeLine(NSERegistered, nseReg.GetNetworkServiceEndpoint().GetName(), workspace, reg.storeNSEBase64(nseReg)) // Few workspaces could contain few NSEs
 }
 
 func (reg *NSERegistry) storeNSEBase64(nseReg *registry.NSERegistration) string {

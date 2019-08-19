@@ -26,7 +26,7 @@ func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSER
 					Labels:                               remoteDst.GetLabels(),
 					DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
 					SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
-					NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
+					NetworkServiceEndpointName:           endpoint.GetNetworkServiceEndpoint().GetName(),
 				},
 				remoteM,
 			)
@@ -41,7 +41,7 @@ func (srv *networkServiceManager) createRemoteNSMRequest(endpoint *registry.NSER
 			Labels:                               requestConn.GetLabels(),
 			DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
 			SourceNetworkServiceManagerName:      srv.getNetworkServiceManagerName(),
-			NetworkServiceEndpointName:           endpoint.GetNetworkserviceEndpoint().GetEndpointName(),
+			NetworkServiceEndpointName:           endpoint.GetNetworkServiceEndpoint().GetName(),
 		},
 		remoteM,
 	)

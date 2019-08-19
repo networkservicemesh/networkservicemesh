@@ -323,7 +323,7 @@ func (stub *connectionManagerStub) Close(ctx context.Context, clientConnection n
 		connection.ConnectionState = model.ClientConnectionClosing
 	})
 
-	stub.model.DeleteEndpoint(cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName())
+	stub.model.DeleteEndpoint(cc.Endpoint.GetNetworkServiceEndpoint().GetName())
 	stub.model.DeleteDataplane(cc.DataplaneRegisteredName)
 	stub.model.DeleteClientConnection(cc.GetID())
 
@@ -362,18 +362,18 @@ func (stub *nseManagerStub) createNSEClient(ctx context.Context, endpoint *regis
 	nseClient := &nseClientStub{
 		cleanedUp: false,
 	}
-	stub.nseClients[endpoint.GetNetworkserviceEndpoint().GetEndpointName()] = nseClient
+	stub.nseClients[endpoint.GetNetworkServiceEndpoint().GetName()] = nseClient
 
 	return nseClient, nil
 }
 
 func (stub *nseManagerStub) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
-	return stub.model.GetNsm().GetName() == endpoint.GetNetworkserviceEndpoint().GetNetworkServiceManagerName()
+	return stub.model.GetNsm().GetName() == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName()
 }
 
 func (stub *nseManagerStub) checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
 	for _, nse := range stub.nses {
-		if nse.GetNetworkserviceEndpoint().GetEndpointName() == reg.GetNetworkserviceEndpoint().GetEndpointName() {
+		if nse.GetNetworkServiceEndpoint().GetName() == reg.GetNetworkServiceEndpoint().GetName() {
 			return true
 		}
 	}
@@ -389,10 +389,10 @@ func (data *healTestData) createEndpoint(nse, nsm string) *registry.NSERegistrat
 		NetworkServiceManager: &registry.NetworkServiceManager{
 			Name: nsm,
 		},
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      nse,
 			NetworkServiceName:        networkServiceName,
 			NetworkServiceManagerName: nsm,
-			EndpointName:              nse,
 		},
 	}
 }
@@ -449,7 +449,7 @@ func (data *healTestData) createClientConnection(id string, xcon *crossconnect.C
 func (data *healTestData) cloneClientConnection(connection *model.ClientConnection) *model.ClientConnection {
 	id := connection.GetID()
 	xcon := proto.Clone(connection.Xcon).(*crossconnect.CrossConnect)
-	nse := data.createEndpoint(connection.Endpoint.GetNetworkserviceEndpoint().GetEndpointName(), connection.Endpoint.GetNetworkServiceManager().GetName())
+	nse := data.createEndpoint(connection.Endpoint.GetNetworkServiceEndpoint().GetName(), connection.Endpoint.GetNetworkServiceManager().GetName())
 	nsm := connection.RemoteNsm.GetName()
 	dataplane := connection.DataplaneRegisteredName
 	request := data.createRequest(connection.Request.IsRemote())
@@ -471,7 +471,7 @@ func (data *healTestData) createFindNetworkServiceResponse(nses ...*registry.NSE
 		response.NetworkServiceManagers[nsm] = &registry.NetworkServiceManager{
 			Name: nsm,
 		}
-		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, nse.NetworkserviceEndpoint)
+		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, nse.GetNetworkServiceEndpoint())
 	}
 
 	return response

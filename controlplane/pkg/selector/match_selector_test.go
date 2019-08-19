@@ -75,7 +75,7 @@ func genArgs(p genArgsParam) args {
 
 	for i := 1; i <= p.numEndpoints; i++ {
 		endpoints = append(endpoints, &registry.NetworkServiceEndpoint{
-			EndpointName: "NSE-" + strconv.Itoa(i),
+			Name: "NSE-" + strconv.Itoa(i),
 			Labels: map[string]string{
 				"label" + strconv.Itoa(i): "value" + strconv.Itoa(i),
 			},
@@ -111,7 +111,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					numEndpoints: 3,
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-1",
+				Name: "NSE-1",
 				Labels: map[string]string{
 					"label1": "value1",
 				},
@@ -126,7 +126,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					numEndpoints: 3,
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 				Labels: map[string]string{
 					"label2": "value2",
 				},
@@ -152,7 +152,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					labelIDs:     []int{1},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-1",
+				Name: "NSE-1",
 				Labels: map[string]string{
 					"label1": "value1",
 				},
@@ -168,7 +168,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					labelIDs:     []int{2},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 				Labels: map[string]string{
 					"label2": "value2",
 				},
@@ -184,7 +184,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					labelIDs:     []int{12},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-12",
+				Name: "NSE-12",
 				Labels: map[string]string{
 					"label12": "value12",
 				},
@@ -223,7 +223,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-2",
+							Name: "NSE-2",
 							Labels: map[string]string{
 								"label1": "value1",
 								"label2": "value2",
@@ -232,7 +232,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 				Labels: map[string]string{
 					"label1": "value1",
 					"label2": "value2",
@@ -261,7 +261,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-2",
+							Name: "NSE-2",
 							Labels: map[string]string{
 								"label1": "value1",
 								"label2": "value2",
@@ -270,7 +270,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-1",
+				Name: "NSE-1",
 				Labels: map[string]string{
 					"label1": "value1",
 				},
@@ -298,7 +298,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-2",
+							Name: "NSE-2",
 							Labels: map[string]string{
 								"label1": "value1",
 								"label2": "value2",
@@ -307,7 +307,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 				Labels: map[string]string{
 					"label1": "value1",
 					"label2": "value2",
@@ -336,7 +336,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-2",
+							Name: "NSE-2",
 							Labels: map[string]string{
 								"label1": "value1",
 								"label2": "value2",
@@ -345,7 +345,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-1",
+				Name: "NSE-1",
 				Labels: map[string]string{
 					"label1": "value1",
 				},
@@ -373,7 +373,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-2",
+							Name: "NSE-2",
 							Labels: map[string]string{
 								"label1": "value1",
 								"label2": "value2",
@@ -382,7 +382,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-2",
+				Name: "NSE-2",
 				Labels: map[string]string{
 					"label1": "value1",
 					"label2": "value2",
@@ -412,7 +412,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-221",
+							Name: "NSE-221",
 							Labels: map[string]string{
 								"label221": "value1",
 								"label222": "value2",
@@ -421,7 +421,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-10",
+				Name: "NSE-10",
 				Labels: map[string]string{
 					"label10": "value10",
 				},
@@ -450,7 +450,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 					endpoints: []*registry.NetworkServiceEndpoint{
 						{
-							EndpointName: "NSE-221",
+							Name: "NSE-221",
 							Labels: map[string]string{
 								"label221": "value1",
 								"label222": "value2",
@@ -459,7 +459,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 					},
 				}),
 			want: &registry.NetworkServiceEndpoint{
-				EndpointName: "NSE-221",
+				Name: "NSE-221",
 				Labels: map[string]string{
 					"label221": "value1",
 					"label222": "value2",

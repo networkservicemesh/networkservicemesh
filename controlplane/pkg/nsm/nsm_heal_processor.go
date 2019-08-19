@@ -165,8 +165,8 @@ func (p *healProcessor) healDstDown(healID string, cc *model.ClientConnection) b
 	logrus.Infof("NSM_Heal(2.2-%v) Starting DST Heal...", healID)
 	// We are client NSMd, we need to try recover our connection srv.
 
-	endpointName := cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
-	// Wait for NSE not equal to down one, since we know it will be re-registered with new EndpointName.
+	endpointName := cc.Endpoint.GetNetworkServiceEndpoint().GetName()
+	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
 	if !p.waitNSE(ctx, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
 		cc.GetConnectionDestination().SetID("-") // We need to mark this as new connection.
 	}
@@ -253,7 +253,7 @@ func (p *healProcessor) healDstNmgrDown(healID string, cc *model.ClientConnectio
 	var endpointName string
 	// Wait for exact same NSE to be available with NSMD connection alive.
 	if cc.Endpoint != nil {
-		endpointName = cc.Endpoint.GetNetworkserviceEndpoint().GetEndpointName()
+		endpointName = cc.Endpoint.GetNetworkServiceEndpoint().GetName()
 		if !p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsSameAndAvailable) {
 			cc.GetConnectionDestination().SetID("-") // We need to mark this as new connection.
 		}
@@ -291,7 +291,7 @@ func (p *healProcessor) healDstNmgrDown(healID string, cc *model.ClientConnectio
 type nseValidator func(ctx context.Context, endpoint string, reg *registry.NSERegistration) bool
 
 func (p *healProcessor) nseIsNewAndAvailable(ctx context.Context, endpointName string, reg *registry.NSERegistration) bool {
-	if endpointName != "" && reg.GetNetworkserviceEndpoint().GetEndpointName() == endpointName {
+	if endpointName != "" && reg.GetNetworkServiceEndpoint().GetName() == endpointName {
 		// Skip ignored endpoint
 		return false
 	}
@@ -313,7 +313,7 @@ func (p *healProcessor) nseIsNewAndAvailable(ctx context.Context, endpointName s
 }
 
 func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName string, reg *registry.NSERegistration) bool {
-	if reg.GetNetworkserviceEndpoint().GetEndpointName() != endpointName {
+	if reg.GetNetworkServiceEndpoint().GetName() != endpointName {
 		return false
 	}
 
@@ -355,7 +355,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection,
 			for _, ep := range endpointResponse.NetworkServiceEndpoints {
 				reg := &registry.NSERegistration{
 					NetworkServiceManager:  endpointResponse.GetNetworkServiceManagers()[ep.GetNetworkServiceManagerName()],
-					NetworkserviceEndpoint: ep,
+					NetworkServiceEndpoint: ep,
 					NetworkService:         endpointResponse.GetNetworkService(),
 				}
 

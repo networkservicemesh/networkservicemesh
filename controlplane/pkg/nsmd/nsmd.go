@@ -182,7 +182,7 @@ func (nsm *nsmServer) restore(registeredEndpointsList *registry.NetworkServiceEn
 
 	registeredNSEs := map[string]string{}
 	for _, endpoint := range registeredEndpointsList.GetNetworkServiceEndpoints() {
-		registeredNSEs[endpoint.GetEndpointName()] = endpoint.GetNetworkServiceName()
+		registeredNSEs[endpoint.GetName()] = endpoint.GetNetworkServiceName()
 	}
 
 	updatedClients := nsm.restoreClients(clients)
@@ -269,7 +269,7 @@ func (nsm *nsmServer) restoreEndpoints(nses map[string]nseregistry.NSEEntry, reg
 	for name := range registeredNSEs {
 		if _, ok := updatedNSEs[name]; !ok {
 			if _, err := registryClient.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-				EndpointName: name,
+				NetworkServiceEndpointName: name,
 			}); err != nil {
 				logrus.Errorf("Remove NSE: NSE %v", err)
 			}
@@ -311,7 +311,7 @@ func (nsm *nsmServer) restoreEndpoint(
 
 func (nsm *nsmServer) restoreRegisteredEndpoint(nse nseregistry.NSEEntry, ws *Workspace) {
 	nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
-	nse.NseReg.NetworkserviceEndpoint.NetworkServiceManagerName = nse.NseReg.NetworkServiceManager.Name
+	nse.NseReg.NetworkServiceEndpoint.NetworkServiceManagerName = nse.NseReg.GetNetworkServiceManager().GetName()
 
 	nsm.model.AddEndpoint(&model.Endpoint{
 		Endpoint:       nse.NseReg,
@@ -327,18 +327,18 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(
 
 	reg, err := ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, registryClient)
 	if err != nil {
-		name := nse.NseReg.NetworkserviceEndpoint.EndpointName
+		name := nse.NseReg.GetNetworkServiceEndpoint().GetName()
 		logrus.Warnf("Failed to register NSE with name %v: %v", name, err)
 
-		nse.NseReg.NetworkserviceEndpoint.EndpointName = ""
+		nse.NseReg.NetworkServiceEndpoint.Name = ""
 		if reg, err = ws.registryServer.RegisterNSEWithClient(context.Background(), nse.NseReg, registryClient); err != nil {
 			return "", nseregistry.NSEEntry{}, err
 		}
 
-		nsm.manager.NotifyRenamedEndpoint(name, reg.NetworkserviceEndpoint.EndpointName)
+		nsm.manager.NotifyRenamedEndpoint(name, reg.GetNetworkServiceEndpoint().GetName())
 	}
 
-	return reg.NetworkserviceEndpoint.EndpointName, nseregistry.NSEEntry{
+	return reg.GetNetworkServiceEndpoint().GetName(), nseregistry.NSEEntry{
 		Workspace: ws.Name(),
 		NseReg:    reg,
 	}, nil
@@ -346,7 +346,7 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(
 
 func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.NetworkServiceRegistryClient) error {
 	if _, err := client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
-		EndpointName: name,
+		NetworkServiceEndpointName: name,
 	}); err != nil {
 		return err
 	}
@@ -360,7 +360,7 @@ func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.Netw
 func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
 	// If endpoint has active client connection, it should be handled by MonitorNetNsInodeServer
 	for _, clientConnection := range nsm.model.GetAllClientConnections() {
-		if endpoint.EndpointName() == clientConnection.Endpoint.NetworkserviceEndpoint.EndpointName {
+		if endpoint.EndpointName() == clientConnection.Endpoint.GetNetworkServiceEndpoint().GetName() {
 			return nil
 		}
 	}

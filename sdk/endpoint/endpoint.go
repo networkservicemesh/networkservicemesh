@@ -109,7 +109,7 @@ func (nsme *nsmEndpoint) Start() error {
 			Name:    nsme.Configuration.AdvertiseNseName,
 			Payload: "IP",
 		},
-		NetworkserviceEndpoint: nse,
+		NetworkServiceEndpoint: nse,
 	}
 
 	nsme.registryClient = registry.NewNetworkServiceRegistryClient(nsme.GrpcClient)
@@ -117,7 +117,7 @@ func (nsme *nsmEndpoint) Start() error {
 	if err != nil {
 		logrus.Fatalln("unable to register endpoint", err)
 	}
-	nsme.endpointName = registeredNSE.GetNetworkserviceEndpoint().GetEndpointName()
+	nsme.endpointName = registeredNSE.GetNetworkServiceEndpoint().GetName()
 	logrus.Infof("NSE registered: %v", registeredNSE)
 	logrus.Infof("NSE: channel has been successfully advertised, waiting for connection from NSM...")
 
@@ -130,7 +130,7 @@ func (nsme *nsmEndpoint) Delete() error {
 	}
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
-		EndpointName: nsme.endpointName,
+		NetworkServiceEndpointName: nsme.endpointName,
 	}
 	_, err := nsme.registryClient.RemoveNSE(context.Background(), removeNSE)
 	if err != nil {

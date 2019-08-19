@@ -5,15 +5,6 @@ package registry;
 import "ptypes/empty/empty.proto";
 import "ptypes/timestamp/timestamp.proto";
 
-message NetworkServiceEndpoint {
-    string network_service_name = 1;
-    string payload = 2;
-    string network_service_manager_name = 3;
-    string endpoint_name = 4;
-    map<string, string> labels = 5;
-    string state = 6;
-}
-
 message NetworkService {
     string name = 1;
     string payload = 2;
@@ -37,13 +28,19 @@ message NetworkServiceManager {
     string state = 4;
 }
 
-message RemoveNSERequest {
-    string endpoint_name = 1;
+message NetworkServiceEndpoint {
+    string name = 1;
+    string payload = 2;
+    string network_service_name = 3;
+    string network_service_manager_name = 4;
+    map<string, string> labels = 5;
+    string state = 6;
 }
 
 message FindNetworkServiceRequest {
     string network_service_name = 1;
 }
+
 message FindNetworkServiceResponse {
     string payload = 1;
     NetworkService network_service = 2;
@@ -54,7 +51,11 @@ message FindNetworkServiceResponse {
 message NSERegistration {
     NetworkService network_service = 1;
     NetworkServiceManager network_service_manager = 2;
-    NetworkServiceEndpoint networkservice_endpoint = 3;
+    NetworkServiceEndpoint network_service_endpoint = 3;
+}
+
+message RemoveNSERequest {
+    string network_service_endpoint_name = 1;
 }
 
 service NetworkServiceRegistry {

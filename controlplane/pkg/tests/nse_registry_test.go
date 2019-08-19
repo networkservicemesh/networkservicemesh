@@ -94,8 +94,8 @@ func addValues(reg *nseregistry.NSERegistry) error {
 
 func createNSEReg(name string) *registry.NSERegistration {
 	return &registry.NSERegistration{
-		NetworkserviceEndpoint: &registry.NetworkServiceEndpoint{
-			EndpointName:              name,
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      name,
 			NetworkServiceManagerName: "nsm1",
 		},
 		NetworkService: &registry.NetworkService{
