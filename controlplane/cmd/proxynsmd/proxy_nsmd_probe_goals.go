@@ -12,7 +12,7 @@ type proxyNsmdProbeGoals struct {
 	state int8
 }
 
-func (g *proxyNsmdProbeGoals) TODO() string {
+func (g *proxyNsmdProbeGoals) Status() string {
 	return fmt.Sprintf("Public listener is ready: %v, Server api is ready: %v",
 		g.state&publicListenerReady > 0,
 		g.state&serverAPIReady > 0,

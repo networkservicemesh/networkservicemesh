@@ -2,14 +2,12 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"os"
-	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -20,7 +18,7 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 	goals := &admissionWebhookGoals{}
-	probes := probes.NewProbes("NSM admission webhook healthcheck", goals)
+	probes := probes.NewProbes("NSM admission webhook healthcheck", goals, tools.NewAddr("tcp", defaultAddr()))
 	go probes.BeginHealthCheck()
 	logrus.Info("Admission Webhook starting...")
 	logrus.Infof("Version: %v", version)
@@ -32,7 +30,7 @@ func main() {
 	goals.SetKeyPairLoaded()
 	whsvr := &nsmAdmissionWebhook{
 		server: &http.Server{
-			Addr:      fmt.Sprintf(":%v", 443),
+			Addr:      defaultAddr(),
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
 	}
@@ -41,21 +39,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", whsvr.serve)
 	whsvr.server.Handler = mux
-	errCh := make(chan error)
 	// start webhook server in new routine
 	go func() {
 		if err := whsvr.server.ListenAndServeTLS("", ""); err != nil {
 			logrus.Fatalf("Failed to listen and serve webhook server: %v", err)
-			errCh <- err
 		}
 	}()
-	select {
-	case err := <-errCh:
-		logrus.Fatal(err)
-		return
-	case <-time.After(250 * time.Millisecond):
-		break
-	}
 	logrus.Info("Server started")
 	goals.SetServerStarted()
 	<-c

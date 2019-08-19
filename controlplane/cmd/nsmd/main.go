@@ -38,7 +38,7 @@ func main() {
 	defer closer.Close()
 
 	nsmdGoals := &nsmdProbeGoals{}
-	nsmdProbes := probes.NewProbes("NSMD liveness/readiness healthcheck", nsmdGoals)
+	nsmdProbes := probes.NewProbes("NSMD liveness/readiness healthcheck", nsmdGoals, tools.NewAddr("tcp", getNsmdAPIAddress()))
 	go nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
@@ -91,10 +91,7 @@ func main() {
 	logrus.Info("Dataplane server is ready")
 	nsmdGoals.SetDataplaneServerReady()
 	// Choose a public API listener
-	nsmdAPIAddress := os.Getenv(NsmdAPIAddressEnv)
-	if strings.TrimSpace(nsmdAPIAddress) == "" {
-		nsmdAPIAddress = NsmdAPIAddressDefaults
-	}
+	nsmdAPIAddress := getNsmdAPIAddress()
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
@@ -111,4 +108,12 @@ func main() {
 	logrus.Debugf("Starting NSMD took: %s", elapsed)
 
 	<-c
+}
+
+func getNsmdAPIAddress() string {
+	result := os.Getenv(NsmdAPIAddressEnv)
+	if strings.TrimSpace(result) == "" {
+		result = NsmdAPIAddressDefaults
+	}
+	return result
 }

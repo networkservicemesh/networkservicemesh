@@ -42,6 +42,26 @@ const (
 	MaxSymLink = 8192
 )
 
+type addrImpl struct {
+	addr    string
+	network string
+}
+
+func (a *addrImpl) String() string {
+	return a.addr
+}
+
+func (a *addrImpl) Network() string {
+	return a.network
+}
+
+func NewAddr(network, addr string) net.Addr {
+	return &addrImpl{
+		network: network,
+		addr:    addr,
+	}
+}
+
 // GetCurrentNS discovers the namespace of a running process and returns in a string.
 func GetCurrentNS() (string, error) {
 	buf := make([]byte, MaxSymLink)

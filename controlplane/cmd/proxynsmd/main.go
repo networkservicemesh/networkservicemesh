@@ -48,7 +48,7 @@ func main() {
 		}
 	}()
 	goals := &proxyNsmdProbeGoals{}
-	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals)
+	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals, tools.NewAddr("tcp", getProxyNSMDAPIAddress()))
 	go nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
@@ -56,11 +56,8 @@ func main() {
 	defer serviceRegistry.Stop()
 
 	// Choose a public API listener
-	nsmdAPIAddress := os.Getenv(ProxyNsmdAPIAddressEnv)
-	if strings.TrimSpace(nsmdAPIAddress) == "" {
-		nsmdAPIAddress = ProxyNsmdAPIAddressDefaults
-	}
-	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
+
+	sock, err := apiRegistry.NewPublicListener(getProxyNSMDAPIAddress())
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
 		return
@@ -76,6 +73,14 @@ func main() {
 	logrus.Debugf("Starting Proxy NSMD took: %s", elapsed)
 
 	<-c
+}
+
+func getProxyNSMDAPIAddress() string {
+	result := os.Getenv(ProxyNsmdAPIAddressEnv)
+	if strings.TrimSpace(result) == "" {
+		result = ProxyNsmdAPIAddressDefaults
+	}
+	return result
 }
 
 // StartAPIServerAt starts GRPC API server at sock

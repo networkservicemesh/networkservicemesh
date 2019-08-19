@@ -14,7 +14,7 @@ type nsmdProbeGoals struct {
 	state int8
 }
 
-func (g *nsmdProbeGoals) TODO() string {
+func (g *nsmdProbeGoals) Status() string {
 	return fmt.Sprintf("NSM Server is ready: %v, Dataplane server is ready: %v, Public listener is ready: %v, Server API is ready: %v",
 		g.state&nsmServerReady > 0,
 		g.state&dataplaneServerReady > 0,

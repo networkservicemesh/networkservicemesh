@@ -16,33 +16,46 @@
 package probes
 
 import (
+	"net"
 	"net/http"
+	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	healthcheckProbesPort = "0.0.0.0:5555"
+	probeTimeout          = time.Second
 )
 
 // Probes - Network Service Manager readiness probes
 type Probes struct {
-	name  string
-	goals Goals
+	name      string
+	goals     Goals
+	endpoints []net.Addr
 }
 
 // NewProbes creates new Network Service Manager readiness probes
-func NewProbes(name string, goals Goals) *Probes {
+func NewProbes(name string, goals Goals, endpoints ...net.Addr) *Probes {
 	return &Probes{
-		name:  name,
-		goals: goals,
+		name:      name,
+		goals:     goals,
+		endpoints: endpoints,
 	}
 }
 
 func (probes *Probes) readiness(w http.ResponseWriter, r *http.Request) {
 	if !probes.goals.IsComplete() {
-		http.Error(w, probes.goals.TODO(), http.StatusServiceUnavailable)
+		http.Error(w, probes.goals.Status(), http.StatusServiceUnavailable)
 	} else {
+		for i := range probes.endpoints {
+			if err := tools.CheckHealth(probes.endpoints[i], probeTimeout); err != nil {
+				http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+		}
 		w.Write([]byte("OK"))
 	}
 }

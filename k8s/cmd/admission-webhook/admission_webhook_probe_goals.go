@@ -24,7 +24,7 @@ func (g *admissionWebhookGoals) IsComplete() bool {
 	return g.state == done
 }
 
-func (g *admissionWebhookGoals) TODO() string {
+func (g *admissionWebhookGoals) Status() string {
 	return fmt.Sprintf("Key pair loaded: %v, Server started: %v,",
 		g.state&keyPairLoaded > 0,
 		g.state&serverStarted > 0)
