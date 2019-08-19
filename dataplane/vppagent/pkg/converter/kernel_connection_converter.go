@@ -66,7 +66,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
 	}
 
-	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
+	logrus.Infof("KernelConnectionConverter: name from parameters: %s", m.GetParameters()[connection.InterfaceNameKey])
 
 	// If we have access to /dev/vhost-net, we can use tapv2.  Otherwise fall back to
 	// veth pairs
