@@ -45,7 +45,7 @@ type PluginManager interface {
 type pluginRegistry struct {
 	sync.RWMutex
 	status                  int
-	connections             map[string]*grpc.ClientConn
+	connections             sync.Map
 	connectionPluginManager ConnectionPluginManager
 	discoveryPluginManager  DiscoveryPluginManager
 	registryPluginManager   RegistryPluginManager
@@ -55,7 +55,7 @@ type pluginRegistry struct {
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
 		status:                  hasAllRequiredPlugins, // TODO: remove this when discovery and registry plugins will be implemented
-		connections:             make(map[string]*grpc.ClientConn),
+		connections:             sync.Map{},
 		connectionPluginManager: createConnectionPluginManager(),
 		discoveryPluginManager:  createDiscoveryPluginManager(),
 		registryPluginManager:   createRegistryPluginManager(),
@@ -99,12 +99,18 @@ func (pr *pluginRegistry) waitForRequiredPlugins() error {
 }
 
 func (pr *pluginRegistry) Stop() error {
-	for name, conn := range pr.getConnections() {
+	var rv error
+	pr.connections.Range(func(key interface{}, value interface{}) bool {
+		name := key.(string)
+		conn := value.(*grpc.ClientConn)
+
 		if err := conn.Close(); err != nil {
-			return fmt.Errorf("failed to close connection to '%s' plugin: %v", name, err)
+			rv = fmt.Errorf("failed to close connection to '%s' plugin: %v", name, err)
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return rv
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
@@ -154,27 +160,12 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 		return nil, err
 	}
 
-	err = pr.addConnection(name, conn)
-	return conn, err
-}
-
-func (pr *pluginRegistry) addConnection(name string, conn *grpc.ClientConn) error {
-	pr.Lock()
-	defer pr.Unlock()
-
-	if _, ok := pr.connections[name]; ok {
-		return fmt.Errorf("already have a plugin with the same name")
+	if _, ok := pr.connections.Load(name); ok {
+		return nil, fmt.Errorf("already have a plugin with the same name")
 	}
 
-	pr.connections[name] = conn
-	return nil
-}
-
-func (pr *pluginRegistry) getConnections() map[string]*grpc.ClientConn {
-	pr.RLock()
-	defer pr.RUnlock()
-
-	return pr.connections
+	pr.connections.Store(name, conn)
+	return conn, err
 }
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {
