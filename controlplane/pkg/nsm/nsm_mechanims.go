@@ -77,7 +77,7 @@ func (srv *networkServiceManager) prepareRemoteMechanisms(endpoint *registry.NSE
 		switch mechanism.GetMechanismType() {
 		case remote.MechanismType_VXLAN:
 			parameters := mechanism.GetParameters()
-			if endpoint.GetNetworkserviceEndpoint().GetInterdomain() {
+			if endpoint.GetNetworkServiceEndpoint().GetInterdomain() {
 				parameters[remote.VXLANUseExtIP] = strconv.FormatBool(true)
 			}
 		}
