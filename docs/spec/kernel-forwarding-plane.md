@@ -48,6 +48,12 @@ Deploy Network Service Mesh:
 FORWARDING_PLANE=kernel make helm-install-nsm
 ```
 
+Deploy icmp-responder and nsc:
+
+```bash
+FORWARDING_PLANE=kernel make helm-install-icmp-responder
+```
+
 And finally verify that it works as expected:
 
 ```bash
