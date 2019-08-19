@@ -36,12 +36,12 @@ spec:
             - name: TRACER_ENABLED
               value: "true"
             - name: IP_ADDRESS
-              value: "10.60.1.0/24"
+              value: "172.16.1.0/24"
           resources:
             limits:
               networkservicemesh.io/socket: 1
         - name: nginx
-          image: {{ .Values.registry }}/{{ .Values.org }}/nginx:{{ .Values.tag }}
+          image: {{ .Values.registry }}/networkservicemesh/nginx:latest
 metadata:
   name: vpn-gateway-nse
   namespace: {{ .Release.Namespace }}
