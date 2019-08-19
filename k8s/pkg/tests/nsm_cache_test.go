@@ -5,7 +5,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
@@ -13,7 +13,7 @@ import (
 
 func TestNsmCacheGetNil(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache()
+	c := resource_cache.NewNetworkServiceManagerCache("")
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -25,7 +25,7 @@ func TestNsmCacheGetNil(t *testing.T) {
 
 func TestNsmCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache()
+	c := resource_cache.NewNetworkServiceManagerCache("")
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -55,20 +55,35 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 	})
 	defer stopWrite()
 
-	time.Sleep(time.Second * 5)
+	<-time.After(time.Second)
+}
+
+func TestAddNSMNamespace(t *testing.T) {
+	g := NewWithT(t)
+	c := resource_cache.NewNetworkServiceManagerCache("1")
+	fakeRegistry := fakeRegistry{}
+
+	stopFunc, err := c.Start(&fakeRegistry)
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
+	defer stopFunc()
+	fakeRegistry.Add(&v1.NetworkServiceManager{ObjectMeta: metav1.ObjectMeta{Name: "nsm1"}})
+	g.Expect(c.Get("nsm1")).Should(BeNil())
+	fakeRegistry.Add(&v1.NetworkServiceManager{ObjectMeta: metav1.ObjectMeta{Name: "nsm1", Namespace: "1"}})
+	g.Expect(c.Get("nsm1")).ShouldNot(BeNil())
 }
 
 func TestNsmCacheStartWithInit(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache()
+	c := resource_cache.NewNetworkServiceManagerCache("")
 
 	init := []v1.NetworkServiceManager{
 		{
-			ObjectMeta: v12.ObjectMeta{Name: "nsm-1"},
+			ObjectMeta: metav1.ObjectMeta{Name: "nsm-1"},
 			Status:     v1.NetworkServiceManagerStatus{URL: "1.1.1.1"},
 		},
 		{
-			ObjectMeta: v12.ObjectMeta{Name: "nsm-2"},
+			ObjectMeta: metav1.ObjectMeta{Name: "nsm-2"},
 			Status:     v1.NetworkServiceManagerStatus{URL: "2.2.2.2"},
 		},
 	}

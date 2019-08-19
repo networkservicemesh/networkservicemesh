@@ -18,7 +18,7 @@ type NetworkServiceEndpointCache struct {
 	networkServiceEndpoints map[string]*v1.NetworkServiceEndpoint
 }
 
-func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
+func NewNetworkServiceEndpointCache(ns string) *NetworkServiceEndpointCache {
 	rv := &NetworkServiceEndpointCache{
 		nseByNs:                 make(map[string][]*v1.NetworkServiceEndpoint),
 		networkServiceEndpoints: make(map[string]*v1.NetworkServiceEndpoint),
@@ -29,6 +29,8 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 		resourceDeletedFunc: rv.resourceDeleted,
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NseResource,
+		namespace:           ns,
+		namespaceFunc:       getNseNamespace,
 	}
 	rv.cache = newAbstractResourceCache(config)
 	return rv
@@ -135,6 +137,10 @@ func (c *NetworkServiceEndpointCache) resourceDeleted(key string) {
 
 func getNseKey(obj interface{}) string {
 	return obj.(*v1.NetworkServiceEndpoint).Name
+}
+
+func getNseNamespace(obj interface{}) string {
+	return obj.(*v1.NetworkServiceEndpoint).Namespace
 }
 
 func (c *NetworkServiceEndpointCache) resourceGet(key string) interface{} {

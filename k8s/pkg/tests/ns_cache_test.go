@@ -14,7 +14,7 @@ import (
 func TestNsCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 
-	c := resource_cache.NewNetworkServiceCache()
+	c := resource_cache.NewNetworkServiceCache("")
 	fakeRegistry := fakeRegistry{}
 
 	stopFunc, err := c.Start(&fakeRegistry)
@@ -36,4 +36,19 @@ func TestNsCacheConcurrentModification(t *testing.T) {
 	defer stopWrite()
 
 	time.Sleep(time.Second * 5)
+}
+
+func TestNsNamespaceAdd(t *testing.T) {
+	g := NewWithT(t)
+	c := resource_cache.NewNetworkServiceCache("1")
+	fakeRegistry := fakeRegistry{}
+
+	stopFunc, err := c.Start(&fakeRegistry)
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
+	defer stopFunc()
+	fakeRegistry.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1"}})
+	g.Expect(c.Get("ns1")).Should(BeNil())
+	fakeRegistry.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1", Namespace: "1"}})
+	g.Expect(c.Get("ns1")).ShouldNot(BeNil())
 }

@@ -40,10 +40,11 @@ type registryCacheImpl struct {
 }
 
 func NewRegistryCache(cs *nsmClientset.Clientset) RegistryCache {
+	ns := namespace.GetNamespace()
 	return &registryCacheImpl{
-		networkServiceCache:         resource_cache.NewNetworkServiceCache(),
-		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(),
-		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(),
+		networkServiceCache:         resource_cache.NewNetworkServiceCache(ns),
+		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(ns),
+		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(ns),
 		clientset:                   cs,
 		stopFuncs:                   make([]func(), 0, 3),
 		nsmNamespace:                namespace.GetNamespace(),

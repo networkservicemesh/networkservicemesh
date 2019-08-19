@@ -39,10 +39,10 @@ func (f *fakeRegistry) AddEventHandler(handler cache.ResourceEventHandler) {
 	f.eventHandlers = append(f.eventHandlers, handler)
 }
 
-func (f *fakeRegistry) Add(nse *v1.NetworkServiceEndpoint) {
+func (f *fakeRegistry) Add(resource interface{}) {
 	logrus.Info(len(f.eventHandlers))
 	for _, eh := range f.eventHandlers {
-		eh.OnAdd(nse)
+		eh.OnAdd(resource)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestK8sRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -71,10 +71,25 @@ func TestK8sRegistryAdd(t *testing.T) {
 	g.Expect(endpointList[0].Name).To(Equal("nse1"))
 }
 
+func TestAddNSENamespace(t *testing.T) {
+	g := NewWithT(t)
+	c := resource_cache.NewNetworkServiceEndpointCache("1")
+	fakeRegistry := fakeRegistry{}
+
+	stopFunc, err := c.Start(&fakeRegistry)
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
+	defer stopFunc()
+	fakeRegistry.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1"}})
+	g.Expect(c.Get("nse1")).Should(BeNil())
+	fakeRegistry.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1", Namespace: "1"}})
+	g.Expect(c.Get("nse1")).ShouldNot(BeNil())
+}
+
 func TestNseCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 	fakeRegistry := fakeRegistry{}
-	c := resource_cache.NewNetworkServiceEndpointCache()
+	c := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := c.Start(&fakeRegistry)
 	defer stopFunc()
@@ -96,13 +111,14 @@ func TestNseCacheConcurrentModification(t *testing.T) {
 		c.Add(newTestNse("nse2", "ns2"))
 	})
 	defer stopWrite()
-	time.Sleep(time.Second * 5)
+	<-time.After(time.Second)
 }
+
 func TestNsmdRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -121,7 +137,7 @@ func TestRegistryDelete(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
