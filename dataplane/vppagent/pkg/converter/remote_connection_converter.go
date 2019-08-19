@@ -63,16 +63,14 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		rv.VppConfig = &vpp.ConfigData{}
 	}
 
-	m := c.GetMechanism()
-
-	srcip, dstip, vni, err := getParameters(m, c.side)
+	srcip, dstip, vni, err := getParameters(c.GetMechanism(), c.side)
 	if err != nil {
-		return rv, nil
+		return rv, err
 	}
 
-	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANSrcIP, srcip)
-	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANDstIP, dstip)
-	logrus.Infof("m.GetParameters()[%s]: %d", connection.VXLANVNI, vni)
+	logrus.Infof("RemoteConnectionConverter: source IP address from parameters: %s", srcip)
+	logrus.Infof("RemoteConnectionConverter: destination IP address from parameters: %s", dstip)
+	logrus.Infof("RemoteConnectionConverter: VNI from parameters: %d", vni)
 
 	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:    c.name,
@@ -101,44 +99,45 @@ func getParameters(m *connection.Mechanism, side ConnectionContextSide) (string,
 		return srcip, dstip, vni, err
 	}
 
-	srcip, err = m.SrcIP()
-	if err != nil {
-		return srcip, dstip, vni, err
-	}
-	dstip, err = m.DstIP()
+	srcip, err = getSrcIP(m, side == SOURCE)
 	if err != nil {
 		return srcip, dstip, vni, err
 	}
 
-	if useExtIP {
-		extip, err1 := m.DstExtIP()
-		if err1 == nil {
-			dstip = extip
-		}
-	}
-
-	if side == SOURCE {
-		srcip, err = m.DstIP()
-		if err != nil {
-			return srcip, dstip, vni, err
-		}
-		dstip, err = m.SrcIP()
-		if err != nil {
-			return srcip, dstip, vni, err
-		}
-
-		if useExtIP {
-			extip, err1 := m.SrcExtIP()
-			if err1 == nil {
-				dstip = extip
-			}
-		}
+	dstip, err = getDstIP(m, side == SOURCE, useExtIP)
+	if err != nil {
+		return srcip, dstip, vni, err
 	}
 
 	vni, err = m.VNI()
-	if err != nil {
-		return srcip, dstip, vni, err
+	return srcip, dstip, vni, err
+}
+
+func getSrcIP(m *connection.Mechanism, shouldSwap bool) (string, error) {
+	if shouldSwap {
+		return m.DstIP()
+	}
+	return m.SrcIP()
+}
+
+func getDstIP(m *connection.Mechanism, shouldSwap, useExternal bool) (string, error) {
+	if shouldSwap {
+		ip, err := m.SrcIP()
+		if err == nil && useExternal {
+			var extIP string
+			if extIP, err = m.SrcExtIP(); err == nil {
+				ip = extIP
+			}
+		}
+		return ip, err
 	}
 
-	return srcip, dstip, vni, err
+	ip, err := m.DstIP()
+	if err == nil && useExternal {
+		var extIP string
+		if extIP, err = m.DstExtIP(); err == nil {
+			ip = extIP
+		}
+	}
+	return ip, err
 }
