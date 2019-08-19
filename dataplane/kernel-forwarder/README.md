@@ -13,7 +13,7 @@ To configure Network Service Mesh with the Kernel-based forwarding plane, you ca
 For example:
 
 ```bash
-FORWARDING_PLANE=kernel-forwarder make k8s-save
+FORWARDING_PLANE=kernel make k8s-save
 ```
 
 * FORWARDING_PLANE stands for the forwarding plane that we want to use.
@@ -25,25 +25,25 @@ To try it yourself, you can clone the project and do the following:
 Create your Kubernetes cluster using Vagrant:
 
 ```bash
-FORWARDING_PLANE=kernel-forwarder make vagrant-start
+FORWARDING_PLANE=kernel make vagrant-start
 ```
 
 Build and save all the necessary images:
 
 ```bash
-FORWARDING_PLANE=kernel-forwarder make k8s-save
+FORWARDING_PLANE=kernel make k8s-save
 ```
 
 Deploy Network Service Mesh:
 
 ```bash
-FORWARDING_PLANE=kernel-forwarder make k8s-deploy
+FORWARDING_PLANE=kernel make helm-install-nsm
 ```
 
 And finally verify that it works as expected:
 
 ```bash
-FORWARDING_PLANE=kernel-forwarder make k8s-check
+FORWARDING_PLANE=kernel make k8s-check
 ```
 
 ## How it works
