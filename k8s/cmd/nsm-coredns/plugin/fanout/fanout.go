@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/debug"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -101,24 +103,13 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 
 func connect(ctx context.Context, client *fanoutClient, req request.Request, result chan<- connectResult, maxFailCount int) {
 	start := time.Now()
-	resp, err := client.Connect(req)
-	if ctx.Err() != nil {
-		return
-	}
-	if err == nil {
-		result <- connectResult{
-			client:   client,
-			response: resp,
-			start:    start,
+	var errs error
+	for i := 0; i < maxFailCount+1; i++ {
+		resp, err := client.Connect(req)
+		if ctx.Err() != nil {
+			return
 		}
-		return
-	}
-	err = client.healthCheck(maxFailCount)
-	if ctx.Err() != nil {
-		return
-	}
-	if err == nil {
-		if resp, err = client.Connect(req); err == nil {
+		if err == nil {
 			result <- connectResult{
 				client:   client,
 				response: resp,
@@ -126,10 +117,21 @@ func connect(ctx context.Context, client *fanoutClient, req request.Request, res
 			}
 			return
 		}
+		if errs == nil {
+			errs = err
+		} else {
+			errs = errors.Wrap(errs, err.Error())
+		}
+		if i < maxFailCount {
+			if err = client.healthCheck(); err != nil {
+				errs = errors.Wrap(errs, err.Error())
+				break
+			}
+		}
 	}
 	result <- connectResult{
 		client: client,
+		err:    errs,
 		start:  start,
-		err:    err,
 	}
 }

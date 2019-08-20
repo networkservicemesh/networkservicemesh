@@ -37,23 +37,11 @@ func (p *fanoutClient) setExpire(expire time.Duration) {
 	p.transport.setExpire(expire)
 }
 
-func (p *fanoutClient) healthCheck(maxFails int) error {
+func (p *fanoutClient) healthCheck() error {
 	if p.health == nil {
 		return errors.New("no healthchecker")
 	}
-	err := error(nil)
-	for i := 0; i < maxFails; i++ {
-		checkErr := p.health.Check()
-		if checkErr == nil {
-			return nil
-		}
-		if err != nil {
-			err = errors.Wrap(err, checkErr.Error())
-		} else {
-			err = checkErr
-		}
-	}
-	return err
+	return p.health.Check()
 }
 
 func (p *fanoutClient) finalizer() {
