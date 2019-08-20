@@ -56,6 +56,20 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 				return fmt.Errorf("the service cannot be used as a connection plugin since it does not implement ConnectionPluginServer interface")
 			}
 			plugins.RegisterConnectionPluginServer(server, connectionService)
+		case plugins.PluginCapability_DISCOVERY:
+			discoveryService, ok := service.(plugins.DiscoveryPluginServer)
+			if !ok {
+				return fmt.Errorf("the service cannot be used as a discovery plugin since it does not implement DiscoveryPluginServer interface")
+			}
+			plugins.RegisterDiscoveryPluginServer(server, discoveryService)
+		case plugins.PluginCapability_REGISTRY:
+			registryService, ok := service.(plugins.RegistryPluginServer)
+			if !ok {
+				return fmt.Errorf("the service cannot be used as a registry plugin since it does not implement RegistryPluginServer interface")
+			}
+			plugins.RegisterRegistryPluginServer(server, registryService)
+		default:
+			return fmt.Errorf("unsupported capability: %v", capability)
 		}
 	}
 

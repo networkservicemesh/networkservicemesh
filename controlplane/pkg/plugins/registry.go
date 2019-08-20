@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	registryInitTimeout = 5 * time.Second
+	registryInitSleep   = 1 * time.Second
+	registryInitTimeout = 10 * time.Second
 	pluginCallTimeout   = 100 * time.Second
 )
 
@@ -24,7 +25,8 @@ const (
 	hasDiscoveryPlugin = 1 << iota
 	hasRegistryPlugin
 
-	hasAllRequiredPlugins = hasDiscoveryPlugin | hasRegistryPlugin
+	hasAllRequiredPlugins       = hasDiscoveryPlugin | hasRegistryPlugin
+	requiredPluginsErrorMessage = "timeout waiting for required plugins, need at least one discovery and one registry plugin"
 )
 
 // PluginRegistry stores a plugin manager for each plugin type
@@ -91,9 +93,9 @@ func (pr *pluginRegistry) waitForRequiredPlugins() error {
 			break
 		}
 		if time.Since(st) > registryInitTimeout {
-			return fmt.Errorf("timeout waiting for required plugins, need at least one discovery and one registry plugin")
+			return fmt.Errorf(requiredPluginsErrorMessage)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(registryInitSleep)
 	}
 	return nil
 }
@@ -134,6 +136,8 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 		case plugins.PluginCapability_REGISTRY:
 			pr.registryPluginManager.Register(info.GetName(), conn)
 			pr.addStatus(hasRegistryPlugin)
+		default:
+			return nil, fmt.Errorf("unsupported capability: %v", capability)
 		}
 	}
 
