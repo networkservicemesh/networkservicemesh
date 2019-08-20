@@ -534,7 +534,7 @@ func (srv *networkServiceManager) updateConnection(ctx context.Context, conn con
 		return conn, err
 	}
 
-	return wrapper.GetConnection(), nil
+	return wrapper.GetConnection().Clone(), nil
 }
 
 func (srv *networkServiceManager) updateConnectionContext(ctx context.Context, source, destination connection.Connection) error {
