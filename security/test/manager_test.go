@@ -12,10 +12,10 @@ import (
 )
 
 func TestSecurityManager(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	ca, err := generateCA()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	exchangeTimeout := 500 * time.Millisecond
 	mgr := security.NewManagerWithCertObtainer(newTestCertificateObtainerWithCA(testSpiffeID, &ca, exchangeTimeout))
@@ -27,12 +27,12 @@ func TestSecurityManager(t *testing.T) {
 		crt := mgr.GetCertificate()
 		bundle := mgr.GetCABundle()
 
-		Expect(crt).ToNot(Equal(prevCrt))
+		g.Expect(crt).ToNot(Equal(prevCrt))
 		if prevCa != nil {
-			Expect(bundle).To(Equal(prevCa))
+			g.Expect(bundle).To(Equal(prevCa))
 		}
 
-		Expect(verify(crt, bundle)).To(BeNil())
+		g.Expect(verify(crt, bundle)).To(BeNil())
 		prevCrt, prevCa = crt, bundle
 
 		<-time.After(2 * exchangeTimeout)

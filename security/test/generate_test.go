@@ -8,20 +8,20 @@ import (
 )
 
 func TestSimpleCertCreation(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	ca, err := generateCA()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	caX509, err := x509.ParseCertificate(ca.Certificate[0])
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	roots := x509.NewCertPool()
 	roots.AddCert(caX509)
 
 	crt, err := generateKeyPair(testSpiffeID, &ca)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	err = verify(&crt, roots)
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 }

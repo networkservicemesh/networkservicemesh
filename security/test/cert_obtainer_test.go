@@ -8,10 +8,10 @@ import (
 )
 
 func TestCertificateObtainer(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
 	ca, err := generateCA()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
 	obt := newTestCertificateObtainerWithCA(testSpiffeID, &ca, 500*time.Millisecond)
 	certCh := obt.CertificateCh()
@@ -19,6 +19,6 @@ func TestCertificateObtainer(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		c := <-certCh
 
-		Expect(verify(c.TLSCert, c.CABundle)).To(BeNil())
+		g.Expect(verify(c.TLSCert, c.CABundle)).To(BeNil())
 	}
 }
