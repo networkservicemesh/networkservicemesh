@@ -23,6 +23,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
+	github.com/pkg/errors v0.8.1
 	github.com/rs/xid v1.2.1
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2

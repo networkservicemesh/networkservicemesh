@@ -60,17 +60,12 @@ func (t *Transport) Dial(protocol string) (*dns.Conn, bool, error) {
 }
 
 // Connect selects an upstream, sends the request and waits for a response.
-func (p *dnsClient) Connect(request request.Request) (*dns.Msg, error) {
+func (p *fanoutClient) Connect(request request.Request) (*dns.Msg, error) {
 	proto := "tcp"
 
 	conn, cached, dialErr := p.transport.Dial(proto)
 	if dialErr != nil {
 		return nil, dialErr
-	}
-
-	conn.UDPSize = uint16(request.Size())
-	if conn.UDPSize < 512 {
-		conn.UDPSize = 512
 	}
 
 	err := conn.SetWriteDeadline(time.Now().Add(maxTimeout))
