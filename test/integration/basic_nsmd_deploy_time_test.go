@@ -30,6 +30,7 @@ func TestNSMDDeploy(t *testing.T) {
 	st := time.Now()
 	_, err = kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
+	kubetest.MakeLogsSnapshot(k8s, t)
 	deploy := time.Now()
 	k8s.Cleanup()
 	destroy := time.Now()

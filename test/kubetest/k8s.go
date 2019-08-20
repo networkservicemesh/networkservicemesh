@@ -115,7 +115,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 			if err != nil {
 				logrus.Errorf("Failed to get pod information: %v", err)
 			}
-			k8s.DescribePod(pod)
+			LogWithoutFormatting(k8s.DescribePod(pod))
 			if pod != nil {
 				logrus.Infof("Pod information: %v", pod)
 				for _, cs := range pod.Status.ContainerStatuses {
@@ -467,8 +467,8 @@ func (k8s *K8s) CleanupCRDs() {
 	}
 }
 
-// DescribePod describes a pod
-func (k8s *K8s) DescribePod(pod *v1.Pod) {
+func (k8s *K8s) DescribePod(pod *v1.Pod) string {
+	builder := strings.Builder{}
 	eventsInterface := k8s.clientset.CoreV1().Events(k8s.namespace)
 
 	selector := eventsInterface.GetFieldSelector(&pod.Name, &k8s.namespace, nil, nil)
@@ -480,9 +480,10 @@ func (k8s *K8s) DescribePod(pod *v1.Pod) {
 
 	for i := len(events.Items) - 1; i >= 0; i-- {
 		if pod.UID == events.Items[i].InvolvedObject.UID {
-			logrus.Info(events.Items[i])
+			_, _ = builder.WriteString(events.Items[i].String())
 		}
 	}
+	return builder.String()
 }
 
 // PrintImageVersion Prints image version pf pod.

@@ -21,6 +21,14 @@ func MakeLogsSnapshot(k8s *K8s, t *testing.T) {
 		makeLogsSnapshot(k8s, t)
 	}
 }
+
+func LogWithoutFormatting(text string) {
+	f := logrus.StandardLogger().Formatter
+	logrus.SetFormatter(&innerLogFormatter{})
+	defer logrus.SetFormatter(f)
+	logrus.Println(text)
+}
+
 func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
@@ -29,23 +37,24 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 }
 
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
+	writeLogFunc := logTransaction
+	if shouldShowLogs() && t != nil {
+		writeLogFunc = func(name string, content string) {
+			path := filepath.Join(logsDir(), t.Name())
+			logErr := logFile(name, path, content)
+			if logErr != nil {
+				logrus.Errorf("Can't log in file: %v, reason: %v", filepath.Join(path, name), logErr)
+				logTransaction(name, content)
+			} else {
+				logrus.Infof("Saved log for %v. Check dir %v", name, logsDir())
+			}
+		}
+	}
+
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
 		name := pod.Name + ":" + c.Name
 		logs, err := k8s.GetLogs(pod, c.Name)
-		writeLogFunc := logTransaction
-
-		if shouldShowLogs() && t != nil {
-			writeLogFunc = func(name string, content string) {
-				logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
-				if logErr != nil {
-					logrus.Errorf("Can't log in file, reason %v", logErr)
-					logTransaction(name, content)
-				} else {
-					logrus.Infof("Saved log for %v. Check dir %v", name, logsDir())
-				}
-			}
-		}
 
 		if err == nil {
 			writeLogFunc(name, logs)
@@ -55,10 +64,11 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 			Previous:  true,
 		})
 		if err == nil {
-			writeLogFunc(name+"-previous", logs)
+			writeLogFunc(name+"_prev", logs)
 		}
-
 	}
+	describe := k8s.DescribePod(pod)
+	writeLogFunc(pod.Name+"_describe", describe)
 }
 
 func logsDir() string {
@@ -109,9 +119,6 @@ func logFile(name, dir, content string) error {
 }
 
 func logTransaction(name, content string) {
-	f := logrus.StandardLogger().Formatter
-	logrus.SetFormatter(&innerLogFormatter{})
-
 	drawer := transactionWriter{
 		buff:       strings.Builder{},
 		lineLength: MaxTransactionLineWidth,
@@ -124,8 +131,7 @@ func logTransaction(name, content string) {
 	drawer.writeLine()
 	drawer.writeLineWithText(EndLogsOf + " " + name)
 	drawer.writeLine()
-	logrus.Println(drawer.buff.String())
-	logrus.SetFormatter(f)
+	LogWithoutFormatting(drawer.buff.String())
 }
 
 type transactionWriter struct {
