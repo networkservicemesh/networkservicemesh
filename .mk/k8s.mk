@@ -27,7 +27,7 @@ ifeq (${FORWARDING_PLANE}, vpp)
   DEPLOY_ICMP_VPP = vppagent-icmp-responder-nse vppagent-nsc
   DEPLOY_VPN = secure-intranet-connectivity vppagent-firewall-nse vppagent-passthrough-nse vpn-gateway-nse vpn-gateway-nsc
   DEPLOY_ICMP += $(DEPLOY_ICMP_VPP)
-else ifeq (${FORWARDING_PLANE}, kernel-forwarder)
+else ifeq (${FORWARDING_PLANE}, kernel)
   # Deployments - Kernel plane
   DEPLOY_FORWARDING_PLANE = kernel-forwarder
 endif
