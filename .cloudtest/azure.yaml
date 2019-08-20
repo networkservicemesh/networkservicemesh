@@ -31,6 +31,3 @@ providers:
         make spire-server-start
         make spire-agent-start-azure
         make k8s-config helm-init
-        sleep 10
-        kubectl get pods -n spire
-        kubectl describe pods -n spire

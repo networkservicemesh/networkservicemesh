@@ -5,8 +5,8 @@ RUN apk add dumb-init
 RUN apk add ca-certificates
 RUN mkdir -p /opt/spire/bin
 COPY --from=builder /opt/spire/bin/spire-server /opt/spire/bin/spire-server
+
 WORKDIR /opt/spire
-ADD ["./security/conf/registration.json", "/opt/spire"]
 ADD ["./security/scripts/registration.sh", "/opt/spire"]
 RUN chmod +x /opt/spire/registration.sh
 ENTRYPOINT ["/usr/bin/dumb-init", "/opt/spire/registration.sh"]

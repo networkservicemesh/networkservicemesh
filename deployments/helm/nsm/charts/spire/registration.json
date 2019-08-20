@@ -1,0 +1,44 @@
+{
+  "entries": [
+    {
+      "selectors": [
+        {
+          "type": "k8s",
+          "value": "sa:nsmgr-acc"
+        }
+      ],
+      "spiffe_id": "spiffe://test.com/nsmgr",
+      "parent_id": "spiffe://test.com/spire-agent"
+    },
+    {
+      "selectors": [
+        {
+          "type": "k8s",
+          "value": "sa:nse-acc"
+        }
+      ],
+      "spiffe_id": "spiffe://test.com/nse",
+      "parent_id": "spiffe://test.com/spire-agent"
+    },
+    {
+      "selectors": [
+        {
+          "type": "k8s",
+          "value": "sa:nsc-acc"
+        }
+      ],
+      "spiffe_id": "spiffe://test.com/nsc",
+      "parent_id": "spiffe://test.com/spire-agent"
+    },
+    {
+      "selectors": [
+        {
+          "type": "k8s",
+          "value": "sa:forward-plane-acc"
+        }
+      ],
+      "spiffe_id": "spiffe://test.com/forward-plane",
+      "parent_id": "spiffe://test.com/spire-agent"
+    }
+  ]
+}
