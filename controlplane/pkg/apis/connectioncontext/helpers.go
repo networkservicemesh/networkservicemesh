@@ -50,6 +50,17 @@ func (c *ConnectionContext) MeetsRequirements(original *ConnectionContext) error
 	return nil
 }
 
+//Validate - checks DNSConfig and returns error if DNSConfig is not valid
+func (c *DNSConfig) Validate() error {
+	if c == nil {
+		return fmt.Errorf(DNSConfigShouldNotBeNil)
+	}
+	if len(c.DnsServerIps) == 0 {
+		return fmt.Errorf(DNSServerIpsShouldHaveRecords)
+	}
+	return nil
+}
+
 func (c *ExtraPrefixRequest) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("ExtraPrefixRequest should not be nil...")

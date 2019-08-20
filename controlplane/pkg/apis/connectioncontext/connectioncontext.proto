@@ -1,5 +1,5 @@
-// Copyright 2018 Red Hat, Inc.
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright 2018-2019 Red Hat, Inc.
+// Copyright (c) 2018-2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ message IpNeighbor {
 }
 
 message Route {
-    string prefix = 1;                  /* destination address + prefix in format <address>/<prefix> */
+    string prefix = 1; /* destination address + prefix in format <address>/<prefix> */
 }
 
 message IpFamily {
@@ -52,8 +52,8 @@ message IPContext {
     bool src_ip_required = 3; /* if specified src_ip is required from NSE. */
     bool dst_ip_required = 4; /* if specified dst_ip is required from NSE */
 
-    repeated Route src_routes = 5;          /* a list of routes via src_ip_addr as gateway */
-    repeated Route dst_routes = 6;          /* a list of routes via dst_ip_addr as gateway */
+    repeated Route src_routes = 5; /* a list of routes via src_ip_addr as gateway */
+    repeated Route dst_routes = 6; /* a list of routes via dst_ip_addr as gateway */
 
     repeated string excluded_prefixes = 7; /* a list of excluded passed to NSE */
 
@@ -63,6 +63,18 @@ message IPContext {
     repeated string extra_prefixes = 10; /* A list of extra prefixes requested */
 }
 
+message DNSConfig {
+    /* ips of DNS Servers for this DNSConfig.  Any given IP may be IPv4 or IPv6 */
+    repeated string dns_server_ips = 1;
+    /* domains for which this DNSConfig provides resolution.  If empty, all domains. */
+    repeated string search_domains = 2;
+}
+
+message DNSContext {
+    repeated DNSConfig configs = 1;
+}
+
 message ConnectionContext {
     IPContext ip_context = 1; /* IP related context */
+    DNSContext dns_context = 2; /* DNS related context */
 }
