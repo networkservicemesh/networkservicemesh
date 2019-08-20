@@ -21,6 +21,9 @@ cleanup() {
 
 cleanup
 
+sleep 2
+/opt/spire/bin/spire-server entry show
+
 while ! register; do
     echo "One more try"
 	sleep 1
