@@ -124,8 +124,7 @@ func getDstIP(m *connection.Mechanism, shouldSwap, useExternal bool) (string, er
 	if shouldSwap {
 		ip, err := m.SrcIP()
 		if err == nil && useExternal {
-			var extIP string
-			if extIP, err = m.SrcExtIP(); err == nil {
+			if extIP, extErr := m.SrcExtIP(); extErr == nil {
 				ip = extIP
 			}
 		}
@@ -134,8 +133,7 @@ func getDstIP(m *connection.Mechanism, shouldSwap, useExternal bool) (string, er
 
 	ip, err := m.DstIP()
 	if err == nil && useExternal {
-		var extIP string
-		if extIP, err = m.DstExtIP(); err == nil {
+		if extIP, extErr := m.DstExtIP(); extErr == nil {
 			ip = extIP
 		}
 	}
