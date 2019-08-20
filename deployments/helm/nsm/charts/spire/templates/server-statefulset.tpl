@@ -20,8 +20,8 @@ spec:
       serviceAccountName: spire-server
       containers:
         - name: spire-server
-          image: networkservicemesh/spire-registration
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.registry }}/{{ .Values.org }}/spire-registration:{{ .Values.tag }}
+          imagePullPolicy: {{ .Values.pullPolicy }}
           ports:
             - containerPort: 8081
           volumeMounts:

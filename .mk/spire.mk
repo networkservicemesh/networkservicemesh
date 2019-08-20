@@ -18,6 +18,7 @@ SPIRE_NAMESPACE=spire
 spire-install:
 	helm install --name=spire \
 	--wait --timeout 300 \
+	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--namespace="${SPIRE_NAMESPACE}" \
 	deployments/helm/nsm/charts/spire
 
@@ -26,6 +27,7 @@ spire-install:
 spire-install-azure:
 	helm install --name=spire \
 	--wait --timeout 300 \
+	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set azure.enabled=true \
 	--namespace="${SPIRE_NAMESPACE}" \
 	deployments/helm/nsm/charts/spire
