@@ -7,6 +7,16 @@ org: networkservicemesh
 tag: master
 pullPolicy: IfNotPresent
 
+forwardingPlane: vpp
+
+vpp:
+  image: vppagent-dataplane
+
+kernel:
+  image: kernel-forwarder
+  resources:
+    limitCPU: 1
+    requestsCPU: 1m
 global:
   # set to true to enable Jaeger tracing for NSM components
   JaegerTracing: false
