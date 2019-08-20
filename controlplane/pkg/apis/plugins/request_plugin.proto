@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package plugins;
+
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice/networkservice.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice/networkservice.proto";
+
+message RequestWrapper {
+    oneof impl {
+        local.networkservice.NetworkServiceRequest local_request = 1;
+        remote.networkservice.NetworkServiceRequest remote_request = 2;
+    }
+}
+
+service RequestPlugin {
+    rpc UpdateRequest (RequestWrapper) returns (RequestWrapper);
+}

@@ -5,7 +5,8 @@ package plugins;
 import "ptypes/empty/empty.proto";
 
 enum PluginCapability {
-    CONNECTION = 0;
+    REQUEST = 0;
+    CONNECTION = 1;
 }
 
 message PluginInfo {
