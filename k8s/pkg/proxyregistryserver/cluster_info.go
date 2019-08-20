@@ -11,13 +11,13 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/clusterinfo"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	remoteConnection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 )
 
 // InterdomainPlugin is a temporary interface for interdomain plugin, will be removed together with clusterinfo package and usages of it
 type InterdomainPlugin interface {
 	clusterinfo.ClusterInfoServer
-	plugins.ConnectionPluginServer
+	plugins.RequestPluginServer
 }
 
 type k8sClusterInfo struct {
@@ -71,22 +71,17 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 	return nil, fmt.Errorf("node was not found: %v", nodeIPConfiguration)
 }
 
-func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
-	mechanism := wrapper.GetConnection().GetConnectionMechanism()
+func (k *k8sClusterInfo) UpdateRequest(ctx context.Context, wrapper *plugins.RequestWrapper) (*plugins.RequestWrapper, error) {
+	for _, mechanism := range wrapper.GetRequest().GetRequestMechanismPreferences() {
+		switch mechanism.GetMechanismType() {
+		case remoteConnection.MechanismType_VXLAN:
+			ip := mechanism.GetParameters()[remoteConnection.VXLANSrcIP]
 
-	switch mechanism.GetMechanismType() {
-	case remote.MechanismType_VXLAN:
-		ip := mechanism.GetParameters()[remote.VXLANSrcIP]
-
-		ipConfig, err := k.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: ip})
-		if err == nil {
-			mechanism.GetParameters()[remote.VXLANSrcExtIP] = ipConfig.ExternalIP
+			ipConfig, err := k.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: ip})
+			if err == nil {
+				mechanism.GetParameters()[remoteConnection.VXLANSrcExtIP] = ipConfig.ExternalIP
+			}
 		}
 	}
-
 	return wrapper, nil
-}
-
-func (k *k8sClusterInfo) ValidateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
-	return &plugins.ConnectionValidationResult{Status: plugins.ConnectionValidationStatus_SUCCESS}, nil
 }
