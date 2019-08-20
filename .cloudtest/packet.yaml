@@ -40,5 +40,6 @@ providers:
         ssh-keygen -t rsa -f $(tempdir)/sshkey -q -N ""
         ssh-add $(tempdir)/sshkey
       start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
+      stop: make packet-print-kubelet-log
       prepare: |
         make k8s-config helm-init

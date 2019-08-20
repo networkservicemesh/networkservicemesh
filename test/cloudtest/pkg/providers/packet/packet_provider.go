@@ -367,17 +367,22 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 }
 
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
-	logrus.Infof("Destroying cluster  %s", pi.id)
-	if pi.client != nil {
-		if pi.sshKey != nil {
-			response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
-			pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
-		}
-		for key, device := range pi.devices {
-			response, err := pi.client.Devices.Delete(device.ID)
-			pi.manager.AddLog(pi.id, fmt.Sprintf("delete-device-%s", key), fmt.Sprintf("%v\n%v", response, err))
-		}
+	if _, err := pi.shellInterface.RunCmd(context.Background(), "stop", pi.stopScript, nil); err != nil {
+		logrus.Errorf("Can not run stop script: %v", err)
 	}
+	defer func() {
+		logrus.Infof("Destroying cluster  %s", pi.id)
+		if pi.client != nil {
+			if pi.sshKey != nil {
+				response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
+				pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
+			}
+			for key, device := range pi.devices {
+				response, err := pi.client.Devices.Delete(device.ID)
+				pi.manager.AddLog(pi.id, fmt.Sprintf("delete-device-%s", key), fmt.Sprintf("%v\n%v", response, err))
+			}
+		}
+	}()
 	return nil
 }
 
