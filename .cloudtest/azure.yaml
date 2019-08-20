@@ -28,6 +28,5 @@ providers:
         make azure-start
       stop: make azure-destroy
       prepare: |
-        make spire-server-start
-        make spire-agent-start-azure
         make k8s-config helm-init
+        make spire-install-azure
