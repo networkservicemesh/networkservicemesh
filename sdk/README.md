@@ -135,6 +135,27 @@ defer nsmEndpoint.Delete()
 ```
 
 As there is no explicit configuration, the *ConnectionEndpoint*, *IpamEndpoint* and the composed *nsmEndpoint* are initialized with the matching environment variables.
+### Creating a Simple Endpoint using a builder
+
+The NSM SDK has a simple composite endpoint builder `CompositeEndpointBuilder` to creating `CompositeEndpoint`. 
+Example of usage:
+```go
+import "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+
+...
+builder := endpoint.NewCompositeEndpointBuilder()
+builder.Append(
+    endpoint.NewIpamEndpoint(nil),
+    endpoint.NewConnectionEndpoint(nil))
+//append logic
+....
+
+nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, builder.Build())
+...
+nsmEndpoint.Start()
+defer nsmEndpoint.Delete()
+```
+
 
 ## Creating an Advanced Endpoint
 
@@ -153,6 +174,15 @@ Writing a new *composite* is done better by extending the `BaseCompositeEndpoint
  * `GetNext() CompositeEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
  * `GetOpaque(interface{}) interface{}` - get an arbitrary data from the composite. Both the parameter and the return are freely interpreted data and specific to the composite. See `GetOpaque` in `sdk/endpoint/composite/client.go`.
 
+
+### Creating a route mutator endpoint
+
+To create mutator to sets routes for `IPContext` you can use a `enpoint.CreateRouteMutator` function.
+Example of usage:
+```go
+	routeEndpoint := endpoint.NewCustomFuncEndpoint("route",endpoint.CreateRouteMutator([]string{"dst addr"}))
+	
+```
 ### Pre-defined composites
 
 The SDK comes with a set of useful *composites*, that can be chained together and as part of more complex scenarios.
