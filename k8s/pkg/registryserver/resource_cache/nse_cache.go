@@ -18,6 +18,7 @@ type NetworkServiceEndpointCache struct {
 	networkServiceEndpoints map[string]*v1.NetworkServiceEndpoint
 }
 
+//NewNetworkServiceEndpointCache creates cache for network service endpoints
 func NewNetworkServiceEndpointCache(ns string) *NetworkServiceEndpointCache {
 	rv := &NetworkServiceEndpointCache{
 		nseByNs:                 make(map[string][]*v1.NetworkServiceEndpoint),

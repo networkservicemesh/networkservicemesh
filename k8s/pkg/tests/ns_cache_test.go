@@ -38,17 +38,17 @@ func TestNsCacheConcurrentModification(t *testing.T) {
 	time.Sleep(time.Second * 5)
 }
 
-func TestNsNamespaceAdd(t *testing.T) {
+func TestNSCacheAddResourceWithNamespace(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceCache("1")
-	fakeRegistry := fakeRegistry{}
+	nsCache := resource_cache.NewNetworkServiceCache("1")
+	reg := fakeRegistry{}
 
-	stopFunc, err := c.Start(&fakeRegistry)
+	stopFunc, err := nsCache.Start(&reg)
 	g.Expect(stopFunc).ToNot(BeNil())
 	g.Expect(err).To(BeNil())
 	defer stopFunc()
-	fakeRegistry.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1"}})
-	g.Expect(c.Get("ns1")).Should(BeNil())
-	fakeRegistry.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1", Namespace: "1"}})
-	g.Expect(c.Get("ns1")).ShouldNot(BeNil())
+	reg.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1"}, Spec: v1.NetworkServiceSpec{}})
+	g.Expect(nsCache.Get("ns1")).Should(BeNil())
+	reg.Add(&v1.NetworkService{ObjectMeta: metav1.ObjectMeta{Name: "ns1", Namespace: "1"}, Spec: v1.NetworkServiceSpec{}})
+	g.Expect(nsCache.Get("ns1")).ShouldNot(BeNil())
 }

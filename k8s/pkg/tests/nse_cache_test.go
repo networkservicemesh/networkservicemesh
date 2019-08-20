@@ -71,19 +71,19 @@ func TestK8sRegistryAdd(t *testing.T) {
 	g.Expect(endpointList[0].Name).To(Equal("nse1"))
 }
 
-func TestAddNSENamespace(t *testing.T) {
+func TestNSECacheAddResourceWithNamespace(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceEndpointCache("1")
-	fakeRegistry := fakeRegistry{}
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("1")
+	reg := fakeRegistry{}
 
-	stopFunc, err := c.Start(&fakeRegistry)
+	stopFunc, err := nseCache.Start(&reg)
 	g.Expect(stopFunc).ToNot(BeNil())
 	g.Expect(err).To(BeNil())
 	defer stopFunc()
-	fakeRegistry.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1"}})
-	g.Expect(c.Get("nse1")).Should(BeNil())
-	fakeRegistry.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1", Namespace: "1"}})
-	g.Expect(c.Get("nse1")).ShouldNot(BeNil())
+	reg.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1"}, Spec: v1.NetworkServiceEndpointSpec{}})
+	g.Expect(nseCache.Get("nse1")).Should(BeNil())
+	reg.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1", Namespace: "1"}})
+	g.Expect(nseCache.Get("nse1")).ShouldNot(BeNil())
 }
 
 func TestNseCacheConcurrentModification(t *testing.T) {

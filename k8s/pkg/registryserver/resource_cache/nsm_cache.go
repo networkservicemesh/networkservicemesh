@@ -17,6 +17,7 @@ type NetworkServiceManagerCache struct {
 	networkServiceManagers map[string]*v1.NetworkServiceManager
 }
 
+//NewNetworkServiceManagerCache creates cache for network service managers
 func NewNetworkServiceManagerCache(ns string) *NetworkServiceManagerCache {
 	rv := &NetworkServiceManagerCache{
 		networkServiceManagers: make(map[string]*v1.NetworkServiceManager),

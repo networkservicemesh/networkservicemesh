@@ -18,6 +18,7 @@ type NetworkServiceCache struct {
 	getCh           chan *v1.NetworkService
 }
 
+//NewNetworkServiceCache creates cache for network services
 func NewNetworkServiceCache(ns string) *NetworkServiceCache {
 	rv := &NetworkServiceCache{
 		networkServices: make(map[string]*v1.NetworkService),
