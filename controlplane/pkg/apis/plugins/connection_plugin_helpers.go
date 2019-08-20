@@ -26,11 +26,11 @@ func (w *ConnectionWrapper) GetConnection() connection.Connection {
 // SetConnection sets connection
 func (w *ConnectionWrapper) SetConnection(conn connection.Connection) {
 	if conn.IsRemote() {
-		w.Conn = &ConnectionWrapper_RemoteConnection{
+		w.Impl = &ConnectionWrapper_RemoteConnection{
 			RemoteConnection: conn.(*remote.Connection),
 		}
 	} else {
-		w.Conn = &ConnectionWrapper_LocalConnection{
+		w.Impl = &ConnectionWrapper_LocalConnection{
 			LocalConnection: conn.(*local.Connection),
 		}
 	}

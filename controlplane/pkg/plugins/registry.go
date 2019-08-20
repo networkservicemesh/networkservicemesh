@@ -24,6 +24,7 @@ type PluginRegistry interface {
 	Start() error
 	Stop() error
 
+	GetRequestPluginManager() RequestPluginManager
 	GetConnectionPluginManager() ConnectionPluginManager
 }
 
@@ -34,6 +35,7 @@ type PluginManager interface {
 
 type pluginRegistry struct {
 	connections             sync.Map
+	requestPluginManager    RequestPluginManager
 	connectionPluginManager ConnectionPluginManager
 }
 
@@ -41,6 +43,7 @@ type pluginRegistry struct {
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
 		connections:             sync.Map{},
+		requestPluginManager:    createRequestPluginManager(),
 		connectionPluginManager: createConnectionPluginManager(),
 	}
 }
@@ -95,6 +98,8 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 
 	for _, capability := range info.GetCapabilities() {
 		switch capability {
+		case plugins.PluginCapability_REQUEST:
+			pr.requestPluginManager.Register(info.GetName(), conn)
 		case plugins.PluginCapability_CONNECTION:
 			pr.connectionPluginManager.Register(info.GetName(), conn)
 		default:
@@ -117,6 +122,10 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 
 	pr.connections.Store(name, conn)
 	return conn, err
+}
+
+func (pr *pluginRegistry) GetRequestPluginManager() RequestPluginManager {
+	return pr.requestPluginManager
 }
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {

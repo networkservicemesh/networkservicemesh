@@ -20,10 +20,12 @@ Implementation details
 The model is placed in `controlplane/pkg/apis/plugins` directory. It contains the following files:
 - **constants.go** specifies `PluginRegistryPath` (the location of plugin sockets) and `PluginRegistrySocket` (the location of NSM Plugin Registry socket) constants
 - **registry.proto** defines Plugin Registry gRPC service
+- **requestplugin.proto** defines a gRPC model for plugins have the request capability
 - **connectionplugin.proto** defines a gRPC model for plugins have the connection capability
 
 Plugin Registry implementation is placed in `controlplane/pkg/plugins` directory. It contains the following files:
 - **registry.go** implements Plugin Registry that can register plugins and provide getters for plugin managers
+- **requestplugin.go** implements a request plugin manager that can call all plugins have the request capability
 - **connectionplugin.go** implements a connection plugin manager that can call all plugins have the connection capability
 
 Plugin Registry is stored as a field inside **nsm.NetworkServiceManager** implementation and may be called in the following way:
@@ -93,9 +95,11 @@ if err != nil {
 
 server := grpc.NewServer()
 
-service := newConnectionPluginService()
+service1 := newRequestPluginService()
+service2 := newConnectionPluginService()
 
-plugins.RegisterConnectionPluginServer(server, service)
+plugins.RegisterRequestPluginServer(server, service1)
+plugins.RegisterConnectionPluginServer(server, service2)
 
 go func() {
     if err := server.Serve(sock); err != nil {
@@ -119,7 +123,10 @@ defer cancel()
 _, err = client.Register(ctx, &plugins.PluginInfo{
     Name:         "my-plugin",
     Endpoint:     endpoint,
-    Capabilities: []plugins.PluginCapability{plugins.PluginCapability_CONNECTION},
+    Capabilities: []plugins.PluginCapability{
+        plugins.PluginCapability_REQUEST,
+        plugins.PluginCapability_CONNECTION,
+    },
 })
 if err != nil {
     return err

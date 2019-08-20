@@ -440,6 +440,13 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	} else {
 		message = srv.createRemoteNSMRequest(endpoint, requestConn, dp, existingCC)
 	}
+
+	wrapper, err := srv.pluginRegistry.GetRequestPluginManager().UpdateRequest(ctx, pluginsapi.NewRequestWrapper(message))
+	if err != nil {
+		return nil, fmt.Errorf("NSM:(7.2.6.2-%v) Failed to update request: %v", requestID, err)
+	}
+	message = wrapper.GetRequest()
+
 	logrus.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestID, message)
 	nseConn, e := client.Request(ctx, message)
 

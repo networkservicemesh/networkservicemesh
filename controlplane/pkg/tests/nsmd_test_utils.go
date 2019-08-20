@@ -145,7 +145,13 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 }
 
 type testPluginRegistry struct {
+	requestPluginManager    *testRequestPluginManager
 	connectionPluginManager *testConnectionPluginManager
+}
+
+type testRequestPluginManager struct {
+	plugins.PluginManager
+	plugins []pluginsapi.RequestPluginClient
 }
 
 type testConnectionPluginManager struct {
@@ -155,6 +161,7 @@ type testConnectionPluginManager struct {
 
 func newTestPluginRegistry() *testPluginRegistry {
 	return &testPluginRegistry{
+		requestPluginManager:    &testRequestPluginManager{},
 		connectionPluginManager: &testConnectionPluginManager{},
 	}
 }
@@ -165,6 +172,25 @@ func (pr *testPluginRegistry) Start() error {
 
 func (pr *testPluginRegistry) Stop() error {
 	return nil
+}
+
+func (pr *testPluginRegistry) GetRequestPluginManager() plugins.RequestPluginManager {
+	return pr.requestPluginManager
+}
+
+func (cpm *testRequestPluginManager) addPlugin(plugin pluginsapi.RequestPluginClient) {
+	cpm.plugins = append(cpm.plugins, plugin)
+}
+
+func (cpm *testRequestPluginManager) UpdateRequest(ctx context.Context, wrapper *pluginsapi.RequestWrapper) (*pluginsapi.RequestWrapper, error) {
+	for _, plugin := range cpm.plugins {
+		var err error
+		wrapper, err = plugin.UpdateRequest(ctx, wrapper)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return wrapper, nil
 }
 
 func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {

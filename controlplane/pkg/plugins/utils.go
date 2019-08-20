@@ -50,6 +50,12 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 
 	for capability, service := range services {
 		switch capability {
+		case plugins.PluginCapability_REQUEST:
+			requestService, ok := service.(plugins.RequestPluginServer)
+			if !ok {
+				return fmt.Errorf("the service cannot be used as a request plugin since it does not implement RequestPluginServer interface")
+			}
+			plugins.RegisterRequestPluginServer(server, requestService)
 		case plugins.PluginCapability_CONNECTION:
 			connectionService, ok := service.(plugins.ConnectionPluginServer)
 			if !ok {

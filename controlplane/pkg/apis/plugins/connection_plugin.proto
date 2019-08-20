@@ -6,7 +6,7 @@ import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/l
 import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection/connection.proto";
 
 message ConnectionWrapper {
-    oneof conn {
+    oneof impl {
         local.connection.Connection local_connection = 1;
         remote.connection.Connection remote_connection = 2;
     }
