@@ -41,6 +41,9 @@ executions:
       - KUBECONFIG
 
   - name: "Interdomain tests packet-aws"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - interdomain
     root: ./test/integration
@@ -54,6 +57,9 @@ executions:
       - KUBECONFIG_CLUSTER_2
 
   - name: "Interdomain tests gke-packet"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - interdomain
     root: ./test/integration
@@ -67,6 +73,9 @@ executions:
       - KUBECONFIG_CLUSTER_2
 
   - name: "Interdomain tests azure-gke"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - interdomain
     root: ./test/integration
@@ -80,6 +89,9 @@ executions:
       - KUBECONFIG_CLUSTER_2
 
   - name: "Interdomain tests aws-azure"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
       - interdomain
     root: ./test/integration
