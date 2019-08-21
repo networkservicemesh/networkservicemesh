@@ -13,8 +13,7 @@ import (
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error)
-	ValidateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error)
+	plugins.ConnectionPluginServer
 }
 
 type connectionPluginManager struct {

@@ -15,10 +15,7 @@ import (
 // RegistryPluginManager transmits each method call to all registered registry plugins
 type RegistryPluginManager interface {
 	PluginManager
-	RegisterNSM(context.Context, *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error)
-	RegisterNSE(context.Context, *registry.NSERegistration) (*registry.NSERegistration, error)
-	RemoveNSE(context.Context, *registry.RemoveNSERequest) error
-	GetNSEs(context.Context) (*plugins.NSEList, error)
+	plugins.RegistryPluginServer
 }
 
 type registryPluginManager struct {
@@ -81,7 +78,7 @@ func (rpm *registryPluginManager) RegisterNSE(ctx context.Context, registration 
 	return registration, nil
 }
 
-func (rpm *registryPluginManager) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
+func (rpm *registryPluginManager) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	for name, plugin := range rpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
@@ -89,10 +86,10 @@ func (rpm *registryPluginManager) RemoveNSE(ctx context.Context, request *regist
 		cancel()
 
 		if err != nil {
-			return fmt.Errorf("'%s' registry plugin returned an error: %v", name, err)
+			return nil, fmt.Errorf("'%s' registry plugin returned an error: %v", name, err)
 		}
 	}
-	return nil
+	return &empty.Empty{}, nil
 }
 
 func (rpm *registryPluginManager) GetNSEs(ctx context.Context) (*plugins.NSEList, error) {

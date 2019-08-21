@@ -13,7 +13,7 @@ import (
 // DiscoveryPluginManager transmits each method call to all registered discovery plugins
 type DiscoveryPluginManager interface {
 	PluginManager
-	FindNetworkService(context.Context, *plugins.FindNetworkServiceRequest) (*plugins.FindNetworkServiceResponse, error)
+	plugins.DiscoveryPluginServer
 }
 
 type discoveryPluginManager struct {

@@ -152,17 +152,17 @@ type testPluginRegistry struct {
 
 type testConnectionPluginManager struct {
 	plugins.PluginManager
-	plugins []pluginsapi.ConnectionPluginClient
+	plugins []pluginsapi.ConnectionPluginServer
 }
 
 type testDiscoveryPluginManager struct {
 	plugins.PluginManager
-	plugins []pluginsapi.DiscoveryPluginClient
+	plugins []pluginsapi.DiscoveryPluginServer
 }
 
 type testRegistryPluginManager struct {
 	plugins.PluginManager
-	plugins []pluginsapi.RegistryPluginClient
+	plugins []pluginsapi.RegistryPluginServer
 }
 
 func newTestPluginRegistry() *testPluginRegistry {
@@ -193,7 +193,7 @@ func (pr *testPluginRegistry) GetRegistryPluginManager() plugins.RegistryPluginM
 	return pr.registryPluginManager
 }
 
-func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginClient) {
+func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginServer) {
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
@@ -221,7 +221,7 @@ func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, 
 	return &pluginsapi.ConnectionValidationResult{Status: pluginsapi.ConnectionValidationStatus_SUCCESS}, nil
 }
 
-func (dpm *testDiscoveryPluginManager) addPlugin(plugin pluginsapi.DiscoveryPluginClient) {
+func (dpm *testDiscoveryPluginManager) addPlugin(plugin pluginsapi.DiscoveryPluginServer) {
 	dpm.plugins = append(dpm.plugins, plugin)
 }
 
@@ -238,7 +238,7 @@ func (dpm *testDiscoveryPluginManager) FindNetworkService(ctx context.Context, r
 	return &pluginsapi.FindNetworkServiceResponse{Found: false}, nil
 }
 
-func (rpm *testRegistryPluginManager) addPlugin(plugin pluginsapi.RegistryPluginClient) {
+func (rpm *testRegistryPluginManager) addPlugin(plugin pluginsapi.RegistryPluginServer) {
 	rpm.plugins = append(rpm.plugins, plugin)
 }
 
