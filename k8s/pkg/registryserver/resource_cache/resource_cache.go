@@ -114,7 +114,7 @@ func (c *abstractResourceCache) addEventHandlers(informer cache.SharedInformer) 
 	var addFunc func(obj interface{})
 	if c.config.resourceAddedFunc != nil {
 		addFunc = func(obj interface{}) {
-			if !c.config.checkNamespace(obj) {
+			if c.config.namespaceFunc != nil && !c.config.checkNamespace(obj) {
 				return
 			}
 			logrus.Infof("Add from k8s-registry: %v", reflect.TypeOf(obj))
@@ -125,7 +125,7 @@ func (c *abstractResourceCache) addEventHandlers(informer cache.SharedInformer) 
 	var updateFunc func(old interface{}, new interface{})
 	if c.config.resourceUpdatedFunc != nil {
 		updateFunc = func(old interface{}, new interface{}) {
-			if !c.config.checkNamespace(new) {
+			if c.config.namespaceFunc != nil && !c.config.checkNamespace(new) {
 				return
 			}
 			logrus.Infof("Update from k8s-registry: %v", reflect.TypeOf(old))
@@ -141,7 +141,7 @@ func (c *abstractResourceCache) addEventHandlers(informer cache.SharedInformer) 
 	var deleteFunc func(obj interface{})
 	if c.config.resourceDeletedFunc != nil {
 		deleteFunc = func(obj interface{}) {
-			if !c.config.checkNamespace(obj) {
+			if c.config.namespaceFunc != nil && !c.config.checkNamespace(obj) {
 				return
 			}
 			logrus.Infof("Delete from k8s-registry: %v", reflect.TypeOf(obj))

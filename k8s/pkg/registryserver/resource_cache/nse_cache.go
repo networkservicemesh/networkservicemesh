@@ -31,7 +31,6 @@ func NewNetworkServiceEndpointCache(ns string) *NetworkServiceEndpointCache {
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NseResource,
 		namespace:           ns,
-		namespaceFunc:       getNseNamespace,
 	}
 	rv.cache = newAbstractResourceCache(config)
 	return rv
@@ -138,10 +137,6 @@ func (c *NetworkServiceEndpointCache) resourceDeleted(key string) {
 
 func getNseKey(obj interface{}) string {
 	return obj.(*v1.NetworkServiceEndpoint).Name
-}
-
-func getNseNamespace(obj interface{}) string {
-	return obj.(*v1.NetworkServiceEndpoint).Namespace
 }
 
 func (c *NetworkServiceEndpointCache) resourceGet(key string) interface{} {

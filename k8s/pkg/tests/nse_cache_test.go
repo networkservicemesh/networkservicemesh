@@ -39,10 +39,10 @@ func (f *fakeRegistry) AddEventHandler(handler cache.ResourceEventHandler) {
 	f.eventHandlers = append(f.eventHandlers, handler)
 }
 
-func (f *fakeRegistry) Add(resource interface{}) {
+func (f *fakeRegistry) Add(nse *v1.NetworkServiceEndpoint) {
 	logrus.Info(len(f.eventHandlers))
 	for _, eh := range f.eventHandlers {
-		eh.OnAdd(resource)
+		eh.OnAdd(nse)
 	}
 }
 
@@ -71,21 +71,6 @@ func TestK8sRegistryAdd(t *testing.T) {
 	g.Expect(endpointList[0].Name).To(Equal("nse1"))
 }
 
-func TestNSECacheAddResourceWithNamespace(t *testing.T) {
-	g := NewWithT(t)
-	nseCache := resource_cache.NewNetworkServiceEndpointCache("1")
-	reg := fakeRegistry{}
-
-	stopFunc, err := nseCache.Start(&reg)
-	g.Expect(stopFunc).ToNot(BeNil())
-	g.Expect(err).To(BeNil())
-	defer stopFunc()
-	reg.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1"}, Spec: v1.NetworkServiceEndpointSpec{}})
-	g.Expect(nseCache.Get("nse1")).Should(BeNil())
-	reg.Add(&v1.NetworkServiceEndpoint{ObjectMeta: metav1.ObjectMeta{Name: "nse1", Namespace: "1"}})
-	g.Expect(nseCache.Get("nse1")).ShouldNot(BeNil())
-}
-
 func TestNseCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 	fakeRegistry := fakeRegistry{}
@@ -111,9 +96,8 @@ func TestNseCacheConcurrentModification(t *testing.T) {
 		c.Add(newTestNse("nse2", "ns2"))
 	})
 	defer stopWrite()
-	<-time.After(time.Second)
+	time.Sleep(time.Second * 5)
 }
-
 func TestNsmdRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 

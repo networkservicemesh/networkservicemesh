@@ -29,7 +29,6 @@ func NewNetworkServiceCache(ns string) *NetworkServiceCache {
 		resourceDeletedFunc: rv.resourceDeleted,
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsResource,
-		namespaceFunc:       getNsNamespace,
 		namespace:           ns,
 	}
 	rv.cache = newAbstractResourceCache(config)
@@ -88,8 +87,4 @@ func (c *NetworkServiceCache) resourceGet(key string) interface{} {
 
 func getNsKey(obj interface{}) string {
 	return obj.(*v1.NetworkService).Name
-}
-
-func getNsNamespace(obj interface{}) string {
-	return obj.(*v1.NetworkService).Namespace
 }
