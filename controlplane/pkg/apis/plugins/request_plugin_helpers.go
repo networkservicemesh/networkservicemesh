@@ -1,6 +1,8 @@
 package plugins
 
 import (
+	"github.com/gogo/protobuf/proto"
+
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
@@ -32,4 +34,9 @@ func (w *RequestWrapper) SetRequest(req networkservice.Request) {
 			LocalRequest: req.(*local.NetworkServiceRequest),
 		}
 	}
+}
+
+// Clone clones wrapper
+func (w *RequestWrapper) Clone() *RequestWrapper {
+	return proto.Clone(w).(*RequestWrapper)
 }
