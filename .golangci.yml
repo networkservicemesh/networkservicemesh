@@ -132,7 +132,7 @@ issues:
     - path: test/cloudtest/pkg/commands/main.go
       linters:
         - gosec
-    - path: controlplane/apis/plugins/
+    - path: controlplane/pkg/apis/plugins/
       linters:
         - dupl
   exclude:
