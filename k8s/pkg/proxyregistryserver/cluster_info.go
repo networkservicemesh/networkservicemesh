@@ -3,6 +3,7 @@ package proxyregistryserver
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +19,7 @@ import (
 type InterdomainPlugin interface {
 	clusterinfo.ClusterInfoServer
 	plugins.RequestPluginServer
+	plugins.ConnectionPluginServer
 }
 
 type k8sClusterInfo struct {
@@ -84,4 +86,22 @@ func (k *k8sClusterInfo) UpdateRequest(ctx context.Context, wrapper *plugins.Req
 		}
 	}
 	return wrapper, nil
+}
+
+func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+	mechanism := wrapper.GetConnection().GetConnectionMechanism()
+	switch mechanism.GetMechanismType() {
+	case remoteConnection.MechanismType_VXLAN:
+		ip := mechanism.GetParameters()[remoteConnection.VXLANDstIP]
+
+		ipConfig, err := k.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: ip})
+		if err == nil {
+			mechanism.GetParameters()[remoteConnection.VXLANDstExtIP] = ipConfig.ExternalIP
+		}
+	}
+	return wrapper, nil
+}
+
+func (k *k8sClusterInfo) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+	return &plugins.ConnectionValidationResult{Status: plugins.ConnectionValidationStatus_SUCCESS}, nil
 }
