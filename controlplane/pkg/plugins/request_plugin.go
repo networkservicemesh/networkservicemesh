@@ -58,5 +58,5 @@ func (rpm *requestPluginManager) UpdateRequest(ctx context.Context, wrapper *plu
 			return nil, fmt.Errorf("'%s' request plugin returned an error: %v", name, err)
 		}
 	}
-	return wrapper, nil
+	return wrapper.Clone(), nil
 }
