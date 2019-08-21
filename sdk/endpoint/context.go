@@ -3,9 +3,10 @@ package endpoint
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/sirupsen/logrus"
 )
 
 type contextKeyType string

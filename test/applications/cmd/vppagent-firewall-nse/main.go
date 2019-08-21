@@ -18,11 +18,12 @@ package main
 import (
 	"os"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
-	"github.com/sirupsen/logrus"
 )
 
 var version string

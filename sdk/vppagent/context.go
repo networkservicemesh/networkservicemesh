@@ -5,6 +5,7 @@ import (
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 

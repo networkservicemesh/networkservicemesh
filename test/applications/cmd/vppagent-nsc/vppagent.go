@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/ligato/vpp-agent/api/configurator"
 	"time"
+
+	"github.com/ligato/vpp-agent/api/configurator"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/sirupsen/logrus"
 )
 
 func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vppAgentEndpoint string) error {
