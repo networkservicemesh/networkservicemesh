@@ -78,32 +78,7 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 		},
 	}
 
-	return nsmc.PerformRequest(outgoingRequest)
-	// var outgoingConnection *connection.Connection
-	// for iteration := connectRetries; true; <-time.After(connectSleep) {
-	// 	var err error
-	// 	logrus.Infof("Sending outgoing request %v", outgoingRequest)
-
-	// 	newCtx, cancel := context.WithTimeout(ctx, connectTimeout)
-	// 	defer cancel()
-	// 	outgoingConnection, err = nsmc.NsClient.Request(newCtx, outgoingRequest)
-
-	// 	if err != nil {
-	// 		logrus.Errorf("failure to request connection with error: %+v", err)
-	// 		iteration--
-	// 		if iteration > 0 {
-	// 			continue
-	// 		}
-	// 		logrus.Errorf("Connect failed after %v iterations and %v", connectRetries, time.Since(start))
-	// 		return nil, err
-	// 	}
-
-	// 	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
-	// 	logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)
-	// 	break
-	// }
-
-	// return outgoingConnection, nil
+	return nsmc.PerformRequest(ctx, outgoingRequest)
 }
 
 // Close will terminate a particular connection
@@ -125,26 +100,26 @@ func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection
 }
 
 // Destroy stops the whole module
-func (nsmc *NsmClient) Destroy() error {
+func (nsmc *NsmClient) Destroy(ctx context.Context) error {
 	nsmc.Lock()
 	defer nsmc.Unlock()
 
 	for _, c := range nsmc.OutgoingConnections {
-		nsmc.NsClient.Close(nsmc.Context, c)
+		nsmc.NsClient.Close(ctx, c)
 	}
-	nsmc.NsmConnection.Close()
+	_ = nsmc.NsmConnection.Close()
 	return nil
 }
 
 //PerformRequest - perform request
-func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (nsmc *NsmClient) PerformRequest(ctx context.Context, outgoingRequest *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	var outgoingConnection *connection.Connection
 	start := time.Now()
 	for iteration := connectRetries; true; <-time.After(connectSleep) {
 		var err error
 		logrus.Infof("Sending outgoing request %v", outgoingRequest)
 
-		ctx, cancel := context.WithTimeout(nsmc.Context, connectTimeout)
+		ctx, cancel := context.WithTimeout(ctx, connectTimeout)
 		defer cancel()
 		outgoingConnection, err = nsmc.NsClient.Request(ctx, outgoingRequest)
 

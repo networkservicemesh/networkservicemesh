@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )

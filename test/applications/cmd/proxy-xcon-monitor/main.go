@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"flag"
-	"net"
-
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"net"
 )
 
 const (
@@ -89,7 +88,7 @@ func main() {
 	}
 	defer func() { _ = ln.Close() }()
 
-	srv := tools.NewServer()
+	srv := grpc.NewServer()
 	crossconnect.RegisterMonitorCrossConnectServer(srv, &proxyMonitor{
 		address: address,
 	})

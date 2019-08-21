@@ -44,36 +44,39 @@ func main() {
 	flags := flags.ParseFlags()
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	cb := endpoint.NewCompositeEndpointBuilder()
-	monitorEndpoint := endpoint.NewMonitorEndpoint(nil)
-	cb.Append(monitorEndpoint)
+
+	endpoints := []networkservice.NetworkServiceServer{
+		endpoint.NewMonitorEndpoint(nil),
+		endpoint.NewConnectionEndpoint(nil),
+	}
+
 	if flags.Neighbors {
 		logrus.Infof("Adding neighbors endpoint to chain")
-		cb.Append(
+		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
 	}
 
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
+	endpoints = append(endpoints, ipamEndpoint)
 
 	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
 		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
-
 	if flags.Routes {
 		logrus.Infof("Adding routes endpoint to chain")
-		cb.Append(endpoint.NewCustomFuncEndpoint("route", routeAddr))
+		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
 	}
 
 	if flags.DNS {
 		logrus.Info("Adding dns endpoint to chain")
-		cb.Append(endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
+		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
 	}
 
 	var monitorServer monitor.Server
 	if flags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
-		cb.Append(
+		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("update", func(*connection.Connection) error {
 				go func() {
 					<-time.After(10 * time.Second)
@@ -83,11 +86,7 @@ func main() {
 			}))
 	}
 
-	cb.Append(
-		ipamEndpoint,
-		endpoint.NewConnectionEndpoint(nil))
-
-	composite := cb.Build()
+	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
 	if err != nil {

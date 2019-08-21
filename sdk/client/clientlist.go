@@ -66,10 +66,10 @@ func (nsmcl *NsmClientList) Close(ctx context.Context) error {
 }
 
 // Destroy terminates all clients
-func (nsmcl *NsmClientList) Destroy() error {
+func (nsmcl *NsmClientList) Destroy(ctx context.Context) error {
 	for i := range nsmcl.clients {
 		entry := &nsmcl.clients[i]
-		err := entry.client.Destroy()
+		err := entry.client.Destroy(ctx)
 		if err != nil {
 			return err
 		}
