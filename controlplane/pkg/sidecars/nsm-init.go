@@ -28,7 +28,7 @@ type nsmClientApp struct {
 }
 
 func (c *nsmClientApp) Run() {
-	tracer, closer := tools.InitJaeger("nsc")
+	tracer, closer := tools.InitJaeger("nsm-init")
 	opentracing.SetGlobalTracer(tracer)
 	defer func() { _ = closer.Close() }()
 
@@ -37,7 +37,7 @@ func (c *nsmClientApp) Run() {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	if err := clientList.Connect("nsm", "kernel", "Primary interface"); err != nil {
+	if err := clientList.Connect(context.TODO(), "nsm", "kernel", "Primary interface"); err != nil {
 		logrus.Fatalf("Client connect failed with error: %v", err)
 	}
 	logrus.Info("nsm client: initialization is completed successfully")
