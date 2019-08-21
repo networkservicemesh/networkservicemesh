@@ -60,8 +60,9 @@ func main() {
 		}
 	}()
 
-	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
+	services := make(map[pluginsapi.PluginCapability]interface{}, 2)
 	services[pluginsapi.PluginCapability_REQUEST] = clusterInfoService
+	services[pluginsapi.PluginCapability_CONNECTION] = clusterInfoService
 
 	if err = plugins.StartPlugin("k8s-interdomain-plugin", services); err != nil {
 		logrus.Fatalln("Failed to start K8s Interdomain Plugin", err)
