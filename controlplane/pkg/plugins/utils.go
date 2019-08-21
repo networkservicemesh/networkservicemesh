@@ -56,6 +56,8 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 				return fmt.Errorf("the service cannot be used as a connection plugin since it does not implement ConnectionPluginServer interface")
 			}
 			plugins.RegisterConnectionPluginServer(server, connectionService)
+		default:
+			return fmt.Errorf("unsupported capability: %v", capability)
 		}
 	}
 

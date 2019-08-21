@@ -13,8 +13,7 @@ import (
 // ConnectionPluginManager transmits each method call to all registered connection plugins
 type ConnectionPluginManager interface {
 	PluginManager
-	UpdateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error)
-	ValidateConnection(context.Context, *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error)
+	plugins.ConnectionPluginServer
 }
 
 type connectionPluginManager struct {
@@ -28,21 +27,16 @@ func createConnectionPluginManager() ConnectionPluginManager {
 	}
 }
 
-func (cpm *connectionPluginManager) Register(name string, conn *grpc.ClientConn) error {
+func (cpm *connectionPluginManager) Register(name string, conn *grpc.ClientConn) {
 	client := plugins.NewConnectionPluginClient(conn)
-	return cpm.addClient(name, client)
+	cpm.addClient(name, client)
 }
 
-func (cpm *connectionPluginManager) addClient(name string, client plugins.ConnectionPluginClient) error {
+func (cpm *connectionPluginManager) addClient(name string, client plugins.ConnectionPluginClient) {
 	cpm.Lock()
 	defer cpm.Unlock()
 
-	if _, ok := cpm.pluginClients[name]; ok {
-		return fmt.Errorf("already have a connection plugin with the same name")
-	}
-
 	cpm.pluginClients[name] = client
-	return nil
 }
 
 func (cpm *connectionPluginManager) getClients() map[string]plugins.ConnectionPluginClient {
