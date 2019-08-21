@@ -64,7 +64,7 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrappe
 			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)
 		}
 	}
-	return wrapper, nil
+	return wrapper.Clone(), nil
 }
 
 func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
