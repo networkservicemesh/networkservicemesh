@@ -178,6 +178,10 @@ func (pr *testPluginRegistry) GetRequestPluginManager() plugins.RequestPluginMan
 	return pr.requestPluginManager
 }
 
+func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
+	return pr.connectionPluginManager
+}
+
 func (cpm *testRequestPluginManager) addPlugin(plugin pluginsapi.RequestPluginServer) {
 	cpm.plugins = append(cpm.plugins, plugin)
 }
@@ -191,10 +195,6 @@ func (cpm *testRequestPluginManager) UpdateRequest(ctx context.Context, wrapper 
 		}
 	}
 	return wrapper, nil
-}
-
-func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
-	return pr.connectionPluginManager
 }
 
 func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginServer) {
