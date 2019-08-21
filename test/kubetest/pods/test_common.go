@@ -26,9 +26,6 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: sa,
-			Volumes: []v1.Volume{
-				spireVolume(),
-			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            name,
@@ -41,9 +38,6 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 						},
 					},
 					Env: envVars,
-					VolumeMounts: []v1.VolumeMount{
-						spireVolumeMount(),
-					},
 				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,

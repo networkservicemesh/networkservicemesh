@@ -26,9 +26,6 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: sa,
-			Volumes: []v1.Volume{
-				spireVolume(),
-			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            container,
@@ -38,9 +35,6 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
-					},
-					VolumeMounts: []v1.VolumeMount{
-						spireVolumeMount(),
 					},
 					Env: envVars,
 				}),

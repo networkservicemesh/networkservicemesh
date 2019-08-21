@@ -29,9 +29,6 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: NSEServiceAccount,
-			Volumes: []v1.Volume{
-				spireVolume(),
-			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "vpn-gateway",
@@ -44,9 +41,6 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 						Limits: v1.ResourceList{
 							"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 						},
-					},
-					VolumeMounts: []v1.VolumeMount{
-						spireVolumeMount(),
 					},
 					Env: envVars,
 				}),

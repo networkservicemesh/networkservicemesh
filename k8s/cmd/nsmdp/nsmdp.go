@@ -54,11 +54,22 @@ type nsmClientEndpoints struct {
 	pluginApi       *pluginapi.DevicePlugin_ListAndWatchServer
 	mutext          sync.Mutex
 	clientId        int
+	insecure        bool
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	logrus.Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
 	responses := &pluginapi.AllocateResponse{}
+
+	var mounts []*pluginapi.Mount
+	if !n.insecure {
+		mounts = append(mounts, &pluginapi.Mount{
+			ContainerPath: "/run/spire/sockets",
+			HostPath:      "/run/spire/sockets",
+			ReadOnly:      true,
+		})
+	}
+
 	for _, req := range reqs.ContainerRequests {
 		id := req.DevicesIDs[0]
 		logrus.Infof("Requesting Workspace, device ID: %s", id)
@@ -72,14 +83,20 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 				HostPath:      workspace.HostBasedir + workspace.Workspace,
 				ReadOnly:      false,
 			}
+			envs := map[string]string{
+				nsmd.NsmDevicePluginEnv: "true",
+				nsmd.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
+				nsmd.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
+				nsmd.WorkspaceEnv:       workspace.ClientBaseDir,
+			}
+
+			if n.insecure {
+				envs["INSECURE"] = "true"
+			}
+
 			responses.ContainerResponses = append(responses.ContainerResponses, &pluginapi.ContainerAllocateResponse{
-				Mounts: []*pluginapi.Mount{mount},
-				Envs: map[string]string{
-					nsmd.NsmDevicePluginEnv: "true",
-					nsmd.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
-					nsmd.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
-					nsmd.WorkspaceEnv:       workspace.ClientBaseDir,
-				},
+				Mounts: append(mounts, mount),
+				Envs:   envs,
 			})
 		}
 	}
@@ -196,10 +213,17 @@ func waitForNsmdAvailable() {
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
 func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	waitForNsmdAvailable()
+
+	insecure, err := tools.ReadEnvBool("INSECURE", false)
+	if err != nil {
+		return err
+	}
+
 	nsm := &nsmClientEndpoints{
 		serviceRegistry: serviceRegistry,
 		resp:            new(pluginapi.ListAndWatchResponse),
 		devs:            map[string]*pluginapi.Device{},
+		insecure:        insecure,
 	}
 
 	for i := 0; i < DeviceBuffer; i++ {
@@ -210,9 +234,7 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 		return err
 	}
 	// Registers with Kubelet.
-	err := Register(pluginapi.KubeletSocket)
-
-	return err
+	return Register(pluginapi.KubeletSocket)
 }
 
 func (nsm *nsmClientEndpoints) addClientDevice() {

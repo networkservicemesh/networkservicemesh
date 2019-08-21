@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
@@ -54,17 +53,12 @@ func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) 
 }
 
 func getInitContainerPatchPath(request *v1beta1.AdmissionRequest) string {
-	return getSpecPath(request) + "/initContainers"
-}
-
-func getSpecPath(request *v1beta1.AdmissionRequest) string {
 	if request.Kind.Kind == pod {
-		return pathPodSpec
+		return pathPodInitContainers
 	}
 	if request.Kind.Kind == deployment {
-		return pathDeploymentSpec
+		return pathDeploymentInitContainers
 	}
-
 	panic("unsupported request kind")
 }
 
@@ -74,7 +68,7 @@ func validateAnnotationValue(value string) error {
 	return err
 }
 
-func createInitContainerPatch(annotationValue, path string, secure bool) []patchOperation {
+func createInitContainerPatch(annotationValue, path string) []patchOperation {
 	var patch []patchOperation
 
 	envVals := []corev1.EnvVar{{
@@ -99,17 +93,6 @@ func createInitContainerPatch(annotationValue, path string, secure bool) []patch
 			})
 	}
 
-	var volumeMounts []corev1.VolumeMount
-	if secure {
-		volumeMounts = []corev1.VolumeMount{
-			{
-				Name:      spireSocketVolume,
-				MountPath: spireSocketPath,
-				ReadOnly:  true,
-			},
-		}
-	}
-
 	value := []corev1.Container{{
 		Name:            initContainerName,
 		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
@@ -120,7 +103,6 @@ func createInitContainerPatch(annotationValue, path string, secure bool) []patch
 				"networkservicemesh.io/socket": resource.MustParse("1"),
 			},
 		},
-		VolumeMounts: volumeMounts,
 	}}
 
 	patch = append(patch, patchOperation{
@@ -146,13 +128,24 @@ func isSupportKind(request *v1beta1.AdmissionRequest) bool {
 	return request.Kind.Kind == pod || request.Kind.Kind == deployment
 }
 
-func isIgnoreNamespace(ignoredNamespaceList []string, tuple *podSpecAndMeta) bool {
+func getNsmAnnotationValue(ignoredNamespaceList []string, tuple *podSpecAndMeta) (string, bool) {
+
+	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredNamespaceList {
 		if tuple.meta.Namespace == namespace {
-			return true
+			logrus.Infof("Skip validation for %v for it's in special namespace:%v", tuple.meta.Name, tuple.meta.Namespace)
+			return "", false
 		}
 	}
-	return false
+
+	annotations := tuple.meta.GetAnnotations()
+	if annotations == nil {
+		logrus.Info("No annotations, skip")
+		return "", false
+	}
+
+	value, ok := annotations[nsmAnnotationKey]
+	return value, ok
 }
 
 func parseAdmissionReview(body []byte) (*v1beta1.AdmissionReview, error) {
@@ -181,57 +174,4 @@ func readRequest(r *http.Request) ([]byte, error) {
 		return nil, errors.New(msg)
 	}
 	return body, nil
-}
-
-func addVolumeMounts(spec *corev1.PodSpec, added corev1.VolumeMount, basePath string) (patch []patchOperation) {
-	for i := 0; i < len(spec.Containers); i++ {
-		path := basePath + "/containers/" + strconv.Itoa(i) + "/volumeMounts"
-		patch = append(patch, addVolumeMount(added, path, len(spec.Containers[i].VolumeMounts) == 0)...)
-	}
-
-	for i := 0; i < len(spec.InitContainers); i++ {
-		path := basePath + "/initContainers/" + strconv.Itoa(i) + "/volumeMounts"
-		patch = append(patch, addVolumeMount(added, path, len(spec.InitContainers[i].VolumeMounts) == 0)...)
-	}
-
-	return
-}
-
-func addVolumeMount(added corev1.VolumeMount, path string, first bool) (patch []patchOperation) {
-	var value interface{}
-
-	if first {
-		value = []corev1.VolumeMount{added}
-	} else {
-		path = path + "/-"
-		value = added
-	}
-
-	patch = append(patch, patchOperation{
-		Op:    "add",
-		Path:  path,
-		Value: value,
-	})
-
-	return
-}
-
-func addVolume(spec *corev1.PodSpec, added corev1.Volume, basePath string) (patch []patchOperation) {
-	path := basePath + "/volumes"
-	var value interface{}
-
-	if len(spec.Volumes) == 0 {
-		value = []corev1.Volume{added}
-	} else {
-		path = path + "/-"
-		value = added
-	}
-
-	patch = append(patch, patchOperation{
-		Op:    "add",
-		Path:  path,
-		Value: value,
-	})
-
-	return
 }
