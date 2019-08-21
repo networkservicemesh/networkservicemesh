@@ -1,6 +1,8 @@
 package plugins
 
 import (
+	"github.com/golang/protobuf/proto"
+
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -32,4 +34,9 @@ func (w *ConnectionWrapper) SetConnection(conn connection.Connection) {
 			LocalConnection: conn.(*local.Connection),
 		}
 	}
+}
+
+// Clone clones wrapper with connection
+func (w *ConnectionWrapper) Clone() *ConnectionWrapper {
+	return proto.Clone(w).(*ConnectionWrapper)
 }
