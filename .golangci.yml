@@ -121,9 +121,6 @@ issues:
         - gochecknoglobals
         - gochecknoinits
         - gosec
-    - path: security/manager.go
-      linters:
-        - gochecknoglobals
     - path: controlplane/pkg/monitor/
       linters:
         - dupl

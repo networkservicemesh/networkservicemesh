@@ -90,7 +90,6 @@ func certsFromSpireCh(spireCh <-chan *proto.X509SVIDResponse, errCh chan<- error
 		defer close(responseCh)
 
 		for svidResponse := range spireCh {
-			logrus.Infof("Received new SVID: %v", svidResponse.Svids[0].SpiffeId)
 			response, err := newResponse(svidResponse)
 			if err != nil {
 				errCh <- err
@@ -104,7 +103,12 @@ func certsFromSpireCh(spireCh <-chan *proto.X509SVIDResponse, errCh chan<- error
 }
 
 func newResponse(svidResponse *proto.X509SVIDResponse) (*Response, error) {
+	if len(svidResponse.Svids) == 0 {
+		return nil, errors.New("X509SVIDResponse.Svids is empty")
+	}
+
 	svid := svidResponse.Svids[0]
+	logrus.Infof("Received new SVID: %v", svid.SpiffeId)
 
 	crt, err := certToPemBlocks(svid.GetX509Svid())
 	if err != nil {

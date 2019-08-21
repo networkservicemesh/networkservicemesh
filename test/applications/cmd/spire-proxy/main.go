@@ -25,11 +25,9 @@ func newSpireProxy() *spireProxy {
 			Log:  logrus.StandardLogger(),
 		})
 
-	errCh := make(chan error)
-
 	go func() {
 		if err := workloadAPIClient.Start(); err != nil {
-			errCh <- err
+			logrus.Error(err)
 			return
 		}
 	}()

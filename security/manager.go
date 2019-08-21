@@ -48,19 +48,6 @@ type certificateManager struct {
 	readyCh  chan struct{}
 }
 
-var once sync.Once
-var manager Manager
-
-// GetSecurityManager returns instance of Manager
-func GetSecurityManager() Manager {
-	logrus.Info("Getting SecurityManager...")
-	once.Do(func() {
-		logrus.Info("Creating new SecurityManager...")
-		manager = NewManager()
-	})
-	return manager
-}
-
 // NewManager creates new security.Manager using SpireCertObtainer
 func NewManager() Manager {
 	return NewManagerWithCertObtainer(NewSpireObtainer())
@@ -81,7 +68,7 @@ func (m *certificateManager) exchangeCertificates(obtainer CertificateObtainer) 
 		case r := <-obtainer.CertificateCh():
 			m.setCertificates(r)
 		case err := <-obtainer.ErrorCh():
-			logrus.Error(err)
+			logrus.Errorf("security.Manager error: %v", err)
 		}
 	}
 }
