@@ -19,43 +19,35 @@ const (
 	defaultK8sDNSServer       = "10.96.0.10"
 )
 
-//NsmDNSMonitorHandler implements NSMMonitorHandler interface for handling dnsConfigs
-type NsmDNSMonitorHandler struct {
+//nsmDNSMonitorHandler implements NSMMonitorHandler interface for handling dnsConfigs
+type nsmDNSMonitorHandler struct {
 	EmptyNSMMonitorHandler
 	dnsConfigManager *utils.DNSConfigManager
 	corefileUpdater  utils.Operation
 }
 
-//DefaultDNSNsmMonitor creates default DNS nsm monitor
-func DefaultDNSNsmMonitor() NSMApp {
-	return NewDNSNsmMonitor(DefaultPathToCorefile, DefaultReloadCorefileTime)
-}
-
-//NewDNSNsmMonitor creates new dns nsm monitor with a specific path to corefile and time to reload corefile
-func NewDNSNsmMonitor(pathToCorefile string, reloadTime time.Duration) NSMApp {
-	dnsConfigManager := utils.NewDNSConfigManager(defaultBasicDNSConfig(), reloadTime)
-	corefile := dnsConfigManager.Caddyfile(pathToCorefile)
+//NewNsmDNSMonitorHandler creates new DNS monitor handler
+func NewNsmDNSMonitorHandler(corefilePath string, reloadCorefilePeriod time.Duration) NSMMonitorHandler {
+	dnsConfigManager := utils.NewDNSConfigManager(defaultBasicDNSConfig(), reloadCorefilePeriod)
+	corefileUpdater := utils.NewSingleAsyncOperation(func() {
+		file := dnsConfigManager.Caddyfile(corefilePath)
+		err := file.Save()
+		if err != nil {
+			logrus.Errorf("An error during updating corefile: %v", err)
+		}
+	})
+	corefile := dnsConfigManager.Caddyfile(corefilePath)
 	err := corefile.Save()
 	if err != nil {
 		logrus.Errorf("An error during initial saving the Corefile: %v, err: %v", corefile.String(), err.Error())
 	}
-	result := NewNSMMonitorApp()
-	corefileUpdater := utils.NewSingleAsyncOperation(func() {
-		file := dnsConfigManager.Caddyfile(pathToCorefile)
-		err := file.Save()
-		if err != nil {
-			logrus.Error(err)
-		}
-	})
-	result.SetHandler(&NsmDNSMonitorHandler{
-		corefileUpdater:  corefileUpdater,
+	return &nsmDNSMonitorHandler{
 		dnsConfigManager: dnsConfigManager,
-	})
-	return result
+		corefileUpdater:  corefileUpdater,
+	}
 }
 
-//Connected checks connection and l handle all dns configs
-func (h *NsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
+func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
 	for _, conn := range conns {
 		if conn.Context == nil {
 			continue
@@ -71,8 +63,7 @@ func (h *NsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection
 	h.corefileUpdater.Run()
 }
 
-//Closed removes all dns configs related to connection ID
-func (h *NsmDNSMonitorHandler) Closed(conn *connection.Connection) {
+func (h *nsmDNSMonitorHandler) Closed(conn *connection.Connection) {
 	logrus.Infof("Deleting config with id %v", conn.Id)
 	h.dnsConfigManager.Delete(conn.Id)
 	h.corefileUpdater.Run()

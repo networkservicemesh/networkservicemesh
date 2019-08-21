@@ -30,7 +30,10 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 	sidecars.NewNSMClientApp().Run()
-	monitor := sidecars.DefaultDNSNsmMonitor()
-	monitor.Run()
+	app := sidecars.NewNSMMonitorApp()
+	app.SetHandler(sidecars.NewNsmDNSMonitorHandler(
+		sidecars.DefaultPathToCorefile,
+		sidecars.DefaultReloadCorefileTime))
+	app.Run()
 	<-c
 }

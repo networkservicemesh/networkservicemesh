@@ -76,8 +76,11 @@ For add to `Network Service Client` possible to dynamically update `DNSConfigs` 
 ```
 func main() {
         ...
-	monitor := sidecars.DefaultDNSNsmMonitor()
-	monitor.Run()
+	app := nsm_sidecars.NewNSMMonitorApp()
+	app.SetHandler(nsm_sidecars.NewNsmDNSMonitorHandler(
+			nsm_sidecars.DefaultPathToCorefile),
+			nsm_sidecars.DefaultReloadCorefileTime))
+        app.Run()	
         ...
 }
 ``` 
