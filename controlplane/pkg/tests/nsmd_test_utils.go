@@ -264,20 +264,20 @@ func (rpm *testRegistryPluginManager) RegisterNSE(ctx context.Context, registrat
 	return registration, nil
 }
 
-func (rpm *testRegistryPluginManager) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
+func (rpm *testRegistryPluginManager) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	for _, plugin := range rpm.plugins {
 		_, err := plugin.RemoveNSE(ctx, request)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &empty.Empty{}, nil
 }
 
-func (rpm *testRegistryPluginManager) GetNSEs(ctx context.Context) (*pluginsapi.NSEList, error) {
+func (rpm *testRegistryPluginManager) GetNSEs(ctx context.Context, empty *empty.Empty) (*pluginsapi.NSEList, error) {
 	endpoints := []*registry.NetworkServiceEndpoint{}
 	for _, plugin := range rpm.plugins {
-		response, err := plugin.GetNSEs(ctx, &empty.Empty{})
+		response, err := plugin.GetNSEs(ctx, empty)
 		if err != nil {
 			return nil, err
 		}
