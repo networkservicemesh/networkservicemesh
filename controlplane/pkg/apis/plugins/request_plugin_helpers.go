@@ -36,7 +36,7 @@ func (w *RequestWrapper) SetRequest(req networkservice.Request) {
 	}
 }
 
-// Clone clones wrapper
+// Clone clones wrapper with request
 func (w *RequestWrapper) Clone() *RequestWrapper {
 	return proto.Clone(w).(*RequestWrapper)
 }
