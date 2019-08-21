@@ -120,6 +120,7 @@ func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 		}
 	}()
 	v.configureKernelForwarder()
+	v.startMetrics()
 	return nil
 }
 
