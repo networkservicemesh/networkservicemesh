@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/utils/helper/errtools"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
@@ -28,8 +28,11 @@ func (runner *shellTestRunner) Run(timeoutCtx context.Context, env []string, wri
 	if runErr != nil {
 		onFailContext, cancel := context.WithTimeout(context.Background(), onFailDefaultTimeout)
 		defer cancel()
-		onFailErr := runner.runCmd(onFailContext, utils.ParseScript(runner.test.OnFailScript), env, writer)
-		return errtools.Combine(runErr, onFailErr)
+		err := runner.runCmd(onFailContext, utils.ParseScript(runner.test.OnFailScript), env, writer)
+		if err == nil {
+			return runErr
+		}
+		return errors.Wrap(runErr, err.Error())
 	}
 	return nil
 }

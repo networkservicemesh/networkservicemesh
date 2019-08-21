@@ -47,7 +47,7 @@ func TestCleanupByTimer(t *testing.T) {
 	defer s.close()
 
 	tr := newTransport(s.Addr)
-	tr.setExpire(100 * time.Millisecond)
+	tr.setExpire(200 * time.Millisecond)
 	tr.Start()
 	defer tr.Stop()
 
@@ -57,14 +57,14 @@ func TestCleanupByTimer(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	tr.Yield(c2)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	c3, cached, _ := tr.Dial("tcp")
 	if cached {
 		t.Error("Expected non-cached connection (c3)")
 	}
 	tr.Yield(c3)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	c4, cached, _ := tr.Dial("tcp")
 	if cached {
 		t.Error("Expected non-cached connection (c4)")

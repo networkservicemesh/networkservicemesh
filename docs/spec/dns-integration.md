@@ -23,7 +23,7 @@ Also, it includes special custom plugin `fanout` (see below).
 The fanout plugin re-uses already opened sockets to the upstreams. It supports TCP and DNS-over-TLS and uses in-band health checking. 
 For each incoming DNS query that hits the CoreDNS fanout plugin, it will be replicated in parallel to each listed IP. The first non-negative response from any of the queried DNS Servers will be forwarded as a response to the request.
 
-#### How use nsm-coredns as default name server for pod?
+#### How to use nsm-coredns as the default name server for the pod?
 1) Deploy configmap with corefile content.
 ```
 apiVersion: v1
@@ -67,12 +67,30 @@ spec:
           - default.svc.cluster.local
           - svc.cluster.local
           - cluster.local
+        options:
+          - ndots: 5
 ...
 ```
+#### nsm-dns-monitor
+For add to `Network Service Client` possible to dynamically update `DNSConfigs` from connections, you could use nsm-dns-monitor. For example:
+```
+func main() {
+        ...
+	monitor := sidecars.DefaultDNSNsmMonitor()
+	monitor.Run()
+        ...
+}
+``` 
+Make sure that your pod colocated with `nsm-coredns`. 
+See at example of usage `nsm-dns-monitor` in `test/applications/cmd/monitoring-dns-nsc`
+
 Example usage (optional)
 ------------------------
 
 * TestBasicDns
+* TestNsmCorednsNotBreakDefaultK8sDNS
+* TestDNSMonitoringNsc
+* test/applications/cmd/monitoring-dns-nsc
 
 References
 ----------

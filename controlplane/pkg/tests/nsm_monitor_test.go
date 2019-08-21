@@ -15,6 +15,7 @@ import (
 )
 
 type nsmHelper struct {
+	nsm_sidecars.EmptyNSMMonitorHandler
 	response  *nsmdapi.ClientConnectionReply
 	connected chan bool
 	healing   chan bool
@@ -23,10 +24,6 @@ type nsmHelper struct {
 
 func (h *nsmHelper) Stopped() {
 	h.stopped <- true
-}
-
-func (h *nsmHelper) IsEnableJaeger() bool {
-	return false
 }
 
 func (h *nsmHelper) Connected(map[string]*connection.Connection) {
@@ -44,9 +41,6 @@ func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
 		Workspace:       h.response.HostBasedir + "/" + h.response.Workspace,
 		TracerEnabled:   false,
 	}
-}
-
-func (*nsmHelper) ProcessHealing(newConn *connection.Connection, e error) {
 }
 
 func TestNSMMonitorInit(t *testing.T) {

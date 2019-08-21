@@ -102,7 +102,7 @@ nameserver 10.10.255.253`), 0666); err != nil {
 			}
 		}
 		for _, p := range f.clients {
-			p.health.Check(p) // this should almost always err, we don't care it shoulnd't crash
+			_ = p.health.Check()
 		}
 	}
 }

@@ -58,7 +58,7 @@ make k8s-infra-deploy
 
 ### Verify the services are up and running
 
-The following check should show two `nsmgr`, two `nsm-vppagent-dataplane`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
+The following check should show two `nsmgr`, two `nsm-vpp-forwarder`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
 
 ```bash
 kubectl get pods -n nsm-system
