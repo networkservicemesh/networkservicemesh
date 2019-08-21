@@ -60,7 +60,6 @@ func (vbc *bridgeConnect) Close(ctx context.Context, conn *connection.Connection
 		if _, err := endpoint.Next(ctx).Close(ctx, conn); err != nil {
 			return &empty.Empty{}, nil
 		}
-
 	}
 	return &empty.Empty{}, nil
 }

@@ -252,7 +252,7 @@ func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
 			c.helper.Healing(cClone)
 		}
 
-		newConn, err := nsmClient.PerformRequest(&outgoingRequest)
+		newConn, err := nsmClient.PerformRequest(context.Background(), &outgoingRequest)
 		if err != nil {
 			logrus.Errorf(nsmMonitorLogWithParamFormat, "failed to restore connection. Will retry", err)
 			// Let's drop connection id, since we failed one time.

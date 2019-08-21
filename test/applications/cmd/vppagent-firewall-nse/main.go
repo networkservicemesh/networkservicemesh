@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -54,13 +55,13 @@ func main() {
 		vppagent.NewCommit(configuration, "localhost:9112", true),
 	)
 
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.TODO(), configuration, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
+	_ = nsmEndpoint.Start()
+	defer func() { _ = nsmEndpoint.Delete() }()
 
 	<-c
 }
