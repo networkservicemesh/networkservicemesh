@@ -21,7 +21,14 @@ cleanup() {
 
 cleanup
 
-sleep 2
+echo "Waiting spire-server to launch on 8081..."
+
+while ! nc -z spire-server 8081; do
+  sleep 0.1 # wait for 1/10 of the second before check again
+done
+
+echo "spire-server launched"
+
 /opt/spire/bin/spire-server entry show
 
 while ! register; do
