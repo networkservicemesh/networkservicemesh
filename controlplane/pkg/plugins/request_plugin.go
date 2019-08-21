@@ -27,21 +27,16 @@ func createRequestPluginManager() RequestPluginManager {
 	}
 }
 
-func (rpm *requestPluginManager) Register(name string, conn *grpc.ClientConn) error {
+func (rpm *requestPluginManager) Register(name string, conn *grpc.ClientConn) {
 	client := plugins.NewRequestPluginClient(conn)
-	return rpm.addClient(name, client)
+	rpm.addClient(name, client)
 }
 
-func (rpm *requestPluginManager) addClient(name string, client plugins.RequestPluginClient) error {
+func (rpm *requestPluginManager) addClient(name string, client plugins.RequestPluginClient) {
 	rpm.Lock()
 	defer rpm.Unlock()
 
-	if _, ok := rpm.pluginClients[name]; ok {
-		return fmt.Errorf("already have a request plugin with the same name")
-	}
-
 	rpm.pluginClients[name] = client
-	return nil
 }
 
 func (rpm *requestPluginManager) getClients() map[string]plugins.RequestPluginClient {
