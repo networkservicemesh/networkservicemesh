@@ -13,7 +13,7 @@ import (
 // RequestPluginManager transmits each method call to all registered request plugins
 type RequestPluginManager interface {
 	PluginManager
-	UpdateRequest(context.Context, *plugins.RequestWrapper) (*plugins.RequestWrapper, error)
+	plugins.RequestPluginServer
 }
 
 type requestPluginManager struct {

@@ -151,7 +151,7 @@ type testPluginRegistry struct {
 
 type testRequestPluginManager struct {
 	plugins.PluginManager
-	plugins []pluginsapi.RequestPluginClient
+	plugins []pluginsapi.RequestPluginServer
 }
 
 type testConnectionPluginManager struct {
@@ -178,7 +178,7 @@ func (pr *testPluginRegistry) GetRequestPluginManager() plugins.RequestPluginMan
 	return pr.requestPluginManager
 }
 
-func (cpm *testRequestPluginManager) addPlugin(plugin pluginsapi.RequestPluginClient) {
+func (cpm *testRequestPluginManager) addPlugin(plugin pluginsapi.RequestPluginServer) {
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
