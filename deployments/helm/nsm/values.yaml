@@ -8,6 +8,7 @@ tag: master
 pullPolicy: IfNotPresent
 
 forwardingPlane: vpp
+insecure: false
 
 vpp:
   image: vppagent-dataplane
