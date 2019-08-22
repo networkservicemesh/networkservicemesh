@@ -1,6 +1,7 @@
 package kubetest
 
 import (
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -18,7 +19,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	arv1 "k8s.io/api/admissionregistration/v1"
+	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -404,7 +405,7 @@ func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration
 }
 
 // DeployAdmissionWebhook - Setup Admission Webhook
-func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout time.Duration) (*arv1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
+func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout time.Duration) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
 	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
 	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
 
@@ -419,7 +420,7 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
-	awc *arv1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
+	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
 
 	err := k8s.DeleteService(awService, namespace)
 	k8s.g.Expect(err).To(BeNil())
@@ -459,7 +460,7 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 
 	block := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Bytes: x509.MarshalPKCS1PrivateKey(key.(*rsa.PrivateKey)),
 	}
 	keyPem := pem.EncodeToMemory(block)
 
@@ -497,10 +498,10 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 }
 
 // CreateMutatingWebhookConfiguration - Setup Mutating webhook configuration
-func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespace string) *arv1.MutatingWebhookConfiguration {
+func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespace string) *arv1beta1.MutatingWebhookConfiguration {
 	servicePath := "/mutate"
 
-	mutatingWebhookConf := &arv1.MutatingWebhookConfiguration{
+	mutatingWebhookConf := &arv1beta1.MutatingWebhookConfiguration{
 
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MutatingWebhookConfiguration",
@@ -511,23 +512,23 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 				"app": "nsm-admission-webhook",
 			},
 		},
-		Webhooks: []arv1.MutatingWebhook{
+		Webhooks: []arv1beta1.MutatingWebhook{
 			{
 				Name: "admission-webhook.networkservicemesh.io",
-				ClientConfig: arv1.WebhookClientConfig{
-					Service: &arv1.ServiceReference{
+				ClientConfig: arv1beta1.WebhookClientConfig{
+					Service: &arv1beta1.ServiceReference{
 						Namespace: namespace,
 						Name:      name + "-svc",
 						Path:      &servicePath,
 					},
 					CABundle: certPem,
 				},
-				Rules: []arv1.RuleWithOperations{
+				Rules: []arv1beta1.RuleWithOperations{
 					{
-						Operations: []arv1.OperationType{
-							arv1.Create,
+						Operations: []arv1beta1.OperationType{
+							arv1beta1.Create,
 						},
-						Rule: arv1.Rule{
+						Rule: arv1beta1.Rule{
 							APIGroups:   []string{"apps", "extensions", ""},
 							APIVersions: []string{"v1", "v1beta1"},
 							Resources:   []string{"deployments", "services", "pods"},

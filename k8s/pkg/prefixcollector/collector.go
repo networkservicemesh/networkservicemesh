@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
 )
@@ -55,7 +55,7 @@ func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string
 		return nil, err
 	}
 
-	clusterConfiguration := &v1alpha3.ClusterConfiguration{}
+	clusterConfiguration := &v1beta2.ClusterConfiguration{}
 	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(kubeadmConfig.Data["ClusterConfiguration"]), 4096).
 		Decode(clusterConfiguration)
 	if err != nil {
