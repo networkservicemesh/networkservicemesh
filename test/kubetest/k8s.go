@@ -380,7 +380,6 @@ func (k8s *K8s) initNamespace() {
 // Make force delete on timeout
 func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 	var wg sync.WaitGroup
-	var err error
 	for _, my_pod := range pods {
 		wg.Add(1)
 		pod := my_pod
@@ -389,7 +388,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 			delOpt := &metaV1.DeleteOptions{}
 			st := time.Now()
 			logrus.Infof("Deleting %v", pod.Name)
-			err = k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
+			err := k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 			if err != nil {
 				logrus.Warnf(`The POD "%s" may continue to run on the cluster, %v`, pod.Name, err)
 				return
@@ -408,7 +407,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 		}()
 	}
 	wg.Wait()
-	return err
+	return nil // actually, pods deleted because we do not exit on line 394
 }
 func (k8s *K8s) deletePodsForce(pods ...*v1.Pod) error {
 	var err error
@@ -618,6 +617,9 @@ func (k8s *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 // DeletePods delete pods
 func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 	err := k8s.deletePods(pods...)
+	if err != nil {
+		fmt.Println(err)
+	}
 	k8s.g.Expect(err).To(BeNil())
 
 	for _, pod := range pods {
