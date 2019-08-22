@@ -50,7 +50,8 @@ gcloud-check:
 gke-restart: gke-destroy gke-start;
 
 .PHONY: gke-%-load-images
-gke-%-load-images: ;
+gke-%-load-images: 
+	GKE_PROJECT_ID=${GKE_PROJECT_ID} GKE_CLUSTER_ZONE=${GKE_CLUSTER_ZONE} ./scripts/gke/load-images.sh $*.tar
 
 
 .PHONY: gke-docker-login

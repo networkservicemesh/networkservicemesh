@@ -33,7 +33,8 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			HostPID: true,
+			HostPID:     true,
+			HostNetwork: true,
 			Volumes: []v1.Volume{
 				{
 					Name: "workspace",
