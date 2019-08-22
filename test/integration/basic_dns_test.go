@@ -70,7 +70,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app")).Should(gomega.BeTrue())
 }
 
-func TestAlpineWithNsmCoredns(t *testing.T) {
+func TestDNSExternalClient(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -98,7 +98,7 @@ func TestAlpineWithNsmCoredns(t *testing.T) {
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
 
-	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "core", defaultTimeout)
+	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployNSCWebhook(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
 	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app")).Should(gomega.BeTrue())
 }
