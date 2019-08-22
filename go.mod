@@ -45,5 +45,5 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20190313124217-0fa624df11e9 // indirect
 	k8s.io/component-base v0.0.0-20190409093041-e34633071963 // indirect
-	k8s.io/kubernetes v1.14.5
+	k8s.io/kubernetes v1.14.6
 )
