@@ -1,6 +1,6 @@
 module github.com/networkservicemesh/networkservicemesh
 
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190805180924-10488e3b13bd
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190820101407-c8dc69f8a8bf
 
 require (
 	github.com/aws/aws-sdk-go v1.22.0
@@ -35,12 +35,12 @@ require (
 	github.com/uber/jaeger-lib v2.0.0+incompatible // indirect
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
 	google.golang.org/grpc v1.23.0
 	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/api v0.0.0-20190803060717-3ce214556aa9
-	k8s.io/apimachinery v0.0.0-20190802060556-6fa4771c83b3
+	k8s.io/api v0.0.0-20190820101039-d651a1528133
+	k8s.io/apimachinery v0.0.0-20190820100750-21ddcbbef9e1
 	k8s.io/apiserver v0.0.0-20190111033246-d50e9ac5404f // indirect
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20190313124217-0fa624df11e9 // indirect
