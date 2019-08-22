@@ -17,67 +17,68 @@ executions:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
     tags:
-      - basic
-      - recover
-      - usecase
+      - dns
+    #      - basic
+    #      - recover
+    #      - usecase
     root: ./test/integration
     timeout: 300
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
-
-  - name: "Benchmark tests"
-    env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
-    tags:
-      - bench
-    root: ./test/integration
-    timeout: 600
-    cluster-count: 1
-    cluster-selector:
-      - packet
-    kubernetes-env:
-      - KUBECONFIG
-
-  - name: "Example-helm-vpn"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=nsm-system
-      - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/vpn-example
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-vpn
-      make k8s-check
-      make k8s-logs-snapshot
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-deconfig k8s-config
-    on_fail: |
-      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
-      make k8s-logs-snapshot
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-deconfig k8s-config
-
-  - name: "Example-helm-icmp"
-    kind: shell
-    env:
-      - NSM_NAMESPACE=default
-      - CLUSTER_RULES_PREFIX=null
-    kubernetes-env:
-      - KUBECONFIG
-    run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-icmp-responder
-      make k8s-check
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-deconfig k8s-config
-    on_fail: |
-      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-deconfig k8s-config
+#
+#  - name: "Benchmark tests"
+#    env:
+#      - STORE_POD_LOGS_IN_FILES=true
+#      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+#    tags:
+#      - bench
+#    root: ./test/integration
+#    timeout: 600
+#    cluster-count: 1
+#    cluster-selector:
+#      - packet
+#    kubernetes-env:
+#      - KUBECONFIG
+#
+#  - name: "Example-helm-vpn"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=nsm-system
+#      - CLUSTER_RULES_PREFIX=null
+#      - STORE_POD_LOGS_IN_FILES=true
+#      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs/vpn-example
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-deconfig helm-install-nsm
+#      make helm-install-vpn
+#      make k8s-check
+#      make k8s-logs-snapshot
+#      make helm-delete-vpn helm-delete-nsm
+#      make k8s-deconfig k8s-config
+#    on_fail: |
+#      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
+#      make k8s-logs-snapshot
+#      make helm-delete-vpn helm-delete-nsm
+#      make k8s-deconfig k8s-config
+#
+#  - name: "Example-helm-icmp"
+#    kind: shell
+#    env:
+#      - NSM_NAMESPACE=default
+#      - CLUSTER_RULES_PREFIX=null
+#    kubernetes-env:
+#      - KUBECONFIG
+#    run: |
+#      make k8s-deconfig helm-install-nsm
+#      make helm-install-icmp-responder
+#      make k8s-check
+#      make k8s-logs-snapshot
+#      make helm-delete-icmp-responder helm-delete-nsm
+#      make k8s-deconfig k8s-config
+#    on_fail: |
+#      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
+#      make k8s-logs-snapshot
+#      make helm-delete-icmp-responder helm-delete-nsm
+#      make k8s-deconfig k8s-config
