@@ -617,9 +617,6 @@ func (k8s *K8s) CreatePod(template *v1.Pod) *v1.Pod {
 // DeletePods delete pods
 func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 	err := k8s.deletePods(pods...)
-	if err != nil {
-		fmt.Println(err)
-	}
 	k8s.g.Expect(err).To(BeNil())
 
 	for _, pod := range pods {
