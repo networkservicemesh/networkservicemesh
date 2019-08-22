@@ -39,6 +39,7 @@ func NewDNSNsmMonitor(pathToCorefile string, reloadTime time.Duration) NSMApp {
 	if err != nil {
 		logrus.Errorf("An error during initial saving the Corefile: %v, err: %v", corefile.String(), err.Error())
 	}
+	logrus.Infof("Created corefile %v", pathToCorefile)
 	result := NewNSMMonitorApp()
 	corefileUpdater := utils.NewSingleAsyncOperation(func() {
 		file := dnsConfigManager.Caddyfile(pathToCorefile)
@@ -46,6 +47,7 @@ func NewDNSNsmMonitor(pathToCorefile string, reloadTime time.Duration) NSMApp {
 		if err != nil {
 			logrus.Error(err)
 		}
+		logrus.Info("Corefile updated.")
 	})
 	result.SetHandler(&NsmDNSMonitorHandler{
 		corefileUpdater:  corefileUpdater,
@@ -56,11 +58,14 @@ func NewDNSNsmMonitor(pathToCorefile string, reloadTime time.Duration) NSMApp {
 
 //Connected checks connection and l handle all dns configs
 func (h *NsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
+	logrus.Info("NsmDNSMonitor: connected")
 	for _, conn := range conns {
 		if conn.Context == nil {
+			logrus.Infof("conn %v has empty ConnectionContext", conn)
 			continue
 		}
 		if conn.Context.DnsContext == nil {
+			logrus.Infof("conn %v has empty DnsContext", conn)
 			continue
 		}
 		for _, config := range conn.Context.DnsContext.Configs {

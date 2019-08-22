@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"time"
 
@@ -25,28 +26,29 @@ func init() {
 }
 
 func main() {
+	fmt.Println("Starting nsm-coredns...")
+	fmt.Printf("Version: %v\n", version)
 	err := waitForCorefile()
 	if err != nil {
-		panic(err)
+		logrus.Error(err)
 	}
-	fmt.Printf("Version: %v\n", version)
 	coremain.Run()
 }
 
 func waitForCorefile() error {
-	const timeoutDuration = time.Second * 5
-	timeout := time.After(timeoutDuration)
+	const timeoutDuration = time.Second * 15
 	path := pathToCorefile()
+	timeout := time.After(timeoutDuration)
 	for {
 		_, err := os.Stat(path)
-		if os.IsExist(err) {
+		if err == nil {
 			return nil
 		}
 		select {
 		case <-timeout:
 			return errors.New(fmt.Sprintf("corefile not found. Path: %v", path))
-		case <-time.After(time.Millisecond * 500):
-			break
+		default:
+			<-time.After(time.Millisecond * 1000)
 		}
 	}
 }
