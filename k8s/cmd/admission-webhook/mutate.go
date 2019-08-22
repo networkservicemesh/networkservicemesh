@@ -25,15 +25,17 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 		return errorReviewResponse(err)
 	}
 	if err = checkNsmInitContainerDuplication(metaAndSpec.spec); err != nil {
-		logrus.Error(err)
 		return errorReviewResponse(err)
 	}
-	patch := createInitContainerPatch(value, getInitContainerPatchPath(request))
+	patch := createNsmInitContainerPatch(value)
+	patch = append(patch, createDNSPatch(metaAndSpec)...)
 	//append another patches
+	applyDeploymentKind(patch, request.Kind.Kind)
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
 		return errorReviewResponse(err)
 	}
 	logrus.Infof("AdmissionResponse: patch=%v\n", string(patchBytes))
+
 	return createReviewResponse(patchBytes)
 }
