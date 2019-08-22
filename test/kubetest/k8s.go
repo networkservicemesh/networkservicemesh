@@ -25,12 +25,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	pkgerrors "github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
-	pkgerrors "github.com/pkg/errors"
 )
 
 const (
