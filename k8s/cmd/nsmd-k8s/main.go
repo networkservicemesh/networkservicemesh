@@ -67,7 +67,8 @@ func main() {
 		logrus.Fatalln(err)
 	}
 
-	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
+	services := make(map[pluginsapi.PluginCapability]interface{}, 2)
+	services[pluginsapi.PluginCapability_REQUEST] = clusterInfoService
 	services[pluginsapi.PluginCapability_CONNECTION] = clusterInfoService
 
 	if err = plugins.StartPlugin("k8s-plugin", services); err != nil {
