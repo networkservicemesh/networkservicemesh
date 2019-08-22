@@ -10,7 +10,7 @@ import (
 
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -62,14 +62,13 @@ func main() {
 		}
 	}()
 
-	clusterInfoService, err := proxyregistryserver.NewK8sClusterInfoService(config)
+	prefixService, err := prefixcollector.NewPrefixService(config)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 
-	services := make(map[pluginsapi.PluginCapability]interface{}, 2)
-	services[pluginsapi.PluginCapability_REQUEST] = clusterInfoService
-	services[pluginsapi.PluginCapability_CONNECTION] = clusterInfoService
+	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
+	services[pluginsapi.PluginCapability_CONNECTION] = prefixService
 
 	if err = plugins.StartPlugin("k8s-plugin", services); err != nil {
 		logrus.Fatalln("Failed to start K8s Plugin", err)
