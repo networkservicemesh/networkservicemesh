@@ -1,4 +1,4 @@
-// +build basic
+// +build dns
 
 package nsmd_integration_tests
 
