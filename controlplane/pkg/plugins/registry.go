@@ -29,18 +29,18 @@ type PluginRegistry interface {
 
 // PluginManager allows to register a client connection
 type PluginManager interface {
-	Register(string, *grpc.ClientConn) error
+	Register(string, *grpc.ClientConn)
 }
 
 type pluginRegistry struct {
-	sync.RWMutex
-	connections             []*grpc.ClientConn
+	connections             sync.Map
 	connectionPluginManager ConnectionPluginManager
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
 func NewPluginRegistry() PluginRegistry {
 	return &pluginRegistry{
+		connections:             sync.Map{},
 		connectionPluginManager: createConnectionPluginManager(),
 	}
 }
@@ -68,13 +68,18 @@ func (pr *pluginRegistry) Start() error {
 }
 
 func (pr *pluginRegistry) Stop() error {
-	for _, conn := range pr.getConnections() {
-		err := conn.Close()
-		if err != nil {
-			logrus.Errorf("Failed to close connection: %v", err)
+	var rv error
+	pr.connections.Range(func(key interface{}, value interface{}) bool {
+		name := key.(string)
+		conn := value.(*grpc.ClientConn)
+
+		if err := conn.Close(); err != nil {
+			rv = fmt.Errorf("failed to close connection to '%s' plugin: %v", name, err)
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return rv
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
@@ -83,43 +88,35 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 	}
 	logrus.Infof("Registering a plugin: name '%s', endpoint '%s', capabilities %v", info.GetName(), info.GetEndpoint(), info.GetCapabilities())
 
-	conn, err := pr.createConnection(info.GetEndpoint())
+	conn, err := pr.createConnection(info.GetName(), info.GetEndpoint())
 	if err != nil {
 		return nil, err
 	}
+
 	for _, capability := range info.GetCapabilities() {
 		switch capability {
 		case plugins.PluginCapability_CONNECTION:
-			if err := pr.connectionPluginManager.Register(info.GetName(), conn); err != nil {
-				return nil, err
-			}
+			pr.connectionPluginManager.Register(info.GetName(), conn)
+		default:
+			return nil, fmt.Errorf("unsupported capability: %v", capability)
 		}
 	}
+
 	return &empty.Empty{}, nil
 }
 
-func (pr *pluginRegistry) createConnection(endpoint string) (*grpc.ClientConn, error) {
+func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientConn, error) {
 	conn, err := tools.DialUnix(endpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	pr.addConnection(conn)
-	return conn, nil
-}
+	if _, ok := pr.connections.Load(name); ok {
+		return nil, fmt.Errorf("already have a plugin with the same name")
+	}
 
-func (pr *pluginRegistry) addConnection(conn *grpc.ClientConn) {
-	pr.Lock()
-	defer pr.Unlock()
-
-	pr.connections = append(pr.connections, conn)
-}
-
-func (pr *pluginRegistry) getConnections() []*grpc.ClientConn {
-	pr.RLock()
-	defer pr.RUnlock()
-
-	return pr.connections
+	pr.connections.Store(name, conn)
+	return conn, err
 }
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {

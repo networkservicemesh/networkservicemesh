@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
 
 	. "github.com/onsi/gomega"
@@ -207,37 +209,72 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(false, false, true, false), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+	)
+}
+
+// DeployICMPAndCoredns deploys 'icmp-responder-nse' pod with '-routes', '-dns' flag set. Also injected nsm-coredns server.
+func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfigName string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+		DNS:    true,
+	}
+	return deployICMP(k8s, nodeName(node), name, timeout,
+		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())), corednsConfigName),
 	)
 }
 
 // DeployICMPWithConfig deploys 'icmp-responder-nse' pod with '-routes' flag set and given grace period
 func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, gracePeriod int64) *v1.Pod {
-	pod := pods.TestCommonPod(name, icmpCommand(false, false, true, false), node, defaultICMPEnv(k8s.UseIPv6()))
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+	}
+	pod := pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()))
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, nodeName(node), name, timeout, pod)
 }
 
 // DeployDirtyICMP deploys 'icmp-responder-nse' pod with '-dirty' flag set
 func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Dirty: true,
+	}
 	return deployDirtyNSE(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(true, false, false, false), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployNeighborNSE deploys 'icmp-responder-nse' pod with '-neighbors' flag set
 func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Neighbors: true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(false, true, false, false), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
 }
 
 // DeployUpdatingNSE deploys 'icmp-responder-nse' pod with '-update' flag set
 func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Update: true,
+	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, icmpCommand(false, false, false, true), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
 	)
+}
+
+//DeployMonitoringNSCAndCoredns deploys pod of nsm-dns-monitoring-nsc and nsm-coredns
+func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv())
+	pods.InjectNSMCorednsWithSharedFolder(template)
+	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
+	k8s.WaitLogsContains(result, "nsm-coredns", "CoreDNS-", timeout)
+	return result
 }
 
 // DeployNscAndNsmCoredns deploys pod of default client and nsm-coredns
@@ -289,25 +326,6 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 	}
 }
 
-func icmpCommand(dirty, neighbors, routes, update bool) []string {
-	command := []string{"/bin/icmp-responder-nse"}
-
-	if dirty {
-		command = append(command, "-dirty")
-	}
-	if neighbors {
-		command = append(command, "-neighbors")
-	}
-	if routes {
-		command = append(command, "-routes")
-	}
-	if update {
-		command = append(command, "-update")
-	}
-
-	return command
-}
-
 func defaultICMPEnv(useIPv6 bool) map[string]string {
 	if !useIPv6 {
 		return map[string]string{
@@ -357,7 +375,7 @@ func deployICMP(k8s *K8s, nodeName, name string, timeout time.Duration, template
 	icmp := k8s.CreatePod(template)
 	k8s.g.Expect(icmp.Name).To(Equal(name))
 
-	k8s.WaitLogsContains(icmp, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
+	k8s.WaitLogsContains(icmp, template.Spec.Containers[0].Name, "NSE: channel has been successfully advertised, waiting for connection from NSM...", timeout)
 
 	logrus.Printf("ICMP Responder %v started done: %v", name, time.Since(startTime))
 	return icmp
@@ -792,6 +810,20 @@ func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *N
 
 		t.Fail()
 	}
+}
+
+//NSLookup invokes nslookup on pod with concrete hostname. Tries several times
+func NSLookup(k8s *K8s, pod *v1.Pod, hostname string) bool {
+	for i := 0; i < 10; i++ {
+		logrus.Infof("Trying nslookup from container %v host by name %v", pod.Spec.Containers[0].Name, hostname)
+		response, _, _ := k8s.Exec(pod, pod.Spec.Containers[0].Name, "nslookup", hostname)
+		logrus.Infof("Response: %v", response)
+		if strings.Contains(response, "Address") && strings.Contains(response, "Name:") {
+			return true
+		}
+		<-time.After(time.Second)
+	}
+	return false
 }
 
 //PingByHostName tries ping hostname from the first container of pod

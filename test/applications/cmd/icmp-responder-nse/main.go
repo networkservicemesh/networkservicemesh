@@ -17,9 +17,11 @@ package main
 
 import (
 	"context"
-	"flag"
 	"net"
+	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
@@ -35,56 +37,43 @@ import (
 
 var version string
 
-func parseFlags() (bool, bool, bool, bool) {
-	dirty := flag.Bool("dirty", false,
-		"will not delete itself from registry at the end")
-	neighbors := flag.Bool("neighbors", false,
-		"will set all available IpNeighbors to connection.Context")
-	routes := flag.Bool("routes", false,
-		"will set route 8.8.8.8/30 to connection.Context")
-	update := flag.Bool("update", false,
-		"will send update to local.Connection after some time")
-
-	flag.Parse()
-
-	return *dirty, *neighbors, *routes, *update
-}
-
 func main() {
 	logrus.Info("Starting icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
-	dirty, neighbors, routes, update := parseFlags()
 
+	flags := flags.ParseFlags()
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
+	cb := endpoint.NewCompositeEndpointBuilder()
 	monitorEndpoint := endpoint.NewMonitorEndpoint(nil)
-	endpoints := []endpoint.ChainedEndpoint{
-		monitorEndpoint,
-	}
-
-	if neighbors {
+	cb.Append(monitorEndpoint)
+	if flags.Neighbors {
 		logrus.Infof("Adding neighbors endpoint to chain")
-		endpoints = append(endpoints,
+		cb.Append(
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
 	}
 
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
 
-	routeAddr := makeRouteMutator([]string{"8.8.8.8/30"})
+	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
-		routeAddr = makeRouteMutator([]string{"2001:4860:4860::8888/126"})
+		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 
-	if routes {
+	if flags.Routes {
 		logrus.Infof("Adding routes endpoint to chain")
-		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
+		cb.Append(endpoint.NewCustomFuncEndpoint("route", routeAddr))
+	}
+
+	if flags.DNS {
+		logrus.Info("Adding dns endpoint to chain")
+		cb.Append(endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
 	}
 
 	var monitorServer monitor.Server
-	if update {
+	if flags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
-		endpoints = append(endpoints,
+		cb.Append(
 			endpoint.NewCustomFuncEndpoint("update", func(*connection.Connection) error {
 				go func() {
 					<-time.After(10 * time.Second)
@@ -94,11 +83,11 @@ func main() {
 			}))
 	}
 
-	endpoints = append(endpoints,
+	cb.Append(
 		ipamEndpoint,
 		endpoint.NewConnectionEndpoint(nil))
 
-	composite := endpoint.NewCompositeEndpoint(endpoints...)
+	composite := cb.Build()
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
 	if err != nil {
@@ -108,7 +97,7 @@ func main() {
 	monitorServer = monitorEndpoint.GetOpaque(nil).(local.MonitorServer)
 
 	_ = nsmEndpoint.Start()
-	if !dirty {
+	if !flags.Dirty {
 		defer func() { _ = nsmEndpoint.Delete() }()
 	}
 
@@ -116,15 +105,17 @@ func main() {
 	<-c
 }
 
-func makeRouteMutator(routes []string) endpoint.ConnectionMutator {
-	return func(c *connection.Connection) error {
-		for _, r := range routes {
-			c.GetContext().GetIpContext().DstRoutes = append(c.GetContext().GetIpContext().GetDstRoutes(), &connectioncontext.Route{
-				Prefix: r,
-			})
-		}
-		return nil
+func dnsMutator(c *connection.Connection) error {
+	defaultIP := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
+	c.Context.DnsContext = &connectioncontext.DNSContext{
+		Configs: []*connectioncontext.DNSConfig{
+			{
+				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault([]string{defaultIP}),
+				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault([]string{"icmp.app"}),
+			},
+		},
 	}
+	return nil
 }
 
 func ipNeighborMutator(c *connection.Connection) error {
