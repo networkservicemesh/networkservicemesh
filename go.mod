@@ -34,7 +34,7 @@ require (
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v2.0.0+incompatible // indirect
 	github.com/vishvananda/netlink v1.0.0
-	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
+	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
 	google.golang.org/grpc v1.23.0
