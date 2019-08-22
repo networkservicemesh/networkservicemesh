@@ -216,6 +216,11 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		}()
 	}
 
+	conn, err = srv.updateConnection(ctx, conn)
+	if err != nil {
+		return nil, fmt.Errorf("NSM:(7-%v) Failed to update connection: %v", requestID, err)
+	}
+
 	var cc = existingCC
 
 	// 7. do a Request() on NSE and select it.
@@ -371,10 +376,10 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 			}
 		}
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		nseConn, err = srv.updateConnection(ctx, nseConn)
-		if err != nil {
-			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
-		}
+		//nseConn, err = srv.updateConnection(ctx, nseConn)
+		//if err != nil {
+		//	return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
+		//}
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
