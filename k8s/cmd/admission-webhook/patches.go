@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/sdk/client"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
 type patchOperation struct {
