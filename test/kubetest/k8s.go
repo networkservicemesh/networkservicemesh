@@ -407,7 +407,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 					logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
 					logrus.Warnf("Force delete error: %v", err)
 				} else {
-					logrus.Info("The POD %v force deleted", pod.Name)
+					logrus.Infof("The POD %v force deleted", pod.Name)
 				}
 			}
 			logrus.Warnf(`The POD "%s" Deleted %v`, pod.Name, time.Since(st))
