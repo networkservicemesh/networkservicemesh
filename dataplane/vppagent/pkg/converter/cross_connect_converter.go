@@ -105,17 +105,18 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 
 	srcName := srcPrefix + c.GetId()
 
+	var err error
 	if c.GetRemoteSource() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
+		rv, err = NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("error Converting CrossConnect %v: %s", c, err)
 		}
 	}
 
 	if c.GetRemoteDestination() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
+		rv, err = NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("error Converting CrossConnect %v: %s", c, err)
 		}
 	}
 
