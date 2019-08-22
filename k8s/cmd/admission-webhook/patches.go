@@ -36,6 +36,12 @@ func createDNSPatch(tuple *podSpecAndMeta) (patch []patchOperation) {
 				Name:            "nsm-dns-monitor",
 				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-monitor", getTag()),
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Env: []corev1.EnvVar{
+					{
+						Name:  "MONITOR_DNS_CONFIGS_ENV",
+						Value: "true",
+					},
+				},
 				VolumeMounts: []corev1.VolumeMount{{
 					ReadOnly:  false,
 					Name:      "nsm-coredns-volume",
