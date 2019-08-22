@@ -74,6 +74,7 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 }
 
 func (k *k8sClusterInfo) UpdateRequest(ctx context.Context, wrapper *plugins.RequestWrapper) (*plugins.RequestWrapper, error) {
+	logrus.Infof("INTERDOMAIN: UpdateRequest called on req %v", wrapper)
 	for _, mechanism := range wrapper.GetRequest().GetRequestMechanismPreferences() {
 		switch mechanism.GetMechanismType() {
 		case remoteConnection.MechanismType_VXLAN:
@@ -85,10 +86,12 @@ func (k *k8sClusterInfo) UpdateRequest(ctx context.Context, wrapper *plugins.Req
 			}
 		}
 	}
+	logrus.Infof("INTERDOMAIN: UpdateRequest return req %v", wrapper)
 	return wrapper, nil
 }
 
 func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+	logrus.Infof("INTERDOMAIN: UpdateConnection called on conn %v", wrapper)
 	mechanism := wrapper.GetConnection().GetConnectionMechanism()
 	switch mechanism.GetMechanismType() {
 	case remoteConnection.MechanismType_VXLAN:
@@ -99,9 +102,11 @@ func (k *k8sClusterInfo) UpdateConnection(ctx context.Context, wrapper *plugins.
 			mechanism.GetParameters()[remoteConnection.VXLANDstExtIP] = ipConfig.ExternalIP
 		}
 	}
+	logrus.Infof("INTERDOMAIN: UpdateConnection return conn %v", wrapper)
 	return wrapper, nil
 }
 
 func (k *k8sClusterInfo) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+	logrus.Infof("INTERDOMAIN: ValidateConnection called on conn %v", wrapper)
 	return &plugins.ConnectionValidationResult{Status: plugins.ConnectionValidationStatus_SUCCESS}, nil
 }

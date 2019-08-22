@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
@@ -47,12 +48,15 @@ func (cpm *connectionPluginManager) getClients() map[string]plugins.ConnectionPl
 }
 
 func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+	logrus.Infof("PLUGINS: calling UpdateConnection")
 	for name, plugin := range cpm.getClients() {
+		logrus.Infof("PLUGINS: calling UpdateConnection on %s", name)
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
 		var err error
 		wrapper, err = plugin.UpdateConnection(pluginCtx, wrapper)
 		cancel()
+		logrus.Infof("PLUGINS: calling UpdateConnection res: %v %v", wrapper, err)
 
 		if err != nil {
 			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)

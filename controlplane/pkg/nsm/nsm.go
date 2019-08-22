@@ -216,15 +216,19 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		}()
 	}
 
+	logrus.Infof("INTERDOMAIN: Calling updateConnection after step 5: %v", conn)
 	conn, err = srv.updateConnection(ctx, conn)
 	if err != nil {
 		return nil, fmt.Errorf("NSM:(7-%v) Failed to update connection: %v", requestID, err)
 	}
+	logrus.Infof("INTERDOMAIN: Calling updateConnection succeeded: %v", conn)
 
+	logrus.Infof("INTERDOMAIN: existing xconn %v", existingCC)
 	var cc = existingCC
 
 	// 7. do a Request() on NSE and select it.
 	if existingCC == nil || requestNSEOnUpdate {
+		logrus.Infof("INTERDOMAIN: 7.1")
 		// 7.1 try find NSE and do a Request to it.
 		cc, err = srv.findConnectNSE(ctx, requestID, conn, existingCC, dp)
 		if err != nil {
@@ -232,6 +236,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 			return nil, err
 		}
 	} else {
+		logrus.Infof("INTERDOMAIN: 7.2")
 		// 7.2 We do not need to access NSE, since all parameters are same.
 		cc.GetConnectionSource().SetConnectionMechanism(conn.GetConnectionMechanism())
 		cc.GetConnectionSource().SetConnectionState(connection.StateUp)
@@ -245,6 +250,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 7.4 replace currently existing clientConnection or create new if it is absent
+	logrus.Infof("INTERDOMAIN: replace xconn with %v", cc)
 	srv.model.UpdateClientConnection(cc)
 
 	// 8. Remember original Request for Heal cases.
@@ -375,11 +381,14 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 				return nil, err
 			}
 		}
+
 		// 7.1.6 Update Request with exclude_prefixes, etc
+		logrus.Infof("INTERDOMAIN: Calling updateConnection after on step 7.1.6: %v", nseConn)
 		//nseConn, err = srv.updateConnection(ctx, nseConn)
 		//if err != nil {
 		//	return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
 		//}
+		logrus.Infof("INTERDOMAIN: Calling updateConnection succeeded: %v", nseConn)
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
@@ -471,7 +480,10 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	srv.updateConnectionParameters(requestID, nseConn, endpoint)
 
 	// 7.2.6.2.4 create cross connection
+	logrus.Infof("INTERDOMAIN: creating xconn with A - %v", requestConn)
+	logrus.Infof("INTERDOMAIN: creating xconn with B - %v", nseConn)
 	dpAPIConnection := srv.createCrossConnect(requestConn, nseConn, endpoint)
+	logrus.Infof("INTERDOMAIN: created %v", dpAPIConnection)
 	var dpState model.DataplaneState
 	if existingCC != nil {
 		dpState = existingCC.DataplaneState
