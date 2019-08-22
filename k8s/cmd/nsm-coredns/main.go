@@ -53,7 +53,7 @@ func waitForCorefile() error {
 
 func pathToCorefile() string {
 	cl := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	path := cl.String("cof", caddy.DefaultConfigFile, "")
+	path := cl.String("conf", caddy.DefaultConfigFile, "")
 	cl.Parse(os.Args[1:])
 	return *path
 }
