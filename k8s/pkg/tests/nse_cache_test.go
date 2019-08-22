@@ -39,10 +39,10 @@ func (f *fakeRegistry) AddEventHandler(handler cache.ResourceEventHandler) {
 	f.eventHandlers = append(f.eventHandlers, handler)
 }
 
-func (f *fakeRegistry) Add(nse *v1.NetworkServiceEndpoint) {
+func (f *fakeRegistry) Add(obj interface{}) {
 	logrus.Info(len(f.eventHandlers))
 	for _, eh := range f.eventHandlers {
-		eh.OnAdd(nse)
+		eh.OnAdd(obj)
 	}
 }
 
