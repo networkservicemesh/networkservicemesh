@@ -34,7 +34,8 @@ import (
 
 // KernelForwarder instance
 type KernelForwarder struct {
-	common *common.DataplaneConfig
+	common  *common.DataplaneConfig
+	devices map[string]string
 }
 
 // CreateKernelForwarder creates an instance of the KernelForwarder
@@ -120,7 +121,6 @@ func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 		}
 	}()
 	v.configureKernelForwarder()
-	v.startMetrics()
 	return nil
 }
 
@@ -142,4 +142,5 @@ func (v *KernelForwarder) configureKernelForwarder() {
 			},
 		},
 	}
+	v.startMetrics()
 }
