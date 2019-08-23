@@ -51,6 +51,11 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					Name:      "nsm-coredns-volume",
 					MountPath: "/etc/coredns",
 				}},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						"networkservicemesh.io/socket": resource.MustParse("1"),
+					},
+				},
 			},
 		})...)
 	patch = append(patch, addVolume(tuple.spec,
