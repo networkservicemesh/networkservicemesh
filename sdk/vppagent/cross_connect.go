@@ -81,10 +81,7 @@ func (xc *XConnect) Name() string {
 // NewXConnect creates a XConnect
 func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
+	configuration = common.NewNSConfiguration(configuration)
 
 	return &XConnect{
 		Workspace:   configuration.Workspace,

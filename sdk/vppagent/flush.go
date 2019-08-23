@@ -94,11 +94,6 @@ func (f *Flush) Name() string {
 
 // NewFlush creates a Flush
 func NewFlush(configuration *common.NSConfiguration, endpoint string) *Flush {
-	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
 
 	self := &Flush{
 		Endpoint: endpoint,

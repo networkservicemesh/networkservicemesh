@@ -90,10 +90,7 @@ func (cmc *ClientMemifConnect) Name() string {
 // NewClientMemifConnect creates a ClientMemifConnect
 func NewClientMemifConnect(configuration *common.NSConfiguration) *ClientMemifConnect {
 	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
+	configuration = common.NewNSConfiguration(configuration)
 
 	return &ClientMemifConnect{
 		Workspace:   configuration.Workspace,

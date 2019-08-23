@@ -110,11 +110,6 @@ func (a *ACL) Name() string {
 
 // NewACL creates an ACL
 func NewACL(configuration *common.NSConfiguration, rules map[string]string) *ACL {
-	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
 
 	return &ACL{
 		Rules:       rules,

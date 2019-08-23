@@ -109,10 +109,10 @@ func (nsc *NSConfiguration) completeNSConfiguration() {
 		nsc.IPAddress = nsc.getEnv(ipAddressEnv, "IP Address", false)
 	}
 
-	if len(configuration.Routes) == 0 {
-		raw := getEnv(routesEnv, "Routes", false)
+	if len(nsc.Routes) == 0 {
+		raw := nsc.getEnv(routesEnv, "Routes", false)
 		if len(raw) > 1 {
-			configuration.Routes = strings.Split(raw, ",")
+			nsc.Routes = strings.Split(raw, ",")
 		}
 	}
 }
