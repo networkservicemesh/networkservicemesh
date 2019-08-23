@@ -1,12 +1,11 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
-	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 
 	"github.com/caddyserver/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
@@ -28,29 +27,14 @@ func init() {
 func main() {
 	fmt.Println("Starting nsm-coredns...")
 	fmt.Printf("Version: %v\n", version)
-	err := waitForCorefile()
-	if err != nil {
-		logrus.Error(err)
+	path := pathToCorefile()
+	caddyfile := caddyfile.NewCaddyfile(path)
+	caddyfile.WriteScope(".").Write("reload")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		fmt.Println("used default corefile")
+		caddyfile.Save()
 	}
 	coremain.Run()
-}
-
-func waitForCorefile() error {
-	const timeoutDuration = time.Second * 15
-	path := pathToCorefile()
-	timeout := time.After(timeoutDuration)
-	for {
-		_, err := os.Stat(path)
-		if err == nil {
-			return nil
-		}
-		select {
-		case <-timeout:
-			return errors.New(fmt.Sprintf("corefile not found. Path: %v", path))
-		default:
-			<-time.After(time.Millisecond * 1000)
-		}
-	}
 }
 
 func pathToCorefile() string {

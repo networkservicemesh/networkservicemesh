@@ -3,6 +3,8 @@
 package nsmd_integration_tests
 
 import (
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -38,7 +40,16 @@ import (
 //	assert.Expect(kubetest.PingByHostName(k8s, nsc, "my.app")).Should(gomega.BeTrue())
 //}
 
-func TestDNSMonitoringNsc(t *testing.T) {
+func TestRepeat(t *testing.T) {
+	pathToLogs := os.Getenv(kubetest.DefaultLogDir)
+	for i := 0; i < 30; i++ {
+		pathToLogs += "/" + strconv.Itoa(i)
+		os.Setenv(kubetest.DefaultLogDir, pathToLogs)
+		testDNSMonitoringNsc(t)
+	}
+}
+
+func testDNSMonitoringNsc(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -48,6 +59,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 	k8s, err := kubetest.NewK8s(assert, true)
 	assert.Expect(err).Should(gomega.BeNil())
 	defer k8s.Cleanup()
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	nseCorefileContent := `. {
     hosts {
@@ -59,7 +71,6 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	kubetest.DeployICMPAndCoredns(k8s, configs[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
