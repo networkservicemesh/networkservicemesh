@@ -39,10 +39,10 @@ func (f *fakeRegistry) AddEventHandler(handler cache.ResourceEventHandler) {
 	f.eventHandlers = append(f.eventHandlers, handler)
 }
 
-func (f *fakeRegistry) Add(nse *v1.NetworkServiceEndpoint) {
+func (f *fakeRegistry) Add(obj interface{}) {
 	logrus.Info(len(f.eventHandlers))
 	for _, eh := range f.eventHandlers {
-		eh.OnAdd(nse)
+		eh.OnAdd(obj)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestK8sRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -74,7 +74,7 @@ func TestK8sRegistryAdd(t *testing.T) {
 func TestNseCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 	fakeRegistry := fakeRegistry{}
-	c := resource_cache.NewNetworkServiceEndpointCache()
+	c := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := c.Start(&fakeRegistry)
 	defer stopFunc()
@@ -102,7 +102,7 @@ func TestNsmdRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -121,7 +121,7 @@ func TestRegistryDelete(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resource_cache.NewNetworkServiceEndpointCache("")
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 

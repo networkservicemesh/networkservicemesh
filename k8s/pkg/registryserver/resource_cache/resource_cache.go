@@ -22,7 +22,9 @@ type cacheConfig struct {
 	resourceUpdatedFunc func(obj interface{})
 	resourceGetFunc     func(key string) interface{}
 	resourceDeletedFunc func(key string)
+	namespaceFunc       func(obj interface{}) string
 	resourceType        string
+	namespace           string
 }
 
 type abstractResourceCache struct {
@@ -37,6 +39,13 @@ func newAbstractResourceCache(config cacheConfig) abstractResourceCache {
 		eventCh: make(chan resourceEvent, defaultChannelSize),
 		config:  config,
 	}
+}
+
+func (c *cacheConfig) checkNamespace(obj interface{}) bool {
+	if c.namespaceFunc == nil {
+		return true
+	}
+	return c.namespace == c.namespaceFunc(obj)
 }
 
 func (c *abstractResourceCache) start(informerFactory externalversions.SharedInformerFactory) (func(), error) {
@@ -105,6 +114,9 @@ func (c *abstractResourceCache) addEventHandlers(informer cache.SharedInformer) 
 	var addFunc func(obj interface{})
 	if c.config.resourceAddedFunc != nil {
 		addFunc = func(obj interface{}) {
+			if c.config.namespaceFunc != nil && !c.config.checkNamespace(obj) {
+				return
+			}
 			logrus.Infof("Add from k8s-registry: %v", reflect.TypeOf(obj))
 			c.add(obj)
 		}
@@ -113,6 +125,9 @@ func (c *abstractResourceCache) addEventHandlers(informer cache.SharedInformer) 
 	var updateFunc func(old interface{}, new interface{})
 	if c.config.resourceUpdatedFunc != nil {
 		updateFunc = func(old interface{}, new interface{}) {
+			if c.config.namespaceFunc != nil && !c.config.checkNamespace(new) {
+				return
+			}
 			logrus.Infof("Update from k8s-registry: %v", reflect.TypeOf(old))
 			if _, ok := old.(*v1.NetworkServiceManager); !ok {
 				return
@@ -126,6 +141,9 @@ func (c *abstractResourceCache) addEventHandlers(informer cache.SharedInformer) 
 	var deleteFunc func(obj interface{})
 	if c.config.resourceDeletedFunc != nil {
 		deleteFunc = func(obj interface{}) {
+			if c.config.namespaceFunc != nil && !c.config.checkNamespace(obj) {
+				return
+			}
 			logrus.Infof("Delete from k8s-registry: %v", reflect.TypeOf(obj))
 			c.delete(c.config.keyFunc(obj))
 		}
