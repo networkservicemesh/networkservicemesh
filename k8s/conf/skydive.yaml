@@ -116,7 +116,7 @@ metadata:
 data:
   skydive.yml: |
     logging:
-      level: DEBUG
+      level: INFO
 
     agent:
       topology:
