@@ -19,10 +19,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
@@ -48,7 +49,7 @@ type NSConfiguration struct {
 	TracerEnabled          bool
 	MechanismType          string
 	IPAddress              string
-	Routes             []string
+	Routes                 []string
 	viperConfig            *viper.Viper
 }
 

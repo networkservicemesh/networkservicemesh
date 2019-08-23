@@ -324,22 +324,22 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 func defaultICMPEnv(useIPv6 bool) map[string]string {
 	if !useIPv6 {
 		return map[string]string{
-			"ENDPOINT_NETWORK_SERVICE":   "icmp-responder",
-			"ENDPOINT_LABELS": "app=icmp",
-			"IP_ADDRESS":           "172.16.1.0/24",
+			"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+			"ENDPOINT_LABELS":          "app=icmp",
+			"IP_ADDRESS":               "172.16.1.0/24",
 		}
 	}
 	return map[string]string{
-		"ENDPOINT_NETWORK_SERVICE":   "icmp-responder",
-		"ENDPOINT_LABELS": "app=icmp",
-		"IP_ADDRESS":           "100::/64",
+		"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+		"ENDPOINT_LABELS":          "app=icmp",
+		"IP_ADDRESS":               "100::/64",
 	}
 }
 
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
-		"CLIENT_LABELS": "app=icmp",
-		"CLIENT_NETWORK_SERVICE":   "icmp-responder",
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": "icmp-responder",
 	}
 }
 
