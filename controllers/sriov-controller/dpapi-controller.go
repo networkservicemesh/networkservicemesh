@@ -81,7 +81,7 @@ func newServiceInstanceController(configCh chan configMessage, stopCh, doneCh ch
 
 // Run starts Network Service instance and wait for configuration messages
 func (s *serviceInstanceController) Run() {
-	logrus.Info("Started service instance controller, waiting for confiugration to register with the kubelet..")
+	logrus.Info("Started service instance controller, waiting for configuration to register with the kubelet..")
 	for {
 		select {
 		case <-s.stopCh:
@@ -100,7 +100,7 @@ func (s *serviceInstanceController) Run() {
 			case operationDeleteEntry:
 				s.processDeleteVF(msg)
 			default:
-				logrus.Errorf("error, recevied message with unknown operation %d", msg.op)
+				logrus.Errorf("error, received message with unknown operation %d", msg.op)
 			}
 		}
 	}
