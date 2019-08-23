@@ -16,4 +16,5 @@ message PluginInfo {
 
 service PluginRegistry {
     rpc Register (PluginInfo) returns (google.protobuf.Empty);
+    rpc RequestLiveness (stream google.protobuf.Empty) returns (stream google.protobuf.Empty);
 }

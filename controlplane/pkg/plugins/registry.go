@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	livenessInterval  = 5 * time.Second
 	pluginCallTimeout = 100 * time.Second
 )
 
@@ -117,6 +118,15 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 
 	pr.connections.Store(name, conn)
 	return conn, err
+}
+
+func (pr *pluginRegistry) RequestLiveness(liveness plugins.PluginRegistry_RequestLivenessServer) error {
+	for {
+		if err := liveness.SendMsg(&empty.Empty{}); err != nil {
+			return err
+		}
+		time.Sleep(livenessInterval)
+	}
 }
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {
