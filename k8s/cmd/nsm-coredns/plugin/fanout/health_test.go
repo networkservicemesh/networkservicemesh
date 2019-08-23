@@ -18,6 +18,7 @@ func TestHealth(t *testing.T) {
 			atomic.AddUint32(&i, 1)
 		}
 		ret := new(dns.Msg)
+		ret.Answer = []dns.RR{makeRecordA("example.org 3600	IN	A 10.0.0.1")}
 		ret.SetReply(r)
 		w.WriteMsg(ret)
 	})
