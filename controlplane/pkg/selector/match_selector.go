@@ -50,7 +50,7 @@ func isSubset(A, B map[string]string) bool {
 }
 
 func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
-	logrus.Infof("Matching ednpoint for labels %v", nsLabels)
+	logrus.Infof("Matching endpoint for labels %v", nsLabels)
 	//Iterate through the matches
 	for _, match := range ns.GetMatches() {
 		// All match source selector labels should be present in the requested labels map
