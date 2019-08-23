@@ -14,7 +14,7 @@ import (
 func TestNsCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 
-	c := resource_cache.NewNetworkServiceCache()
+	c := resource_cache.NewNetworkServiceCache("")
 	fakeRegistry := fakeRegistry{}
 
 	stopFunc, err := c.Start(&fakeRegistry)

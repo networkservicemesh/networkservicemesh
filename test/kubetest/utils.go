@@ -1,6 +1,7 @@
 package kubetest
 
 import (
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -459,7 +460,7 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 
 	block := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Bytes: x509.MarshalPKCS1PrivateKey(key.(*rsa.PrivateKey)),
 	}
 	keyPem := pem.EncodeToMemory(block)
 
@@ -511,7 +512,7 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 				"app": "nsm-admission-webhook",
 			},
 		},
-		Webhooks: []arv1beta1.Webhook{
+		Webhooks: []arv1beta1.MutatingWebhook{
 			{
 				Name: "admission-webhook.networkservicemesh.io",
 				ClientConfig: arv1beta1.WebhookClientConfig{

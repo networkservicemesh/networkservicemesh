@@ -39,6 +39,10 @@ func TestBasicDns(t *testing.T) {
 }
 
 func TestDNSMonitoringNsc(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("broken")
+		return
+	}
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return

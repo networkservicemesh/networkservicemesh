@@ -17,7 +17,8 @@ type NetworkServiceManagerCache struct {
 	networkServiceManagers map[string]*v1.NetworkServiceManager
 }
 
-func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
+//NewNetworkServiceManagerCache creates cache for network service managers
+func NewNetworkServiceManagerCache(ns string) *NetworkServiceManagerCache {
 	rv := &NetworkServiceManagerCache{
 		networkServiceManagers: make(map[string]*v1.NetworkServiceManager),
 	}
@@ -28,6 +29,8 @@ func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
 		resourceUpdatedFunc: rv.resourceUpdated,
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsmResource,
+		namespaceFunc:       getNsmNamespace,
+		namespace:           ns,
 	}
 	rv.cache = newAbstractResourceCache(config)
 	return rv
@@ -101,4 +104,8 @@ func (c *NetworkServiceManagerCache) resourceGet(key string) interface{} {
 
 func getNsmKey(obj interface{}) string {
 	return obj.(*v1.NetworkServiceManager).Name
+}
+
+func getNsmNamespace(obj interface{}) string {
+	return obj.(*v1.NetworkServiceManager).Namespace
 }
