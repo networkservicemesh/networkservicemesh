@@ -3,6 +3,7 @@ package fanout
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -109,6 +110,7 @@ func connect(ctx context.Context, client *fanoutClient, req request.Request, res
 		if ctx.Err() != nil {
 			return
 		}
+		fmt.Printf("fanout debug: resp %v", resp)
 		if err == nil {
 			result <- connectResult{
 				client:   client,

@@ -3,8 +3,6 @@
 package nsmd_integration_tests
 
 import (
-	"os"
-	"strconv"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -41,15 +39,12 @@ import (
 //}
 
 func TestRepeat(t *testing.T) {
-	pathToLogs := os.Getenv(kubetest.DefaultLogDir)
-	for i := 0; i < 30; i++ {
-		pathToLogs += "/" + strconv.Itoa(i)
-		os.Setenv(kubetest.DefaultLogDir, pathToLogs)
-		testDNSMonitoringNsc(t)
+	for i := 0; i < 15; i++ {
+		TestDNSMonitoringNsc(t)
 	}
 }
 
-func testDNSMonitoringNsc(t *testing.T) {
+func TestDNSMonitoringNsc(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -74,6 +69,7 @@ func testDNSMonitoringNsc(t *testing.T) {
 
 	kubetest.DeployICMPAndCoredns(k8s, configs[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
+	k8s.WaitLogsContains(nsc, "nsm-coredns", "Reloading complete", defaultTimeout)
 	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app")).Should(gomega.BeTrue())
 }
 
