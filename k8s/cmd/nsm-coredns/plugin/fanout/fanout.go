@@ -111,7 +111,7 @@ func connect(ctx context.Context, client *fanoutClient, req request.Request, res
 			return
 		}
 		fmt.Printf("fanout debug: resp %v", resp)
-		if err == nil && len(resp.Answer) > 0 {
+		if err == nil && resp != nil && len(resp.Answer) > 0 {
 			result <- connectResult{
 				client:   client,
 				response: resp,
