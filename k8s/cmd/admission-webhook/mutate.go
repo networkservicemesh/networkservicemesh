@@ -28,7 +28,7 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 		return errorReviewResponse(err)
 	}
 	patch := createNsmInitContainerPatch(value)
-	patch = append(patch, createDNSPatch(metaAndSpec)...)
+	patch = append(patch, createDNSPatch(metaAndSpec, value)...)
 	//append another patches
 	applyDeploymentKind(patch, request.Kind.Kind)
 	patchBytes, err := json.Marshal(patch)

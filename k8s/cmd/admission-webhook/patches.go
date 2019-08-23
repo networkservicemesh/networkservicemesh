@@ -15,7 +15,7 @@ type patchOperation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
-func createDNSPatch(tuple *podSpecAndMeta) (patch []patchOperation) {
+func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patchOperation) {
 	patch = append(patch, addContainer(tuple.spec,
 		[]corev1.Container{
 			{
@@ -40,6 +40,10 @@ func createDNSPatch(tuple *podSpecAndMeta) (patch []patchOperation) {
 					{
 						Name:  "MONITOR_DNS_CONFIGS_ENV",
 						Value: "true",
+					},
+					{
+						Name:  client.AnnotationEnv,
+						Value: annotationValue,
 					},
 				},
 				VolumeMounts: []corev1.VolumeMount{{
@@ -69,8 +73,7 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 	envVals := []corev1.EnvVar{{
 		Name:  client.AnnotationEnv,
 		Value: annotationValue,
-	},
-	}
+	}}
 	jaegerHost := getJaegerHost()
 	if jaegerHost != "" {
 		envVals = append(envVals,
