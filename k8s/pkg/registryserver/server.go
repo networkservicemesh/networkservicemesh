@@ -6,7 +6,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
@@ -18,7 +18,7 @@ func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	server := tools.NewServer()
 
 	cache := NewRegistryCache(clientset, &ResourceFilterConfig{
-		NetworkServiceManagerPolicy: resource_cache.FilterByNamespacePolicy(namespace.GetNamespace(), func(resource interface{}) string {
+		NetworkServiceManagerPolicy: resourcecache.FilterByNamespacePolicy(namespace.GetNamespace(), func(resource interface{}) string {
 			nsm := resource.(*v1alpha1.NetworkServiceManager)
 			return nsm.Namespace
 		}),

@@ -1,4 +1,4 @@
-package resource_cache
+package resourcecache
 
 import "github.com/sirupsen/logrus"
 

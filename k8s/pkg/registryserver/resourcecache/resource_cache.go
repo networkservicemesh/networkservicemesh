@@ -1,4 +1,4 @@
-package resource_cache
+package resourcecache
 
 import (
 	"reflect"

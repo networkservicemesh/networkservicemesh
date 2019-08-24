@@ -2,6 +2,7 @@ package registryserver
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -11,7 +12,6 @@ import (
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 )
 
 type RegistryCache interface {
@@ -31,9 +31,9 @@ type RegistryCache interface {
 }
 
 type registryCacheImpl struct {
-	networkServiceCache         *resource_cache.NetworkServiceCache
-	networkServiceEndpointCache *resource_cache.NetworkServiceEndpointCache
-	networkServiceManagerCache  *resource_cache.NetworkServiceManagerCache
+	networkServiceCache         *resourcecache.NetworkServiceCache
+	networkServiceEndpointCache *resourcecache.NetworkServiceEndpointCache
+	networkServiceManagerCache  *resourcecache.NetworkServiceManagerCache
 	clientset                   *nsmClientset.Clientset
 	stopFuncs                   []func()
 	nsmNamespace                string
@@ -41,20 +41,20 @@ type registryCacheImpl struct {
 
 //ResourceFilterConfig means filter resource config for nsm custom resources
 type ResourceFilterConfig struct {
-	NetworkServiceEndpointFilterPolicy resource_cache.CacheFilterPolicy
-	NetworkServiceManagerPolicy        resource_cache.CacheFilterPolicy
-	NetworkServiceFilterPolicy         resource_cache.CacheFilterPolicy
+	NetworkServiceEndpointFilterPolicy resourcecache.CacheFilterPolicy
+	NetworkServiceManagerPolicy        resourcecache.CacheFilterPolicy
+	NetworkServiceFilterPolicy         resourcecache.CacheFilterPolicy
 }
 
 func (conf *ResourceFilterConfig) setup() {
 	if conf.NetworkServiceEndpointFilterPolicy == nil {
-		conf.NetworkServiceEndpointFilterPolicy = resource_cache.NoFilterPolicy()
+		conf.NetworkServiceEndpointFilterPolicy = resourcecache.NoFilterPolicy()
 	}
 	if conf.NetworkServiceManagerPolicy == nil {
-		conf.NetworkServiceManagerPolicy = resource_cache.NoFilterPolicy()
+		conf.NetworkServiceManagerPolicy = resourcecache.NoFilterPolicy()
 	}
 	if conf.NetworkServiceFilterPolicy == nil {
-		conf.NetworkServiceFilterPolicy = resource_cache.NoFilterPolicy()
+		conf.NetworkServiceFilterPolicy = resourcecache.NoFilterPolicy()
 	}
 }
 
@@ -65,9 +65,9 @@ func NewRegistryCache(cs *nsmClientset.Clientset, conf *ResourceFilterConfig) Re
 	}
 	conf.setup()
 	return &registryCacheImpl{
-		networkServiceCache:         resource_cache.NewNetworkServiceCache(conf.NetworkServiceFilterPolicy),
-		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(conf.NetworkServiceEndpointFilterPolicy),
-		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(conf.NetworkServiceManagerPolicy),
+		networkServiceCache:         resourcecache.NewNetworkServiceCache(conf.NetworkServiceFilterPolicy),
+		networkServiceEndpointCache: resourcecache.NewNetworkServiceEndpointCache(conf.NetworkServiceEndpointFilterPolicy),
+		networkServiceManagerCache:  resourcecache.NewNetworkServiceManagerCache(conf.NetworkServiceManagerPolicy),
 		clientset:                   cs,
 		stopFuncs:                   make([]func(), 0, 3),
 		nsmNamespace:                namespace.GetNamespace(),

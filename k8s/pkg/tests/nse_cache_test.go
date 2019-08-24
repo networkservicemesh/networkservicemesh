@@ -10,14 +10,14 @@ import (
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 )
 
 func TestK8sRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache(resource_cache.NoFilterPolicy())
+	nseCache := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -35,7 +35,7 @@ func TestK8sRegistryAdd(t *testing.T) {
 func TestNseCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 	fakeRegistry := fakeRegistry{}
-	c := resource_cache.NewNetworkServiceEndpointCache(resource_cache.NoFilterPolicy())
+	c := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry)
 	defer stopFunc()
@@ -64,7 +64,7 @@ func TestNsmdRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache(resource_cache.NoFilterPolicy())
+	nseCache := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -83,7 +83,7 @@ func TestRegistryDelete(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache(resource_cache.NoFilterPolicy())
+	nseCache := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -108,7 +108,7 @@ func TestRegistryDelete(t *testing.T) {
 	g.Expect(len(endpointList3)).To(Equal(0))
 }
 
-func getEndpoints(nseCache *resource_cache.NetworkServiceEndpointCache,
+func getEndpoints(nseCache *resourcecache.NetworkServiceEndpointCache,
 	networkServiceName string, expectedLength int) []*v1.NetworkServiceEndpoint {
 	var endpointList []*v1.NetworkServiceEndpoint
 	for attempt := 0; attempt < 10; <-time.After(300 * time.Millisecond) {

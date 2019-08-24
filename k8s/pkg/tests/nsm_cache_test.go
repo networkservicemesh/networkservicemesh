@@ -8,12 +8,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 )
 
 func TestNsmCacheGetNil(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache(resource_cache.NoFilterPolicy())
+	c := resourcecache.NewNetworkServiceManagerCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -25,7 +25,7 @@ func TestNsmCacheGetNil(t *testing.T) {
 
 func TestNsmCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache(resource_cache.NoFilterPolicy())
+	c := resourcecache.NewNetworkServiceManagerCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -60,7 +60,7 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 
 func TestNSMCacheAddResourceWithNamespace(t *testing.T) {
 	g := NewWithT(t)
-	nsmCache := resource_cache.NewNetworkServiceManagerCache(resource_cache.FilterByNamespacePolicy("1", func(resource interface{}) string {
+	nsmCache := resourcecache.NewNetworkServiceManagerCache(resourcecache.FilterByNamespacePolicy("1", func(resource interface{}) string {
 		return resource.(*v1.NetworkServiceManager).Namespace
 	}))
 	reg := fakeRegistry{}
@@ -77,7 +77,7 @@ func TestNSMCacheAddResourceWithNamespace(t *testing.T) {
 
 func TestNsmCacheStartWithInit(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache(resource_cache.NoFilterPolicy())
+	c := resourcecache.NewNetworkServiceManagerCache(resourcecache.NoFilterPolicy())
 
 	init := []v1.NetworkServiceManager{
 		{

@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 	"testing"
 	"time"
 
@@ -8,13 +9,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
 )
 
 func TestNsCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 
-	c := resource_cache.NewNetworkServiceCache(resource_cache.NoFilterPolicy())
+	c := resourcecache.NewNetworkServiceCache(resourcecache.NoFilterPolicy())
 	fakeRegistry := fakeRegistry{}
 
 	stopFunc, err := c.Start(&fakeRegistry)
