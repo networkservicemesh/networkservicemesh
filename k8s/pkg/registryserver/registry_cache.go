@@ -39,12 +39,35 @@ type registryCacheImpl struct {
 	nsmNamespace                string
 }
 
-func NewRegistryCache(cs *nsmClientset.Clientset) RegistryCache {
-	ns := namespace.GetNamespace()
+//ResourceFilterConfig means filter resource config for nsm custom resources
+type ResourceFilterConfig struct {
+	NetworkServiceEndpointFilterPolicy resource_cache.CacheFilterPolicy
+	NetworkServiceManagerPolicy        resource_cache.CacheFilterPolicy
+	NetworkServiceFilterPolicy         resource_cache.CacheFilterPolicy
+}
+
+func (conf *ResourceFilterConfig) setup() {
+	if conf.NetworkServiceEndpointFilterPolicy == nil {
+		conf.NetworkServiceEndpointFilterPolicy = resource_cache.NoFilterPolicy()
+	}
+	if conf.NetworkServiceManagerPolicy == nil {
+		conf.NetworkServiceManagerPolicy = resource_cache.NoFilterPolicy()
+	}
+	if conf.NetworkServiceFilterPolicy == nil {
+		conf.NetworkServiceFilterPolicy = resource_cache.NoFilterPolicy()
+	}
+}
+
+//NewRegistryCache creates new registry cache
+func NewRegistryCache(cs *nsmClientset.Clientset, conf *ResourceFilterConfig) RegistryCache {
+	if conf == nil {
+		conf = &ResourceFilterConfig{}
+	}
+	conf.setup()
 	return &registryCacheImpl{
-		networkServiceCache:         resource_cache.NewNetworkServiceCache(ns),
-		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(ns),
-		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(ns),
+		networkServiceCache:         resource_cache.NewNetworkServiceCache(conf.NetworkServiceFilterPolicy),
+		networkServiceEndpointCache: resource_cache.NewNetworkServiceEndpointCache(conf.NetworkServiceEndpointFilterPolicy),
+		networkServiceManagerCache:  resource_cache.NewNetworkServiceManagerCache(conf.NetworkServiceManagerPolicy),
 		clientset:                   cs,
 		stopFuncs:                   make([]func(), 0, 3),
 		nsmNamespace:                namespace.GetNamespace(),

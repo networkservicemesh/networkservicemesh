@@ -14,7 +14,7 @@ import (
 func TestNsCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 
-	c := resource_cache.NewNetworkServiceCache("")
+	c := resource_cache.NewNetworkServiceCache(resource_cache.NoFilterPolicy())
 	fakeRegistry := fakeRegistry{}
 
 	stopFunc, err := c.Start(&fakeRegistry)
@@ -35,5 +35,5 @@ func TestNsCacheConcurrentModification(t *testing.T) {
 	})
 	defer stopWrite()
 
-	time.Sleep(time.Second * 5)
+	<-time.After(time.Second)
 }

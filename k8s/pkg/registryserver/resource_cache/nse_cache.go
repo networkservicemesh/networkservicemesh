@@ -19,7 +19,7 @@ type NetworkServiceEndpointCache struct {
 }
 
 //NewNetworkServiceEndpointCache creates cache for network service endpoints
-func NewNetworkServiceEndpointCache(ns string) *NetworkServiceEndpointCache {
+func NewNetworkServiceEndpointCache(policy CacheFilterPolicy) *NetworkServiceEndpointCache {
 	rv := &NetworkServiceEndpointCache{
 		nseByNs:                 make(map[string][]*v1.NetworkServiceEndpoint),
 		networkServiceEndpoints: make(map[string]*v1.NetworkServiceEndpoint),
@@ -30,9 +30,8 @@ func NewNetworkServiceEndpointCache(ns string) *NetworkServiceEndpointCache {
 		resourceDeletedFunc: rv.resourceDeleted,
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NseResource,
-		namespace:           ns,
 	}
-	rv.cache = newAbstractResourceCache(config)
+	rv.cache = newAbstractResourceCache(config, policy)
 	return rv
 }
 

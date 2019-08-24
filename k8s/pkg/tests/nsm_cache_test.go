@@ -13,7 +13,7 @@ import (
 
 func TestNsmCacheGetNil(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache("")
+	c := resource_cache.NewNetworkServiceManagerCache(resource_cache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -25,7 +25,7 @@ func TestNsmCacheGetNil(t *testing.T) {
 
 func TestNsmCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache("")
+	c := resource_cache.NewNetworkServiceManagerCache(resource_cache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -60,7 +60,9 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 
 func TestNSMCacheAddResourceWithNamespace(t *testing.T) {
 	g := NewWithT(t)
-	nsmCache := resource_cache.NewNetworkServiceManagerCache("1")
+	nsmCache := resource_cache.NewNetworkServiceManagerCache(resource_cache.FilterByNamespacePolicy("1", func(resource interface{}) string {
+		return resource.(*v1.NetworkServiceManager).Namespace
+	}))
 	reg := fakeRegistry{}
 
 	stopFunc, err := nsmCache.Start(&reg)
@@ -75,7 +77,7 @@ func TestNSMCacheAddResourceWithNamespace(t *testing.T) {
 
 func TestNsmCacheStartWithInit(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache("")
+	c := resource_cache.NewNetworkServiceManagerCache(resource_cache.NoFilterPolicy())
 
 	init := []v1.NetworkServiceManager{
 		{
