@@ -1,4 +1,4 @@
-package resource_cache
+package resourcecache
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ type NetworkServiceCache struct {
 }
 
 //NewNetworkServiceCache creates cache for network services
-func NewNetworkServiceCache(ns string) *NetworkServiceCache {
+func NewNetworkServiceCache(policy CacheFilterPolicy) *NetworkServiceCache {
 	rv := &NetworkServiceCache{
 		networkServices: make(map[string]*v1.NetworkService),
 	}
@@ -29,9 +29,8 @@ func NewNetworkServiceCache(ns string) *NetworkServiceCache {
 		resourceDeletedFunc: rv.resourceDeleted,
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsResource,
-		namespace:           ns,
 	}
-	rv.cache = newAbstractResourceCache(config)
+	rv.cache = newAbstractResourceCache(config, policy)
 	return rv
 }
 
