@@ -2,6 +2,7 @@ package registryserver
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
 	"github.com/sirupsen/logrus"

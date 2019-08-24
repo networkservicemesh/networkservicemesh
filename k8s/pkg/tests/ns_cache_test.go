@@ -1,9 +1,10 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
