@@ -7,7 +7,7 @@ EXIT_VAL=0
 for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     if [[ ${nsc} == vppagent-* ]]; then
-        for ip in $(${kubectl} exec -it "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do
+        for ip in $(${kubectl} exec "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do
             if [[ "${ip}" == 10.20.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
                 nextOp=$((lastSegment + 1))
@@ -22,8 +22,8 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
 
             if [ -n "${targetIp}" ]; then
                 # Prime the pump, its normal to get a packet loss due to arp
-                ${kubectl} exec -it "${nsc}" -- vppctl ping "${targetIp}" repeat 1 > /dev/null 2>&1
-                OUTPUT=$(${kubectl} exec -it "${nsc}" -- vppctl ping "${targetIp}" repeat 3)
+                ${kubectl} exec "${nsc}" -- vppctl ping "${targetIp}" repeat 1 > /dev/null 2>&1
+                OUTPUT=$(${kubectl} exec "${nsc}" -- vppctl ping "${targetIp}" repeat 3)
                 echo "${OUTPUT}"
                 RESULT=$(echo "${OUTPUT}"| grep "packet loss" | awk '{print $6}')
                 if [ "${RESULT}" = "0%" ]; then
@@ -38,7 +38,7 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
             fi
         done
     else
-        for ip in $(${kubectl} exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
+        for ip in $(${kubectl} exec "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
             if [[ "${ip}" == 10.20.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
                 nextOp=$((lastSegment + 1))
@@ -52,7 +52,7 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
             fi
 
             if [ -n "${targetIp}" ]; then
-                if ${kubectl} exec -it "${nsc}" -- ping -c 1 "${targetIp}" ; then
+                if ${kubectl} exec "${nsc}" -- ping -c 1 "${targetIp}" ; then
                     echo "NSC ${nsc} with IP ${ip} pinging ${endpointName} TargetIP: ${targetIp} successful"
                     PingSuccess="true"
                 else
