@@ -37,11 +37,6 @@ func TestInterdomainNSMHealRemoteDieNSMD(t *testing.T) {
 }
 
 func TestInterdomainNSMHealRemoteDieNSMD_NSE(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("Skip")
-		return
-	}
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
