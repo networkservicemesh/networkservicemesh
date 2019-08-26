@@ -15,7 +15,7 @@ const (
 	//DefaultPathToCorefile contains default path to Corefile
 	DefaultPathToCorefile = "/etc/coredns/Corefile"
 	//DefaultReloadCorefileTime means time to reload Corefile
-	DefaultReloadCorefileTime = time.Second * 5
+	DefaultReloadCorefileTime = time.Second
 	defaultK8sDNSServer       = "10.96.0.10"
 )
 
