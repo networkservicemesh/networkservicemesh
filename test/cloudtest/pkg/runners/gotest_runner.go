@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
@@ -21,6 +23,11 @@ func (runner *goTestRunner) Run(timeoutCtx context.Context, env []string, writer
 	logger := func(s string) {}
 	cmdEnv := append(runner.envMgr.GetProcessedEnv(), env...)
 	_, err := utils.RunCommand(timeoutCtx, runner.cmdLine, logger, writer, cmdEnv, map[string]string{}, false)
+
+	// If go test finished with error we have to clean up created namespaces manually
+	if err != nil {
+		cleanupCreatedNamespaces(cmdEnv, writer)
+	}
 	return err
 }
 
@@ -40,5 +47,38 @@ func NewGoTestRunner(ids string, test *model.TestEntry, timeout int64) TestRunne
 		test:    test,
 		cmdLine: cmdLine,
 		envMgr:  envMgr,
+	}
+}
+
+func cleanupCreatedNamespaces(env []string, writer *bufio.Writer) {
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	logger := func(s string) {}
+
+	curNamespace := "default"
+	for _, k := range env {
+		key, value, err := utils.ParseVariable(k)
+		if err == nil {
+			if key == "NSM_NAMESPACE" {
+				curNamespace = value
+			}
+		}
+	}
+
+	cCmd := "kubectl get ns -o custom-columns=NAME:.metadata.name"
+	namespaces, err := utils.RunCommand(timeoutCtx, cCmd, logger, writer, env, map[string]string{}, true)
+	nss := strings.Split(namespaces, "\n")
+
+	if err == nil {
+		for _, ns := range nss {
+			if strings.Contains(ns, curNamespace) {
+				cCmd = fmt.Sprintf("kubectl delete ns %s", ns)
+				_, err = utils.RunCommand(timeoutCtx, cCmd, logger, writer, env, map[string]string{}, true)
+				if err != nil {
+					// Ignore error
+				}
+			}
+		}
 	}
 }
