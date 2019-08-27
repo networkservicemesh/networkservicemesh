@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ func TestNSMDRestart1(t *testing.T) {
 
 	// We need to restart server
 	storage2 := newSharedStorage()
-	srv = newNSMDFullServerAt("nsm2", storage2, srv.rootDir)
+	srv = newNSMDFullServerAt(context.Background(), "nsm2", storage2, srv.rootDir)
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 	endpoints2 := srv.testModel.GetEndpointsByNetworkService("test_nse")
 

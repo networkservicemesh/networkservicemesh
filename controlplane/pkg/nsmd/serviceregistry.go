@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -79,7 +81,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 }
 
 func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	nseConn, err := tools.DialUnix(endpoint.SocketLocation)
+	nseConn, err := tools.DialContextUnix(ctx, endpoint.SocketLocation)
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
@@ -89,8 +91,8 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 	return client, nseConn, nil
 }
 
-func (impl *nsmdServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {
-	dataplaneConn, err := tools.DialUnix(dataplane.SocketLocation)
+func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {
+	dataplaneConn, err := tools.DialContextUnix(ctx, dataplane.SocketLocation)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,8 +208,13 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	}
 }
 
-func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(mdl model.Model, timeout time.Duration) error {
+func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
 	logrus.Info("Waiting for dataplane available...")
+
+	if opentracing.GlobalTracer() != nil {
+		span, _ := opentracing.StartSpanFromContext(ctx, "wait-dataplane")
+		defer span.Finish()
+	}
 	st := time.Now()
 	checkConfigured := func(dp *model.Dataplane) bool {
 		return dp.MechanismsConfigured
