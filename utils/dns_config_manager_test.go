@@ -24,8 +24,8 @@ func TestDnsConfigManagerMergeConfigs(t *testing.T) {
 	caddyfile := m.Caddyfile("test")
 	assert.Expect(len(caddyfile.Records()) == 1).Should(gomega.BeTrue())
 	assert.Expect(len(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()) == 2).Should(gomega.BeTrue())
-	assert.Expect(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()[1].String()).Should(gomega.Equal("log"))
-	assert.Expect(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()[2].String()).Should(gomega.Equal("fanout 127.0.0.1 192.168.0.1"))
+	assert.Expect(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()[0].String()).Should(gomega.Equal("log"))
+	assert.Expect(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()[1].String()).Should(gomega.Equal("fanout 127.0.0.1 192.168.0.1"))
 }
 
 func TestDnsConfigManagerStoreConfigs(t *testing.T) {
