@@ -53,7 +53,7 @@ func TestHypothesis1(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(assert, true)
 	assert.Expect(err).Should(gomega.BeNil())
-	//defer k8s.Cleanup()
+	defer k8s.Cleanup()
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	nseCorefileContent := `. {
