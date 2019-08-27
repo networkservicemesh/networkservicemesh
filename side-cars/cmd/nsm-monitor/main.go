@@ -31,9 +31,7 @@ func main() {
 	app := nsm_sidecars.NewNSMMonitorApp()
 
 	if MonitorDNSConfigsEnv.GetBooleanOrDefault(false) {
-		app.SetHandler(nsm_sidecars.NewNsmDNSMonitorHandler(
-			PathToCorefileEnv.GetStringOrDefault(nsm_sidecars.DefaultPathToCorefile),
-			ReloadCorefilePeriodEnv.GetOrDefaultDuration(nsm_sidecars.DefaultReloadCorefileTime)))
+		app.SetHandler(nsm_sidecars.NewNsmDNSMonitorHandler())
 	}
 
 	go app.Run()

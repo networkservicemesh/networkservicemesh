@@ -31,9 +31,7 @@ func main() {
 	c := tools.NewOSSignalChannel()
 	sidecars.NewNSMClientApp().Run()
 	app := sidecars.NewNSMMonitorApp()
-	app.SetHandler(sidecars.NewNsmDNSMonitorHandler(
-		sidecars.DefaultPathToCorefile,
-		sidecars.DefaultReloadCorefileTime))
+	app.SetHandler(sidecars.NewNsmDNSMonitorHandler())
 	app.Run()
 	<-c
 }

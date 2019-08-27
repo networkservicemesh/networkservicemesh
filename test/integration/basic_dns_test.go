@@ -28,6 +28,7 @@ func TestBasicDns(t *testing.T) {
 	err = kubetest.DeployCorefile(k8s, "basic-corefile", `. {
     log
     hosts {
+		no_recursive
         172.16.1.2 my.app
     }
 }`)
@@ -35,7 +36,7 @@ func TestBasicDns(t *testing.T) {
 	assert.Expect(err).Should(gomega.BeNil())
 	kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder-nse", defaultTimeout)
 	nsc := kubetest.DeployNscAndNsmCoredns(k8s, configs[0].Node, "nsc", "basic-corefile", defaultTimeout)
-	assert.Expect(kubetest.PingByHostName(k8s, nsc, "my.app")).Should(gomega.BeTrue())
+	assert.Expect(kubetest.PingByHostName(k8s, nsc, "my.app.")).Should(gomega.BeTrue())
 }
 
 func TestDNSMonitoringNsc(t *testing.T) {
@@ -55,6 +56,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	nseCorefileContent := `. {
     hosts {
+		no_recursive
         172.16.1.2 icmp.app
     }
 }`
@@ -67,7 +69,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	kubetest.DeployICMPAndCoredns(k8s, configs[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
-	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app")).Should(gomega.BeTrue())
+	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app.")).Should(gomega.BeTrue())
 }
 
 func TestDNSExternalClient(t *testing.T) {
@@ -90,6 +92,7 @@ func TestDNSExternalClient(t *testing.T) {
 	defer deleteWebhook()
 	coreFile := `. {
     hosts {
+		no_recursive
         172.16.1.2 icmp.app
     }
 }`
@@ -100,7 +103,7 @@ func TestDNSExternalClient(t *testing.T) {
 
 	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployNSCWebhook(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
-	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app")).Should(gomega.BeTrue())
+	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app.")).Should(gomega.BeTrue())
 }
 
 func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {

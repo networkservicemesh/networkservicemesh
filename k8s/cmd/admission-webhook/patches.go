@@ -6,6 +6,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
@@ -28,6 +30,16 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					Name:      "nsm-coredns-volume",
 					MountPath: "/etc/coredns",
 				}},
+				Env: []corev1.EnvVar{
+					{
+						Name:  env.UseUpdateApiEnv.Name(),
+						Value: "true",
+					},
+					{
+						Name:  env.UpdateAPIClientSock.Name(),
+						Value: "/etc/coredns/client.sock",
+					},
+				},
 			},
 		})...)
 	patch = append(patch, addContainer(tuple.spec,
@@ -40,6 +52,10 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					{
 						Name:  "MONITOR_DNS_CONFIGS_ENV",
 						Value: "true",
+					},
+					{
+						Name:  env.UpdateAPIClientSock.Name(),
+						Value: "/etc/coredns/client.sock",
 					},
 					{
 						Name:  client.AnnotationEnv,

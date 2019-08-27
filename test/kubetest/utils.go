@@ -274,6 +274,8 @@ func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout
 
 // DeployNscAndNsmCoredns deploys pod of default client and nsm-coredns
 func DeployNscAndNsmCoredns(k8s *K8s, node *v1.Node, name, corefileName string, timeout time.Duration) *v1.Pod {
+	envs := defaultNSCEnv()
+	envs["UPDATE_API_CLIENT_SOCKET"] = "/etc/coredns/client.sock"
 	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
 		pods.InjectNSMCoredns(pods.NSCPod(name, node, defaultNSCEnv()), corefileName),
 	)
