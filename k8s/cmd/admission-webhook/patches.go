@@ -55,8 +55,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					},
 					{
 						Name:  env.UpdateAPIClientSock.Name(),
-						Value: "/etc/coredns/client.sock",
-					},
+						Value: "/etc/coredns/client.sock"},
 					{
 						Name:  client.AnnotationEnv,
 						Value: annotationValue,

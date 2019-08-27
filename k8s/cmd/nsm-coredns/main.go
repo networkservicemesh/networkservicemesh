@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 	"os"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
@@ -26,8 +27,16 @@ func main() {
 	fmt.Printf("Version: %v\n", version)
 
 	if env.UseUpdateApiEnv.GetBooleanOrDefault(false) {
+		path := parseCorefilePath()
+		file := caddyfile.NewCaddyfile(path)
+		file.WriteScope(".").Write("log")
+		err := file.Save()
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(2)
+		}
 		fmt.Println("Starting dns context update server...")
-		err := startUpdateServer()
+		err = startUpdateServer()
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(2)

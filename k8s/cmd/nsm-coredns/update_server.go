@@ -24,6 +24,7 @@ func startUpdateServer() error {
 	if clientSockPath == "" {
 		return errors.New("client socket path can't be empty")
 	}
+	tools.SocketCleanup(clientSockPath)
 	l, err := net.Listen("unix", clientSockPath)
 	if err != nil {
 		return err

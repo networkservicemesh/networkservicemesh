@@ -42,6 +42,7 @@ func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection
 		if conn.Context.DnsContext == nil {
 			continue
 		}
+		logrus.Info(conn.Context.DnsContext)
 		h.dnsConfigUpdateClient.AddDNSContext(context.Background(), &update.AddDNSContextMessage{ConnectionID: conn.Id, Context: conn.Context.DnsContext})
 	}
 }

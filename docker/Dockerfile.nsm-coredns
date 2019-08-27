@@ -12,7 +12,7 @@ ADD [".","/root/networkservicemesh"]
 ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
 RUN ./go-mod-download.sh
 WORKDIR /root/networkservicemesh/k8s/cmd/nsm-coredns
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/nsm-coredns main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/nsm-coredns
 FROM alpine as runtime
 COPY --from=build /go/bin/nsm-coredns /bin/nsm-coredns
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
