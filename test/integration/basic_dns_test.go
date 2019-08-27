@@ -1,4 +1,4 @@
-// +build dns
+// +build basic
 
 package nsmd_integration_tests
 
@@ -40,10 +40,6 @@ func TestBasicDns(t *testing.T) {
 }
 
 func TestDNSMonitoringNsc(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("broken")
-		return
-	}
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -73,6 +69,10 @@ func TestDNSMonitoringNsc(t *testing.T) {
 }
 
 func TestDNSExternalClient(t *testing.T) {
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("broken")
+		return
+	}
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
