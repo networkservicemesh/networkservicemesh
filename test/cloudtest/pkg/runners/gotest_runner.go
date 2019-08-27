@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/common/log"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
@@ -76,7 +78,7 @@ func cleanupCreatedNamespaces(env []string, writer *bufio.Writer) {
 				cCmd = fmt.Sprintf("kubectl delete ns %s", ns)
 				_, err = utils.RunCommand(timeoutCtx, cCmd, logger, writer, env, map[string]string{}, true)
 				if err != nil {
-					// Ignore error
+					log.Warnf("Namespace %s was not cleared", ns)
 				}
 			}
 		}
