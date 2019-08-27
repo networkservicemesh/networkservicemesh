@@ -57,8 +57,10 @@ func TestHypothesis1(t *testing.T) {
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	nseCorefileContent := `. {
+	log
     hosts {
-        172.16.1.2 icmp.app.
+		no_recursive
+        172.16.1.2 icmp.app
     }
 }`
 	err = kubetest.DeployCorefile(k8s, "icmp-responder-corefile", nseCorefileContent)

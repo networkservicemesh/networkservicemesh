@@ -75,7 +75,7 @@ func InjectNSMCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
 
 func setupDNSConfig(pod *v1.Pod) {
 	ndotsValue := "5"
-	pod.Spec.DNSPolicy = v1.DNSClusterFirstWithHostNet
+	pod.Spec.DNSPolicy = v1.DNSNone
 	pod.Spec.DNSConfig = &v1.PodDNSConfig{
 		Nameservers: []string{"127.0.0.1"},
 		Searches:    []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
