@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package reload;
+
+import "ptypes/empty/empty.proto";
+
+message ReloadMessage {
+    string context = 1;
+}
+
+service ReloadService {
+    rpc Reload (ReloadMessage) returns (google.protobuf.Empty);
+}

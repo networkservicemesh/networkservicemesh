@@ -1,7 +1,12 @@
 package sidecars
 
 import (
+	"context"
+	"path"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/reload"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
@@ -15,7 +20,7 @@ const (
 	//DefaultPathToCorefile contains default path to Corefile
 	DefaultPathToCorefile = "/etc/coredns/Corefile"
 	//DefaultReloadCorefileTime means time to reload Corefile
-	DefaultReloadCorefileTime = time.Second
+	DefaultReloadCorefileTime = 2 * time.Second
 	defaultK8sDNSServer       = "10.96.0.10"
 )
 
@@ -34,16 +39,17 @@ func DefaultDNSNsmMonitor() NSMApp {
 //NewDNSNsmMonitor creates new dns nsm monitor with a specific path to corefile and time to reload corefile
 func NewDNSNsmMonitor(pathToCorefile string, reloadTime time.Duration) NSMApp {
 	dnsConfigManager := utils.NewDNSConfigManager(defaultBasicDNSConfig(), reloadTime)
-	corefile := dnsConfigManager.Caddyfile(pathToCorefile)
-	err := corefile.Save()
-	if err != nil {
-		logrus.Errorf("An error during initial saving the Corefile: %v, err: %v", corefile.String(), err.Error())
-	}
 	logrus.Infof("Created corefile %v", pathToCorefile)
 	result := NewNSMMonitorApp()
+	pathToSocket := path.Dir(pathToCorefile) + "/client.sock"
+	conn, err := tools.DialContextUnix(context.TODO(), pathToSocket)
+	if err != nil {
+		logrus.Error(err)
+	}
+	client := reload.NewReloadServiceClient(conn)
 	corefileUpdater := utils.NewSingleAsyncOperation(func() {
 		file := dnsConfigManager.Caddyfile(pathToCorefile)
-		err := file.Save()
+		err, _ := client.Reload(context.Background(), &reload.ReloadMessage{Context: file.String()})
 		if err != nil {
 			logrus.Error(err)
 		}

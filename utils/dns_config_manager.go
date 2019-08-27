@@ -66,19 +66,14 @@ func (m *DNSConfigManager) writeDNSConfig(c caddyfile.Caddyfile, config *connect
 	}
 
 	ips := strings.Join(config.DnsServerIps, " ")
-	isMainScope := scopeName == m.getBasicConfigScopeName()
+
 	if c.HasScope(scopeName) {
 		fanoutIndex := 1
-		if isMainScope {
-			fanoutIndex++
-		}
 		ips += " " + c.GetOrCreate(scopeName).Records()[fanoutIndex].String()[len("fanout "):]
 		c.Remove(scopeName)
 	}
 	scope := c.WriteScope(scopeName)
-	if isMainScope {
-		scope.Write(fmt.Sprintf("reload %v", m.reloadTime))
-	}
+
 	scope.Write("log").Write(fmt.Sprintf("fanout %v", removeDuplicates(ips)))
 }
 

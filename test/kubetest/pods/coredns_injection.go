@@ -13,6 +13,12 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
 			Image:           "networkservicemesh/nsm-coredns:latest",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
+			Env: []v1.EnvVar{
+				{
+					Name:  "RELOAD",
+					Value: "true",
+				},
+			},
 		}))
 	template.Spec.Containers[len(template.Spec.Containers)-1].VolumeMounts = []v1.VolumeMount{{
 		ReadOnly:  false,
