@@ -27,7 +27,7 @@ func main() {
 	fmt.Println("Starting nsm-coredns")
 	fmt.Printf("Version: %v\n", version)
 
-	if env.UseUpdateApiEnv.GetBooleanOrDefault(false) {
+	if env.UseUpdateAPIEnv.GetBooleanOrDefault(false) {
 		path := parseCorefilePath()
 		file := caddyfile.NewCaddyfile(path)
 		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", defaultBasicDNSConfig().DnsServerIps[0]))

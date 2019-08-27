@@ -24,7 +24,10 @@ func startUpdateServer() error {
 	if clientSockPath == "" {
 		return errors.New("client socket path can't be empty")
 	}
-	tools.SocketCleanup(clientSockPath)
+	err := tools.SocketCleanup(clientSockPath)
+	if err != nil {
+		return err
+	}
 	l, err := net.Listen("unix", clientSockPath)
 	if err != nil {
 		return err
@@ -42,7 +45,7 @@ func startUpdateServer() error {
 func parseCorefilePath() string {
 	cl := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	path := cl.String("conf", caddy.DefaultConfigFile, "")
-	cl.Parse(os.Args[1:])
+	_ = cl.Parse(os.Args[1:])
 	return *path
 }
 
@@ -64,7 +67,10 @@ func newUpdateServer() update.DNSConfigServiceServer {
 				fmt.Printf("An error %v during loading caddyfile\n,", err)
 				continue
 			}
-			instance.Restart(input)
+			_, err = instance.Restart(input)
+			if err != nil {
+				fmt.Printf("An error %v during server instance restart\n", err)
+			}
 		}
 		fmt.Println("Caddy servers restarted")
 	})

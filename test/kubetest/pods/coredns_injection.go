@@ -17,7 +17,7 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
 			Env: []v1.EnvVar{
 				{
-					Name:  env.UseUpdateApiEnv.Name(),
+					Name:  env.UseUpdateAPIEnv.Name(),
 					Value: "true",
 				},
 				{

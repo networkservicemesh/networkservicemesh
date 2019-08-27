@@ -32,7 +32,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				}},
 				Env: []corev1.EnvVar{
 					{
-						Name:  env.UseUpdateApiEnv.Name(),
+						Name:  env.UseUpdateAPIEnv.Name(),
 						Value: "true",
 					},
 					{

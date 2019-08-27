@@ -43,11 +43,11 @@ func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection
 			continue
 		}
 		logrus.Info(conn.Context.DnsContext)
-		h.dnsConfigUpdateClient.AddDNSContext(context.Background(), &update.AddDNSContextMessage{ConnectionID: conn.Id, Context: conn.Context.DnsContext})
+		_, _ = h.dnsConfigUpdateClient.AddDNSContext(context.Background(), &update.AddDNSContextMessage{ConnectionID: conn.Id, Context: conn.Context.DnsContext})
 	}
 }
 
 func (h *nsmDNSMonitorHandler) Closed(conn *connection.Connection) {
 	logrus.Infof("Deleting config with id %v", conn.Id)
-	h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: conn.Id})
+	_, _ = h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: conn.Id})
 }
