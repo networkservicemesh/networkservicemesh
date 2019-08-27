@@ -28,7 +28,7 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
-	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) <= 2 {
+	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) < 2 {
 		return nil, fmt.Errorf("vppAgentConfig lacks 2 interfaces to cross connect")
 	}
 

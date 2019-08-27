@@ -31,9 +31,9 @@ import (
 
 // ClientEndpoint - opens a Client connection to another Network Service
 type ClientEndpoint struct {
-	nsmClient     *client.NsmClient
 	mechanismType string
 	ioConnMap     map[string]*connection.Connection
+	configuration *common.NSConfiguration
 }
 
 // Request implements the request handler
@@ -41,7 +41,15 @@ type ClientEndpoint struct {
 //	   Next
 func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	name := request.GetConnection().GetId()
-	outgoingConnection, err := cce.nsmClient.Connect(ctx, name, cce.mechanismType, "Describe "+name)
+
+	nsmClient, err := client.NewNSMClient(ctx, cce.configuration)
+	if err != nil {
+		logrus.Fatalf("Unable to create the NSM client %v", err)
+		return nil, err
+	}
+	defer func() { _ = nsmClient.Destroy(ctx) }()
+
+	outgoingConnection, err := nsmClient.Connect(ctx, name, cce.mechanismType, "Describe "+name)
 	if err != nil {
 		logrus.Errorf("Error when creating the connection %v", err)
 		return nil, err
@@ -66,8 +74,15 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 //	   Next
 func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	var result error
+
+	nsmClient, err := client.NewNSMClient(ctx, cce.configuration)
+	if err != nil {
+		logrus.Fatalf("Unable to create the NSM client %v", err)
+		return nil, err
+	}
+	defer func() { _ = nsmClient.Destroy(ctx) }()
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
-		if err := cce.nsmClient.Close(ctx, outgoingConnection); err != nil {
+		if err := nsmClient.Close(ctx, outgoingConnection); err != nil {
 			result = multierror.Append(result, err)
 		}
 	}
@@ -92,16 +107,10 @@ func NewClientEndpoint(configuration *common.NSConfiguration) *ClientEndpoint {
 	}
 	configuration.CompleteNSConfiguration()
 
-	nsmClient, err := client.NewNSMClient(context.Background(), configuration)
-	if err != nil {
-		logrus.Fatalf("Unable to create the NSM client %v", err)
-		return nil
-	}
-
 	self := &ClientEndpoint{
 		ioConnMap:     map[string]*connection.Connection{},
 		mechanismType: configuration.MechanismType,
-		nsmClient:     nsmClient,
+		configuration: configuration,
 	}
 
 	return self

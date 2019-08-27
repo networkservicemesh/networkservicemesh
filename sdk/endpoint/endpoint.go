@@ -73,8 +73,7 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 }
 
 func (nsme *nsmEndpoint) Start() error {
-
-	if nsme.Configuration.TracerEnabled {
+	if nsme.Configuration.TracerEnabled && opentracing.GlobalTracer() == nil {
 		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
 		opentracing.SetGlobalTracer(tracer)
 		nsme.tracerCloser = closer
@@ -145,15 +144,21 @@ func (nsme *nsmEndpoint) Delete() error {
 }
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logrus.Infof("Request for Network Service received %v", request)
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "endpoint.request")
+		defer span.Finish()
+	}
+	logger := common.LogFromSpan(span)
+	logger.Infof("Request for Network Service received %v", request)
 
 	incomingConnection, err := nsme.service.Request(ctx, request)
 	if err != nil {
-		logrus.Errorf("The composite returned an error: %v", err)
+		logger.Errorf("The composite returned an error: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	logger.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
 	return incomingConnection, nil
 }
 

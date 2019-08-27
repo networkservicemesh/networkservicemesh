@@ -1,4 +1,4 @@
-package endpoint
+package common
 
 import (
 	"fmt"
@@ -10,8 +10,14 @@ import (
 
 // LogFromSpan - return a logger that has a TraceHook to also log messages to the span
 func LogFromSpan(span opentracing.Span) logrus.FieldLogger {
-	logger := logrus.New().WithField("span", span)
-	logger.Logger.AddHook(NewTraceHook(span))
+	var logger logrus.FieldLogger
+	if span != nil {
+		l := logrus.New().WithField("span", span)
+		logger = l
+		l.Logger.AddHook(NewTraceHook(span))
+	} else {
+		logger = logrus.New()
+	}
 	return logger
 }
 

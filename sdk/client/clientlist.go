@@ -26,6 +26,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
+	pkgerrors "github.com/pkg/errors"
 )
 
 type nsmClientListEntry struct {
@@ -67,14 +69,15 @@ func (nsmcl *NsmClientList) Close(ctx context.Context) error {
 
 // Destroy terminates all clients
 func (nsmcl *NsmClientList) Destroy(ctx context.Context) error {
+	var err error
 	for i := range nsmcl.clients {
 		entry := &nsmcl.clients[i]
-		err := entry.client.Destroy(ctx)
-		if err != nil {
-			return err
+		derr := entry.client.Destroy(ctx)
+		if derr != nil {
+			err = pkgerrors.Wrap(err, derr.Error())
 		}
 	}
-	return nil
+	return err
 }
 
 // NewNSMClientList creates a new list of clients

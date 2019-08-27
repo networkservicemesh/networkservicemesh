@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/golang/protobuf/ptypes/empty"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 
@@ -26,23 +28,26 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	}
 
 	// Create a new span
-	span, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.endpoints[n.index])))
-	defer span.Finish()
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.endpoints[n.index])))
+		defer span.Finish()
 
-	// Make sure we log to span
-	ctx = withLog(ctx, LogFromSpan(span))
+		// Make sure we log to span
+	}
+	logger := common.LogFromSpan(span)
 
-	span.LogFields(log.Object("internal request", request))
+	ctx = withLog(ctx, logger)
+	logger.Infof("internal request %v", request)
 
 	// Actually call the next
 	rv, err := n.composite.endpoints[n.index].Request(ctx, request)
 
 	if err != nil {
-		span.LogFields(log.Error(err))
-		logrus.Error(err)
+		logger.Errorf("Error: %v", err)
 		return nil, err
 	}
-	span.LogFields(log.Object("internal response", rv))
+	logger.Infof("internal response %v", rv)
 	return rv, err
 }
 
@@ -52,20 +57,25 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
 	}
 	// Create a new span
-	span, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
-	defer span.Finish()
-
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
+		defer span.Finish()
+	}
 	// Make sure we log to span
-	ctx = withLog(ctx, LogFromSpan(span))
+	logger := common.LogFromSpan(span)
+	ctx = withLog(ctx, logger)
 
-	span.LogFields(log.Object("internal request", connection))
+	logger.Infof("internal request %v", connection)
 	rv, err := n.composite.endpoints[n.index].Close(ctx, connection)
 
 	if err != nil {
-		span.LogFields(log.Error(err))
+		if span != nil {
+			span.LogFields(log.Error(err))
+		}
 		logrus.Error(err)
 		return nil, err
 	}
-	span.LogFields(log.Object("internal response", rv))
+	logger.Infof("internal response %v", rv)
 	return rv, err
 }

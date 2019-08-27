@@ -17,10 +17,8 @@ package sidecars
 import (
 	"context"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
@@ -28,16 +26,12 @@ type nsmClientApp struct {
 }
 
 func (c *nsmClientApp) Run() {
-	tracer, closer := tools.InitJaeger("nsm-init")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() { _ = closer.Close() }()
-
 	clientList, err := client.NewNSMClientList(context.Background(), nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
 
-	if err := clientList.Connect(context.TODO(), "nsm", "kernel", "Primary interface"); err != nil {
+	if err := clientList.Connect(context.Background(), "nsm", "kernel", "Primary interface"); err != nil {
 		logrus.Fatalf("Client connect failed with error: %v", err)
 	}
 	logrus.Info("nsm client: initialization is completed successfully")
