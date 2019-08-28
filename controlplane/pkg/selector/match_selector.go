@@ -63,7 +63,8 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 		for _, destination := range match.GetRoutes() {
 			// Each NSE should be matched against that destination
 			for _, nse := range networkServiceEndpoints {
-				if isSubset(nse.GetLabels(), destination.GetDestinationSelector()) {
+				if isSubset(nse.GetLabels(), destination.GetDestinationSelector()) &&
+					!isSubset(nsLabels, destination.GetDestinationSelector()) {
 					nseCandidates = append(nseCandidates, nse)
 				}
 			}

@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )
@@ -475,5 +477,103 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 				t.Errorf("matchSelector.SelectEndpoint() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestMatchSelectorFailed(t *testing.T) {
+	g := gomega.NewWithT(t)
+	selector := matchSelector{
+		roundRobin: NewRoundRobinSelector(),
+	}
+
+	c := &connection.Connection{
+		Labels: map[string]string{
+			"app": "firewall",
+		},
+	}
+	nsName := "secure-intranet-connectivity"
+	ns := createMatches(nsName)
+	firewallEp := &registry.NetworkServiceEndpoint{
+		Name:                      "secure-intranet-connectivity-t2c2s",
+		Payload:                   "IP",
+		NetworkServiceName:        nsName,
+		NetworkServiceManagerName: "kube-master",
+		Labels: map[string]string{
+			"app":                "firewall",
+			"networkservicename": nsName,
+		},
+	}
+	passthroughEp := &registry.NetworkServiceEndpoint{
+		Name:                      "secure-intranet-connectivity-fpbzv",
+		Payload:                   "IP",
+		NetworkServiceName:        nsName,
+		NetworkServiceManagerName: "kube-master",
+		Labels: map[string]string{
+			"app":                "passthrough-1",
+			"networkservicename": nsName,
+		},
+	}
+	gatewayEp := &registry.NetworkServiceEndpoint{
+		Name:                      "secure-intranet-connectivity-6cn82",
+		Payload:                   "IP",
+		NetworkServiceName:        nsName,
+		NetworkServiceManagerName: "kube-master",
+		Labels: map[string]string{
+			"app":                "vpn-gateway",
+			"networkservicename": nsName,
+		},
+	}
+	endpoint1 := selector.SelectEndpoint(c, ns, []*registry.NetworkServiceEndpoint{
+		firewallEp,
+		passthroughEp,
+		gatewayEp,
+	})
+	g.Expect(endpoint1).ToNot(gomega.BeNil())
+	endpoint2 := selector.SelectEndpoint(c, ns, []*registry.NetworkServiceEndpoint{
+		firewallEp,
+		gatewayEp,
+	})
+	g.Expect(endpoint2).To(gomega.BeNil())
+}
+
+func createMatches(nsName string) *registry.NetworkService {
+	return &registry.NetworkService{
+		Name:    nsName,
+		Payload: "IP",
+		Matches: []*registry.Match{
+			&registry.Match{
+				SourceSelector: map[string]string{
+					"app": "firewall",
+				},
+				Routes: []*registry.Destination{
+					&registry.Destination{
+						DestinationSelector: map[string]string{
+							"app": "passthrough-1",
+						},
+					},
+				},
+			},
+			&registry.Match{
+				SourceSelector: map[string]string{
+					"app": "passthrough-1",
+				},
+				Routes: []*registry.Destination{
+					&registry.Destination{
+						DestinationSelector: map[string]string{
+							"app": "vpn-gateway",
+						},
+					},
+				},
+			},
+			&registry.Match{
+				Routes: []*registry.Destination{
+					&registry.Destination{
+						DestinationSelector: map[string]string{
+							"app": "firewall",
+						},
+					},
+				},
+			},
+		},
 	}
 }
