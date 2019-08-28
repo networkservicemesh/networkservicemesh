@@ -23,10 +23,10 @@ func (v EnvVar) StringValue() string {
 }
 
 //GetStringListValueOrDefault returns list of string separated by space or if env variable have not a value returns default value
-func (v EnvVar) GetStringListValueOrDefault(defaultValue []string) []string {
+func (v EnvVar) GetStringListValueOrDefault(defaultValues ...string) []string {
 	r := v.StringValue()
 	if r == "" {
-		return defaultValue
+		return defaultValues
 	}
 	return strings.Split(r, " ")
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 
@@ -30,8 +31,9 @@ func main() {
 	if env.UseUpdateAPIEnv.GetBooleanOrDefault(false) {
 		path := parseCorefilePath()
 		file := caddyfile.NewCaddyfile(path)
-		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", defaultBasicDNSConfig().DnsServerIps[0]))
+		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", strings.Join(defaultBasicDNSConfig().DnsServerIps, " ")))
 		err := file.Save()
+		fmt.Println(file.String())
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(2)

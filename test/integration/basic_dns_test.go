@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -118,7 +119,15 @@ func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
 	defer kubetest.MakeLogsSnapshot(k8s, t)
+	pods := k8s.ListPodsByNs("kube-system")
+	var dnsServers []string
+	for _, pod := range pods {
+		if strings.Contains(pod.Name, "kube-dns") || strings.Contains(pod.Name, "coredns") {
+			dnsServers = append(dnsServers, pod.Status.PodIP)
+		}
+	}
+
 	kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder", defaultTimeout)
-	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
+	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout, dnsServers...)
 	assert.Expect(kubetest.NSLookup(k8s, nsc, "kubernetes.default")).Should(gomega.BeTrue())
 }

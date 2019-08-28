@@ -79,7 +79,7 @@ func newUpdateServer() update.DNSConfigServiceServer {
 
 func defaultBasicDNSConfig() connectioncontext.DNSConfig {
 	return connectioncontext.DNSConfig{
-		DnsServerIps:  []string{env.DefaultDNSServerIP.GetStringOrDefault("10.96.0.10")},
+		DnsServerIps:  env.DefaultDNSServerIPList.GetStringListValueOrDefault("10.96.0.10"),
 		SearchDomains: []string{},
 	}
 }

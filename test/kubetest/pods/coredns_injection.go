@@ -1,6 +1,8 @@
 package pods
 
 import (
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
@@ -8,7 +10,7 @@ import (
 
 //InjectNSMCorednsWithSharedFolder - Injects nsm-coredns container and configure the DnsConfig for template.
 //Also makes shared folder between nsm-coredns container and first container of template
-func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
+func InjectNSMCorednsWithSharedFolder(template *v1.Pod, defaultDNSIPs ...string) {
 	template.Spec.Containers = append(template.Spec.Containers,
 		containerMod(&v1.Container{
 			Name:            "nsm-coredns",
@@ -23,6 +25,10 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
 				{
 					Name:  env.UpdateAPIClientSock.Name(),
 					Value: "/etc/coredns/client.sock",
+				},
+				{
+					Name:  env.DefaultDNSServerIPList.Name(),
+					Value: strings.Join(defaultDNSIPs, " "),
 				},
 			},
 		}))
