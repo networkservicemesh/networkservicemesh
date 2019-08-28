@@ -34,10 +34,12 @@ func (v *KernelForwarder) startMetrics() {
 }
 
 // serveMetrics is started as a routine
-func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, devices map[string]string) {
+func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, devices *registeredDevices) {
 	for {
+		devices.Lock()
 		/* Collect metrics for each interface */
-		stats, err := collectMetrics(devices)
+		stats, err := collectMetrics(devices.devices)
+		devices.Unlock()
 		if err != nil {
 			logrus.Error("failed to collect metrics:", err)
 		}
@@ -49,6 +51,7 @@ func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, d
 }
 
 func collectMetrics(devices map[string]string) (map[string]*crossconnect.Metrics, error) {
+	logrus.Info("----- collecting metrics -----")
 	/* Store the metrics for all registered devices here */
 	stats := make(map[string]*crossconnect.Metrics)
 	/* Loop through each registered device */
@@ -57,24 +60,16 @@ func collectMetrics(devices map[string]string) (map[string]*crossconnect.Metrics
 		if err != nil {
 			logrus.Errorf("failed to extract metrics for device %s in namespace %s: %v", device, namespace, err)
 		}
+		logrus.Info("-------- device, metrics", device, metrics)
 		stats[device] = &crossconnect.Metrics{Metrics: metrics}
 	}
-	// temporary for debug
-	name := "foo-interface"
-	metrics := make(map[string]string)
-	metrics["rx_bytes"] = "1111"
-	metrics["tx_bytes"] = "2222"
-	metrics["rx_packets"] = "3333"
-	metrics["tx_packets"] = "4444"
-	metrics["rx_error_packets"] = "5555"
-	metrics["tx_error_packets"] = "6666"
-	stats[name] = &crossconnect.Metrics{Metrics: metrics}
-	fmt.Println(stats)
+	logrus.Info("------- all stats collected are", stats)
 	return stats, nil
 }
 
 // getDeviceMetrics returns metrics for device in specific namespace
 func getDeviceMetrics(device, namespace string) (map[string]string, error) {
+	logrus.Info("------ 1. Extracting metrics for device in namespace ", device, namespace)
 	/* 1. Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -82,40 +77,39 @@ func getDeviceMetrics(device, namespace string) (map[string]string, error) {
 	currentNs, err := netns.Get()
 	defer func() {
 		if err = currentNs.Close(); err != nil {
-			logrus.Error("error when closing:", err)
+			logrus.Error("error when closing current namespace:", err)
 		}
 	}()
 	if err != nil {
 		logrus.Errorf("failed to get current namespace: %v", err)
 		return nil, err
 	}
+	logrus.Info("------ 2. current namespace got -----")
 	/* 3. Get handler for namespace */
 	nsHandle, err := netns.GetFromPath(namespace)
 	defer func() {
 		if err = nsHandle.Close(); err != nil {
-			logrus.Error("error when closing:", err)
+			logrus.Error("error when closing desired namespace:", err)
 		}
 	}()
 	if err != nil {
 		logrus.Errorf("failed to get namespace handler from path - %v", err)
 		return nil, err
 	}
+	logrus.Info("------ 3. desired namespace got -----")
 	/* 4. Switch to the new namespace */
 	if err = netns.Set(nsHandle); err != nil {
 		logrus.Errorf("failed to switch to container namespace: %v", err)
 		return nil, err
 	}
-	defer func() {
-		if err = nsHandle.Close(); err != nil {
-			logrus.Error("error when closing:", err)
-		}
-	}()
+	logrus.Info("------ 4. switched to desired namespace -----")
 	/* 5. Get a link for the interface name */
 	link, err := netlink.LinkByName(device)
 	if err != nil {
 		logrus.Errorf("failed to lookup %q, %v", device, err)
 		return nil, err
 	}
+	logrus.Info("------ 5. got interface link -----")
 	/* 6. Save the statistics in a separate metrics map */
 	metrics := make(map[string]string)
 	metrics["rx_bytes"] = fmt.Sprint(link.Attrs().Statistics.RxBytes)
@@ -130,5 +124,6 @@ func getDeviceMetrics(device, namespace string) (map[string]string, error) {
 		logrus.Errorf("failed to switch back to original namespace: %v", err)
 		return nil, err
 	}
+	logrus.Info("------ 6. switched to original namespace -----")
 	return metrics, nil
 }

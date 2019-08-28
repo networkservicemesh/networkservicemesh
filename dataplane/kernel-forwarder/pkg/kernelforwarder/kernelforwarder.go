@@ -17,6 +17,8 @@ package kernelforwarder
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"
@@ -35,12 +37,17 @@ import (
 // KernelForwarder instance
 type KernelForwarder struct {
 	common  *common.DataplaneConfig
+	devices *registeredDevices
+}
+
+type registeredDevices struct {
+	sync.Mutex
 	devices map[string]string
 }
 
 // CreateKernelForwarder creates an instance of the KernelForwarder
 func CreateKernelForwarder() *KernelForwarder {
-	return &KernelForwarder{}
+	return &KernelForwarder{devices: &registeredDevices{devices: map[string]string{}}}
 }
 
 // MonitorMechanisms handler
@@ -91,10 +98,10 @@ func (v *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 	/* 1. Handle local connection */
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
-		return handleLocalConnection(crossConnect, connect)
+		return v.handleLocalConnection(crossConnect, connect)
 	}
 	/* 2. Handle remote connection */
-	return handleRemoteConnection(v.common.EgressInterface, crossConnect, connect)
+	return v.handleRemoteConnection(v.common.EgressInterface, crossConnect, connect)
 }
 
 // Close handler for connections
@@ -143,4 +150,35 @@ func (v *KernelForwarder) configureKernelForwarder() {
 		},
 	}
 	v.startMetrics()
+}
+
+// updateDeviceList keeps track of the devices being handled by the Kernel forwarding plane
+func (v *KernelForwarder) updateDeviceList(devices map[string]string, connect bool) error {
+	/* Add devices */
+	v.Lock()
+	defer v.Unlock()
+	logrus.Info("-------------- !!! Updating device list !!! --------------- ")
+	logrus.Info("--- before --- ", v.devices.devices)
+	if connect {
+		for ifaceName, ifNsPath := range devices {
+			_, ok := v.devices.devices[ifaceName]
+			if ok {
+				logrus.Error("device requested for add is already present in the devices list")
+				return fmt.Errorf("device requested for add is already present in the devices list")
+			}
+			v.devices.devices[ifaceName] = ifNsPath
+		}
+	} else {
+		/* Delete devices */
+		for ifaceName := range devices {
+			_, ok := v.devices.devices[ifaceName]
+			if !ok {
+				logrus.Error("device requested for delete is already missing from the devices list")
+				return fmt.Errorf("device requested for delete is already missing from the devices list")
+			}
+			delete(v.devices.devices, ifaceName)
+		}
+	}
+	logrus.Info("--- after --- ", v.devices.devices)
+	return nil
 }

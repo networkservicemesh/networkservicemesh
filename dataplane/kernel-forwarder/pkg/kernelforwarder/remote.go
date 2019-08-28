@@ -31,47 +31,56 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 )
 
-func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+func (v *KernelForwarder) handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
+	var devices map[string]string
+	var xcon *crossconnect.CrossConnect
+	var err error
 	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming remote connection */
 		logrus.Info("Incoming connection - remote source/local destination")
-		return handleConnection(egress, crossConnect, connect, cINCOMING)
+		xcon, devices, err = handleConnection(egress, crossConnect, connect, cINCOMING)
 	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing remote connection */
 		logrus.Info("Outgoing connection - local source/remote destination")
-		return handleConnection(egress, crossConnect, connect, cOUTGOING)
+		xcon, devices, err = handleConnection(egress, crossConnect, connect, cOUTGOING)
+	} else {
+		logrus.Errorf("invalid remote connection type")
+		return crossConnect, fmt.Errorf("invalid remote connection type")
 	}
-	logrus.Errorf("invalid remote connection type")
-	return crossConnect, fmt.Errorf("invalid remote connection type")
+	if devices != nil {
+		v.updateDeviceList(devices, connect)
+	}
+	return xcon, err
 }
 
-func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool, direction uint8) (*crossconnect.CrossConnect, error) {
+func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool, direction uint8) (*crossconnect.CrossConnect, map[string]string, error) {
+	var devices map[string]string
 	/* 1. Get the connection configuration */
 	cfg, err := newConnectionConfig(crossConnect, direction)
 	if err != nil {
 		logrus.Errorf("failed to get the configuration for remote connection - %v", err)
-		return crossConnect, err
+		return crossConnect, nil, err
 	}
 	nsPath, name, ifaceIP, vxlanIP, routes := modifyConfiguration(cfg, direction)
 	if connect {
 		/* 2. Create a connection */
-		err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes, cfg.neighbors)
+		devices, err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes, cfg.neighbors)
 		if err != nil {
 			logrus.Errorf("failed to create remote connection - %v", err)
 		}
 	} else {
 		/* 3. Delete a connection */
-		err = deleteRemoteConnection(nsPath, name)
+		devices, err = deleteRemoteConnection(nsPath, name)
 		if err != nil {
 			logrus.Errorf("failed to delete remote connection - %v", err)
 		}
 	}
-	return crossConnect, err
+	return crossConnect, devices, err
 }
 
-func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) error {
+func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]string, error) {
 	logrus.Info("Creating remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -82,7 +91,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 	}()
 	if err != nil {
 		logrus.Errorf("failed to get namespace handler from path - %v", err)
-		return err
+		return nil, err
 	}
 
 	/* 2. Prepare interface - VXLAN */
@@ -96,12 +105,12 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 	/* 4. Setup interface */
 	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
-		return err
+		return nil, err
 	}
-	return nil
+	return map[string]string{ifaceName: nsPath}, nil
 }
 
-func deleteRemoteConnection(nsPath, ifaceName string) error {
+func deleteRemoteConnection(nsPath, ifaceName string) (map[string]string, error) {
 	logrus.Info("Deleting remote connection...")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -112,28 +121,28 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 	}()
 	if err != nil {
 		logrus.Errorf("failed to get namespace handler from path - %v", err)
-		return err
+		return nil, err
 	}
 
 	/* 2. Setup interface */
 	if err = setupLinkInNs(containerNs, ifaceName, "", nil, nil, false); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
-		return err
+		return nil, err
 	}
 
 	/* 3. Get a link object for the interface */
 	ifaceLink, err := netlink.LinkByName(ifaceName)
 	if err != nil {
 		logrus.Errorf("failed to get link for %q - %v", ifaceName, err)
-		return err
+		return nil, err
 	}
 
 	/* 4. Delete the VXLAN interface - host namespace */
 	if err := netlink.LinkDel(ifaceLink); err != nil {
 		logrus.Errorf("failed to delete the VXLAN - %v", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return map[string]string{ifaceName: nsPath}, nil
 }
 
 /* modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing */
