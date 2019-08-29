@@ -1,8 +1,10 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -241,14 +243,12 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	}
 }
 
-func deleteAWSKubernetesCluster() {
+func deleteAWSKubernetesCluster(serviceSuffix string) {
 	sess := session.Must(session.NewSession())
 	iamClient := iam.New(sess)
 	eksClient := eks.New(sess)
 	cfClient := cloudformation.New(sess)
 	ec2Client := ec2.New(sess)
-
-	serviceSuffix := os.Getenv("NSM_AWS_SERVICE_SUFFIX")
 
 	// Deleting Amazon EKS Cluster
 	clusterName := "nsm" + serviceSuffix
@@ -273,5 +273,38 @@ func deleteAWSKubernetesCluster() {
 
 	if deferError {
 		os.Exit(1)
+	}
+}
+
+func deleteAllKubernetesClusters(saveDuration time.Duration) {
+	sess := session.Must(session.NewSession())
+	cfClient := cloudformation.New(sess)
+
+	stacks, err := cfClient.ListStacks(&cloudformation.ListStacksInput{})
+	if err != nil {
+		logrus.Info("AWS EKS Error: %v", err)
+		return
+	}
+
+	var wg sync.WaitGroup
+	for _, stack := range stacks.StackSummaries {
+		stackName := aws.StringValue(stack.StackName)
+		if  stackName[:7] != "nsm-srv" {
+			continue
+		}
+
+		if stack.CreationTime.After(time.Now().Add(-1 * saveDuration)) {
+			logrus.Infof("Skip cluster: %s (%v)", stackName, stack.CreationTime)
+			continue
+		}
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			logrus.Infof("Deleting %s", stackName[7:])
+			deleteAWSKubernetesCluster(stackName[7:])
+		} ()
+		wg.Wait()
 	}
 }
