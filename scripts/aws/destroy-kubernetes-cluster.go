@@ -287,6 +287,7 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 	}
 
 	var wg sync.WaitGroup
+	i := 0
 	for _, stack := range stacks.StackSummaries {
 		stackName := aws.StringValue(stack.StackName)
 		if  stackName[:7] != "nsm-srv" {
@@ -305,6 +306,11 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 			logrus.Infof("Deleting %s", stackName[7:])
 			deleteAWSKubernetesCluster(stackName[7:])
 		} ()
-		wg.Wait()
+
+		i++
+		if i % 5 == 0 {
+			wg.Wait() // Guard from AWS Throttling error
+		}
 	}
+	wg.Wait()
 }
