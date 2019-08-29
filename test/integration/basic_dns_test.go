@@ -70,10 +70,6 @@ func TestDNSMonitoringNsc(t *testing.T) {
 }
 
 func TestDNSExternalClient(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("broken")
-		return
-	}
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return

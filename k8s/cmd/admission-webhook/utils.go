@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+
 	"github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
@@ -26,11 +28,15 @@ func applyDeploymentKind(patches []patchOperation, kind string) {
 		return
 	}
 	if kind != deployment {
-		panic(fmt.Sprintf(unsupportedKind, kind))
+		logrus.Fatalf(unsupportedKind, kind)
 	}
 	for i := 0; i < len(patches); i++ {
 		patches[i].Path = deploymentSubPath + patches[i].Path
 	}
+}
+
+func defaultDNSSearchDomains() []string {
+	return []string{fmt.Sprintf("%v.svc.cluster.local", namespace.GetNamespace()), "svc.cluster.local", "cluster.local"}
 }
 
 func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) {

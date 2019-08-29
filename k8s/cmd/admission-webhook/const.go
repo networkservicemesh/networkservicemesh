@@ -26,4 +26,5 @@ const (
 	volumePath           = "/spec/volumes"
 	containersPath       = "/spec/containers"
 	dnsConfigPath        = "/spec/dnsConfig"
+	dnsPolicyPath        = "/spec/dnsPolicy"
 )

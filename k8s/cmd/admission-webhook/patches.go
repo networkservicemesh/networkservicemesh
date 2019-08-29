@@ -6,7 +6,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
+	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/admission-webhook/env"
+	nsmcorednsenv "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -32,11 +33,11 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				}},
 				Env: []corev1.EnvVar{
 					{
-						Name:  env.UseUpdateAPIEnv.Name(),
+						Name:  nsmcorednsenv.UseUpdateAPIEnv.Name(),
 						Value: "true",
 					},
 					{
-						Name:  env.UpdateAPIClientSock.Name(),
+						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
 						Value: "/etc/coredns/client.sock",
 					},
 				},
@@ -50,11 +51,11 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Env: []corev1.EnvVar{
 					{
-						Name:  "MONITOR_DNS_CONFIGS_ENV",
+						Name:  "MONITOR_DNS_CONFIGS",
 						Value: "true",
 					},
 					{
-						Name:  env.UpdateAPIClientSock.Name(),
+						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
 						Value: "/etc/coredns/client.sock"},
 					{
 						Name:  client.AnnotationEnv,
@@ -84,6 +85,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 			},
 		}})...)
 	patch = append(patch, replaceDNSConfig()...)
+	patch = append(patch, replaceDNSPolicy()...)
 	return patch
 }
 
@@ -132,13 +134,31 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 	return patch
 }
 
+func replaceDNSPolicy() []patchOperation {
+	none := corev1.DNSNone
+	return []patchOperation{
+		{
+			Op:    "replace",
+			Path:  dnsPolicyPath,
+			Value: &none,
+		},
+	}
+}
+
 func replaceDNSConfig() []patchOperation {
+	ndotsValue := "5"
 	return []patchOperation{{
 		Op:   "replace",
 		Path: dnsConfigPath,
 		Value: &corev1.PodDNSConfig{
 			Nameservers: []string{"127.0.0.1"},
-			Searches:    []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
+			Searches:    env.DNSSearchDomainsPatchEnv.GetStringListValueOrDefault(defaultDNSSearchDomains()...),
+			Options: []corev1.PodDNSConfigOption{
+				{
+					Name:  "ndots",
+					Value: &ndotsValue,
+				},
+			},
 		},
 	}}
 }

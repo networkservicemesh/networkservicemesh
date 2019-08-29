@@ -23,11 +23,11 @@ type nsmDNSMonitorHandler struct {
 func NewNsmDNSMonitorHandler() NSMMonitorHandler {
 	clientSock := env.UpdateAPIClientSock.StringValue()
 	if clientSock == "" {
-		logrus.Fatal("update api server socket not passed")
+		logrus.Fatalf("unable to create NSMMonitorHandler instance. Expect %v is not empty", env.UpdateAPIClientSock.Name())
 	}
 	conn, err := tools.DialUnix(clientSock)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatalf("An error during dial unix socket by path %v, error: %v", clientSock, err.Error())
 	}
 	return &nsmDNSMonitorHandler{
 		dnsConfigUpdateClient: update.NewDNSConfigServiceClient(conn),
@@ -36,10 +36,7 @@ func NewNsmDNSMonitorHandler() NSMMonitorHandler {
 
 func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
 	for _, conn := range conns {
-		if conn.Context == nil {
-			continue
-		}
-		if conn.Context.DnsContext == nil {
+		if conn.Context == nil || conn.Context.DnsContext == nil {
 			continue
 		}
 		logrus.Info(conn.Context.DnsContext)
