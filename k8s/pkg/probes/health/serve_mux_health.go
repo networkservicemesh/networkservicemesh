@@ -24,7 +24,7 @@ func NewHttpServeMuxHealth(addr net.Addr, mux *http.ServeMux, timeout time.Durat
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	u, err := url.Parse(fmt.Sprintf("%v://%v/health", addr.Network(), addr.String()+"/health"))
+	u, err := url.Parse(fmt.Sprintf("%v://%v/health", addr.Network(), addr.String()))
 	return NewApplicationHealthFunc(
 		func() error {
 			if err != nil {
