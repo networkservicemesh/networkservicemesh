@@ -1,6 +1,8 @@
 package health
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -16,20 +18,22 @@ func TestServeMuxHealth(t *testing.T) {
 	mux.HandleFunc("/product", testFuncHandler(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	}))
-	s := http.Server{
-		Addr:    ":5000",
-		Handler: mux,
-	}
+	listener, err := net.Listen("tcp", ":0")
+	assert.Expect(err).Should(gomega.BeNil())
+	port := listener.Addr().(*net.TCPAddr).Port
+	addr := fmt.Sprintf(":%v", port)
+	err = listener.Close()
+	assert.Expect(err).Should(gomega.BeNil())
 
 	go func() {
-		err := s.ListenAndServe()
+		err := http.ListenAndServe(addr, mux)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 	}()
 
-	health := NewHttpServeMuxHealth(tools.NewAddr("http", ":5000"), mux, time.Second)
-	err := health.Check()
+	health := NewHttpServeMuxHealth(tools.NewAddr("http", addr), mux, time.Second)
+	err = health.Check()
 	assert.Expect(err).Should(gomega.BeNil())
 }
 
