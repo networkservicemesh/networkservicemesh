@@ -1,5 +1,13 @@
 #!/usr/bin/env sh
 
+if [ -z "$VENDORING" ]
+then
+      echo "No vendoring"
+else
+      echo "Vendoring is enabled, not need to download stuff."
+      exit 0
+fi
+
 limit=10;
 attempt=1;
 
