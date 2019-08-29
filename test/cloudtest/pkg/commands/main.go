@@ -208,8 +208,15 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	// Fill tasks to be executed..
 	ctx.createTasks()
 
-	ctx.performExecution()
-	return ctx.generateJUnitReportFile()
+	err := ctx.performExecution()
+	reportfile, err2 := ctx.generateJUnitReportFile()
+	if err2 != nil && err != nil {
+		logrus.Errorf("Error during generation of report: %v", err2)
+	}
+	if err != nil {
+		return reportfile, err
+	}
+	return reportfile, err2
 }
 
 func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
@@ -249,18 +256,16 @@ func (ctx *executionContext) performShutdown() {
 	logrus.Infof("All clusters destroyed")
 }
 
-func (ctx *executionContext) performExecution() {
+func (ctx *executionContext) performExecution() error {
 	logrus.Infof("Starting test execution")
 	ctx.startTime = time.Now()
 	ctx.clusterReadyTime = ctx.startTime
 
+	timeoutCtx, _ := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout) * time.Second )
+
 	termChannel := tools.NewOSSignalChannel()
-	terminated := false
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
-		if terminated {
-			break
-		}
 		ctx.assignTasks()
 		ctx.checkClustersUsage()
 
@@ -277,11 +282,14 @@ func (ctx *executionContext) performExecution() {
 		case <-time.After(30 * time.Second):
 			ctx.printStatistics()
 		case <-termChannel:
-			logrus.Errorf("Termination request is received")
-			terminated = true
+			return fmt.Errorf("Termination request is received")
+		case <- timeoutCtx.Done():
+			ctx.printStatistics()
+			return fmt.Errorf("Global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
 		}
 	}
-	logrus.Infof("Completed tasks %v", len(ctx.completed))
+	logrus.Infof("Completed tasks %v Tasks left: %v", len(ctx.completed), len(ctx.tasks))
+	return nil
 }
 
 func (ctx *executionContext) assignTasks() {
