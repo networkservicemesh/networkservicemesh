@@ -30,7 +30,7 @@ func main() {
 	logrus.Info("Starting the Kernel-based forwarding plane!")
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
-	dataplaneProbes := probes.NewProbes("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
+	dataplaneProbes := probes.New("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
 	dataplaneProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()

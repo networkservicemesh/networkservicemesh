@@ -32,7 +32,7 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
-	dataplaneProbes := probes.NewProbes("Vppagent dataplane liveness/readiness healthcheck", dataplaneGoals)
+	dataplaneProbes := probes.New("Vppagent dataplane liveness/readiness healthcheck", dataplaneGoals)
 	dataplaneProbes.BeginHealthCheck()
 
 	agent := vppagent.CreateVPPAgent()

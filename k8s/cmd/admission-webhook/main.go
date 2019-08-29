@@ -23,14 +23,14 @@ func main() {
 	logrus.Info("Admission Webhook starting...")
 	logrus.Infof("Version: %v", version)
 	goals := &admissionWebhookGoals{}
-	prob := probes.NewProbes("NSM Admission webhook probes", goals)
+	prob := probes.New("NSM Admission webhook probes", goals)
 	prob.BeginHealthCheck()
 	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		logrus.Fatalf("Failed to load key pair: %v", err)
 	}
 	goals.SetKeyPairLoaded()
-	addr := fmt.Sprintf(":%v", 443)
+	addr := fmt.Sprintf(":%v", defaultPort)
 	whsvr := &nsmAdmissionWebhook{
 		server: &http.Server{
 			Addr:      addr,
@@ -42,7 +42,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", whsvr.serve)
 	whsvr.server.Handler = mux
-	prob.Append(health.NewHttpServeMuxHealth(addr, mux, time.Minute))
+	prob.Append(health.NewHttpServeMuxHealth(tools.NewAddr("https", addr), mux, time.Minute))
 	// start webhook server in new routine
 	go func() {
 		if err := whsvr.server.ListenAndServeTLS("", ""); err != nil {

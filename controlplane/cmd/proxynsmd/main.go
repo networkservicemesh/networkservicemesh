@@ -50,7 +50,7 @@ func main() {
 		}
 	}()
 	goals := &proxyNsmdProbeGoals{}
-	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals)
+	nsmdProbes := probes.New("Prxoy NSMD liveness/readiness healthcheck", goals)
 	nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()

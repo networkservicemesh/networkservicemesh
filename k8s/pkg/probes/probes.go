@@ -42,8 +42,8 @@ type probesImpl struct {
 	*health.AppenderImpl
 }
 
-// NewProbes creates new Network Service Manager readiness probes
-func NewProbes(name string, goals Goals) Probes {
+// New creates new Network Service Manager readiness probes
+func New(name string, goals Goals) Probes {
 	return &probesImpl{
 		name:         name,
 		goals:        goals,
@@ -52,7 +52,7 @@ func NewProbes(name string, goals Goals) Probes {
 }
 
 func (probes *probesImpl) readiness(w http.ResponseWriter, r *http.Request) {
-	if !probes.goals.IsComplete() {
+	if probes.goals != nil && !probes.goals.IsComplete() {
 		http.Error(w, probes.goals.Status(), http.StatusServiceUnavailable)
 		return
 	}

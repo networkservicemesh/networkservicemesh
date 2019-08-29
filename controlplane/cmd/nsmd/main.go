@@ -65,7 +65,7 @@ func main() {
 	defer server.Stop()
 
 	nsmdGoals := &nsmdProbeGoals{}
-	nsmdProbes := probes.NewProbes("NSMD liveness/readiness healthcheck", nsmdGoals)
+	nsmdProbes := probes.New("NSMD liveness/readiness healthcheck", nsmdGoals)
 	nsmdProbes.BeginHealthCheck()
 
 	logrus.Info("NSM server is ready")
