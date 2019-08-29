@@ -283,7 +283,7 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 
 	stacks, err := cfClient.ListStacks(&cloudformation.ListStacksInput{})
 	if err != nil {
-		logrus.Info("AWS EKS Error: %v", err)
+		logrus.Infof("AWS EKS Error: %v", err)
 		return
 	}
 
@@ -292,6 +292,10 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 	for _, stack := range stacks.StackSummaries {
 		stackName := aws.StringValue(stack.StackName)
 		if stackName[:7] != "nsm-srv" {
+			continue
+		}
+
+		if aws.StringValue(stack.StackStatus) == "DELETE_COMPLETE" {
 			continue
 		}
 
