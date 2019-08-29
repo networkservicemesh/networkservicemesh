@@ -303,7 +303,7 @@ func (ctx *executionContext) assignTasks() {
 			}
 			// If we finally not assigned.
 			if !assigned {
-				if clustersAvailable == 0 {
+				if clustersAvailable < len(task.clusters) {
 					// We move task to skipped since, no clusters could execute it, all attempts for clusters to recover are finished.
 					logrus.Errorf("Move task to skipped since no clusters could execute it: %s", task.test.Name)
 					task.test.Status = model.StatusSkippedSinceNoClusters
@@ -393,6 +393,7 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 	clustersAvailable := 0
 	for _, cluster := range task.clusters {
 		groupAssigned := false
+		groupAvailable := false
 		for _, ci := range cluster.instances {
 			ciref := ci
 			// No task is assigned for cluster.
@@ -400,10 +401,10 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 			case clusterAdded, clusterCrashed:
 				// Try starting cluster
 				ctx.startCluster(ciref)
-				clustersAvailable++
+				groupAvailable = true
 			case clusterReady:
+				groupAvailable = true
 				if groupAssigned {
-					clustersAvailable++
 					continue
 				}
 				// Check if we match requirements.
@@ -411,10 +412,12 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 				clustersToUse = append(clustersToUse, ciref)
 				// We need to remove task from list
 				groupAssigned = true
-				clustersAvailable++
 			case clusterBusy, clusterStarting:
-				clustersAvailable++
+				groupAvailable = true
 			}
+		}
+		if groupAvailable {
+			clustersAvailable++
 		}
 	}
 	return clustersAvailable, clustersToUse, len(clustersToUse) == len(task.clusters)
