@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -48,8 +50,8 @@ func main() {
 		}
 	}()
 	goals := &proxyNsmdProbeGoals{}
-	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals, tools.NewAddr("tcp", getProxyNSMDAPIAddress()))
-	go nsmdProbes.BeginHealthCheck()
+	nsmdProbes := probes.NewProbes("Prxoy NSMD liveness/readiness healthcheck", goals)
+	nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -65,7 +67,7 @@ func main() {
 	logrus.Info("Public listener is ready")
 	goals.SetPublicListenerReady()
 
-	startAPIServerAt(sock, serviceRegistry)
+	startAPIServerAt(sock, serviceRegistry, nsmdProbes)
 	logrus.Info("API server is ready")
 	goals.SetServerAPIReady()
 
@@ -84,17 +86,16 @@ func getProxyNSMDAPIAddress() string {
 }
 
 // StartAPIServerAt starts GRPC API server at sock
-func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry) {
+func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
 	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
-
+	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 	// Register Remote NetworkServiceManager
 	remoteServer := proxynetworkserviceserver.NewProxyNetworkServiceServer(serviceRegistry)
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)

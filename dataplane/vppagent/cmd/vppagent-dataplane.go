@@ -33,7 +33,7 @@ func main() {
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
 	dataplaneProbes := probes.NewProbes("Vppagent dataplane liveness/readiness healthcheck", dataplaneGoals)
-	go dataplaneProbes.BeginHealthCheck()
+	dataplaneProbes.BeginHealthCheck()
 
 	agent := vppagent.CreateVPPAgent()
 

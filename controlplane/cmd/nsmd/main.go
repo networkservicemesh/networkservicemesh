@@ -37,10 +37,6 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 
-	nsmdGoals := &nsmdProbeGoals{}
-	nsmdProbes := probes.NewProbes("NSMD liveness/readiness healthcheck", nsmdGoals, tools.NewAddr("tcp", getNsmdAPIAddress()))
-	go nsmdProbes.BeginHealthCheck()
-
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
 	pluginRegistry := plugins.NewPluginRegistry()
@@ -67,6 +63,10 @@ func main() {
 		return
 	}
 	defer server.Stop()
+
+	nsmdGoals := &nsmdProbeGoals{}
+	nsmdProbes := probes.NewProbes("NSMD liveness/readiness healthcheck", nsmdGoals)
+	nsmdProbes.BeginHealthCheck()
 
 	logrus.Info("NSM server is ready")
 	nsmdGoals.SetNsmServerReady()
@@ -100,7 +100,7 @@ func main() {
 	logrus.Info("Public listener is ready")
 	nsmdGoals.SetPublicListenerReady()
 
-	server.StartAPIServerAt(sock)
+	server.StartAPIServerAt(sock, nsmdProbes)
 	nsmdGoals.SetServerAPIReady()
 	logrus.Info("Serve api is ready")
 

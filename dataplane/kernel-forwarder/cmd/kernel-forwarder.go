@@ -31,7 +31,7 @@ func main() {
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
 	dataplaneProbes := probes.NewProbes("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
-	go dataplaneProbes.BeginHealthCheck()
+	dataplaneProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()
 

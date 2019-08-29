@@ -16,11 +16,11 @@
 package probes
 
 import (
-	"net"
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
 
 	"github.com/sirupsen/logrus"
 )
@@ -30,44 +30,54 @@ const (
 	probeTimeout          = time.Second
 )
 
-// Probes - Network Service Manager readiness probes
-type Probes struct {
-	name      string
-	goals     Goals
-	endpoints []net.Addr
+type Probes interface {
+	BeginHealthCheck()
+	health.Appender
+}
+
+// probesImpl - Network Service Manager readiness probes
+type probesImpl struct {
+	name  string
+	goals Goals
+	*health.AppenderImpl
 }
 
 // NewProbes creates new Network Service Manager readiness probes
-func NewProbes(name string, goals Goals, endpoints ...net.Addr) *Probes {
-	return &Probes{
-		name:      name,
-		goals:     goals,
-		endpoints: endpoints,
+func NewProbes(name string, goals Goals) Probes {
+	return &probesImpl{
+		name:         name,
+		goals:        goals,
+		AppenderImpl: new(health.AppenderImpl),
 	}
 }
 
-func (probes *Probes) readiness(w http.ResponseWriter, r *http.Request) {
+func (probes *probesImpl) readiness(w http.ResponseWriter, r *http.Request) {
 	if !probes.goals.IsComplete() {
 		http.Error(w, probes.goals.Status(), http.StatusServiceUnavailable)
-	} else {
-		for i := range probes.endpoints {
-			if err := tools.CheckHealth(probes.endpoints[i], probeTimeout); err != nil {
-				http.Error(w, err.Error(), http.StatusServiceUnavailable)
-				return
-			}
-		}
-		w.Write([]byte("OK"))
+		return
 	}
+	var err error
+	probes.Iterate(func(checker health.ApplicationHealth) bool {
+		err = checker.Check()
+		return err == nil
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Goals status: %v, health check status: %v", probes.goals.Status(), err), http.StatusServiceUnavailable)
+		return
+	}
+	w.Write([]byte("OK"))
 }
 
-func (probes *Probes) liveness(w http.ResponseWriter, r *http.Request) {
+func (probes *probesImpl) liveness(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
 // BeginHealthCheck starts listening 5555 port for health check
-func (probes *Probes) BeginHealthCheck() {
-	logrus.Debugf("Starting %v", probes.name)
-	http.HandleFunc("/liveness", probes.liveness)
-	http.HandleFunc("/readiness", probes.readiness)
-	http.ListenAndServe(healthcheckProbesPort, nil)
+func (probes *probesImpl) BeginHealthCheck() {
+	go func() {
+		logrus.Debugf("Starting %v", probes.name)
+		http.HandleFunc("/liveness", probes.liveness)
+		http.HandleFunc("/readiness", probes.readiness)
+		http.ListenAndServe(healthcheckProbesPort, nil)
+	}()
 }

@@ -7,6 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -38,7 +41,7 @@ const (
 type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
-	StartAPIServerAt(sock net.Listener)
+	StartAPIServerAt(sock net.Listener, probes probes.Probes)
 
 	XconManager() *services.ClientConnectionManager
 	Manager() nsm.NetworkServiceManager
@@ -482,11 +485,12 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 }
 
 // StartAPIServerAt starts GRPC API server at sock
-func (nsm *nsmServer) StartAPIServerAt(sock net.Listener) {
+func (nsm *nsmServer) StartAPIServerAt(sock net.Listener, probes probes.Probes) {
 	grpcServer := tools.NewServer()
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
+	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
 	remoteServer := network_service_server.NewRemoteNetworkServiceServer(nsm.model, nsm.manager, nsm.serviceRegistry, nsm.remoteConnectionMonitor)
