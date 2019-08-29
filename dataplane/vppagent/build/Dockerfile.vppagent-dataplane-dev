@@ -46,5 +46,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-stati
 
 FROM vpp_agent
 COPY --from=build_vpp /go/bin/vppagent-dataplane /bin/vppagent-dataplane
-CMD [ "/bin/sh", "-c", "rm -f /dev/shm/db /dev/shm/global_vm /dev/shm/vpe-api &&     /usr/bin/supervisord -c /etc/supervisord/supervisord.conf"]
-
+CMD [ "/bin/sh", "-c", "rm -f /dev/shm/db /dev/shm/global_vm /dev/shm/vpe-api && SUPERVISOR_CONFIG=/etc/supervisord/supervisord.conf vpp-agent-init"]
