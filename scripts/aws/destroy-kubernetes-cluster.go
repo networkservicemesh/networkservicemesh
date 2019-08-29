@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -290,7 +291,7 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 	i := 0
 	for _, stack := range stacks.StackSummaries {
 		stackName := aws.StringValue(stack.StackName)
-		if  stackName[:7] != "nsm-srv" {
+		if stackName[:7] != "nsm-srv" {
 			continue
 		}
 
@@ -305,10 +306,10 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 			defer wg.Done()
 			logrus.Infof("Deleting %s", stackName[7:])
 			deleteAWSKubernetesCluster(stackName[7:])
-		} ()
+		}()
 
 		i++
-		if i % 5 == 0 {
+		if i%5 == 0 {
 			wg.Wait() // Guard from AWS Throttling error
 		}
 	}
