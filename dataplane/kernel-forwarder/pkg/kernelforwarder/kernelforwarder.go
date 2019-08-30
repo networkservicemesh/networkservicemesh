@@ -85,7 +85,7 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 	var err error
 	var devices map[string]string
 	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
-	if err := common.SanityCheckConnectionType(k.common.Mechanisms, crossConnect); err != nil {
+	if err = common.SanityCheckConnectionType(k.common.Mechanisms, crossConnect); err != nil {
 		return err
 	}
 	/* 1. Handle local connection */

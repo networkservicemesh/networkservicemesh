@@ -21,11 +21,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 )
 
 // Metrics monitoring instance type
@@ -80,7 +81,7 @@ func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, d
 func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metrics, error) {
 	/* Store the metrics for all registered devices here */
 	stats := make(map[string]*crossconnect.Metrics)
-	var failedDevices map[string]string
+	failedDevices := make(map[string]string)
 	devices.Lock()
 	/* Loop through each registered device */
 	for device, namespace := range devices.devices {
@@ -95,8 +96,12 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 		}
 	}
 	devices.Unlock()
-	if failedDevices != nil {
+	/* Update device list in case there are bad devices */
+	if len(failedDevices) != 0 {
 		devices.UpdateDeviceList(failedDevices, false)
+	}
+	if len(stats) == 0 {
+		return stats, fmt.Errorf("metrics: failed to extract metrics for any device in list: %v", devices.devices)
 	}
 	return stats, nil
 }
@@ -157,7 +162,7 @@ func getDeviceMetrics(device, namespace string) (map[string]string, error) {
 }
 
 // UpdateDeviceList keeps track of the devices being handled by the Kernel forwarding plane
-func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect bool) error {
+func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect bool) {
 	/* Add devices */
 	m.Lock()
 	defer m.Unlock()
@@ -165,8 +170,8 @@ func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect 
 		for device, namespace := range devices {
 			_, ok := m.devices[device]
 			if ok {
-				logrus.Error("metrics: device requested for add is already present in the devices list")
-				return fmt.Errorf("metrics: device requested for add is already present in the devices list")
+				logrus.Errorf("metrics: device %s requested for add is already present in the devices list", device)
+				continue
 			}
 			m.devices[device] = namespace
 		}
@@ -175,12 +180,11 @@ func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect 
 		for device := range devices {
 			_, ok := m.devices[device]
 			if !ok {
-				logrus.Error("metrics: device requested for delete is already missing from the devices list")
-				return fmt.Errorf("metrics: device requested for delete is already missing from the devices list")
+				logrus.Errorf("metrics: device %s requested for delete is already missing from the devices list", device)
+				continue
 			}
 			delete(m.devices, device)
 		}
 	}
 	logrus.Infof("metrics: device list - %v", m.devices)
-	return nil
 }

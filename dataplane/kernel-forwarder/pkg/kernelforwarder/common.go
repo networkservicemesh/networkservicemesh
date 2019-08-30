@@ -94,11 +94,6 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 		logrus.Errorf("common: failed to switch to container namespace: %v", err)
 		return err
 	}
-	defer func() {
-		if err = containerNs.Close(); err != nil {
-			logrus.Error("common: error when closing:", err)
-		}
-	}()
 	/* 6. Get a link for the interface name */
 	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
