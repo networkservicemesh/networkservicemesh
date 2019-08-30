@@ -52,7 +52,7 @@ func newJaegerEnvVar() []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name:  "JAEGER_AGENT_HOST",
-			Value: "10.44.0.1",
+			Value: "jaeger.nsm-system",
 		},
 		{
 			Name:  "JAEGER_AGENT_PORT",
