@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
@@ -17,15 +16,13 @@ const anyDomain = "."
 type DNSConfigManager struct {
 	configs     sync.Map
 	basicConfig *connectioncontext.DNSConfig
-	reloadTime  time.Duration
 }
 
 //NewDNSConfigManager creates new config manager
-func NewDNSConfigManager(basic connectioncontext.DNSConfig, reloadTime time.Duration) *DNSConfigManager {
+func NewDNSConfigManager(basic connectioncontext.DNSConfig) *DNSConfigManager {
 	return &DNSConfigManager{
 		configs:     sync.Map{},
 		basicConfig: &basic,
-		reloadTime:  reloadTime,
 	}
 }
 
@@ -66,19 +63,13 @@ func (m *DNSConfigManager) writeDNSConfig(c caddyfile.Caddyfile, config *connect
 	}
 
 	ips := strings.Join(config.DnsServerIps, " ")
-	isMainScope := scopeName == m.getBasicConfigScopeName()
 	if c.HasScope(scopeName) {
 		fanoutIndex := 1
-		if isMainScope {
-			fanoutIndex++
-		}
 		ips += " " + c.GetOrCreate(scopeName).Records()[fanoutIndex].String()[len("fanout "):]
 		c.Remove(scopeName)
 	}
 	scope := c.WriteScope(scopeName)
-	if isMainScope {
-		scope.Write(fmt.Sprintf("reload %v", m.reloadTime))
-	}
+
 	scope.Write("log").Write(fmt.Sprintf("fanout %v", removeDuplicates(ips)))
 }
 

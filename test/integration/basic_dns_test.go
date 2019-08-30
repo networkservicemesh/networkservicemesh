@@ -3,6 +3,7 @@
 package nsmd_integration_tests
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -28,6 +29,7 @@ func TestBasicDns(t *testing.T) {
 	err = kubetest.DeployCorefile(k8s, "basic-corefile", `. {
     log
     hosts {
+		no_recursive
         172.16.1.2 my.app
     }
 }`)
@@ -35,14 +37,10 @@ func TestBasicDns(t *testing.T) {
 	assert.Expect(err).Should(gomega.BeNil())
 	kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder-nse", defaultTimeout)
 	nsc := kubetest.DeployNscAndNsmCoredns(k8s, configs[0].Node, "nsc", "basic-corefile", defaultTimeout)
-	assert.Expect(kubetest.PingByHostName(k8s, nsc, "my.app")).Should(gomega.BeTrue())
+	assert.Expect(kubetest.PingByHostName(k8s, nsc, "my.app.")).Should(gomega.BeTrue())
 }
 
 func TestDNSMonitoringNsc(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("broken")
-		return
-	}
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -55,6 +53,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	nseCorefileContent := `. {
     hosts {
+		no_recursive
         172.16.1.2 icmp.app
     }
 }`
@@ -67,8 +66,41 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	kubetest.DeployICMPAndCoredns(k8s, configs[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
-	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app")).Should(gomega.BeTrue())
+	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app.")).Should(gomega.BeTrue())
+}
 
+func TestDNSExternalClient(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	assert := gomega.NewWithT(t)
+	k8s, err := kubetest.NewK8s(assert, true)
+	defer k8s.Cleanup()
+	defer kubetest.MakeLogsSnapshot(k8s, t)
+	assert.Expect(err).To(gomega.BeNil())
+
+	deleteWebhook := func() func() {
+		awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace(), defaultTimeout)
+		return func() {
+			kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
+		}
+	}()
+	defer deleteWebhook()
+	coreFile := `. {
+    hosts {
+		no_recursive
+        172.16.1.2 icmp.app
+    }
+}`
+	err = kubetest.DeployCorefile(k8s, "icmp-responder-corefile", coreFile)
+	assert.Expect(err).Should(gomega.BeNil())
+	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	assert.Expect(err).To(gomega.BeNil())
+
+	kubetest.DeployICMPAndCoredns(k8s, nodes[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
+	nsc := kubetest.DeployNSCWebhook(k8s, nodes[0].Node, "nsc-1", defaultTimeout)
+	assert.Expect(kubetest.PingByHostName(k8s, nsc, "icmp.app.")).Should(gomega.BeTrue())
 }
 
 func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
@@ -83,7 +115,15 @@ func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
 	defer kubetest.MakeLogsSnapshot(k8s, t)
+	pods := k8s.ListPodsByNs("kube-system")
+	var dnsServers []string
+	for _, pod := range pods {
+		if strings.Contains(pod.Name, "kube-dns") || strings.Contains(pod.Name, "coredns") {
+			dnsServers = append(dnsServers, pod.Status.PodIP)
+		}
+	}
+
 	kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder", defaultTimeout)
-	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
+	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout, dnsServers...)
 	assert.Expect(kubetest.NSLookup(k8s, nsc, "kubernetes.default")).Should(gomega.BeTrue())
 }

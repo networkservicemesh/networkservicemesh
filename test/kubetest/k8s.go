@@ -474,6 +474,13 @@ func (k8s *K8s) ListPods() []v1.Pod {
 	return podList.Items
 }
 
+//ListPodsByNs returns pod list by specific namespace
+func (k8s *K8s) ListPodsByNs(ns string) []v1.Pod {
+	podList, err := k8s.clientset.CoreV1().Pods(ns).List(metaV1.ListOptions{})
+	k8s.g.Expect(err).To(BeNil())
+	return podList.Items
+}
+
 // CleanupCRDs cleans up CRDs
 func (k8s *K8s) CleanupCRDs() {
 

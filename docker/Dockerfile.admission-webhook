@@ -11,7 +11,7 @@ WORKDIR /root/networkservicemesh/
 RUN ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/admission-webhook ./k8s/cmd/admission-webhook/...
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/admission-webhook ./k8s/cmd/admission-webhook
 
 FROM alpine as runtime
 COPY --from=build /go/bin/admission-webhook /bin/admission-webhook
