@@ -261,7 +261,8 @@ func (ctx *executionContext) performExecution() error {
 	ctx.startTime = time.Now()
 	ctx.clusterReadyTime = ctx.startTime
 
-	timeoutCtx, _ := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout)*time.Second)
+	timeoutCtx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout)*time.Second)
+	defer cancelFunc()
 
 	termChannel := tools.NewOSSignalChannel()
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
