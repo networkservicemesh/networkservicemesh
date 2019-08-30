@@ -16,6 +16,7 @@
 package kernelforwarder
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -53,10 +54,13 @@ type connectionConfig struct {
 	dstIP      string
 	srcIPVXLAN net.IP
 	dstIPVXLAN net.IP
+	srcRoutes  []*connectioncontext.Route
+	dstRoutes  []*connectioncontext.Route
+	neighbors  []*connectioncontext.IpNeighbor
 	vni        int
 }
 
-func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject bool) error {
+func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
 	if inject {
 		/* 1. Get a link object for the interface */
 		ifaceLink, err := netlink.LinkByName(ifaceName)
@@ -118,19 +122,27 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, inject
 			logrus.Errorf("failed to bring %q up: %v", ifaceName, err)
 			return err
 		}
+		/* 10. Add routes */
+		if err = addRoutes(link, addr, routes); err != nil {
+			logrus.Error("failed adding routes:", err)
+		}
+		/* 11. Add neighbors - applicable only for source side */
+		if err = addNeighbors(link, neighbors); err != nil {
+			logrus.Error("failed adding neighbors:", err)
+		}
 	} else {
-		/* 9. Bring the interface DOWN */
+		/* 7. Bring the interface DOWN */
 		if err = netlink.LinkSetDown(link); err != nil {
 			logrus.Errorf("failed to bring %q down: %v", ifaceName, err)
 			return err
 		}
-		/* 2. Inject the interface back into the host namespace */
+		/* 8. Inject the interface back into the host namespace */
 		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
 			logrus.Errorf("failed to inject %q bach to host namespace - %v", ifaceName, err)
 			return err
 		}
 	}
-	/* 10. Switch back to the original namespace */
+	/* Switch back to the original namespace */
 	if err = netns.Set(currentNs); err != nil {
 		logrus.Errorf("failed to switch back to original namespace: %v", err)
 		return err
@@ -159,6 +171,9 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
 			dstIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
+			srcRoutes: crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
+			dstRoutes: crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
+			neighbors: crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
 		}, nil
 	case cINCOMING:
 		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
@@ -171,6 +186,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstNsPath:  dstNsPath,
 			dstName:    crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			dstIP:      crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
+			dstRoutes:  crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
+			neighbors:  nil,
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
@@ -186,6 +203,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			srcNsPath:  srcNsPath,
 			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:      crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			srcRoutes:  crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
+			neighbors:  crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
@@ -194,4 +213,48 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		logrus.Error("connection configuration: invalid connection type")
 		return nil, fmt.Errorf("invalid connection type")
 	}
+}
+
+func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontext.Route) error {
+	for _, route := range routes {
+		_, routeNet, err := net.ParseCIDR(route.GetPrefix())
+		if err != nil {
+			logrus.Error("failed parsing route CIDR:", err)
+			return err
+		}
+		route := netlink.Route{
+			LinkIndex: link.Attrs().Index,
+			Dst: &net.IPNet{
+				IP:   routeNet.IP,
+				Mask: routeNet.Mask,
+			},
+			Src: addr.IP,
+		}
+		if err = netlink.RouteAdd(&route); err != nil {
+			logrus.Error("failed adding routes:", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func addNeighbors(link netlink.Link, neighbors []*connectioncontext.IpNeighbor) error {
+	for _, neighbor := range neighbors {
+		mac, err := net.ParseMAC(neighbor.GetHardwareAddress())
+		if err != nil {
+			logrus.Error("failed parsing the MAC address for IP neighbors:", err)
+			return err
+		}
+		neigh := netlink.Neigh{
+			LinkIndex:    link.Attrs().Index,
+			State:        netlink.NUD_REACHABLE,
+			IP:           net.ParseIP(neighbor.GetIp()),
+			HardwareAddr: mac,
+		}
+		if err = netlink.NeighAdd(&neigh); err != nil {
+			logrus.Error("failed adding neighbor:", err)
+			return err
+		}
+	}
+	return nil
 }

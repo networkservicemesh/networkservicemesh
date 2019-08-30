@@ -5,15 +5,15 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 )
 
 func TestNsmCacheGetNil(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache()
+	c := resourcecache.NewNetworkServiceManagerCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -25,7 +25,7 @@ func TestNsmCacheGetNil(t *testing.T) {
 
 func TestNsmCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache()
+	c := resourcecache.NewNetworkServiceManagerCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry{})
 	defer stopFunc()
@@ -55,20 +55,37 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 	})
 	defer stopWrite()
 
-	time.Sleep(time.Second * 5)
+	<-time.After(time.Second)
+}
+
+func TestNSMCacheAddResourceWithNamespace(t *testing.T) {
+	g := NewWithT(t)
+	nsmCache := resourcecache.NewNetworkServiceManagerCache(resourcecache.FilterByNamespacePolicy("1", func(resource interface{}) string {
+		return resource.(*v1.NetworkServiceManager).Namespace
+	}))
+	reg := fakeRegistry{}
+
+	stopFunc, err := nsmCache.Start(&reg)
+	g.Expect(stopFunc).ToNot(BeNil())
+	g.Expect(err).To(BeNil())
+	defer stopFunc()
+	reg.Add(&v1.NetworkServiceManager{ObjectMeta: metav1.ObjectMeta{Name: "nsm1"}})
+	g.Expect(nsmCache.Get("nsm1")).Should(BeNil())
+	reg.Add(&v1.NetworkServiceManager{ObjectMeta: metav1.ObjectMeta{Name: "nsm1", Namespace: "1"}})
+	g.Expect(nsmCache.Get("nsm1")).ShouldNot(BeNil())
 }
 
 func TestNsmCacheStartWithInit(t *testing.T) {
 	g := NewWithT(t)
-	c := resource_cache.NewNetworkServiceManagerCache()
+	c := resourcecache.NewNetworkServiceManagerCache(resourcecache.NoFilterPolicy())
 
 	init := []v1.NetworkServiceManager{
 		{
-			ObjectMeta: v12.ObjectMeta{Name: "nsm-1"},
+			ObjectMeta: metav1.ObjectMeta{Name: "nsm-1"},
 			Status:     v1.NetworkServiceManagerStatus{URL: "1.1.1.1"},
 		},
 		{
-			ObjectMeta: v12.ObjectMeta{Name: "nsm-2"},
+			ObjectMeta: metav1.ObjectMeta{Name: "nsm-2"},
 			Status:     v1.NetworkServiceManagerStatus{URL: "2.2.2.2"},
 		},
 	}

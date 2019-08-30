@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SSH_OPTS := -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+SSH_OPTS := -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes
 
 ifeq ($(wildcard ./scripts/terraform/packet.tfvars),) 
 	TF_PACKET_VARS = -auto-approve
@@ -46,8 +46,19 @@ packet-stop:
 	popd
 
 .PHONY: packet-%-load-images
-packet-%-load-images: 
-	@echo Skipping, local docker images are used
+packet-%-load-images:
+	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
+		pushd scripts/terraform; \
+		echo "Loading image $*.tar to master and worker"; \
+		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:~/ & \
+		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/ 
+		ssh ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
+		ssh ${SSH_OPTS} root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
+		popd ; \
+	else \
+		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		exit 1; \
+	fi
 
 .ONESHELL:
 .PHONY: packet-get-kubeconfig

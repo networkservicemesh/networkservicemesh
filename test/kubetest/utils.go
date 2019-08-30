@@ -1,6 +1,7 @@
 package kubetest
 
 import (
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -187,14 +188,8 @@ func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 
 	pnsmd = tempPods[0]
 
-	failures := InterceptGomegaFailures(func() {
-		_ = k8s.WaitLogsContainsRegex(pnsmd, "proxy-nsmd", "NSM gRPC API Server: .* is operational", timeout)
-		k8s.WaitLogsContains(pnsmd, "proxy-nsmd-k8s", "proxy-nsmd-k8s initialized and waiting for connection", timeout)
-	})
-
-	if len(failures) > 0 {
-		makeLogsSnapshot(k8s, nil)
-	}
+	_ = k8s.WaitLogsContainsRegex(pnsmd, "proxy-nsmd", "NSM gRPC API Server: .* is operational", timeout)
+	k8s.WaitLogsContains(pnsmd, "proxy-nsmd-k8s", "proxy-nsmd-k8s initialized and waiting for connection", timeout)
 
 	logrus.Printf("Proxy NSMgr started done: %v", time.Since(startTime))
 	return
@@ -272,9 +267,11 @@ func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 }
 
 //DeployMonitoringNSCAndCoredns deploys pod of nsm-dns-monitoring-nsc and nsm-coredns
-func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, defaultNSCEnv(), pods.NSCServiceAccount)
-	pods.InjectNSMCorednsWithSharedFolder(template)
+func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout time.Duration, defaultDNSIPs ...string) *v1.Pod {
+	envs := defaultNSCEnv()
+	envs["UPDATE_API_CLIENT_SOCKET"] = "/etc/coredns/client.sock"
+	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, envs, pods.NSCServiceAccount)
+	pods.InjectNSMCorednsWithSharedFolder(template, defaultDNSIPs...)
 	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
 	k8s.WaitLogsContains(result, "nsm-coredns", "CoreDNS-", timeout)
 	return result
@@ -282,6 +279,8 @@ func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout
 
 // DeployNscAndNsmCoredns deploys pod of default client and nsm-coredns
 func DeployNscAndNsmCoredns(k8s *K8s, node *v1.Node, name, corefileName string, timeout time.Duration) *v1.Pod {
+	envs := defaultNSCEnv()
+	envs["UPDATE_API_CLIENT_SOCKET"] = "/etc/coredns/client.sock"
 	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
 		pods.InjectNSMCoredns(pods.NSCPod(name, node, defaultNSCEnv()), corefileName),
 	)
@@ -493,7 +492,7 @@ func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret,
 
 	block := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Bytes: x509.MarshalPKCS1PrivateKey(key.(*rsa.PrivateKey)),
 	}
 	keyPem := pem.EncodeToMemory(block)
 
@@ -545,7 +544,7 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 				"app": "nsm-admission-webhook",
 			},
 		},
-		Webhooks: []arv1beta1.Webhook{
+		Webhooks: []arv1beta1.MutatingWebhook{
 			{
 				Name: "admission-webhook.networkservicemesh.io",
 				ClientConfig: arv1beta1.WebhookClientConfig{

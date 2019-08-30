@@ -110,8 +110,8 @@ func dnsMutator(c *connection.Connection) error {
 	c.Context.DnsContext = &connectioncontext.DNSContext{
 		Configs: []*connectioncontext.DNSConfig{
 			{
-				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault([]string{defaultIP}),
-				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault([]string{"icmp.app"}),
+				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault(defaultIP),
+				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault("icmp.app"),
 			},
 		},
 	}

@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
@@ -36,7 +36,7 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 		return
 	}
 
-	clusterConfiguration := &v1alpha3.ClusterConfiguration{}
+	clusterConfiguration := &v1beta2.ClusterConfiguration{}
 	err = yaml.NewYAMLOrJSONDecoder(strings.NewReader(cm.Data["ClusterConfiguration"]), 4096).
 		Decode(clusterConfiguration)
 	g.Expect(err).To(BeNil())

@@ -12,7 +12,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
 )
 
-// New Proxy Registry Server - Starts Network Service Discovery Server and Cluster Info Server
+// New starts proxy Network Service Discovery Server and Cluster Info Server
 func New(clientset *nsmClientset.Clientset, clusterInfoService clusterinfo.ClusterInfoServer) *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(
@@ -21,7 +21,7 @@ func New(clientset *nsmClientset.Clientset, clusterInfoService clusterinfo.Clust
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
-	cache := registryserver.NewRegistryCache(clientset)
+	cache := registryserver.NewRegistryCache(clientset, &registryserver.ResourceFilterConfig{})
 
 	discovery := newDiscoveryService(cache, clusterInfoService)
 

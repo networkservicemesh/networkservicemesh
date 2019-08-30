@@ -64,14 +64,19 @@ func (nscrd *NSCRD) Get(name string) (*nsapiv1.NetworkService, error) {
 	return &result, err
 }
 
+// NewNSCRD creates a new Clientset for the default config.
 func NewNSCRD(namespace string) (*NSCRD, error) {
-
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
 		path = os.Getenv("HOME") + "/.kube/config"
 	}
 
-	config, err := clientcmd.BuildConfigFromFlags("", path)
+	return NewNSCRDWithConfig(namespace, path)
+}
+
+// NewNSCRDWithConfig creates a new Clientset for the given config.
+func NewNSCRDWithConfig(namespace, kubepath string) (*NSCRD, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubepath)
 	if err != nil {
 		return nil, err
 	}

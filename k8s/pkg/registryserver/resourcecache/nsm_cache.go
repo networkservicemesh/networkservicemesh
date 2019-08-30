@@ -1,4 +1,4 @@
-package resource_cache
+package resourcecache
 
 import (
 	"fmt"
@@ -17,7 +17,8 @@ type NetworkServiceManagerCache struct {
 	networkServiceManagers map[string]*v1.NetworkServiceManager
 }
 
-func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
+//NewNetworkServiceManagerCache creates cache for network service managers
+func NewNetworkServiceManagerCache(policy CacheFilterPolicy) *NetworkServiceManagerCache {
 	rv := &NetworkServiceManagerCache{
 		networkServiceManagers: make(map[string]*v1.NetworkServiceManager),
 	}
@@ -29,7 +30,7 @@ func NewNetworkServiceManagerCache() *NetworkServiceManagerCache {
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsmResource,
 	}
-	rv.cache = newAbstractResourceCache(config)
+	rv.cache = newAbstractResourceCache(config, policy)
 	return rv
 }
 
@@ -101,4 +102,8 @@ func (c *NetworkServiceManagerCache) resourceGet(key string) interface{} {
 
 func getNsmKey(obj interface{}) string {
 	return obj.(*v1.NetworkServiceManager).Name
+}
+
+func getNsmNamespace(obj interface{}) string {
+	return obj.(*v1.NetworkServiceManager).Namespace
 }

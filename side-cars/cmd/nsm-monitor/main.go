@@ -29,6 +29,11 @@ func main() {
 	logrus.Infof("Starting nsm-monitor....")
 	logrus.Infof("Version: %v", version)
 	app := nsm_sidecars.NewNSMMonitorApp()
+
+	if MonitorDNSConfigsEnv.GetBooleanOrDefault(false) {
+		app.SetHandler(nsm_sidecars.NewNsmDNSMonitorHandler())
+	}
+
 	go app.Run()
 	<-c
 }

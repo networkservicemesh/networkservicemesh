@@ -25,6 +25,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	pkgerrors "github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
@@ -272,6 +274,12 @@ type K8s struct {
 	cleanupFunc        func()
 }
 
+// ExtK8s - K8s ClientSet with nodes config
+type ExtK8s struct {
+	K8s        *K8s
+	NodesSetup []*NodeConf
+}
+
 // NewK8s - Creates a new K8s Clientset with roles for the default config
 func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 
@@ -287,18 +295,26 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 	return client, err
 }
 
+// NewK8sForConfig - Creates a new K8s Clientset for the given config with creating roles
+func NewK8sForConfig(g *WithT, prepare bool, kubeconfig string) (*K8s, error) {
+	client, err := NewK8sWithoutRolesForConfig(g, prepare, kubeconfig)
+	client.roles, _ = client.CreateRoles("admin", "view", "binding")
+	return client, err
+}
+
 // NewK8sWithoutRoles - Creates a new K8s Clientset for the default config
 func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
-
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
 		path = os.Getenv("HOME") + "/.kube/config"
 	}
+	return NewK8sWithoutRolesForConfig(g, prepare, path)
+}
 
-	config, err := clientcmd.BuildConfigFromFlags("", path)
-	if err != nil {
-		return nil, err
-	}
+// NewK8sWithoutRolesForConfig - Creates a new K8s Clientset for the given config
+func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) (*K8s, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	g.Expect(err).To(BeNil())
 
 	client := K8s{
 		pods: []*v1.Pod{},
@@ -394,36 +410,49 @@ func (k8s *K8s) initNamespace() {
 // Delete POD with completion check
 // Make force delete on timeout
 func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
-	var wg sync.WaitGroup
-	var err error
+	var result error
+	errCh := make(chan error, len(pods))
 	for _, my_pod := range pods {
-		wg.Add(1)
 		pod := my_pod
 		go func() {
-			defer wg.Done()
+			var deleteErr error
+			defer func() {
+				errCh <- deleteErr
+			}()
 			delOpt := &metaV1.DeleteOptions{}
 			st := time.Now()
 			logrus.Infof("Deleting %v", pod.Name)
-			err = k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
-			if err != nil {
-				logrus.Warnf(`The POD "%s" may continue to run on the cluster, %v`, pod.Name, err)
+			deleteErr = k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
+			if deleteErr != nil {
+				logrus.Warnf(`The POD "%s" may continue to run on the cluster, %v`, pod.Name, deleteErr)
 				return
 			}
 			c, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
 			defer cancel()
-			err = blockUntilPodWorking(k8s.clientset, c, pod)
+			err := blockUntilPodWorking(k8s.clientset, c, pod)
 			if err != nil {
 				err = k8s.deletePodForce(pod)
 				if err != nil {
 					logrus.Warnf(`The POD "%s" may continue to run on the cluster`, pod.Name)
-					logrus.Warn(err)
+					logrus.Warnf("Force delete error: %v", err)
+				} else {
+					logrus.Infof("The POD %v force deleted", pod.Name)
 				}
 			}
 			logrus.Warnf(`The POD "%s" Deleted %v`, pod.Name, time.Since(st))
 		}()
 	}
-	wg.Wait()
-	return err
+	for i := 0; i < len(pods); i++ {
+		err := <-errCh
+		if err != nil {
+			if result == nil {
+				result = err
+			} else {
+				result = pkgerrors.Wrap(result, err.Error())
+			}
+		}
+	}
+	return result
 }
 func (k8s *K8s) deletePodsForce(pods ...*v1.Pod) error {
 	var err error
@@ -456,6 +485,13 @@ func (k8s *K8s) GetNodes() []v1.Node {
 // ListPods lists the pods
 func (k8s *K8s) ListPods() []v1.Pod {
 	podList, err := k8s.clientset.CoreV1().Pods(k8s.namespace).List(metaV1.ListOptions{})
+	k8s.g.Expect(err).To(BeNil())
+	return podList.Items
+}
+
+//ListPodsByNs returns pod list by specific namespace
+func (k8s *K8s) ListPodsByNs(ns string) []v1.Pod {
+	podList, err := k8s.clientset.CoreV1().Pods(ns).List(metaV1.ListOptions{})
 	k8s.g.Expect(err).To(BeNil())
 	return podList.Items
 }

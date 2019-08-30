@@ -35,6 +35,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 		Spec: v1.PodSpec{
 			ServiceAccountName: ForwardPlaneServiceAccount,
 			HostPID:            true,
+			HostNetwork:        true,
 			Volumes: []v1.Volume{
 				{
 					Name: "workspace",
