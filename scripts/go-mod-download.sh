@@ -4,7 +4,7 @@ if [ -z "$VENDORING" ]
 then
       echo "No vendoring"
 else
-      echo "Vendoring is enabled, not need to download stuff."
+      echo "Vendoring is enabled, no need to download stuff."
       exit 0
 fi
 
