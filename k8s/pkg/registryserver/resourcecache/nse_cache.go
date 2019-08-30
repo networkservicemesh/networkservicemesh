@@ -1,4 +1,4 @@
-package resource_cache
+package resourcecache
 
 import (
 	"fmt"
@@ -18,7 +18,8 @@ type NetworkServiceEndpointCache struct {
 	networkServiceEndpoints map[string]*v1.NetworkServiceEndpoint
 }
 
-func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
+//NewNetworkServiceEndpointCache creates cache for network service endpoints
+func NewNetworkServiceEndpointCache(policy CacheFilterPolicy) *NetworkServiceEndpointCache {
 	rv := &NetworkServiceEndpointCache{
 		nseByNs:                 make(map[string][]*v1.NetworkServiceEndpoint),
 		networkServiceEndpoints: make(map[string]*v1.NetworkServiceEndpoint),
@@ -30,7 +31,7 @@ func NewNetworkServiceEndpointCache() *NetworkServiceEndpointCache {
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NseResource,
 	}
-	rv.cache = newAbstractResourceCache(config)
+	rv.cache = newAbstractResourceCache(config, policy)
 	return rv
 }
 

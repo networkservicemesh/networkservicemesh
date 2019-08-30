@@ -7,56 +7,17 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/tools/cache"
 
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/informers/externalversions"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resource_cache"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 )
-
-type fakeRegistry struct {
-	externalversions.SharedInformerFactory
-	externalversions.GenericInformer
-	cache.SharedIndexInformer
-
-	eventHandlers []cache.ResourceEventHandler
-}
-
-func (f *fakeRegistry) Run(stopCh <-chan struct{}) {
-
-}
-
-func (f *fakeRegistry) ForResource(resource schema.GroupVersionResource) (externalversions.GenericInformer, error) {
-	return f, nil
-}
-
-func (f *fakeRegistry) Informer() cache.SharedIndexInformer {
-	return f
-}
-
-func (f *fakeRegistry) AddEventHandler(handler cache.ResourceEventHandler) {
-	f.eventHandlers = append(f.eventHandlers, handler)
-}
-
-func (f *fakeRegistry) Add(nse *v1.NetworkServiceEndpoint) {
-	logrus.Info(len(f.eventHandlers))
-	for _, eh := range f.eventHandlers {
-		eh.OnAdd(nse)
-	}
-}
-
-func (f *fakeRegistry) Delete(nse *v1.NetworkServiceEndpoint) {
-	for _, eh := range f.eventHandlers {
-		eh.OnDelete(nse)
-	}
-}
 
 func TestK8sRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -74,7 +35,7 @@ func TestK8sRegistryAdd(t *testing.T) {
 func TestNseCacheConcurrentModification(t *testing.T) {
 	g := NewWithT(t)
 	fakeRegistry := fakeRegistry{}
-	c := resource_cache.NewNetworkServiceEndpointCache()
+	c := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := c.Start(&fakeRegistry)
 	defer stopFunc()
@@ -96,13 +57,14 @@ func TestNseCacheConcurrentModification(t *testing.T) {
 		c.Add(newTestNse("nse2", "ns2"))
 	})
 	defer stopWrite()
-	time.Sleep(time.Second * 5)
+	<-time.After(time.Second)
 }
+
 func TestNsmdRegistryAdd(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -121,7 +83,7 @@ func TestRegistryDelete(t *testing.T) {
 	g := NewWithT(t)
 
 	fakeRegistry := fakeRegistry{}
-	nseCache := resource_cache.NewNetworkServiceEndpointCache()
+	nseCache := resourcecache.NewNetworkServiceEndpointCache(resourcecache.NoFilterPolicy())
 
 	stopFunc, err := nseCache.Start(&fakeRegistry)
 
@@ -146,7 +108,7 @@ func TestRegistryDelete(t *testing.T) {
 	g.Expect(len(endpointList3)).To(Equal(0))
 }
 
-func getEndpoints(nseCache *resource_cache.NetworkServiceEndpointCache,
+func getEndpoints(nseCache *resourcecache.NetworkServiceEndpointCache,
 	networkServiceName string, expectedLength int) []*v1.NetworkServiceEndpoint {
 	var endpointList []*v1.NetworkServiceEndpoint
 	for attempt := 0; attempt < 10; <-time.After(300 * time.Millisecond) {

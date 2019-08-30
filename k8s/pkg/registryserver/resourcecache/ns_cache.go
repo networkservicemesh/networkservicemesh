@@ -1,4 +1,4 @@
-package resource_cache
+package resourcecache
 
 import (
 	"fmt"
@@ -18,7 +18,8 @@ type NetworkServiceCache struct {
 	getCh           chan *v1.NetworkService
 }
 
-func NewNetworkServiceCache() *NetworkServiceCache {
+//NewNetworkServiceCache creates cache for network services
+func NewNetworkServiceCache(policy CacheFilterPolicy) *NetworkServiceCache {
 	rv := &NetworkServiceCache{
 		networkServices: make(map[string]*v1.NetworkService),
 	}
@@ -29,7 +30,7 @@ func NewNetworkServiceCache() *NetworkServiceCache {
 		resourceGetFunc:     rv.resourceGet,
 		resourceType:        NsResource,
 	}
-	rv.cache = newAbstractResourceCache(config)
+	rv.cache = newAbstractResourceCache(config, policy)
 	return rv
 }
 
@@ -65,7 +66,6 @@ func (c *NetworkServiceCache) StartWithResync(f SharedInformerFactory, cs *versi
 func (c *NetworkServiceCache) replace(resources []v1.NetworkService) {
 	c.networkServices = map[string]*v1.NetworkService{}
 	logrus.Infof("Replacing Network services with: %v", resources)
-
 	for i := 0; i < len(resources); i++ {
 		c.resourceAdded(&resources[i])
 	}

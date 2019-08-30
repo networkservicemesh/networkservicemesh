@@ -84,7 +84,7 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	serverData := sync.Map{}
 	serverData.Store("fake", nsm)
 	fakeRest := fakeNsmRest(g, &serverData)
-	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+	cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
 	err := cache.Start()
 	g.Expect(err).Should(BeNil())
 	_, err = cache.CreateOrUpdateNetworkServiceManager(FakeNsm("fake"))
@@ -97,7 +97,7 @@ func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	serverData := sync.Map{}
 	fakeRest := fakeNsmRest(g, &serverData)
 	for i := 0; i < 10; i++ {
-		cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+		cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
 		err := cache.Start()
 		g.Expect(err).Should(BeNil())
 		defer cache.Stop()
@@ -121,7 +121,7 @@ func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)
 	serverData := sync.Map{}
 	fakeRest := fakeNsmRest(g, &serverData)
-	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+	cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
 	err := cache.Start()
 	g.Expect(err).Should(BeNil())
 	defer cache.Stop()
@@ -140,7 +140,7 @@ func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)
 	serverData := sync.Map{}
 	fakeRest := fakeNsmRest(g, &serverData)
-	cache := registryserver.NewRegistryCache(versioned.New(fakeRest))
+	cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
 	err := cache.Start()
 	g.Expect(err).Should(BeNil())
 	defer cache.Stop()

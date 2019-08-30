@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,16 +23,16 @@ func (v EnvVar) StringValue() string {
 }
 
 //GetStringListValueOrDefault returns list of string separated by space or if env variable have not a value returns default value
-func (v EnvVar) GetStringListValueOrDefault(defaultValue []string) []string {
+func (v EnvVar) GetStringListValueOrDefault(defaultValues ...string) []string {
 	r := v.StringValue()
 	if r == "" {
-		return defaultValue
+		return defaultValues
 	}
 	return strings.Split(r, " ")
 }
 
-//GetStringOrDefaultS returns env value as string or if env variable have not a value returns default value
-func (v EnvVar) GetStringOrDefaultS(defaultValue string) string {
+//GetStringOrDefault returns env value as string or if env variable have not a value returns default value
+func (v EnvVar) GetStringOrDefault(defaultValue string) string {
 	r := v.StringValue()
 	if r == "" {
 		return defaultValue
@@ -39,8 +40,17 @@ func (v EnvVar) GetStringOrDefaultS(defaultValue string) string {
 	return r
 }
 
-//GetOrDefaultDurationValue returns env value as duration or if env variable have not a value returns default value
-func (v EnvVar) GetOrDefaultDurationValue(defaultValue time.Duration) time.Duration {
+//GetBooleanOrDefault returns env value as string or if env variable have not a value returns default value
+func (v EnvVar) GetBooleanOrDefault(defaultValue bool) bool {
+	str := v.StringValue()
+	if v, err := strconv.ParseBool(str); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+//GetOrDefaultDuration returns env value as duration or if env variable have not a value returns default value
+func (v EnvVar) GetOrDefaultDuration(defaultValue time.Duration) time.Duration {
 	val := v.StringValue()
 	if val == "" {
 		return defaultValue

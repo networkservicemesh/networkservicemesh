@@ -50,7 +50,7 @@ jobs:
 
 # code analysis
   test-static-code-analysis:
-    resource_class: medium+
+    resource_class: large
     docker:
       - image: circleci/golang:1.12-stretch
     steps:
@@ -179,6 +179,7 @@ jobs:
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
+            export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}

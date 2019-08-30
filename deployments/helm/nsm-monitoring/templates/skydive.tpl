@@ -109,6 +109,26 @@ spec:
           configMap:
             name: skydive-analyzer-config-file
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skydive-agent-config-file
+  namespace: nsm-system
+data:
+  skydive.yml: |
+    logging:
+      level: INFO
+
+    agent:
+      topology:
+        probes:
+          - docker
+
+      docker:
+        netns:
+          run_path: /var/run/netns
+
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -129,7 +149,7 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: skydive/skydive:0.23.0
+          image: skydive/skydive:0.24.0
           imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - agent
@@ -144,11 +164,17 @@ spec:
             - name: docker
               mountPath: /var/run/docker.sock
             - name: run
-              mountPath: /host/run
+              mountPath: /var/run/netns
+            - name: skydive-agent-config-file
+              mountPath: /etc/skydive.yml
+              subPath: skydive.yml
       volumes:
         - name: docker
           hostPath:
             path: /var/run/docker.sock
         - name: run
           hostPath:
-            path: /var/run/netns
+            path: /var/run/docker/netns
+        - name: skydive-agent-config-file
+          configMap:
+            name: skydive-agent-config-file

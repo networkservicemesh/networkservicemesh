@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SSH_PARAMS=-i "scripts/aws/nsm-key-pair$(NSM_AWS_SERVICE_SUFFIX)" -F scripts/aws/scp-config$(NSM_AWS_SERVICE_SUFFIX) -o StrictHostKeyChecking=no
+SSH_PARAMS=-i "scripts/aws/nsm-key-pair$(NSM_AWS_SERVICE_SUFFIX)" -F scripts/aws/scp-config$(NSM_AWS_SERVICE_SUFFIX) -o StrictHostKeyChecking=no -o IdentitiesOnly=yes
 
 .PHONY: aws-init
 aws-init:
@@ -34,9 +34,6 @@ aws-destroy:
 	@pushd scripts/aws && \
 	AWS_REGION=us-east-2 go run ./... Delete && \
 	popd
-
-.PHONY: aws-%-load-images
-aws-%-load-images: ;
 
 .PHONY: aws-get-kubeconfig
 aws-get-kubeconfig:
@@ -80,3 +77,16 @@ aws-print-kubelet-log:
 	ssh ${SSH_PARAMS} aws-master "journalctl -u kubelet" ; \
 	echo "Woker node kubelet log:" ; \
 	ssh ${SSH_PARAMS} aws-worker "journalctl -u kubelet"
+
+.PHONY: aws-%-load-images
+aws-%-load-images: 
+	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
+		echo "Loading image $*.tar to master and worker" ; \
+		scp ${SSH_PARAMS} scripts/vagrant/images/$*.tar aws-master:~/ & \
+		scp ${SSH_PARAMS} scripts/vagrant/images/$*.tar aws-worker:~/ ; \
+		ssh ${SSH_PARAMS} aws-master "sudo docker load -i $*.tar" & \
+		ssh ${SSH_PARAMS} aws-worker "sudo docker load -i $*.tar" ; \
+	else \
+		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		exit 1; \
+	fi

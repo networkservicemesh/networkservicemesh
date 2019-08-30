@@ -26,6 +26,9 @@ const (
 	ProxyNsmdK8sAddressDefaults    = "pnsmgr-svc:5005"
 	ProxyNsmdK8sRemotePortEnv      = "PROXY_NSMD_K8S_REMOTE_PORT"
 	ProxyNsmdK8sRemotePortDefaults = "80"
+
+	RequestConnectTimeout  = 15 * time.Second
+	RequestConnectAttempts = 3
 )
 
 type proxyNetworkServiceServer struct {
@@ -56,13 +59,25 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		Url:  dNsmAddress,
 	}
 
-	client, conn, err := srv.serviceRegistry.RemoteNetworkServiceClient(ctx, dNsm)
+	var client remote_networkservice.NetworkServiceClient
+	var conn *grpc.ClientConn
+	for i := 0; i < RequestConnectAttempts; i++ {
+		rnsCtx, pingCancel := context.WithTimeout(ctx, RequestConnectTimeout)
+		defer pingCancel()
+
+		client, conn, err = srv.serviceRegistry.RemoteNetworkServiceClient(rnsCtx, dNsm)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
+		logrus.Errorf("ProxyNSMD: Failed connect to Network Service Client (%s): %v", destNsmName, err)
 		return nil, err
 	}
+
 	defer func() {
 		if e := conn.Close(); e != nil {
-			logrus.Errorf("ProxyNSMD: Failed to close Network Service Client (%s). %v", destNsmName, e)
+			logrus.Errorf("ProxyNSMD: Failed to close Network Service Client (%s): %v", destNsmName, e)
 		}
 	}()
 
