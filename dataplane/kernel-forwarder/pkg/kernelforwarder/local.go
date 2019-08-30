@@ -97,7 +97,7 @@ func createLocalConnection(cfg *connectionConfig) (map[string]string, error) {
 		return nil, err
 	}
 	logrus.Infof("local: creation completed for devices - source: %s, destination: %s", cfg.srcName, cfg.dstName)
-	return map[string]string{cfg.srcName: cfg.srcNsPath, cfg.dstName: cfg.dstNsPath}, nil
+	return map[string]string{cfg.srcNsPath: cfg.srcName, cfg.dstNsPath: cfg.dstName}, nil
 }
 
 // deleteLocalConnection handles deleting a local connection
@@ -150,7 +150,7 @@ func deleteLocalConnection(cfg *connectionConfig) (map[string]string, error) {
 		return nil, err
 	}
 	logrus.Infof("local: deletion completed for devices - source: %s, destination: %s", cfg.srcName, cfg.dstName)
-	return map[string]string{cfg.srcName: cfg.srcNsPath, cfg.dstName: cfg.dstNsPath}, nil
+	return map[string]string{cfg.srcNsPath: cfg.srcName, cfg.dstNsPath: cfg.dstName}, nil
 }
 
 // newVETH returns a VETH interface instance

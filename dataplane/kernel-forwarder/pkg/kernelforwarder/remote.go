@@ -113,7 +113,7 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 		return nil, err
 	}
 	logrus.Infof("remote: creation completed for device - %s", ifaceName)
-	return map[string]string{ifaceName: nsPath}, nil
+	return map[string]string{nsPath: ifaceName}, nil
 }
 
 // deleteRemoteConnection handler for deleting a remote connection
@@ -150,7 +150,7 @@ func deleteRemoteConnection(nsPath, ifaceName string) (map[string]string, error)
 		return nil, err
 	}
 	logrus.Infof("remote: deletion completed for device - %s", ifaceName)
-	return map[string]string{ifaceName: nsPath}, nil
+	return map[string]string{nsPath: ifaceName}, nil
 }
 
 // modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing
