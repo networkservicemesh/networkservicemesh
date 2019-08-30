@@ -261,7 +261,7 @@ func (ctx *executionContext) performExecution() error {
 	ctx.startTime = time.Now()
 	ctx.clusterReadyTime = ctx.startTime
 
-	timeoutCtx, _ := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout) * time.Second )
+	timeoutCtx, _ := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout)*time.Second)
 
 	termChannel := tools.NewOSSignalChannel()
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
@@ -283,7 +283,7 @@ func (ctx *executionContext) performExecution() error {
 			ctx.printStatistics()
 		case <-termChannel:
 			return fmt.Errorf("Termination request is received")
-		case <- timeoutCtx.Done():
+		case <-timeoutCtx.Done():
 			ctx.printStatistics()
 			return fmt.Errorf("Global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
 		}
