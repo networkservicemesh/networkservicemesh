@@ -3,6 +3,8 @@ module github.com/networkservicemesh/networkservicemesh
 // Use ./scripts/switch_k8s_version.sh to change k8s version
 
 require (
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 // indirect
 	github.com/aws/aws-sdk-go v1.22.0
 	github.com/caddyserver/caddy v1.0.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
@@ -24,6 +26,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/common v0.6.0
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
