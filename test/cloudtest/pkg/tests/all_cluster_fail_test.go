@@ -146,4 +146,3 @@ func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 		}
 	}
 }
-
