@@ -9,8 +9,6 @@ import:
   - .cloudtest/aws.yaml
   - .cloudtest/azure.yaml
 
-master-brnach-env:
-  - STORE_LOGS_IN_ANY_CASES=true
 reporting:
   junit-report: "results/junit.xml"
 executions:

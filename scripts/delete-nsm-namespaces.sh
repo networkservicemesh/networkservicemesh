@@ -9,7 +9,7 @@ for ns in $(kubectl get ns -o custom-columns=NAME:.metadata.name); do
   echo "Checking ns: ${ns}"
   if [[ ${ns} == *${NSM_NAMESPACE}* ]]; then
     echo "Deleting ns: ${ns}"
-    kubectl delete ns ${ns}
+    kubectl delete ns "${ns}"
     continue
   fi
 done
