@@ -63,6 +63,7 @@ func (m *Metrics) Start(monitor metrics.MetricsMonitor) {
 // serveMetrics aims to be started as a Go routine
 func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, devices *RegisteredDevices) {
 	for {
+		/* No need to process anything if list is empty */
 		if len(devices.devices) != 0 {
 			/* Collect metrics for all present devices */
 			stats, err := collectMetrics(devices)
