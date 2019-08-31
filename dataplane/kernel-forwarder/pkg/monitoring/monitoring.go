@@ -171,9 +171,9 @@ func getDeviceMetrics(device, namespace string) (map[string]string, error) {
 // UpdateDeviceList keeps track of the devices being handled by the Kernel forwarding plane
 func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect bool) {
 	found := false
-	/* Add devices */
 	m.Lock()
 	defer m.Unlock()
+	/* Loop through each updated device - either added or deleted */
 	for namespace, device := range devices {
 		devList, ok := m.devices[namespace]
 		if !ok {

@@ -33,24 +33,19 @@ import (
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections
 func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (map[string]string, error) {
-	var err error
-	var devices map[string]string
-
 	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming remote connection */
 		logrus.Info("remote: connection type - incoming - remote source/local destination")
-		devices, err = handleConnection(egress, crossConnect, connect, cINCOMING)
+		return handleConnection(egress, crossConnect, connect, cINCOMING)
 	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing remote connection */
 		logrus.Info("remote: connection type - outgoing - local source/remote destination")
-		devices, err = handleConnection(egress, crossConnect, connect, cOUTGOING)
-	} else {
-		logrus.Errorf("remote: invalid connection type")
-		return nil, fmt.Errorf("remote: invalid connection type")
+		return handleConnection(egress, crossConnect, connect, cOUTGOING)
 	}
-	return devices, err
+	logrus.Errorf("remote: invalid connection type")
+	return nil, fmt.Errorf("remote: invalid connection type")
 }
 
 // handleConnection process the request to either creating or deleting a connection
