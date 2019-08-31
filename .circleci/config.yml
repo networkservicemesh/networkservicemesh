@@ -114,7 +114,9 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export REPO="networkservicemeshci"
             export CONTAINER_REPO=${REPO}
-
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              export STORE_LOGS_IN_ANY_CASES=true
+            fi
             CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
             ./cloudtest
           no_output_timeout: 40m

@@ -35,7 +35,7 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := logTransaction
 
-		if shouldShowLogs() && t != nil {
+		if shouldStoreLogsInFiles() && t != nil {
 			writeLogFunc = func(name string, content string) {
 				logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
 				if logErr != nil {
@@ -69,8 +69,17 @@ func logsDir() string {
 	return logDir
 }
 
+func shouldStoreLogsInFiles() bool {
+	if v, ok := os.LookupEnv(StorePodLogsInFiles); ok {
+		if v == "true" {
+			return true
+		}
+	}
+	return false
+}
+
 func shouldShowLogs() bool {
-	if v, ok := os.LookupEnv(StorePodLogsInFile); ok {
+	if v, ok := os.LookupEnv(StoreLogsInAnyCases); ok {
 		if v == "true" {
 			return true
 		}
