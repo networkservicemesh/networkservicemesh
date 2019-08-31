@@ -173,54 +173,45 @@ func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect 
 	/* Add devices */
 	m.Lock()
 	defer m.Unlock()
-	if connect {
-		for namespace, device := range devices {
-			devList, ok := m.devices[namespace]
-			if !ok {
-				/* Namespace is missing, so proceed adding the device */
+	for namespace, device := range devices {
+		devList, ok := m.devices[namespace]
+		if !ok {
+			if connect {
+				/* Add: Namespace is missing, so we are free to add the device */
 				m.devices[namespace] = append(m.devices[namespace], device)
-				continue
+			} else {
+				/* Delete: Namespace is missing, so there's no point to look for a device associated with it */
+				logrus.Errorf("metrics: device %s with namespace %s requested for delete is already missing", device, namespace)
 			}
-			/* Namespace is present, search if there's such device in its list */
-			for _, dev := range devList {
-				if dev == device {
-					/* Device requested for adding found */
-					logrus.Errorf("metrics: device %s requested for add is already present in the devices list", device)
-					found = true
-					break
+			continue
+		}
+		/* Namespace is present, search if the device is found in its list */
+		for i, dev := range devList {
+			if dev == device {
+				if connect {
+					/* Add: The device we want to add is already there */
+					logrus.Errorf("metrics: device %s requested for add is already present", device)
+				} else {
+					/* Delete: Found the device we want to delete */
+					m.devices[namespace] = append(m.devices[namespace][:i], m.devices[namespace][i+1:]...)
 				}
-			}
-			/* Device requested for adding is not present, so we are free to add it */
-			if !found {
-				m.devices[namespace] = append(m.devices[namespace], device)
+				found = true
+				break
 			}
 		}
-	} else {
-		/* Delete devices */
-		for namespace, device := range devices {
-			/* Check if namespace is even present */
-			devList, ok := m.devices[namespace]
-			if !ok {
-				logrus.Errorf("metrics: device %s with namespace %s requested for delete is already missing from the devices list", device, namespace)
-				continue
+		/* There's such a namespace, but the requested device is not found in its list */
+		if !found {
+			if connect {
+				/* Add: We are free to add it */
+				m.devices[namespace] = append(m.devices[namespace], device)
+			} else {
+				/* Delete: There's really no such device found for deletion */
+				logrus.Errorf("metrics: device %s with namespace %s requested for delete is already missing", device, namespace)
 			}
-			/* Namespace is present, search if there's such device in its list */
-			for i, dev := range devList {
-				if dev == device {
-					/* Device requested for deletion found */
-					m.devices[namespace] = append(m.devices[namespace][:i], m.devices[namespace][i+1:]...)
-					found = true
-					break
-				}
-			}
-			/* Device requested for deletion was not found */
-			if !found {
-				logrus.Errorf("metrics: device %s with namespace %s requested for delete is already missing from the devices list", device, namespace)
-			}
-			/* If there are no more devices associated with that namespace, delete it*/
-			if len(m.devices[namespace]) == 0 {
-				delete(m.devices, namespace)
-			}
+		}
+		/* If there are no more devices associated with that namespace, delete it */
+		if !connect && len(m.devices[namespace]) == 0 {
+			delete(m.devices, namespace)
 		}
 	}
 	logrus.Infof("metrics: device list - %v", m.devices)
