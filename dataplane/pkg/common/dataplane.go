@@ -48,7 +48,7 @@ const (
 	DataplaneRegistrarSocketTypeKey      = "DATAPLANE_REGISTRAR_SOCKET_TYPE"
 	DataplaneRegistrarSocketTypeDefault  = "unix"
 	DataplaneMetricsEnabledKey           = "METRICS_COLLECTOR_ENABLED"
-	DataplaneMetricsEnabledDefault       = true
+	DataplaneMetricsEnabledDefault       = false
 	DataplaneMetricsRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
 	DataplaneMetricsRequestPeriodDefault = time.Second * 2
 	DataplaneNameKey                     = "DATAPLANE_NAME"
