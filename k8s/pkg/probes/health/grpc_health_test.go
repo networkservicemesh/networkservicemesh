@@ -1,11 +1,12 @@
 package health
 
 import (
-	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/onsi/gomega"
 
