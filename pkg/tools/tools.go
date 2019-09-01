@@ -55,6 +55,7 @@ func (a *addrImpl) Network() string {
 	return a.network
 }
 
+//NewAddr returns new net.Addr with network and address
 func NewAddr(network, addr string) net.Addr {
 	return &addrImpl{
 		network: network,

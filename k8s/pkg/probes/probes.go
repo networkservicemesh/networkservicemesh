@@ -17,19 +17,17 @@ package probes
 
 import (
 	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	healthcheckProbesPort = "0.0.0.0:5555"
-	probeTimeout          = time.Second
 )
 
+//Probes -
 type Probes interface {
 	BeginHealthCheck()
 	health.Appender

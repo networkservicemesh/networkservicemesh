@@ -1,6 +1,7 @@
 package health
 
 import (
+	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"testing"
@@ -19,9 +20,9 @@ func TestGrpcHealth(t *testing.T) {
 	server := tools.NewServer()
 	health := NewGrpcHealth(server, tools.NewAddr("unix", "soc"), time.Second)
 	go func() {
-		err := server.Serve(sock)
-		if err != nil {
-			t.Fatal(err.Error())
+		serveErr := server.Serve(sock)
+		if serveErr != nil {
+			logrus.Error(serveErr.Error())
 		}
 	}()
 	err = health.Check()
