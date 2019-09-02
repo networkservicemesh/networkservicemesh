@@ -16,7 +16,11 @@ import (
 func NewMechanism(t MechanismType, name, description string) (*Mechanism, error) {
 	inodeNum, err := tools.GetCurrentNS()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get current network namespace: %v", err)
+	}
+	podName, err := tools.GetCurrentPodNameFromHostname()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current pod name from hostname: %v", err)
 	}
 	rv := &Mechanism{
 		Type: t,
@@ -25,6 +29,7 @@ func NewMechanism(t MechanismType, name, description string) (*Mechanism, error)
 			InterfaceDescriptionKey: description,
 			SocketFilename:          path.Join(name, MemifSocket),
 			NetNsInodeKey:           inodeNum,
+			PodNameKey:              podName,
 		},
 	}
 	err = rv.IsValid()

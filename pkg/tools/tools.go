@@ -58,6 +58,12 @@ func GetCurrentNS() (string, error) {
 	return "", fmt.Errorf("namespace is not found")
 }
 
+// GetCurrentPodNameFromHostname returns pod name a container is running in
+func GetCurrentPodNameFromHostname() (string, error) {
+	podName, err := os.Hostname()
+	return podName, err
+}
+
 // SocketCleanup check for the presence of a stale socket and if it finds it, removes it.
 func SocketCleanup(listenEndpoint string) error {
 	fi, err := os.Stat(listenEndpoint)
