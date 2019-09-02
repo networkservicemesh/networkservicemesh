@@ -102,8 +102,6 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 	var ipAddresses []string
 	if master {
 		ipAddresses = append(ipAddresses, connection.GetContext().GetIpContext().DstIpAddr)
-	} else {
-		//ipAddresses = append(ipAddresses, connection.GetContext().GetIpContext().SrcIpAddr)
 	}
 
 	if rv == nil {
