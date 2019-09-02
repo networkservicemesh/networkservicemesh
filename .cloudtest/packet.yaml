@@ -3,7 +3,7 @@ providers:
   - name: "packet"
     kind: "packet"
     instances: 2
-    retry: 5
+    retry: 1
     node-count: 2
     enabled: true
     timeout: 600 # 10 minutes to start cluster
