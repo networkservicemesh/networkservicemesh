@@ -16,7 +16,7 @@ ADD [".","/root/networkservicemesh"]
 FROM ${VPP_AGENT} as runtime
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
-COPY test/applications/vpp-conf/supervisord.conf /etc/supervisord/supervisord.conf
+COPY test/applications/vpp-conf/supervisord.conf /opt/vpp-agent/dev/supervisor.conf
 COPY test/applications/vpp-conf/run.sh /bin/vpp-run.sh
 
 RUN mkdir /tmp/vpp/
