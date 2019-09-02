@@ -1,4 +1,5 @@
 FROM golang:alpine as build
+ARG VENDORING
 RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
@@ -7,10 +8,10 @@ RUN mkdir /root/networkservicemesh
 ADD ["go.mod","/root/networkservicemesh"]
 ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
 WORKDIR /root/networkservicemesh/
-RUN ./go-mod-download.sh
+RUN VENDORING=${VENDORING} ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o /go/bin/kernel-forwarder ./dataplane/kernel-forwarder/cmd/kernel-forwarder.go
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static'" -o /go/bin/kernel-forwarder ./dataplane/kernel-forwarder/cmd/kernel-forwarder.go
 
 FROM alpine as runtime
 COPY --from=build /go/bin/kernel-forwarder /bin/kernel-forwarder

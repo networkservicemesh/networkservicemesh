@@ -39,8 +39,8 @@ include .mk/vpp_agent.mk
 docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
-docker-%-build:
-	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT}  --build-arg VERSION=${VERSION} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
+docker-%-build::
+	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VENDORING="${VENDORING}" --build-arg VERSION=${VERSION} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
@@ -80,7 +80,7 @@ docker-%-logs:
 
 .PHONY:
 docker-devenv-build: docker/debug/Dockerfile.debug
-	@${DOCKERBUILD} -t networkservicemesh/devenv -f docker/debug/Dockerfile.debug .
+	@${DOCKERBUILD} --build-arg VENDORING="${VENDORING}" -t networkservicemesh/devenv -f docker/debug/Dockerfile.debug .
 
 .PHONY: docker-devenv-run
 docker-devenv-run:
