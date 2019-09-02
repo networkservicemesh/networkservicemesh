@@ -17,6 +17,7 @@ package nsminit
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
@@ -38,6 +39,16 @@ func (c *nsmClientApp) Run() {
 
 	span := spanhelper.FromContext(context.Background(), "RequestNetworkService")
 	defer span.Finish()
+
+	c.configuration = c.configuration.FromEnv()
+	if c.configuration.PodName == "" {
+		podName, err := tools.GetCurrentPodNameFromHostname()
+		if err != nil {
+			logrus.Infof("failed to get current pod name from hostname: %v", err)
+		} else {
+			c.configuration.PodName = podName
+		}
+	}
 
 	clientList, err := client.NewNSMClientList(span.Context(), c.configuration)
 	if err != nil {

@@ -74,6 +74,15 @@ func GetCurrentNS() (string, error) {
 	return "", errors.New("namespace is not found")
 }
 
+// GetCurrentPodNameFromHostname returns pod name a container is running in
+// Note: Pod name is read from `/etc/hostname`. The same approach is used in
+// kubelet implementation. There is risk that host name may be overwritten
+// and in that case this should be considered when referring to pod name
+func GetCurrentPodNameFromHostname() (string, error) {
+	podName, err := os.Hostname()
+	return podName, err
+}
+
 // SocketCleanup check for the presence of a stale socket and if it finds it, removes it.
 func SocketCleanup(listenEndpoint string) error {
 	fi, err := os.Stat(listenEndpoint)

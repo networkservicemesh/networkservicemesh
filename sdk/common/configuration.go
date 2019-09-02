@@ -30,6 +30,7 @@ const (
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
 	routesEnv             = "ROUTES"
+	podNameEnv            = "POD_NAME"
 )
 
 // NSConfiguration contains the full configuration used in the SDK
@@ -45,6 +46,7 @@ type NSConfiguration struct {
 	MechanismType      string
 	IPAddress          string
 	Routes             []string
+	PodName            string
 }
 
 // FromEnv creates a new NSConfiguration and fills all unset options from the env variables
@@ -96,6 +98,10 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 
 	if len(configuration.IPAddress) == 0 {
 		configuration.IPAddress = getEnv(ipAddressEnv, "IP Address", false)
+	}
+
+	if configuration.PodName == "" {
+		configuration.PodName = getEnv(podNameEnv, "Pod name", false)
 	}
 
 	if len(configuration.Routes) == 0 {
