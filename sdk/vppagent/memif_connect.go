@@ -29,20 +29,26 @@ type MemifConnect struct {
 func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
-	if err := appendMemifInterface(vppAgentConfig, request.GetConnection(), mc.Workspace, true); err != nil {
+
+	incomingConnection := request.GetConnection()
+	if err := appendMemifInterface(vppAgentConfig, incomingConnection, mc.Workspace, true); err != nil {
 		return nil, err
 	}
 
 	ctx = WithConnectionMap(ctx) // Guarantees we will retrieve a non-nil Connectionmap from context.Context
-	connectionMap := ConnectionMap(ctx)
-	interfaces := vppAgentConfig.VppConfig.Interfaces
-	connectionMap[request.GetConnection()] = interfaces[len(interfaces)-1]
+	mc.updateConnectionMap(ctx, vppAgentConfig, incomingConnection)
 
 	if endpoint.Next(ctx) != nil {
 		return endpoint.Next(ctx).Request(ctx, request)
 	}
 
 	return request.GetConnection(), nil
+}
+
+func (mc *MemifConnect) updateConnectionMap(ctx context.Context, vppAgentConfig *configurator.Config, incomingConnection *connection.Connection) {
+	connectionMap := ConnectionMap(ctx)
+	interfaces := vppAgentConfig.VppConfig.Interfaces
+	connectionMap[incomingConnection.GetId()] = interfaces[len(interfaces)-1]
 }
 
 // Close implements the close handler
@@ -58,9 +64,7 @@ func (mc *MemifConnect) Close(ctx context.Context, connection *connection.Connec
 	}
 
 	ctx = WithConnectionMap(ctx) // Guarantees we will retrieve a non-nil Connectionmap from context.Context
-	connectionMap := ConnectionMap(ctx)
-	interfaces := vppAgentConfig.VppConfig.Interfaces
-	connectionMap[connection] = interfaces[len(interfaces)-1]
+	mc.updateConnectionMap(ctx, vppAgentConfig, connection)
 
 	if endpoint.Next(ctx) != nil {
 		return endpoint.Next(ctx).Close(ctx, connection)
@@ -99,7 +103,7 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 	if master {
 		ipAddresses = append(ipAddresses, connection.GetContext().GetIpContext().DstIpAddr)
 	} else {
-		ipAddresses = append(ipAddresses, connection.GetContext().GetIpContext().SrcIpAddr)
+		//ipAddresses = append(ipAddresses, connection.GetContext().GetIpContext().SrcIpAddr)
 	}
 
 	if rv == nil {

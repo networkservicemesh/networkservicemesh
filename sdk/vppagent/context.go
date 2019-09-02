@@ -5,8 +5,6 @@ import (
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
 type contextKeyType string
@@ -82,14 +80,14 @@ func WithConnectionMap(parent context.Context) context.Context {
 	}
 	value := parent.Value(connectionMapKey)
 	if value == nil {
-		connectionMap := make(map[*connection.Connection]*interfaces.Interface)
+		connectionMap := make(map[string]*interfaces.Interface)
 		return context.WithValue(parent, connectionMapKey, connectionMap)
 	}
 	// Note on why this type assertion is safe:
 	// Because the vppContextKey is package private, the only way to get an entry of
 	// this key type is *here*, so if the value isn't nil, then this function put it there
 	// And its of the *VppAgentContextKey type
-	return context.WithValue(parent, connectionMapKey, value.(map[*connection.Connection]*interfaces.Interface))
+	return context.WithValue(parent, connectionMapKey, value.(map[string]*interfaces.Interface))
 }
 
 // ConnectionMap -
@@ -103,6 +101,10 @@ func WithConnectionMap(parent context.Context) context.Context {
 //   to retrieve the ConnectionMap from the context.Context
 //   feel free to *edit* the ConnectionMap, but you cannot *replace* it for the
 //   Context of a given call.
-func ConnectionMap(ctx context.Context) map[*connection.Connection]*interfaces.Interface {
-	return ctx.Value(connectionMapKey).(map[*connection.Connection]*interfaces.Interface)
+func ConnectionMap(ctx context.Context) map[string]*interfaces.Interface {
+	connectionMap := ctx.Value(connectionMapKey)
+	if connectionMap != nil {
+		return connectionMap.(map[string]*interfaces.Interface)
+	}
+	return nil
 }

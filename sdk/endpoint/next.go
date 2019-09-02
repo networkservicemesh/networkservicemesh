@@ -22,14 +22,15 @@ type nextEndpoint struct {
 }
 
 func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	ctx = withNext(ctx, nil)
 	if n.index+1 < len(n.composite.endpoints) {
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
+	} else {
+		ctx = withNext(ctx, nil)
 	}
 
 	// Create a new span
 	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
+	if opentracing.IsGlobalTracerRegistered() {
 		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.endpoints[n.index])))
 		defer span.Finish()
 
@@ -52,13 +53,14 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 }
 
 func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	ctx = withNext(ctx, nil)
-	if n.index < len(n.composite.endpoints) {
+	if n.index+1 < len(n.composite.endpoints) {
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
+	} else {
+		ctx = withNext(ctx, nil)
 	}
 	// Create a new span
 	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
+	if opentracing.IsGlobalTracerRegistered() {
 		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
 		defer span.Finish()
 	}

@@ -61,7 +61,7 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 	ctx = WithConnectionMap(ctx) // Guarantees we will retrieve a non-nil Connectionmap from context.Context
 	connectionMap := ConnectionMap(ctx)
 
-	iface := connectionMap[request.GetConnection()]
+	iface := connectionMap[request.GetConnection().GetId()]
 
 	if iface == nil || iface.Name == "" {
 		err := fmt.Errorf("found empty incoming connection name")
@@ -91,7 +91,7 @@ func (a *ACL) Close(ctx context.Context, connection *connection.Connection) (*em
 	ctx = WithConnectionMap(ctx) // Guarantees we will retrieve a non-nil Connectionmap from context.Context
 	connectionMap := ConnectionMap(ctx)
 
-	iface := connectionMap[connection]
+	iface := connectionMap[connection.GetId()]
 
 	if iface == nil || iface.Name == "" {
 		err := fmt.Errorf("found empty incoming connection name")

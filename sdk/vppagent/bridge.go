@@ -82,7 +82,7 @@ func NewBridgeConnect(configuration *common.NSConfiguration, bridgeName string) 
 func (vbc *bridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *connection.Connection) error {
 	cfg := Config(ctx)
 	conMap := ConnectionMap(ctx)
-	if conMap[conn] == nil {
+	if conMap[conn.GetId()] == nil {
 		return fmt.Errorf("BridgeConnect - context missing ConnectionMap entry for %v", conn)
 	}
 
@@ -98,7 +98,7 @@ func (vbc *bridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *c
 		ArpTermination:      false,
 		Interfaces: []*l2.BridgeDomain_Interface{
 			{
-				Name:                    conMap[conn].GetName(),
+				Name:                    conMap[conn.GetId()].GetName(),
 				BridgedVirtualInterface: false,
 			},
 		},

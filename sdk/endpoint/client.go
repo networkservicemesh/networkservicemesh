@@ -54,6 +54,9 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 		logrus.Errorf("Error when creating the connection %v", err)
 		return nil, err
 	}
+
+	//TODO: Do we need this ?
+	outgoingConnection.GetMechanism().GetParameters()[connection.Workspace] = ""
 	ctx = WithClientConnection(ctx, outgoingConnection)
 	incomingConnection := request.GetConnection()
 	if Next(ctx) != nil {
@@ -85,7 +88,10 @@ func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Con
 		if err := nsmClient.Close(ctx, outgoingConnection); err != nil {
 			result = multierror.Append(result, err)
 		}
+		ctx = WithClientConnection(ctx, outgoingConnection)
 	}
+	// Remove collection from map, after all child items are passed
+	defer delete(cce.ioConnMap, connection.GetId())
 	if Next(ctx) != nil {
 		if _, err := Next(ctx).Close(ctx, connection); err != nil {
 			return &empty.Empty{}, multierror.Append(result, err)

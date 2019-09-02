@@ -73,7 +73,7 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 }
 
 func (nsme *nsmEndpoint) Start() error {
-	if nsme.Configuration.TracerEnabled && opentracing.GlobalTracer() == nil {
+	if nsme.Configuration.TracerEnabled && !opentracing.IsGlobalTracerRegistered() {
 		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
 		opentracing.SetGlobalTracer(tracer)
 		nsme.tracerCloser = closer
@@ -145,7 +145,7 @@ func (nsme *nsmEndpoint) Delete() error {
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
+	if opentracing.IsGlobalTracerRegistered() {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "endpoint.request")
 		defer span.Finish()
 	}

@@ -18,13 +18,9 @@ package client
 import (
 	"context"
 	"io"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
@@ -35,9 +31,8 @@ import (
 )
 
 const (
-	connectRetries = 10
-	connectSleep   = 5 * time.Second
-	connectTimeout = 15 * time.Second
+	// ConnectTimeout - a default connection timeout
+	ConnectTimeout = 15 * time.Second
 )
 
 // NsmClient is the NSM client struct
@@ -53,7 +48,7 @@ type NsmClient struct {
 func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*connection.Connection, error) {
 
 	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
+	if opentracing.IsGlobalTracerRegistered() {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "nsmClient.Connect")
 		defer span.Finish()
 	}
@@ -96,17 +91,13 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 			outgoingMechanism,
 		},
 	}
-	var outgoingConnection *connection.Connection
-	start := time.Now()
-	connectRetries := nsmc.getConnectRetries()
-	for iteration := connectRetries; true; <-time.After(connectSleep) {
-		outgoingConnection, err = nsmc.performRequest(ctx, start, iteration, outgoingRequest)
-
-		if outgoingConnection != nil || err != nil {
-			return outgoingConnection, err
-		}
+	outgoingConnection, err := nsmc.NsClient.Request(ctx, outgoingRequest)
+	if err != nil {
+		logger.Errorf("failure to request connection with error: %+v", err)
+		return nil, err
 	}
 
+	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
 	return outgoingConnection, nil
 }
 
@@ -140,49 +131,6 @@ func (nsmc *NsmClient) Destroy(_ context.Context) error {
 	return nsmc.NsmConnection.Close()
 }
 
-func (nsmc *NsmClient) getConnectRetries() int {
-	connectRetries := connectRetries
-	connectRetriesStr := os.Getenv(NSMConnectRetries)
-	if connectRetriesStr != "" {
-		value, err := strconv.ParseInt(connectRetriesStr, 10, 32)
-		if err != nil || value < 1 {
-			logrus.Fatalf("%s=%v env variable is invalid, should be number >=1", NSMConnectRetries, value)
-		}
-		connectRetries = int(value)
-	}
-	return connectRetries
-}
-
-// PerformRequest - perform a request
-func (nsmc *NsmClient) performRequest(ctx context.Context, start time.Time, iteration int, outgoingRequest *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	var span opentracing.Span
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(ctx, connectTimeout)
-	defer cancel()
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "NsmClientPerformRequest")
-		defer span.Finish()
-		span.LogFields(log.Int("attempt", connectRetries-iteration))
-	}
-	logger := common.LogFromSpan(span)
-	logger.Infof("Sending outgoing request %v", outgoingRequest)
-
-	outgoingConnection, err := nsmc.NsClient.Request(ctx, outgoingRequest)
-	if err != nil {
-		logger.Errorf("failure to request connection with error: %+v", err)
-		iteration--
-		if iteration > 0 {
-			return nil, nil
-		}
-		logger.Errorf("Connect failed after %v iterations and %v", connectRetries, time.Since(start))
-		return nil, err
-	}
-
-	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
-	logger.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)
-	return outgoingConnection, nil
-}
-
 // NewNSMClient creates the NsmClient
 func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*NsmClient, error) {
 	if configuration == nil {
@@ -196,7 +144,7 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 	}
 
 	if configuration.TracerEnabled {
-		if opentracing.GlobalTracer() == nil {
+		if !opentracing.IsGlobalTracerRegistered() {
 			tracer, closer := tools.InitJaeger("nsm-client")
 			opentracing.SetGlobalTracer(tracer)
 			client.tracerCloser = closer

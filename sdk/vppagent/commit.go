@@ -24,9 +24,8 @@ const (
 
 // Commit is a VPP Agent Commit composite
 type Commit struct {
-	Endpoint           string
-	shouldResetVpp     bool
-	vppagentConnection *grpc.ClientConn
+	Endpoint       string
+	shouldResetVpp bool
 }
 
 // Request implements the request handler
@@ -94,11 +93,6 @@ func NewCommit(configuration *common.NSConfiguration, endpoint string, shouldRes
 
 // Init will reset the vpp shouldResetVpp is true
 func (c *Commit) Init(*endpoint.InitContext) error {
-	conn, err := c.createConnection(context.TODO())
-	if err != nil {
-		return err
-	}
-	c.vppagentConnection = conn
 	if c.shouldResetVpp {
 		return c.init()
 	}
@@ -122,9 +116,14 @@ func (c *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error)
 }
 
 func (c *Commit) send(ctx context.Context, dataChange *configurator.Config) error {
-	client := configurator.NewConfiguratorClient(c.vppagentConnection)
+	conn, err := c.createConnection(context.TODO())
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
 
-	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange}); err != nil {
+	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange, FullResync: false}); err != nil {
 		_, _ = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
 		return err
 	}
@@ -132,7 +131,12 @@ func (c *Commit) send(ctx context.Context, dataChange *configurator.Config) erro
 }
 
 func (c *Commit) remove(ctx context.Context, dataChange *configurator.Config) error {
-	client := configurator.NewConfiguratorClient(c.vppagentConnection)
+	conn, err := c.createConnection(context.TODO())
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
 		return err
@@ -142,17 +146,28 @@ func (c *Commit) remove(ctx context.Context, dataChange *configurator.Config) er
 
 // Reset - Resets vppagent
 func (c *Commit) init() error {
-	client := configurator.NewConfiguratorClient(c.vppagentConnection)
 	if c.shouldResetVpp {
-		ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
-		defer cancel()
-		_, err := client.Update(ctx, &configurator.UpdateRequest{
-			Update:     &configurator.Config{},
-			FullResync: true,
-		})
-		if err != nil {
-			return err
-		}
+		_ = c.resetVpp()
+	}
+	return nil
+}
+
+func (c *Commit) resetVpp() error {
+	conn, err := c.createConnection(context.TODO())
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+	client := configurator.NewConfiguratorClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
+	defer cancel()
+	_, err = client.Update(ctx, &configurator.UpdateRequest{
+		Update:     &configurator.Config{},
+		FullResync: true,
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }

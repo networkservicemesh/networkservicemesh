@@ -28,16 +28,7 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
-	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) < 2 {
-		return nil, fmt.Errorf("vppAgentConfig lacks 2 interfaces to cross connect")
-	}
-
-	if vppAgentConfig.VppConfig.Interfaces[0].Name == "" {
-		err := fmt.Errorf("received empty incoming connection name")
-		return nil, err
-	}
-	if vppAgentConfig.VppConfig.Interfaces[1].Name == "" {
-		err := fmt.Errorf("received empty outgoing connection name")
+	if err := xc.validateConfig(vppAgentConfig); err != nil {
 		return nil, err
 	}
 
@@ -59,16 +50,7 @@ func (xc *XConnect) Close(ctx context.Context, connection *connection.Connection
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
-	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) <= 2 {
-		return nil, fmt.Errorf("vppAgentConfig lacks 2 interfaces to cross connect")
-	}
-
-	if vppAgentConfig.VppConfig.Interfaces[0].Name == "" {
-		err := fmt.Errorf("received empty incoming connection name")
-		return nil, err
-	}
-	if vppAgentConfig.VppConfig.Interfaces[1].Name == "" {
-		err := fmt.Errorf("received empty outgoing connection name")
+	if err := xc.validateConfig(vppAgentConfig); err != nil {
 		return nil, err
 	}
 
@@ -118,5 +100,21 @@ func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) er
 			TransmitInterface: in,
 		},
 	)
+	return nil
+}
+
+func (xc *XConnect) validateConfig(vppAgentConfig *configurator.Config) error {
+	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) < 2 {
+		return fmt.Errorf("vppAgentConfig lacks 2 interfaces to cross connect")
+	}
+
+	if vppAgentConfig.VppConfig.Interfaces[0].Name == "" {
+		err := fmt.Errorf("received empty incoming connection name")
+		return err
+	}
+	if vppAgentConfig.VppConfig.Interfaces[1].Name == "" {
+		err := fmt.Errorf("received empty outgoing connection name")
+		return err
+	}
 	return nil
 }

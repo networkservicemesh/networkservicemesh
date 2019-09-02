@@ -42,7 +42,11 @@ func WithClientConnection(parent context.Context, connection *connection.Connect
 //      ctx context.Context
 //    If any is present, otherwise nil
 func ClientConnection(ctx context.Context) *connection.Connection {
-	return ctx.Value(clientConnectionKey).(*connection.Connection)
+	conn := ctx.Value(clientConnectionKey)
+	if conn == nil {
+		return nil
+	}
+	return conn.(*connection.Connection)
 }
 
 // withNext -

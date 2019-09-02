@@ -25,11 +25,18 @@ type ClientMemifConnect struct {
 func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
-	con := endpoint.ClientConnection(ctx)
-	if con == nil {
+
+	incomingConnection := request.GetConnection()
+	outgoingConnection := endpoint.ClientConnection(ctx)
+	if outgoingConnection == nil {
 		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
 	}
-	if err := appendMemifInterface(vppAgentConfig, con, cmc.Workspace, false); err != nil {
+
+	// Copy context to incoming, since it should match.
+	incomingConnection.Context = outgoingConnection.Context
+
+	// Socket is constructed from outgoing name
+	if err := appendMemifInterface(vppAgentConfig, outgoingConnection, cmc.Workspace, false); err != nil {
 		return nil, err
 	}
 	if endpoint.Next(ctx) != nil {
@@ -48,11 +55,13 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 func (cmc *ClientMemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
-	con := endpoint.ClientConnection(ctx)
-	if con == nil {
+
+	outgoingConnection := endpoint.ClientConnection(ctx)
+	if outgoingConnection == nil {
 		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
 	}
-	if err := appendMemifInterface(vppAgentConfig, connection, cmc.Workspace, false); err != nil {
+
+	if err := appendMemifInterface(vppAgentConfig, outgoingConnection, cmc.Workspace, false); err != nil {
 		return nil, err
 	}
 	if endpoint.Next(ctx) != nil {
