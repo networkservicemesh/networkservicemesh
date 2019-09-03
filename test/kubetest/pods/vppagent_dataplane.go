@@ -4,6 +4,8 @@ package pods
 import (
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
@@ -100,6 +102,11 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
+
+	if insecure, _ := tools.ReadEnvBool("INSECURE", false); insecure {
+		variables["INSECURE"] = "true"
+	}
+
 	if len(variables) > 0 {
 		for k, v := range variables {
 			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{

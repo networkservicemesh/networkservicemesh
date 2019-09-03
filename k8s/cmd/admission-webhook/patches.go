@@ -41,6 +41,11 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 						Value: "/etc/coredns/client.sock",
 					},
 				},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						"networkservicemesh.io/socket": resource.MustParse("1"),
+					},
+				},
 			},
 		})...)
 	patch = append(patch, addContainer(tuple.spec,
