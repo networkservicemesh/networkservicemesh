@@ -1,8 +1,9 @@
 package pods
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	v1 "k8s.io/api/core/v1"
 

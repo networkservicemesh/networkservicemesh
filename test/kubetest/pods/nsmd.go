@@ -1,8 +1,9 @@
 package pods
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
