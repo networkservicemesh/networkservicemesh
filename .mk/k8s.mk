@@ -36,7 +36,7 @@ endif
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
 DEPLOY_PROXY_NSM = proxy-nsmgr
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_PROXY_NSM) $(DEPLOY_MONITOR)
-DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
+DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN) nsm-coredns nsm-monitor
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
@@ -91,55 +91,6 @@ endif
 kubectl = kubectl -n ${NSM_NAMESPACE}
 
 export ORG=$(CONTAINER_REPO)
-
-.PHONY: k8s-deploy
-k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-infra-deploy
-k8s-infra-deploy: k8s-infra-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
-
-.PHONY: k8s-icmp-deploy
-k8s-icmp-deploy: k8s-icmp-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
-
-.PHONY: k8s-vpn-deploy
-k8s-vpn-deploy: k8s-vpn-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
-
-.PHONY: k8s-redeploy
-k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-deployonly
-k8s-deployonly: $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-jaeger-deploy
-k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
-	@until ! $$($(kubectl) get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-admission-webhook-deploy
-k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete k8s-admission-webhook-load-images k8s-admission-webhook-create-cert
-	@until ! $$($(kubectl) get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml \
-		| sed "N; s/\(name:[ \t]*TAG\n[ \t]*value:[ \t]*\).*/\1\"${COMMIT}\"/" \
-		| sed 's;value: "networkservicemesh";value: "${CONTAINER_REPO}";' \
-		| sed 's;value: "latest";value: "${CONTAINER_TAG}";' \
-		| $(kubectl) apply -f -
-	@echo "Installing webhook..."
-	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) apply -f -
-
-.PHONY: k8s-vpn-gateway-nse-deploy
-k8s-vpn-gateway-nse-deploy: k8s-start k8s-config k8s-%-delete k8s-%-load-images
-	@until ! $$($(kubectl) get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/test-common[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-%-deploy
-k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
-	@until ! $$($(kubectl) get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-%-deployonly
-k8s-%-deployonly:
-	@until ! $$($(kubectl) get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
 .PHONY: k8s-delete
 k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
@@ -218,13 +169,6 @@ k8s-jaeger-load-images:
 
 .PHONY: k8s-save
 k8s-save: $(addsuffix -save,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-save-deploy
-k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-%-save-deploy
-k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
-	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
 NSMGR_CONTAINERS = nsmd nsmdp nsmd-k8s
 .PHONY: k8s-nsmgr-build
