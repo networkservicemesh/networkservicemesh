@@ -122,6 +122,21 @@ func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossc
 		logrus.Error(err)
 		return nil, err
 	}
+
+	if connect {
+		entity := v.common.Monitor.Entities()[crossConnect.GetId()]
+		if entity != nil {
+			clearDataChange, cErr := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false)
+			if cErr == nil && clearDataChange != nil {
+				logrus.Infof("Sending clearing DataChange to vppagent: %v", proto.MarshalTextString(clearDataChange))
+				_, cErr = client.Delete(ctx, &configurator.DeleteRequest{Delete: clearDataChange})
+			}
+			if cErr != nil {
+				logrus.Warnf("Connection Mechanism was not cleared properly before updating: %s", cErr.Error())
+			}
+		}
+	}
+
 	logrus.Infof("Sending DataChange to vppagent: %v", proto.MarshalTextString(dataChange))
 	if connect {
 		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})

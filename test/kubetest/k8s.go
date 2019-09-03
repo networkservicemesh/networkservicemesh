@@ -596,7 +596,7 @@ func (k8s *K8s) Cleanup() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_ = k8s.DeleteRoles(k8s.roles)
+		k8s.roles, _ = k8s.DeleteRoles(k8s.roles)
 	}()
 	wg.Add(1)
 	go func() {
@@ -1103,15 +1103,16 @@ func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 }
 
 // DeleteRoles delete roles
-func (k8s *K8s) DeleteRoles(rolesList []nsmrbac.Role) error {
+func (k8s *K8s) DeleteRoles(rolesList []nsmrbac.Role) ([]nsmrbac.Role, error) {
 	for i := range rolesList {
 		err := rolesList[i].Delete(k8s.clientset, rolesList[i].GetName())
 		if err != nil {
 			logrus.Errorf("failed deleting role: %v %v", rolesList[i], err)
-			return err
+			return rolesList[i:], err
 		}
 	}
-	return nil
+
+	return nil, nil
 }
 
 // setIPVersion choose whether or not to use IPv6 in testing

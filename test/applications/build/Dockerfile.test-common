@@ -1,4 +1,5 @@
 FROM golang:alpine as build
+ARG VENDORING
 RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
@@ -7,35 +8,39 @@ RUN mkdir /root/networkservicemesh
 ADD ["go.mod","/root/networkservicemesh"]
 ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
 WORKDIR /root/networkservicemesh/
-RUN ./go-mod-download.sh
+RUN VENDORING=${VENDORING} ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
 
 # 1. icmp-responder-nse
 FROM build as build-1
 ARG VERSION=unspecified
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}" -o /go/bin/icmp-responder-nse ./test/applications/cmd/icmp-responder-nse
+ARG VENDORING
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/icmp-responder-nse ./test/applications/cmd/icmp-responder-nse
 FROM alpine as runtime-1
 COPY --from=build-1 /go/bin/icmp-responder-nse /bin/icmp-responder-nse
 
 # 2. monitoring-nsc
 FROM build-1 as build-2
 ARG VERSION=unspecified
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/monitoring-nsc ./test/applications/cmd/monitoring-nsc
+ARG VENDORING
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}"  -o /go/bin/monitoring-nsc ./test/applications/cmd/monitoring-nsc
 FROM runtime-1 as runtime-2
 COPY --from=build-2 /go/bin/monitoring-nsc /bin/monitoring-nsc
 
 # 3. xcon-monitor
 FROM build-2 as build-3
 ARG VERSION=unspecified
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/proxy-xcon-monitor ./test/applications/cmd/proxy-xcon-monitor
+ARG VENDORING
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}"  -o /go/bin/proxy-xcon-monitor ./test/applications/cmd/proxy-xcon-monitor
 FROM runtime-2 as runtime-3
 COPY --from=build-3 /go/bin/proxy-xcon-monitor /bin/proxy-xcon-monitor
 
 # 4. monitoring-dns-nsc
 FROM build-3 as build-4
 ARG VERSION=unspecified
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags "-static" -X  main.version=${VERSION}"  -o /go/bin/monitoring-dns-nsc ./test/applications/cmd/monitoring-dns-nsc
+ARG VENDORING
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}"  -o /go/bin/monitoring-dns-nsc ./test/applications/cmd/monitoring-dns-nsc
 FROM runtime-3 as runtime-4
 COPY --from=build-4 /go/bin/monitoring-dns-nsc /bin/monitoring-dns-nsc
 
