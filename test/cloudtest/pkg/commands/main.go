@@ -210,7 +210,7 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 
 	err := ctx.performExecution()
 	reportfile, err2 := ctx.generateJUnitReportFile()
-	if err2 != nil && err != nil {
+	if err2 != nil {
 		logrus.Errorf("Error during generation of report: %v", err2)
 	}
 	if err != nil {
@@ -283,10 +283,10 @@ func (ctx *executionContext) performExecution() error {
 		case <-time.After(30 * time.Second):
 			ctx.printStatistics()
 		case <-termChannel:
-			return fmt.Errorf("Termination request is received")
+			return fmt.Errorf("termination request is received")
 		case <-timeoutCtx.Done():
 			ctx.printStatistics()
-			return fmt.Errorf("Global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
+			return fmt.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
 		}
 	}
 	logrus.Infof("Completed tasks %v Tasks left: %v", len(ctx.completed), len(ctx.tasks))
