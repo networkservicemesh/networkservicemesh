@@ -44,6 +44,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -60,6 +61,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -76,6 +78,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -92,6 +95,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration

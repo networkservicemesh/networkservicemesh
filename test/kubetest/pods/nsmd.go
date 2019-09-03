@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"os"
 
 	v1 "k8s.io/api/core/v1"
@@ -184,6 +185,11 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 			},
 		},
 	}
+
+	if insecure, _ := tools.ReadEnvBool("INSECURE", false); insecure {
+		config.Variables["INSECURE"] = "true"
+	}
+
 	if len(config.Variables) > 0 {
 		for k, v := range config.Variables {
 			for i := range pod.Spec.Containers {
