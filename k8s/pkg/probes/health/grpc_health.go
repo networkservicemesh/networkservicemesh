@@ -12,6 +12,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+//NewGrpcHealth creates health checker for grpc servers
 func NewGrpcHealth(s *grpc.Server, addr net.Addr, timeout time.Duration, opts ...grpc.DialOption) ApplicationHealth {
 	grpc_health_v1.RegisterHealthServer(s, &healhServiceImpl{})
 	return NewApplicationHealthFunc(

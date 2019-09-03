@@ -39,10 +39,6 @@ func defaultDNSSearchDomains() []string {
 	return []string{fmt.Sprintf("%v.svc.cluster.local", namespace.GetNamespace()), "svc.cluster.local", "cluster.local"}
 }
 
-func defaultAddr() string {
-	return fmt.Sprintf(":%v", defaultPort)
-}
-
 func getMetaAndSpec(request *v1beta1.AdmissionRequest) (*podSpecAndMeta, error) {
 	result := &podSpecAndMeta{}
 	if request.Kind.Kind == deployment {

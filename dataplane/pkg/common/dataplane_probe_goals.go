@@ -16,7 +16,7 @@ type DataplaneProbeGoals struct {
 	state int8
 }
 
-//TODO returns current status
+//Status returns current goals status
 func (g *DataplaneProbeGoals) Status() string {
 	return fmt.Sprintf("NewEgressIPReady:%v, SetSrcIPReady: %v, SetSocketCleanReady: %v, SetValidIPReady: %v, SetSocketListenrReady: %v",
 		g.state&newEgressIPReady > 0,

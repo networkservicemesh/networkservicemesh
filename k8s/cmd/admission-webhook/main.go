@@ -42,7 +42,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", whsvr.serve)
 	whsvr.server.Handler = mux
-	prob.Append(health.NewHttpServeMuxHealth(tools.NewAddr("https", addr), mux, time.Minute))
+	prob.Append(health.NewHTTPServeMuxHealth(tools.NewAddr("https", addr), mux, time.Minute))
 	// start webhook server in new routine
 	go func() {
 		if err := whsvr.server.ListenAndServeTLS("", ""); err != nil {

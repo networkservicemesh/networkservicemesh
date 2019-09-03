@@ -28,13 +28,12 @@ const (
 	healthcheckProbesPort = "0.0.0.0:5555"
 )
 
-//Probes -
+//Probes - Network Service Manager readiness probes
 type Probes interface {
 	BeginHealthCheck()
 	health.Appender
 }
 
-// probesImpl - Network Service Manager readiness probes
 type probesImpl struct {
 	name  string
 	goals Goals
@@ -64,11 +63,11 @@ func (probes *probesImpl) readiness(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Goals status: %v, health check status: %v", probes.goals.Status(), err), http.StatusServiceUnavailable)
 		return
 	}
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 func (probes *probesImpl) liveness(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // BeginHealthCheck starts listening 5555 port for health check
@@ -77,6 +76,9 @@ func (probes *probesImpl) BeginHealthCheck() {
 		logrus.Debugf("Starting %v", probes.name)
 		http.HandleFunc("/liveness", probes.liveness)
 		http.HandleFunc("/readiness", probes.readiness)
-		http.ListenAndServe(healthcheckProbesPort, nil)
+		err := http.ListenAndServe(healthcheckProbesPort, nil)
+		if err != nil {
+			logrus.Errorf("Probes: serve error: %v", err)
+		}
 	}()
 }

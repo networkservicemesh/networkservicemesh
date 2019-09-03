@@ -132,6 +132,9 @@ issues:
     - path: test/cloudtest/pkg/commands/main.go
       linters:
         - gosec
+    - path: k8s/pkg/probes/health/serve_mux_health.go
+      linters:
+        - gosec
   exclude:
     - should not use dot imports
     - \`version\` is a global variable

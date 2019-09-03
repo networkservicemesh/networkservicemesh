@@ -1,45 +1,30 @@
 package health
 
 import (
-	"fmt"
-	"net"
+	"errors"
 	"net/http"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/onsi/gomega"
 )
 
-func TestServeMuxHealth(t *testing.T) {
-	t.Skip("broken on ci")
-	assert := gomega.NewWithT(t)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/product", testFuncHandler(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("ok"))
-	}))
-	listener, err := net.Listen("tcp", ":0")
-	assert.Expect(err).Should(gomega.BeNil())
-	port := listener.Addr().(*net.TCPAddr).Port
-	addr := fmt.Sprintf(":%v", port)
-	err = listener.Close()
-	assert.Expect(err).Should(gomega.BeNil())
-
-	go func() {
-		err := http.ListenAndServe(addr, mux)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	}()
-
-	health := NewHttpServeMuxHealth(tools.NewAddr("http", addr), mux, time.Second)
-	err = health.Check()
-	assert.Expect(err).Should(gomega.BeNil())
+type mockClient struct {
 }
 
-type testFuncHandler func(http.ResponseWriter, *http.Request)
+func (c *mockClient) Do(r *http.Request) (*http.Response, error) {
+	if strings.HasSuffix(r.URL.Path, "/health") {
+		return &http.Response{}, nil
+	}
+	return nil, errors.New("wrong path")
+}
 
-func (t testFuncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	t(w, r)
+func TestServeMuxHealth(t *testing.T) {
+	assert := gomega.NewWithT(t)
+	mux := http.NewServeMux()
+	health := newHTTPServeMuxHealth(tools.NewAddr("http", ":443"), mux, &mockClient{})
+	err := health.Check()
+	assert.Expect(err).Should(gomega.BeNil())
 }
