@@ -116,7 +116,12 @@ func (c *nsmMonitorApp) Run() {
 		opentracing.SetGlobalTracer(tracer)
 	}
 
-	go c.beginMonitoring(tracingCloser)
+	go func() {
+		c.beginMonitoring()
+		if tracingCloser != nil {
+			defer func() { _ = tracingCloser.Close() }()
+		}
+	}()
 }
 
 // NewNSMMonitorApp - creates a monitoring application.
@@ -127,10 +132,7 @@ func NewNSMMonitorApp() NSMMonitorApp {
 	}
 }
 
-func (c *nsmMonitorApp) beginMonitoring(closer io.Closer) {
-	if closer != nil {
-		defer func() { _ = closer.Close() }()
-	}
+func (c *nsmMonitorApp) beginMonitoring() {
 	for {
 		var configuration *common.NSConfiguration
 		if c.helper != nil {
@@ -138,7 +140,7 @@ func (c *nsmMonitorApp) beginMonitoring(closer io.Closer) {
 		}
 		nsmClient, err := client.NewNSMClient(context.Background(), configuration)
 		if err != nil {
-			logrus.Fatalf(nsmMonitorLogWithParamFormat, "Unable to create the NSM client", err)
+			logrus.Errorf(nsmMonitorLogWithParamFormat, "unable to create the NSM client", err)
 
 			c.waitRetry()
 			continue
@@ -151,6 +153,9 @@ func (c *nsmMonitorApp) beginMonitoring(closer io.Closer) {
 			logrus.Errorf(nsmMonitorLogWithParamFormat, "failed to start monitor client", err)
 
 			c.waitRetry()
+			if err := nsmClient.Destroy(context.Background()); err != nil {
+				logrus.Errorf("failed to close NSM client connection")
+			}
 			continue
 		}
 		defer monitorClient.Close()
@@ -170,19 +175,26 @@ func (c *nsmMonitorApp) beginMonitoring(closer io.Closer) {
 					c.recovery = true
 				}
 			}
-			c.readEvents(monitorClient)
+			if !c.readEvents(monitorClient) {
+				break // If someting happened we need to retry
+			}
+		}
+
+		// Close current NSM client connection.
+		if err := nsmClient.Destroy(context.Background()); err != nil {
+			logrus.Errorf("failed to close NSM client connection")
 		}
 	}
 }
 
-func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) {
+func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) bool {
 	select {
 	case err := <-monitorClient.ErrorChannel():
 		logrus.Errorf(nsmMonitorLogWithParamFormat, "NSM die, re-connecting", err)
 		for _, c := range c.connections {
 			c.State = connection.State_DOWN // Mark all as down.
 		}
-		break
+		return false
 	case event := <-monitorClient.EventChannel():
 		if event.EventType() == monitor.EventTypeInitialStateTransfer {
 			logrus.Infof(nsmMonitorLogFormat, "Monitor started")
@@ -203,12 +215,14 @@ func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) {
 				}
 			}
 		}
+		return true
 	case <-c.stop:
 		if c.helper != nil {
 			c.helper.Stopped()
 			logrus.Infof(nsmMonitorLogFormat, "Processing stop")
 			break
 		}
+		return false
 	}
 }
 

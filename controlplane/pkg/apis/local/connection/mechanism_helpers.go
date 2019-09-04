@@ -3,7 +3,6 @@ package connection
 import (
 	"fmt"
 	"path"
-	"runtime"
 	"strconv"
 
 	"github.com/golang/protobuf/proto"
@@ -17,12 +16,7 @@ import (
 func NewMechanism(t MechanismType, name, description string) (*Mechanism, error) {
 	inodeNum, err := tools.GetCurrentNS()
 	if err != nil {
-		if runtime.GOOS == "darwin" {
-			// No Linux namespace in mac, it is used only for testing, just for test use "1"
-			inodeNum = "1"
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 	rv := &Mechanism{
 		Type: t,
