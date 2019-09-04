@@ -155,13 +155,17 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		routes = c.Connection.GetContext().GetIpContext().GetSrcRoutes()
 	}
 
+	duplicatedPrefixes := make(map[string]bool)
 	for _, route := range routes {
-		rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
-			DstNetwork:        route.Prefix,
-			OutgoingInterface: c.conversionParameters.Name,
-			Scope:             linux_l3.Route_GLOBAL,
-			GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
-		})
+		if _, ok := duplicatedPrefixes[route.Prefix]; ok {
+			duplicatedPrefixes[route.Prefix] = true
+			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
+				DstNetwork:        route.Prefix,
+				OutgoingInterface: c.conversionParameters.Name,
+				Scope:             linux_l3.Route_GLOBAL,
+				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+			})
+		}
 	}
 
 	// Process IP Neighbor entries
