@@ -3,6 +3,7 @@ package kubetest
 import (
 	"archive/zip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -41,7 +42,8 @@ func archiveLogs(testName string) {
 	}
 	writer := zip.NewWriter(file)
 	dir := filepath.Join(logsDir(), testName)
-	logFiles, err := ioutil.ReadDir(dir)
+	var logFiles []os.FileInfo
+	logFiles, err = ioutil.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Can not read dir %v", dir)
 		return
@@ -54,18 +56,21 @@ func archiveLogs(testName string) {
 			continue
 		}
 		filePath := filepath.Join(logsDir(), testName, file.Name())
-		bytes, err := ioutil.ReadFile(filePath)
+		var bytes []byte
+		bytes, err = ioutil.ReadFile(filePath)
 		if err != nil {
 			logrus.Errorf("Can not read file %v, err: %v", filePath, err)
 			continue
 		}
-		h, err := zip.FileInfoHeader(file)
+		var h *zip.FileHeader
+		h, err = zip.FileInfoHeader(file)
 		if err != nil {
 			logrus.Errorf("Can not get header %v, err: %v", h, err)
 			continue
 		}
 		h.Method = zip.Deflate
-		w, err := writer.CreateHeader(h)
+		var w io.Writer
+		w, err = writer.CreateHeader(h)
 		if err != nil {
 			logrus.Errorf("Can not create writer, err: %v", err)
 			continue
