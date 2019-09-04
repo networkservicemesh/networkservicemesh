@@ -224,6 +224,7 @@ func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) bool {
 		}
 		return false
 	}
+	return true
 }
 
 func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
