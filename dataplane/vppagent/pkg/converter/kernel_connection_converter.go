@@ -157,7 +157,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 	duplicatedPrefixes := make(map[string]bool)
 	for _, route := range routes {
-		if _, ok := duplicatedPrefixes[route.Prefix]; ok {
+		if _, ok := duplicatedPrefixes[route.Prefix]; !ok {
 			duplicatedPrefixes[route.Prefix] = true
 			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
 				DstNetwork:        route.Prefix,
