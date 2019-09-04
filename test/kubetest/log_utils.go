@@ -1,7 +1,9 @@
 package kubetest
 
 import (
+	"archive/zip"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -25,6 +27,66 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
+	}
+	if shouldStoreLogsInFiles() && t != nil {
+		archiveLogs(t.Name())
+	}
+}
+
+func archiveLogs(testName string) {
+	file, err := os.Create(filepath.Join(logsDir(), testName, DefaultArchiveFile))
+	if err != nil {
+		logrus.Error("Can not create tar file")
+		return
+	}
+	writer := zip.NewWriter(file)
+	dir := filepath.Join(logsDir(), testName)
+	logFiles, err := ioutil.ReadDir(dir)
+	if err != nil {
+		logrus.Errorf("Can not read dir %v", dir)
+		return
+	}
+	for _, file := range logFiles {
+		if file.Name() == DefaultArchiveFile {
+			continue
+		}
+		if file.IsDir() {
+			continue
+		}
+		filePath := filepath.Join(logsDir(), testName, file.Name())
+		bytes, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			logrus.Errorf("Can not read file %v, err: %v", filePath, err)
+			continue
+		}
+		h, err := zip.FileInfoHeader(file)
+		if err != nil {
+			logrus.Errorf("Can not get header %v, err: %v", h, err)
+			continue
+		}
+		h.Method = zip.Deflate
+		w, err := writer.CreateHeader(h)
+		if err != nil {
+			logrus.Errorf("Can not create writer, err: %v", err)
+			continue
+		}
+		_, err = w.Write(bytes)
+		if err != nil {
+			logrus.Errorf("Can not zip write, err: %v", err)
+		}
+		_ = os.Remove(filePath)
+	}
+	err = writer.Flush()
+	if err != nil {
+		logrus.Errorf("An error during writer.Flush(), err: %v", err)
+	}
+	err = writer.Close()
+	if err != nil {
+		logrus.Errorf("An error during tar writer.Close(), err: %v", err)
+	}
+	err = file.Close()
+	if err != nil {
+		logrus.Errorf("An error during tar file.Close(), err: %v", err)
 	}
 }
 

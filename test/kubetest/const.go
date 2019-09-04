@@ -17,4 +17,6 @@ const (
 	StorePodLogsDir = "STORE_POD_LOGS_DIR"
 	//DefaultLogDir - default name of dir for logs
 	DefaultLogDir = "logs"
+	//DefaultArchiveFile means filename for logs archive
+	DefaultArchiveFile = "archive.zip"
 )
