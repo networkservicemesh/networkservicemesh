@@ -104,6 +104,9 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 	}
 
 	if insecure, _ := tools.ReadEnvBool("INSECURE", false); insecure {
+		if variables == nil {
+			variables = map[string]string{}
+		}
 		variables["INSECURE"] = "true"
 	}
 
