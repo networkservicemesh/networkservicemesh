@@ -64,11 +64,11 @@ func main() {
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, pluginRegistry)
 
 	var server nsmd.NSMServer
-	var err error
+	var srvErr error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 
-	if server, err = nsmd.StartNSMServer(ctx, model, manager, serviceRegistry, apiRegistry); err != nil {
-		logrus.Errorf("Error starting nsmd service: %+v", err)
+	if server, srvErr = nsmd.StartNSMServer(ctx, model, manager, serviceRegistry, apiRegistry); srvErr != nil {
+		logrus.Errorf("error starting nsmd service: %+v", srvErr)
 		return
 	}
 	defer server.Stop()
@@ -97,9 +97,9 @@ func main() {
 	if strings.TrimSpace(nsmdAPIAddress) == "" {
 		nsmdAPIAddress = NsmdAPIAddressDefaults
 	}
-	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
-	if err != nil {
-		logrus.Errorf("Failed to start Public API server...")
+	sock, sockErr := apiRegistry.NewPublicListener(nsmdAPIAddress)
+	if sockErr != nil {
+		logrus.Errorf("failed to start Public API server %v", sockErr)
 		return
 	}
 	nsmdProbes.SetPublicListenerReady()
