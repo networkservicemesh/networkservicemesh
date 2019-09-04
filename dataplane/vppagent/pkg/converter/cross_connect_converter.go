@@ -43,7 +43,6 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	}
 
 	srcName := srcPrefix + c.GetId()
-	dstName := dstPrefix + c.GetId()
 
 	if c.GetLocalSource() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
@@ -54,20 +53,6 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 			BaseDir:   baseDir,
 		}
 		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
-		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
-		}
-	}
-
-	if c.GetLocalDestination() != nil {
-		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
-		conversionParameters := &ConnectionConversionParameters{
-			Name:      dstName,
-			Terminate: false,
-			Side:      DESTINATION,
-			BaseDir:   baseDir,
-		}
-		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -106,6 +91,20 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 	srcName := srcPrefix + c.GetId()
 
 	var err error
+	if c.GetLocalDestination() != nil {
+		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
+		conversionParameters := &ConnectionConversionParameters{
+			Name:      dstName,
+			Terminate: false,
+			Side:      DESTINATION,
+			BaseDir:   baseDir,
+		}
+		rv, err = NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
+		if err != nil {
+			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+		}
+	}
+
 	if c.GetRemoteSource() != nil {
 		rv, err = NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
