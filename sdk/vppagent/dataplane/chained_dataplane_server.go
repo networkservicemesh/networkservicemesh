@@ -19,9 +19,6 @@ type chainedDataplaneServer struct {
 }
 
 func (c *chainedDataplaneServer) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-	if err := crossConnect.IsComplete(); err != nil {
-		return nil, err
-	}
 	nextCtx := state.WithChain(ctx, c, c.handlers)
 	return state.NextDataplaneRequest(nextCtx, crossConnect)
 }
