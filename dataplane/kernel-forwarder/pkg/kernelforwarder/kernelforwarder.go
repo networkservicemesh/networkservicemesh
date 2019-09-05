@@ -83,7 +83,7 @@ func (k *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 
 func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) error {
 	var err error
-	var devices map[string]string
+	var devices map[string]monitoring.Device
 	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
 	if err = common.SanityCheckConnectionType(k.common.Mechanisms, crossConnect); err != nil {
 		return err
@@ -102,7 +102,10 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 		} else {
 			logrus.Info("kernel-forwarder: deleted devices: ", devices)
 		}
-		k.monitoring.GetDevices().UpdateDeviceList(devices, connect)
+		// Metrics monitoring
+		if k.common.MetricsEnabled {
+			k.monitoring.GetDevices().UpdateDeviceList(devices, connect)
+		}
 	}
 	return err
 }
@@ -126,8 +129,10 @@ func (k *KernelForwarder) configureKernelForwarder() {
 		},
 	}
 	// Metrics monitoring
-	k.monitoring = monitoring.CreateMetricsMonitor(k.common.MetricsPeriod)
-	k.monitoring.Start(k.common.Monitor)
+	if k.common.MetricsEnabled {
+		k.monitoring = monitoring.CreateMetricsMonitor(k.common.MetricsPeriod)
+		k.monitoring.Start(k.common.Monitor)
+	}
 }
 
 // MonitorMechanisms handler

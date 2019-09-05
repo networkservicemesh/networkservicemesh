@@ -28,11 +28,12 @@ import (
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 )
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections
-func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (map[string]string, error) {
+func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
 	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming remote connection */
@@ -49,8 +50,8 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 }
 
 // handleConnection process the request to either creating or deleting a connection
-func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool, direction uint8) (map[string]string, error) {
-	var devices map[string]string
+func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool, direction uint8) (map[string]monitoring.Device, error) {
+	var devices map[string]monitoring.Device
 
 	/* 1. Get the connection configuration */
 	cfg, err := newConnectionConfig(crossConnect, direction)
@@ -59,18 +60,18 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 		return nil, err
 	}
 
-	nsPath, name, ifaceIP, vxlanIP, routes := modifyConfiguration(cfg, direction)
+	nsPath, name, ifaceIP, vxlanIP, routes, xconName := modifyConfiguration(cfg, direction)
 
 	if connect {
 		/* 2. Create a connection */
-		devices, err = createRemoteConnection(nsPath, name, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes, cfg.neighbors)
+		devices, err = createRemoteConnection(nsPath, name, xconName, ifaceIP, egress.SrcIPNet().IP, vxlanIP, cfg.vni, routes, cfg.neighbors)
 		if err != nil {
 			logrus.Errorf("remote: failed to create connection - %v", err)
 			devices = nil
 		}
 	} else {
 		/* 3. Delete a connection */
-		devices, err = deleteRemoteConnection(nsPath, name)
+		devices, err = deleteRemoteConnection(nsPath, name, xconName)
 		if err != nil {
 			logrus.Errorf("remote: failed to delete connection - %v", err)
 			devices = nil
@@ -80,7 +81,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 }
 
 // createRemoteConnection handler for creating a remote connection
-func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]string, error) {
+func createRemoteConnection(nsPath, ifaceName, xconName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: creating connection")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -108,11 +109,11 @@ func createRemoteConnection(nsPath, ifaceName, ifaceIP string, egressIP, remoteI
 		return nil, err
 	}
 	logrus.Infof("remote: creation completed for device - %s", ifaceName)
-	return map[string]string{nsPath: ifaceName}, nil
+	return map[string]monitoring.Device{nsPath: monitoring.Device{Name: ifaceName, XconName: xconName}}, nil
 }
 
 // deleteRemoteConnection handler for deleting a remote connection
-func deleteRemoteConnection(nsPath, ifaceName string) (map[string]string, error) {
+func deleteRemoteConnection(nsPath, ifaceName, xconName string) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: deleting connection")
 	/* 1. Get handler for container namespace */
 	containerNs, err := netns.GetFromPath(nsPath)
@@ -145,15 +146,15 @@ func deleteRemoteConnection(nsPath, ifaceName string) (map[string]string, error)
 		return nil, err
 	}
 	logrus.Infof("remote: deletion completed for device - %s", ifaceName)
-	return map[string]string{nsPath: ifaceName}, nil
+	return map[string]monitoring.Device{nsPath: monitoring.Device{Name: ifaceName, XconName: xconName}}, nil
 }
 
 // modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing
-func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP, []*connectioncontext.Route) {
+func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP, []*connectioncontext.Route, string) {
 	if direction == cINCOMING {
-		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes
+		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes, "DST-" + cfg.id
 	}
-	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN, cfg.srcRoutes
+	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN, cfg.srcRoutes, "SRC-" + cfg.id
 }
 
 // newVXLAN returns a VXLAN interface instance

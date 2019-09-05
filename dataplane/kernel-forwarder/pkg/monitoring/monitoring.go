@@ -38,14 +38,20 @@ type Metrics struct {
 // RegisteredDevices keeps track of all devices created by the forwarding plane
 type RegisteredDevices struct {
 	sync.Mutex
-	devices map[string][]string
+	devices map[string][]Device
+}
+
+// Device keeps information about a device
+type Device struct {
+	Name     string
+	XconName string
 }
 
 // CreateMetricsMonitor creates new metric monitoring instance
 func CreateMetricsMonitor(requestPeriod time.Duration) *Metrics {
 	return &Metrics{
 		requestPeriod: requestPeriod,
-		devices:       &RegisteredDevices{devices: map[string][]string{}},
+		devices:       &RegisteredDevices{devices: map[string][]Device{}},
 	}
 }
 
@@ -68,7 +74,7 @@ func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, d
 			/* Collect metrics for all present devices */
 			stats, err := collectMetrics(devices)
 			if err != nil {
-				logrus.Error("metrics: failed to collect metrics:", err)
+				logrus.Warn("metrics: failed to collect metrics:", err)
 			}
 			/* Send metrics update */
 			monitor.HandleMetrics(stats)
@@ -82,19 +88,19 @@ func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, d
 func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metrics, error) {
 	/* Store the metrics for all registered devices here */
 	stats := make(map[string]*crossconnect.Metrics)
-	failedDevices := make(map[string][]string)
+	failedDevices := make(map[string][]Device)
 	devices.Lock()
 	/* Loop through each registered device */
-	for namespace, interfaces := range devices.devices {
-		for _, device := range interfaces {
-			metrics, err := getDeviceMetrics(device, namespace)
+	for namespace, listOfDevices := range devices.devices {
+		for _, device := range listOfDevices {
+			metrics, err := getDeviceMetrics(device.Name, namespace)
 			if err != nil {
-				logrus.Errorf("metrics: failed to extract metrics for device %s in namespace %s: %v", device, namespace, err)
-				logrus.Errorf("metrics: removing device %s from device list", device)
+				logrus.Warnf("metrics: failed to extract metrics for device %s in namespace %s: %v", device.Name, namespace, err)
+				logrus.Warnf("metrics: removing device %s from device list", device.Name)
 				failedDevices[namespace] = append(failedDevices[namespace], device)
 			} else {
-				logrus.Infof("metrics: device %s, metrics - %v", device, metrics)
-				stats[generateMetricsName(namespace, device)] = &crossconnect.Metrics{Metrics: metrics}
+				logrus.Infof("metrics: device %s, metrics - %v", device.Name, metrics)
+				stats[generateMetricsName(device)] = &crossconnect.Metrics{Metrics: metrics}
 			}
 		}
 	}
@@ -103,7 +109,7 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 	if len(failedDevices) != 0 {
 		for namespace, fails := range failedDevices {
 			for _, fail := range fails {
-				devices.UpdateDeviceList(map[string]string{namespace: fail}, false)
+				devices.UpdateDeviceList(map[string]Device{namespace: fail}, false)
 			}
 		}
 	}
@@ -169,7 +175,7 @@ func getDeviceMetrics(device, namespace string) (map[string]string, error) {
 }
 
 // UpdateDeviceList keeps track of the devices being handled by the Kernel forwarding plane
-func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect bool) {
+func (m *RegisteredDevices) UpdateDeviceList(devices map[string]Device, connect bool) {
 	found := false
 	m.Lock()
 	defer m.Unlock()
@@ -188,10 +194,10 @@ func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect 
 		}
 		/* Namespace is present, search if the device is found in its list */
 		for i, dev := range devList {
-			if dev == device {
+			if dev.Name == device.Name {
 				if connect {
 					/* Add: The device we want to add is already there */
-					logrus.Errorf("metrics: device %s requested for add is already present", device)
+					logrus.Errorf("metrics: device %s requested for add is already present", device.Name)
 				} else {
 					/* Delete: Found the device we want to delete */
 					m.devices[namespace] = append(m.devices[namespace][:i], m.devices[namespace][i+1:]...)
@@ -207,7 +213,7 @@ func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect 
 				m.devices[namespace] = append(m.devices[namespace], device)
 			} else {
 				/* Delete: There's really no such device found for deletion */
-				logrus.Errorf("metrics: device %s with namespace %s requested for delete is already missing", device, namespace)
+				logrus.Errorf("metrics: device %s with namespace %s requested for delete is already missing", device.Name, namespace)
 			}
 		}
 		/* If there are no more devices associated with that namespace, delete it */
@@ -219,6 +225,6 @@ func (m *RegisteredDevices) UpdateDeviceList(devices map[string]string, connect 
 }
 
 // generateMetricsName generates a name for the metrics update
-func generateMetricsName(namespace, device string) string {
-	return device + "@" + namespace
+func generateMetricsName(device Device) string {
+	return device.XconName
 }

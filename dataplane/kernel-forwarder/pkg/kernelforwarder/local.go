@@ -17,6 +17,7 @@ package kernelforwarder
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -24,9 +25,9 @@ import (
 )
 
 // handleLocalConnection either creates or deletes a local connection - same host
-func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (map[string]string, error) {
+func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
 	logrus.Info("local: connection type - local source/local destination")
-	var devices map[string]string
+	var devices map[string]monitoring.Device
 	/* 1. Get the connection configuration */
 	cfg, err := newConnectionConfig(crossConnect, cLOCAL)
 	if err != nil {
@@ -52,7 +53,7 @@ func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool
 }
 
 // createLocalConnection handles creating a local connection
-func createLocalConnection(cfg *connectionConfig) (map[string]string, error) {
+func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device, error) {
 	logrus.Info("local: creating connection")
 	/* 1. Get handlers for source and destination namespaces */
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
@@ -97,11 +98,13 @@ func createLocalConnection(cfg *connectionConfig) (map[string]string, error) {
 		return nil, err
 	}
 	logrus.Infof("local: creation completed for devices - source: %s, destination: %s", cfg.srcName, cfg.dstName)
-	return map[string]string{cfg.srcNsPath: cfg.srcName, cfg.dstNsPath: cfg.dstName}, nil
+	srcDevice := monitoring.Device{Name: cfg.srcName, XconName: "SRC-" + cfg.id}
+	dstDevice := monitoring.Device{Name: cfg.dstName, XconName: "DST-" + cfg.id}
+	return map[string]monitoring.Device{cfg.srcNsPath: srcDevice, cfg.dstNsPath: dstDevice}, nil
 }
 
 // deleteLocalConnection handles deleting a local connection
-func deleteLocalConnection(cfg *connectionConfig) (map[string]string, error) {
+func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device, error) {
 	logrus.Info("local: deleting connection")
 	/* 1. Get handlers for source and destination namespaces */
 	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
@@ -150,7 +153,9 @@ func deleteLocalConnection(cfg *connectionConfig) (map[string]string, error) {
 		return nil, err
 	}
 	logrus.Infof("local: deletion completed for devices - source: %s, destination: %s", cfg.srcName, cfg.dstName)
-	return map[string]string{cfg.srcNsPath: cfg.srcName, cfg.dstNsPath: cfg.dstName}, nil
+	srcDevice := monitoring.Device{Name: cfg.srcName, XconName: "SRC-" + cfg.id}
+	dstDevice := monitoring.Device{Name: cfg.dstName, XconName: "DST-" + cfg.id}
+	return map[string]monitoring.Device{cfg.srcNsPath: srcDevice, cfg.dstNsPath: dstDevice}, nil
 }
 
 // newVETH returns a VETH interface instance

@@ -46,6 +46,7 @@ const (
 )
 
 type connectionConfig struct {
+	id         string
 	srcNsPath  string
 	dstNsPath  string
 	srcName    string
@@ -134,7 +135,7 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 		}
 		/* 8. Inject the interface back into the host namespace */
 		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
-			logrus.Errorf("common: failed to inject %q bach to host namespace - %v", ifaceName, err)
+			logrus.Errorf("common: failed to inject %q back to host namespace - %v", ifaceName, err)
 			return err
 		}
 	}
@@ -161,6 +162,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			return nil, err
 		}
 		return &connectionConfig{
+			id:        crossConnect.GetId(),
 			srcNsPath: srcNsPath,
 			dstNsPath: dstNsPath,
 			srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
@@ -179,6 +181,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		}
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANVNI])
 		return &connectionConfig{
+			id:         crossConnect.GetId(),
 			dstNsPath:  dstNsPath,
 			dstName:    crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			dstIP:      crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
@@ -196,6 +199,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		}
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANVNI])
 		return &connectionConfig{
+			id:         crossConnect.GetId(),
 			srcNsPath:  srcNsPath,
 			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:      crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
