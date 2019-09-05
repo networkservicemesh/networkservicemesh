@@ -71,6 +71,7 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 }
 
 func registerPlugin(name, endpoint string, capabilities []plugins.PluginCapability) error {
+	_ = tools.WaitForPortAvailable(context.Background(), "unix", plugins.PluginRegistrySocket, 100*time.Millisecond)
 	conn, err := tools.DialUnix(plugins.PluginRegistrySocket)
 	if err != nil {
 		return fmt.Errorf("cannot connect to the Plugin Registry: %v", err)

@@ -57,6 +57,6 @@ type CloudTestConfig struct {
 	} `yaml:"reporting"` // A reporting options.
 
 	Executions []*ExecutionConfig `yaml:"executions"`
-	Timeout    int64              `yaml:"timeout"` // Global timeout in minutes
+	Timeout    int64              `yaml:"timeout"` // Global timeout in seconds
 	Imports    []string           `yaml:"import"`  // A set of configurations for import
 }

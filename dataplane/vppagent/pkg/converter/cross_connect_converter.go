@@ -11,6 +11,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 )
 
+const (
+	srcPrefix = "SRC-"
+	dstPrefix = "DST-"
+)
+
 type CrossConnectConverter struct {
 	*crossconnect.CrossConnect
 	conversionParameters *CrossConnectConversionParameters
@@ -36,8 +41,9 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
 	}
-	srcName := "SRC-" + c.GetId()
-	dstName := "DST-" + c.GetId()
+
+	srcName := srcPrefix + c.GetId()
+	dstName := dstPrefix + c.GetId()
 
 	if c.GetLocalSource() != nil {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
@@ -48,13 +54,6 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 			BaseDir:   baseDir,
 		}
 		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
-		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
-		}
-	}
-
-	if c.GetRemoteSource() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
 		}
@@ -74,15 +73,13 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		}
 	}
 
-	if c.GetRemoteDestination() != nil {
-		rv, err := NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
-		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
-		}
+	rv, err := c.MechanismsToDataRequest(rv, connect)
+	if err != nil {
+		return rv, err
 	}
 
 	if len(rv.VppConfig.Interfaces) < 2 {
-		return nil, fmt.Errorf("Did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.VppConfig.Interfaces))
+		return nil, fmt.Errorf("did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.VppConfig.Interfaces))
 	}
 	ifaces := rv.VppConfig.Interfaces[len(rv.VppConfig.Interfaces)-2:]
 	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
@@ -93,6 +90,35 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		ReceiveInterface:  ifaces[1].Name,
 		TransmitInterface: ifaces[0].Name,
 	})
+
+	return rv, nil
+}
+
+// MechanismsToDataRequest prepares data change with mechanisms parameters for vppagent
+func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
+	if rv == nil {
+		rv = &configurator.Config{}
+	}
+	if rv.VppConfig == nil {
+		rv.VppConfig = &vpp.ConfigData{}
+	}
+
+	srcName := srcPrefix + c.GetId()
+
+	var err error
+	if c.GetRemoteSource() != nil {
+		rv, err = NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
+		if err != nil {
+			return rv, fmt.Errorf("error Converting CrossConnect %v: %s", c, err)
+		}
+	}
+
+	if c.GetRemoteDestination() != nil {
+		rv, err = NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
+		if err != nil {
+			return rv, fmt.Errorf("error Converting CrossConnect %v: %s", c, err)
+		}
+	}
 
 	return rv, nil
 }

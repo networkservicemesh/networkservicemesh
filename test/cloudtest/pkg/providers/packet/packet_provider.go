@@ -368,15 +368,69 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 
 func (pi *packetInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", pi.id)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	if pi.client != nil {
 		if pi.sshKey != nil {
 			response, err := pi.client.SSHKeys.Delete(pi.sshKey.ID)
 			pi.manager.AddLog(pi.id, "delete-sshkey", fmt.Sprintf("%v\n%v\n%v", pi.sshKey, response, err))
 		}
-		for key, device := range pi.devices {
-			response, err := pi.client.Devices.Delete(device.ID)
-			pi.manager.AddLog(pi.id, fmt.Sprintf("delete-device-%s", key), fmt.Sprintf("%v\n%v", response, err))
+
+		_, logFile, err := pi.manager.OpenFile(pi.id, "destroy-cluster")
+		defer func() { _ = logFile.Close() }()
+		if err != nil {
+			return err
 		}
+		_, _ = logFile.WriteString(fmt.Sprintf("Starting Delete of cluster %v", pi.id))
+		iteration := 0
+		for {
+			alive := map[string]*packngo.Device{}
+			for key, device := range pi.devices {
+				var updatedDevice *packngo.Device
+				updatedDevice, _, err := pi.client.Devices.Get(device.ID, &packngo.GetOptions{})
+				if err != nil {
+					if iteration == 0 {
+						msg := fmt.Sprintf("%v-%v Error accessing device Error: %v", pi.id, device.ID, err)
+						logrus.Error(msg)
+						_, _ = logFile.WriteString(msg)
+					} // else, if not first iteration and there is no device, just continue.
+					continue
+				}
+				if updatedDevice.State != "provisioning" && updatedDevice.State != "queued" {
+					response, err := pi.client.Devices.Delete(device.ID)
+					if err != nil {
+						_, _ = logFile.WriteString(fmt.Sprintf("delete-device-error-%s => %v\n%v ", key, response, err))
+						logrus.Errorf("%v Failed to delete device %v", pi.id, device.ID)
+					} else {
+						_, _ = logFile.WriteString(fmt.Sprintf("delete-device-success-%s => %v\n%v ", key, response, err))
+						logrus.Infof("%v Packet delete device send ok %v", pi.id, device.ID)
+					}
+				}
+				// Put as alive or some different state
+				alive[key] = updatedDevice
+
+				msg := fmt.Sprintf("Device status %v %v %v", key, device.ID, updatedDevice.State)
+				_, _ = logFile.WriteString(msg)
+				logrus.Infof("%v-%v", pi.id, msg)
+			}
+			iteration++
+			if len(alive) == 0 {
+				break
+			}
+			select {
+			case <-time.After(10 * time.Second):
+				continue
+			case <-ctx.Done():
+				msg := fmt.Sprintf("Timeout for destroying cluster devices %v %v", pi.devices, ctx.Err())
+				_, _ = logFile.WriteString(msg)
+				return fmt.Errorf("err: %v", msg)
+			}
+		}
+		msg := fmt.Sprintf("Devices destroy complete %v", pi.devices)
+		_, _ = logFile.WriteString(msg)
+		logrus.Infof("Destroy Complete: %v", msg)
 	}
 	return nil
 }
