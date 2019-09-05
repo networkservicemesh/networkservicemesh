@@ -3,8 +3,6 @@ package pods
 import (
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // DefaultProxyNSMD creates default variables for NSMD.
@@ -76,12 +74,7 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 		},
 	}
 
-	if insecure, _ := tools.ReadEnvBool("INSECURE", false); insecure {
-		if config.Variables == nil {
-			config.Variables = map[string]string{}
-		}
-		config.Variables["INSECURE"] = "true"
-	}
+	config.Variables = setInsecureEnvIfExist(config.Variables)
 
 	if len(config.Variables) > 0 {
 		for k, v := range config.Variables {

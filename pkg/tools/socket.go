@@ -17,9 +17,9 @@ import (
 )
 
 const (
+	InsecureEnv        = "INSECURE"
 	opentracingEnv     = "OPEN_TRACING"
 	opentracingDefault = true
-	insecureEnv        = "INSECURE"
 	insecureDefault    = false
 	dialTimeoutDefault = 5 * time.Second
 )
@@ -179,7 +179,7 @@ func readDialConfig() (DialConfig, error) {
 		return DialConfig{}, err
 	}
 
-	insecure, err := ReadEnvBool(insecureEnv, insecureDefault)
+	insecure, err := IsInsecure()
 	if err != nil {
 		return DialConfig{}, err
 	}

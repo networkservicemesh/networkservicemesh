@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -91,7 +92,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 			}
 
 			if n.insecure {
-				envs["INSECURE"] = "true"
+				envs[tools.InsecureEnv] = strconv.FormatBool(true)
 			}
 
 			responses.ContainerResponses = append(responses.ContainerResponses, &pluginapi.ContainerAllocateResponse{
@@ -214,7 +215,7 @@ func waitForNsmdAvailable() {
 func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	waitForNsmdAvailable()
 
-	insecure, err := tools.ReadEnvBool("INSECURE", false)
+	insecure, err := tools.IsInsecure()
 	if err != nil {
 		return err
 	}

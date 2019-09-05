@@ -1,9 +1,13 @@
 package pods
 
 import (
+	"strconv"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var ZeroGraceTimeout int64 = 0
@@ -65,4 +69,18 @@ func spireVolumeMount() v1.VolumeMount {
 		MountPath: "/run/spire/sockets",
 		ReadOnly:  true,
 	}
+}
+
+func setInsecureEnvIfExist(envs map[string]string) map[string]string {
+	insecure, _ := tools.IsInsecure()
+	if !insecure {
+		return envs
+	}
+
+	if envs == nil {
+		envs = map[string]string{}
+	}
+
+	envs[tools.InsecureEnv] = strconv.FormatBool(true)
+	return envs
 }

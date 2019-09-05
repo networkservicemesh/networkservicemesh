@@ -30,6 +30,7 @@ import (
 
 	"github.com/go-errors/errors"
 	"github.com/opentracing/opentracing-go"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
@@ -226,4 +227,12 @@ func ReadEnvBool(env string, value bool) (bool, error) {
 	}
 
 	return strconv.ParseBool(str)
+}
+
+func IsInsecure() (bool, error) {
+	insecure, err := ReadEnvBool(InsecureEnv, insecureDefault)
+	if err != nil {
+		return false, pkgerrors.WithMessage(err, "unable to clarify secure or insecure mode")
+	}
+	return insecure, nil
 }

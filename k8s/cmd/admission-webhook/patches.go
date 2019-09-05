@@ -19,35 +19,7 @@ type patchOperation struct {
 }
 
 func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patchOperation) {
-	patch = append(patch, addContainer(tuple.spec,
-		[]corev1.Container{
-			{
-				Name:            "nsm-coredns",
-				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-coredns", getTag()),
-				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"-conf", "/etc/coredns/Corefile"},
-				VolumeMounts: []corev1.VolumeMount{{
-					ReadOnly:  false,
-					Name:      "nsm-coredns-volume",
-					MountPath: "/etc/coredns",
-				}},
-				Env: []corev1.EnvVar{
-					{
-						Name:  nsmcorednsenv.UseUpdateAPIEnv.Name(),
-						Value: "true",
-					},
-					{
-						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
-						Value: "/etc/coredns/client.sock",
-					},
-				},
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						"networkservicemesh.io/socket": resource.MustParse("1"),
-					},
-				},
-			},
-		})...)
+	// TODO: now order of containers is important since nsmdp assign proper workspace only to the first container
 	patch = append(patch, addContainer(tuple.spec,
 		[]corev1.Container{
 			{
@@ -72,6 +44,35 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					Name:      "nsm-coredns-volume",
 					MountPath: "/etc/coredns",
 				}},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						"networkservicemesh.io/socket": resource.MustParse("1"),
+					},
+				},
+			},
+		})...)
+	patch = append(patch, addContainer(tuple.spec,
+		[]corev1.Container{
+			{
+				Name:            "nsm-coredns",
+				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-coredns", getTag()),
+				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-conf", "/etc/coredns/Corefile"},
+				VolumeMounts: []corev1.VolumeMount{{
+					ReadOnly:  false,
+					Name:      "nsm-coredns-volume",
+					MountPath: "/etc/coredns",
+				}},
+				Env: []corev1.EnvVar{
+					{
+						Name:  nsmcorednsenv.UseUpdateAPIEnv.Name(),
+						Value: "true",
+					},
+					{
+						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
+						Value: "/etc/coredns/client.sock",
+					},
+				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
 						"networkservicemesh.io/socket": resource.MustParse("1"),

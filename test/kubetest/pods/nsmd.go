@@ -3,8 +3,6 @@ package pods
 import (
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -187,12 +185,7 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 		},
 	}
 
-	if insecure, _ := tools.ReadEnvBool("INSECURE", false); insecure {
-		if config.Variables == nil {
-			config.Variables = map[string]string{}
-		}
-		config.Variables["INSECURE"] = "true"
-	}
+	config.Variables = setInsecureEnvIfExist(config.Variables)
 
 	if len(config.Variables) > 0 {
 		for k, v := range config.Variables {
