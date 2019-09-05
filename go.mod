@@ -1,6 +1,5 @@
 module github.com/networkservicemesh/networkservicemesh
 
-// Use ./scripts/switch_k8s_version.sh to change k8s version
 replace gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 
 replace gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
@@ -17,10 +16,11 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.0.1
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
+	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/miekg/dns v1.1.15

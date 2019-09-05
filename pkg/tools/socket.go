@@ -44,6 +44,7 @@ func GetConfig() DialConfig {
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(opts ...grpc.ServerOption) *grpc.Server {
 	if GetConfig().OpenTracing {
+		logrus.Infof("GRPC.NewServer with open tracing enabled")
 		opts = append(opts,
 			grpc.UnaryInterceptor(
 				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads())),

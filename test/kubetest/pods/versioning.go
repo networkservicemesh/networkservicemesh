@@ -19,6 +19,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -61,6 +63,12 @@ func containerMod(c *v1.Container) v1.Container {
 		if containerForcePull {
 			c.ImagePullPolicy = v1.PullAlways
 		}
+	}
+
+	// Update Jaeger
+	if os.Getenv("TRACER_ENABLED") == "true" {
+		logrus.Infof("TRACER_ENABLED %v", c.Name)
+		c.Env = append(c.Env, newJaegerEnvVar()...)
 	}
 
 	return *c

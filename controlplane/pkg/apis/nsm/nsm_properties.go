@@ -17,7 +17,6 @@ type NsmProperties struct {
 	HealTimeout                    time.Duration
 	CloseTimeout                   time.Duration
 	HealRequestTimeout             time.Duration
-	RequestConnectTimeout          time.Duration
 	HealRequestConnectCheckTimeout time.Duration
 	HealDataplaneTimeout           time.Duration
 
@@ -33,7 +32,6 @@ func NewNsmProperties() *NsmProperties {
 		HealTimeout:                    time.Minute * 1,
 		CloseTimeout:                   time.Second * 5,
 		HealRequestTimeout:             time.Minute * 1,
-		RequestConnectTimeout:          time.Second * 15,
 		HealRequestConnectCheckTimeout: time.Second * 1,
 		HealDataplaneTimeout:           time.Minute * 1,
 
