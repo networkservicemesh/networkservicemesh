@@ -46,13 +46,17 @@ func main() {
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		logrus.Panicf("%v", err)
 	}
 
 	if err := nsmEndpoint.Start(); err != nil {
-		logrus.Fatalf("Error starting the endpoint: %v", err)
+		logrus.Panicf("Error starting the endpoint: %v", err)
 	}
-	defer func() { _ = nsmEndpoint.Delete() }()
+	defer func() {
+		if deleteErr := nsmEndpoint.Delete(); deleteErr != nil {
+			logrus.Errorf("failed to delete endpoint: %v", deleteErr)
+		}
+	}()
 
 	<-c
 }

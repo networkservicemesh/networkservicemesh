@@ -47,7 +47,11 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 		return nil, err
 	}
-	defer func() { _ = nsmClient.Destroy(ctx) }()
+	defer func() {
+		if deleteErr := nsmClient.Destroy(ctx); deleteErr != nil {
+			logrus.Errorf("error destroying nsm client %v", deleteErr)
+		}
+	}()
 
 	outgoingConnection, err := nsmClient.Connect(ctx, name, cce.mechanismType, "Describe "+name)
 	if err != nil {
@@ -83,7 +87,11 @@ func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Con
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 		return nil, err
 	}
-	defer func() { _ = nsmClient.Destroy(ctx) }()
+	defer func() {
+		if err := nsmClient.Destroy(ctx); err != nil {
+			logrus.Errorf("error destroy nsm client %v", err)
+		}
+	}()
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
 		if err := nsmClient.Close(ctx, outgoingConnection); err != nil {
 			result = multierror.Append(result, err)

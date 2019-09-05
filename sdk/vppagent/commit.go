@@ -120,11 +120,18 @@ func (c *Commit) send(ctx context.Context, dataChange *configurator.Config) erro
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("error closing dataplane connection %v", err)
+		}
+	}()
 	client := configurator.NewConfiguratorClient(conn)
 
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange, FullResync: false}); err != nil {
-		_, _ = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
+		logrus.Errorf("failed to updsate vpp configuration %v. trying to delete", err)
+		if _, deleteErr := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); deleteErr != nil {
+			logrus.Errorf("failed to delete vpp configuration %v", deleteErr)
+		}
 		return err
 	}
 	return nil
@@ -135,7 +142,11 @@ func (c *Commit) remove(ctx context.Context, dataChange *configurator.Config) er
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("Failed to close vpp client connection")
+		}
+	}()
 	client := configurator.NewConfiguratorClient(conn)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
@@ -147,7 +158,10 @@ func (c *Commit) remove(ctx context.Context, dataChange *configurator.Config) er
 // Reset - Resets vppagent
 func (c *Commit) init() error {
 	if c.shouldResetVpp {
-		_ = c.resetVpp()
+		if err := c.resetVpp(); err != nil {
+			logrus.Errorf("failed to reset vpp agent %v", err)
+			return err
+		}
 	}
 	return nil
 }
@@ -157,7 +171,11 @@ func (c *Commit) resetVpp() error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Errorf("failed to close vpp agent connection %v", err)
+		}
+	}()
 	client := configurator.NewConfiguratorClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)

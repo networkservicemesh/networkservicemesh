@@ -119,7 +119,11 @@ func (c *nsmMonitorApp) Run() {
 	go func() {
 		c.beginMonitoring()
 		if tracingCloser != nil {
-			defer func() { _ = tracingCloser.Close() }()
+			defer func() {
+				if err := tracingCloser.Close(); err != nil {
+					logrus.Errorf("error closing opentracing context %v", err)
+				}
+			}()
 		}
 	}()
 }

@@ -125,7 +125,10 @@ func (nsmc *NsmClient) Destroy(_ context.Context) error {
 	defer nsmc.Unlock()
 
 	if nsmc.tracerCloser != nil {
-		_ = nsmc.tracerCloser.Close()
+		err := nsmc.tracerCloser.Close()
+		if err != nil {
+			logrus.Errorf("failed to close opentracing context %v", err)
+		}
 	}
 
 	return nsmc.NsmConnection.Close()
