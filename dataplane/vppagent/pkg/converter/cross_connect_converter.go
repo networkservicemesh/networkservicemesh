@@ -58,7 +58,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		}
 	}
 
-	rv, err := c.MechanismsToDataRequest(rv, connect)
+	rv, err := c.MechanismsToDataRequest(rv, connect, nil)
 	if err != nil {
 		return rv, err
 	}
@@ -80,7 +80,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 }
 
 // MechanismsToDataRequest prepares data change with mechanisms parameters for vppagent
-func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
+func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config, connect bool, updateConverter *CrossConnectConverter) (*configurator.Config, error) {
 	if rv == nil {
 		rv = &configurator.Config{}
 	}
@@ -89,9 +89,10 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 	}
 
 	srcName := srcPrefix + c.GetId()
+	dstName := dstPrefix + c.GetId()
 
 	var err error
-	if c.GetLocalDestination() != nil {
+	if c.GetLocalDestination() != nil && (updateConverter == nil || updateConverter.GetRemoteDestination() != nil) {
 		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      dstName,

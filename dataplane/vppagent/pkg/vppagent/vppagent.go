@@ -117,7 +117,9 @@ func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossc
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: v.common.NSMBaseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
+	ccConverter := converter.NewCrossConnectConverter(crossConnect, conversionParameters)
+	dataChange, err := ccConverter.ToDataRequest(nil, connect)
+
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -126,7 +128,7 @@ func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossc
 	if connect {
 		entity := v.common.Monitor.Entities()[crossConnect.GetId()]
 		if entity != nil {
-			clearDataChange, cErr := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false)
+			clearDataChange, cErr := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false, ccConverter)
 			if cErr == nil && clearDataChange != nil {
 				logrus.Infof("Sending clearing DataChange to vppagent: %v", proto.MarshalTextString(clearDataChange))
 				_, cErr = client.Delete(ctx, &configurator.DeleteRequest{Delete: clearDataChange})
