@@ -188,6 +188,9 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 	}
 
 	if insecure, _ := tools.ReadEnvBool("INSECURE", false); insecure {
+		if config.Variables == nil {
+			config.Variables = map[string]string{}
+		}
 		config.Variables["INSECURE"] = "true"
 	}
 
