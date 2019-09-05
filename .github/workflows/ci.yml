@@ -1,0 +1,108 @@
+---
+name: CI
+on:
+  pull_request:
+    paths:
+      - '*'
+      - '!*.md'  # Don't run CI on things that only change md files.
+jobs:
+  gobuild:
+    name: Go Build & Unit Test
+    runs-on: ubuntu-18.04
+    steps:
+
+      - name: Set up Go 1.12
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.12
+        id: go
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Get dependencies
+        run: ./scripts/go-mod-download.sh
+        env:
+          GOPROXY: https://proxy.golang.org/
+      - name: go vet
+        run: go vet -v --all ./...
+      - name: Build
+        run: go build -v ./...
+      - name: Go Test
+        run: go test ./test/integration --json --list .* -tags basic recover usecase | tee test_log.json
+      # - name: Upload Test Results
+      #   env:
+      #     REPORT_CI_API_TOKEN: ${{ secrets.REPORT_CI_API_TOKEN }}
+      #   run: curl https://report.ci/upload.py > /tmp/upload.py;python /tmp/upload.py --token ${REPORT_CI_API_TOKEN}
+
+
+  yamllint:
+    name: Yamllint
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Install Yamllint
+        run: |
+          pip install --user yamllint
+          python2.7 -m site --user-base
+      - name: yamllint
+        run: ~/.local/bin/yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
+  shellcheck:
+    name: Shell Check
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Install Shellcheck
+        run: |
+          ./.circleci/install-shellcheck.sh
+  codeformatting:
+    name: Check Code Formating
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Set up Go 1.12
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.12
+      - name: Get dependencies
+        run: ./scripts/go-mod-download.sh
+        env:
+          GOPROXY: https://proxy.golang.org/
+      - name: Check Code Formating
+        run: |
+          export PATH=$(go env GOPATH)/bin/:${PATH}
+          make install-formatter
+          make format
+          git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
+  test-helm-charts:
+    name: Test Helm Charts
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Test Helm Charts
+        run: |
+          ./.github/workflows/scripts/test-charts.sh
+
+  build-container:
+    strategy:
+      matrix:
+        container: [nsm-coredns, nsmd, nsmd-k8s, nsmdp, proxy-nsmd, proxy-nsmd-k8s, admission-webhook, crossconnect-monitor, test-common, vpp-test-common, nsm-init, nsm-monitor, vppagent-dataplane, vppagent-dataplane-dev, kernel-forwarder]
+    name: Build ${{ matrix.container }} container
+    runs-on: ubuntu-18.04
+    needs: [gobuild, yamllint, shellcheck, codeformatting]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Build
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          CONTAINER_REPO: networkservicemeshci
+        run: |
+          export COMMIT="${GITHUB_SHA:8:8}"
+          export TAG="${COMMIT}"
+          make docker-${{ matrix.container }}-push
