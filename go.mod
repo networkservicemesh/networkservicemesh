@@ -5,8 +5,6 @@ replace gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d265
 replace gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 
 require (
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 // indirect
 	github.com/aws/aws-sdk-go v1.22.0
 	github.com/caddyserver/caddy v1.0.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
@@ -20,7 +18,6 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/miekg/dns v1.1.15
@@ -29,7 +26,6 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/common v0.6.0
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
