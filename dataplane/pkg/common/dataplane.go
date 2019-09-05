@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -32,6 +34,7 @@ import (
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	. "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
 )
 
 type NSMDataplane interface {
@@ -211,7 +214,15 @@ func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *Datapla
 	} else {
 		dataplaneProbes.SetSocketListenReady()
 	}
-	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
+
+	chain := ChainOf(dp,
+		DirectMemifInterfaces(config.NSMBaseDir),
+		Connect(vppagent.VPPEndpointEnv.GetStringOrDefault(vppagent.VPPEndpointDefault)),
+		KernelInterfaces(config.NSMBaseDir),
+		ClearMechanism(config.Monitor, config.NSMBaseDir),
+		Commit(),
+		UpdateMonitor(config.Monitor))
+	dataplane.RegisterDataplaneServer(config.GRPCserver, chain)
 
 	// Start the server
 	logrus.Infof("Creating %s server...", config.Name)

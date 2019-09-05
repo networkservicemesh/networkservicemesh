@@ -23,16 +23,7 @@ func NewDirectMemifConnector(baseDir string) *DirectMemifConnector {
 	}
 }
 
-// ConnectOrDisconnect handler for request() or close() connections
-func (d *DirectMemifConnector) ConnectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	if connect {
-		return d.connect(crossConnect)
-	}
-	d.disconnect(crossConnect)
-	return crossConnect, nil
-}
-
-func (d *DirectMemifConnector) connect(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (d *DirectMemifConnector) Connect(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Direct memif cross connect request: %v", crossConnect)
 
 	src := crossConnect.GetLocalSource().GetMechanism()
@@ -67,7 +58,7 @@ func (d *DirectMemifConnector) connect(crossConnect *crossconnect.CrossConnect) 
 	return crossConnect, nil
 }
 
-func (d *DirectMemifConnector) disconnect(crossConnect *crossconnect.CrossConnect) {
+func (d *DirectMemifConnector) Disconnect(crossConnect *crossconnect.CrossConnect) {
 	value, exist := d.proxyMap.Load(crossConnect.GetId())
 	if !exist {
 		logrus.Warnf("Proxy for cross connect with id=%s doesn't exist. Nothing to stop", crossConnect.GetId())
