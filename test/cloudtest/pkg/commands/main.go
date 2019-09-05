@@ -208,8 +208,15 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	// Fill tasks to be executed..
 	ctx.createTasks()
 
-	ctx.performExecution()
-	return ctx.generateJUnitReportFile()
+	err := ctx.performExecution()
+	reportfile, err2 := ctx.generateJUnitReportFile()
+	if err2 != nil {
+		logrus.Errorf("Error during generation of report: %v", err2)
+	}
+	if err != nil {
+		return reportfile, err
+	}
+	return reportfile, err2
 }
 
 func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
@@ -249,18 +256,17 @@ func (ctx *executionContext) performShutdown() {
 	logrus.Infof("All clusters destroyed")
 }
 
-func (ctx *executionContext) performExecution() {
+func (ctx *executionContext) performExecution() error {
 	logrus.Infof("Starting test execution")
 	ctx.startTime = time.Now()
 	ctx.clusterReadyTime = ctx.startTime
 
+	timeoutCtx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout)*time.Second)
+	defer cancelFunc()
+
 	termChannel := tools.NewOSSignalChannel()
-	terminated := false
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
-		if terminated {
-			break
-		}
 		ctx.assignTasks()
 		ctx.checkClustersUsage()
 
@@ -277,11 +283,14 @@ func (ctx *executionContext) performExecution() {
 		case <-time.After(30 * time.Second):
 			ctx.printStatistics()
 		case <-termChannel:
-			logrus.Errorf("Termination request is received")
-			terminated = true
+			return fmt.Errorf("termination request is received")
+		case <-timeoutCtx.Done():
+			ctx.printStatistics()
+			return fmt.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
 		}
 	}
-	logrus.Infof("Completed tasks %v", len(ctx.completed))
+	logrus.Infof("Completed tasks %v Tasks left: %v", len(ctx.completed), len(ctx.tasks))
+	return nil
 }
 
 func (ctx *executionContext) assignTasks() {
@@ -450,16 +459,37 @@ func (ctx *executionContext) printStatistics() {
 		oneTask := elapsed / time.Duration(len(ctx.completed))
 		remaining = fmt.Sprintf("%v", time.Duration(len(ctx.tasks)+len(ctx.running))*oneTask)
 	}
-	logrus.Infof("Statistics:"+
-		"\n\tElapsed total: %v"+
-		"\n\tTests time: %v"+
-		"\n\tTasks  Completed: %d"+
-		"\n\t		Remaining: %v (%d).\n"+
-		"%s%s",
-		elapsed,
-		elapsedRunning, len(ctx.completed),
-		remaining, len(ctx.running)+len(ctx.tasks),
-		running, clustersMsg)
+
+	successTests := 0
+	failedTests := 0
+	skippedTests := 0
+	timeoutTests := 0
+
+	for _, t := range ctx.completed {
+		switch t.test.Status {
+		case model.StatusSuccess:
+			successTests++
+		case model.StatusTimeout:
+			timeoutTests++
+		case model.StatusSkipped:
+			skippedTests++
+		case model.StatusFailed:
+			failedTests++
+		case model.StatusSkippedSinceNoClusters:
+			skippedTests++
+		}
+	}
+
+	logrus.Infof("Statistics:" +
+		fmt.Sprintf("\n\tElapsed total: %v", elapsed) +
+		fmt.Sprintf("\n\tTests time: %v", elapsedRunning) +
+		fmt.Sprintf("\n\tTasks  Completed: %d", len(ctx.completed)) +
+		fmt.Sprintf("\n\t		Remaining: %v (%d).\n", remaining, len(ctx.running)+len(ctx.tasks)) +
+		fmt.Sprintf("%s%s", running, clustersMsg) +
+		fmt.Sprintf("\n\tStatus  Passed: %d"+
+			"\n\tStatus  Failed: %d"+
+			"\n\tStatus  Timeout: %d"+
+			"\n\tStatus  Skipped: %d", successTests, failedTests, timeoutTests, skippedTests))
 }
 
 func fromClusterState(state clusterState) string {
@@ -730,7 +760,12 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 			execution.logFile = errFile
 			execution.errMsg = err
 			execution.status = clusterCrashed
-			ctx.destroyCluster(ci, true, false)
+			destroyErr := ctx.destroyCluster(ci, true, false)
+			if destroyErr != nil {
+				logrus.Errorf("Both start and destroy of cluster returned errors, stop retrying operations with this cluster %v", ci.instance)
+				ci.startCount = ci.group.config.RetryCount + 1
+				execution.status = clusterNotAvailable
+			}
 		} else {
 			execution.status = clusterReady
 		}
@@ -753,8 +788,8 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 func (ctx *executionContext) getClusterTimeout(group *clustersGroup) time.Duration {
 	timeout := time.Duration(group.config.Timeout) * time.Second
 	if group.config.Timeout == 0 {
-		logrus.Infof("test timeout is not specified, use default value 5min")
-		timeout = 5 * time.Minute
+		logrus.Infof("cluster timeout is not specified, use default value 15min")
+		timeout = 15 * time.Minute
 	}
 	return timeout
 }
@@ -792,13 +827,13 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 	}
 }
 
-func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, fork bool) {
+func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, fork bool) error {
 	ci.lock.Lock()
 	defer ci.lock.Unlock()
 
 	if ci.state == clusterCrashed || ci.state == clusterNotAvailable || ci.state == clusterShutdown {
 		// It is already destroyed or not available.
-		return
+		return nil
 	}
 
 	ci.state = clusterBusy
@@ -816,7 +851,7 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 				logrus.Errorf("Failed to destroy cluster")
 			}
 		}()
-		return
+		return nil
 	}
 	err := ci.instance.Destroy(timeout)
 	if err != nil {
@@ -834,7 +869,7 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 			kind:            eventClusterUpdate,
 		}
 	}
-
+	return err
 }
 
 func (ctx *executionContext) createClusters() error {

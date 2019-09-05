@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/opentracing/opentracing-go"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/sirupsen/logrus"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -78,12 +82,20 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 ctx - we assume it is big enought to perform connection.
 */
 func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.create.nse.client")
+		defer span.Finish()
+	}
+
+	logger := common.LogFromSpan(span)
 	if nsem.isLocalEndpoint(endpoint) {
 		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
 			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
 		}
-		logrus.Infof("Create local NSE connection to endpoint: %v", modelEp)
+		logger.Infof("Create local NSE connection to endpoint: %v", modelEp)
 		client, conn, err := nsem.serviceRegistry.EndpointConnection(ctx, modelEp)
 		if err != nil {
 			// We failed to connect to local NSE.
@@ -92,7 +104,7 @@ func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.
 		}
 		return &endpointClient{connection: conn, client: client}, nil
 	} else {
-		logrus.Infof("Create remote NSE connection to endpoint: %v", endpoint)
+		logger.Infof("Create remote NSE connection to endpoint: %v", endpoint)
 		client, conn, err := nsem.serviceRegistry.RemoteNetworkServiceClient(ctx, endpoint.GetNetworkServiceManager())
 		if err != nil {
 			return nil, err

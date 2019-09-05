@@ -1,6 +1,6 @@
 version: 1.0
 root: "./.tests/cloud_test/"
-timeout: 3600 # 1 hour total timeout
+timeout: 7200 # 2 hour total total timeout
 import:
   - .cloudtest/packet.yaml
   - .cloudtest/gke.yaml

@@ -269,8 +269,8 @@ func (stub *serviceRegistryStub) DiscoveryClient() (registry.NetworkServiceDisco
 	return stub.discoveryClient, stub.error
 }
 
-func (stub *serviceRegistryStub) WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error {
-	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(model, timeout)
+func (stub *serviceRegistryStub) WaitForDataplaneAvailable(ctx context.Context, model model.Model, timeout time.Duration) error {
+	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(ctx, model, timeout)
 }
 
 type connectionManagerStub struct {

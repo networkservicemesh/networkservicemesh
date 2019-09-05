@@ -21,7 +21,7 @@ const (
 
 // PluginRegistry stores a plugin manager for each plugin type
 type PluginRegistry interface {
-	Start() error
+	Start(ctx context.Context) error
 	Stop() error
 
 	GetConnectionPluginManager() ConnectionPluginManager
@@ -45,7 +45,7 @@ func NewPluginRegistry() PluginRegistry {
 	}
 }
 
-func (pr *pluginRegistry) Start() error {
+func (pr *pluginRegistry) Start(ctx context.Context) error {
 	if err := tools.SocketCleanup(plugins.PluginRegistrySocket); err != nil {
 		return err
 	}

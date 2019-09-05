@@ -46,7 +46,7 @@ type NetworkServiceManager interface {
 	Heal(clientConnection ClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
 	GetHealProperties() *NsmProperties
-	WaitForDataplane(duration time.Duration) error
+	WaitForDataplane(ctx context.Context, duration time.Duration) error
 	RemoteConnectionLost(clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
 }
