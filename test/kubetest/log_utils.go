@@ -1,7 +1,10 @@
 package kubetest
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -26,6 +29,70 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
 	}
+	if shouldStoreLogsInFiles() && t != nil {
+		archiveLogs(t.Name())
+	}
+}
+
+func archiveLogs(testName string) {
+	file, err := os.Create(filepath.Join(logsDir(), testName, DefaultArchiveFile))
+	if err != nil {
+		logrus.Error("Can not create tar file")
+		return
+	}
+	writer := zip.NewWriter(file)
+	dir := filepath.Join(logsDir(), testName)
+	var logFiles []os.FileInfo
+	logFiles, err = ioutil.ReadDir(dir)
+	if err != nil {
+		logrus.Errorf("Can not read dir %v", dir)
+		return
+	}
+	for _, file := range logFiles {
+		if file.Name() == DefaultArchiveFile {
+			continue
+		}
+		if file.IsDir() {
+			continue
+		}
+		filePath := filepath.Join(logsDir(), testName, file.Name())
+		var bytes []byte
+		bytes, err = ioutil.ReadFile(filePath)
+		if err != nil {
+			logrus.Errorf("Can not read file %v, err: %v", filePath, err)
+			continue
+		}
+		var h *zip.FileHeader
+		h, err = zip.FileInfoHeader(file)
+		if err != nil {
+			logrus.Errorf("Can not get header %v, err: %v", h, err)
+			continue
+		}
+		h.Method = zip.Deflate
+		var w io.Writer
+		w, err = writer.CreateHeader(h)
+		if err != nil {
+			logrus.Errorf("Can not create writer, err: %v", err)
+			continue
+		}
+		_, err = w.Write(bytes)
+		if err != nil {
+			logrus.Errorf("Can not zip write, err: %v", err)
+		}
+		_ = os.Remove(filePath)
+	}
+	err = writer.Flush()
+	if err != nil {
+		logrus.Errorf("An error during writer.Flush(), err: %v", err)
+	}
+	err = writer.Close()
+	if err != nil {
+		logrus.Errorf("An error during tar writer.Close(), err: %v", err)
+	}
+	err = file.Close()
+	if err != nil {
+		logrus.Errorf("An error during tar file.Close(), err: %v", err)
+	}
 }
 
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
@@ -35,7 +102,7 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := logTransaction
 
-		if shouldShowLogs() && t != nil {
+		if shouldStoreLogsInFiles() && t != nil {
 			writeLogFunc = func(name string, content string) {
 				logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
 				if logErr != nil {
@@ -69,8 +136,17 @@ func logsDir() string {
 	return logDir
 }
 
+func shouldStoreLogsInFiles() bool {
+	if v, ok := os.LookupEnv(StorePodLogsInFiles); ok {
+		if v == "true" {
+			return true
+		}
+	}
+	return false
+}
+
 func shouldShowLogs() bool {
-	if v, ok := os.LookupEnv(StorePodLogsInFile); ok {
+	if v, ok := os.LookupEnv(StoreLogsInAnyCases); ok {
 		if v == "true" {
 			return true
 		}
