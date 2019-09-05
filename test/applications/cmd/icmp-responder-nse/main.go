@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
 	"github.com/gogo/protobuf/proto"
@@ -29,7 +31,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -73,14 +74,16 @@ func main() {
 		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
 	}
 
-	var monitorServer monitor.Server
 	if flags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
 		endpoints = append(endpoints,
-			endpoint.NewCustomFuncEndpoint("update", func(*connection.Connection) error {
+			endpoint.NewCustomFuncEndpoint("update", func(ctx context.Context, conn *connection.Connection) error {
+				monitorServer := endpoint.MonitorServer(ctx)
+				logrus.Infof("Delaying 5 seconds before send update event.")
 				go func() {
-					<-time.After(10 * time.Second)
+					<-time.After(5 * time.Second)
 					updateConnections(monitorServer)
+					logrus.Infof("Update event sended.")
 				}()
 				return nil
 			}))
@@ -102,7 +105,7 @@ func main() {
 	<-c
 }
 
-func dnsMutator(c *connection.Connection) error {
+func dnsMutator(ctc context.Context, c *connection.Connection) error {
 	defaultIP := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
 	c.Context.DnsContext = &connectioncontext.DNSContext{
 		Configs: []*connectioncontext.DNSConfig{
@@ -115,7 +118,7 @@ func dnsMutator(c *connection.Connection) error {
 	return nil
 }
 
-func ipNeighborMutator(c *connection.Connection) error {
+func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 	addrs, err := net.Interfaces()
 	if err != nil {
 		return err
@@ -143,7 +146,7 @@ func ipNeighborMutator(c *connection.Connection) error {
 	return nil
 }
 
-func updateConnections(monitorServer monitor.Server) {
+func updateConnections(monitorServer local.MonitorServer) {
 	for _, entity := range monitorServer.Entities() {
 		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
 		localConnection.GetContext().GetIpContext().ExcludedPrefixes =

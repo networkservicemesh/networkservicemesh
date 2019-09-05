@@ -10,7 +10,7 @@ import (
 )
 
 // ConnectionMutator is function that accepts connection and modify it
-type ConnectionMutator func(*connection.Connection) error
+type ConnectionMutator func(context.Context, *connection.Connection) error
 
 // CustomFuncEndpoint is endpoint that apply passed ConnectionMutator to connection that accepts from next endpoint
 type CustomFuncEndpoint struct {
@@ -22,7 +22,7 @@ type CustomFuncEndpoint struct {
 // Consumes from ctx context.Context:
 //	   Next
 func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if err := cf.connectionMutator(request.GetConnection()); err != nil {
+	if err := cf.connectionMutator(ctx, request.GetConnection()); err != nil {
 		Log(ctx).Error(err)
 		return nil, err
 	}

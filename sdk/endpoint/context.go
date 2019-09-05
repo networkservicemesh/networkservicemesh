@@ -3,6 +3,8 @@ package endpoint
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -13,6 +15,7 @@ type contextKeyType string
 
 const (
 	clientConnectionKey contextKeyType = "ClientConnection"
+	monitorServerKey    contextKeyType = "MonitorServer"
 	nextKey             contextKeyType = "Next"
 	logKey              contextKeyType = "Log"
 )
@@ -83,4 +86,28 @@ func Log(ctx context.Context) logrus.FieldLogger {
 		return rv
 	}
 	return logrus.New()
+}
+
+// WithMonitorServer -
+//   Wraps 'parent' in a new Context that has the local connection Monitor
+//   using Context.Value(...) and returns the result.
+//   Note: any previously existing MonitorServer will be overwritten.
+//
+func WithMonitorServer(parent context.Context, monitorServer local.MonitorServer) context.Context {
+	if parent == nil {
+		parent = context.Background()
+	}
+	return context.WithValue(parent, monitorServerKey, monitorServer)
+}
+
+// MonitorServer -
+//    Returns a MonitorServer from:
+//      ctx context.Context
+//    If any is present, otherwise nil
+func MonitorServer(ctx context.Context) local.MonitorServer {
+	value := ctx.Value(monitorServerKey)
+	if value == nil {
+		return nil
+	}
+	return value.(local.MonitorServer)
 }
