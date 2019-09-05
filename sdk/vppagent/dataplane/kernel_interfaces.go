@@ -12,7 +12,7 @@ import (
 )
 
 func KernelInterfaces(baseDir string) dataplane.DataplaneServer {
-	return &kernelInterfaces{}
+	return &kernelInterfaces{baseDir: baseDir}
 }
 
 type kernelInterfaces struct {

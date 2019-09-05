@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -217,7 +217,7 @@ func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *Datapla
 
 	chain := ChainOf(dp,
 		DirectMemifInterfaces(config.NSMBaseDir),
-		Connect(vppagent.VPPEndpointEnv.GetStringOrDefault(vppagent.VPPEndpointDefault)),
+		Connect(utils.EnvVar("VPPAGENT_ENDPOINT").GetStringOrDefault("localhost:9111")),
 		KernelInterfaces(config.NSMBaseDir),
 		ClearMechanism(config.Monitor, config.NSMBaseDir),
 		Commit(),

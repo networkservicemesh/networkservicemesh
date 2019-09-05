@@ -19,9 +19,6 @@ import (
 	"os"
 	"time"
 
-	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/utils"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -32,6 +29,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
+
+	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
@@ -246,8 +245,6 @@ func (v *VPPAgent) setupMetricsCollector() {
 	v.metricsCollector = NewMetricsCollector(v.common.MetricsPeriod)
 	v.metricsCollector.CollectAsync(v.common.Monitor, v.vppAgentEndpoint)
 }
-
-const VPPEndpointEnv utils.EnvVar = "VPPAGENT_ENDPOINT"
 
 func (v *VPPAgent) configureVPPAgent() error {
 	var ok bool
