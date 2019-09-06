@@ -128,7 +128,7 @@ jobs:
           path: ~/postmortem
     environment:
       GO111MODULE: "on"
-      NSM_NAMESPACE: "nsm-system-integration"
+      NSM_NAMESPACE: "nsm-system"
 
 # build
   build-container:

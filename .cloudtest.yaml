@@ -136,7 +136,7 @@ executions:
   - name: "Example-helm-icmp"
     kind: shell
     env:
-      - NSM_NAMESPACE=default
+      - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
     kubernetes-env:
       - KUBECONFIG
