@@ -35,7 +35,7 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 }
 
 func archiveLogs(testName string) {
-	file, err := os.Create(filepath.Join(logsDir(), testName, DefaultArchiveFile))
+	file, err := os.Create(filepath.Join(logsDir(), testName+".zip"))
 	if err != nil {
 		logrus.Error("Can not create tar file")
 		return
@@ -49,9 +49,6 @@ func archiveLogs(testName string) {
 		return
 	}
 	for _, file := range logFiles {
-		if file.Name() == DefaultArchiveFile {
-			continue
-		}
 		if file.IsDir() {
 			continue
 		}
@@ -79,8 +76,8 @@ func archiveLogs(testName string) {
 		if err != nil {
 			logrus.Errorf("Can not zip write, err: %v", err)
 		}
-		_ = os.Remove(filePath)
 	}
+	_ = os.RemoveAll(dir)
 	err = writer.Flush()
 	if err != nil {
 		logrus.Errorf("An error during writer.Flush(), err: %v", err)
@@ -109,7 +106,7 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 					logrus.Errorf("Can't log in file, reason %v", logErr)
 					logTransaction(name, content)
 				} else {
-					logrus.Infof("Saved log for %v. Check dir %v", name, logsDir())
+					logrus.Infof("Saved log for %v. Check dir %v", name, logsDir()+name+".zip")
 				}
 			}
 		}
@@ -129,29 +126,15 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 }
 
 func logsDir() string {
-	logDir := DefaultLogDir
-	if dir, ok := os.LookupEnv(StorePodLogsDir); ok {
-		logDir = dir
-	}
-	return logDir
+	return StorePodLogsDir.GetStringOrDefault(DefaultLogDir)
 }
 
 func shouldStoreLogsInFiles() bool {
-	if v, ok := os.LookupEnv(StorePodLogsInFiles); ok {
-		if v == "true" {
-			return true
-		}
-	}
-	return false
+	return StoreLogsInAnyCases.GetBooleanOrDefault(false)
 }
 
 func shouldShowLogs() bool {
-	if v, ok := os.LookupEnv(StoreLogsInAnyCases); ok {
-		if v == "true" {
-			return true
-		}
-	}
-	return false
+	return StoreLogsInAnyCases.GetBooleanOrDefault(false)
 }
 
 func logFile(name, dir, content string) error {

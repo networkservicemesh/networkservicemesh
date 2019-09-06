@@ -23,3 +23,7 @@ for pod in $(${kubectl} -o=name get pods); do
     echo "End logs of ${pod}"
   fi
 done
+
+archive=${path}/../$(basename ${path}).zip
+zip -r ${archive} ${path}
+rm -rf ${path}
