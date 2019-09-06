@@ -1,12 +1,11 @@
 ARG VPP_AGENT
 ARG VPP_DEV
 ARG REPO
+ARG GO_VERSION
 
-FROM golang:alpine as build
+FROM golang:${GO_VERSION}-alpine as build
 FROM ${VPP_DEV} as vpp_dev
 FROM ${VPP_AGENT} as vpp_agent
-
-RUN go version
 
 ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
 

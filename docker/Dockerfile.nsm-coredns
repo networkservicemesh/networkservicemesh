@@ -1,7 +1,7 @@
-FROM golang:alpine as build
+ARG GO_VERSION
+FROM golang:${GO_VERSION}-alpine as build
 ARG VENDORING
 ARG VERSION=unspecified
-RUN go version
 RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
 RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/

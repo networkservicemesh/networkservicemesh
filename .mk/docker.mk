@@ -31,6 +31,7 @@ RUN_CONTAINERS=$(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 ORG=networkservicemesh
+GO_VERSION=1.12.8
 VERSION = $(shell git describe --tags --always)
 
 include .mk/vpp_agent.mk
@@ -40,7 +41,7 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
 docker-%-build::
-	@${DOCKERBUILD} --network="host" --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VENDORING="${VENDORING}" --build-arg VERSION=${VERSION} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
+	@${DOCKERBUILD} --network="host" --build-arg GO_VERSION=${GO_VERSION} --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VENDORING="${VENDORING}" --build-arg VERSION=${VERSION} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
