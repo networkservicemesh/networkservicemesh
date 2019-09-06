@@ -113,6 +113,7 @@ executions:
       make k8s-delete-nsm-namespaces
   - name: "Example-helm-vpn"
     kind: shell
+    timeout: 300
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
@@ -135,6 +136,7 @@ executions:
 
   - name: "Example-helm-icmp"
     kind: shell
+    timeout: 300
     env:
       - NSM_NAMESPACE=default
       - CLUSTER_RULES_PREFIX=null

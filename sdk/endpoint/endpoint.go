@@ -17,6 +17,7 @@ package endpoint
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 
@@ -32,9 +33,15 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
+// NsmEndpoint  provides the grpc mechanics for an NsmEndpoint
+type NsmEndpoint interface {
+	Start() error
+	Delete() error
+}
+
 type nsmEndpoint struct {
 	*common.NsmConnection
-	service        *CompositeEndpoint
+	service        networkservice.NetworkServiceServer
 	grpcServer     *grpc.Server
 	registryClient registry.NetworkServiceRegistryClient
 	endpointName   string
@@ -66,8 +73,7 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 }
 
 func (nsme *nsmEndpoint) Start() error {
-
-	if nsme.Configuration.TracerEnabled {
+	if nsme.Configuration.TracerEnabled && !opentracing.IsGlobalTracerRegistered() {
 		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
 		opentracing.SetGlobalTracer(tracer)
 		nsme.tracerCloser = closer
@@ -83,15 +89,11 @@ func (nsme *nsmEndpoint) Start() error {
 		return err
 	}
 
-	initContext := &InitContext{
+	err = Init(nsme.service, &InitContext{
 		GrpcServer: nsme.grpcServer,
-	}
-	for _, c := range nsme.service.chainedEndpoints {
-		logrus.Infof("About to init composite [%s]", c.Name())
-		if err = c.Init(initContext); err != nil {
-			logrus.Errorf("Unable to setup composite %s: %v", c.Name(), err)
-			return err
-		}
+	})
+	if err != nil {
+		return err
 	}
 
 	// spawn the listnening thread
@@ -142,15 +144,21 @@ func (nsme *nsmEndpoint) Delete() error {
 }
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logrus.Infof("Request for Network Service received %v", request)
+	var span opentracing.Span
+	if opentracing.IsGlobalTracerRegistered() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "endpoint.request")
+		defer span.Finish()
+	}
+	logger := common.LogFromSpan(span)
+	logger.Infof("Request for Network Service received %v", request)
 
 	incomingConnection, err := nsme.service.Request(ctx, request)
 	if err != nil {
-		logrus.Errorf("The composite returned an error: %v", err)
+		logger.Errorf("The composite returned an error: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	logger.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
 	return incomingConnection, nil
 }
 
@@ -162,14 +170,14 @@ func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connecti
 }
 
 // NewNSMEndpoint creates a new NSM endpoint
-func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service *CompositeEndpoint) (*nsmEndpoint, error) {
+func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service networkservice.NetworkServiceServer) (NsmEndpoint, error) {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
 	configuration.CompleteNSConfiguration()
 
 	if service == nil {
-		service = &CompositeEndpoint{}
+		return nil, fmt.Errorf("NewNSMEndpoint must be provided a non-nil service *networkservice.NewNetworkServiceServer argument")
 	}
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)

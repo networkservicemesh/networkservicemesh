@@ -74,12 +74,13 @@ if err != nil {
 // Ensure the client is terminated at the end
 defer client.Destroy()
 
-conn, err := client.Connect("eth101", "kernel", "Primary interface")
+conn, err := client.Connect(context.Background(), "eth101", "kernel", "Primary interface")
+// Please pass a proper context object with opentracing for creating a proper span's
 
 // Run the actual code
 
 // Close the current active connection
-client.Close(conn)
+client.Close(context.Background(), conn)
 ```
 
 This will create a *client*, configure it using the environment variables as described in `Configuration` and connect a Kernel interface called `eth101`. During the life cycle of the *client*, an arbitrary *Connect* requests can be invoked. The *Destroy* call ensures these are all terminated, if not already done by calling *Close*.
@@ -107,14 +108,14 @@ import "github.com/networkservicemesh/networkservicemesh/sdk/client"
 
 ...
 
-client, err := client.NewNSMClientList(nil, nil)
+client, err := client.NewNSMClientList(context.Background(), nil, nil)
 if err != nil {
     // Handle the error
 }
 // Ensure the client is terminated at the end
 defer client.Destroy()
 
-if err := client.Connect("nsm", "kernel", "Primary interface"); err != nil {
+if err := client.Connect(context.Background(), "nsm", "kernel", "Primary interface"); err != nil {
     // Handle the error
 }
 ```
@@ -129,10 +130,11 @@ import "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 ...
 
 composite := endpoint.NewCompositeEndpoint(
+	endpoint.NewConnectionEndpoint(nil),
     endpoint.NewIpamEndpoint(nil),
-    endpoint.NewConnectionEndpoint(nil))
+    )
 
-nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, composite)
+nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Backgroud(), nil, nil, composite)
 if err != nil {
     // Handle the error
 }
@@ -142,44 +144,21 @@ defer nsmEndpoint.Delete()
 ```
 
 As there is no explicit configuration, the *ConnectionEndpoint*, *IpamEndpoint* and the composed *nsmEndpoint* are initialized with the matching environment variables.
-### Creating a Simple Endpoint using a builder
-
-The NSM SDK has a simple composite endpoint builder `CompositeEndpointBuilder` to creating `CompositeEndpoint`. 
-Example of usage:
-```go
-import "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
-
-...
-builder := endpoint.NewCompositeEndpointBuilder()
-builder.Append(
-    endpoint.NewIpamEndpoint(nil),
-    endpoint.NewConnectionEndpoint(nil))
-//append logic
-....
-
-nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, nil, builder.Build())
-...
-nsmEndpoint.Start()
-defer nsmEndpoint.Delete()
-```
-
 
 ## Creating an Advanced Endpoint
 
-The NSM SDK Endpoint API enables plugging together different functionalities based on the `CompositeEndpoint` interface. The basic principle is that the `Request` call handlers are chained together in a process called composition. The function call to create such *composite* is `NewCompositeEndpoint(endpoints ...ChainedEndpoint) *CompositeEndpoint`. Its argument order determines the order of `Request` call chaining. The arguments implement the `ChainedEndpoint` interface.
+The NSM SDK Endpoint API enables plugging together different functionalities based on the `CompositeEndpoint` interface. The basic principle is that the `Request` call handlers are chained together in a process called composition. The function call to create such *composite* is `NewCompositeEndpoint(endpoints ...ChainedEndpoint) networkservice.NetworkServiceServer`. Its argument order determines the order of `Request` call chaining. The arguments implement the `networkservice.NetworkServiceServer` interface.
 
-### Writing a ChainedEndpoint
+### Writing a endpoint
 
-Writing a new *composite* is done better by extending the `BaseCompositeEndpoint` structure. It already implements the `ChainedEndpoint` interface.
-
-`ChainedEndpoint` method description:
+Writing a new *endpoint* is done by extending the `networkservice.NetworkServiceServer` structure. 
 
 * `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`.
 * `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
-* `Name() string` - returns the name of the composite.
+
+
+In case endpoint need some initialization logic it could implement `endpoint.Initable` interface and method
 * `Init(context *InitContext) error` - an init function to be called before the endpoint GRPC listener is started but after the NSM endpoint is created.
-* `GetNext() CompositeEndpoint` - do not override. Gets the next composite in the chain. Used in `Request` and `Close` methods.
-* `GetOpaque(interface{}) interface{}` - get an arbitrary data from the composite. Both the parameter and the return are freely interpreted data and specific to the composite. See `GetOpaque` in `sdk/endpoint/composite/client.go`.
 
 
 ### Creating a route mutator endpoint
@@ -196,16 +175,16 @@ The SDK comes with a set of useful *composites*, that can be chained together an
 
 #### Basic composites
 
-* `client` - creates a downlink connection, i.e. to the next endpoint. This connection is available through the `GetOpaque` method.
-* `connection` - returns a basic initialized connection, with the configured Mechanism set. Usually used at the "bottom" of the composite chain.
-* `ipam` - receives a connection from the next composite and assigns it an IP pair from the configure prefix pool.
-* `monitor` - receives a connection from the next composite and adds it to the monitoring mechanism. Typically would be at the top of the composite chain.
-* `customfunc` - allows for specifying a custom connection mutator
+* `client` - creates a downlink connection, i.e. to the next endpoint. This connection is available through the `endpoint.ClientConnection(ctx)` method.
+* `connection` - returns a basic initialized connection, with the configured Mechanism set. Usually used at the "top" of the composite chain.
+* `ipam` - receives a connection and assigns it an IP pair from the configure prefix pool.
+* `monitor` - adds connection to the monitoring mechanism. Typically would be at the top of the composite chain.
+* `customfunc` - allows for specifying a custom connection mutator, it also accept ctx.Context to access extra prameters.
 
 #### VPP Agent composites
 
-* `memif-connect` - receives a connection from the next composite and creates a DataChange (or appends an existing DataChange) with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
-* `client-memif-connect` - receives a downlink connection from the `client` composite's Opaque Data and creates a DataChange with a Memif interface for it. This DataChange and the name of the created interface is available through the `GetOpaque` method.
-* `cross-connect` - receives names of created interfaces from the next composite's Opaque Data and creates a DataChange (or appends an existing DataChange) with cross-connect configuration. This DataChange is available through the `GetOpaque` method.
-* `acl` - receives a name of created interface from the next composite's Opaque Data and creates a DataChange (or appends an existing DataChange) with ACLs for this interface. This DataChange is available through the `GetOpaque` method.
-* `flush` - receives a DataChange from the next composite's Opaque Data and writes it to VPP Agent.
+* `memif-connect` - receives a connection and creates a DataChange (or appends an existing DataChange) with a Memif interface for it. This DataChange and the name of the created interface is available through the `vppagent.Config(ctx)/vppagent.WithConfig(ctx)` methods.
+* `client-memif-connect` - receives a downlink(outgoing) connection from the `client` composite's and creates a DataChange with a Memif interface for it. This DataChange and the name of the created interface is available through the `vppagent.Config(ctx)` method.
+* `cross-connect` - receives names of created interfaces and creates a DataChange (or appends an existing DataChange) with cross-connect configuration. This DataChange is available through the `vppagent.Config(ctx)` method.
+* `acl` - receives a name of created interface and creates a DataChange (or appends an existing DataChange) with ACLs for this interface. This DataChange is available through the `vppagent.Config(ctx)` method.
+* `commit` - receives a DataChange and writes it to VPP Agent.
