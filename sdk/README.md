@@ -179,7 +179,7 @@ The SDK comes with a set of useful *composites*, that can be chained together an
 * `connection` - returns a basic initialized connection, with the configured Mechanism set. Usually used at the "top" of the composite chain.
 * `ipam` - receives a connection and assigns it an IP pair from the configure prefix pool.
 * `monitor` - adds connection to the monitoring mechanism. Typically would be at the top of the composite chain.
-* `customfunc` - allows for specifying a custom connection mutator
+* `customfunc` - allows for specifying a custom connection mutator, it also accept ctx.Context to access extra prameters.
 
 #### VPP Agent composites
 
