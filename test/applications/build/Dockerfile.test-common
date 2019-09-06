@@ -1,5 +1,6 @@
 FROM golang:alpine as build
 ARG VENDORING
+RUN go version
 RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on

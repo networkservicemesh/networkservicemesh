@@ -6,6 +6,8 @@ FROM golang:alpine as build
 FROM ${VPP_DEV} as vpp_dev
 FROM ${VPP_AGENT} as vpp_agent
 
+RUN go version
+
 ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
 
 COPY dataplane/vppagent/conf/supervisord/supervisord-dev.conf /etc/supervisord/supervisord.conf

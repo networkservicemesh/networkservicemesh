@@ -1,6 +1,7 @@
 ARG VPP_AGENT
 FROM golang:alpine as build
 ARG VERSION=unspecified
+RUN go version
 ARG VENDORING
 RUN apk --no-cache add git
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
