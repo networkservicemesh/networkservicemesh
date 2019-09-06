@@ -102,7 +102,7 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 		}
 		rv, err = NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, fmt.Errorf("error converting CrossConnect %v: %s", c, err)
 		}
 	}
 
