@@ -17,7 +17,9 @@ import (
 )
 
 const (
-	InsecureEnv        = "INSECURE"
+	// InsecureEnv environment variable, if "true" NSM will work in insecure mode
+	InsecureEnv = "INSECURE"
+
 	opentracingEnv     = "OPEN_TRACING"
 	opentracingDefault = true
 	insecureDefault    = false

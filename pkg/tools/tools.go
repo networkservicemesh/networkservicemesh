@@ -229,6 +229,7 @@ func ReadEnvBool(env string, value bool) (bool, error) {
 	return strconv.ParseBool(str)
 }
 
+// IsInsecure checks environment variable INSECURE
 func IsInsecure() (bool, error) {
 	insecure, err := ReadEnvBool(InsecureEnv, insecureDefault)
 	if err != nil {
