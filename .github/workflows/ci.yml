@@ -1,10 +1,7 @@
 ---
 name: CI
-on:
-  pull_request:
-    paths:
-      - '*'
-      - '!*.md'  # Don't run CI on things that only change md files.
+on: pull_request
+
 jobs:
   gobuild:
     name: Go Build & Unit Test
@@ -106,3 +103,49 @@ jobs:
           export COMMIT="${GITHUB_SHA:8:8}"
           export TAG="${COMMIT}"
           make docker-${{ matrix.container }}-push
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-18.04
+    needs: build-container
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Install yq
+        run: sudo ./.circleci/install-yq.sh
+      - name: Install other stuff
+        run: |
+          sudo ./.circleci/set-nameserver.sh sudo
+          sudo apt-get install gettext-base
+      - name: Install Kubectl
+        run: sudo ./scripts/install-kubectl.sh
+      - name: Install GKE deps
+        run: sudo ./scripts/gke/install-gcloud-sdk.sh
+      - name: Install Azure deps
+        run: sudo ./scripts/azure/install-azure-cli.sh
+      - name: Init AWS
+        run: |
+            ./scripts/aws/aws-init.sh
+            sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
+      - name: Install Helm
+        run: |
+            ./scripts/install-helm.sh
+            sudo cp "$HOME/bin/helm" /usr/local/bin/helm
+      - name: Downloading go deps
+        run: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            ./scripts/go-mod-download.sh
+      - name: Running integration tests
+        env:
+          NSM_NAMESPACE: "nsm-system"
+        run: |
+            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="${COMMIT}"
+            export REPO="networkservicemeshci"
+            export CONTAINER_REPO=${REPO}
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              export STORE_LOGS_IN_ANY_CASES=true
+            fi
+            CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
+            ./cloudtest
