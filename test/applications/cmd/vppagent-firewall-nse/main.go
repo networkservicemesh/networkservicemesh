@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -45,21 +46,29 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
-		vppagent.NewFlush(configuration, "localhost:9112"),
-		vppagent.NewACL(configuration, getAclRulesConfig()),
-		vppagent.NewXConnect(configuration),
-		vppagent.NewMemifConnect(configuration),
-		vppagent.NewClientMemifConnect(configuration),
+		endpoint.NewConnectionEndpoint(configuration),
 		endpoint.NewClientEndpoint(configuration),
-		endpoint.NewConnectionEndpoint(configuration))
+		vppagent.NewClientMemifConnect(configuration),
+		vppagent.NewMemifConnect(configuration),
+		vppagent.NewXConnect(configuration),
+		vppagent.NewACL(configuration, getAclRulesConfig()),
+		vppagent.NewCommit(configuration, "localhost:9112", true),
+	)
 
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.TODO(), configuration, composite)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		logrus.Panicf("%v", err)
 	}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
+	err = nsmEndpoint.Start()
+	if err != nil {
+		logrus.Panicf("error starting endpoint %v", err)
+	}
+	defer func() {
+		if deleteErr := nsmEndpoint.Delete(); deleteErr != nil {
+			logrus.Errorf("failed to delete endpoint %v", deleteErr)
+		}
+	}()
 
 	<-c
 }

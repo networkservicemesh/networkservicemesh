@@ -191,7 +191,7 @@ func (p *healProcessor) healDataplaneDown(healID string, cc *model.ClientConnect
 	// Dataplane is down, we only need to re-programm dataplane.
 	// 1. Wait for dataplane to appear.
 	logrus.Infof("NSM_Heal(3.1-%v) Waiting for Dataplane to recovery...", healID)
-	if err := p.serviceRegistry.WaitForDataplaneAvailable(p.model, p.properties.HealDataplaneTimeout); err != nil {
+	if err := p.serviceRegistry.WaitForDataplaneAvailable(ctx, p.model, p.properties.HealDataplaneTimeout); err != nil {
 		logrus.Errorf("NSM_Heal(3.1-%v) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, healID, err)
 		return false
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -36,15 +37,20 @@ func main() {
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
+	span := opentracing.StartSpan("nsmd")
+	defer span.Finish()
+
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
 	pluginRegistry := plugins.NewPluginRegistry()
 
-	if err := pluginRegistry.Start(); err != nil {
+	if err := pluginRegistry.Start(ctx); err != nil {
 		logrus.Errorf("Failed to start Plugin Registry: %v", err)
 		return
 	}
+
 	defer func() {
 		if err := pluginRegistry.Stop(); err != nil {
 			logrus.Errorf("Failed to stop Plugin Registry: %v", err)
@@ -56,10 +62,11 @@ func main() {
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, pluginRegistry)
 
 	var server nsmd.NSMServer
-	var err error
+	var srvErr error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
-	if server, err = nsmd.StartNSMServer(model, manager, serviceRegistry, apiRegistry); err != nil {
-		logrus.Errorf("Error starting nsmd service: %+v", err)
+
+	if server, srvErr = nsmd.StartNSMServer(ctx, model, manager, serviceRegistry, apiRegistry); srvErr != nil {
+		logrus.Errorf("error starting nsmd service: %+v", srvErr)
 		return
 	}
 	defer server.Stop()
@@ -83,7 +90,7 @@ func main() {
 	}
 
 	// Wait for dataplane to be connecting to us
-	if err := manager.WaitForDataplane(nsmd.DataplaneTimeout); err != nil {
+	if err := manager.WaitForDataplane(ctx, nsmd.DataplaneTimeout); err != nil {
 		logrus.Errorf("Error waiting for dataplane..")
 		return
 	}
@@ -91,16 +98,18 @@ func main() {
 	logrus.Info("Dataplane server is ready")
 	nsmdGoals.SetDataplaneServerReady()
 	// Choose a public API listener
+
 	nsmdAPIAddress := getNsmdAPIAddress()
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
+
 		return
 	}
 	logrus.Info("Public listener is ready")
 	nsmdGoals.SetPublicListenerReady()
 
-	server.StartAPIServerAt(sock, nsmdProbes)
+	server.StartAPIServerAt(ctx, sock, nsmdProbes)
 	nsmdGoals.SetServerAPIReady()
 	logrus.Info("Serve api is ready")
 

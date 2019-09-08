@@ -38,18 +38,25 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
-		vppagent.NewFlush(configuration, "localhost:9112"),
-		vppagent.NewMemifConnect(configuration),
+		endpoint.NewConnectionEndpoint(configuration),
 		endpoint.NewIpamEndpoint(nil),
-		endpoint.NewConnectionEndpoint(configuration))
+		vppagent.NewMemifConnect(configuration),
+		vppagent.NewCommit(configuration, "localhost:9112", true),
+	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		logrus.Panicf("%v", err)
 	}
 
-	nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
+	if err := nsmEndpoint.Start(); err != nil {
+		logrus.Panicf("Error starting the endpoint: %v", err)
+	}
+	defer func() {
+		if deleteErr := nsmEndpoint.Delete(); deleteErr != nil {
+			logrus.Errorf("failed to delete endpoint: %v", deleteErr)
+		}
+	}()
 
 	<-c
 }

@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
 	"github.com/gogo/protobuf/proto"
@@ -28,8 +30,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -44,57 +45,56 @@ func main() {
 	flags := flags.ParseFlags()
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	cb := endpoint.NewCompositeEndpointBuilder()
-	monitorEndpoint := endpoint.NewMonitorEndpoint(nil)
-	cb.Append(monitorEndpoint)
+
+	endpoints := []networkservice.NetworkServiceServer{
+		endpoint.NewMonitorEndpoint(nil),
+		endpoint.NewConnectionEndpoint(nil),
+	}
+
 	if flags.Neighbors {
 		logrus.Infof("Adding neighbors endpoint to chain")
-		cb.Append(
+		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
 	}
 
 	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
+	endpoints = append(endpoints, ipamEndpoint)
 
 	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
 		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
-
 	if flags.Routes {
 		logrus.Infof("Adding routes endpoint to chain")
-		cb.Append(endpoint.NewCustomFuncEndpoint("route", routeAddr))
+		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
 	}
 
 	if flags.DNS {
 		logrus.Info("Adding dns endpoint to chain")
-		cb.Append(endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
+		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
 	}
 
-	var monitorServer monitor.Server
 	if flags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
-		cb.Append(
-			endpoint.NewCustomFuncEndpoint("update", func(*connection.Connection) error {
+		endpoints = append(endpoints,
+			endpoint.NewCustomFuncEndpoint("update", func(ctx context.Context, conn *connection.Connection) error {
+				monitorServer := endpoint.MonitorServer(ctx)
+				logrus.Infof("Delaying 5 seconds before send update event.")
 				go func() {
-					<-time.After(10 * time.Second)
+					<-time.After(5 * time.Second)
 					updateConnections(monitorServer)
+					logrus.Infof("Update event sended.")
 				}()
 				return nil
 			}))
 	}
 
-	cb.Append(
-		ipamEndpoint,
-		endpoint.NewConnectionEndpoint(nil))
-
-	composite := cb.Build()
+	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
-
-	monitorServer = monitorEndpoint.GetOpaque(nil).(local.MonitorServer)
 
 	_ = nsmEndpoint.Start()
 	if !flags.Dirty {
@@ -105,7 +105,7 @@ func main() {
 	<-c
 }
 
-func dnsMutator(c *connection.Connection) error {
+func dnsMutator(ctc context.Context, c *connection.Connection) error {
 	defaultIP := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
 	c.Context.DnsContext = &connectioncontext.DNSContext{
 		Configs: []*connectioncontext.DNSConfig{
@@ -118,7 +118,7 @@ func dnsMutator(c *connection.Connection) error {
 	return nil
 }
 
-func ipNeighborMutator(c *connection.Connection) error {
+func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 	addrs, err := net.Interfaces()
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func ipNeighborMutator(c *connection.Connection) error {
 	return nil
 }
 
-func updateConnections(monitorServer monitor.Server) {
+func updateConnections(monitorServer local.MonitorServer) {
 	for _, entity := range monitorServer.Entities() {
 		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
 		localConnection.GetContext().GetIpContext().ExcludedPrefixes =

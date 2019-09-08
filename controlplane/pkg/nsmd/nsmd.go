@@ -10,6 +10,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
 
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -41,7 +43,7 @@ const (
 type NSMServer interface {
 	Stop()
 	StartDataplaneRegistratorServer() error
-	StartAPIServerAt(sock net.Listener, probes probes.Probes)
+	StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes)
 
 	XconManager() *services.ClientConnectionManager
 	Manager() nsm.NetworkServiceManager
@@ -390,7 +392,12 @@ func (nsm *nsmServer) Stop() {
 
 // StartNSMServer registers and starts gRPC server which is listening for
 // Network Service requests.
-func StartNSMServer(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
+func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
+	if opentracing.GlobalTracer() != nil {
+		span, _ := opentracing.StartSpanFromContext(ctx, "nsm.server.start")
+		defer span.Finish()
+	}
+
 	var err error
 	if err = tools.SocketCleanup(ServerSock); err != nil {
 		return nil, err
@@ -485,7 +492,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 }
 
 // StartAPIServerAt starts GRPC API server at sock
-func (nsm *nsmServer) StartAPIServerAt(sock net.Listener, probes probes.Probes) {
+func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes) {
 	grpcServer := tools.NewServer()
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)

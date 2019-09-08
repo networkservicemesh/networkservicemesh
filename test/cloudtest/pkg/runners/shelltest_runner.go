@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
-
-const onFailDefaultTimeout = time.Minute * 3
 
 type shellTestRunner struct {
 	test   *model.TestEntry
@@ -24,17 +19,8 @@ type shellTestRunner struct {
 }
 
 func (runner *shellTestRunner) Run(timeoutCtx context.Context, env []string, writer *bufio.Writer) error {
-	runErr := runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
-	if runErr != nil {
-		onFailContext, cancel := context.WithTimeout(context.Background(), onFailDefaultTimeout)
-		defer cancel()
-		err := runner.runCmd(onFailContext, utils.ParseScript(runner.test.OnFailScript), env, writer)
-		if err == nil {
-			return runErr
-		}
-		return errors.Wrap(runErr, err.Error())
-	}
-	return nil
+	err := runner.runCmd(timeoutCtx, utils.ParseScript(runner.test.RunScript), env, writer)
+	return err
 }
 
 func (runner *shellTestRunner) runCmd(context context.Context, script, env []string, writer *bufio.Writer) error {

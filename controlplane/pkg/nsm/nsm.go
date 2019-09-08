@@ -19,6 +19,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -111,15 +116,27 @@ func create_logid() (uuid string) {
 
 func (srv *networkServiceManager) request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error) {
 	requestID := create_logid()
-	logrus.Infof("NSM:(%v) request: %v", requestID, request)
+
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "request")
+		defer span.Finish()
+	}
+
+	logger := common.LogFromSpan(span)
+	logger.Infof("NSM:(%v) request: %v", requestID, request)
 
 	if existingCC != nil {
-		logrus.Infof("NSM:(%v) Called with existing connection passed: %v", requestID, existingCC)
+		logger.Infof("NSM:(%v) Called with existing connection passed: %v", requestID, existingCC)
 
 		if modelCC := srv.model.GetClientConnection(existingCC.GetID()); modelCC == nil {
-			return nil, fmt.Errorf("trying to request not existing connection")
+			err := fmt.Errorf("trying to request not existing connection")
+			logger.Errorf("Error %v", err)
+			return nil, err
 		} else if modelCC.ConnectionState != model.ClientConnectionReady && modelCC.ConnectionState != model.ClientConnectionHealing {
-			return nil, fmt.Errorf("trying to request connection in bad state")
+			err := fmt.Errorf("trying to request connection in bad state")
+			logger.Errorf("Error %v", err)
+			return nil, err
 		}
 
 		srv.model.ApplyClientConnectionChanges(existingCC.GetID(), func(modelCC *model.ClientConnection) {
@@ -146,28 +163,18 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		conn.SetID(existingCC.GetID())
 	}
 
-	// 3. get dataplane
-	srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, DataplaneTimeout)
+	logger.Infof("Selected connection Id %v", conn.GetId())
 
-	dp, err := srv.model.SelectDataplane(func(dp *model.Dataplane) bool {
-		if request.IsRemote() {
-			for _, m := range request.GetRequestMechanismPreferences() {
-				if findMechanism(dp.RemoteMechanisms, m.GetMechanismType()) != nil {
-					return true
-				}
-			}
-		} else {
-			for _, m := range request.GetRequestMechanismPreferences() {
-				if findMechanism(dp.LocalMechanisms, m.GetMechanismType()) != nil {
-					return true
-				}
-			}
-		}
-		return false
-	})
+	// 3. get dataplane
+	err = srv.serviceRegistry.WaitForDataplaneAvailable(ctx, srv.model, DataplaneTimeout)
+	if err != nil {
+		logger.Errorf("Error waiting for dataplane: %v", err)
+	}
+
+	dp, err := srv.selectDataplane(request)
 
 	if err != nil {
-		srv.requestFailed(requestID, existingCC, existingCC, false, false)
+		srv.requestFailed(ctx, requestID, existingCC, existingCC, false, false)
 		return nil, err
 	}
 
@@ -196,15 +203,15 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	err = srv.updateMechanism(requestID, conn, request, dp)
 	if err != nil {
 		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
-		srv.requestFailed(requestID, existingCC, existingCC, false, closeDataplaneOnNSEFailed)
+		srv.requestFailed(ctx, requestID, existingCC, existingCC, false, closeDataplaneOnNSEFailed)
 		return nil, fmt.Errorf("NSM:(5.1-%v) %v", requestID, err)
 	}
 
 	// 6. Prepare dataplane connection is fine.
 	logrus.Infof("NSM:(6-%v) Preparing to program dataplane: %v...", requestID, dp)
-	dataplaneClient, dataplaneConn, err := srv.serviceRegistry.DataplaneConnection(dp)
+	dataplaneClient, dataplaneConn, err := srv.serviceRegistry.DataplaneConnection(ctx, dp)
 	if err != nil {
-		srv.requestFailed(requestID, existingCC, existingCC, false, false)
+		srv.requestFailed(ctx, requestID, existingCC, existingCC, false, false)
 		return nil, err
 	}
 	if dataplaneConn != nil { // Required for testing
@@ -223,7 +230,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		// 7.1 try find NSE and do a Request to it.
 		cc, err = srv.findConnectNSE(ctx, requestID, conn, existingCC, dp)
 		if err != nil {
-			srv.requestFailed(requestID, existingCC, existingCC, false, true)
+			srv.requestFailed(ctx, requestID, existingCC, existingCC, false, true)
 			return nil, err
 		}
 	} else {
@@ -234,7 +241,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		// 7.3 Destination context probably has been changed, so we need to update source context.
 		if err = srv.updateConnectionContext(ctx, cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
 			err = fmt.Errorf("NSM:(7.3-%v) Failed to update source connection context: %v", requestID, err)
-			srv.requestFailed(requestID, cc, existingCC, true, true)
+			srv.requestFailed(ctx, requestID, cc, existingCC, true, true)
 			return nil, err
 		}
 	}
@@ -252,12 +259,12 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	// 9.1 Sending updated request to dataplane.
 	for dpRetry := 0; dpRetry < DataplaneRetryCount; dpRetry++ {
 		if err := ctx.Err(); err != nil {
-			srv.requestFailed(requestID, cc, existingCC, true, false)
+			srv.requestFailed(ctx, requestID, cc, existingCC, true, false)
 			return nil, ctx.Err()
 		}
 
 		logrus.Infof("NSM:(9.1-%v) Sending request to dataplane: %v retry: %v", requestID, cc.Xcon, dpRetry)
-		dpCtx, cancel := context.WithTimeout(context.Background(), DataplaneTimeout)
+		dpCtx, cancel := context.WithTimeout(ctx, DataplaneTimeout)
 		defer cancel()
 		newXcon, err = dataplaneClient.Request(dpCtx, cc.Xcon)
 		if err != nil {
@@ -270,13 +277,13 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 			}
 			logrus.Errorf("NSM:(9.1.2-%v) Dataplane request  all retry attempts failed: %v", requestID, cc.Xcon)
 			// 9.3 If datplane configuration are failed, we need to close remore NSE actually.
-			srv.requestFailed(requestID, cc, existingCC, true, false)
+			srv.requestFailed(ctx, requestID, cc, existingCC, true, false)
 			return nil, err
 		}
 
 		// In case of context deadline, we need to close NSE and dataplane.
 		if err := ctx.Err(); err != nil {
-			srv.requestFailed(requestID, cc, existingCC, true, false)
+			srv.requestFailed(ctx, requestID, cc, existingCC, true, false)
 			return nil, ctx.Err()
 		}
 
@@ -297,26 +304,53 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	return cc.GetConnectionSource(), nil
 }
 
-func (srv *networkServiceManager) requestFailed(requestID string, cc, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
-	logrus.Errorf("NSM:(%v) Request failed", requestID)
+func (srv *networkServiceManager) selectDataplane(request networkservice.Request) (*model.Dataplane, error) {
+	dp, err := srv.model.SelectDataplane(func(dp *model.Dataplane) bool {
+		if request.IsRemote() {
+			for _, m := range request.GetRequestMechanismPreferences() {
+				if findMechanism(dp.RemoteMechanisms, m.GetMechanismType()) != nil {
+					return true
+				}
+			}
+		} else {
+			for _, m := range request.GetRequestMechanismPreferences() {
+				if findMechanism(dp.LocalMechanisms, m.GetMechanismType()) != nil {
+					return true
+				}
+			}
+		}
+		return false
+	})
+	return dp, err
+}
 
+func (srv *networkServiceManager) requestFailed(ctx context.Context, requestID string, cc, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.requestFailed")
+		defer span.Finish()
+	}
+
+	logger := common.LogFromSpan(span)
+	logger.Errorf("NSM:(%v) Request failed", requestID)
 	if cc == nil {
 		return
 	}
 
 	if closeNSE {
-		if err := srv.closeEndpoint(context.Background(), cc); err != nil {
-			logrus.Errorf("NSM:(%v) Error closing NSE: %v", requestID, err)
+		if err := srv.closeEndpoint(ctx, cc); err != nil {
+			logger.Errorf("NSM:(%v) Error closing NSE: %v", requestID, err)
 		}
 	}
 
 	if closeDp {
-		if err := srv.closeDataplane(cc); err != nil {
-			logrus.Errorf("NSM:(%v) Error closing dataplane: %v", requestID, err)
+		if err := srv.closeDataplane(ctx, cc); err != nil {
+			logger.Errorf("NSM:(%v) Error closing dataplane: %v", requestID, err)
 		}
 	}
 
 	if existingCC == nil {
+		logger.Infof("Delete connection %v", cc.GetID())
 		srv.model.DeleteClientConnection(cc.GetID())
 	}
 
@@ -326,6 +360,12 @@ func (srv *networkServiceManager) requestFailed(requestID string, cc, existingCC
 }
 
 func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID string, conn connection.Connection, existingCC *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.findConnectNSE")
+		defer span.Finish()
+	}
+	logger := common.LogFromSpan(span)
 	// 7.x
 	var endpoint *registry.NSERegistration
 	var err error
@@ -334,7 +374,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 	ignoreEndpoints := map[string]*registry.NSERegistration{}
 	for {
 		if err := ctx.Err(); err != nil {
-			logrus.Errorf("NSM:(7.1.0-%v) Context timeout, during find/call NSE... %v", requestID, err)
+			logger.Errorf("NSM:(7.1.0-%v) Context timeout, during find/call NSE... %v", requestID, err)
 			return nil, err
 		}
 		endpoint = nil
@@ -370,6 +410,8 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 				return nil, err
 			}
 		}
+
+		logger.Infof("selected endpoint %v", endpoint)
 		// 7.1.6 Update Request with exclude_prefixes, etc
 		nseConn, err = srv.updateConnection(ctx, nseConn)
 		if err != nil {
@@ -381,7 +423,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 
 		// 7.1.8 in case of error we put NSE into ignored list to check another one.
 		if err != nil {
-			logrus.Errorf("NSM:(7.1.8-%v) NSE respond with error: %v ", requestID, err)
+			logger.Errorf("NSM:(7.1.8-%v) NSE respond with error: %v ", requestID, err)
 			last_error = err
 			ignoreEndpoints[endpoint.GetNetworkServiceEndpoint().GetName()] = endpoint
 			continue
@@ -405,7 +447,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 	logrus.Infof("NSM: Closing connection %v", cc)
 
 	nseErr := srv.closeEndpoint(ctx, cc)
-	dpErr := srv.closeDataplane(cc)
+	dpErr := srv.closeDataplane(ctx, cc)
 
 	// TODO: We need to be sure Dataplane is respond well so we could delete connection.
 	srv.model.DeleteClientConnection(cc.GetID())
@@ -419,10 +461,15 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 
 func (srv *networkServiceManager) performNSERequest(ctx context.Context, requestID string, endpoint *registry.NSERegistration, requestConn connection.Connection, dp *model.Dataplane, existingCC *model.ClientConnection) (*model.ClientConnection, error) {
 	// 7.2.6.x
-	connectCtx, connectCancel := context.WithTimeout(ctx, srv.properties.RequestConnectTimeout)
-	defer connectCancel()
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.peformNSERequest")
+		defer span.Finish()
+	}
 
-	client, err := srv.nseManager.createNSEClient(connectCtx, endpoint)
+	logger := common.LogFromSpan(span)
+
+	client, err := srv.nseManager.createNSEClient(ctx, endpoint)
 	if err != nil {
 		// 7.2.6.1
 		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
@@ -440,11 +487,13 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	} else {
 		message = srv.createRemoteNSMRequest(endpoint, requestConn, dp, existingCC)
 	}
-	logrus.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestID, message)
+	logger.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestID, message)
+	span.LogFields(log.String("nsm.nse.request", fmt.Sprintf("%v", message)))
+
 	nseConn, e := client.Request(ctx, message)
 
 	if e != nil {
-		logrus.Errorf("NSM:(7.2.6.2.1-%v) error requesting networkservice from %+v with message %#v error: %s", requestID, endpoint, message, e)
+		logger.Errorf("NSM:(7.2.6.2.1-%v) error requesting networkservice from %+v with message %#v error: %s", requestID, endpoint, message, e)
 		return nil, e
 	}
 
@@ -471,6 +520,9 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 		ConnectionState:         model.ClientConnectionRequesting,
 		DataplaneState:          dpState,
 	}
+
+	span.LogFields(log.Object("clientConnection", clientConnection))
+
 	// 7.2.6.2.5 - It not a local NSE put remote NSM name in request
 	if !srv.nseManager.isLocalEndpoint(endpoint) {
 		clientConnection.RemoteNsm = endpoint.GetNetworkServiceManager()
@@ -491,14 +543,15 @@ func (srv *networkServiceManager) createConnectionId() string {
 	return srv.model.ConnectionID()
 }
 
-func (srv *networkServiceManager) closeDataplane(cc *model.ClientConnection) error {
+func (srv *networkServiceManager) closeDataplane(ctx context.Context, cc *model.ClientConnection) error {
 	if cc.DataplaneState == model.DataplaneStateNone {
 		// Do not need to close
 		return nil
 	}
+
 	logrus.Info("NSM.Dataplane: Closing cross connection on dataplane...")
 	dp := srv.model.GetDataplane(cc.DataplaneRegisteredName)
-	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(dp)
+	dataplaneClient, conn, err := srv.serviceRegistry.DataplaneConnection(ctx, dp)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -615,9 +668,9 @@ func (srv *networkServiceManager) checkNeedNSERequest(requestID string, nsmConn 
 	return false
 }
 
-func (srv *networkServiceManager) WaitForDataplane(timeout time.Duration) error {
+func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout time.Duration) error {
 	// Wait for at least one dataplane to be available
-	if err := srv.serviceRegistry.WaitForDataplaneAvailable(srv.model, timeout); err != nil {
+	if err := srv.serviceRegistry.WaitForDataplaneAvailable(ctx, srv.model, timeout); err != nil {
 		return err
 	}
 	logrus.Infof("Dataplane is available, waiting for initial state received and processed...")
@@ -821,8 +874,15 @@ func (srv *networkServiceManager) NotifyRenamedEndpoint(nseOldName, nseNewName s
 }
 
 func (srv *networkServiceManager) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
+	var span opentracing.Span
+	if opentracing.GlobalTracer() != nil {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.closeEndpoint")
+		defer span.Finish()
+	}
+	logger := common.LogFromSpan(span)
+
 	if cc.Endpoint == nil {
-		logrus.Infof("No need to close, since NSE is we know is dead at this point.")
+		logger.Infof("No need to close, since NSE is we know is dead at this point.")
 		return nil
 	}
 	closeCtx, closeCancel := context.WithTimeout(ctx, srv.properties.CloseTimeout)
@@ -839,10 +899,10 @@ func (srv *networkServiceManager) closeEndpoint(ctx context.Context, cc *model.C
 		}
 		err := client.Cleanup()
 		if err != nil {
-			logrus.Errorf("NSM: Error during Cleanup: %v", err)
+			logger.Errorf("NSM: Error during Cleanup: %v", err)
 		}
 	} else {
-		logrus.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
+		logger.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
 	}
 	return nseClientError
 }

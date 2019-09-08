@@ -161,7 +161,7 @@ func newTestPluginRegistry() *testPluginRegistry {
 	}
 }
 
-func (pr *testPluginRegistry) Start() error {
+func (pr *testPluginRegistry) Start(ctx context.Context) error {
 	return nil
 }
 
@@ -218,8 +218,8 @@ func (impl *nsmdTestServiceRegistry) NewWorkspaceProvider() serviceregistry.Work
 	return nsmd.NewWorkspaceProvider(impl.rootDir)
 }
 
-func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(model model.Model, timeout time.Duration) error {
-	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(model, timeout)
+func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, model model.Model, timeout time.Duration) error {
+	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(ctx, model, timeout)
 }
 
 func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
@@ -325,7 +325,7 @@ func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *
 	return nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) DataplaneConnection(dataplane *model.Dataplane) (dataplane.DataplaneClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, dataplane *model.Dataplane) (dataplane.DataplaneClient, *grpc.ClientConn, error) {
 	return impl.testDataplaneConnection, nil, nil
 }
 
@@ -531,10 +531,10 @@ func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServer
 		panic(err)
 	}
 
-	return newNSMDFullServerAt(nsmgrName, storage, rootDir)
+	return newNSMDFullServerAt(context.Background(), nsmgrName, storage, rootDir)
 }
 
-func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
+func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
@@ -567,7 +567,7 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	}
 
 	// Lets start NSMD NSE registry service
-	nsmServer, err := nsmd.StartNSMServer(srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(ctx, srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
 	srv.nsmServer = nsmServer
 	if err != nil {
 		panic(err)
@@ -576,8 +576,8 @@ func newNSMDFullServerAt(nsmgrName string, storage *sharedStorage, rootDir strin
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.testModel.AddListener(monitorCrossConnectClient)
 	probes := probes.New("Test probes", nil)
-	// Start API Server
-	nsmServer.StartAPIServerAt(sock, probes)
+
+	nsmServer.StartAPIServerAt(ctx, sock, probes)
 
 	return srv
 }

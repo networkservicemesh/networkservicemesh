@@ -367,6 +367,10 @@ k8s-crossconnect-monitor-build: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-b
 .PHONY: k8s-crossconnect-monitor-save
 k8s-crossconnect-monitor-save: ${CONTAINER_BUILD_PREFIX}-crossconnect-monitor-save
 
+.PHONY: k8s-delete-nsm-namespaces
+k8s-delete-nsm-namespaces:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/delete-nsm-namespaces.sh
+
 .PHONY: k8s-crossconnect-load-images
 k8s-crossconnect-monitor-load-images:  k8s-start $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,crossconnect-monitor))
 

@@ -247,7 +247,7 @@ func addNeighbors(link netlink.Link, neighbors []*connectioncontext.IpNeighbor) 
 		}
 		neigh := netlink.Neigh{
 			LinkIndex:    link.Attrs().Index,
-			State:        netlink.NUD_REACHABLE,
+			State:        0x02, // netlink.NUD_REACHABLE, // the constant is somehow not being found in the package in case of using a darwin based machine
 			IP:           net.ParseIP(neighbor.GetIp()),
 			HardwareAddr: mac,
 		}
