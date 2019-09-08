@@ -8,7 +8,6 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -18,59 +17,51 @@ import (
 
 // XConnect is a VPP Agent Cross Connect composite
 type XConnect struct {
-	endpoint.BaseCompositeEndpoint
-	Workspace   string
-	Connections map[string]*ConnectionData
+	Workspace string
 }
 
 // Request implements the request handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//	   Next
 func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if xc.GetNext() == nil {
-		err := fmt.Errorf("composite requires that there is Next set")
+	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := Config(ctx)
+
+	if err := xc.validateConfig(vppAgentConfig); err != nil {
 		return nil, err
 	}
 
-	incomingConnection, err := xc.GetNext().Request(ctx, request)
-	if err != nil {
+	if err := xc.appendDataChange(vppAgentConfig, vppAgentConfig.VppConfig.Interfaces[0].Name, vppAgentConfig.VppConfig.Interfaces[1].Name); err != nil {
 		return nil, err
 	}
-
-	connectionData, err := getConnectionData(xc.GetNext(), incomingConnection, false)
-	if err != nil {
-		return nil, err
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Request(ctx, request)
 	}
 
-	if connectionData.InConnName == "" {
-		err := fmt.Errorf("received empty incoming connection name")
-		return nil, err
-	}
-	if connectionData.OutConnName == "" {
-		err := fmt.Errorf("received empty outgoing connection name")
-		return nil, err
-	}
-
-	connectionData.DataChange = xc.appendDataChange(connectionData.DataChange, connectionData.InConnName, connectionData.OutConnName)
-
-	xc.Connections[incomingConnection.GetId()] = connectionData
-	return incomingConnection, nil
+	return request.GetConnection(), nil
 }
 
 // Close implements the close handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//	   Next
 func (xc *XConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if xc.GetNext() != nil {
-		return xc.GetNext().Close(ctx, connection)
-	}
-	return &empty.Empty{}, nil
-}
+	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := Config(ctx)
 
-// GetOpaque will return the corresponding connection data
-func (xc *XConnect) GetOpaque(incoming interface{}) interface{} {
-	incomingConnection := incoming.(*connection.Connection)
-	if connectionData, ok := xc.Connections[incomingConnection.GetId()]; ok {
-		return connectionData
+	if err := xc.validateConfig(vppAgentConfig); err != nil {
+		return nil, err
 	}
-	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
-	return nil
+
+	if err := xc.appendDataChange(vppAgentConfig, vppAgentConfig.VppConfig.Interfaces[0].Name, vppAgentConfig.VppConfig.Interfaces[1].Name); err != nil {
+		return nil, err
+	}
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Close(ctx, connection)
+	}
+
+	return &empty.Empty{}, nil
 }
 
 // Name returns the composite name
@@ -87,14 +78,13 @@ func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 	configuration.CompleteNSConfiguration()
 
 	return &XConnect{
-		Workspace:   configuration.Workspace,
-		Connections: map[string]*ConnectionData{},
+		Workspace: configuration.Workspace,
 	}
 }
 
-func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) *configurator.Config {
+func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) error {
 	if rv == nil {
-		rv = &configurator.Config{}
+		return fmt.Errorf("XConnect.appendDataChange cannot be called with rv == nil")
 	}
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
@@ -110,6 +100,21 @@ func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) *c
 			TransmitInterface: in,
 		},
 	)
+	return nil
+}
 
-	return rv
+func (xc *XConnect) validateConfig(vppAgentConfig *configurator.Config) error {
+	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) < 2 {
+		return fmt.Errorf("vppAgentConfig lacks 2 interfaces to cross connect")
+	}
+
+	if vppAgentConfig.VppConfig.Interfaces[0].Name == "" {
+		err := fmt.Errorf("received empty incoming connection name")
+		return err
+	}
+	if vppAgentConfig.VppConfig.Interfaces[1].Name == "" {
+		err := fmt.Errorf("received empty outgoing connection name")
+		return err
+	}
+	return nil
 }

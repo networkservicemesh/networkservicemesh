@@ -2,52 +2,45 @@ package endpoint
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
 // ConnectionMutator is function that accepts connection and modify it
-type ConnectionMutator func(*connection.Connection) error
+type ConnectionMutator func(context.Context, *connection.Connection) error
 
 // CustomFuncEndpoint is endpoint that apply passed ConnectionMutator to connection that accepts from next endpoint
 type CustomFuncEndpoint struct {
-	BaseCompositeEndpoint
 	connectionMutator ConnectionMutator
 	name              string
 }
 
 // Request implements Request method from NetworkServiceServer
+// Consumes from ctx context.Context:
+//	   Next
 func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if cf.GetNext() == nil {
-		err := fmt.Errorf("%v endpoint needs next", cf.name)
-		logrus.Error(err)
+	if err := cf.connectionMutator(ctx, request.GetConnection()); err != nil {
+		Log(ctx).Error(err)
 		return nil, err
 	}
 
-	newConnection, err := cf.GetNext().Request(ctx, request)
-	if err != nil {
-		logrus.Errorf("Next request failed: %v", err)
-		return nil, err
+	if Next(ctx) != nil {
+		return Next(ctx).Request(ctx, request)
 	}
 
-	if err := cf.connectionMutator(newConnection); err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-
-	logrus.Infof("%v endpoint completed on connection: %v", cf.name, newConnection)
-	return newConnection, nil
+	Log(ctx).Infof("%v endpoint completed on connection: %v", cf.name, request.GetConnection())
+	return request.GetConnection(), nil
 }
 
 // Close implements Close method from NetworkServiceServer
+// Consumes from ctx context.Context:
+//	   Next
 func (cf *CustomFuncEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if cf.GetNext() != nil {
-		return cf.GetNext().Close(ctx, connection)
+	if Next(ctx) != nil {
+		return Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }

@@ -47,3 +47,5 @@ scripts/vagrant/.kube/
 
 ./cloudtest
 vendor
+examples/
+

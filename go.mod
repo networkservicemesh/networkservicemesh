@@ -1,9 +1,5 @@
 module github.com/networkservicemesh/networkservicemesh
 
-replace gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
-
-replace gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
-
 require (
 	github.com/aws/aws-sdk-go v1.22.0
 	github.com/caddyserver/caddy v1.0.1
@@ -47,6 +43,8 @@ require (
 )
 
 replace (
+	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
+	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.0.0-20190819141258-3544db3b9e44
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190819143637-0dbe462fe92d
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
