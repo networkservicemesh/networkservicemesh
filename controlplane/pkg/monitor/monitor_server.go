@@ -123,7 +123,7 @@ func (s *server) Entities() map[string]Entity {
 func (s *server) send(event Event, recipients ...Recipient) {
 	for _, recipient := range recipients {
 		msg, err := event.Message()
-		logrus.Infof("Try to send message %v", msg)
+		logrus.Debugf("Try to send message %v", msg)
 		if err != nil {
 			logrus.Errorf("An error during convertion event: %v", err)
 			continue
