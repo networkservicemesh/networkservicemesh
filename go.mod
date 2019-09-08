@@ -14,8 +14,10 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
 	github.com/ligato/vpp-agent v2.1.1+incompatible
+	github.com/mesos/mesos-go v0.0.9
 	github.com/miekg/dns v1.1.15
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
