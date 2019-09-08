@@ -26,7 +26,6 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
@@ -48,59 +47,65 @@ const (
 
 // ACL is a VPP Agent ACL composite
 type ACL struct {
-	endpoint.BaseCompositeEndpoint
-	Rules       map[string]string
-	Connections map[string]*ConnectionData
+	Rules map[string]string
 }
 
 // Request implements the request handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//     ConnectionMap
 func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if a.GetNext() == nil {
-		err := fmt.Errorf("composite requires that there is Next set")
+	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := Config(ctx)
+
+	ctx = WithConnectionMap(ctx) // Guarantees we will retrieve a non-nil Connectionmap from context.Context
+	connectionMap := ConnectionMap(ctx)
+
+	iface := connectionMap[request.GetConnection().GetId()]
+
+	if iface == nil || iface.Name == "" {
+		err := fmt.Errorf("found empty incoming connection name")
 		return nil, err
 	}
 
-	incomingConnection, err := a.GetNext().Request(ctx, request)
+	err := a.appendDataChange(vppAgentConfig, iface.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	connectionData, err := getConnectionData(a.GetNext(), incomingConnection, false)
-	if err != nil {
-		return nil, err
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Request(ctx, request)
 	}
 
-	if connectionData.InConnName == "" {
-		err = fmt.Errorf("found empty incoming connection name")
-		return nil, err
-	}
-
-	connectionData.DataChange, err = a.appendDataChange(connectionData.DataChange, connectionData.InConnName)
-	if err != nil {
-		return nil, err
-	}
-
-	a.Connections[incomingConnection.GetId()] = connectionData
-
-	return incomingConnection, nil
+	return request.GetConnection(), nil
 }
 
 // Close implements the close handler
+// Provides/Consumes from ctx context.Context:
+//     VppAgentConfig
+//     ConnectionMap
 func (a *ACL) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	if a.GetNext() != nil {
-		return a.GetNext().Close(ctx, connection)
+	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
+	vppAgentConfig := Config(ctx)
+
+	ctx = WithConnectionMap(ctx) // Guarantees we will retrieve a non-nil Connectionmap from context.Context
+	connectionMap := ConnectionMap(ctx)
+
+	iface := connectionMap[connection.GetId()]
+
+	if iface == nil || iface.Name == "" {
+		err := fmt.Errorf("found empty incoming connection name")
+		return nil, err
+	}
+
+	err := a.appendDataChange(vppAgentConfig, iface.Name)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint.Next(ctx) != nil {
+		return endpoint.Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
-}
-
-// GetOpaque will return the corresponding connection data
-func (a *ACL) GetOpaque(incoming interface{}) interface{} {
-	incomingConnection := incoming.(*connection.Connection)
-	if connectionData, ok := a.Connections[incomingConnection.GetId()]; ok {
-		return connectionData
-	}
-	logrus.Errorf("GetOpaque outgoing not found for %v", incomingConnection)
-	return nil
 }
 
 // Name returns the composite name
@@ -117,20 +122,19 @@ func NewACL(configuration *common.NSConfiguration, rules map[string]string) *ACL
 	configuration.CompleteNSConfiguration()
 
 	return &ACL{
-		Rules:       rules,
-		Connections: map[string]*ConnectionData{},
+		Rules: rules,
 	}
 }
 
-func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string) (*configurator.Config, error) {
+func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string) error {
 	if rv == nil {
-		rv = &configurator.Config{}
+		return fmt.Errorf("ACL.appendDataChange cannot be called with rv == nil")
 	}
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
 	}
 	if len(a.Rules) == 0 {
-		return rv, nil
+		return nil
 	}
 
 	rules := []*acl.ACL_Rule{}
@@ -140,14 +144,12 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 
 		action, err := getAction(parsed)
 		if err != nil {
-			logrus.Errorf("Parsing rule %s failed with %v", rule, err)
-			return nil, err
+			return fmt.Errorf("parsing rule %s failed with %v", rule, err)
 		}
 
 		match, err := getMatch(parsed)
 		if err != nil {
-			logrus.Errorf("Parsing rule %s failed with %v", rule, err)
-			return nil, err
+			return fmt.Errorf("parsing rule %s failed with %v", rule, err)
 		}
 
 		match.Action = action
@@ -165,7 +167,7 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 		},
 	})
 
-	return rv, nil
+	return nil
 }
 
 func getAction(parsed map[string]string) (acl.ACL_Rule_Action, error) {

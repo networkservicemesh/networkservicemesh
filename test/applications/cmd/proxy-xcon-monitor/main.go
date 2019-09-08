@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -89,7 +90,7 @@ func main() {
 	}
 	defer func() { _ = ln.Close() }()
 
-	srv := tools.NewServer()
+	srv := grpc.NewServer()
 	crossconnect.RegisterMonitorCrossConnectServer(srv, &proxyMonitor{
 		address: address,
 	})

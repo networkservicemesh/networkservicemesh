@@ -145,6 +145,14 @@ func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 	return result
 }
 
+type emptyCloser struct {
+}
+
+func (*emptyCloser) Close() error {
+	// Ignore
+	return nil
+}
+
 // initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
 func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 	cfg, err := config.FromEnv()
@@ -171,9 +179,11 @@ func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
 		cfg.Reporter.LogSpans = true
 	}
 
+	logrus.Infof("Creating logger from config: %v", cfg)
 	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+		logrus.Errorf("ERROR: cannot init Jaeger: %v\n", err)
+		return nil, &emptyCloser{}
 	}
 	return tracer, closer
 }

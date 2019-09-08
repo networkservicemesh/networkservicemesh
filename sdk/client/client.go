@@ -17,8 +17,10 @@ package client
 
 import (
 	"context"
+	"io"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
@@ -29,9 +31,8 @@ import (
 )
 
 const (
-	connectRetries = 10
-	connectSleep   = 5 * time.Second
-	connectTimeout = 10 * time.Second
+	// ConnectTimeout - a default connection timeout
+	ConnectTimeout = 15 * time.Second
 )
 
 // NsmClient is the NSM client struct
@@ -40,17 +41,30 @@ type NsmClient struct {
 	OutgoingNscName     string
 	OutgoingNscLabels   map[string]string
 	OutgoingConnections []*connection.Connection
+	tracerCloser        io.Closer
 }
 
 // Connect implements the business logic
-func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection.Connection, error) {
-	logrus.Infof("Initiating an outgoing connection.")
+func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*connection.Connection, error) {
+
+	var span opentracing.Span
+	if opentracing.IsGlobalTracerRegistered() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "nsmClient.Connect")
+		defer span.Finish()
+	}
+
+	logger := common.LogFromSpan(span)
+
+	logger.Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
 	defer nsmc.Unlock()
 	mechanismType := common.MechanismFromString(mechanism)
 	outgoingMechanism, err := connection.NewMechanism(mechanismType, name, description)
+
+	logger.Infof("Selected mechanism: %v", outgoingMechanism)
+
 	if err != nil {
-		logrus.Errorf("Failure to prepare the outgoing mechanism preference with error: %+v", err)
+		logger.Errorf("Failure to prepare the outgoing mechanism preference with error: %+v", err)
 		return nil, err
 	}
 
@@ -77,16 +91,22 @@ func (nsmc *NsmClient) Connect(name, mechanism, description string) (*connection
 			outgoingMechanism,
 		},
 	}
+	outgoingConnection, err := nsmc.NsClient.Request(ctx, outgoingRequest)
+	if err != nil {
+		logger.Errorf("failure to request connection with error: %+v", err)
+		return nil, err
+	}
 
-	return nsmc.PerformRequest(outgoingRequest)
+	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
+	return outgoingConnection, nil
 }
 
 // Close will terminate a particular connection
-func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
+func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection.Connection) error {
 	nsmc.Lock()
 	defer nsmc.Unlock()
 
-	nsmc.NsClient.Close(nsmc.Context, outgoingConnection)
+	_, err := nsmc.NsClient.Close(ctx, outgoingConnection)
 
 	arr := nsmc.OutgoingConnections
 	for i, c := range arr {
@@ -96,49 +116,22 @@ func (nsmc *NsmClient) Close(outgoingConnection *connection.Connection) error {
 			arr = arr[:len(arr)-1]
 		}
 	}
-	return nil
+	return err
 }
 
-// Destroy stops the whole module
-func (nsmc *NsmClient) Destroy() error {
+// Destroy - Destroy stops the whole module
+func (nsmc *NsmClient) Destroy(_ context.Context) error {
 	nsmc.Lock()
 	defer nsmc.Unlock()
 
-	for _, c := range nsmc.OutgoingConnections {
-		nsmc.NsClient.Close(nsmc.Context, c)
-	}
-	nsmc.NsmConnection.Close()
-	return nil
-}
-
-//PerformRequest - perform request
-func (nsmc *NsmClient) PerformRequest(outgoingRequest *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	var outgoingConnection *connection.Connection
-	start := time.Now()
-	for iteration := connectRetries; true; <-time.After(connectSleep) {
-		var err error
-		logrus.Infof("Sending outgoing request %v", outgoingRequest)
-
-		ctx, cancel := context.WithTimeout(nsmc.Context, connectTimeout)
-		defer cancel()
-		outgoingConnection, err = nsmc.NsClient.Request(ctx, outgoingRequest)
-
+	if nsmc.tracerCloser != nil {
+		err := nsmc.tracerCloser.Close()
 		if err != nil {
-			logrus.Errorf("failure to request connection with error: %+v", err)
-			iteration--
-			if iteration > 0 {
-				continue
-			}
-			logrus.Errorf("Connect failed after %v iterations and %v", connectRetries, time.Since(start))
-			return nil, err
+			logrus.Errorf("failed to close opentracing context %v", err)
 		}
-
-		nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
-		logrus.Infof("Received outgoing connection after %v: %v", time.Since(start), outgoingConnection)
-		break
 	}
 
-	return outgoingConnection, nil
+	return nsmc.NsmConnection.Close()
 }
 
 // NewNSMClient creates the NsmClient
@@ -148,17 +141,28 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 	}
 	configuration.CompleteNSConfiguration()
 
+	client := &NsmClient{
+		OutgoingNscName:   configuration.OutgoingNscName,
+		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
+	}
+
+	if configuration.TracerEnabled {
+		if !opentracing.IsGlobalTracerRegistered() {
+			tracer, closer := tools.InitJaeger("nsm-client")
+			opentracing.SetGlobalTracer(tracer)
+			client.tracerCloser = closer
+		} else {
+			logrus.Infof("Use already initialized global gracer")
+		}
+	}
+
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
 	if err != nil {
 		logrus.Errorf("Error: %v", err)
 		return nil, err
 	}
 
-	client := &NsmClient{
-		NsmConnection:     nsmConnection,
-		OutgoingNscName:   configuration.OutgoingNscName,
-		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
-	}
+	client.NsmConnection = nsmConnection
 
 	return client, nil
 }

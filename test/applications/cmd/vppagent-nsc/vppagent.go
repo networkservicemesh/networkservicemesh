@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ligato/vpp-agent/api/configurator"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 

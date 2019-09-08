@@ -78,8 +78,10 @@ func main() {
 		workspace:        workspace,
 		vppAgentEndpoint: defaultVPPAgentEndpoint,
 	}
+	ctx, cancelProc := context.WithTimeout(context.Background(), client.ConnectTimeout)
+	defer cancelProc()
 
-	client, err := client.NewNSMClient(context.Background(), nil)
+	nsmClient, err := client.NewNSMClient(ctx, nil)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}
@@ -90,7 +92,7 @@ func main() {
 	}
 
 	var outgoingConnection *connection.Connection
-	outgoingConnection, err = client.Connect("if1", "mem", "Primary interface")
+	outgoingConnection, err = nsmClient.Connect(ctx, "if1", "mem", "Primary interface")
 	if err != nil {
 		logrus.Fatalf("Unable to connect %v", err)
 	}
