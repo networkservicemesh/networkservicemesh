@@ -125,7 +125,7 @@ executions:
       make k8s-deconfig helm-install-nsm
       make helm-install-vpn
       make k8s-check
-      make k8s-logs-snapshot
+      make k8s-logs-snapshot-only-master
       make helm-delete-vpn helm-delete-nsm
       make k8s-deconfig k8s-config
       kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
@@ -150,7 +150,7 @@ executions:
       make k8s-deconfig helm-install-nsm
       make helm-install-icmp-responder
       make k8s-check
-      make k8s-logs-snapshot
+      make k8s-logs-snapshot-only-master
       make helm-delete-icmp-responder helm-delete-nsm
       make k8s-deconfig k8s-config
       kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all

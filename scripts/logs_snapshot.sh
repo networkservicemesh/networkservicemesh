@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if ! [[ $1 == "" ]] && [[ $1 == "only-master" ]] && ! [[ ${STORE_LOGS_IN_ANY_CASES} == true ]] ; then
+  echo "Logs not saved: env(${STORE_LOGS_IN_ANY_CASES}) is not true"
+  exit 0
+fi
+
 kubectl="kubectl -n ${NSM_NAMESPACE}"
 path="logs"
 
