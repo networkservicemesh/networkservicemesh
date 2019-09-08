@@ -80,13 +80,23 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) ([]string, er
 	for _, excludedPrefix := range excludedPrefixes {
 		splittedEntries := []string{}
 		prefixesToRemove := []string{}
-		_, subnetExclude, _ := net.ParseCIDR(excludedPrefix)
+		_, subnetExclude, err := net.ParseCIDR(excludedPrefix)
+		if err != nil {
+			err := fmt.Errorf("IPAM: Unable to parse excluded prefix: %s", excludedPrefix)
+			logrus.Errorf("%v", err)
+			return nil, err
+		}
 
 		/* 1. Check if each excluded entry overlaps with the available prefix */
 		for _, prefix := range copyPrefixes {
 			intersecting := false
 			excludedIsBigger := false
-			_, subnetPrefix, _ := net.ParseCIDR(prefix)
+			_, subnetPrefix, err := net.ParseCIDR(prefix)
+			if err != nil {
+				err := fmt.Errorf("IPAM: Unable to parse excluded prefix: %s", prefix)
+				logrus.Errorf("%v", err)
+				return nil, err
+			}
 			intersecting, excludedIsBigger = intersect(subnetExclude, subnetPrefix)
 			/* 1.1. If intersecting, check which one is bigger */
 			if intersecting {

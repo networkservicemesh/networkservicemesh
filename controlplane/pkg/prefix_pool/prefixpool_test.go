@@ -431,3 +431,14 @@ func TestExcludePrefixesFullOverlap(t *testing.T) {
 
 	g.Expect(err).To(Equal(fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")))
 }
+
+func TestExcludePrefixesInvalid(t *testing.T) {
+	g := NewWithT(t)
+
+	pool, err := NewPrefixPool("10.20.0.0/16")
+	g.Expect(err).To(BeNil())
+	excludedPrefix := []string{"10.20.e.0/24"}
+
+	_, err = pool.ExcludePrefixes(excludedPrefix)
+	g.Expect(err).To(Not(BeNil()))
+}
