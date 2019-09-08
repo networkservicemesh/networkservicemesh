@@ -27,6 +27,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
+	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
 // Metrics monitoring instance type
@@ -71,12 +72,15 @@ func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, d
 	for {
 		/* No need to process anything if list is empty */
 		if len(devices.devices) != 0 {
+			devices.Lock()
 			/* Collect metrics for all present devices */
 			stats, err := collectMetrics(devices)
+			devices.Unlock()
 			if err != nil {
 				logrus.Warn("metrics: failed to collect metrics:", err)
 			}
 			/* Send metrics update */
+			logrus.Info("metrics: sending updates: ", stats)
 			monitor.HandleMetrics(stats)
 		}
 		/* Wait until next check */
@@ -89,7 +93,6 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 	/* Store the metrics for all registered devices here */
 	stats := make(map[string]*crossconnect.Metrics)
 	failedDevices := make(map[string][]Device)
-	devices.Lock()
 	/* Loop through each registered device */
 	for namespace, listOfDevices := range devices.devices {
 		for _, device := range listOfDevices {
@@ -104,7 +107,6 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 			}
 		}
 	}
-	devices.Unlock()
 	/* Update device list in case there are bad devices */
 	if len(failedDevices) != 0 {
 		for namespace, fails := range failedDevices {
@@ -120,44 +122,63 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 }
 
 // getDeviceMetrics returns metrics for device in specific namespace
-func getDeviceMetrics(device, namespace string) (map[string]string, error) {
-	/* 1. Lock the OS thread so we don't accidentally switch namespaces */
+func getDeviceMetrics(device, nsInode string) (map[string]string, error) {
+
+	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	/* 2. Save the current network namespace */
-	currentNs, err := netns.Get()
-	defer func() {
-		if err = currentNs.Close(); err != nil {
-			logrus.Error("error when closing current namespace:", err)
-		}
-	}()
+
+	/* Save current network namespace */
+	hostNs, err := netns.Get()
 	if err != nil {
-		logrus.Errorf("failed to get current namespace: %v", err)
+		logrus.Errorf("metrics: failed getting host namespace: %v", err)
 		return nil, err
 	}
-	/* 3. Get handler for namespace */
-	nsHandle, err := netns.GetFromPath(namespace)
+	logrus.Info("metrics: host namespace: ", hostNs)
 	defer func() {
-		if err = nsHandle.Close(); err != nil {
-			logrus.Error("error when closing desired namespace:", err)
+		if err = hostNs.Close(); err != nil {
+			logrus.Error("metrics: failed closing host namespace handle: ", err)
 		}
+		logrus.Info("metrics: closed host namespace handle: ", hostNs)
 	}()
+
+	/* Get namespace handle - destination */
+	dstHandle, err := fs.GetNsHandleFromInode(nsInode)
 	if err != nil {
-		logrus.Errorf("failed to get namespace handler from path - %v", err)
+		logrus.Errorf("metrics: failed to get destination namespace handle - %v", err)
 		return nil, err
 	}
-	/* 4. Switch to the new namespace */
-	if err = netns.Set(nsHandle); err != nil {
-		logrus.Errorf("failed to switch to container namespace: %v", err)
+	/* If successful, don't forget to close the handler upon exit */
+	defer func() {
+		if err = dstHandle.Close(); err != nil {
+			logrus.Error("metrics: error when closing destination handle: ", err)
+		}
+		logrus.Info("metrics: closed destination handle: ", dstHandle, nsInode)
+	}()
+	logrus.Info("metrics: opened destination handle: ", dstHandle, nsInode)
+
+	/* Switch to the new namespace */
+	if err = netns.Set(dstHandle); err != nil {
+		logrus.Errorf("metrics: failed switching to destination namespace: %v", err)
 		return nil, err
 	}
-	/* 5. Get a link for the interface name */
+	logrus.Info("metrics: switched to destination namespace: ", dstHandle)
+
+	/* Don't forget to switch back to the host namespace */
+	defer func() {
+		if err = netns.Set(hostNs); err != nil {
+			logrus.Errorf("metrics: failed switching back to host namespace: %v", err)
+		}
+		logrus.Info("metrics: switched back to host namespace: ", hostNs)
+	}()
+
+	/* Get a link for the interface name */
 	link, err := netlink.LinkByName(device)
 	if err != nil {
-		logrus.Errorf("failed to lookup %q, %v", device, err)
+		logrus.Errorf("metrics: failed to lookup %q, %v", device, err)
 		return nil, err
 	}
-	/* 6. Save the statistics in a separate metrics map */
+	/* 6. Save statistics in metrics map */
 	metrics := make(map[string]string)
 	metrics["rx_bytes"] = fmt.Sprint(link.Attrs().Statistics.RxBytes)
 	metrics["tx_bytes"] = fmt.Sprint(link.Attrs().Statistics.TxBytes)
@@ -166,19 +187,12 @@ func getDeviceMetrics(device, namespace string) (map[string]string, error) {
 	metrics["rx_error_packets"] = fmt.Sprint(link.Attrs().Statistics.RxErrors)
 	metrics["tx_error_packets"] = fmt.Sprint(link.Attrs().Statistics.TxErrors)
 
-	/* 7. Switch back to the original namespace */
-	if err = netns.Set(currentNs); err != nil {
-		logrus.Errorf("failed to switch back to original namespace: %v", err)
-		return nil, err
-	}
 	return metrics, nil
 }
 
 // UpdateDeviceList keeps track of the devices being handled by the Kernel forwarding plane
 func (m *RegisteredDevices) UpdateDeviceList(devices map[string]Device, connect bool) {
 	found := false
-	m.Lock()
-	defer m.Unlock()
 	/* Loop through each updated device - either added or deleted */
 	for namespace, device := range devices {
 		devList, ok := m.devices[namespace]

@@ -84,10 +84,15 @@ func (k *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) error {
 	var err error
 	var devices map[string]monitoring.Device
+
+	k.monitoring.GetDevices().Lock()
+	defer k.monitoring.GetDevices().Unlock()
+
 	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
 	if err = common.SanityCheckConnectionType(k.common.Mechanisms, crossConnect); err != nil {
 		return err
 	}
+
 	/* 1. Handle local connection */
 	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {

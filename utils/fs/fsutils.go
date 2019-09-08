@@ -5,9 +5,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"unicode"
+
+	"github.com/vishvananda/netns"
 
 	"github.com/sirupsen/logrus"
 )
@@ -89,4 +92,20 @@ func GetCmdline(pid string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// GetNsHandleFromInode return namespace handler from inode
+func GetNsHandleFromInode(inode string) (netns.NsHandle, error) {
+	/* Parse the string to an integer */
+	inodeNum, err := strconv.ParseUint(inode, 10, 64)
+	if err != nil {
+		return -1, fmt.Errorf("failed parsing inode, must be an unsigned int, instead was: %s", inode)
+	}
+	/* Get filepath from inode */
+	path, err := ResolvePodNsByInode(inodeNum)
+	if err != nil {
+		return -1, fmt.Errorf("failed to find file in /proc/*/ns/net with inode %d: %v", inodeNum, err)
+	}
+	/* Get namespace handler from path */
+	return netns.GetFromPath(path)
 }

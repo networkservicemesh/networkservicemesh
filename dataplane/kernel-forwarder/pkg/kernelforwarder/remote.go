@@ -16,17 +16,19 @@
 package kernelforwarder
 
 import (
+	"runtime"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 
 	"fmt"
 	"net"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
@@ -81,80 +83,94 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 }
 
 // createRemoteConnection handler for creating a remote connection
-func createRemoteConnection(nsPath, ifaceName, xconName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]monitoring.Device, error) {
-	logrus.Info("remote: creating connection")
-	/* 1. Get handler for container namespace */
-	containerNs, err := netns.GetFromPath(nsPath)
-	defer func() {
-		if err = containerNs.Close(); err != nil {
-			logrus.Error("remote: error when closing requested namespace:", err)
-		}
-	}()
+func createRemoteConnection(nsInode, ifaceName, xconName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]monitoring.Device, error) {
+	logrus.Info("remote: creating connection - ", nsInode, ifaceName, xconName, ifaceIP, vni)
+
+	/* Lock the OS thread so we don't accidentally switch namespaces */
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	/* Get namespace handler - destination */
+	dstHandle, err := fs.GetNsHandleFromInode(nsInode)
 	if err != nil {
-		logrus.Errorf("remote: failed to get requested namespace handler from path - %v", err)
+		logrus.Errorf("remote: failed to get destination namespace handle - %v", err)
+		return nil, err
+	}
+	/* If successful, don't forget to close the handler upon exit */
+	defer func() {
+		if err = dstHandle.Close(); err != nil {
+			logrus.Error("remote: error when closing destination handle: ", err)
+		}
+		logrus.Info("remote: closed destination handle: ", dstHandle, nsInode)
+	}()
+	logrus.Info("remote: opened destination handle: ", dstHandle, nsInode)
+
+	/* Create interface - host namespace */
+	if err = netlink.LinkAdd(newVXLAN(ifaceName, egressIP, remoteIP, vni)); err != nil {
+		logrus.Errorf("remote: failed to create VXLAN interface - %v", err)
 		return nil, err
 	}
 
-	/* 2. Prepare interface - VXLAN */
-	iface := newVXLAN(ifaceName, egressIP, remoteIP, vni)
-
-	/* 3. Create interface - host namespace */
-	if err = netlink.LinkAdd(iface); err != nil {
-		logrus.Errorf("remote: failed to create VXLAN interface - %v", err)
-	}
-
-	/* 4. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
+	/* Setup interface - inject from host to destination namespace */
+	if err = setupLinkInNs(dstHandle, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
 		logrus.Errorf("remote: failed to setup interface - destination - %q: %v", ifaceName, err)
 		return nil, err
 	}
 	logrus.Infof("remote: creation completed for device - %s", ifaceName)
-	return map[string]monitoring.Device{nsPath: monitoring.Device{Name: ifaceName, XconName: xconName}}, nil
+	return map[string]monitoring.Device{nsInode: monitoring.Device{Name: ifaceName, XconName: xconName}}, nil
 }
 
 // deleteRemoteConnection handler for deleting a remote connection
-func deleteRemoteConnection(nsPath, ifaceName, xconName string) (map[string]monitoring.Device, error) {
+func deleteRemoteConnection(nsInode, ifaceName, xconName string) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: deleting connection")
-	/* 1. Get handler for container namespace */
-	containerNs, err := netns.GetFromPath(nsPath)
-	defer func() {
-		if err = containerNs.Close(); err != nil {
-			logrus.Error("remote: error when closing requested namespace:", err)
-		}
-	}()
+
+	/* Lock the OS thread so we don't accidentally switch namespaces */
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	/* Get namespace handler - destination */
+	dstHandle, err := fs.GetNsHandleFromInode(nsInode)
 	if err != nil {
-		logrus.Errorf("remote: failed to get requested namespace handler from path - %v", err)
+		logrus.Errorf("remote: failed to get destination namespace handle - %v", err)
 		return nil, err
 	}
+	/* If successful, don't forget to close the handler upon exit */
+	defer func() {
+		if err = dstHandle.Close(); err != nil {
+			logrus.Error("remote: error when closing destination handle: ", err)
+		}
+		logrus.Info("remote: closed destination handle: ", dstHandle, nsInode)
+	}()
+	logrus.Info("remote: opened destination handle: ", dstHandle, nsInode)
 
-	/* 2. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, "", nil, nil, false); err != nil {
+	/* Setup interface - extract from destination to host namespace */
+	if err = setupLinkInNs(dstHandle, ifaceName, "", nil, nil, false); err != nil {
 		logrus.Errorf("remote: failed to setup interface - destination -  %q: %v", ifaceName, err)
 		return nil, err
 	}
 
-	/* 3. Get a link object for the interface */
+	/* Get a link object for interface */
 	ifaceLink, err := netlink.LinkByName(ifaceName)
 	if err != nil {
 		logrus.Errorf("remote: failed to get link for %q - %v", ifaceName, err)
 		return nil, err
 	}
 
-	/* 4. Delete the VXLAN interface - host namespace */
+	/* Delete the VXLAN interface - host namespace */
 	if err := netlink.LinkDel(ifaceLink); err != nil {
 		logrus.Errorf("remote: failed to delete VXLAN interface - %v", err)
 		return nil, err
 	}
 	logrus.Infof("remote: deletion completed for device - %s", ifaceName)
-	return map[string]monitoring.Device{nsPath: monitoring.Device{Name: ifaceName, XconName: xconName}}, nil
+	return map[string]monitoring.Device{nsInode: monitoring.Device{Name: ifaceName, XconName: xconName}}, nil
 }
 
 // modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing
 func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP, []*connectioncontext.Route, string) {
 	if direction == cINCOMING {
-		return cfg.dstNsPath, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes, "DST-" + cfg.id
+		return cfg.dstNetNsInode, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes, "DST-" + cfg.id
 	}
-	return cfg.srcNsPath, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN, cfg.srcRoutes, "SRC-" + cfg.id
+	return cfg.srcNetNsInode, cfg.srcName, cfg.srcIP, cfg.dstIPVXLAN, cfg.srcRoutes, "SRC-" + cfg.id
 }
 
 // newVXLAN returns a VXLAN interface instance

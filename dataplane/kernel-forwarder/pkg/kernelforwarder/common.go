@@ -23,7 +23,6 @@ import (
 
 	"fmt"
 	"net"
-	"runtime"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
@@ -46,56 +45,66 @@ const (
 )
 
 type connectionConfig struct {
-	id         string
-	srcNsPath  string
-	dstNsPath  string
-	srcName    string
-	dstName    string
-	srcIP      string
-	dstIP      string
-	srcIPVXLAN net.IP
-	dstIPVXLAN net.IP
-	srcRoutes  []*connectioncontext.Route
-	dstRoutes  []*connectioncontext.Route
-	neighbors  []*connectioncontext.IpNeighbor
-	vni        int
+	id            string
+	srcNetNsInode string
+	dstNetNsInode string
+	srcName       string
+	dstName       string
+	srcIP         string
+	dstIP         string
+	srcIPVXLAN    net.IP
+	dstIPVXLAN    net.IP
+	srcRoutes     []*connectioncontext.Route
+	dstRoutes     []*connectioncontext.Route
+	neighbors     []*connectioncontext.IpNeighbor
+	vni           int
 }
 
 // setupLinkInNs is responsible for configuring an interface inside a given namespace - assigns IP address, routes, etc.
 func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
 	if inject {
-		/* 1. Get a link object for the interface */
+		/* Get a link object for the interface */
 		ifaceLink, err := netlink.LinkByName(ifaceName)
 		if err != nil {
 			logrus.Errorf("common: failed to get link for %q - %v", ifaceName, err)
 			return err
 		}
-		/* 2. Inject the interface into the desired container namespace */
+		/* Inject the interface into the desired namespace */
 		if err = netlink.LinkSetNsFd(ifaceLink, int(containerNs)); err != nil {
 			logrus.Errorf("common: failed to inject %q in namespace - %v", ifaceName, err)
 			return err
 		}
 	}
-	/* 3. Lock the OS thread so we don't accidentally switch namespaces */
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-	/* 4. Save the current network namespace */
-	currentNs, err := netns.Get()
-	defer func() {
-		if err = currentNs.Close(); err != nil {
-			logrus.Error("common: error when closing:", err)
-		}
-	}()
+	/* Save current network namespace */
+	hostNs, err := netns.Get()
 	if err != nil {
-		logrus.Errorf("common: failed to get current namespace: %v", err)
+		logrus.Errorf("common: failed getting host namespace: %v", err)
 		return err
 	}
-	/* 5. Switch to the new namespace */
+	logrus.Info("common: host namespace: ", hostNs)
+	defer func() {
+		if err = hostNs.Close(); err != nil {
+			logrus.Error("common: failed closing host namespace handle: ", err)
+		}
+		logrus.Info("common: closed host namespace handle: ", hostNs)
+	}()
+
+	/* Switch to the desired namespace */
 	if err = netns.Set(containerNs); err != nil {
-		logrus.Errorf("common: failed to switch to container namespace: %v", err)
+		logrus.Errorf("common: failed switching to desired namespace: %v", err)
 		return err
 	}
-	/* 6. Get a link for the interface name */
+	logrus.Info("common: switched to desired namespace: ", containerNs)
+
+	/* Don't forget to switch back to the host namespace */
+	defer func() {
+		if err = netns.Set(hostNs); err != nil {
+			logrus.Errorf("common: failed switching back to host namespace: %v", err)
+		}
+		logrus.Info("common: switched back to host namespace: ", hostNs)
+	}()
+
+	/* Get a link for the interface name */
 	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
 		logrus.Errorf("common: failed to lookup %q, %v", ifaceName, err)
@@ -103,46 +112,43 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 	}
 	if inject {
 		var addr *netlink.Addr
-		/* 7. Parse the IP address */
+		/* Parse the IP address */
 		addr, err = netlink.ParseAddr(ifaceIP)
 		if err != nil {
 			logrus.Errorf("common: failed to parse IP %q: %v", ifaceIP, err)
 			return err
 		}
-		/* 8. Set IP address */
+		/* Set IP address */
 		if err = netlink.AddrAdd(link, addr); err != nil {
 			logrus.Errorf("common: failed to set IP %q: %v", ifaceIP, err)
 			return err
 		}
-		/* 9. Bring the interface UP */
+		/* Bring the interface UP */
 		if err = netlink.LinkSetUp(link); err != nil {
 			logrus.Errorf("common: failed to bring %q up: %v", ifaceName, err)
 			return err
 		}
-		/* 10. Add routes */
+		/* Add routes */
 		if err = addRoutes(link, addr, routes); err != nil {
 			logrus.Error("common: failed adding routes:", err)
+			return err
 		}
-		/* 11. Add neighbors - applicable only for source side */
+		/* Add neighbors - applicable only for source side */
 		if err = addNeighbors(link, neighbors); err != nil {
 			logrus.Error("common: failed adding neighbors:", err)
+			return err
 		}
 	} else {
-		/* 7. Bring the interface DOWN */
+		/* Bring the interface DOWN */
 		if err = netlink.LinkSetDown(link); err != nil {
 			logrus.Errorf("common: failed to bring %q down: %v", ifaceName, err)
 			return err
 		}
-		/* 8. Inject the interface back into the host namespace */
-		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
+		/* Inject the interface back to current namespace */
+		if err = netlink.LinkSetNsFd(link, int(hostNs)); err != nil {
 			logrus.Errorf("common: failed to inject %q back to host namespace - %v", ifaceName, err)
 			return err
 		}
-	}
-	/* Switch back to the original namespace */
-	if err = netns.Set(currentNs); err != nil {
-		logrus.Errorf("common: failed to switch back to original namespace: %v", err)
-		return err
 	}
 	return nil
 }
@@ -151,63 +157,43 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
 	switch connType {
 	case cLOCAL:
-		srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
-		if err != nil {
-			logrus.Errorf("common: failed to get source namespace path - %v", err)
-			return nil, err
-		}
-		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
-		if err != nil {
-			logrus.Errorf("common: failed to get destination namespace path - %v", err)
-			return nil, err
-		}
 		return &connectionConfig{
-			id:        crossConnect.GetId(),
-			srcNsPath: srcNsPath,
-			dstNsPath: dstNsPath,
-			srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			srcIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			dstIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
-			srcRoutes: crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
-			dstRoutes: crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors: crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
+			id:            crossConnect.GetId(),
+			srcNetNsInode: crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.NetNsInodeKey],
+			dstNetNsInode: crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.NetNsInodeKey],
+			srcName:       crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			dstName:       crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			srcIP:         crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			dstIP:         crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
+			srcRoutes:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
+			dstRoutes:     crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
+			neighbors:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
 		}, nil
 	case cINCOMING:
-		dstNsPath, err := crossConnect.GetLocalDestination().GetMechanism().NetNsFileName()
-		if err != nil {
-			logrus.Errorf("common: failed to get destination namespace path - %v", err)
-			return nil, err
-		}
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANVNI])
 		return &connectionConfig{
-			id:         crossConnect.GetId(),
-			dstNsPath:  dstNsPath,
-			dstName:    crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			dstIP:      crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
-			dstRoutes:  crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors:  nil,
-			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
-			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
-			vni:        vni,
+			id:            crossConnect.GetId(),
+			dstNetNsInode: crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.NetNsInodeKey],
+			dstName:       crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			dstIP:         crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
+			dstRoutes:     crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
+			neighbors:     nil,
+			srcIPVXLAN:    net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
+			dstIPVXLAN:    net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
+			vni:           vni,
 		}, nil
 	case cOUTGOING:
-		srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
-		if err != nil {
-			logrus.Errorf("common: failed to get destination namespace path - %v", err)
-			return nil, err
-		}
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANVNI])
 		return &connectionConfig{
-			id:         crossConnect.GetId(),
-			srcNsPath:  srcNsPath,
-			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			srcIP:      crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			srcRoutes:  crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
-			neighbors:  crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
-			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
-			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
-			vni:        vni,
+			id:            crossConnect.GetId(),
+			srcNetNsInode: crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.NetNsInodeKey],
+			srcName:       crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			srcIP:         crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			srcRoutes:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
+			neighbors:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
+			srcIPVXLAN:    net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
+			dstIPVXLAN:    net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
+			vni:           vni,
 		}, nil
 	default:
 		logrus.Error("common: connection configuration: invalid connection type")
