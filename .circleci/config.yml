@@ -55,6 +55,7 @@ jobs:
             sudo sudo chmod -R guo+w /usr/local/go/pkg
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
+            export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             make docker-build
             make docker-push
@@ -149,25 +150,6 @@ jobs:
     environment:
       GO111MODULE: "on"
       NSM_NAMESPACE: "nsm-system"
-
-# build
-  build-container:
-    parameters:
-      container:
-        type: string
-    docker:
-      - image: circleci/golang:1.13-stretch
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
-            export CONTAINER_REPO="networkservicemeshci"
-            make docker-<< parameters.container >>-build
-            make docker-<< parameters.container >>-push
 
 # docker push
   docker-push-tag:
