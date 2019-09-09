@@ -16,13 +16,13 @@ function check_git() {
 
 function check_deps() {
     check_git
-    local master=$(master_branch $1)
+    master=$(master_branch "$1")
     echo "master branch: ${master}"
-    for file in $(git diff --name-only ${master}); do
+    for file in $(git diff --name-only "${master}"); do
         echo "${file}"
         if [[ ${file} == *"go.mod" ]] || [[ ${file} == *"go.sum" ]]; then
-            echo "ERROR: go.mod or go.sum have changes after go build..."
-            git diff ${file}
+            echo "ERROR: ${file} have changes after go build..."
+            git diff "${file}"
             exit 2
         fi
     done
