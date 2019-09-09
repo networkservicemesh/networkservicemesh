@@ -24,6 +24,12 @@ vagrant-destroy:
 vagrant-restart: vagrant-destroy
 	@cd scripts/vagrant; sleep 2;vagrant up --no-parallel
 
+.PHONY: vagrant-halt
+vagrant-halt:
+	@cd scripts/vagrant; vagrant halt; sleep 2;vagrant up --no-parallel
+
+
+
 .PHONY: vagrant-suspend
 vagrant-suspend:
 	@cd scripts/vagrant; vagrant suspend
@@ -53,10 +59,10 @@ vagrant-%-load-images:
 	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
 		cd scripts/vagrant; \
 		echo "Loading image $*.tar to master"; \
-		vagrant ssh master -c "sudo docker rmi networkservicemesh/$* -f && docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+		vagrant ssh master -c "sudo docker rmi networkservicemesh/$* -f && sudo docker load -i /vagrant/images/$*.tar" ; \
 		number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
 			echo "Loading image $*.tar to worker$$number"; \
-			vagrant ssh worker$$number -c "sudo docker rmi networkservicemesh/$* -f && docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+			vagrant ssh worker$$number -c "sudo docker rmi networkservicemesh/$* -f && sudo docker load -i /vagrant/images/$*.tar" ; \
 			((number++)) ; \
 		done; \
 	else \

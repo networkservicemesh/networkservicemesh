@@ -48,4 +48,4 @@ scripts/vagrant/.kube/
 ./cloudtest
 vendor
 examples/
-
+build/dist

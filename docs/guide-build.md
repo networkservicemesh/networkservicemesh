@@ -45,13 +45,6 @@ because ```make k8s-save``` will build your containers and save them in `scripts
 
 > You can also selectively rebuild any component, say the `nsmd`, with ```make k8s-nsmd-save```
 
-## Speedup build speed by enabling local Vendoring
-
-```export VENDORING="-mod vendor"
-go mod vendor
-```
-Will enable use of vendor folder to share go dependencies. 
-
 ## Running the NSM code
 
 Network Service Mesh provides a handy Vagrant setup for running a two node K8s cluster. Once you've done ```make k8s-save```, you can deploy to it with:

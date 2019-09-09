@@ -21,7 +21,7 @@ BUILD_CONTAINERS+=nsm-coredns
 
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
-  BUILD_CONTAINERS+=vppagent-dataplane vppagent-dataplane-dev vpp-test-common
+  BUILD_CONTAINERS+=vppagent-dataplane vpp-test-common
 else ifeq (${FORWARDING_PLANE}, kernel)
   BUILD_CONTAINERS+=kernel-forwarder
 endif
@@ -42,10 +42,39 @@ docker-build: $(addsuffix -build,$(addprefix docker-,$(BUILD_CONTAINERS)))
 
 .PHONY: docker-%-build
 docker-%-build::
-	@${DOCKERBUILD} --network="host" --build-arg GO_VERSION=${GO_VERSION} --build-arg VPP_AGENT=${VPP_AGENT} --build-arg VENDORING="${VENDORING}" --build-arg GOPROXY="${GOPROXY}" --build-arg VERSION=${VERSION} -t ${ORG}/$* -f docker/Dockerfile.$* . && \
+	@@./build/build.sh $* ${ORG}/$* ; \
 	if [ "x${COMMIT}" != "x" ] ; then \
 		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
 	fi
+
+.PHONY: docker-test-common-build
+docker-test-common-build:
+	@./build/build-test-common.sh test-common ${ORG}/test-common; \
+	if [ "x${COMMIT}" != "x" ] ; then \
+    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+	fi
+
+.PHONY: docker-vpp-test-common-build
+docker-vpp-test-common-build:
+	@./build/build-vpp-test-common.sh vpp-test-common ${ORG}/vpp-test-common; \
+	if [ "x${COMMIT}" != "x" ] ; then \
+    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+	fi
+
+.PHONY: docker-vppagent-dataplane-build
+docker-vppagent-dataplane-build:
+	@./build/build-vppagent-dataplane.sh vppagent-dataplane ${ORG}/vppagent-dataplane
+	if [ "x${COMMIT}" != "x" ] ; then \
+    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+	fi
+
+.PHONY: docker-nsm-coredns-build
+docker-nsm-coredns-build:
+	@./build/build-nsm-coredns.sh nsm-coredns ${ORG}/nsm-coredns; \
+	if [ "x${COMMIT}" != "x" ] ; then \
+    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+	fi
+
 
 .PHONY: docker-save
 docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))

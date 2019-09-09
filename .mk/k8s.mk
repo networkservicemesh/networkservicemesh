@@ -160,7 +160,7 @@ k8s-proxy-nsmgr-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,
 .PHONY: k8s-proxy-nsmgr-load-images
 k8s-proxy-nsmgr-load-images:  $(addsuffix -load-images,$(addprefix ${CLUSTER_RULES_PREFIX}-,$(PROXY_NSMGR_CONTAINERS)))
 
-VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane vppagent-dataplane-dev
+VPPAGENT_DATAPLANE_CONTAINERS = vppagent-dataplane
 .PHONY: k8s-vppagent-dataplane-build
 k8s-vppagent-dataplane-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,$(VPPAGENT_DATAPLANE_CONTAINERS)))
  .PHONY: k8s-vppagent-dataplane-save
