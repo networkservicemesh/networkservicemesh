@@ -8,10 +8,10 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     if [[ ${nsc} == vppagent-* ]]; then
         for ip in $(${kubectl} exec -it "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do
-            if [[ "${ip}" == 10.20.1.* ]];then
+            if [[ "${ip}" == 172.16.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
                 nextOp=$((lastSegment + 1))
-                targetIp="10.20.1.${nextOp}"
+                targetIp="172.16.1.${nextOp}"
                 endpointName="icmp-responder-nse"
             elif [[ "${ip}" == 10.30.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
@@ -39,10 +39,10 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
         done
     else
         for ip in $(${kubectl} exec -it "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
-            if [[ "${ip}" == 10.20.1.* ]];then
+            if [[ "${ip}" == 172.16.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
                 nextOp=$((lastSegment + 1))
-                targetIp="10.20.1.${nextOp}"
+                targetIp="172.16.1.${nextOp}"
                 endpointName="icmp-responder-nse"
             elif [[ "${ip}" == 10.30.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
