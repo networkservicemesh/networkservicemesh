@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 APP=$1
-ORG=$1
+ORG=$2
 BIN_DIR="./build/dist/${APP}"
 
 # Include function to map apps
