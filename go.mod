@@ -2,7 +2,7 @@ module github.com/networkservicemesh/networkservicemesh
 
 require (
 	github.com/aws/aws-sdk-go v1.22.0
-	github.com/caddyserver/caddy v1.0.1
+	github.com/caddyserver/caddy v1.0.3
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/coredns/coredns v1.5.2
 	github.com/dnstap/golang-dnstap v0.1.0
