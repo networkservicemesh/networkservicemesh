@@ -52,6 +52,7 @@ jobs:
             gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v -e "sample"`
       - run:
           command: |
+            sudo chown -R $USER $(go env GOROOT)/pkg
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
