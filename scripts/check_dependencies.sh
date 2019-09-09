@@ -21,7 +21,7 @@ function check_deps() {
     for file in $(git diff --name-only "${master}"); do
         echo "${file}"
         if [[ ${file} == *"go.mod" ]] || [[ ${file} == *"go.sum" ]]; then
-            echo "ERROR: ${file} have changes after go build..."
+            echo "ERROR: ${file} has changes after go build..."
             git diff "${file}"
             exit 2
         fi
