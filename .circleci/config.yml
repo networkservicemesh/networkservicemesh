@@ -228,7 +228,7 @@ workflows:
       - test-helm-charts:
           name: "test-helm-charts"
           requires:
-            - test-sanity-check
+            - build-containers
 
 # push
       - docker-push-tag:
