@@ -82,7 +82,7 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) ([]string, er
 		prefixesToRemove := []string{}
 		_, subnetExclude, err := net.ParseCIDR(excludedPrefix)
 		if err != nil {
-			err := fmt.Errorf("IPAM: Unable to parse excluded prefix: %s", excludedPrefix)
+			err := fmt.Errorf("IPAM+: Unable to parse excluded prefix: %s", excludedPrefix)
 			logrus.Errorf("%v", err)
 			return nil, err
 		}
@@ -93,7 +93,7 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) ([]string, er
 			excludedIsBigger := false
 			_, subnetPrefix, err := net.ParseCIDR(prefix)
 			if err != nil {
-				err := fmt.Errorf("IPAM: Unable to parse excluded prefix: %s", prefix)
+				err := fmt.Errorf("IPAM-: Unable to parse available prefix: %s", prefix)
 				logrus.Errorf("%v", err)
 				return nil, err
 			}
