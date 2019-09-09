@@ -6,7 +6,7 @@ BIN_DIR="./build/dist/${APP}/"
 
 # Include function to map apps
 # shellcheck disable=SC1091
-source ./functions.sh
+source ./build/functions.sh
 
 echo -e "${GREEN}----------------------  Building ${OUT} via Cross compile ${APP} ---------------------- ${NC}"
 
