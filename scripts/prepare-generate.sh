@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-go install k8s.io/code-generator/cmd/deepcopy-gen
-go install github.com/golang/protobuf/protoc-gen-go
-go get golang.org/x/tools/cmd/stringer
+GO111MODULE=off go get -u k8s.io/code-generator/cmd/deepcopy-gen
+GO111MODULE=off go get -u github.com/golang/protobuf/protoc-gen-go
+GO111MODULE=off go get -u golang.org/x/tools/cmd/stringer
 

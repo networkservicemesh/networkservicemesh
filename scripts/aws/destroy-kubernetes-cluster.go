@@ -281,7 +281,8 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 	sess := session.Must(session.NewSession())
 	cfClient := cloudformation.New(sess)
 
-	stacks, err := cfClient.ListStacks(&cloudformation.ListStacksInput{})
+	var filter = []*string{aws.String("CREATE_IN_PROGRESS"), aws.String("CREATE_FAILED"), aws.String("CREATE_COMPLETE"), aws.String("ROLLBACK_IN_PROGRESS"), aws.String("ROLLBACK_FAILED"), aws.String("ROLLBACK_COMPLETE"), aws.String("DELETE_IN_PROGRESS"), aws.String("DELETE_FAILED"), aws.String("UPDATE_IN_PROGRESS"), aws.String("UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"), aws.String("UPDATE_COMPLETE"), aws.String("UPDATE_ROLLBACK_IN_PROGRESS"), aws.String("UPDATE_ROLLBACK_FAILED"), aws.String("UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"), aws.String("UPDATE_ROLLBACK_COMPLETE"), aws.String("REVIEW_IN_PROGRESS")}
+	stacks, err := cfClient.ListStacks(&cloudformation.ListStacksInput{StackStatusFilter: filter})
 	if err != nil {
 		logrus.Infof("AWS EKS Error: %v", err)
 		return
