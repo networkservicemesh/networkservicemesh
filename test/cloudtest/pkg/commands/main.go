@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -659,8 +660,8 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
 		_, _ = writer.WriteString(fmt.Sprintf("Command line %v\nenv==%v \n\n", runner.GetCmdLine(), env))
 		_ = writer.Flush()
-
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout*2)*time.Second)
+		timeoutDuration := time.Duration(timeout*2) * time.Second
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 		defer cancel()
 
 		for _, inst := range instances {
@@ -669,6 +670,18 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 
 		task.test.Started = time.Now()
 		errCode := runner.Run(timeoutCtx, env, writer)
+
+		if errCode != nil {
+			if task.test.ExecutionConfig != nil {
+				onFailScriptErr := runOnFailScript(context.Background(), timeoutDuration, task.test.ExecutionConfig.OnFail, env, writer)
+				if onFailScriptErr != nil {
+					logrus.Errorf("OnFail: script failed: %v", onFailScriptErr)
+					errCode = errors.Wrap(errCode, onFailScriptErr.Error())
+				}
+			} else {
+				logrus.Info("OnFail script is not found. ExecutionConfig is nil")
+			}
+		}
 
 		delay := 0
 		for _, cl := range task.clusters {
@@ -707,6 +720,15 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 			ctx.updateTestExecution(task, fileName, model.StatusSuccess)
 		}
 	}()
+}
+
+func runOnFailScript(ctx context.Context, timeout time.Duration, script string, env []string, writer *bufio.Writer) error {
+	context, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	logger := func(s string) {
+	}
+	_, onFailErr := utils.RunCommand(context, script, logger, writer, env, map[string]string{}, false)
+	return onFailErr
 }
 
 func (ctx *executionContext) getTestTimeout(task *testTask) int64 {
