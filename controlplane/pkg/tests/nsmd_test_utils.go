@@ -319,7 +319,7 @@ func (impl *testDataplaneConnection) Close(ctx context.Context, in *crossconnect
 	return nil, nil
 }
 
-func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (dataplane.Dataplane_MonitorMechanismsClient, error) {
+func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (dataplane.MechanismsMonitor_MonitorMechanismsClient, error) {
 	return nil, nil
 }
 
