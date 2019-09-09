@@ -51,28 +51,28 @@ docker-%-build::
 docker-test-common-build:
 	@./build/build-test-common.sh test-common ${ORG}/test-common; \
 	if [ "x${COMMIT}" != "x" ] ; then \
-    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+    		docker tag ${ORG}/test-common ${ORG}/test-common:${COMMIT} ;\
 	fi
 
 .PHONY: docker-vpp-test-common-build
 docker-vpp-test-common-build:
 	@./build/build-vpp-test-common.sh vpp-test-common ${ORG}/vpp-test-common; \
 	if [ "x${COMMIT}" != "x" ] ; then \
-    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+    		docker tag ${ORG}/vpp-test-common ${ORG}/vpp-test-common:${COMMIT} ;\
 	fi
 
 .PHONY: docker-vppagent-dataplane-build
 docker-vppagent-dataplane-build:
 	@./build/build-vppagent-dataplane.sh vppagent-dataplane ${ORG}/vppagent-dataplane
 	if [ "x${COMMIT}" != "x" ] ; then \
-    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+    		docker tag ${ORG}/vppagent-dataplane ${ORG}/vppagent-dataplane:${COMMIT} ;\
 	fi
 
 .PHONY: docker-nsm-coredns-build
 docker-nsm-coredns-build:
 	@./build/build-nsm-coredns.sh nsm-coredns ${ORG}/nsm-coredns; \
 	if [ "x${COMMIT}" != "x" ] ; then \
-    		docker tag ${ORG}/$* ${ORG}/$*:${COMMIT} ;\
+    		docker tag ${ORG}/nsm-coredns ${ORG}/nsm-coredns:${COMMIT} ;\
 	fi
 
 
