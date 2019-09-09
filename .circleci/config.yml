@@ -41,7 +41,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
-            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v -e "sample"
+            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v -e "sample"`
       - store_test_results:
           path: ~/junit
       - store_artifacts:
