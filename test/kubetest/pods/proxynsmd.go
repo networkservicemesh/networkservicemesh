@@ -57,6 +57,7 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 							ContainerPort: 5006,
 						},
 					},
+					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},
 				}),
 				containerMod(&v1.Container{
 					Name:            "proxy-nsmd-k8s",
@@ -69,8 +70,10 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 							ContainerPort: 5005,
 						},
 					},
+					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},
 				}),
 			},
+			Volumes: []v1.Volume{spireVolume()},
 		},
 	}
 

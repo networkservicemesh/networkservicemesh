@@ -10,9 +10,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"google.golang.org/grpc"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	proxynetworkserviceserver "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
@@ -87,12 +84,7 @@ func getProxyNSMDAPIAddress() string {
 
 // StartAPIServerAt starts GRPC API server at sock
 func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
-	tracer := opentracing.GlobalTracer()
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	grpcServer := tools.NewServer()
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
 	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
