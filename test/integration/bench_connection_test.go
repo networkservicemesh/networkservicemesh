@@ -148,6 +148,9 @@ func createNodes(g *WithT, k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
 func createNscAndPingIcmp(g *WithT, k8s *kubetest.K8s, id int, node *v1.Node, done chan nscPingResult, nscDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
 	nsc := nscDeploy(k8s, node, nscDefaultName+strconv.Itoa(id), defaultTimeout)
 	g.Expect(nsc.Name).To(Equal(nscDefaultName + strconv.Itoa(id)))
+	defer func() {
+		recover()
+	}()
 	done <- nscPingResult{
 		success: pingNse(k8s, nsc),
 		nsc:     nsc,
