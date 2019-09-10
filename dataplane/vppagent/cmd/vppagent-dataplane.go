@@ -17,6 +17,8 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -29,13 +31,13 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	dataplaneProbes := common.NewDataplaneProbes()
-	go dataplaneProbes.BeginHealthCheck()
+	dataplaneGoals := &common.DataplaneProbeGoals{}
+	dataplaneProbes := probes.New("Vppagent dataplane liveness/readiness healthcheck", dataplaneGoals)
+	dataplaneProbes.BeginHealthCheck()
 
 	agent := vppagent.CreateVPPAgent()
 
-	registration := common.CreateDataplane(agent, dataplaneProbes)
+	registration := common.CreateDataplane(agent, dataplaneGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

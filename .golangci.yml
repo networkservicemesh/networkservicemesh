@@ -133,6 +133,10 @@ issues:
     - path: test/cloudtest/pkg/commands/main.go
       linters:
         - gosec
+    - path: k8s/pkg/probes/health/serve_mux_health.go
+      linters:
+        - gosec
+
     - path: test/kubetest/log_utils.go
       linters:
         - gosec
