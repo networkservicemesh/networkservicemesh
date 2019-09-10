@@ -23,8 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/utils"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -34,13 +32,12 @@ import (
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	. "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
 )
 
 type NSMDataplane interface {
-	dataplane.DataplaneServer
 	dataplane.MechanismsMonitorServer
 	Init(*DataplaneConfig) error
+	CreateDataplaneServer(*DataplaneConfig) dataplane.DataplaneServer
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -216,14 +213,7 @@ func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *Datapla
 		dataplaneProbes.SetSocketListenReady()
 	}
 
-	chain := ChainOf(dp,
-		DirectMemifInterfaces(config.NSMBaseDir),
-		Connect(utils.EnvVar("VPPAGENT_ENDPOINT").GetStringOrDefault("localhost:9111")),
-		KernelInterfaces(config.NSMBaseDir),
-		ClearMechanism(config.Monitor, config.NSMBaseDir),
-		Commit(),
-		UpdateMonitor(config.Monitor))
-	dataplane.RegisterDataplaneServer(config.GRPCserver, chain)
+	dataplane.RegisterDataplaneServer(config.GRPCserver, dp.CreateDataplaneServer(config))
 	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server

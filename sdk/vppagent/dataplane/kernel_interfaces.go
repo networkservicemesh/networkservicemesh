@@ -8,7 +8,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
-	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane/state"
 )
 
 func KernelInterfaces(baseDir string) dataplane.DataplaneServer {
@@ -17,7 +16,6 @@ func KernelInterfaces(baseDir string) dataplane.DataplaneServer {
 
 type kernelInterfaces struct {
 	baseDir string
-	*EmptyChainedDataplaneServer
 }
 
 func (c *kernelInterfaces) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -28,17 +26,25 @@ func (c *kernelInterfaces) Request(ctx context.Context, crossConnect *crossconne
 	if err != nil {
 		return nil, err
 	}
-	nextCtx := state.WithDataChange(ctx, dataChange)
-	return state.NextDataplaneRequest(nextCtx, crossConnect)
+	nextCtx := WithDataChange(ctx, dataChange)
+	next := Next(ctx)
+	if next == nil {
+		return crossConnect, nil
+	}
+	return next.Request(nextCtx, crossConnect)
 }
 func (c *kernelInterfaces) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: c.baseDir,
 	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, true)
+	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, false)
 	if err != nil {
 		return nil, err
 	}
-	nextCtx := state.WithDataChange(ctx, dataChange)
-	return state.NextDataplaneClose(nextCtx, crossConnect)
+	nextCtx := WithDataChange(ctx, dataChange)
+	next := Next(ctx)
+	if next == nil {
+		return new(empty.Empty), nil
+	}
+	return next.Close(nextCtx, crossConnect)
 }

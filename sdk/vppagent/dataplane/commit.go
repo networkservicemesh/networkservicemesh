@@ -11,15 +11,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane/state"
 )
 
 type commit struct {
-	*EmptyChainedDataplaneServer
-}
-
-func Commit() dataplane.DataplaneServer {
-	return &commit{}
 }
 
 func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -32,11 +26,15 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 		return nil, err
 	}
 	printVppAgentConfiguration(client)
-	err = state.CloseConnection(ctx)
+	err = CloseConnection(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return state.NextDataplaneRequest(ctx, crossConnect)
+	next := Next(ctx)
+	if next == nil {
+		return crossConnect, nil
+	}
+	return next.Request(ctx, crossConnect)
 }
 
 func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
@@ -49,19 +47,23 @@ func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConn
 		return nil, err
 	}
 	printVppAgentConfiguration(client)
-	err = state.CloseConnection(ctx)
+	err = CloseConnection(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return state.NextDataplaneClose(ctx, crossConnect)
+	next := Next(ctx)
+	if next == nil {
+		return new(empty.Empty), nil
+	}
+	return next.Close(ctx, crossConnect)
 }
 
 func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configurator.ConfiguratorClient, error) {
-	dataChange := state.DataChange(ctx)
+	dataChange := DataChange(ctx)
 	if dataChange == nil {
 		return nil, nil, errors.New("dataChange is not passed")
 	}
-	client := state.ConfigurationClient(ctx)
+	client := ConfigurationClient(ctx)
 	if client == nil {
 		return nil, nil, errors.New("configuration client is not passed")
 	}
@@ -74,4 +76,8 @@ func printVppAgentConfiguration(client configurator.ConfiguratorClient) {
 		logrus.Errorf("Failed to dump VPP-agent state %v", err)
 	}
 	logrus.Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
+}
+
+func Commit() dataplane.DataplaneServer {
+	return &commit{}
 }

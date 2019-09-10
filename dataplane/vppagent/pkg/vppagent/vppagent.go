@@ -30,15 +30,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
-	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
-
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
 )
 
 // VPPAgent related constants
@@ -50,17 +48,22 @@ const (
 
 type VPPAgent struct {
 	//TODO: remove MonitorMechanisms from handlers
-	*sdk_dataplane.EmptyChainedDataplaneServer
-	vppAgentEndpoint     string
-	metricsCollector     *MetricsCollector
-	directMemifConnector *memif.DirectMemifConnector
-	common               *common.DataplaneConfig
+	vppAgentEndpoint string
+	metricsCollector *MetricsCollector
+	common           *common.DataplaneConfig
 }
 
 func CreateVPPAgent() *VPPAgent {
-	return &VPPAgent{
-		EmptyChainedDataplaneServer: new(sdk_dataplane.EmptyChainedDataplaneServer),
-	}
+	return &VPPAgent{}
+}
+
+func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+	return sdk_dataplane.ChainOf(sdk_dataplane.UseMonitor(config.Monitor),
+		sdk_dataplane.DirectMemifInterfaces(config.NSMBaseDir),
+		sdk_dataplane.Connect(config.NSMBaseDir),
+		sdk_dataplane.KernelInterfaces(config.NSMBaseDir),
+		sdk_dataplane.ClearMechanisms(config.NSMBaseDir),
+		sdk_dataplane.Commit())
 }
 
 // MonitorMechanisms sends mechanism updates
@@ -259,7 +262,6 @@ func (v *VPPAgent) configureVPPAgent() error {
 	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.vppAgentEndpoint); err != nil {
 		return err
 	}
-	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
 		LocalMechanisms: []*local.Mechanism{

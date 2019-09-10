@@ -9,26 +9,27 @@ import (
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
-	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane/state"
 )
 
 func DirectMemifInterfaces(baseDir string) dataplane.DataplaneServer {
 	return &directMemifInterface{
-		directMemifConnector:        memif.NewDirectMemifConnector(baseDir),
-		EmptyChainedDataplaneServer: new(EmptyChainedDataplaneServer),
+		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
 	}
 }
 
 type directMemifInterface struct {
-	*EmptyChainedDataplaneServer
 	directMemifConnector *memif.DirectMemifConnector
 }
 
 func (c *directMemifInterface) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	if isDirectMemif(crossConnect) {
-		c.directMemifConnector.Connect(crossConnect)
+		return c.directMemifConnector.Connect(crossConnect)
 	}
-	return state.NextDataplaneRequest(ctx, crossConnect)
+	next := Next(ctx)
+	if next == nil {
+		return crossConnect, nil
+	}
+	return next.Request(ctx, crossConnect)
 }
 
 func (c *directMemifInterface) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
@@ -36,7 +37,11 @@ func (c *directMemifInterface) Close(ctx context.Context, crossConnect *crosscon
 		c.directMemifConnector.Disconnect(crossConnect)
 		return new(empty.Empty), nil
 	}
-	return state.NextDataplaneClose(ctx, crossConnect)
+	next := Next(ctx)
+	if next == nil {
+		return new(empty.Empty), nil
+	}
+	return next.Close(ctx, crossConnect)
 }
 
 func isDirectMemif(crossConnect *crossconnect.CrossConnect) bool {
