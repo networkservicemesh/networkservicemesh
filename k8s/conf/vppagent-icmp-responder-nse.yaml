@@ -49,5 +49,3 @@ spec:
 metadata:
   name: vppagent-icmp-responder-nse
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""

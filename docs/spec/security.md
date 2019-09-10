@@ -34,13 +34,13 @@ Spire consist of two components:
 * ***spire-server*** - StatefulSet, one per cluster, responsible for *spire-agent* attestation, store information about SPIFFE ID
 
 In order to obtain certificates workload has to mount unix socket
-`/run/spire/sockets/agent.sock`. All volumes will be mounted by AdmissionWebhook in case 
-it discovers annonation `security.networkservicemesh.io: ""`
+`/run/spire/sockets/agent.sock`. All volumes will be mounted by `nsmdp` in case 
+it discovers resource limit `networkservicemesh.io/socket: 1`
 
 #### How to add workload and new SPIFFE ID
 
 1. Choose ServiceAccount for workload, create new or use existing one.
-2. Add new entry to `security/conf/registration.json`:
+2. Add new entry to `deployments/helm/nsm/charts/spire/registration.json`:
     ```json
     {
       "entries": [
@@ -57,9 +57,10 @@ it discovers annonation `security.networkservicemesh.io: ""`
       ]
     }
     ```
-3. Rebuild spire-registration image:
+3. Redeploy spire chart:
     ```bash
-    $ make docker-spire-registration-build
+    $ make spire-delete
+    $ make spire-install
     ```
 4. Modify workload's yaml, add *serviceAccount* and security annotation:
     ```yaml
@@ -75,7 +76,4 @@ it discovers annonation `security.networkservicemesh.io: ""`
               command: ['tail', '-f', '/dev/null']
     metadata:
       name: workload-alpine
-      annotations:
-        security.networkservicemesh.io: ""
-    
     ```

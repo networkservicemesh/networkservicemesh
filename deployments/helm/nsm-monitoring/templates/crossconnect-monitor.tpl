@@ -18,5 +18,3 @@ spec:
 metadata:
   name: crossconnect-monitor
   namespace: {{ .Release.Namespace }}
-  annotations:
-    security.networkservicemesh.io: ""

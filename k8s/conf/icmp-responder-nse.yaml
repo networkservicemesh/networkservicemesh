@@ -53,5 +53,3 @@ spec:
 metadata:
   name: icmp-responder-nse
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""

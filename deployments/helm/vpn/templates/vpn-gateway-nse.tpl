@@ -46,5 +46,3 @@ spec:
 metadata:
   name: vpn-gateway-nse
   namespace: {{ .Release.Namespace }}
-  annotations:
-      security.networkservicemesh.io: ""

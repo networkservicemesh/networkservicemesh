@@ -37,8 +37,6 @@ spec:
 metadata:
   name: vppagent-passthrough-nse-1
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -78,8 +76,6 @@ spec:
 metadata:
   name: vppagent-passthrough-nse-2
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -119,5 +115,3 @@ spec:
 metadata:
   name: vppagent-passthrough-nse-3
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""

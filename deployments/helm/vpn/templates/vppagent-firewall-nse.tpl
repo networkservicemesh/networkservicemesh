@@ -45,8 +45,6 @@ spec:
 metadata:
   name: vppagent-firewall-nse
   namespace: {{ .Release.Namespace }}
-  annotations:
-    security.networkservicemesh.io: ""
 ---
 apiVersion: v1
 kind: ConfigMap

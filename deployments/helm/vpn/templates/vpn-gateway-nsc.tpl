@@ -24,4 +24,3 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     ns.networkservicemesh.io: secure-intranet-connectivity
-    security.networkservicemesh.io: ""

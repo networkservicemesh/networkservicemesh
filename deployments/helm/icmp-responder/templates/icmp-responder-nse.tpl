@@ -48,5 +48,3 @@ spec:
 metadata:
   name: icmp-responder-nse
   namespace: {{ .Release.Namespace }}
-  annotations:
-    security.networkservicemesh.io: ""

@@ -32,5 +32,3 @@ spec:
 metadata:
   name: vppagent-nsc
   namespace: {{ .Release.Namespace }}
-  annotations:
-    security.networkservicemesh.io: ""

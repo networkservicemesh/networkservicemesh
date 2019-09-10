@@ -46,5 +46,3 @@ spec:
 metadata:
   name: vpn-gateway-nse
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""

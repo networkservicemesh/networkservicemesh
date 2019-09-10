@@ -18,5 +18,3 @@ spec:
 metadata:
   name: crossconnect-monitor
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""

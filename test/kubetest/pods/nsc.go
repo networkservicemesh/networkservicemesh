@@ -1,7 +1,7 @@
 package pods
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -12,8 +12,7 @@ func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 		ObjectMeta: v12.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
-				"ns.networkservicemesh.io":       "icmp-responder?app=icmp",
-				"security.networkservicemesh.io": "",
+				"ns.networkservicemesh.io": "icmp-responder?app=icmp",
 			},
 		},
 		TypeMeta: v12.TypeMeta{

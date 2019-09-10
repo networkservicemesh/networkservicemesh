@@ -32,5 +32,3 @@ spec:
 metadata:
   name: vppagent-nsc
   namespace: nsm-system
-  annotations:
-    security.networkservicemesh.io: ""
