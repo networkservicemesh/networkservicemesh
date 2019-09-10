@@ -5,7 +5,6 @@ package nsmd_integration_tests
 import (
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -82,24 +81,22 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	var podToKill *v1.Pod
 	var podToCheck *v1.Pod
+	var nsmdPodToCheck *v1.Pod
 	if killSrc {
 		podToKill = nsc
 		podToCheck = icmp
+		nsmdPodToCheck = nodes[nodesCount-1].Nsmd
 	} else {
 		podToKill = icmp
 		podToCheck = nsc
+		nsmdPodToCheck = nodes[0].Nsmd
 	}
 
 	k8s.DeletePods(podToKill)
-	success := false
-	for attempt := 0; attempt < 20; <-time.After(300 * time.Millisecond) {
-		attempt++
-		ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
-		if !strings.Contains(ipResponse, "nsm") {
-			success = true
-			break
-		}
-	}
-	g.Expect(success).To(Equal(true))
+	k8s.WaitLogsContains(nsmdPodToCheck, "nsmd", "Cross connection successfully closed on dataplane", defaultTimeout)
 
+	ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(ipResponse, "nsm")).To(Equal(false))
 }

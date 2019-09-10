@@ -19,5 +19,9 @@ message MechanismUpdate {
 service Dataplane {
   rpc Request(crossconnect.CrossConnect) returns (crossconnect.CrossConnect);
   rpc Close(crossconnect.CrossConnect) returns (google.protobuf.Empty);
-  rpc MonitorMechanisms(google.protobuf.Empty) returns (stream MechanismUpdate);
+
+}
+
+service MechanismsMonitor {
+    rpc MonitorMechanisms (google.protobuf.Empty) returns (stream MechanismUpdate);
 }

@@ -39,6 +39,7 @@ import (
 
 type NSMDataplane interface {
 	dataplane.DataplaneServer
+	dataplane.MechanismsMonitorServer
 	Init(*DataplaneConfig) error
 }
 
@@ -223,6 +224,7 @@ func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *Datapla
 		Commit(),
 		UpdateMonitor(config.Monitor))
 	dataplane.RegisterDataplaneServer(config.GRPCserver, chain)
+	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server
 	logrus.Infof("Creating %s server...", config.Name)
