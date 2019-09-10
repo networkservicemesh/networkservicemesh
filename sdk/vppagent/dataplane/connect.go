@@ -9,6 +9,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 )
 
+//Connect creates dataplane server handler with connection to vpp-agent confgirator server
 func Connect(endpoint string) dataplane.DataplaneServer {
 	return &connect{endpoint: endpoint}
 }
@@ -27,7 +28,7 @@ func (c *connect) Request(ctx context.Context, crossConnect *crossconnect.CrossC
 		Logger(ctx).Errorf("An error during closing configuration client: %v", err)
 	}()
 	if next := Next(ctx); next != nil {
-		next.Request(nextCtx, crossConnect)
+		return next.Request(nextCtx, crossConnect)
 	}
 	return crossConnect, nil
 }
@@ -42,7 +43,7 @@ func (c *connect) Close(ctx context.Context, crossConnect *crossconnect.CrossCon
 		Logger(ctx).Errorf("An error during closing configuration client: %v", err)
 	}()
 	if next := Next(ctx); next != nil {
-		next.Close(nextCtx, crossConnect)
+		return next.Close(nextCtx, crossConnect)
 	}
 	return new(empty.Empty), nil
 }

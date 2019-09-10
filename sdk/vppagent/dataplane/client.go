@@ -8,10 +8,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
+type clientKeyType string
+
 const (
-	clientKey = "client"
+	clientKey clientKeyType = "client"
 )
 
+// WithConfiguratorClient adds to context value with configurator client
 func WithConfiguratorClient(ctx context.Context, endpoint string) (context.Context, func() error, error) {
 	conn, err := tools.DialTCP(endpoint)
 	if err != nil {
@@ -23,7 +26,8 @@ func WithConfiguratorClient(ctx context.Context, endpoint string) (context.Conte
 	return context.WithValue(ctx, clientKey, client), conn.Close, nil
 }
 
-func ConfigurationClient(ctx context.Context) configurator.ConfiguratorClient {
+//ConfiguratorClient returns configurator client or nill if client not created
+func ConfiguratorClient(ctx context.Context) configurator.ConfiguratorClient {
 	if client, ok := ctx.Value(clientKey).(configurator.ConfiguratorClient); ok {
 		return client
 	}

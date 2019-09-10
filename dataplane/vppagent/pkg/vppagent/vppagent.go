@@ -55,6 +55,7 @@ func CreateVPPAgent() *VPPAgent {
 	return &VPPAgent{}
 }
 
+//CreateDataplaneServer creates DataplaneServer handler
 func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
 	return sdk_dataplane.ChainOf(
 		sdk_dataplane.UseSpan(),
@@ -107,8 +108,10 @@ func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorCl
 func (v *VPPAgent) reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
-
+	err := tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
+	if err != nil {
+		logrus.Errorf("reset: An error during wait for port available: %v", err.Error())
+	}
 	conn, err := tools.DialTCP(v.endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
@@ -128,8 +131,10 @@ func (v *VPPAgent) reset() error {
 func (v *VPPAgent) programMgmtInterface() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
-
+	err := tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
+	if err != nil {
+		logrus.Errorf("programMgmtInterface: An error during wait for port available: %v", err.Error())
+	}
 	conn, err := tools.DialTCP(v.endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)

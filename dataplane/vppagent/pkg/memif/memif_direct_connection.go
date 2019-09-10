@@ -23,6 +23,7 @@ func NewDirectMemifConnector(baseDir string) *DirectMemifConnector {
 	}
 }
 
+//Connect makes memif direct connection
 func (d *DirectMemifConnector) Connect(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Direct memif cross connect request: %v", crossConnect)
 
@@ -58,6 +59,7 @@ func (d *DirectMemifConnector) Connect(crossConnect *crossconnect.CrossConnect) 
 	return crossConnect, nil
 }
 
+//Disconnect makes memif dirrect dissconnect
 func (d *DirectMemifConnector) Disconnect(crossConnect *crossconnect.CrossConnect) {
 	value, exist := d.proxyMap.Load(crossConnect.GetId())
 	if !exist {

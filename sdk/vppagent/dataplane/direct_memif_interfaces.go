@@ -11,6 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 )
 
+//DirectMemifInterfaces creates dataplane server handler with direct memif connection/ disconnection
 func DirectMemifInterfaces(baseDir string) dataplane.DataplaneServer {
 	return &directMemifInterface{
 		directMemifConnector: memif.NewDirectMemifConnector(baseDir),

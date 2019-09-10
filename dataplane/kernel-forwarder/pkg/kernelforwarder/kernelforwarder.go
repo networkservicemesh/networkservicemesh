@@ -42,6 +42,7 @@ func CreateKernelForwarder() *KernelForwarder {
 	return &KernelForwarder{}
 }
 
+// CreateDataplaneServer creates an instance of DataplaneServer
 func (v *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
 	return v
 }

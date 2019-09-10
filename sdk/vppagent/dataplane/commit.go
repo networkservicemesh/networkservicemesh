@@ -53,8 +53,9 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 	dataChange := DataChange(ctx)
 	if dataChange == nil {
 		return nil, nil, errors.New("dataChange is not passed")
+
 	}
-	client := ConfigurationClient(ctx)
+	client := ConfiguratorClient(ctx)
 	if client == nil {
 		return nil, nil, errors.New("configuration client is not passed")
 	}
@@ -69,6 +70,7 @@ func printVppAgentConfiguration(ctx context.Context, client configurator.Configu
 	Logger(ctx).Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
 }
 
+// Commit commits changes
 func Commit() dataplane.DataplaneServer {
 	return &commit{}
 }

@@ -6,8 +6,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 )
 
+type chainKeyType string
+
 const (
-	chainKey = "chain"
+	chainKey chainKeyType = "chain"
 )
 
 type chain struct {
@@ -24,7 +26,7 @@ func (c *chain) Next() dataplane.DataplaneServer {
 }
 
 // WithChain retruns context with chain of dataplane server handlers
-func WithChain(ctx context.Context, first dataplane.DataplaneServer, next []dataplane.DataplaneServer) context.Context {
+func WithChain(ctx context.Context, next []dataplane.DataplaneServer) context.Context {
 	return context.WithValue(ctx, chainKey, &chain{handlers: next, index: 0})
 }
 

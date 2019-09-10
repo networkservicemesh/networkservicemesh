@@ -42,7 +42,7 @@ func (c *clearMechanisms) Request(ctx context.Context, crossConnect *crossconnec
 	clearDataChange, cErr := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false)
 	if cErr == nil && clearDataChange != nil {
 		logrus.Infof("Sending clearing DataChange to vppagent: %v", proto.MarshalTextString(clearDataChange))
-		client := ConfigurationClient(ctx)
+		client := ConfiguratorClient(ctx)
 		if client == nil {
 			return nil, errors.New("configuration client is not passed for clear mechanism")
 		}

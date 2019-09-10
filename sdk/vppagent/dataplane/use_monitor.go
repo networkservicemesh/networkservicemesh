@@ -10,6 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
 )
 
+//UseMonitor creates dataplane server handler with updating crossconnect monitor server
 func UseMonitor(monitor monitor_crossconnect.MonitorServer) dataplane.DataplaneServer {
 	return &useMonitor{
 		monitor: monitor,

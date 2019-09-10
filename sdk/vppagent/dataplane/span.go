@@ -21,9 +21,9 @@ func (c *span) Request(ctx context.Context, crossConnect *crossconnect.CrossConn
 		span, nextContext = opentracing.StartSpanFromContext(ctx, "DataplaneServer.Request")
 		defer span.Finish()
 	}
-	nextContext = context.WithValue(ctx, loggerKey, common.LogFromSpan(span))
+	nextContext = context.WithValue(nextContext, loggerKey, common.LogFromSpan(span))
 	if next := Next(nextContext); next != nil {
-		next.Request(nextContext, crossConnect)
+		return next.Request(nextContext, crossConnect)
 	}
 	return crossConnect, nil
 }
@@ -36,11 +36,12 @@ func (c *span) Close(ctx context.Context, crossConnect *crossconnect.CrossConnec
 		defer span.Finish()
 	}
 	if next := Next(nextContext); next != nil {
-		next.Close(nextContext, crossConnect)
+		return next.Close(nextContext, crossConnect)
 	}
 	return new(empty.Empty), nil
 }
 
+//UseSpan creates dataplane server handler with span injection
 func UseSpan() dataplane.DataplaneServer {
 	return &span{}
 }

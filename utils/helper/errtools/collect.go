@@ -2,6 +2,7 @@ package errtools
 
 import "github.com/pkg/errors"
 
+//Collect collects an array of errors to a single error
 func Collect(errs ...error) error {
 	var result error
 

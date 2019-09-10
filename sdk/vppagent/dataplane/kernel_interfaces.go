@@ -10,6 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 )
 
+//KernelInterfaces creates dataplnae server handler with creation dataChange config for kernel and not direct memif connections
 func KernelInterfaces(baseDir string) dataplane.DataplaneServer {
 	return &kernelInterfaces{baseDir: baseDir}
 }
