@@ -16,7 +16,6 @@ package vppagent
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -37,6 +36,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 // VPPAgent related constants
@@ -47,8 +47,6 @@ const (
 )
 
 type VPPAgent struct {
-	//TODO: remove MonitorMechanisms from handlers
-	vppAgentEndpoint string
 	metricsCollector *MetricsCollector
 	common           *common.DataplaneConfig
 }
@@ -60,7 +58,7 @@ func CreateVPPAgent() *VPPAgent {
 func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
 	return sdk_dataplane.ChainOf(sdk_dataplane.UseMonitor(config.Monitor),
 		sdk_dataplane.DirectMemifInterfaces(config.NSMBaseDir),
-		sdk_dataplane.Connect(config.NSMBaseDir),
+		sdk_dataplane.Connect(v.Endpoint()),
 		sdk_dataplane.KernelInterfaces(config.NSMBaseDir),
 		sdk_dataplane.ClearMechanisms(config.NSMBaseDir),
 		sdk_dataplane.Commit())
@@ -107,9 +105,9 @@ func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorCl
 func (v *VPPAgent) reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
+	tools.WaitForPortAvailable(ctx, "tcp", v.Endpoint(), 100*time.Millisecond)
 
-	conn, err := tools.DialTCP(v.vppAgentEndpoint)
+	conn, err := tools.DialTCP(v.Endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -128,9 +126,9 @@ func (v *VPPAgent) reset() error {
 func (v *VPPAgent) programMgmtInterface() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
+	tools.WaitForPortAvailable(ctx, "tcp", v.Endpoint(), 100*time.Millisecond)
 
-	conn, err := tools.DialTCP(v.vppAgentEndpoint)
+	conn, err := tools.DialTCP(v.Endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -247,19 +245,17 @@ func (v *VPPAgent) setupMetricsCollector() {
 		return
 	}
 	v.metricsCollector = NewMetricsCollector(v.common.MetricsPeriod)
-	v.metricsCollector.CollectAsync(v.common.Monitor, v.vppAgentEndpoint)
+	v.metricsCollector.CollectAsync(v.common.Monitor, v.Endpoint())
+}
+
+func (v *VPPAgent) Endpoint() string {
+	return utils.EnvVar(VPPEndpointKey).GetStringOrDefault(VPPEndpointDefault)
+
 }
 
 func (v *VPPAgent) configureVPPAgent() error {
-	var ok bool
-
-	v.vppAgentEndpoint, ok = os.LookupEnv(VPPEndpointKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", VPPEndpointKey, VPPEndpointDefault)
-		v.vppAgentEndpoint = VPPEndpointDefault
-	}
-	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
-	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.vppAgentEndpoint); err != nil {
+	logrus.Infof("vppAgentEndpoint: %s", v.Endpoint())
+	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.Endpoint()); err != nil {
 		return err
 	}
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)

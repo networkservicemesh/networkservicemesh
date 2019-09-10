@@ -26,10 +26,6 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 		return nil, err
 	}
 	printVppAgentConfiguration(client)
-	err = CloseConnection(ctx)
-	if err != nil {
-		return nil, err
-	}
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil
@@ -47,10 +43,6 @@ func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConn
 		return nil, err
 	}
 	printVppAgentConfiguration(client)
-	err = CloseConnection(ctx)
-	if err != nil {
-		return nil, err
-	}
 	next := Next(ctx)
 	if next == nil {
 		return new(empty.Empty), nil
