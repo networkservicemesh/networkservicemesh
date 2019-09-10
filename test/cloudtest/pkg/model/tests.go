@@ -58,8 +58,7 @@ type TestEntry struct {
 	Duration   time.Duration
 	Started    time.Time
 
-	RunScript    string
-	OnFailScript string
+	RunScript string
 
 	Kind   TestEntryKind
 	Status Status

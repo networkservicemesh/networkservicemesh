@@ -564,7 +564,6 @@ func (ctx *executionContext) createSingleTask(taskIndex int, test *model.TestEnt
 			ExecutionConfig: test.ExecutionConfig,
 			Executions:      []model.TestEntryExecution{},
 			RunScript:       test.RunScript,
-			OnFailScript:    test.OnFailScript,
 		},
 		clusters: []*clustersGroup{cluster},
 	}
@@ -1002,7 +1001,6 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 			ExecutionConfig: exec,
 			Status:          model.StatusAdded,
 			RunScript:       exec.Run,
-			OnFailScript:    exec.OnFail,
 		},
 	}
 }
