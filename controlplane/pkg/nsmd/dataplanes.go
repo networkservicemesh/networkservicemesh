@@ -68,7 +68,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		return
 	}
 	defer conn.Close()
-	dataplaneClient := dataplaneapi.NewDataplaneClient(conn)
+	dataplaneClient := dataplaneapi.NewMechanismsMonitorClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
 	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &empty.Empty{})

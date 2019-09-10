@@ -43,7 +43,7 @@ func CreateKernelForwarder() *KernelForwarder {
 }
 
 // MonitorMechanisms handler
-func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
+func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
 		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
