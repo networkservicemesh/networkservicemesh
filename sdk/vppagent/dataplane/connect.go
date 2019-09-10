@@ -3,8 +3,6 @@ package dataplane
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
@@ -26,7 +24,7 @@ func (c *connect) Request(ctx context.Context, crossConnect *crossconnect.CrossC
 	}
 	defer func() {
 		err := close()
-		logrus.Errorf("An error during closing configuration client: %v", err)
+		Logger(ctx).Errorf("An error during closing configuration client: %v", err)
 	}()
 	if next := Next(ctx); next != nil {
 		next.Request(nextCtx, crossConnect)
@@ -41,7 +39,7 @@ func (c *connect) Close(ctx context.Context, crossConnect *crossconnect.CrossCon
 	}
 	defer func() {
 		err := close()
-		logrus.Errorf("An error during closing configuration client: %v", err)
+		Logger(ctx).Errorf("An error during closing configuration client: %v", err)
 	}()
 	if next := Next(ctx); next != nil {
 		next.Close(nextCtx, crossConnect)

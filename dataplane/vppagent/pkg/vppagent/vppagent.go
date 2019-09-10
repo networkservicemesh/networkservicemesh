@@ -56,9 +56,11 @@ func CreateVPPAgent() *VPPAgent {
 }
 
 func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
-	return sdk_dataplane.ChainOf(sdk_dataplane.UseMonitor(config.Monitor),
+	return sdk_dataplane.ChainOf(
+		sdk_dataplane.UseSpan(),
+		sdk_dataplane.UseMonitor(config.Monitor),
 		sdk_dataplane.DirectMemifInterfaces(config.NSMBaseDir),
-		sdk_dataplane.Connect(v.Endpoint()),
+		sdk_dataplane.Connect(v.endpoint()),
 		sdk_dataplane.KernelInterfaces(config.NSMBaseDir),
 		sdk_dataplane.ClearMechanisms(config.NSMBaseDir),
 		sdk_dataplane.Commit())
@@ -105,9 +107,9 @@ func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorCl
 func (v *VPPAgent) reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.Endpoint(), 100*time.Millisecond)
+	tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
 
-	conn, err := tools.DialTCP(v.Endpoint())
+	conn, err := tools.DialTCP(v.endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -126,9 +128,9 @@ func (v *VPPAgent) reset() error {
 func (v *VPPAgent) programMgmtInterface() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.Endpoint(), 100*time.Millisecond)
+	tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
 
-	conn, err := tools.DialTCP(v.Endpoint())
+	conn, err := tools.DialTCP(v.endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -245,17 +247,17 @@ func (v *VPPAgent) setupMetricsCollector() {
 		return
 	}
 	v.metricsCollector = NewMetricsCollector(v.common.MetricsPeriod)
-	v.metricsCollector.CollectAsync(v.common.Monitor, v.Endpoint())
+	v.metricsCollector.CollectAsync(v.common.Monitor, v.endpoint())
 }
 
-func (v *VPPAgent) Endpoint() string {
+func (v *VPPAgent) endpoint() string {
 	return utils.EnvVar(VPPEndpointKey).GetStringOrDefault(VPPEndpointDefault)
 
 }
 
 func (v *VPPAgent) configureVPPAgent() error {
-	logrus.Infof("vppAgentEndpoint: %s", v.Endpoint())
-	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.Endpoint()); err != nil {
+	logrus.Infof("vppAgentEndpoint: %s", v.endpoint())
+	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.endpoint()); err != nil {
 		return err
 	}
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)

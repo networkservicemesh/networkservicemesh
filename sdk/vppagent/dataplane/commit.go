@@ -7,7 +7,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
@@ -25,7 +24,7 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		return nil, err
 	}
-	printVppAgentConfiguration(client)
+	printVppAgentConfiguration(ctx, client)
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil
@@ -42,7 +41,7 @@ func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConn
 	if err != nil {
 		return nil, err
 	}
-	printVppAgentConfiguration(client)
+	printVppAgentConfiguration(ctx, client)
 	next := Next(ctx)
 	if next == nil {
 		return new(empty.Empty), nil
@@ -62,12 +61,12 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 	return dataChange, client, nil
 }
 
-func printVppAgentConfiguration(client configurator.ConfiguratorClient) {
+func printVppAgentConfiguration(ctx context.Context, client configurator.ConfiguratorClient) {
 	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
-		logrus.Errorf("Failed to dump VPP-agent state %v", err)
+		Logger(ctx).Errorf("Failed to dump VPP-agent state %v", err)
 	}
-	logrus.Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
+	Logger(ctx).Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
 }
 
 func Commit() dataplane.DataplaneServer {
