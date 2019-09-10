@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -573,9 +575,9 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.testModel.AddListener(monitorCrossConnectClient)
+	probes := probes.New("Test probes", nil)
 
-	// Start API Server
-	nsmServer.StartAPIServerAt(ctx, sock)
+	nsmServer.StartAPIServerAt(ctx, sock, probes)
 
 	return srv
 }
