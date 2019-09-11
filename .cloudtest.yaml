@@ -128,13 +128,14 @@ executions:
       make k8s-logs-snapshot-only-master
       make helm-delete-vpn helm-delete-nsm
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${$NSM_NAMESPACE}" --all
     on_fail: |
       kubectl get pods -n "${NSM_NAMESPACE}"
       make k8s-logs-snapshot
       make helm-delete-vpn helm-delete-nsm
+      make k8s-delete-nsm-namespaces
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${$NSM_NAMESPACE}" --all
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -153,10 +154,11 @@ executions:
       make k8s-logs-snapshot-only-master
       make helm-delete-icmp-responder helm-delete-nsm
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
     on_fail: |
       kubectl get pods -n "${NSM_NAMESPACE}"
       make k8s-logs-snapshot
       make helm-delete-icmp-responder helm-delete-nsm
+      make k8s-delete-nsm-namespaces
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
