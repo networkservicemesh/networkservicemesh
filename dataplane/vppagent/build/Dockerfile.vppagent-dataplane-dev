@@ -29,7 +29,7 @@ RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vp
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
 
-FROM golang:alpine as build_vpp
+FROM golang:${GO_VERSION}-alpine as build_vpp
 ARG VERSION=unspecified
 ARG VENDORING
 RUN apk --no-cache add git
