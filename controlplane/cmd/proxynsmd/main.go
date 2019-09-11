@@ -6,6 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"google.golang.org/grpc"
 
@@ -45,31 +49,27 @@ func main() {
 			logrus.Errorf("Failed to close tracer: %v", err)
 		}
 	}()
-
-	nsmdProbes := nsmd.NewProbes()
-	go nsmdProbes.BeginHealthCheck()
-	// Proxy NSM doesn't start some services - pass that probes by default
-	nsmdProbes.SetDPServerReady()
-	nsmdProbes.SetNSMServerReady()
+	goals := &proxyNsmdProbeGoals{}
+	nsmdProbes := probes.New("Prxoy NSMD liveness/readiness healthcheck", goals)
+	nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
 	defer serviceRegistry.Stop()
 
 	// Choose a public API listener
-	nsmdAPIAddress := os.Getenv(ProxyNsmdAPIAddressEnv)
-	if strings.TrimSpace(nsmdAPIAddress) == "" {
-		nsmdAPIAddress = ProxyNsmdAPIAddressDefaults
-	}
-	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
+
+	sock, err := apiRegistry.NewPublicListener(getProxyNSMDAPIAddress())
 	if err != nil {
 		logrus.Errorf("Failed to start Public API server...")
 		return
 	}
-	nsmdProbes.SetPublicListenerReady()
+	logrus.Info("Public listener is ready")
+	goals.SetPublicListenerReady()
 
-	startAPIServerAt(sock, serviceRegistry)
-	nsmdProbes.SetAPIServerReady()
+	startAPIServerAt(sock, serviceRegistry, nsmdProbes)
+	logrus.Info("API server is ready")
+	goals.SetServerAPIReady()
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting Proxy NSMD took: %s", elapsed)
@@ -77,18 +77,25 @@ func main() {
 	<-c
 }
 
+func getProxyNSMDAPIAddress() string {
+	result := os.Getenv(ProxyNsmdAPIAddressEnv)
+	if strings.TrimSpace(result) == "" {
+		result = ProxyNsmdAPIAddressDefaults
+	}
+	return result
+}
+
 // StartAPIServerAt starts GRPC API server at sock
-func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry) {
+func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
 	tracer := opentracing.GlobalTracer()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
 	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
-
+	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 	// Register Remote NetworkServiceManager
 	remoteServer := proxynetworkserviceserver.NewProxyNetworkServiceServer(serviceRegistry)
 	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)

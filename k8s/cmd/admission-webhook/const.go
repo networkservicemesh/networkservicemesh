@@ -27,4 +27,5 @@ const (
 	containersPath       = "/spec/containers"
 	dnsConfigPath        = "/spec/dnsConfig"
 	dnsPolicyPath        = "/spec/dnsPolicy"
+	defaultPort          = 443
 )

@@ -51,6 +51,8 @@ func AdmissionWebhookDeployment(name, image string) *appsv1.Deployment {
 									ReadOnly:  true,
 								},
 							},
+							LivenessProbe:  createProbe("/liveness"),
+							ReadinessProbe: createProbe("/readiness"),
 						}),
 					},
 					Volumes: []v1.Volume{

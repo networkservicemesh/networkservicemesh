@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
@@ -35,14 +37,10 @@ func main() {
 	tracer, closer := tools.InitJaeger("nsmd")
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
-
 	span := opentracing.StartSpan("nsmd")
 	defer span.Finish()
 
 	ctx := opentracing.ContextWithSpan(context.Background(), span)
-
-	nsmdProbes := nsmd.NewProbes()
-	go nsmdProbes.BeginHealthCheck()
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
@@ -72,7 +70,13 @@ func main() {
 		return
 	}
 	defer server.Stop()
-	nsmdProbes.SetNSMServerReady()
+
+	nsmdGoals := &nsmdProbeGoals{}
+	nsmdProbes := probes.New("NSMD liveness/readiness healthcheck", nsmdGoals)
+	nsmdProbes.BeginHealthCheck()
+
+	logrus.Info("NSM server is ready")
+	nsmdGoals.SetNsmServerReady()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
@@ -90,25 +94,35 @@ func main() {
 		logrus.Errorf("Error waiting for dataplane..")
 		return
 	}
-	nsmdProbes.SetDPServerReady()
 
+	logrus.Info("Dataplane server is ready")
+	nsmdGoals.SetDataplaneServerReady()
 	// Choose a public API listener
-	nsmdAPIAddress := os.Getenv(NsmdAPIAddressEnv)
-	if strings.TrimSpace(nsmdAPIAddress) == "" {
-		nsmdAPIAddress = NsmdAPIAddressDefaults
-	}
-	sock, sockErr := apiRegistry.NewPublicListener(nsmdAPIAddress)
-	if sockErr != nil {
-		logrus.Errorf("failed to start Public API server %v", sockErr)
+
+	nsmdAPIAddress := getNsmdAPIAddress()
+	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
+	if err != nil {
+		logrus.Errorf("Failed to start Public API server...")
+
 		return
 	}
-	nsmdProbes.SetPublicListenerReady()
+	logrus.Info("Public listener is ready")
+	nsmdGoals.SetPublicListenerReady()
 
-	server.StartAPIServerAt(ctx, sock)
-	nsmdProbes.SetAPIServerReady()
+	server.StartAPIServerAt(ctx, sock, nsmdProbes)
+	nsmdGoals.SetServerAPIReady()
+	logrus.Info("Serve api is ready")
 
 	elapsed := time.Since(start)
 	logrus.Debugf("Starting NSMD took: %s", elapsed)
 
 	<-c
+}
+
+func getNsmdAPIAddress() string {
+	result := os.Getenv(NsmdAPIAddressEnv)
+	if strings.TrimSpace(result) == "" {
+		result = NsmdAPIAddressDefaults
+	}
+	return result
 }

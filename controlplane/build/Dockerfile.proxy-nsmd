@@ -12,7 +12,7 @@ WORKDIR /root/networkservicemesh/
 RUN VENDORING=${VENDORING} ./go-mod-download.sh
 
 ADD [".","/root/networkservicemesh"]
-RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/proxy-nsmd ./controlplane/cmd/proxynsmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/proxy-nsmd ./controlplane/cmd/proxynsmd
 
 FROM alpine as runtime
 COPY --from=build /go/bin/proxy-nsmd /bin/proxy-nsmd

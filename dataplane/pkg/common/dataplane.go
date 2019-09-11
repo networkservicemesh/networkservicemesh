@@ -86,7 +86,7 @@ type Mechanisms struct {
 	LocalMechanisms  []*local.Mechanism
 }
 
-func createDataplaneConfig(dataplaneProbes *DataplaneProbes) *DataplaneConfig {
+func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig {
 	cfg := &DataplaneConfig{}
 	var ok bool
 
@@ -108,7 +108,7 @@ func createDataplaneConfig(dataplaneProbes *DataplaneProbes) *DataplaneConfig {
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
 	} else {
-		dataplaneProbes.SetSocketCleanReady()
+		dataplaneGoals.SetSocketCleanReady()
 	}
 
 	cfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
@@ -169,19 +169,19 @@ func createDataplaneConfig(dataplaneProbes *DataplaneProbes) *DataplaneConfig {
 	if !ok {
 		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
 	} else {
-		dataplaneProbes.SetSrcIPReady()
+		dataplaneGoals.SetSrcIPReady()
 	}
 	cfg.SrcIP = net.ParseIP(srcIPStr)
 	if cfg.SrcIP == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
 	} else {
-		dataplaneProbes.SetValidIPReady()
+		dataplaneGoals.SetValidIPReady()
 	}
 	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 	} else {
-		dataplaneProbes.SetNewEgressIFReady()
+		dataplaneGoals.SetNewEgressIFReady()
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
 
@@ -189,10 +189,10 @@ func createDataplaneConfig(dataplaneProbes *DataplaneProbes) *DataplaneConfig {
 }
 
 // CreateDataplane creates new Dataplane Registrar client
-func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *DataplaneRegistration {
+func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *DataplaneRegistration {
 	start := time.Now()
 	// Populate common configuration
-	config := createDataplaneConfig(dataplaneProbes)
+	config := createDataplaneConfig(dataplaneGoals)
 
 	// Initialize the dataplane
 	err := dp.Init(config)
@@ -210,7 +210,7 @@ func CreateDataplane(dp NSMDataplane, dataplaneProbes *DataplaneProbes) *Datapla
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
 	} else {
-		dataplaneProbes.SetSocketListenReady()
+		dataplaneGoals.SetSocketListenReady()
 	}
 	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
 	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
