@@ -93,15 +93,18 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 	g.Expect(report.Suites[1].Tests).To(Equal(5))
 	g.Expect(len(report.Suites[1].TestCases)).To(Equal(5))
 
+	foundFailTest := false
+
 	for _, t := range report.Suites[0].TestCases {
 		if t.Name == "_TestFail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script<<<")).To(Equal(true))
-
+			foundFailTest = true
 		} else {
 			g.Expect(t.Failure).Should(BeNil())
 		}
 	}
+	g.Expect(foundFailTest).Should(BeTrue())
 }
 
 func TestClusterInstancesOnFailShellRunner(t *testing.T) {
@@ -135,14 +138,16 @@ func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	g.Expect(err.Error()).To(Equal("there is failed tests 1"))
+	foundFailTest := false
 
 	for _, t := range report.Suites[0].TestCases {
 		if t.Name == "_fail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script<<<")).To(Equal(true))
-
+			foundFailTest = true
 		} else {
 			g.Expect(t.Failure).Should(BeNil())
 		}
 	}
+	g.Expect(foundFailTest).Should(BeTrue())
 }
