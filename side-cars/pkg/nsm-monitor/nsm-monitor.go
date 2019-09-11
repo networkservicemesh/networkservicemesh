@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sidecars
+package nsm_monitor
 
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 	"io"
 	"time"
 
@@ -59,7 +60,7 @@ type NSMMonitorHandler interface {
 
 // NSMMonitorApp - application to perform monitoring.
 type NSMMonitorApp interface {
-	NSMApp
+	nsm_init.NSMApp
 	// SetHandler - sets a handler instance
 	SetHandler(helper NSMMonitorHandler)
 	Stop()

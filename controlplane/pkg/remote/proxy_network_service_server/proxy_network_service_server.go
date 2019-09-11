@@ -3,6 +3,7 @@ package proxynetworkserviceserver
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ import (
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -47,7 +47,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 	logrus.Infof("ProxyNSMD: Received request from client to connect to NetworkService: %v", request)
 
 	destNsmName := request.Connection.DestinationNetworkServiceManagerName
-	dNsmName, dNsmAddress, err := utils.ParseNsmURL(destNsmName)
+	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
 		return nil, fmt.Errorf("ProxyNSMD: Failed to extract destination nsm address")
 	}
@@ -151,7 +151,7 @@ func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *rem
 	logrus.Infof("ProxyNSMD: Proxy closing connection: %v", *connection)
 
 	destNsmName := connection.DestinationNetworkServiceManagerName
-	dNsmName, dNsmAddress, err := utils.ParseNsmURL(destNsmName)
+	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
 		return nil, fmt.Errorf("ProxyNSMD: Failed to extract destination nsm address")
 	}

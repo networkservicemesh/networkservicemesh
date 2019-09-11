@@ -1,4 +1,4 @@
-package utils
+package interdomain
 
 import (
 	"fmt"

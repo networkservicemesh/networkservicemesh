@@ -15,9 +15,8 @@
 package main
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 	"github.com/sirupsen/logrus"
-
-	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 )
 
 var version string
@@ -25,6 +24,6 @@ var version string
 func main() {
 	logrus.Info("Starting nsm-init...")
 	logrus.Infof("Version: %v", version)
-	clientApp := nsm_sidecars.NewNSMClientApp()
+	clientApp := nsm_init.NewNSMClientApp()
 	clientApp.Run()
 }

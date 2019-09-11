@@ -2,6 +2,8 @@ package tests
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
+	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 	"testing"
 	"time"
 
@@ -10,12 +12,11 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsmdapi"
-	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 type nsmHelper struct {
-	nsm_sidecars.EmptyNSMMonitorHandler
+	nsm_monitor.EmptyNSMMonitorHandler
 	response  *nsmdapi.ClientConnectionReply
 	connected chan bool
 	healing   chan bool
@@ -46,14 +47,14 @@ func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
 func TestNSMMonitorInit(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := tests.newSharedStorage()
+	srv := tests.newNSMDFullServer(tests.Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", tests.Master))
 
-	monitorApp := nsm_sidecars.NewNSMMonitorApp()
+	monitorApp := nsm_monitor.NewNSMMonitorApp()
 
 	response := srv.requestNSM("nsm")
 	// Now we could try to connect via Client API
@@ -64,7 +65,7 @@ func TestNSMMonitorInit(t *testing.T) {
 			logrus.Error(err.Error())
 		}
 	}()
-	request := createRequest()
+	request := tests.createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"google.golang.org/grpc"

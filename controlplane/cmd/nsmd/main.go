@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"

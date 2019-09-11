@@ -3,6 +3,7 @@ package proxyregistryserver
 import (
 	"context"
 	"fmt"
+	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 	"os"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 )
 
 // Default values and environment variables of proxy connection

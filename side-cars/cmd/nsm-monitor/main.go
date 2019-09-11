@@ -15,9 +15,9 @@
 package main
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 	"github.com/sirupsen/logrus"
 
-	nsm_sidecars "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -28,10 +28,10 @@ func main() {
 	c := tools.NewOSSignalChannel()
 	logrus.Infof("Starting nsm-monitor....")
 	logrus.Infof("Version: %v", version)
-	app := nsm_sidecars.NewNSMMonitorApp()
+	app := nsm_monitor.NewNSMMonitorApp()
 
 	if MonitorDNSConfigsEnv.GetBooleanOrDefault(false) {
-		app.SetHandler(nsm_sidecars.NewNsmDNSMonitorHandler())
+		app.SetHandler(nsm_monitor.NewNsmDNSMonitorHandler())
 	}
 
 	go app.Run()
