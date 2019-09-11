@@ -130,7 +130,7 @@ executions:
       make k8s-deconfig k8s-config
       kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
     on_fail: |
-      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
+      kubectl get pods -n "${NSM_NAMESPACE}"
       make k8s-logs-snapshot
       make helm-delete-vpn helm-delete-nsm
       make k8s-deconfig k8s-config
@@ -155,7 +155,7 @@ executions:
       make k8s-deconfig k8s-config
       kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
     on_fail: |
-      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
+      kubectl get pods -n "${NSM_NAMESPACE}"
       make k8s-logs-snapshot
       make helm-delete-icmp-responder helm-delete-nsm
       make k8s-deconfig k8s-config
