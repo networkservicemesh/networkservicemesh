@@ -42,7 +42,7 @@ jobs:
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
             export INSECURE="true"
-            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v -e "sample"`
       - store_test_results:
           path: ~/junit
       - store_artifacts:
