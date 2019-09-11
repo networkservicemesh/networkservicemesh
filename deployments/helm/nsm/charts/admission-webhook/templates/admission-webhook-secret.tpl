@@ -51,6 +51,20 @@ spec:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
               readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 5555
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 5555
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
       volumes:
         - name: webhook-certs
           secret:
