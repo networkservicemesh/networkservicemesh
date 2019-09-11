@@ -130,7 +130,7 @@ func logsDir() string {
 }
 
 func shouldStoreLogsInFiles() bool {
-	return StoreLogsInAnyCases.GetBooleanOrDefault(false)
+	return StorePodLogsInFiles.GetBooleanOrDefault(false)
 }
 
 func shouldShowLogs() bool {
