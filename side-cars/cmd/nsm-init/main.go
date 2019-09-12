@@ -15,6 +15,7 @@
 package main
 
 import (
+	nsm_init "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 	"github.com/sirupsen/logrus"
 )
 

@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsm_monitor
+package nsmmonitor
 
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 	"io"
 	"time"
 
@@ -39,8 +40,8 @@ const (
 	nsmMonitorRetryDelay = 5 * time.Second
 )
 
-// NSMMonitorHandler - handler to perform configuration of monitoring app
-type NSMMonitorHandler interface {
+// Handler - handler to perform configuration of monitoring app
+type Handler interface {
 	//Connected occurs when the nsm-monitor connected
 	Connected(map[string]*connection.Connection)
 	//Healing occurs when the healing started
@@ -51,21 +52,21 @@ type NSMMonitorHandler interface {
 	GetConfiguration() *common.NSConfiguration
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
-	//Stopped occurs when the invoked NSMMonitorApp.Stop()
+	//Stopped occurs when the invoked App.Stop()
 	Stopped()
 	//IsEnableJaeger returns is Jaeger needed
 	IsEnableJaeger() bool
 }
 
-// NSMMonitorApp - application to perform monitoring.
-type NSMMonitorApp interface {
-	nsm_init.NSMApp
+// App - application to perform monitoring.
+type App interface {
+	nsminit.NSMApp
 	// SetHandler - sets a handler instance
-	SetHandler(helper NSMMonitorHandler)
+	SetHandler(helper Handler)
 	Stop()
 }
 
-//EmptyNSMMonitorHandler has empty implementation of each method of interface NSMMonitorHandler
+//EmptyNSMMonitorHandler has empty implementation of each method of interface Handler
 type EmptyNSMMonitorHandler struct {
 }
 
@@ -84,7 +85,7 @@ func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration { re
 //ProcessHealing occurs when the restore failed, the error pass as the second parameter
 func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
 
-//Stopped occurs when the invoked NSMMonitorApp.Stop()
+//Stopped occurs when the invoked App.Stop()
 func (h *EmptyNSMMonitorHandler) Stopped() {}
 
 //IsEnableJaeger returns false by default
@@ -92,7 +93,7 @@ func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool { return false }
 
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
-	helper      NSMMonitorHandler
+	helper      Handler
 	stop        chan struct{}
 
 	initRecieved bool
@@ -103,7 +104,7 @@ func (c *nsmMonitorApp) Stop() {
 	close(c.stop)
 }
 
-func (c *nsmMonitorApp) SetHandler(listener NSMMonitorHandler) {
+func (c *nsmMonitorApp) SetHandler(listener Handler) {
 	c.helper = listener
 }
 
@@ -129,7 +130,7 @@ func (c *nsmMonitorApp) Run() {
 }
 
 // NewNSMMonitorApp - creates a monitoring application.
-func NewNSMMonitorApp() NSMMonitorApp {
+func NewNSMMonitorApp() App {
 	return &nsmMonitorApp{
 		connections: map[string]*connection.Connection{},
 		stop:        make(chan struct{}),

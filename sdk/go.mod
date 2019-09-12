@@ -11,8 +11,10 @@ require (
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
+	github.com/uber/jaeger-lib v2.1.1+incompatible // indirect
 	google.golang.org/grpc v1.23.0
 )
 

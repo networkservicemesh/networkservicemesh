@@ -144,3 +144,4 @@ issues:
   exclude:
     - should not use dot imports
     - \`version\` is a global variable
+    - not declared by package utf8

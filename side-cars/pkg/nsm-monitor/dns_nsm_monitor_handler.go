@@ -1,4 +1,4 @@
-package nsm_monitor
+package nsmmonitor
 
 import (
 	"context"
@@ -13,17 +13,17 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
 )
 
-//nsmDNSMonitorHandler implements NSMMonitorHandler interface for handling dnsConfigs
+//nsmDNSMonitorHandler implements Handler interface for handling dnsConfigs
 type nsmDNSMonitorHandler struct {
 	EmptyNSMMonitorHandler
 	dnsConfigUpdateClient update.DNSConfigServiceClient
 }
 
 //NewNsmDNSMonitorHandler creates new DNS monitor handler
-func NewNsmDNSMonitorHandler() NSMMonitorHandler {
+func NewNsmDNSMonitorHandler() Handler {
 	clientSock := env.UpdateAPIClientSock.StringValue()
 	if clientSock == "" {
-		logrus.Fatalf("unable to create NSMMonitorHandler instance. Expect %v is not empty", env.UpdateAPIClientSock.Name())
+		logrus.Fatalf("unable to create Handler instance. Expect %v is not empty", env.UpdateAPIClientSock.Name())
 	}
 	conn, err := tools.DialUnix(clientSock)
 	if err != nil {

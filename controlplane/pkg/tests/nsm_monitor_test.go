@@ -2,10 +2,9 @@ package tests
 
 import (
 	"context"
+	nsm_monitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 	"testing"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -47,12 +46,12 @@ func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
 func TestNSMMonitorInit(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := tests.newSharedStorage()
-	srv := tests.newNSMDFullServer(tests.Master, storage)
+	storage := newSharedStorage()
+	srv := newNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", tests.Master))
+	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
 
 	monitorApp := nsm_monitor.NewNSMMonitorApp()
 
@@ -65,7 +64,7 @@ func TestNSMMonitorInit(t *testing.T) {
 			logrus.Error(err.Error())
 		}
 	}()
-	request := tests.createRequest()
+	request := createRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
