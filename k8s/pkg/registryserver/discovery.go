@@ -2,13 +2,15 @@ package registryserver
 
 import (
 	"context"
-	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
 )

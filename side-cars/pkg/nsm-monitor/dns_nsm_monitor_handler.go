@@ -2,6 +2,7 @@ package nsm_monitor
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/sirupsen/logrus"

@@ -16,6 +16,7 @@ package nsm_init
 
 import (
 	"context"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"

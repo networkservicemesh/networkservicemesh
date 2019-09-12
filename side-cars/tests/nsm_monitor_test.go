@@ -2,10 +2,10 @@ package tests
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
-	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"

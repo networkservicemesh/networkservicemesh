@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 	"os"
 	"strings"
+
+	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 

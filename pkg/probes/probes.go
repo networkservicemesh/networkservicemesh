@@ -17,8 +17,9 @@ package probes
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 	"net/http"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
 	"github.com/sirupsen/logrus"
 )

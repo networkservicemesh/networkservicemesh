@@ -15,7 +15,6 @@
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"

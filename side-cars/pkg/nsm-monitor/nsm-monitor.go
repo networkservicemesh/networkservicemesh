@@ -17,7 +17,6 @@ package nsm_monitor
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 	"io"
 	"time"
 

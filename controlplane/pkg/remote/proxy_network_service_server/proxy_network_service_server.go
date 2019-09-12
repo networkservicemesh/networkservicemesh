@@ -3,10 +3,11 @@ package proxynetworkserviceserver
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"

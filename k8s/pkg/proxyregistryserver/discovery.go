@@ -3,9 +3,10 @@ package proxyregistryserver
 import (
 	"context"
 	"fmt"
-	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 	"os"
 	"strings"
+
+	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/sirupsen/logrus"
 

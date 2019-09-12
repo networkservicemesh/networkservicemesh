@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
@@ -105,7 +106,6 @@ func TestFirewallMemif(t *testing.T) {
 	g.Expect(err).To(gomega.BeNil())
 
 }
-
 
 // FileExists - check if file are exists.
 func FileExists(root string) bool {

@@ -5,10 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/api/update"
-	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 	"net"
 	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/api/update"
+	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/caddyserver/caddy"
 	"github.com/golang/protobuf/ptypes/empty"

@@ -25,6 +25,6 @@ func TestServeMuxHealth(t *testing.T) {
 	assert := gomega.NewWithT(t)
 	mux := http.NewServeMux()
 	health := newHTTPServeMuxHealth(tools.NewAddr("http", ":443"), mux, &mockClient{})
-	err := Check()
+	err := health.Check()
 	assert.Expect(err).Should(gomega.BeNil())
 }
