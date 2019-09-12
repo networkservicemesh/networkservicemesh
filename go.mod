@@ -36,7 +36,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
-	google.golang.org/grpc v1.23.0
+	google.golang.org/grpc v1.23.1
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
