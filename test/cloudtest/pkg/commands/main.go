@@ -727,8 +727,13 @@ func runOnFailScript(ctx context.Context, timeout time.Duration, script string, 
 	defer cancel()
 	logger := func(s string) {
 	}
-	_, onFailErr := utils.RunCommand(context, script, logger, writer, env, map[string]string{}, false)
-	return onFailErr
+	for _, cmd := range utils.ParseScript(script) {
+		_, err := utils.RunCommand(context, cmd, logger, writer, env, map[string]string{}, false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (ctx *executionContext) getTestTimeout(task *testTask) int64 {
