@@ -1,4 +1,4 @@
-// +build webhook
+// +build usecase
 
 package nsmd_integration_tests
 
