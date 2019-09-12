@@ -64,8 +64,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
-	github.com/networkservicemesh/networkservicemesh/test => ./
-
+	github.com/networkservicemesh/networkservicemesh/test => ../test
 )
 
 go 1.13

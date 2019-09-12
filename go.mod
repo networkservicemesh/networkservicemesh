@@ -17,6 +17,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
 	github.com/networkservicemesh/networkservicemesh/dataplane => ./dataplane
 	github.com/networkservicemesh/networkservicemesh/sdk => ./sdk
+	github.com/networkservicemesh/networkservicemesh/side-cars => ./side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 )
 
