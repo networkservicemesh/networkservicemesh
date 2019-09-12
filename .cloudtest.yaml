@@ -22,7 +22,7 @@ executions:
       # - recover
       # - usecase
     root: ./test/integration
-    timeout: 2400
+    timeout: 7200
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
