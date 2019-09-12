@@ -86,7 +86,7 @@ func getTracerEnabled() string {
 
 func getNamespace() string {
 	ns := os.Getenv(namespaceEnv)
-	if len(ns) == 0 {
+	if ns == "" {
 		ns = namespaceDefault
 	}
 	return ns
