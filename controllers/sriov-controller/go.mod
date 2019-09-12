@@ -54,8 +54,6 @@ replace (
 	k8s.io/sample-controller => k8s.io/sample-controller v0.0.0-20190819143301-7c475f5e1313
 )
 
-go 1.13
-
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../../controlplane

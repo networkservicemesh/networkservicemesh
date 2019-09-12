@@ -22,5 +22,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 )
-
-go 1.13

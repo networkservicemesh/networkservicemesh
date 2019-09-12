@@ -66,5 +66,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ../test
 )
-
-go 1.13

@@ -22,5 +22,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/dataplane => ./
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 )
-
-go 1.13
