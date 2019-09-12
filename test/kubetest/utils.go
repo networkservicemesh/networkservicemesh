@@ -410,8 +410,8 @@ func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration
 // DeployAdmissionWebhook - Setup Admission Webhook
 func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout time.Duration) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
 	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
-	awDeployment := CreateAdmissionWebhookDeployment(k8s, name, image, namespace)
 	awService := CreateAdmissionWebhookService(k8s, name, namespace)
+	awDeployment := CreateAdmissionWebhookDeployment(k8s, name, image, namespace)
 	admissionWebhookPod := waitWebhookPod(k8s, awDeployment.Name, timeout)
 	k8s.g.Expect(admissionWebhookPod).ShouldNot(BeNil())
 	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
