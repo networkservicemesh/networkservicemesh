@@ -44,7 +44,7 @@ func TestDataplaneHealMultiNodesLocal(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testDataplaneHeal(t, 0, 2, kubetest.HealTestingPodFixture(g))
+	testDataplaneHeal(t, 0, 2, kubetest.DefaultTestingPodFixture(g))
 }
 func TestDataplaneHealMultiNodesRemote(t *testing.T) {
 	if testing.Short() {
@@ -54,7 +54,7 @@ func TestDataplaneHealMultiNodesRemote(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testDataplaneHeal(t, 1, 2, kubetest.HealTestingPodFixture(g))
+	testDataplaneHeal(t, 1, 2, kubetest.DefaultTestingPodFixture(g))
 }
 
 /**

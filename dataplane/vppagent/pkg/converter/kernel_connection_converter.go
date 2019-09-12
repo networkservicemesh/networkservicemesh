@@ -52,7 +52,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if rv.LinuxConfig == nil {
 		rv.LinuxConfig = &linux.ConfigData{}
 	}
-
 	m := c.GetMechanism()
 	filepath, err := m.NetNsFileName()
 	if err != nil && connect {
@@ -64,6 +63,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 	if c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
+	}
+	var mac string
+	if c.Context.EthernetContext != nil {
+		if c.conversionParameters.Side == DESTINATION {
+			mac = c.Context.EthernetContext.DstMacAddress
+		}
+		if c.conversionParameters.Side == SOURCE {
+			mac = c.Context.EthernetContext.SrcMacAddress
+		}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -93,6 +101,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_TAP_TO_VPP,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
+			PhysAddress: mac,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
@@ -122,6 +131,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
+			PhysAddress: mac,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
@@ -174,7 +184,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			})
 		}
 	}
-
 	return rv, nil
 }
 

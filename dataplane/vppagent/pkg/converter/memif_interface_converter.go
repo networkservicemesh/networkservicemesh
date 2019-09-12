@@ -63,13 +63,19 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 			return nil, err
 		}
 	}
-
+	var mac string
 	var ipAddresses []string
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
+		if c.Connection.Context.EthernetContext != nil {
+			mac = c.Context.EthernetContext.DstMacAddress
+		}
 	}
 	if c.conversionParameters.Terminate && c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
+		if c.Connection.Context.EthernetContext != nil {
+			mac = c.Context.EthernetContext.SrcMacAddress
+		}
 	}
 
 	if c.conversionParameters.Name == "" {
@@ -81,6 +87,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 		Type:        vpp_interfaces.Interface_MEMIF,
 		Enabled:     true,
 		IpAddresses: ipAddresses,
+		PhysAddress: mac,
 		Link: &vpp_interfaces.Interface_Memif{
 			Memif: &vpp_interfaces.MemifLink{
 				Master:         isMaster,
@@ -108,6 +115,5 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 		}
 		rv.VppConfig.Routes = append(rv.VppConfig.Routes, route)
 	}
-
 	return rv, nil
 }

@@ -74,7 +74,13 @@ message DNSContext {
     repeated DNSConfig configs = 1;
 }
 
+message EthernetContext {
+   string src_mac_address = 1; /* Mac address of source side of connection */
+   string dst_mac_address = 2; /* Mac address of destination side of connection */
+}
+
 message ConnectionContext {
     IPContext ip_context = 1; /* IP related context */
     DNSContext dns_context = 2; /* DNS related context */
+    EthernetContext ethernet_context = 3; /* Ethernet related context */
 }
