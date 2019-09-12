@@ -113,8 +113,14 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 		return nil, err
 	}
 
-	if _, ok := pr.connections.Load(name); ok {
-		return nil, fmt.Errorf("already have a plugin with the same name")
+	if c, ok := pr.connections.Load(name); ok {
+		oldConn := c.(*grpc.ClientConn)
+		if conn.Target() != oldConn.Target() {
+			return nil, fmt.Errorf("already have a plugin with the same name but different endpoint")
+		}
+
+		_ = oldConn.Close()
+		logrus.Warnf("Already have a plugin with the same name and same target %v, re-registering...", conn.Target())
 	}
 
 	pr.connections.Store(name, conn)
