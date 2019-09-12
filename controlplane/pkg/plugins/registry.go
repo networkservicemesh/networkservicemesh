@@ -35,22 +35,24 @@ type PluginManager interface {
 type pluginRegistry struct {
 	connections             sync.Map
 	connectionPluginManager ConnectionPluginManager
+	registrySocket          string
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
-func NewPluginRegistry() PluginRegistry {
+func NewPluginRegistry(socketPath string) PluginRegistry {
 	return &pluginRegistry{
 		connections:             sync.Map{},
 		connectionPluginManager: createConnectionPluginManager(),
+		registrySocket:          socketPath,
 	}
 }
 
 func (pr *pluginRegistry) Start(ctx context.Context) error {
-	if err := tools.SocketCleanup(plugins.PluginRegistrySocket); err != nil {
+	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
 	}
 
-	sock, err := net.Listen("unix", plugins.PluginRegistrySocket)
+	sock, err := net.Listen("unix", pr.registrySocket)
 	if err != nil {
 		return err
 	}
