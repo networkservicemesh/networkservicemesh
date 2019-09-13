@@ -60,7 +60,7 @@ jobs:
           name: lint
           command: |
             ./scripts/lint-download.sh
-            make lint-check-diff
+            ./scripts/lint-check-diff.sh
     environment:
       GO111MODULE: "on"
 
