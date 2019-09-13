@@ -673,7 +673,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 
 		if errCode != nil {
 			if task.test.ExecutionConfig != nil {
-				onFailScriptErr := runOnFailScript(context.Background(), timeoutDuration, task.test.ExecutionConfig.PackageRoot, task.test.ExecutionConfig.OnFail, env, writer)
+				onFailScriptErr := runOnFailScript(context.Background(), timeoutDuration, task.test.ExecutionConfig.OnFail, env, writer)
 				if onFailScriptErr != nil {
 					logrus.Errorf("OnFail: script failed: %v", onFailScriptErr)
 					errCode = errors.Wrap(errCode, onFailScriptErr.Error())
@@ -722,7 +722,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 	}()
 }
 
-func runOnFailScript(ctx context.Context, timeout time.Duration, packageRoot, script string, env []string, writer *bufio.Writer) error {
+func runOnFailScript(ctx context.Context, timeout time.Duration, script string, env []string, writer *bufio.Writer) error {
 	context, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	logger := func(s string) {
