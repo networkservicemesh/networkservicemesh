@@ -34,8 +34,15 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	}
 }
 
+func getOrCreateFile(path string) (*os.File, error) {
+	if _, err := os.Stat(path); os.IsExist(err) {
+		return os.Open(path)
+	}
+	return os.Create(path)
+}
+
 func archiveLogs(testName string) {
-	file, err := os.Create(filepath.Join(logsDir(), testName+".zip"))
+	file, err := getOrCreateFile(filepath.Join(logsDir(), testName+".zip"))
 	if err != nil {
 		logrus.Error("Can not create tar file")
 		return
@@ -95,7 +102,7 @@ func archiveLogs(testName string) {
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
-		name := pod.Name + ":" + c.Name
+		name := strings.Join([]string{pod.ClusterName, pod.Name, c.Name}, ":")
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := logTransaction
 
