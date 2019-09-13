@@ -2,15 +2,19 @@ package nsmmonitor
 
 import (
 	"context"
-
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/api/update"
+	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+)
+
+const (
+	//UpdateAPIClientSock means path to client socket for dns context update server
+	UpdateAPIClientSock = utils.EnvVar("UPDATE_API_CLIENT_SOCKET")
 )
 
 //nsmDNSMonitorHandler implements Handler interface for handling dnsConfigs
@@ -21,9 +25,9 @@ type nsmDNSMonitorHandler struct {
 
 //NewNsmDNSMonitorHandler creates new DNS monitor handler
 func NewNsmDNSMonitorHandler() Handler {
-	clientSock := env.UpdateAPIClientSock.StringValue()
+	clientSock := UpdateAPIClientSock.StringValue()
 	if clientSock == "" {
-		logrus.Fatalf("unable to create Handler instance. Expect %v is not empty", env.UpdateAPIClientSock.Name())
+		logrus.Fatalf("unable to create Handler instance. Expect %v is not empty", UpdateAPIClientSock.Name())
 	}
 	conn, err := tools.DialUnix(clientSock)
 	if err != nil {

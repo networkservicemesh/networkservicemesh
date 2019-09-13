@@ -8,13 +8,13 @@ import (
 	"net"
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/api/update"
+	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
 	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/caddyserver/caddy"
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )

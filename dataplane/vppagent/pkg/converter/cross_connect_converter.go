@@ -8,7 +8,7 @@ import (
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
 const (

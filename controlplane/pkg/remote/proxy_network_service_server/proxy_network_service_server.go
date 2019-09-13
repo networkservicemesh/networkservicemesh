@@ -13,10 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/clusterinfo"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )

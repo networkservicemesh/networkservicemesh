@@ -8,7 +8,7 @@ require (
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
-	github.com/networkservicemesh/networkservicemesh v0.0.0-00010101000000-000000000000
+	github.com/networkservicemesh/networkservicemesh v0.1.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/uber-go/atomic v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 // indirect
@@ -57,6 +57,8 @@ replace (
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../../controlplane
+	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ../../dataplane
+	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../../dataplane/api
 	github.com/networkservicemesh/networkservicemesh/sdk => ../../sdk
 )

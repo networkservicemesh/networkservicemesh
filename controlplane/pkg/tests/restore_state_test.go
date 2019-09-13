@@ -7,8 +7,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
 func TestRestoreConnectionState(t *testing.T) {

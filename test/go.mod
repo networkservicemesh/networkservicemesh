@@ -9,6 +9,7 @@ require (
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/networkservicemesh/networkservicemesh v0.1.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.0.0-00010101000000-000000000000
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.0.0-00010101000000-000000000000
 	github.com/networkservicemesh/networkservicemesh/dataplane v0.0.0-00010101000000-000000000000
 	github.com/networkservicemesh/networkservicemesh/k8s v0.0.0-00010101000000-000000000000
 	github.com/networkservicemesh/networkservicemesh/sdk v0.0.0-00010101000000-000000000000
@@ -60,8 +61,11 @@ replace (
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../controlplane
+	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ../dataplane
+	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../dataplane/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
+	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ../test
