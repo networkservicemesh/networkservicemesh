@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function check_diff() {
-    golangci-lint run --new-from-rev=origin/master
+    GOGC=50 golangci-lint run --new-from-rev=origin/master
 }
 
 attempts=10
