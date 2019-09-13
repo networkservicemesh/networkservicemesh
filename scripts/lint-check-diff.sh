@@ -10,10 +10,10 @@ for (( i=0; i < "${attempts}"; i++ ))
 do
     echo "Attempt $i"
     result="$(check_diff)"
-    if ![[ "${result}" == *"failed to load program with go/packages"* ]] ; then
+    if ! [[ "${result}" == *"failed to load program with go/packages"* ]] ; then
         break
     fi
-    if [[ "$((${i}+1))" == "${attempts}" ]] ; then
+    if [[ "$((i+1))" == "${attempts}" ]] ; then
         echo "can not load program with go/packages"
         exit 1
     fi
