@@ -1,7 +1,10 @@
 FROM golang:alpine as build
+
 ARG VERSION=unspecified
 ARG VENDORING
-RUN apk --no-cache add git
+ARG GOPROXY
+
+ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
 
