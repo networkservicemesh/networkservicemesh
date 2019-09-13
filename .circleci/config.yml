@@ -30,9 +30,9 @@ jobs:
             git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
-      - run: go generate ./...
+      - run: ./scripts/for-each-module.sh "go generate ./..."
       - run: make vet check
-      - run: go build ./...
+      - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
       - run: go test ./test/integration --list .* -tags basic recover usecase
       - run: mkdir -p ~/junit/
