@@ -6,14 +6,16 @@ require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
+	github.com/ligato/cn-infra v2.0.0+incompatible
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/networkservicemesh/networkservicemesh v0.1.0
-	github.com/networkservicemesh/networkservicemesh/controlplane v0.0.0-00010101000000-000000000000
-	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.0.0-00010101000000-000000000000
-	github.com/networkservicemesh/networkservicemesh/dataplane v0.0.0-00010101000000-000000000000
-	github.com/networkservicemesh/networkservicemesh/k8s v0.0.0-00010101000000-000000000000
-	github.com/networkservicemesh/networkservicemesh/sdk v0.0.0-00010101000000-000000000000
-	github.com/networkservicemesh/networkservicemesh/side-cars v0.0.0-00010101000000-000000000000
+	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
+	github.com/networkservicemesh/networkservicemesh/dataplane v0.1.0
+	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.1.0
+	github.com/networkservicemesh/networkservicemesh/k8s v0.1.0
+	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
+	github.com/networkservicemesh/networkservicemesh/side-cars v0.1.0
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
