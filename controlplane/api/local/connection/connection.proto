@@ -22,7 +22,7 @@ package local.connection;
 option go_package = "connection";
 import "ptypes/empty/empty.proto";
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext/connectioncontext.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext/connectioncontext.proto";
 
 message Mechanism {
   MechanismType type = 1;

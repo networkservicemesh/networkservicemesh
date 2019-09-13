@@ -21,7 +21,7 @@ syntax = "proto3";
 package remote.connection;
 option go_package = "connection";
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext/connectioncontext.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext/connectioncontext.proto";
 
 message Mechanism {
   MechanismType type = 1;

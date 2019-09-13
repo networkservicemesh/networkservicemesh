@@ -13,12 +13,12 @@ require (
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/rs/xid v1.2.1
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
 	go.uber.org/atomic v1.4.0 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.23.0
 )
 
