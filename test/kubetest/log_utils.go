@@ -106,7 +106,7 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 					logrus.Errorf("Can't log in file, reason %v", logErr)
 					logTransaction(name, content)
 				} else {
-					logrus.Infof("Saved log for %v. Check dir %v", name, logsDir()+name+".zip")
+					logrus.Infof("Saved log for %v. Check arcive %v.zip in path %v", name, t.Name(), logsDir())
 				}
 			}
 		}

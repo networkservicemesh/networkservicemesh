@@ -20,7 +20,7 @@ type goTestRunner struct {
 func (runner *goTestRunner) Run(timeoutCtx context.Context, env []string, writer *bufio.Writer) error {
 	logger := func(s string) {}
 	cmdEnv := append(runner.envMgr.GetProcessedEnv(), env...)
-	_, err := utils.RunCommand(timeoutCtx, runner.cmdLine, logger, writer, cmdEnv, map[string]string{}, false)
+	_, err := utils.RunCommand(timeoutCtx, runner.cmdLine, "", logger, writer, cmdEnv, map[string]string{}, false)
 	return err
 }
 
