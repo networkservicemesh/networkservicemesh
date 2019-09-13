@@ -1,9 +1,13 @@
 ARG GO_VERSION
 FROM golang:${GO_VERSION}-alpine as build
+
 ARG VENDORING
 ARG VERSION=unspecified
+ARG GOPROXY
+
 RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
-RUN apk --no-cache add git
+
+ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
 
