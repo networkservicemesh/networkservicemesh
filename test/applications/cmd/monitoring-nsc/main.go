@@ -16,7 +16,8 @@ package main
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
+
+	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"

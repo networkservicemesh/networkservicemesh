@@ -2,6 +2,7 @@ package nsmmonitor
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/sirupsen/logrus"

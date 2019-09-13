@@ -12,7 +12,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
-	github.com/uber/jaeger-lib v2.1.1+incompatible // indirect
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	google.golang.org/grpc v1.23.0
 )
@@ -23,6 +22,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ./dataplane
 	github.com/networkservicemesh/networkservicemesh/dataplane/api => ./dataplane/api
+	github.com/networkservicemesh/networkservicemesh/k8s/api => ./k8s/api
 	github.com/networkservicemesh/networkservicemesh/sdk => ./sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ./side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ./test

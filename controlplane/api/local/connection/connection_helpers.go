@@ -2,6 +2,7 @@ package connection
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 
 	"github.com/golang/protobuf/proto"

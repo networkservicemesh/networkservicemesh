@@ -12,6 +12,7 @@ require (
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/rs/xid v1.2.1
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
@@ -24,5 +25,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ./
 	github.com/networkservicemesh/networkservicemesh/dataplane/api => ./api
+	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
+	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 )

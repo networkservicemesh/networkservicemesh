@@ -2,6 +2,7 @@ package networkservice
 
 import (
 	"fmt"
+
 	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 
 	"github.com/golang/protobuf/proto"

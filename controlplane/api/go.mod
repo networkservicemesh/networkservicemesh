@@ -10,4 +10,7 @@ require (
 	google.golang.org/grpc v1.23.0
 )
 
-replace github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
+replace (
+	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
+	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+)

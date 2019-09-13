@@ -1,14 +1,20 @@
 #!/bin/bash
 
 res=0
-for p in $(find . -name "go.mod") 
-do
-    d=`dirname $p`
-    pushd $d
-    $1
-    if [ "$?" -ne "0" ] ; then
+cmd=$1
+
+exec_command () {
+    d=$(dirname "$0")
+    pushd "$d" || exit 1
+    
+    if ! $1; then
         res=1
     fi
-    popd
-done
+
+    popd || exit 1
+}
+
+export -f exec_command
+find . -name "go.mod" -exec bash -c "exec_command \"${cmd}\" " {} \;
+
 exit $res

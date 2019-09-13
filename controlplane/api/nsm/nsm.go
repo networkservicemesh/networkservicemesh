@@ -1,9 +1,10 @@
 package nsm
 
 import (
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
-	"time"
 
 	"golang.org/x/net/context"
 

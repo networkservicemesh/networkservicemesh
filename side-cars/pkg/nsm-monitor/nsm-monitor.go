@@ -17,9 +17,10 @@ package nsmmonitor
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 	"io"
 	"time"
+
+	nsminit "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"

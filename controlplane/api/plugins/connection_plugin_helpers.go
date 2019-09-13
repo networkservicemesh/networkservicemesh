@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"github.com/golang/protobuf/proto"
+
 	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"

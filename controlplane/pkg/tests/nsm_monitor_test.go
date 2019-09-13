@@ -2,9 +2,10 @@ package tests
 
 import (
 	"context"
-	nsm_monitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 	"testing"
 	"time"
+
+	nsm_monitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
