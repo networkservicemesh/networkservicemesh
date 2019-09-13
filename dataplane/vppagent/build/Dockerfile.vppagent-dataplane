@@ -1,6 +1,7 @@
 ARG VPP_AGENT
 ARG GO_VERSION
 FROM golang:${GO_VERSION}-alpine as build
+
 ARG VERSION=unspecified
 ARG VENDORING
 ARG GOPROXY
@@ -8,6 +9,8 @@ ARG GOPROXY
 ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
+
+RUN apk --no-cache add git
 
 RUN mkdir /root/networkservicemesh
 ADD ["go.mod","/root/networkservicemesh"]
