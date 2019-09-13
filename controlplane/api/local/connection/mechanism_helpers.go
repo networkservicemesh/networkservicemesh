@@ -114,6 +114,7 @@ func (m *Mechanism) IsValid() error {
 	return nil
 }
 
+// IsMemif - mechanism is memif
 func (m *Mechanism) IsMemif() bool {
 	if m == nil {
 		return false
@@ -121,6 +122,7 @@ func (m *Mechanism) IsMemif() bool {
 	return m.GetType() == MechanismType_MEM_INTERFACE
 }
 
+// IsKernelInterface - mechanism in kernel
 func (m *Mechanism) IsKernelInterface() bool {
 	if m == nil {
 		return false
@@ -128,6 +130,7 @@ func (m *Mechanism) IsKernelInterface() bool {
 	return m.GetType() == MechanismType_KERNEL_INTERFACE
 }
 
+// GetSocketFilename returns memif mechanism socket filename
 func (m *Mechanism) GetSocketFilename() string {
 	if m == nil || m.GetParameters() == nil {
 		return ""
@@ -135,6 +138,7 @@ func (m *Mechanism) GetSocketFilename() string {
 	return m.GetParameters()[SocketFilename]
 }
 
+// GetInterfaceName returns mechanism interface name
 func (m *Mechanism) GetInterfaceName() string {
 	if m == nil || m.GetParameters() == nil {
 		return ""
@@ -142,6 +146,7 @@ func (m *Mechanism) GetInterfaceName() string {
 	return m.GetParameters()[InterfaceNameKey]
 }
 
+// GetNetNsInode returns inode for connection liveness
 func (m *Mechanism) GetNetNsInode() string {
 	if m == nil || m.GetParameters() == nil {
 		return ""
@@ -149,6 +154,7 @@ func (m *Mechanism) GetNetNsInode() string {
 	return m.GetParameters()[NetNsInodeKey]
 }
 
+// GetDescription returns mechanism description
 func (m *Mechanism) GetDescription() string {
 	if m == nil || m.GetParameters() == nil {
 		return ""
@@ -156,6 +162,7 @@ func (m *Mechanism) GetDescription() string {
 	return m.GetParameters()[InterfaceDescriptionKey]
 }
 
+// GetWorkspace returns NSM workspace location
 func (m *Mechanism) GetWorkspace() string {
 	if m == nil || m.GetParameters() == nil {
 		return ""
@@ -163,9 +170,10 @@ func (m *Mechanism) GetWorkspace() string {
 	return m.GetParameters()[Workspace]
 }
 
+// NetNsFileName - filename of kernel connection socket
 func (m *Mechanism) NetNsFileName() (string, error) {
 	if m == nil {
-		return "", fmt.Errorf("Mechanism cannot be nil")
+		return "", fmt.Errorf("mechanism cannot be nil")
 	}
 	if m.GetParameters() == nil {
 		return "", fmt.Errorf("Mechanism.Parameters cannot be nil: %v", m)
@@ -181,7 +189,7 @@ func (m *Mechanism) NetNsFileName() (string, error) {
 	}
 	filename, err := fs.ResolvePodNsByInode(inodeNum)
 	if err != nil {
-		return "", fmt.Errorf("No file found in /proc/*/ns/net with inode %d: %v", inodeNum, err)
+		return "", fmt.Errorf("no file found in /proc/*/ns/net with inode %d: %v", inodeNum, err)
 	}
 	return filename, nil
 }

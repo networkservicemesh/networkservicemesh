@@ -28,7 +28,7 @@ type networkServiceEndpointManager interface {
 type nseManager struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm.NsmProperties
+	properties      *nsm.Properties
 }
 
 func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {

@@ -9,7 +9,6 @@ require (
 	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/sirupsen/logrus v1.4.2
-	google.golang.org/appengine v1.4.0 // indirect
 )
 
 replace (

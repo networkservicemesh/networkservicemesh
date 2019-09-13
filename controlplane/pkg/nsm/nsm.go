@@ -57,13 +57,13 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	properties       *nsm.NsmProperties
+	properties       *nsm.Properties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
 	nseManager       networkServiceEndpointManager
 }
 
-func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
+func (srv *networkServiceManager) GetHealProperties() *nsm.Properties {
 	return srv.properties
 }
 

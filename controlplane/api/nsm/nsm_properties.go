@@ -9,11 +9,14 @@ import (
 )
 
 const (
-	NsmdHealEnabled        = "NSMD_HEAL_ENABLED"      // Does healing is enabled or not
+	// NsmdHealEnabled - environment variable name - disable heal and closes connection
+	NsmdHealEnabled = "NSMD_HEAL_ENABLED" // Does healing is enabled or not
+	// NsmdHealDSTWaitTimeout - environment variable name - timeout of waiting for networkservice when healing connection
 	NsmdHealDSTWaitTimeout = "NSMD_HEAL_DST_TIMEOUTs" // Wait timeout for DST in seconds
 )
 
-type NsmProperties struct {
+// Properties - holds properties of NSM connection events processing
+type Properties struct {
 	HealTimeout                    time.Duration
 	CloseTimeout                   time.Duration
 	HealRequestTimeout             time.Duration
@@ -27,8 +30,9 @@ type NsmProperties struct {
 	HealEnabled bool
 }
 
-func NewNsmProperties() *NsmProperties {
-	values := &NsmProperties{
+// NewNsmProperties creates NsmProperties with defined default values and reading values from environment variables
+func NewNsmProperties() *Properties {
+	values := &Properties{
 		HealTimeout:                    time.Minute * 1,
 		CloseTimeout:                   time.Second * 5,
 		HealRequestTimeout:             time.Minute * 1,

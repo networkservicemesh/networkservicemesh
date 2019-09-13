@@ -71,7 +71,7 @@ func newHealTestData() *healTestData {
 	data.healProcessor = &healProcessor{
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
-		properties: &nsm.NsmProperties{
+		properties: &nsm.Properties{
 			HealEnabled: true,
 		},
 

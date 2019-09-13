@@ -21,7 +21,7 @@ type networkServiceHealProcessor interface {
 type healProcessor struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm.NsmProperties
+	properties      *nsm.Properties
 
 	conManager connectionManager
 	nseManager networkServiceEndpointManager
@@ -43,7 +43,7 @@ type healEvent struct {
 func newNetworkServiceHealProcessor(
 	serviceRegistry serviceregistry.ServiceRegistry,
 	model model.Model,
-	properties *nsm.NsmProperties,
+	properties *nsm.Properties,
 	conManager connectionManager,
 	nseManager networkServiceEndpointManager) networkServiceHealProcessor {
 

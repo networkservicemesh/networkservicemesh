@@ -145,3 +145,4 @@ issues:
     - should not use dot imports
     - \`version\` is a global variable
     - not declared by package utf8
+    - lines are duplicate of

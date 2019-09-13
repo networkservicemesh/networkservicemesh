@@ -5,9 +5,10 @@ import (
 	"net"
 )
 
+// IsValid - checks ConnectionContext validation
 func (c *ConnectionContext) IsValid() error {
 	if c == nil {
-		return fmt.Errorf("ConnectionContext should not be nil...")
+		return fmt.Errorf("ConnectionContext should not be nil")
 	}
 	ip := c.GetIpContext()
 	for _, route := range append(ip.GetSrcRoutes(), ip.GetDstRoutes()...) {
@@ -31,9 +32,10 @@ func (c *ConnectionContext) IsValid() error {
 	return nil
 }
 
+// MeetsRequirements - checks required context parameters have bin set
 func (c *ConnectionContext) MeetsRequirements(original *ConnectionContext) error {
 	if c == nil {
-		return fmt.Errorf("ConnectionContext should not be nil...")
+		return fmt.Errorf("ConnectionContext should not be nil")
 	}
 
 	err := c.IsValid()
@@ -61,9 +63,10 @@ func (c *DNSConfig) Validate() error {
 	return nil
 }
 
+// IsValid - checks ExtraPrefixRequest validation
 func (c *ExtraPrefixRequest) IsValid() error {
 	if c == nil {
-		return fmt.Errorf("ExtraPrefixRequest should not be nil...")
+		return fmt.Errorf("ExtraPrefixRequest should not be nil")
 	}
 
 	if c.RequiredNumber < 1 {
@@ -83,7 +86,7 @@ func (c *ExtraPrefixRequest) IsValid() error {
 
 	// Check protocols
 	if c.AddrFamily == nil {
-		return fmt.Errorf("ExtraPrefixRequest.AfFamily should not be nil...")
+		return fmt.Errorf("ExtraPrefixRequest.AfFamily should not be nil: %v", c)
 	}
 
 	switch c.AddrFamily.Family {

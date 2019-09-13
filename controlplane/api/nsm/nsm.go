@@ -19,6 +19,7 @@ type ClientConnection interface {
 	GetNetworkService() string
 }
 
+// NetworkServiceClient is an interface for network service client
 type NetworkServiceClient interface {
 	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
 	Close(ctx context.Context, connection connection.Connection) error
@@ -26,6 +27,7 @@ type NetworkServiceClient interface {
 	Cleanup() error
 }
 
+// HealState - keep the cause of healing process
 type HealState int32
 
 const (
@@ -41,12 +43,13 @@ const (
 	HealStateDstNmgrDown HealState = 5
 )
 
+// NetworkServiceManager - interface for connection between NSMs
 type NetworkServiceManager interface {
 	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
 	Close(ctx context.Context, clientConnection ClientConnection) error
 	Heal(clientConnection ClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
-	GetHealProperties() *NsmProperties
+	GetHealProperties() *Properties
 	WaitForDataplane(ctx context.Context, duration time.Duration) error
 	RemoteConnectionLost(clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
