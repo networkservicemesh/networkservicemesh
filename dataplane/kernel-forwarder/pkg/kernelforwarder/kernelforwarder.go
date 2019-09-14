@@ -65,6 +65,7 @@ func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 	err := k.connectOrDisconnect(crossConnect, cCONNECT)
 	if err != nil {
 		logrus.Warn("error while handling Request() connection:", err)
+		return nil, err
 	}
 	k.common.Monitor.Update(crossConnect)
 	return crossConnect, err

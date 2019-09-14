@@ -62,7 +62,7 @@ func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	/* Get namespace handler - source*/
+	/* Get namespace handler - source */
 	srcNsHandle, err := fs.GetNsHandleFromInode(cfg.srcNetNsInode)
 	if err != nil {
 		logrus.Errorf("local: failed to get source namespace handle - %v", err)
@@ -123,7 +123,7 @@ func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	/* Get namespace handler - source*/
+	/* Get namespace handler - source */
 	srcNsHandle, err := fs.GetNsHandleFromInode(cfg.srcNetNsInode)
 	if err != nil {
 		logrus.Errorf("local: failed to get source namespace handle - %v", err)
