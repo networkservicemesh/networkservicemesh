@@ -28,13 +28,20 @@ $(INSTALL_CHARTS):
 	# there might be a way to set these as global and refer to them with .Values.global.org
 	# but that seems more intrusive than this hack. Consider changing to global if the charts
 	# get even more complicated
-	helm install --name=${CHART} \
+	time helm install --name=${CHART} \
 	--wait --timeout 300 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set forwardingPlane="${FORWARDING_PLANE}" \
 	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
 	--namespace="${NSM_NAMESPACE}" \
-	deployments/helm/${CHART}
+	deployments/helm/${CHART}; \
+	SUCCESS=$?; \
+	if [ $SUCCESS != "0" ]; then \
+		echo "Failed, getting some debugging info"; \
+		echo kubectl -n "${NSM_NAMESPACE}" get events --sort-by='{.lastTimestamp}'; \
+		kubectl -n "${NSM_NAMESPACE}" get events --sort-by='{.lastTimestamp}'; \
+		echo kubectl -n "${NSM_NAMESPACE}" get pods; \
+	fi
 
 .PHONY: $(DELETE_CHARTS)
 $(DELETE_CHARTS): export CHART=$(subst helm-delete-,,$@)
