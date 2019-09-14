@@ -689,7 +689,11 @@ func (k8s *K8s) GetLogsChannel(ctx context.Context, pod *v1.Pod, options *v1.Pod
 
 		reader, err := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, options).Stream()
 		if err != nil {
-			logrus.Errorf("Failed to get logs from %v", pod.Name)
+			previousStr := ""
+			if options.Previous {
+				previousStr = " - previous"
+			}
+			logrus.Errorf("Failed to get logs from %v%s", pod.Name, previousStr)
 			errChan <- err
 			return
 		}
