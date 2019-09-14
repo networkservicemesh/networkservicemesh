@@ -123,6 +123,8 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
+      kubectl version
+      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces || echo "Kubectl failing when it shouldn't"
       make k8s-deconfig helm-install-nsm
       make helm-install-vpn
       make k8s-check
