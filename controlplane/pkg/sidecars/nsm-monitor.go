@@ -173,6 +173,7 @@ func (c *nsmMonitorApp) beginMonitoring() {
 				// Since NSMD will setup public socket only when all connections will be ok, we need to perform request only on ones it loose.
 				if c.performRecovery(nsmClient) {
 					// since we not recovered, we will continue after delay
+					logrus.Info("nsmMonitorApp.performRecovery() returned false")
 					c.waitRetry()
 					continue
 				} else {
@@ -192,6 +193,7 @@ func (c *nsmMonitorApp) beginMonitoring() {
 }
 
 func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) bool {
+	logrus.Info("nsmMonitorApp.readEvents() entered")
 	select {
 	case err := <-monitorClient.ErrorChannel():
 		logrus.Errorf(nsmMonitorLogWithParamFormat, "NSM die, re-connecting", err)
@@ -206,6 +208,7 @@ func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) bool {
 		}
 
 		for _, entity := range event.Entities() {
+			logrus.Infof("nsmMonitorApp.readEvents() received event %+v", event)
 			switch event.EventType() {
 			case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
 				c.updateConnection(entity)
@@ -233,6 +236,7 @@ func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) bool {
 
 func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
 	conn, ok := entity.(*connection.Connection)
+	logrus.Infof("nsmMonitorApp.updateConnection() ok=%t", ok)
 	// update connections
 	if ok {
 		if existingConn, exists := c.connections[conn.Id]; exists {
