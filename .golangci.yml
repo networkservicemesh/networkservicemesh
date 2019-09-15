@@ -139,6 +139,7 @@ issues:
     - path: dataplane/kernel-forwarder/pkg/kernelforwarder/common.go
       linters:
         - gocyclo
+        - funlen
     - path: test/kubetest/log_utils.go
       linters:
         - gosec
