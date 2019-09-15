@@ -5,6 +5,21 @@ import (
 	"net"
 )
 
+//Validate validates the ethernet context
+func (e *EthernetContext) Validate() error {
+	if e.SrcMacAddress != "" {
+		if _, err := net.ParseMAC(e.SrcMacAddress); err != nil {
+			return err
+		}
+	}
+	if e.DstMacAddress != "" {
+		if _, err := net.ParseMAC(e.DstMacAddress); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *ConnectionContext) IsValid() error {
 	if c == nil {
 		return fmt.Errorf("ConnectionContext should not be nil...")

@@ -60,7 +60,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	logrus.Infof("Waiting for connection recovery Done...")
 
-	kubetest.HealNscChecker(k8s, nscPodNode)
+	kubetest.CheckNSC(k8s, nscPodNode)
 }
 
 func TestNSMHealLocalDieNSMDOneNode(t *testing.T) {

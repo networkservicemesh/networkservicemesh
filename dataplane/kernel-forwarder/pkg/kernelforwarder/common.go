@@ -52,6 +52,8 @@ type connectionConfig struct {
 	dstName    string
 	srcIP      string
 	dstIP      string
+	srcMac     string
+	dstMac     string
 	srcIPVXLAN net.IP
 	dstIPVXLAN net.IP
 	srcRoutes  []*connectioncontext.Route
@@ -60,7 +62,7 @@ type connectionConfig struct {
 	vni        int
 }
 
-func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
+func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceMac, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
 	if inject {
 		/* 1. Get a link object for the interface */
 		ifaceLink, err := netlink.LinkByName(ifaceName)
@@ -104,6 +106,7 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 		logrus.Errorf("failed to lookup %q, %v", ifaceName, err)
 		return err
 	}
+
 	if inject {
 		var addr *netlink.Addr
 		/* 7. Parse the IP address */
@@ -112,6 +115,20 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 			logrus.Errorf("failed to parse IP %q: %v", ifaceIP, err)
 			return err
 		}
+
+		/* 7.1. Add mac address */
+		if ifaceMac != "" {
+			hwaddr, parseErr := net.ParseMAC(ifaceMac)
+			if parseErr != nil {
+				logrus.Errorf("failed to parse MAC %q: %v", ifaceIP, parseErr)
+				return parseErr
+			}
+			if err = netlink.LinkSetHardwareAddr(link, hwaddr); err != nil {
+				logrus.Errorf("failed to set MAC %q: %v", ifaceIP, err)
+				return err
+			}
+		}
+
 		/* 8. Set IP address */
 		if err = netlink.AddrAdd(link, addr); err != nil {
 			logrus.Errorf("failed to set IP %q: %v", ifaceIP, err)
@@ -142,6 +159,7 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 			return err
 		}
 	}
+
 	/* Switch back to the original namespace */
 	if err = netns.Set(currentNs); err != nil {
 		logrus.Errorf("failed to switch back to original namespace: %v", err)
@@ -152,6 +170,12 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 
 //nolint
 func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
+	srcMac := ""
+	dstMac := ""
+	if crossConnect.GetLocalSource().GetContext().GetEthernetContext() != nil {
+		srcMac = crossConnect.GetLocalSource().GetContext().GetEthernetContext().SrcMacAddress
+		dstMac = crossConnect.GetLocalSource().GetContext().GetEthernetContext().DstMacAddress
+	}
 	switch connType {
 	case cLOCAL:
 		srcNsPath, err := crossConnect.GetLocalSource().GetMechanism().NetNsFileName()
@@ -169,6 +193,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstNsPath: dstNsPath,
 			srcName:   crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			dstName:   crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
+			dstMac:    dstMac,
+			srcMac:    srcMac,
 			srcIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
 			dstIP:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
 			srcRoutes: crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
@@ -188,6 +214,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 			dstIP:      crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
 			dstRoutes:  crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
 			neighbors:  nil,
+			dstMac:     dstMac,
+			srcMac:     srcMac,
 			srcIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
 			dstIPVXLAN: net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
 			vni:        vni,
@@ -201,6 +229,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		vni, _ := strconv.Atoi(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANVNI])
 		return &connectionConfig{
 			srcNsPath:  srcNsPath,
+			dstMac:     dstMac,
+			srcMac:     srcMac,
 			srcName:    crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
 			srcIP:      crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
 			srcRoutes:  crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),

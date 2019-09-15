@@ -87,7 +87,7 @@ func main() {
 				return nil
 			}))
 	}
-	endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("ethernet", ethernetMutator))
+	endpoints = append(endpoints, endpoint.NewMacEndpoint(SrcMacAddr.StringValue(), DstMacAddr.StringValue()))
 	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
@@ -102,46 +102,6 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	<-c
-}
-
-func ethernetMutator(ctx context.Context, c *connection.Connection) error {
-	if c != nil {
-		if c.GetContext() != nil {
-			c.GetContext().EthernetContext = &connectioncontext.EthernetContext{}
-			ip := ""
-			if c.GetContext().GetIpContext() != nil {
-				ip = strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
-			}
-			c.GetContext().GetEthernetContext().DstMacAddress = getMacAddress(ip)
-		}
-	}
-	return nil
-}
-
-func getMacAddress(v string) string {
-	if v == "" {
-		return "4e:4f:41:48:00:00" //TODO: think about this
-	}
-
-	ip := net.ParseIP(v).To4()
-	mac := toAdministeredAddress([]byte(ip))
-	return net.HardwareAddr(mac).String()
-}
-
-//http://www.noah.org/wiki/MAC_address#locally_administered_address
-func toAdministeredAddress(input []byte) []byte {
-	result := make([]byte, 6)
-	or := []byte{2, 0, 0, 0, 0, 0}
-	and := []byte{254, 255, 255, 255, 255, 255}
-	min := len(result) //TODO: find Math.Min() for int
-	if min > len(input) {
-		min = len(input)
-	}
-	for i := 0; i < min; i++ {
-		result[i] = or[i] | input[i]
-		result[i] = and[i] & result[i]
-	}
-	return result
 }
 
 func dnsMutator(ctx context.Context, c *connection.Connection) error {

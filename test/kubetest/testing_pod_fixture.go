@@ -24,9 +24,18 @@ func DefaultTestingPodFixture(g *WithT) TestingPodFixture {
 	return NewCustomTestingPodFixture(g, DeployNSC, DeployICMP, CheckNSC)
 }
 
-// HealTestingPodFixture - Creates a testing tool specific for healing
-func HealTestingPodFixture(g *WithT) TestingPodFixture {
-	return NewCustomTestingPodFixture(g, DeployNSC, DeployICMP, HealNscChecker)
+// NseHealTestingPodFixture - Creates a testing tool specific for healing
+func NseHealTestingPodFixture(g *WithT) TestingPodFixture {
+	state := 0
+	icmpSupplier := func(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+		state++
+		if state%2 != 0 {
+			return DeployICMP(k8s, node, name, timeout)
+		}
+		return DeployChangedICMP(k8s, node, name, timeout)
+	}
+
+	return NewCustomTestingPodFixture(g, DeployNSC, icmpSupplier, CheckNSC)
 }
 
 // NewCustomTestingPodFixture - Creates a custom testing tool

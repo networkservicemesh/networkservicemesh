@@ -211,6 +211,20 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
+//DeployChangedICMP deploys 'icmp-responder-nse' pod with '-routes' flag set and not default ip address
+func DeployChangedICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	flags := flags.ICMPResponderFlags{
+		Routes: true,
+	}
+	env := defaultICMPEnv(k8s.useIPv6)
+	if !k8s.useIPv6 {
+		env["IP_ADDRESS"] = "173.17.1.0/24"
+	}
+	return deployICMP(k8s, nodeName(node), name, timeout,
+		pods.TestCommonPod(name, flags.Commands(), node, env),
+	)
+}
+
 // DeployICMPAndCoredns deploys 'icmp-responder-nse' pod with '-routes', '-dns' flag set. Also injected nsm-coredns server.
 func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfigName string, timeout time.Duration) *v1.Pod {
 	flags := flags.ICMPResponderFlags{
@@ -713,26 +727,6 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 		logrus.Printf("NSC Ping, OK")
 	}
 	return info
-}
-
-// HealNscChecker checks that heal worked properly
-func HealNscChecker(k8s *K8s, nscPod *v1.Pod) *NSCCheckInfo {
-	const attempts = 10
-	success := false
-	var rv *NSCCheckInfo
-	for i := 0; i < attempts; i++ {
-		info := &NSCCheckInfo{}
-		info.pingResponse = pingNse(k8s, nscPod)
-
-		if !strings.Contains(info.pingResponse, "100% packet loss") {
-			success = true
-			rv = info
-			break
-		}
-		<-time.After(time.Second)
-	}
-	k8s.g.Expect(success).To(BeTrue())
-	return rv
 }
 
 // IsBrokeTestsEnabled - Check if broken tests are enabled

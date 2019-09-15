@@ -23,7 +23,7 @@ func TestNSEHealLocal(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.NseHealTestingPodFixture(g))
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
@@ -33,11 +33,10 @@ func TestNSEHealLocalToRemote(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.NseHealTestingPodFixture(g))
 }
 
 func TestNSEHealRemoteToLocal(t *testing.T) {
@@ -51,7 +50,7 @@ func TestNSEHealRemoteToLocal(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.NseHealTestingPodFixture(g))
 }
 
 func TestNSEHealRemote(t *testing.T) {
@@ -65,7 +64,7 @@ func TestNSEHealRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.NseHealTestingPodFixture(g))
 }
 
 func TestNSEHealLocalMemif(t *testing.T) {
@@ -89,7 +88,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	//defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
