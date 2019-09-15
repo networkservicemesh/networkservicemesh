@@ -1,3 +1,4 @@
+---
 run:
   concurrency: 4
   deadline: 15m
@@ -93,8 +94,8 @@ linters:
     - depguard
     - lll
     - gofmt
-    - varcheck #deprecated
-    - unused #deprecated
+    - varcheck  # deprecated
+    - unused  # deprecated
     - goimports
   enable-all: true
 issues:
@@ -125,7 +126,7 @@ issues:
         - dupl
     - path: controlplane/pkg/nsm.nsm.go
       linters:
-        - gocyclo # TODO: reduce nsm.request() complexity
+        - gocyclo  # TODO: reduce nsm.request() complexity
     - path: test/cloudtest/pkg/utils/process.go
       linters:
         - gosec
