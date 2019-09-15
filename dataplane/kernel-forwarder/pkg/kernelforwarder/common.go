@@ -70,6 +70,7 @@ type setupLinkParams struct {
 	inject                       bool
 }
 
+//https://github.com/networkservicemesh/networkservicemesh/issues/1620
 func setupLinkInNs(p *setupLinkParams) error {
 	if p.inject {
 		/* 1. Get a link object for the interface */
@@ -176,7 +177,6 @@ func setupLinkInNs(p *setupLinkParams) error {
 	return nil
 }
 
-//nolint
 func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
 	srcMac := ""
 	dstMac := ""

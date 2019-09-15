@@ -135,7 +135,9 @@ issues:
     - path: k8s/pkg/probes/health/serve_mux_health.go
       linters:
         - gosec
-
+    - path: dataplane/kernel-forwarder/pkg/kernelforwarder/common.go
+      linters:
+        - gocyclo
     - path: test/kubetest/log_utils.go
       linters:
         - gosec
