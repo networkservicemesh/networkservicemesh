@@ -62,17 +62,25 @@ type connectionConfig struct {
 	vni        int
 }
 
-func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceMac, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
-	if inject {
+type setupLinkParams struct {
+	containerNs                  netns.NsHandle
+	ifaceName, ifaceMac, ifaceIP string
+	routes                       []*connectioncontext.Route
+	neighbors                    []*connectioncontext.IpNeighbor
+	inject                       bool
+}
+
+func setupLinkInNs(p *setupLinkParams) error {
+	if p.inject {
 		/* 1. Get a link object for the interface */
-		ifaceLink, err := netlink.LinkByName(ifaceName)
+		ifaceLink, err := netlink.LinkByName(p.ifaceName)
 		if err != nil {
-			logrus.Errorf("failed to get link for %q - %v", ifaceName, err)
+			logrus.Errorf("failed to get link for %q - %v", p.ifaceName, err)
 			return err
 		}
 		/* 2. Inject the interface into the desired container namespace */
-		if err = netlink.LinkSetNsFd(ifaceLink, int(containerNs)); err != nil {
-			logrus.Errorf("failed to inject %q in namespace - %v", ifaceName, err)
+		if err = netlink.LinkSetNsFd(ifaceLink, int(p.containerNs)); err != nil {
+			logrus.Errorf("failed to inject %q in namespace - %v", p.ifaceName, err)
 			return err
 		}
 	}
@@ -91,71 +99,71 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceMac, ifaceIP stri
 		return err
 	}
 	/* 5. Switch to the new namespace */
-	if err = netns.Set(containerNs); err != nil {
+	if err = netns.Set(p.containerNs); err != nil {
 		logrus.Errorf("failed to switch to container namespace: %v", err)
 		return err
 	}
 	defer func() {
-		if err = containerNs.Close(); err != nil {
+		if err = p.containerNs.Close(); err != nil {
 			logrus.Error("error when closing:", err)
 		}
 	}()
 	/* 6. Get a link for the interface name */
-	link, err := netlink.LinkByName(ifaceName)
+	link, err := netlink.LinkByName(p.ifaceName)
 	if err != nil {
-		logrus.Errorf("failed to lookup %q, %v", ifaceName, err)
+		logrus.Errorf("failed to lookup %q, %v", p.ifaceName, err)
 		return err
 	}
 
-	if inject {
+	if p.inject {
 		var addr *netlink.Addr
 		/* 7. Parse the IP address */
-		addr, err = netlink.ParseAddr(ifaceIP)
+		addr, err = netlink.ParseAddr(p.ifaceIP)
 		if err != nil {
-			logrus.Errorf("failed to parse IP %q: %v", ifaceIP, err)
+			logrus.Errorf("failed to parse IP %q: %v", p.ifaceIP, err)
 			return err
 		}
 
 		/* 7.1. Add mac address */
-		if ifaceMac != "" {
-			hwaddr, parseErr := net.ParseMAC(ifaceMac)
+		if p.ifaceMac != "" {
+			hwaddr, parseErr := net.ParseMAC(p.ifaceMac)
 			if parseErr != nil {
-				logrus.Errorf("failed to parse MAC %q: %v", ifaceIP, parseErr)
+				logrus.Errorf("failed to parse MAC %q: %v", p.ifaceIP, parseErr)
 				return parseErr
 			}
 			if err = netlink.LinkSetHardwareAddr(link, hwaddr); err != nil {
-				logrus.Errorf("failed to set MAC %q: %v", ifaceIP, err)
+				logrus.Errorf("failed to set MAC %q: %v", p.ifaceIP, err)
 				return err
 			}
 		}
 
 		/* 8. Set IP address */
 		if err = netlink.AddrAdd(link, addr); err != nil {
-			logrus.Errorf("failed to set IP %q: %v", ifaceIP, err)
+			logrus.Errorf("failed to set IP %q: %v", p.ifaceIP, err)
 			return err
 		}
 		/* 9. Bring the interface UP */
 		if err = netlink.LinkSetUp(link); err != nil {
-			logrus.Errorf("failed to bring %q up: %v", ifaceName, err)
+			logrus.Errorf("failed to bring %q up: %v", p.ifaceName, err)
 			return err
 		}
 		/* 10. Add routes */
-		if err = addRoutes(link, addr, routes); err != nil {
+		if err = addRoutes(link, addr, p.routes); err != nil {
 			logrus.Error("failed adding routes:", err)
 		}
 		/* 11. Add neighbors - applicable only for source side */
-		if err = addNeighbors(link, neighbors); err != nil {
+		if err = addNeighbors(link, p.neighbors); err != nil {
 			logrus.Error("failed adding neighbors:", err)
 		}
 	} else {
 		/* 7. Bring the interface DOWN */
 		if err = netlink.LinkSetDown(link); err != nil {
-			logrus.Errorf("failed to bring %q down: %v", ifaceName, err)
+			logrus.Errorf("failed to bring %q down: %v", p.ifaceName, err)
 			return err
 		}
 		/* 8. Inject the interface back into the host namespace */
 		if err = netlink.LinkSetNsFd(link, int(currentNs)); err != nil {
-			logrus.Errorf("failed to inject %q bach to host namespace - %v", ifaceName, err)
+			logrus.Errorf("failed to inject %q bach to host namespace - %v", p.ifaceName, err)
 			return err
 		}
 	}

@@ -96,9 +96,11 @@ func createRemoteConnection(nsPath, ifaceName, ifaceMAC, ifaceIP string, egressI
 	if err = netlink.LinkAdd(iface); err != nil {
 		logrus.Errorf("failed to create VXLAN interface - %v", err)
 	}
-
+	setupParams := &setupLinkParams{
+		containerNs, ifaceName, ifaceMAC, ifaceIP, routes, neighbors, true,
+	}
 	/* 4. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, ifaceMAC, ifaceIP, routes, neighbors, true); err != nil {
+	if err = setupLinkInNs(setupParams); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}
@@ -118,9 +120,11 @@ func deleteRemoteConnection(nsPath, ifaceName string) error {
 		logrus.Errorf("failed to get namespace handler from path - %v", err)
 		return err
 	}
-
+	setupParams := &setupLinkParams{
+		containerNs, ifaceName, "", "", nil, nil, false,
+	}
 	/* 2. Setup interface */
-	if err = setupLinkInNs(containerNs, ifaceName, "", "", nil, nil, false); err != nil {
+	if err = setupLinkInNs(setupParams); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", ifaceName, err)
 		return err
 	}

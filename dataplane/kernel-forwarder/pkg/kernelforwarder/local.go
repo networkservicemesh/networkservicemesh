@@ -81,13 +81,18 @@ func createLocalConnection(cfg *connectionConfig) error {
 	}
 
 	/* 4. Setup interface - source namespace */
-	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, cfg.srcMac, cfg.srcRoutes, cfg.neighbors, true); err != nil {
+	srcParams := &setupLinkParams{
+		srcNsHandle, cfg.srcName, cfg.srcIP, cfg.srcMac, cfg.srcRoutes, cfg.neighbors, true,
+	}
+	if err = setupLinkInNs(srcParams); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", cfg.srcName, err)
 		return err
 	}
-
+	dstParams := &setupLinkParams{
+		dstNsHandle, cfg.dstName, cfg.dstIP, cfg.dstMac, cfg.dstRoutes, nil, true,
+	}
 	/* 5. Setup interface - destination namespace */
-	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, cfg.dstMac, cfg.dstRoutes, nil, true); err != nil {
+	if err = setupLinkInNs(dstParams); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", cfg.dstName, err)
 		return err
 	}
@@ -117,15 +122,19 @@ func deleteLocalConnection(cfg *connectionConfig) error {
 		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
 		return err
 	}
-
+	srcParams := &setupLinkParams{
+		srcNsHandle, cfg.srcName, cfg.srcMac, cfg.srcIP, nil, nil, false,
+	}
 	/* 2. Extract the interface - source namespace */
-	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcMac, cfg.srcIP, nil, nil, false); err != nil {
+	if err = setupLinkInNs(srcParams); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", cfg.srcName, err)
 		return err
 	}
-
+	dstParams := &setupLinkParams{
+		dstNsHandle, cfg.dstName, cfg.dstMac, cfg.dstIP, nil, nil, false,
+	}
 	/* 3. Extract the interface - destination namespace */
-	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstMac, cfg.dstIP, nil, nil, false); err != nil {
+	if err = setupLinkInNs(dstParams); err != nil {
 		logrus.Errorf("failed to setup container interface %q: %v", cfg.dstName, err)
 		return err
 	}
