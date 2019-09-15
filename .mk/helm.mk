@@ -36,7 +36,7 @@ $(INSTALL_CHARTS):
 	--namespace="${NSM_NAMESPACE}" \
 	deployments/helm/${CHART}; \
 	SUCCESS=$?; \
-	if [ $SUCCESS != "0" ]; then \
+	if [ ${SUCCESS} != "0" ]; then \
 		echo "Failed, getting some debugging info"; \
 		echo kubectl -n "${NSM_NAMESPACE}" get events --sort-by='{.lastTimestamp}'; \
 		kubectl -n "${NSM_NAMESPACE}" get events --sort-by='{.lastTimestamp}'; \
