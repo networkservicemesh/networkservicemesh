@@ -582,7 +582,7 @@ func (srv *networkServiceManager) updateConnection(ctx context.Context, conn con
 	}
 
 	wrapper := pluginsapi.NewConnectionWrapper(conn)
-	wrapper, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper)
+	wrapper, err := srv.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper.Clone())
 	if err != nil {
 		return conn, err
 	}
