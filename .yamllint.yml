@@ -1,8 +1,12 @@
 ---
 extends: default
 
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+
 rules:
   # 80 chars should be enough, but don't fail if a line is longer
-  line-length:
-    max: 80
-    level: warning
+  line-length: disable
+  comments-indentation:
+    ignore: .circleci/config.yml

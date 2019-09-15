@@ -13,9 +13,10 @@ jobs:
       - checkout
       - run:
           command: |
-            sudo apt-get install yamllint python3-pkg-resources
+            sudo apt-get install python-pip python3-pkg-resources
+            pip install --user yamllint
             ./.circleci/install-shellcheck.sh
-      - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
+      - run: yamllint -c .yamllint.yml --strict .
       - run: go version
       - run:
           name: Download Go Dependencies
@@ -41,7 +42,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
-            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v networkservicemesh/test/`
+            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v -e "sample"`
       - store_test_results:
           path: ~/junit
       - store_artifacts:
