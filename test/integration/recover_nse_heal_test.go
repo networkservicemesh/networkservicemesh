@@ -88,7 +88,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
-	//defer k8s.Cleanup()
+	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
