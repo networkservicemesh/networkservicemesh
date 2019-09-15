@@ -12,21 +12,21 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
 )
 
-//NewMacEndpoint creates a new endpoint that adds ethernet context with specific mac addresses
-func NewMacEndpoint(srcMac, dstMac string) networkservice.NetworkServiceServer {
-	return &mac{srcMac, dstMac}
+//NewEthernetEndpoint creates a new endpoint that adds ethernet context with specific mac addresses
+func NewEthernetEndpoint(srcMac, dstMac string) networkservice.NetworkServiceServer {
+	return &ethernet{srcMac, dstMac}
 }
 
-type mac struct {
+type ethernet struct {
 	dstMac string
 	srcMac string
 }
 
-func (m *mac) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (m *ethernet) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	return &empty.Empty{}, nil
 }
 
-func (m *mac) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (m *ethernet) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	c := request.GetConnection()
 	if c.GetContext() != nil {
 		c.GetContext().EthernetContext = &connectioncontext.EthernetContext{}
@@ -34,7 +34,7 @@ func (m *mac) Request(ctx context.Context, request *networkservice.NetworkServic
 			c.GetContext().GetEthernetContext().SrcMacAddress = m.srcMac
 		}
 		if m.dstMac != "" {
-			c.GetContext().GetEthernetContext().SrcMacAddress = m.dstMac
+			c.GetContext().GetEthernetContext().DstMacAddress = m.dstMac
 		} else {
 			ip := ""
 			if c.GetContext().GetIpContext() != nil {
@@ -49,8 +49,8 @@ func (m *mac) Request(ctx context.Context, request *networkservice.NetworkServic
 	return request.GetConnection(), nil
 }
 
-func (m *mac) Name() string {
-	return "Mac Address Mutator Endpoint"
+func (m *ethernet) Name() string {
+	return "Ethernet Mutator Endpoint"
 }
 
 func generateMacBaseOnIP(ip string) string {

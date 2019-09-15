@@ -87,7 +87,7 @@ func main() {
 				return nil
 			}))
 	}
-	endpoints = append(endpoints, endpoint.NewMacEndpoint(SrcMacAddr.StringValue(), DstMacAddr.StringValue()))
+	endpoints = append(endpoints, endpoint.NewEthernetEndpoint(SrcMacAddr.StringValue(), DstMacAddr.StringValue()))
 	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
