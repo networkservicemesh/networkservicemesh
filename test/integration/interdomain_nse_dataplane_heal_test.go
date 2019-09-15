@@ -120,5 +120,5 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 	}
 	logrus.Infof("Waiting for connection recovery Done...")
 
-	kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
+	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
 }
