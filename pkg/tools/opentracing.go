@@ -2,9 +2,8 @@ package tools
 
 import (
 	"context"
-
+	"github.com/gogo/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/mesos/mesos-go/api/v0/examples/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
@@ -20,7 +19,7 @@ func OpenTracingClientInterceptorWithClone(tracer opentracing.Tracer, optFuncs .
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
-		return uci(ctx, method, proto.Clone(req.(proto.Message)), proto.Clone(reply.(proto.Message)), cc, invoker, opts...)
+		return uci(ctx, method, proto.Clone(req.(proto.Message)), reply, cc, invoker, opts...)
 	}
 }
 
