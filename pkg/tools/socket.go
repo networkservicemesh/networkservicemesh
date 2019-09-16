@@ -47,7 +47,7 @@ func NewServer(opts ...grpc.ServerOption) *grpc.Server {
 		logrus.Infof("GRPC.NewServer with open tracing enabled")
 		opts = append(opts,
 			grpc.UnaryInterceptor(
-				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads())),
+				OpenTracingServerInterceptorWithClone(opentracing.GlobalTracer(), otgrpc.LogPayloads())),
 			grpc.StreamInterceptor(
 				otgrpc.OpenTracingStreamServerInterceptor(opentracing.GlobalTracer())))
 	}
@@ -138,7 +138,7 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 func OpenTracingDialOptions() []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithUnaryInterceptor(
-			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads())),
+			OpenTracingClientInterceptorWithClone(opentracing.GlobalTracer(), otgrpc.LogPayloads())),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(opentracing.GlobalTracer())),
 	}
