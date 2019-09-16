@@ -8,8 +8,9 @@ require (
 	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.1.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
+	github.com/networkservicemesh/networkservicemesh/side-cars v0.0.0-00010101000000-000000000000
 	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
-	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
+	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc

@@ -17,7 +17,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.1.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
-	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
+	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
 	github.com/pkg/errors v0.8.1

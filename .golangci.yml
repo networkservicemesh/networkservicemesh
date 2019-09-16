@@ -102,42 +102,42 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
+  exclude-rules:  # Use relative path from module
     - path: _test\.go
       linters:
         - golint
-    - path: test/integration/const.go
+    - path: integration/const.go
       linters:
         - deadcode
-    - path: k8s/cmd/admission-webhook/init.go
+    - path: cmd/admission-webhook/init.go
       linters:
         - gochecknoglobals
         - gochecknoinits
-    - path: k8s/cmd/nsm-coredns
+    - path: cmd/nsm-coredns
       linters:
         - gochecknoglobals
         - gochecknoinits
-    - path: pkg/tools/socket.go
+    - path: tools/socket.go
       linters:
         - gochecknoglobals
         - gochecknoinits
-    - path: controlplane/pkg/monitor/
+    - path: pkg/monitor/
       linters:
         - dupl
-    - path: controlplane/pkg/nsm.nsm.go
+    - path: pkg/nsm.nsm.go
       linters:
         - gocyclo  # TODO: reduce nsm.request() complexity
-    - path: test/cloudtest/pkg/utils/process.go
+    - path: cloudtest/pkg/utils/process.go
       linters:
         - gosec
-    - path: test/cloudtest/pkg/commands/main.go
+    - path: cloudtest/pkg/commands/main.go
       linters:
         - gosec
         - funlen
-    - path: k8s/pkg/probes/health/serve_mux_health.go
+    - path: probes/health/serve_mux_health.go
       linters:
         - gosec
-    - path: test/kubetest/log_utils.go
+    - path: kubetest/log_utils.go
       linters:
         - gosec
 

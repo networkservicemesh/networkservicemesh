@@ -21,7 +21,7 @@ jobs:
       - run:
           name: Download Go Dependencies
           command: |
-            ./scripts/go-mod-download.sh
+            ./scripts/for-each-module.sh "$(pwd)/scripts/go-mod-download.sh"
       - run:
           name: Check code formatting
           command: |
@@ -61,9 +61,10 @@ jobs:
           name: lint
           command: |
             ./scripts/lint-download.sh
-            ./scripts/lint-check-diff.sh
+            ./scripts/for-each-module.sh "$(pwd)/scripts/lint-check-diff.sh"
     environment:
       GO111MODULE: "on"
+      LOG_LEVEL: "error"
 
 # integration
   integration-tests:
