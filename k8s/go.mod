@@ -2,27 +2,24 @@ module github.com/networkservicemesh/networkservicemesh/k8s
 
 require (
 	github.com/caddyserver/caddy v1.0.1
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/coredns/coredns v1.5.2
 	github.com/dnstap/golang-dnstap v0.1.0
 	github.com/go-errors/errors v1.0.1
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/ligato/cn-infra v2.0.0+incompatible
 	github.com/miekg/dns v1.1.15
-	github.com/networkservicemesh/networkservicemesh v0.1.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
 	github.com/networkservicemesh/networkservicemesh/k8s/api v0.1.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
-	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
+	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/uber-go/atomic v1.4.0 // indirect
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
-	google.golang.org/grpc v1.23.0
+	google.golang.org/grpc v1.23.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible
@@ -65,6 +62,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/dataplane => ../dataplane
 	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../dataplane/api
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
+	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )

@@ -7,15 +7,16 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/ligato/cn-infra v2.0.0+incompatible
-	github.com/ligato/vpp-agent v2.1.1+incompatible
-	github.com/networkservicemesh/networkservicemesh v0.1.0
+	github.com/ligato/vpp-agent v2.2.0+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
 	github.com/networkservicemesh/networkservicemesh/dataplane v0.1.0
 	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.1.0
 	github.com/networkservicemesh/networkservicemesh/k8s v0.1.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.1.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
 	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
@@ -23,7 +24,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
-	google.golang.org/grpc v1.23.0
+	google.golang.org/grpc v1.23.1
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
@@ -68,7 +69,9 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../dataplane/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ../test
+	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )

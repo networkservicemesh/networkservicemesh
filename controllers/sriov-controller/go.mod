@@ -1,29 +1,15 @@
 module github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller
 
 require (
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/ghodss/yaml v1.0.0
-	github.com/gogo/protobuf v1.3.0 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/googleapis/gnostic v0.3.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/json-iterator/go v1.1.7 // indirect
-	github.com/ligato/cn-infra v2.0.0+incompatible
-	github.com/networkservicemesh/networkservicemesh v0.1.0
+	github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4
+	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/uber-go/atomic v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 // indirect
-	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
-	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b // indirect
-	google.golang.org/appengine v1.6.2 // indirect
-	google.golang.org/genproto v0.0.0-20190905072037-92dd089d5514 // indirect
-	google.golang.org/grpc v1.23.0
+	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
+	google.golang.org/grpc v1.23.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/klog v0.4.0 // indirect
+	k8s.io/client-go v0.0.0
 	k8s.io/kubernetes v1.15.3
-	k8s.io/utils v0.0.0-20190907131718-3d4f5b7dea0b // indirect
 )
 
 replace (
@@ -56,12 +42,13 @@ replace (
 )
 
 replace (
-	github.com/networkservicemesh/networkservicemesh => ../../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../../controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ../../dataplane
 	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../../dataplane/api
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../../k8s/api
+	github.com/networkservicemesh/networkservicemesh/pkg => ../../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../../side-cars
+	github.com/networkservicemesh/networkservicemesh/utils => ../../utils
 )
