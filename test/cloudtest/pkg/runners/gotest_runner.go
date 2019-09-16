@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
@@ -29,8 +30,8 @@ func (runner *goTestRunner) GetCmdLine() string {
 }
 
 // NewGoTestRunner - creates go test runner
-func NewGoTestRunner(ids string, test *model.TestEntry, timeout int64) TestRunner {
-	cmdLine := fmt.Sprintf("go test %s -test.timeout %ds -count 1 --run \"^(%s)$\\\\z\" --tags \"%s\" --test.v",
+func NewGoTestRunner(ids string, test *model.TestEntry, timeout time.Duration) TestRunner {
+	cmdLine := fmt.Sprintf("go test %s -test.timeout %v -count 1 --run \"^(%s)$\\\\z\" --tags \"%s\" --test.v",
 		test.ExecutionConfig.PackageRoot, timeout, test.Name, test.Tags)
 
 	envMgr := shell.NewEnvironmentManager()

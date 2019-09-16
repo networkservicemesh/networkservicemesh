@@ -44,7 +44,7 @@ func getOrCreateFile(path string) (*os.File, error) {
 func archiveLogs(testName string) {
 	file, err := getOrCreateFile(filepath.Join(logsDir(), testName+".zip"))
 	if err != nil {
-		logrus.Error("Can not create tar file")
+		logrus.Error("Can not create zip file")
 		return
 	}
 	writer := zip.NewWriter(file)
@@ -102,7 +102,7 @@ func archiveLogs(testName string) {
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
-		name := strings.Join([]string{pod.ClusterName, pod.Name, c.Name}, ":")
+		name := strings.Join([]string{pod.ClusterName, pod.Name, c.Name}, "-")
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := logTransaction
 

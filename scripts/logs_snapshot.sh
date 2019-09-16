@@ -6,20 +6,21 @@ if ! [[ $1 == "" ]] && [[ $1 == "only-master" ]] && ! [[ ${STORE_LOGS_IN_ANY_CAS
 fi
 
 kubectl="kubectl -n ${NSM_NAMESPACE}"
-path="logs"
+tmp="logs"
+pathToSave="logs"
 
 if [[ ${STORE_POD_LOGS_IN_FILES} == true ]]; then
   if [[ ${STORE_POD_LOGS_DIR} ]]; then
-    path=${STORE_POD_LOGS_DIR}
+    pathToSave=${STORE_POD_LOGS_DIR}
   fi
-  mkdir -p "${path}"/pod
+  mkdir -p "${tmp}"/pod
   echo "Created folder ${path}/pod"
 fi
 
 for pod in $(${kubectl} -o=name get pods); do
   echo "${pod}"
   if [[ ${STORE_POD_LOGS_IN_FILES} == true ]]; then
-    filePath=${path}/${pod}.log
+    filePath=${tmp}/${pod}.log
     ${kubectl} logs --all-containers=true "${pod}" >> "${filePath}"
     echo "Saved logs for ${pod} in ${filePath}"
   else
@@ -29,6 +30,7 @@ for pod in $(${kubectl} -o=name get pods); do
   fi
 done
 
-archive=${path}/../$(basename "${path}").zip
-zip -r "${archive}" "${path}"
-rm -rf "${path}"
+archive=${pathToSave}.zip
+echo ${archive}
+zip -r "${archive}" "${tmp}"
+rm -rf "${tmp}"
