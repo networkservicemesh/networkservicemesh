@@ -756,10 +756,10 @@ func runOnFailScript(ctx context.Context, script string, env []string, writer *b
 }
 
 func (ctx *executionContext) getTestTimeout(task *testTask) time.Duration {
-	timeout := time.Second * time.Duration(task.test.ExecutionConfig.Timeout)
+	timeout := time.Second * time.Duration(task.test.ExecutionConfig.Timeout) * 2
 	if timeout == 0 {
 		logrus.Infof("test timeout is not specified, use default value, 3min")
-		timeout = time.Second * 3
+		timeout = time.Minute * 3
 	}
 	return timeout
 }
