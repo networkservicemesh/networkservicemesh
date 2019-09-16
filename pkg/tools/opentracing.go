@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mesos/mesos-go/api/v0/examples/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
