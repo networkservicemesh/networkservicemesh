@@ -262,6 +262,10 @@ Checking changes:
 ```bash
 make lint-check-diff
 ```
+Checking changes with memory limitation:
+```bash
+GOGC=30 make lint-check-diff
+```
 Checking all code in the project:
 ```bash 
 make lint-check-all
