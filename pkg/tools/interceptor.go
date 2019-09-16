@@ -2,9 +2,10 @@ package tools
 
 import (
 	"context"
+	"reflect"
+
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
-	"reflect"
 )
 
 func allocate(typ reflect.Type) interface{} {

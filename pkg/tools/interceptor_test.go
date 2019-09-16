@@ -3,9 +3,10 @@ package tools
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
-	"testing"
 )
 
 type testMsg struct {
