@@ -11,6 +11,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -44,7 +45,7 @@ func main() {
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
-	pluginRegistry := plugins.NewPluginRegistry()
+	pluginRegistry := plugins.NewPluginRegistry(pluginsapi.PluginRegistrySocket)
 
 	if err := pluginRegistry.Start(ctx); err != nil {
 		logrus.Errorf("Failed to start Plugin Registry: %v", err)
