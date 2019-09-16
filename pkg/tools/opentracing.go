@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
