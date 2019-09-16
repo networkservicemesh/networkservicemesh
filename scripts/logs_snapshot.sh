@@ -14,7 +14,7 @@ if [[ ${STORE_POD_LOGS_IN_FILES} == true ]]; then
     pathToSave=${STORE_POD_LOGS_DIR}
   fi
   mkdir -p "${tmp}"/pod
-  echo "Created folder ${path}/pod"
+  echo "Created folder ${tmp}/pod"
 fi
 
 for pod in $(${kubectl} -o=name get pods); do
@@ -23,7 +23,7 @@ for pod in $(${kubectl} -o=name get pods); do
     filePath=${tmp}/${pod}.log
     ${kubectl} logs --all-containers=true "${pod}" >> "${filePath}"
     echo "Saved logs for ${pod} in ${filePath}"
-    logs="$(${kubectl} logs --all-containers=true -p ${pod})"
+    logs="$(${kubectl} logs --all-containers=true -p "${pod}")"
     if [[ "${logs}" == "" ]]; then 
       echo "No previous logs for ${pod}"
       continue
@@ -38,6 +38,6 @@ for pod in $(${kubectl} -o=name get pods); do
 done
 
 archive=${pathToSave}.zip
-echo ${archive}
+echo "${archive}"
 zip -r "${archive}" "${tmp}"
 rm -rf "${tmp}"
