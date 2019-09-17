@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
 
 func TestEmptyConnectionContext(t *testing.T) {

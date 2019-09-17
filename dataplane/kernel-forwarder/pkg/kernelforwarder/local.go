@@ -16,7 +16,7 @@
 package kernelforwarder
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"

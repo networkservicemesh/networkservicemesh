@@ -8,9 +8,9 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"

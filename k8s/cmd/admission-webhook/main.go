@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
 	"github.com/sirupsen/logrus"
 

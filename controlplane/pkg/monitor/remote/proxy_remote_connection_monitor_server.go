@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 )
 
 const (
@@ -39,7 +40,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 
 	logrus.Printf("Monitor Connections request: %s -> %s", selector.NetworkServiceManagerName, selector.DestinationNetworkServiceManagerName)
 
-	remotePeerName, remotePeerURL, err := utils.ParseNsmURL(selector.DestinationNetworkServiceManagerName)
+	remotePeerName, remotePeerURL, err := interdomain.ParseNsmURL(selector.DestinationNetworkServiceManagerName)
 	if err != nil {
 		return fmt.Errorf("ProxyNSM-Monitor: %s", err.Error())
 	}

@@ -6,7 +6,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 )
 
 type dummyConnectionPlugin struct {

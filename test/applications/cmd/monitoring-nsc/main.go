@@ -17,7 +17,7 @@ package main
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
+	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -56,7 +56,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
-	monitor := sidecars.NewNSMMonitorApp()
+	monitor := nsmmonitor.NewNSMMonitorApp()
 	monitor.Run()
 	<-c
 }

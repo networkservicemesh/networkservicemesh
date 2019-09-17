@@ -6,7 +6,7 @@ import (
 	"path"
 	"testing"
 
-	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 )
 
