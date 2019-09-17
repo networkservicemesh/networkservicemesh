@@ -17,6 +17,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -33,6 +34,10 @@ import (
 const (
 	// ConnectTimeout - a default connection timeout
 	ConnectTimeout = 15 * time.Second
+	// ConnectionRetry - A number of retries for establish a network service, default == 10
+	ConnectionRetry = 10
+	// RequestDelay - A delay between attempts, default = 5sec
+	RequestDelay = time.Second * 5
 )
 
 // NsmClient is the NSM client struct
@@ -44,8 +49,12 @@ type NsmClient struct {
 	tracerCloser        io.Closer
 }
 
-// Connect implements the business logic
+// Connect with no retry and delay
 func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*connection.Connection, error) {
+	return nsmc.ConnectRetry(ctx, name, mechanism, description, 1, 0)
+}
+// Connect implements the business logic
+func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*connection.Connection, error) {
 
 	var span opentracing.Span
 	if opentracing.IsGlobalTracerRegistered() {
@@ -91,12 +100,39 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 			outgoingMechanism,
 		},
 	}
-	outgoingConnection, err := nsmc.NsClient.Request(ctx, outgoingRequest)
-	if err != nil {
-		logger.Errorf("failure to request connection with error: %+v", err)
-		return nil, err
-	}
+	var outgoingConnection *connection.Connection
+	maxRetry := retryCount
+	for retryCount >= 0 {
+		attempCtx, cancelProc := context.WithTimeout(ctx, ConnectTimeout)
+		defer cancelProc()
 
+		var attemptSpan opentracing.Span
+		if opentracing.IsGlobalTracerRegistered() {
+			attemptSpan, attempCtx  = opentracing.StartSpanFromContext(attempCtx, fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
+			defer attemptSpan.Finish()
+		}
+
+		attemptLogger := common.LogFromSpan(attemptSpan)
+		attemptLogger.Infof("Requesting %v", outgoingRequest)
+		outgoingConnection, err = nsmc.NsClient.Request(attempCtx, outgoingRequest)
+
+		if err != nil {
+			if attemptSpan != nil {
+				attemptSpan.Finish()
+			}
+			cancelProc()
+			if retryCount == 0 {
+				return nil, fmt.Errorf("nsm client: Failed to connect %v", err)
+			} else {
+				attemptLogger.Errorf("nsm client: Failed to connect %v. Retry attempts: %v Delaying: %v", err, retryCount, retryDelay)
+			}
+			retryCount --
+			<- time.After(retryDelay)
+			continue
+		}
+		break
+	}
+	logger.Infof("Success connection: %v", outgoingConnection)
 	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
 	return outgoingConnection, nil
 }
