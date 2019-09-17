@@ -22,14 +22,14 @@ spec:
           imagePullPolicy: Always
           resources:
             limits:
-#
-# Specify the list of network services required for a client pod.
-# The format should be: networkservicemesh.io/sriov-{network service name}: {number of services}
-#
-#              networkservicemesh.io/sriov-trunk: 2
-#              networkservicemesh.io/sriov-vlan10: 1
-#              networkservicemesh.io/sriov-vlan20: 1
-#              networkservicemesh.io/sriov-mgmt: 1
+            #
+            # Specify the list of network services required for a client pod.
+            # The format should be: networkservicemesh.io/sriov-{network service name}: {number of services}
+            #
+            #              networkservicemesh.io/sriov-trunk: 2
+            #              networkservicemesh.io/sriov-vlan10: 1
+            #              networkservicemesh.io/sriov-vlan20: 1
+            #              networkservicemesh.io/sriov-mgmt: 1
           securityContext:
             capabilities:
               add:

@@ -1,3 +1,4 @@
+---
 run:
   concurrency: 4
   deadline: 15m
@@ -93,8 +94,8 @@ linters:
     - depguard
     - lll
     - gofmt
-    - varcheck #deprecated
-    - unused #deprecated
+    - varcheck  # deprecated
+    - unused  # deprecated
     - goimports
   enable-all: true
 issues:
@@ -126,20 +127,21 @@ issues:
         - dupl
     - path: controlplane/pkg/nsm.nsm.go
       linters:
-        - gocyclo # TODO: reduce nsm.request() complexity
+        - gocyclo  # TODO: reduce nsm.request() complexity
     - path: test/cloudtest/pkg/utils/process.go
       linters:
         - gosec
     - path: test/cloudtest/pkg/commands/main.go
       linters:
         - gosec
+        - funlen
     - path: k8s/pkg/probes/health/serve_mux_health.go
       linters:
         - gosec
-
     - path: test/kubetest/log_utils.go
       linters:
         - gosec
+
   exclude:
     - should not use dot imports
     - \`version\` is a global variable

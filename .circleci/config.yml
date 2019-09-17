@@ -13,9 +13,10 @@ jobs:
       - checkout
       - run:
           command: |
-            sudo apt-get install yamllint python3-pkg-resources
+            sudo apt-get install python-pip python3-pkg-resources
+            pip install --user yamllint
             ./.circleci/install-shellcheck.sh
-      - run: yamllint -c .yamllint.yml $(git ls-files '*.yaml' '*.yml')
+      - run: yamllint -c .yamllint.yml --strict .
       - run: go version
       - run:
           name: Download Go Dependencies
@@ -61,7 +62,7 @@ jobs:
           name: lint
           command: |
             ./scripts/lint-download.sh
-            make lint-check-diff
+            ./scripts/lint-check-diff.sh
     environment:
       GO111MODULE: "on"
 

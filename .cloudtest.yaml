@@ -1,6 +1,7 @@
+---
 version: 1.0
 root: "./.tests/cloud_test/"
-timeout: 7200 # 2 hour total total timeout
+timeout: 7200  # 2 hour total total timeout
 import:
   - .cloudtest/packet.yaml
   - .cloudtest/gke.yaml
@@ -15,7 +16,7 @@ executions:
   - name: "Single cluster tests"
     env:
       - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - basic
       - recover
@@ -30,7 +31,7 @@ executions:
   - name: "Benchmark tests"
     env:
       - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/logs
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - bench
     root: ./test/integration
@@ -130,16 +131,17 @@ executions:
       make k8s-deconfig helm-install-nsm
       make helm-install-vpn
       make k8s-check
-      make k8s-logs-snapshot
+      make k8s-logs-snapshot-only-master
       make helm-delete-vpn helm-delete-nsm
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
     on_fail: |
-      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
+      kubectl get pods -n "${NSM_NAMESPACE}"
       make k8s-logs-snapshot
       make helm-delete-vpn helm-delete-nsm
+      make k8s-delete-nsm-namespaces
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -147,6 +149,8 @@ executions:
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/icmp-example
       - SPIRE_ENABLED=false # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
@@ -154,13 +158,14 @@ executions:
       make k8s-deconfig helm-install-nsm
       make helm-install-icmp-responder
       make k8s-check
-      make k8s-logs-snapshot
+      make k8s-logs-snapshot-only-master
       make helm-delete-icmp-responder helm-delete-nsm
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
     on_fail: |
-      kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName --all-namespaces
+      kubectl get pods -n "${NSM_NAMESPACE}"
       make k8s-logs-snapshot
       make helm-delete-icmp-responder helm-delete-nsm
+      make k8s-delete-nsm-namespaces
       make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "$NSM_NAMESPACE" --all
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all

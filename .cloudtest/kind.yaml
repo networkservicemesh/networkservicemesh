@@ -1,3 +1,4 @@
+---
 version: 1.0
 providers:
   - name: "kind"
@@ -6,7 +7,7 @@ providers:
     node-count: 3
     retry: 10
     enabled: false
-    timeout: 300 # 5 minutes to start cluster
+    timeout: 300  # 5 minutes to start cluster
     stop-delay: 10
     env:
       - CLUSTER_RULES_PREFIX=kind

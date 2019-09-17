@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -107,13 +108,17 @@ type OrEventChecker struct {
 
 // Check implements method from EventChecker interface
 func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) error {
+	m := sync.Mutex{}
 	copyCh := make(chan *crossconnect.CrossConnectEvent)
 	var buffer []*crossconnect.CrossConnectEvent
 	go func() {
 		for {
+			m.Lock()
 			event := <-eventCh
 			buffer = append(buffer, event)
+			m.Unlock()
 			copyCh <- event
+
 		}
 	}()
 
@@ -125,10 +130,12 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) e
 
 	copyCh2 := make(chan *crossconnect.CrossConnectEvent)
 	go func() {
+		m.Lock()
 		for _, event := range buffer {
 			copyCh2 <- event
 		}
 		event := <-eventCh
+		m.Unlock()
 		copyCh2 <- event
 	}()
 

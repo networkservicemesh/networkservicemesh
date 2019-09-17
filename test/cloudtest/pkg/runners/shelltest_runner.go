@@ -35,7 +35,7 @@ func (runner *shellTestRunner) runCmd(context context.Context, script, env []str
 
 		logger := func(s string) {
 		}
-		_, err := utils.RunCommand(context, cmd, logger, writer, cmdEnv, map[string]string{}, false)
+		_, err := utils.RunCommand(context, cmd, "", logger, writer, cmdEnv, map[string]string{}, false)
 		if err != nil {
 			_, _ = writer.WriteString(fmt.Sprintf("error running command: %v\n", err))
 			_ = writer.Flush()

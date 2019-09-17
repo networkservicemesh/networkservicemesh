@@ -88,7 +88,7 @@ func (si *shellInterface) runCmd(context context.Context, operation string, scri
 		logger := func(s string) {
 			logrus.Infof("%s: %s -> %v", si.id, operation, s)
 		}
-		stdOut, err := utils.RunCommand(context, cmd, logger, writer, cmdEnv, si.finalArgs, returnResult)
+		stdOut, err := utils.RunCommand(context, cmd, "", logger, writer, cmdEnv, si.finalArgs, returnResult)
 		if err != nil {
 			_, _ = writer.WriteString(fmt.Sprintf("error running command: %v\n", err))
 			_ = writer.Flush()

@@ -1,3 +1,4 @@
+---
 version: 1.0
 providers:
   - name: "aws"
@@ -6,7 +7,7 @@ providers:
     retry: 2
     node-count: 2
     enabled: true
-    timeout: 3600 # 60 minutes to start cluster
+    timeout: 3600  # 60 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=aws
       - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
