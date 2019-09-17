@@ -17,10 +17,10 @@ package main
 import (
 	"context"
 
-	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
-
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+
+	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
@@ -49,10 +49,7 @@ func main() {
 	}
 	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
 
-	ctx, cancelProc := context.WithTimeout(context.Background(), client.ConnectTimeout)
-	defer cancelProc()
-
-	_, err = nsc.Connect(ctx, "nsm", "kernel", "Primary interface")
+	_, err = nsc.ConnectRetry(context.Background(), "nsm", "kernel", "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
