@@ -18,6 +18,8 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+
 	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/kernelforwarder"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -27,13 +29,13 @@ func main() {
 	// Capture signals to cleanup before exiting
 	logrus.Info("Starting the Kernel-based forwarding plane!")
 	c := tools.NewOSSignalChannel()
-
-	dataplaneProbes := common.NewDataplaneProbes()
-	go dataplaneProbes.BeginHealthCheck()
+	dataplaneGoals := &common.DataplaneProbeGoals{}
+	dataplaneProbes := probes.New("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
+	dataplaneProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(plane, dataplaneProbes)
+	registration := common.CreateDataplane(plane, dataplaneGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

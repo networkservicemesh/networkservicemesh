@@ -31,7 +31,9 @@ COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/super
 FROM golang:alpine as build_vpp
 ARG VERSION=unspecified
 ARG VENDORING
-RUN apk --no-cache add git
+ARG GOPROXY
+
+ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
 ENV GO111MODULE=on
 

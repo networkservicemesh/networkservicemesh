@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes/health"
 
 	"github.com/sirupsen/logrus"
 
@@ -16,18 +20,20 @@ var version string
 func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
 	logrus.Info("Admission Webhook starting...")
 	logrus.Infof("Version: %v", version)
-
+	goals := &admissionWebhookGoals{}
+	prob := probes.New("NSM Admission webhook probes", goals)
+	prob.BeginHealthCheck()
 	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		logrus.Fatalf("Failed to load key pair: %v", err)
 	}
-
+	goals.SetKeyPairLoaded()
+	addr := fmt.Sprintf(":%v", defaultPort)
 	whsvr := &nsmAdmissionWebhook{
 		server: &http.Server{
-			Addr:      fmt.Sprintf(":%v", 443),
+			Addr:      addr,
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
 	}
@@ -36,14 +42,14 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", whsvr.serve)
 	whsvr.server.Handler = mux
-
+	prob.Append(health.NewHTTPServeMuxHealth(tools.NewAddr("https", addr), mux, time.Minute))
 	// start webhook server in new routine
 	go func() {
 		if err := whsvr.server.ListenAndServeTLS("", ""); err != nil {
 			logrus.Fatalf("Failed to listen and serve webhook server: %v", err)
 		}
 	}()
-
+	goals.SetServerStarted()
 	logrus.Info("Server started")
 	<-c
 }

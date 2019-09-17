@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -118,16 +117,10 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	}
 
 	k8ss[clusterToKill].K8s.DeletePods(podToKill)
+	k8ss[clusterToCheck].K8s.WaitLogsContains(k8ss[clusterToCheck].NodesSetup[0].Nsmd, "nsmd", "Cross connection successfully closed on dataplane", defaultTimeout)
 
-	success := false
-	for attempt := 0; attempt < 20; <-time.After(300 * time.Millisecond) {
-		attempt++
-		ipResponse, errOut, err := k8ss[clusterToCheck].K8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
-		if err == nil && errOut == "" && !strings.Contains(ipResponse, "nsm") {
-			success = true
-			break
-		}
-	}
-
-	g.Expect(success).To(Equal(true))
+	ipResponse, errOut, err = k8ss[clusterToCheck].K8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
+	g.Expect(err).To(BeNil())
+	g.Expect(errOut).To(Equal(""))
+	g.Expect(strings.Contains(ipResponse, "nsm")).To(Equal(false))
 }

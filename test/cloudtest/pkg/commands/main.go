@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -26,6 +28,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/reporting"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/runners"
+	shell_mgr "github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
 
@@ -562,7 +565,6 @@ func (ctx *executionContext) createSingleTask(taskIndex int, test *model.TestEnt
 			ExecutionConfig: test.ExecutionConfig,
 			Executions:      []model.TestEntryExecution{},
 			RunScript:       test.RunScript,
-			OnFailScript:    test.OnFailScript,
 		},
 		clusters: []*clustersGroup{cluster},
 	}
@@ -633,7 +635,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 	return nil
 }
 
-func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout int64, instances []*clusterInstance, err error, fileName string) {
+func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout time.Duration, instances []*clusterInstance, err error, fileName string) {
 	go func() {
 		st := time.Now()
 		env := []string{}
@@ -659,8 +661,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
 		_, _ = writer.WriteString(fmt.Sprintf("Command line %v\nenv==%v \n\n", runner.GetCmdLine(), env))
 		_ = writer.Flush()
-
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout*2)*time.Second)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		for _, inst := range instances {
@@ -669,6 +670,13 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 
 		task.test.Started = time.Now()
 		errCode := runner.Run(timeoutCtx, env, writer)
+
+		if errCode != nil {
+			onFailErr := ctx.handleOnFailTask(task, env, writer)
+			if err != nil {
+				errCode = errors.Wrap(errCode, onFailErr.Error())
+			}
+		}
 
 		delay := 0
 		for _, cl := range task.clusters {
@@ -709,11 +717,49 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 	}()
 }
 
-func (ctx *executionContext) getTestTimeout(task *testTask) int64 {
-	timeout := task.test.ExecutionConfig.Timeout
+func (ctx *executionContext) handleOnFailTask(task *testTask, env []string, writer *bufio.Writer) error {
+	config := task.test.ExecutionConfig
+	if config == nil {
+		logrus.Warnf("OnFail: no execution config for %v", task.test.Name)
+		return nil
+	}
+	if strings.TrimSpace(config.OnFail) == "" {
+		logrus.Infof("OnFail: not provided OnFail script for config %v", config.Name)
+		return nil
+	}
+	mgr := shell_mgr.NewEnvironmentManager()
+	if err := mgr.ProcessEnvironment(task.clusterTaskID, "shellrun", os.TempDir(), append(env, config.Env...), nil); err != nil {
+		logrus.Errorf("OnFail: an error during process env: %v", err)
+		return err
+	}
+	timeout := ctx.getTestTimeout(task)
+	context, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return runOnFailScript(context, config.OnFail, mgr.GetProcessedEnv(), writer)
+}
+
+func runOnFailScript(ctx context.Context, script string, env []string, writer *bufio.Writer) error {
+	logger := func(s string) {
+	}
+	root, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	for _, cmd := range utils.ParseScript(script) {
+		_, err := utils.RunCommand(ctx, cmd, root, logger, writer, env, map[string]string{}, false)
+		if err != nil {
+			logrus.Errorf("OnFail: an error during run cmd: %v, err: %v", cmd, err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func (ctx *executionContext) getTestTimeout(task *testTask) time.Duration {
+	timeout := time.Second * time.Duration(task.test.ExecutionConfig.Timeout) * 2
 	if timeout == 0 {
 		logrus.Infof("test timeout is not specified, use default value, 3min")
-		timeout = 3 * 60
+		timeout = time.Minute * 3
 	}
 	return timeout
 }
@@ -979,7 +1025,6 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 			ExecutionConfig: exec,
 			Status:          model.StatusAdded,
 			RunScript:       exec.Run,
-			OnFailScript:    exec.OnFail,
 		},
 	}
 }

@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -319,7 +321,7 @@ func (impl *testDataplaneConnection) Close(ctx context.Context, in *crossconnect
 	return nil, nil
 }
 
-func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (dataplane.Dataplane_MonitorMechanismsClient, error) {
+func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (dataplane.MechanismsMonitor_MonitorMechanismsClient, error) {
 	return nil, nil
 }
 
@@ -573,9 +575,9 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.testModel.AddListener(monitorCrossConnectClient)
+	probes := probes.New("Test probes", nil)
 
-	// Start API Server
-	nsmServer.StartAPIServerAt(ctx, sock)
+	nsmServer.StartAPIServerAt(ctx, sock, probes)
 
 	return srv
 }

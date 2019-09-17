@@ -59,7 +59,8 @@ func CreateVPPAgent() *VPPAgent {
 	return &VPPAgent{}
 }
 
-func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
+// MonitorMechanisms sends mechanism updates
+func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
 		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,

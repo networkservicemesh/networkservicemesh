@@ -1,5 +1,5 @@
 #!/bin/bash
-version=1.16.0
+version=1.18.0
 {
     wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- v${version}
     sudo cp ./bin/golangci-lint "$(go env GOPATH)"/bin/

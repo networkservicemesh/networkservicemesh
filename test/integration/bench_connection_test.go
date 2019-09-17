@@ -71,7 +71,6 @@ func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy ku
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 
 	doneChannel := make(chan nscPingResult, nscCount)
-	defer close(doneChannel)
 
 	for count := nscCount; count > 0; count-- {
 		go createNscAndPingIcmp(g, k8s, count, nodes[0].Node, doneChannel, nscDeploy, nsePing)
@@ -95,7 +94,6 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 
 	icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)
 	doneChannel := make(chan nscPingResult, nscCount)
-	defer close(doneChannel)
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		for count := nscCount; count > 0; count-- {
@@ -120,7 +118,6 @@ func testOneToOneConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy k
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 	nodes := createNodes(g, k8s, nodeCount)
 	doneChannel := make(chan nscPingResult, 1)
-	defer close(doneChannel)
 
 	for testCount := 0; testCount < nscMaxCount; testCount += nscCount {
 		icmp := icmpDeploy(k8s, nodes[nodeCount-1].Node, icmpDefaultName, defaultTimeout)

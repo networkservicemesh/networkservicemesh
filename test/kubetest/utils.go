@@ -161,7 +161,6 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
 	k8s.g.Expect(dataplane.Name).To(Equal(corePods[1].Name))
 
-	k8s.WaitLogsContains(dataplane, "", "Sending MonitorMechanisms update", timeout)
 	_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
 	k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
 	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
@@ -411,14 +410,11 @@ func deployNSC(k8s *K8s, nodeName, name, container string, timeout time.Duration
 // DeployAdmissionWebhook - Setup Admission Webhook
 func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout time.Duration) (*arv1beta1.MutatingWebhookConfiguration, *appsv1.Deployment, *v1.Service) {
 	_, caCert := CreateAdmissionWebhookSecret(k8s, name, namespace)
-	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
-
-	awDeployment := CreateAdmissionWebhookDeployment(k8s, name, image, namespace)
 	awService := CreateAdmissionWebhookService(k8s, name, namespace)
-
+	awDeployment := CreateAdmissionWebhookDeployment(k8s, name, image, namespace)
 	admissionWebhookPod := waitWebhookPod(k8s, awDeployment.Name, timeout)
 	k8s.g.Expect(admissionWebhookPod).ShouldNot(BeNil())
-	k8s.WaitLogsContains(admissionWebhookPod, admissionWebhookPod.Spec.Containers[0].Name, "Server started", timeout)
+	awc := CreateMutatingWebhookConfiguration(k8s, caCert, name, namespace)
 	return awc, awDeployment, awService
 }
 
@@ -544,7 +540,6 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 	}
 	awc, err := k8s.CreateMutatingWebhookConfiguration(mutatingWebhookConf)
 	k8s.g.Expect(err).To(BeNil())
-
 	return awc
 }
 

@@ -1,3 +1,4 @@
+---
 version: 1.0
 providers:
   - name: "packet"
@@ -6,9 +7,9 @@ providers:
     retry: 5
     node-count: 2
     enabled: true
-    timeout: 1800 # 30 minutes to start cluster
+    timeout: 1800  # 30 minutes to start cluster
     env:
-      - CLUSTER_RULES_PREFIX=null # To not add any specific code
+      - CLUSTER_RULES_PREFIX=null  # To not add any specific code
       - KUBECONFIG=$(tempdir)/config
       - CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
     env-check:

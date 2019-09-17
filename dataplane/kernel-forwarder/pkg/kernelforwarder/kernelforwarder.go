@@ -142,7 +142,7 @@ func (k *KernelForwarder) configureKernelForwarder() {
 }
 
 // MonitorMechanisms handler
-func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Dataplane_MonitorMechanismsServer) error {
+func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
 	initialUpdate := &dataplane.MechanismUpdate{
 		RemoteMechanisms: k.common.Mechanisms.RemoteMechanisms,
 		LocalMechanisms:  k.common.Mechanisms.LocalMechanisms,
