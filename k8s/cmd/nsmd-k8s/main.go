@@ -70,7 +70,7 @@ func main() {
 	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
 	services[pluginsapi.PluginCapability_CONNECTION] = prefixService
 
-	if err = plugins.StartPlugin("k8s-plugin", services); err != nil {
+	if err = plugins.StartPlugin("k8s-plugin", pluginsapi.PluginRegistrySocket, services); err != nil {
 		logrus.Fatalln("Failed to start K8s Plugin", err)
 	}
 

@@ -179,6 +179,7 @@ func watchSubnet(resourceWatcher watch.Interface, keyFunc keyFunc, subnetFunc su
 			case event, ok := <-resourceWatcher.ResultChan():
 				if !ok {
 					close(subnetCh)
+					return
 				}
 
 				if event.Type == watch.Error || event.Type == watch.Deleted {
