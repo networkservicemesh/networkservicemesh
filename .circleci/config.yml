@@ -34,7 +34,12 @@ jobs:
       - run: make vet check
       - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
-      - run: go test ./test/integration --list .* -tags basic recover usecase
+      - run:
+          name: Integration tests
+          command: |
+            pushd test
+            go test ./integration --list .* -tags basic recover usecase
+            popd
       - run: mkdir -p ~/junit/
       - run:
           command: |
