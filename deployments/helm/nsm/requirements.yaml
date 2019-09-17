@@ -1,4 +1,4 @@
 dependencies:
-- name: spire
-  version: 0.1.0
-  condition: spire.enabled
+  - name: spire
+    version: 0.1.0
+    condition: spire.enabled
