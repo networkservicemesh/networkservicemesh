@@ -16,9 +16,11 @@ package nsminit
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )

@@ -30,7 +30,7 @@ func (o *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, st
 	for retryCount := 0; retryCount < 10; retryCount++ {
 		resp1, resp2, err = o.doExec(pod, container, command...)
 		if err != nil && strings.Contains(err.Error(), fmt.Sprintf("container not found (\"%v\")", container)) {
-			<- time.After(100*time.Millisecond)
+			<-time.After(100 * time.Millisecond)
 			continue
 		}
 		break

@@ -53,6 +53,7 @@ type NsmClient struct {
 func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*connection.Connection, error) {
 	return nsmc.ConnectRetry(ctx, name, mechanism, description, 1, 0)
 }
+
 // Connect implements the business logic
 func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*connection.Connection, error) {
 
@@ -108,7 +109,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 
 		var attemptSpan opentracing.Span
 		if opentracing.IsGlobalTracerRegistered() {
-			attemptSpan, attempCtx  = opentracing.StartSpanFromContext(attempCtx, fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
+			attemptSpan, attempCtx = opentracing.StartSpanFromContext(attempCtx, fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
 			defer attemptSpan.Finish()
 		}
 
@@ -126,8 +127,8 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 			} else {
 				attemptLogger.Errorf("nsm client: Failed to connect %v. Retry attempts: %v Delaying: %v", err, retryCount, retryDelay)
 			}
-			retryCount --
-			<- time.After(retryDelay)
+			retryCount--
+			<-time.After(retryDelay)
 			continue
 		}
 		break
