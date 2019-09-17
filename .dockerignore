@@ -12,6 +12,7 @@
 !side-cars
 !go.mod
 !go.sum
+!k8s/api
 !k8s/cmd
 !k8s/pkg
 !k8s/go.mod
