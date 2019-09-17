@@ -35,7 +35,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/vppagent/dataplane"
+	sdk_dataplane "github.com/networkservicemesh/networkservicemesh/sdk/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
@@ -58,7 +58,7 @@ func CreateVPPAgent() *VPPAgent {
 //CreateDataplaneServer creates DataplaneServer handler
 func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
 	return sdk_dataplane.ChainOf(
-		sdk_dataplane.UseSpan(),
+		sdk_dataplane.Validator(),
 		sdk_dataplane.UseMonitor(config.Monitor),
 		sdk_dataplane.DirectMemifInterfaces(config.NSMBaseDir),
 		sdk_dataplane.Connect(v.endpoint()),
