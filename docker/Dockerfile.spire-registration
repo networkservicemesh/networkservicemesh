@@ -7,6 +7,6 @@ RUN mkdir -p /opt/spire/bin
 COPY --from=builder /opt/spire/bin/spire-server /opt/spire/bin/spire-server
 
 WORKDIR /opt/spire
-ADD ["./security/scripts/registration.sh", "/opt/spire"]
+ADD ["./pkg/security/scripts/registration.sh", "/opt/spire"]
 RUN chmod +x /opt/spire/registration.sh
 ENTRYPOINT ["/usr/bin/dumb-init", "/opt/spire/registration.sh"]

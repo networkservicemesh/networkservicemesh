@@ -5,7 +5,6 @@
 !controllers
 !controlplane
 !dataplane
-!security
 !docker
 !test/applications
 !test/go.mod
