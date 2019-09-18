@@ -17,26 +17,26 @@ import (
 func TestHealLocalDataplane(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
+	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.testModel.AddDataplane(testDataplane1)
-	srv2.testModel.AddDataplane(testDataplane2)
+	srv.TestModel.AddDataplane(testDataplane1)
+	srv2.TestModel.AddDataplane(testDataplane2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
 
 	// Add to local endpoints for Server2
-	srv2.testModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(nseReg)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()
 
-	srv.testModel.AddListener(l1)
-	srv2.testModel.AddListener(l2)
+	srv.TestModel.AddListener(l1)
+	srv2.TestModel.AddListener(l2)
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
@@ -69,11 +69,11 @@ func TestHealLocalDataplane(t *testing.T) {
 	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
-	clientConnection1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
+	clientConnection1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1.GetID()).To(Equal("1"))
 	g.Expect(clientConnection1.Xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection2.VXLANSrcIP]).To(Equal("127.0.0.1"))
 
-	clientConnection2 := srv2.testModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
+	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
 	g.Expect(clientConnection2.GetID()).To(Equal("1"))
 
 	timeout := time.Second * 10
@@ -89,8 +89,8 @@ func TestHealLocalDataplane(t *testing.T) {
 	}
 
 	// Simlate dataplane dead
-	srv.testModel.AddDataplane(testDataplane1_1)
-	srv.testModel.DeleteDataplane(testDataplane1.RegisteredName)
+	srv.TestModel.AddDataplane(testDataplane1_1)
+	srv.TestModel.DeleteDataplane(testDataplane1.RegisteredName)
 
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	// First update is with down state
@@ -98,7 +98,7 @@ func TestHealLocalDataplane(t *testing.T) {
 	l1.WaitUpdate(8, timeout, t)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 
-	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
+	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1 != nil).To(Equal(true))
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
 	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("1"))

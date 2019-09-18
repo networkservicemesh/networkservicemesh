@@ -36,11 +36,11 @@ func (cp *dummyConnectionPlugin) ValidateConnection(ctx context.Context, wrapper
 func TestDummyConnectionPlugin(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	plugin := &dummyConnectionPlugin{
 		prefixes: []string{"10.10.1.0/24"},
@@ -50,7 +50,7 @@ func TestDummyConnectionPlugin(t *testing.T) {
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer func() { _ = conn.Close() }()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
@@ -64,11 +64,11 @@ func TestDummyConnectionPlugin(t *testing.T) {
 func TestDummyConnectionPlugin2(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	plugin := &dummyConnectionPlugin{
 		shouldFail: true,
@@ -78,7 +78,7 @@ func TestDummyConnectionPlugin2(t *testing.T) {
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer func() { _ = conn.Close() }()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	_, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).NotTo(BeNil())
