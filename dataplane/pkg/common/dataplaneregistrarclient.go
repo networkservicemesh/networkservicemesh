@@ -24,7 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplaneregistrar"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 

@@ -3,9 +3,9 @@ package model
 import (
 	"fmt"
 
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
 // DataplaneState describes state of dataplane

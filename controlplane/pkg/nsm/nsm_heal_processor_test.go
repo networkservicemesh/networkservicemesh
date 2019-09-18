@@ -11,15 +11,15 @@ import (
 	net_context "golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -71,7 +71,7 @@ func newHealTestData() *healTestData {
 	data.healProcessor = &healProcessor{
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
-		properties: &nsm.NsmProperties{
+		properties: &nsm.Properties{
 			HealEnabled: true,
 		},
 

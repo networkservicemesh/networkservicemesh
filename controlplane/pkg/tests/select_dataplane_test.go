@@ -6,11 +6,11 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 

@@ -7,15 +7,14 @@ ARG GOPROXY
 RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
 
 ENV GOPROXY=${GOPROXY}
-ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
+ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/k8s
 ENV GO111MODULE=on
 
 RUN mkdir /root/networkservicemesh
-WORKDIR /root/networkservicemesh/
-
 ADD [".","/root/networkservicemesh"]
-ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
-RUN VENDORING=${VENDORING} ./go-mod-download.sh
+WORKDIR /root/networkservicemesh/k8s
+RUN VENDORING=${VENDORING} ../scripts/go-mod-download.sh
+
 WORKDIR /root/networkservicemesh/k8s/cmd/nsm-coredns
 RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/nsm-coredns
 FROM alpine as runtime

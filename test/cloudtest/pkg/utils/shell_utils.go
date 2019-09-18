@@ -166,7 +166,7 @@ func ParseScript(s string) []string {
 }
 
 // RunCommand - run shell command and put output into file, command variables are substituted.
-func RunCommand(context context.Context, cmd string, logger func(str string), writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
+func RunCommand(context context.Context, cmd, dir string, logger func(str string), writer *bufio.Writer, env []string, args map[string]string, returnStdout bool) (string, error) {
 	finalEnv := append(os.Environ(), env...)
 	environment := map[string]string{}
 	for _, k := range finalEnv {
@@ -183,7 +183,7 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 	}
 
 	cmdLine := ParseCommandLine(finalCmd)
-	proc, err := ExecProc(context, cmdLine, finalEnv)
+	proc, err := ExecProc(context, dir, cmdLine, finalEnv)
 	if err != nil {
 		return "", fmt.Errorf("failed to run %s %v", finalCmd, err)
 	}
@@ -191,6 +191,7 @@ func RunCommand(context context.Context, cmd string, logger func(str string), wr
 	builder := strings.Builder{}
 	var wg sync.WaitGroup
 	wg.Add(2)
+
 	processOutput(proc.Stdout, writer, logger, "StdOut", &builder, returnStdout, &wg)
 	processOutput(proc.Stderr, writer, logger, "StdErr", nil, false, &wg)
 	code := proc.ExitCode()

@@ -19,10 +19,11 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -42,9 +43,14 @@ type NsmClientList struct {
 
 // Connect will create new interfaces with the specified name and mechanism
 func (nsmcl *NsmClientList) Connect(ctx context.Context, name, mechanism, description string) error {
+	return nsmcl.ConnectRetry(ctx, name, mechanism, description, 0, 0)
+}
+
+// Connect will create new interfaces with the specified name and mechanism
+func (nsmcl *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) error {
 	for idx := range nsmcl.clients {
 		entry := &nsmcl.clients[idx]
-		conn, err := entry.client.Connect(ctx, name+strconv.Itoa(idx), mechanism, description)
+		conn, err := entry.client.ConnectRetry(ctx, name+strconv.Itoa(idx), mechanism, description, retryCount, retryDelay)
 		if err != nil {
 			return err
 		}

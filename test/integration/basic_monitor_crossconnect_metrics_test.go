@@ -3,7 +3,7 @@
 package nsmd_integration_tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 
 	"testing"
 	"time"

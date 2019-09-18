@@ -17,7 +17,7 @@ Each plugin is a gRPC server that implements one (or more) of the defined gRPC s
 Implementation details
 ----------------------
 
-The model is placed in `controlplane/pkg/apis/plugins` directory. It contains the following files:
+The model is placed in `controlplane/api/plugins` directory. It contains the following files:
 - **constants.go** specifies `PluginRegistryPath` (the location of plugin sockets) and `PluginRegistrySocket` (the location of NSM Plugin Registry socket) constants
 - **registry.proto** defines Plugin Registry gRPC service
 - **connectionplugin.proto** defines a gRPC model for plugins have the connection capability
@@ -29,7 +29,7 @@ Plugin Registry implementation is placed in `controlplane/pkg/plugins` directory
 Plugin Registry is stored as a field inside **nsm.NetworkServiceManager** implementation and may be called in the following way:
 
 ```go
-import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 
 ...
 
@@ -79,7 +79,7 @@ Registration data is provided in `plugins.PluginInfo` structure which has the fo
 - **Capabilities** — list of capabilities supported by your plugin
 
 ```go
-import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 
 ...
 

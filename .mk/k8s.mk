@@ -373,6 +373,9 @@ k8s-check:
 k8s-logs-snapshot:
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh
 
+k8s-logs-snapshot-only-master:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh only-master
+
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
 	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs $(kubectl) delete pods --force --grace-period 0 {}

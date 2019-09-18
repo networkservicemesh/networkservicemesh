@@ -1,5 +1,7 @@
 package kubetest
 
+import "github.com/networkservicemesh/networkservicemesh/utils"
+
 const (
 	//StartLogsOf - start header of log transaction
 	StartLogsOf = "Start logs of"
@@ -10,13 +12,11 @@ const (
 	//TransactionLogUnit - charter of header line
 	TransactionLogUnit = '#'
 	//StoreLogsInAnyCases means that logs should be stored\displayed in any case.
-	StoreLogsInAnyCases = "STORE_LOGS_IN_ANY_CASES"
+	StoreLogsInAnyCases utils.EnvVar = "STORE_LOGS_IN_ANY_CASES"
 	//StorePodLogsInFiles - name of OS variable for enabling logging to file
-	StorePodLogsInFiles = "STORE_POD_LOGS_IN_FILES"
+	StorePodLogsInFiles utils.EnvVar = "STORE_POD_LOGS_IN_FILES"
 	//StorePodLogsDir - name of OS variable for custom dir for logs
-	StorePodLogsDir = "STORE_POD_LOGS_DIR"
+	StorePodLogsDir utils.EnvVar = "STORE_POD_LOGS_DIR"
 	//DefaultLogDir - default name of dir for logs
 	DefaultLogDir = "logs"
-	//DefaultArchiveFile means filename for logs archive
-	DefaultArchiveFile = "archive.zip"
 )

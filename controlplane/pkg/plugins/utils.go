@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -18,8 +18,9 @@ const (
 )
 
 // StartPlugin creates an instance of a plugin and registers it
-func StartPlugin(name string, services map[plugins.PluginCapability]interface{}) error {
-	endpoint := path.Join(plugins.PluginRegistryPath, name+".sock")
+func StartPlugin(name, registry string, services map[plugins.PluginCapability]interface{}) error {
+	registryDir := path.Dir(registry) // create plugin's socket in the same directory as the registry
+	endpoint := path.Join(registryDir, name+".sock")
 	if err := tools.SocketCleanup(endpoint); err != nil {
 		return err
 	}
@@ -33,7 +34,7 @@ func StartPlugin(name string, services map[plugins.PluginCapability]interface{})
 		return err
 	}
 
-	if err := registerPlugin(name, endpoint, capabilities); err != nil {
+	if err := registerPlugin(name, endpoint, registry, capabilities); err != nil {
 		return err
 	}
 
@@ -70,9 +71,9 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 	return nil
 }
 
-func registerPlugin(name, endpoint string, capabilities []plugins.PluginCapability) error {
-	_ = tools.WaitForPortAvailable(context.Background(), "unix", plugins.PluginRegistrySocket, 100*time.Millisecond)
-	conn, err := tools.DialUnix(plugins.PluginRegistrySocket)
+func registerPlugin(name, endpoint, registry string, capabilities []plugins.PluginCapability) error {
+	_ = tools.WaitForPortAvailable(context.Background(), "unix", registry, 100*time.Millisecond)
+	conn, err := tools.DialUnix(registry)
 	if err != nil {
 		return fmt.Errorf("cannot connect to the Plugin Registry: %v", err)
 	}

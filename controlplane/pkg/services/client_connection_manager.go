@@ -5,12 +5,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )

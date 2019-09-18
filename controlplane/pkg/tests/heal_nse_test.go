@@ -7,11 +7,11 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 func TestHealRemoteNSE(t *testing.T) {

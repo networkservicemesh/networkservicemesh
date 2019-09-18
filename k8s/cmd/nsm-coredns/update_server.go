@@ -8,19 +8,19 @@ import (
 	"net"
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
+	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
+	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/caddyserver/caddy"
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/api/update"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 func startUpdateServer() error {
-	clientSockPath := env.UpdateAPIClientSock.StringValue()
+	clientSockPath := env2.UpdateAPIClientSock.StringValue()
 	if clientSockPath == "" {
 		return errors.New("client socket path can't be empty")
 	}
@@ -79,7 +79,7 @@ func newUpdateServer() update.DNSConfigServiceServer {
 
 func defaultBasicDNSConfig() connectioncontext.DNSConfig {
 	return connectioncontext.DNSConfig{
-		DnsServerIps:  env.DefaultDNSServerIPList.GetStringListValueOrDefault("10.96.0.10"),
+		DnsServerIps:  env2.DefaultDNSServerIPList.GetStringListValueOrDefault("10.96.0.10"),
 		SearchDomains: []string{},
 	}
 }

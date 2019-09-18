@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -35,22 +35,24 @@ type PluginManager interface {
 type pluginRegistry struct {
 	connections             sync.Map
 	connectionPluginManager ConnectionPluginManager
+	registrySocket          string
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
-func NewPluginRegistry() PluginRegistry {
+func NewPluginRegistry(socketPath string) PluginRegistry {
 	return &pluginRegistry{
 		connections:             sync.Map{},
 		connectionPluginManager: createConnectionPluginManager(),
+		registrySocket:          socketPath,
 	}
 }
 
 func (pr *pluginRegistry) Start(ctx context.Context) error {
-	if err := tools.SocketCleanup(plugins.PluginRegistrySocket); err != nil {
+	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
 	}
 
-	sock, err := net.Listen("unix", plugins.PluginRegistrySocket)
+	sock, err := net.Listen("unix", pr.registrySocket)
 	if err != nil {
 		return err
 	}
@@ -111,8 +113,14 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 		return nil, err
 	}
 
-	if _, ok := pr.connections.Load(name); ok {
-		return nil, fmt.Errorf("already have a plugin with the same name")
+	if c, ok := pr.connections.Load(name); ok {
+		oldConn := c.(*grpc.ClientConn)
+		if conn.Target() != oldConn.Target() {
+			return nil, fmt.Errorf("already have a plugin with the same name but different endpoint")
+		}
+
+		_ = oldConn.Close()
+		logrus.Warnf("Already have a plugin with the same name and same target %v, re-registering...", conn.Target())
 	}
 
 	pr.connections.Store(name, conn)
