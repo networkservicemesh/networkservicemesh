@@ -20,8 +20,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type matchSelector struct {
@@ -51,11 +51,22 @@ func isSubset(A, B map[string]string) bool {
 
 func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	logrus.Infof("Matching endpoint for labels %v", nsLabels)
+
+	matchedNonEmptySelector := false
 	//Iterate through the matches
 	for _, match := range ns.GetMatches() {
 		// All match source selector labels should be present in the requested labels map
 		if !isSubset(nsLabels, match.GetSourceSelector()) {
 			continue
+		}
+
+		// If we already have matched any non empty selector we shouldn't match empty selector
+		if len(match.GetSourceSelector()) == 0 && matchedNonEmptySelector {
+			continue
+		}
+
+		if len(match.GetSourceSelector()) != 0 {
+			matchedNonEmptySelector = true
 		}
 
 		nseCandidates := []*registry.NetworkServiceEndpoint{}

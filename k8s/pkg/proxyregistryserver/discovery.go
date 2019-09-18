@@ -6,13 +6,14 @@ import (
 	"os"
 	"strings"
 
+	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
+
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/clusterinfo"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 )
 
 // Default values and environment variables of proxy connection

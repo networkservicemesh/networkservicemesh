@@ -3,15 +3,15 @@ package tests
 import (
 	"context"
 	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-
 	"github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
@@ -22,7 +22,7 @@ func TestFirewallMemif(t *testing.T) {
 
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	g.Expect(err).To(gomega.BeNil())
-	defer utils.ClearFolder(rootDir, false)
+	defer ClearFolder(rootDir, false)
 
 	configuration := &common.NSConfiguration{
 		MechanismType:    "mem",
@@ -105,4 +105,30 @@ func TestFirewallMemif(t *testing.T) {
 	_, err = composite.Close(context.Background(), conn)
 	g.Expect(err).To(gomega.BeNil())
 
+}
+
+// FileExists - check if file are exists.
+func FileExists(root string) bool {
+	_, err := os.Stat(root)
+	return !os.IsNotExist(err)
+}
+
+// ClearFolder - If folder exists it will be removed with all subfolders and if recreate is passed it will be created
+func ClearFolder(root string, recreate bool) {
+	if FileExists(root) {
+		logrus.Infof("Cleaning report folder %s", root)
+		_ = os.RemoveAll(root)
+	}
+	if recreate {
+		// Create folder, since we delete is already.
+		CreateFolders(root)
+	}
+}
+
+// CreateFolders - Create folder and all parents.
+func CreateFolders(root string) {
+	err := os.MkdirAll(root, os.ModePerm)
+	if err != nil {
+		logrus.Errorf("Failed to create folder %s cause %v", root, err)
+	}
 }

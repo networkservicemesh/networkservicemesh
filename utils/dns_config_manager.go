@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 )
 

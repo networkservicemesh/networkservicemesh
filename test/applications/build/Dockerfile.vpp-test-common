@@ -5,18 +5,16 @@ ARG VENDORING
 ARG GOPROXY
 
 ENV GOPROXY=${GOPROXY}
-ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/
+ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/test
 ENV GO111MODULE=on
 
 RUN apk --no-cache add git
 
 RUN mkdir /root/networkservicemesh
-ADD ["go.mod","/root/networkservicemesh"]
-ADD ["./scripts/go-mod-download.sh","/root/networkservicemesh"]
-WORKDIR /root/networkservicemesh/
-RUN VENDORING=${VENDORING} ./go-mod-download.sh
-
 ADD [".","/root/networkservicemesh"]
+
+WORKDIR /root/networkservicemesh/test
+RUN VENDORING=${VENDORING} ../scripts/go-mod-download.sh
 
 FROM ${VPP_AGENT} as runtime
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
@@ -30,7 +28,7 @@ RUN mkdir /tmp/vpp/
 FROM build as build-1
 ARG VERSION=unspecified
 ARG VENDORING
-RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-nsc ./test/applications/cmd/vppagent-nsc
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-nsc ./applications/cmd/vppagent-nsc
 FROM runtime as runtime-1
 COPY --from=build-1 /go/bin/vppagent-nsc /bin/vppagent-nsc
 RUN mkdir /tmp/vpp/vppagent-nsc/; echo 'Endpoint: "0.0.0.0:9113"' > /tmp/vpp/vppagent-nsc/grpc.conf
@@ -39,7 +37,7 @@ RUN mkdir /tmp/vpp/vppagent-nsc/; echo 'Endpoint: "0.0.0.0:9113"' > /tmp/vpp/vpp
 FROM build-1 as build-2
 ARG VERSION=unspecified
 ARG VENDORING
-RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-icmp-responder-nse ./test/applications/cmd/vppagent-icmp-responder-nse
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-icmp-responder-nse ./applications/cmd/vppagent-icmp-responder-nse
 FROM runtime-1 as runtime-2
 COPY --from=build-2 /go/bin/vppagent-icmp-responder-nse /bin/vppagent-icmp-responder-nse
 RUN mkdir /tmp/vpp/vppagent-icmp-responder-nse/; echo 'Endpoint: "0.0.0.0:9112"' > /tmp/vpp/vppagent-icmp-responder-nse/grpc.conf
@@ -48,7 +46,7 @@ RUN mkdir /tmp/vpp/vppagent-icmp-responder-nse/; echo 'Endpoint: "0.0.0.0:9112"'
 FROM build-2 as build-3
 ARG VERSION=unspecified
 ARG VENDORING
-RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-firewall-nse ./test/applications/cmd/vppagent-firewall-nse
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-firewall-nse ./applications/cmd/vppagent-firewall-nse
 FROM runtime-2 as runtime-3
 COPY --from=build-3 /go/bin/vppagent-firewall-nse /bin/vppagent-firewall-nse
 RUN mkdir /tmp/vpp/vppagent-firewall-nse/; echo 'Endpoint: "0.0.0.0:9112"' > /tmp/vpp/vppagent-firewall-nse/grpc.conf

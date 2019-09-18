@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/clusterinfo"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
 )
 
 type k8sClusterInfo struct {

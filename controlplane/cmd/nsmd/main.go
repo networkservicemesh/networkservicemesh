@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"

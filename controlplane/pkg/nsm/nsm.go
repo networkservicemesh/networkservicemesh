@@ -28,16 +28,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/nsm/networkservice"
-	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/plugins"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -57,13 +57,13 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	properties       *nsm.NsmProperties
+	properties       *nsm.Properties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
 	nseManager       networkServiceEndpointManager
 }
 
-func (srv *networkServiceManager) GetHealProperties() *nsm.NsmProperties {
+func (srv *networkServiceManager) GetHealProperties() *nsm.Properties {
 	return srv.properties
 }
 

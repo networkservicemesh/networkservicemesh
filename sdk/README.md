@@ -14,11 +14,11 @@ As noted, the SDK is a higher layer abstraction of the underlying gRPC API.
 
 #### Client gRPC
 
-The client uses a named socket to talk to its local Network Service Manager (NSMgr). The socket is located in ***TBD***. The gRPC itself is described in [networkservice.proto](../controlplane/pkg/apis/local/networkservice/networkservice.proto).
+The client uses a named socket to talk to its local Network Service Manager (NSMgr). The socket is located in ***TBD***. The gRPC itself is described in [networkservice.proto](../controlplane/api/local/networkservice/networkservice.proto).
 
 #### Endpoint gRPC
 
-The endpoint implements a communication over a socket to its local NSMgr. The socket is the same as what the client uses. The gRPC for registering an endpoint is implemented as `service NetworkServiceRegistry` in [registry.proto](../controlplane/pkg/apis/registry/registry.proto).
+The endpoint implements a communication over a socket to its local NSMgr. The socket is the same as what the client uses. The gRPC for registering an endpoint is implemented as `service NetworkServiceRegistry` in [registry.proto](../controlplane/api/registry/registry.proto).
 
 ## Configuring the SDK
 

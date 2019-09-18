@@ -13,7 +13,7 @@ import (
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 )
 

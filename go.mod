@@ -1,46 +1,17 @@
 module github.com/networkservicemesh/networkservicemesh
 
 require (
-	github.com/aws/aws-sdk-go v1.22.0
-	github.com/caddyserver/caddy v1.0.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/coredns/coredns v1.5.2
-	github.com/dnstap/golang-dnstap v0.1.0
-	github.com/fsnotify/fsnotify v1.4.7
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.0.1
-	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.3.2
-	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/hashicorp/go-multierror v1.0.0
-	github.com/ligato/cn-infra v2.0.0+incompatible // indirect
-	github.com/ligato/vpp-agent v2.1.1+incompatible
-	github.com/mesos/mesos-go v0.0.9
-	github.com/miekg/dns v1.1.15
-	github.com/onsi/gomega v1.5.1-0.20190520121345-efe19c39ca10
+	github.com/networkservicemesh/networkservicemesh/test v0.1.0
+	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
 	github.com/pkg/errors v0.8.1
-	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.5
-	github.com/spf13/viper v1.4.0
-	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
-	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/uber-go/atomic v1.4.0 // indirect
-	github.com/uber/jaeger-client-go v2.16.0+incompatible
-	github.com/uber/jaeger-lib v2.0.0+incompatible // indirect
-	github.com/vishvananda/netlink v1.0.0
-	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
-	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
-	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
-	google.golang.org/grpc v1.23.0
-	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/kubernetes v1.15.3
+	github.com/uber/jaeger-client-go v2.17.0+incompatible
+	google.golang.org/grpc v1.23.1
 )
 
 replace (
@@ -74,4 +45,17 @@ replace (
 	k8s.io/sample-controller => k8s.io/sample-controller v0.0.0-20190819143301-7c475f5e1313
 )
 
-go 1.13
+replace (
+	github.com/networkservicemesh/networkservicemesh => ./
+	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
+	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
+	github.com/networkservicemesh/networkservicemesh/dataplane => ./dataplane
+	github.com/networkservicemesh/networkservicemesh/dataplane/api => ./dataplane/api
+	github.com/networkservicemesh/networkservicemesh/k8s => ./k8s
+	github.com/networkservicemesh/networkservicemesh/k8s/api => ./k8s/api
+	github.com/networkservicemesh/networkservicemesh/pkg => ./pkg
+	github.com/networkservicemesh/networkservicemesh/sdk => ./sdk
+	github.com/networkservicemesh/networkservicemesh/side-cars => ./side-cars
+	github.com/networkservicemesh/networkservicemesh/test => ./test
+	github.com/networkservicemesh/networkservicemesh/utils => ./utils
+)

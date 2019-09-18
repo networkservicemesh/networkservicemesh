@@ -8,11 +8,16 @@
 !security
 !docker
 !test/applications
+!test/go.mod
+!test/go.sum
 !side-cars
 !go.mod
 !go.sum
+!k8s/api
 !k8s/cmd
 !k8s/pkg
+!k8s/go.mod
+!k8s/go.sum
 !pkg
 !sdk
 !utils

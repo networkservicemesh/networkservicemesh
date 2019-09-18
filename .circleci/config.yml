@@ -21,7 +21,7 @@ jobs:
       - run:
           name: Download Go Dependencies
           command: |
-            ./scripts/go-mod-download.sh
+            ./scripts/for-each-module.sh "$(pwd)/scripts/go-mod-download.sh"
       - run:
           name: Check code formatting
           command: |
@@ -30,11 +30,16 @@ jobs:
             git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
-      - run: go generate ./...
+      - run: ./scripts/for-each-module.sh "go generate ./..."
       - run: make vet check
-      - run: go build ./...
+      - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
-      - run: go test ./test/integration --list .* -tags basic recover usecase
+      - run:
+          name: Integration tests
+          command: |
+            pushd test
+            go test ./integration --list .* -tags basic recover usecase
+            popd
       - run: mkdir -p ~/junit/
       - run:
           command: |
@@ -62,9 +67,10 @@ jobs:
           name: lint
           command: |
             ./scripts/lint-download.sh
-            ./scripts/lint-check-diff.sh
+            ./scripts/for-each-module.sh "$(pwd)/scripts/lint-check-diff.sh"
     environment:
       GO111MODULE: "on"
+      LOG_LEVEL: "error"
 
 # integration
   integration-tests:
@@ -120,7 +126,9 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
-            CGO_ENABLED=0 GOOS=linux go build -o ./cloudtest ./test/cloudtest/cmd/cloudtest
+            pushd test
+            CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
+            popd
             ./cloudtest
           no_output_timeout: 40m
       - store_test_results:
