@@ -45,7 +45,6 @@ func archiveLogs(testName string) {
 		return
 	}
 	for _, file := range logFiles {
-		logrus.Info(file)
 		if file.IsDir() {
 			continue
 		}
