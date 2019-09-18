@@ -1,0 +1,20 @@
+FROM golang:alpine as build
+
+ARG VERSION=unspecified
+ARG VENDORING
+ARG GOPROXY
+
+ENV GOPROXY=${GOPROXY}
+ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/applications/nsmrs
+ENV GO111MODULE=on
+
+RUN mkdir /root/networkservicemesh
+ADD [".","/root/networkservicemesh"]
+WORKDIR /root/networkservicemesh/applications/nsmrs
+RUN VENDORING=${VENDORING} ../../scripts/go-mod-download.sh
+
+RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/nsmrs ./cmd
+
+FROM alpine as runtime
+COPY --from=build /go/bin/nsmrs /bin/nsmrs
+ENTRYPOINT ["/bin/nsmrs"]
