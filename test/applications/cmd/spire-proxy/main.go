@@ -10,8 +10,8 @@ import (
 	proto "github.com/spiffe/spire/proto/spire/api/workload"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/security"
 )
 
 type spireProxy struct {

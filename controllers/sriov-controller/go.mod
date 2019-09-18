@@ -1,14 +1,14 @@
 module github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller
 
 require (
-	github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4
+	github.com/ghodss/yaml v1.0.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
 	google.golang.org/grpc v1.23.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
+	k8s.io/client-go v10.0.0+incompatible
 	k8s.io/kubernetes v1.15.3
 )
 

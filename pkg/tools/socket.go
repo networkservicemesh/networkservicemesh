@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/networkservicemesh/networkservicemesh/security"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 const (

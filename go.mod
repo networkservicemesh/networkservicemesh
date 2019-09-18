@@ -1,19 +1,5 @@
 module github.com/networkservicemesh/networkservicemesh
 
-require (
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
-	github.com/golang/protobuf v1.3.2 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/onsi/ginkgo v1.8.0 // indirect
-	github.com/onsi/gomega v1.7.0
-	github.com/sirupsen/logrus v1.4.2
-	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
-	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3 // indirect
-	google.golang.org/grpc v1.23.1 // indirect
-)
-
 replace (
 	git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
 	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8

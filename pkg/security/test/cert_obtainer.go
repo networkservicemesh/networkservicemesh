@@ -6,7 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/security"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 type testCertificateObtainer struct {

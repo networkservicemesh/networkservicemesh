@@ -6,7 +6,6 @@ require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
-	github.com/ligato/cn-infra v2.0.0+incompatible
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
@@ -24,6 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
+	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	google.golang.org/grpc v1.23.1
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0

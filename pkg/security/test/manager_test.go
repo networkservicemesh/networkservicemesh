@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/security"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	. "github.com/onsi/gomega"
 )
