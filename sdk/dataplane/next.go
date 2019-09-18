@@ -8,8 +8,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )

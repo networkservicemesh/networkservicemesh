@@ -5,6 +5,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
 	github.com/onsi/gomega v1.7.0
+	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 )
 

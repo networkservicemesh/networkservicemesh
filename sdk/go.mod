@@ -9,6 +9,8 @@ require (
 	github.com/mesos/mesos-go v0.0.9
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
+	github.com/networkservicemesh/networkservicemesh/dataplane v0.0.0-00010101000000-000000000000
+	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.1.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
 	github.com/onsi/gomega v1.7.0

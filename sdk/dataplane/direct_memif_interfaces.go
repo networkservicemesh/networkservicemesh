@@ -5,9 +5,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
 )
 

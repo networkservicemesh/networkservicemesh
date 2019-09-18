@@ -5,9 +5,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 )
 
 //UseMonitor creates dataplane server handler with updating crossconnect monitor server
