@@ -126,9 +126,9 @@ jobs:
               export STORE_LOGS_IN_ANY_CASES=true
             fi
             pushd test
-            CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
+            CGO_ENABLED=0 GOOS=linux go build -o ./cloudtestrun ./cloudtest/cmd/cloudtest
+            ./cloudtestrun
             popd
-            ./cloudtest
           no_output_timeout: 40m
       - store_test_results:
           path: .tests/cloud_test/results/
