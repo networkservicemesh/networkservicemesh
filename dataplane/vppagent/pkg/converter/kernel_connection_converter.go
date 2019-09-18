@@ -13,8 +13,8 @@ import (
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
 const DataplaneAllowVHost = "DATAPLANE_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.

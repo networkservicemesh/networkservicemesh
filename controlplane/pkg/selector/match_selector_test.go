@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type args struct {
@@ -466,7 +466,53 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "match any with non-empty source selector",
+			args: args{
+				requestConnection: &connection.Connection{
+					Labels: map[string]string{
+						"app": "firewall",
+					},
+				},
+				ns: &registry.NetworkService{
+					Name: "test-ns",
+					Matches: []*registry.Match{
+						{
+							SourceSelector: map[string]string{
+								"app": "firewall",
+							},
+							Routes: []*registry.Destination{
+								{
+									DestinationSelector: map[string]string{
+										"app": "passthrough-1",
+									},
+								},
+							},
+						},
+						{
+							Routes: []*registry.Destination{
+								{
+									DestinationSelector: map[string]string{
+										"app": "firewall",
+									},
+								},
+							},
+						},
+					},
+				},
+				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
+					{
+						Name: "firewall",
+						Labels: map[string]string{
+							"app": "firewall",
+						},
+					},
+				},
+			},
+			want: nil,
+		},
 	}
+
 	m := NewMatchSelector()
 
 	for _, tt := range tests {

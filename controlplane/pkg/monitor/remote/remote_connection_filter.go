@@ -1,6 +1,6 @@
 package remote
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 
 type monitorConnectionFilter struct {
 	connection.MonitorConnection_MonitorConnectionsServer
