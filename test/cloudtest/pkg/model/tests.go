@@ -66,11 +66,9 @@ type TestEntry struct {
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
 func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tags []string) (map[string]*TestEntry, error) {
-	gotestCmd := []string{"go", "test", root, "--list", ".*"}
-	noTagTests, err1 := getTests(manager, gotestCmd, "")
+	noTagTests, err1 := getTests(manager, root)
 	if len(tags) > 0 {
-		tagsStr := strings.Join(tags, " ")
-		tests, err := getTests(manager, append(gotestCmd, "-tags", tagsStr), tagsStr)
+		tests, err := getTests(manager, root, tags...)
 		if err != nil {
 			return nil, err
 		}
@@ -85,8 +83,14 @@ func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tag
 	return noTagTests, err1
 }
 
-func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag string) (map[string]*TestEntry, error) {
-	result, err := utils.ExecRead(context.Background(), gotestCmd)
+func getTests(manager execmanager.ExecutionManager, dir string, tags ...string) (map[string]*TestEntry, error) {
+	gotestCmd := []string{"go", "test", ".", "--list", ".*"}
+	tagsStr := strings.Join(tags, ",")
+	if len(tagsStr) != 0 {
+		gotestCmd = append(gotestCmd, "-tags", tagsStr)
+	}
+
+	result, err := utils.ExecRead(context.Background(), dir, gotestCmd)
 	if err != nil {
 		logrus.Errorf("Error getting list of tests: %v\nOutput: %v\nCmdLine: %v", err, result, gotestCmd)
 		return nil, err
@@ -106,7 +110,7 @@ func getTests(manager execmanager.ExecutionManager, gotestCmd []string, tag stri
 			testName := strings.TrimSpace(testLine)
 			testResult[testName] = &TestEntry{
 				Name: testName,
-				Tags: tag,
+				Tags: tagsStr,
 			}
 		}
 	}

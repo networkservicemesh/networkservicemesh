@@ -21,7 +21,7 @@ executions:
       - basic
       - recover
       - usecase
-    root: ./integration
+    root: ./test/integration
     timeout: 300
     cluster-count: 1
     kubernetes-env:
@@ -34,7 +34,7 @@ executions:
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - bench
-    root: ./integration
+    root: ./test/integration
     timeout: 600
     cluster-count: 1
     cluster-selector:
@@ -50,7 +50,7 @@ executions:
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
-    root: ./integration
+    root: ./test/integration
     timeout: 600
     cluster-count: 2
     cluster-selector:
@@ -67,7 +67,7 @@ executions:
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
-    root: ./integration
+    root: ./test/integration
     timeout: 600
     cluster-count: 2
     cluster-selector:
@@ -84,7 +84,7 @@ executions:
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
-    root: ./integration
+    root: ./test/integration
     timeout: 600
     cluster-count: 2
     cluster-selector:
@@ -101,7 +101,7 @@ executions:
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
-    root: ./integration
+    root: ./test/integration
     timeout: 600
     cluster-count: 2
     cluster-selector:
