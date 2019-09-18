@@ -76,7 +76,6 @@ func archiveLogs(testName string) {
 	_ = os.RemoveAll(dir)
 	outfile := filepath.Join(logsDir(), testName+".zip")
 	if _, err := os.Stat(outfile); err == nil {
-		logrus.Info("asdadadad")
 		zr, err := zip.OpenReader(outfile)
 		if err != nil {
 			logrus.Errorf("Can not zip write, err: %v", err)
@@ -116,7 +115,7 @@ func distill(w *zip.Writer, r *zip.ReadCloser) {
 		}
 		_, err = io.Copy(hw, fr)
 		if err != nil {
-			logrus.Errorf("An error io.Copy(...), err: %v", err)
+			logrus.Errorf("An error during io.Copy(...), err: %v", err)
 		}
 	}
 }
