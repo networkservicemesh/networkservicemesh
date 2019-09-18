@@ -1,17 +1,17 @@
 module github.com/networkservicemesh/networkservicemesh
 
 require (
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/go-errors/errors v1.0.1
-	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/networkservicemesh/networkservicemesh/test v0.1.0
+	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
+	github.com/golang/protobuf v1.3.2 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.7.0
-	github.com/opentracing/opentracing-go v1.1.0
-	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/uber-go/atomic v1.4.0 // indirect
-	github.com/uber/jaeger-client-go v2.17.0+incompatible
-	google.golang.org/grpc v1.23.1
+	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
+	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f // indirect
+	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3 // indirect
+	google.golang.org/grpc v1.23.1 // indirect
 )
 
 replace (
@@ -59,3 +59,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+go 1.13

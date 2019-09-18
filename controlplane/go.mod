@@ -30,3 +30,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
+
+go 1.13
