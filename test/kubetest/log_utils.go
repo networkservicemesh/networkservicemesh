@@ -2,6 +2,7 @@ package kubetest
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,28 +35,17 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	}
 }
 
-func getOrCreateFile(path string) (*os.File, error) {
-	if _, err := os.Stat(path); os.IsExist(err) {
-		return os.Open(path)
-	}
-	return os.Create(path)
-}
-
 func archiveLogs(testName string) {
-	file, err := getOrCreateFile(filepath.Join(logsDir(), testName+".zip"))
-	if err != nil {
-		logrus.Error("Can not create zip file")
-		return
-	}
-	writer := zip.NewWriter(file)
+	buff := new(bytes.Buffer)
+	writer := zip.NewWriter(buff)
 	dir := filepath.Join(logsDir(), testName)
-	var logFiles []os.FileInfo
-	logFiles, err = ioutil.ReadDir(dir)
+	logFiles, err := ioutil.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Can not read dir %v", dir)
 		return
 	}
 	for _, file := range logFiles {
+		logrus.Info(file)
 		if file.IsDir() {
 			continue
 		}
@@ -85,24 +75,57 @@ func archiveLogs(testName string) {
 		}
 	}
 	_ = os.RemoveAll(dir)
+	outfile := filepath.Join(logsDir(), testName+".zip")
+	if _, err := os.Stat(outfile); err == nil {
+		logrus.Info("asdadadad")
+		zr, err := zip.OpenReader(outfile)
+		if err != nil {
+			logrus.Errorf("Can not zip write, err: %v", err)
+		} else {
+			distill(writer, zr)
+			_ = zr.Close()
+		}
+
+	}
+
 	err = writer.Flush()
 	if err != nil {
 		logrus.Errorf("An error during writer.Flush(), err: %v", err)
 	}
 	err = writer.Close()
 	if err != nil {
-		logrus.Errorf("An error during tar writer.Close(), err: %v", err)
+		logrus.Errorf("An error during zip writer.Close(), err: %v", err)
 	}
-	err = file.Close()
+	err = ioutil.WriteFile(outfile, buff.Bytes(), os.ModePerm)
 	if err != nil {
-		logrus.Errorf("An error during tar file.Close(), err: %v", err)
+		logrus.Errorf("An error during zip file.Close(), err: %v", err)
+	}
+}
+
+func distill(w *zip.Writer, r *zip.ReadCloser) {
+	for _, f := range r.File {
+		header := f.FileHeader
+		hw, err := w.CreateHeader(&header)
+		if err != nil {
+			logrus.Errorf("An error during create zip header, err: %v", err)
+			continue
+		}
+		fr, err := f.Open()
+		if err != nil {
+			logrus.Errorf("An error during open zip file, err: %v", err)
+			continue
+		}
+		_, err = io.Copy(hw, fr)
+		if err != nil {
+			logrus.Errorf("An error io.Copy(...), err: %v", err)
+		}
 	}
 }
 
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
-		name := strings.Join([]string{pod.ClusterName, pod.Name, c.Name}, "-")
+		name := strings.Join([]string{pod.Name, c.Name}, "-")
 		logs, err := k8s.GetLogs(pod, c.Name)
 		writeLogFunc := logTransaction
 
