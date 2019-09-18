@@ -17,7 +17,7 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent"

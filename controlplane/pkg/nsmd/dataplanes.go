@@ -28,8 +28,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplane"
-	dataplaneregistrarapi "github.com/networkservicemesh/networkservicemesh/dataplane/pkg/apis/dataplaneregistrar"
+	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	dataplaneregistrarapi "github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplaneregistrar"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 

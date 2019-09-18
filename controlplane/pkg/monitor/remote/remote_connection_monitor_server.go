@@ -1,7 +1,7 @@
 package remote
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 )

@@ -15,9 +15,11 @@
 package main
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sidecars"
-
 	"github.com/sirupsen/logrus"
+
+	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
+
+	nsminit "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -29,9 +31,9 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	sidecars.NewNSMClientApp().Run()
-	app := sidecars.NewNSMMonitorApp()
-	app.SetHandler(sidecars.NewNsmDNSMonitorHandler())
+	nsminit.NewNSMClientApp().Run()
+	app := nsmmonitor.NewNSMMonitorApp()
+	app.SetHandler(nsmmonitor.NewNsmDNSMonitorHandler())
 	app.Run()
 	<-c
 }

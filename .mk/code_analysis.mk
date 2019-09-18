@@ -1,6 +1,6 @@
 .PHONY: lint-fix
 lint-fix:
-	golangci-lint run --new-from-rev=origin/master --fix
+	LOG_LEVEL=error GO111MODULE=on ./scripts/for-each-module.sh "golangci-lint run --new-from-rev=origin/master --fix"
 
 .PHONY: lint-install
 lint-install:
@@ -8,8 +8,8 @@ lint-install:
 
 .PHONY: lint-check-diff
 lint-check-diff:
-	GO111MODULE=on golangci-lint run --new-from-rev=origin/master
+	LOG_LEVEL=error GO111MODULE=on ./scripts/for-each-module.sh "golangci-lint run --new-from-rev=origin/master"
 
 .PHONY: lint-check-all
 lint-check-all:
-	GO111MODULE=on golangci-lint run ./...
+	LOG_LEVEL=error GO111MODULE=on ./scripts/for-each-module.sh "golangci-lint run ./..."

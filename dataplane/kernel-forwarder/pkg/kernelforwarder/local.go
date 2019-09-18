@@ -18,7 +18,7 @@ package kernelforwarder
 import (
 	"runtime"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 

@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
+	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/apis/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 // Default values and environment variables of proxy connection

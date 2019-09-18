@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package crossconnect;
+
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection/connection.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection/connection.proto";
+import "ptypes/empty/empty.proto";
+
+enum CrossConnectEventType {
+  INITIAL_STATE_TRANSFER = 0;
+  UPDATE = 1;
+  DELETE = 2;
+}
+message Metrics { map<string, string> metrics = 1; }
+message CrossConnectEvent {
+  CrossConnectEventType type = 1;
+  map<string, CrossConnect> cross_connects = 2;
+  map<string, Metrics> metrics = 3;
+}
+
+message CrossConnect {
+  string id = 1;
+  string payload = 2;
+
+  oneof source {
+    local.connection.Connection local_source = 4;
+    remote.connection.Connection remote_source = 5;
+  }
+  oneof destination {
+    local.connection.Connection local_destination = 6;
+    remote.connection.Connection remote_destination = 7;
+  }
+}
+
+service MonitorCrossConnect {
+  rpc MonitorCrossConnects(google.protobuf.Empty)
+      returns (stream crossconnect.CrossConnectEvent);
+}
