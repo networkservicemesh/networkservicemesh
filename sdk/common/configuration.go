@@ -41,7 +41,6 @@ type NSConfiguration struct {
 	OutgoingNscName    string
 	AdvertiseNseLabels string
 	OutgoingNscLabels  string
-	TracerEnabled      bool
 	MechanismType      string
 	IPAddress          string
 	Routes             []string
@@ -77,8 +76,6 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 	if configuration.OutgoingNscLabels == "" {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
-
-	configuration.TracerEnabled = tools.IsOpentracingEnabled()
 
 	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)

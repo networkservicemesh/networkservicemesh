@@ -14,7 +14,7 @@ import (
 
 const (
 	opentracingEnv     = "TRACER_ENABLED"
-	opentracingDefault = true
+	opentracingDefault = false
 	insecureEnv        = "INSECURE"
 	insecureDefault    = true
 	dialTimeoutDefault = 5 * time.Second
