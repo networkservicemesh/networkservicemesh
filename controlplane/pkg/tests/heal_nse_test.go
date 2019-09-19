@@ -17,28 +17,28 @@ import (
 func TestHealRemoteNSE(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
+	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.testModel.AddDataplane(testDataplane1)
-	srv2.testModel.AddDataplane(testDataplane2)
+	srv.TestModel.AddDataplane(testDataplane1)
+	srv2.TestModel.AddDataplane(testDataplane2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
 	nseReg2 := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep2")
 
 	// Add to local endpoints for Server2
-	srv2.testModel.AddEndpoint(nseReg)
-	srv2.testModel.AddEndpoint(nseReg2)
+	srv2.TestModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(nseReg2)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()
 
-	srv.testModel.AddListener(l1)
-	srv2.testModel.AddListener(l2)
+	srv.TestModel.AddListener(l1)
+	srv2.TestModel.AddListener(l2)
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
@@ -73,10 +73,10 @@ func TestHealRemoteNSE(t *testing.T) {
 	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
-	clientConnection1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
+	clientConnection1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1.GetID()).To(Equal("1"))
 
-	clientConnection2 := srv2.testModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
+	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
 	g.Expect(clientConnection2.GetID()).To(Equal("1"))
 
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
@@ -90,7 +90,7 @@ func TestHealRemoteNSE(t *testing.T) {
 		t.Fatal("Err must be nil")
 	}
 
-	srv2.testModel.DeleteEndpoint(epName)
+	srv2.TestModel.DeleteEndpoint(epName)
 
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
@@ -101,7 +101,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	// Second update is update
 	l1.WaitUpdate(7, timeout, t)
 
-	clientConnection1_1 := srv.testModel.GetClientConnection(nsmResponse.GetId())
+	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
 	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("3"))
 }

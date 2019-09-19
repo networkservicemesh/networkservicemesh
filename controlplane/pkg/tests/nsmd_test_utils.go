@@ -51,7 +51,7 @@ type sharedStorage struct {
 	endpoints map[string]*registry.NetworkServiceEndpoint
 }
 
-func newSharedStorage() *sharedStorage {
+func NewSharedStorage() *sharedStorage {
 	return &sharedStorage{
 		services:  make(map[string]*registry.NetworkService),
 		managers:  make(map[string]*registry.NetworkServiceManager),
@@ -419,7 +419,7 @@ type nsmdFullServerImpl struct {
 	nseRegistry     *nsmdTestServiceDiscovery
 	pluginRegistry  *testPluginRegistry
 	serviceRegistry *nsmdTestServiceRegistry
-	testModel       model.Model
+	TestModel       model.Model
 	manager         nsm2.NetworkServiceManager
 	nsmServer       nsmd.NSMServer
 	rootDir         string
@@ -443,8 +443,8 @@ func (srv *nsmdFullServerImpl) StopNoClean() {
 	}
 }
 
-func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string) {
-	impl.testModel.AddDataplane(&model.Dataplane{
+func (impl *nsmdFullServerImpl) AddFakeDataplane(dp_name string, dp_addr string) {
+	impl.TestModel.AddDataplane(&model.Dataplane{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
 		LocalMechanisms: []connection.Mechanism{
@@ -456,7 +456,7 @@ func (impl *nsmdFullServerImpl) addFakeDataplane(dp_name string, dp_addr string)
 	})
 }
 
-func (srv *nsmdFullServerImpl) registerFakeEndpoint(networkServiceName string, payload string, nse_address string) *model.Endpoint {
+func (srv *nsmdFullServerImpl) RegisterFakeEndpoint(networkServiceName string, payload string, nse_address string) *model.Endpoint {
 	return srv.registerFakeEndpointWithName(networkServiceName, payload, nse_address, networkServiceName+"provider")
 }
 func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName string, payload string, nsmgrName string, endpointname string) *model.Endpoint {
@@ -488,13 +488,13 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 }
 
 func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
-	response := srv.requestNSM(clientName)
+	response := srv.RequestNSM(clientName)
 	// Now we could try to connect via Client API
-	nsmClient, conn := srv.createNSClient(response)
+	nsmClient, conn := srv.CreateNSClient(response)
 	return nsmClient, conn
 }
 
-func (srv *nsmdFullServerImpl) createNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
+func (srv *nsmdFullServerImpl) CreateNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
 	if err != nil {
 		panic(err)
@@ -502,7 +502,7 @@ func (srv *nsmdFullServerImpl) createNSClient(response *nsmdapi.ClientConnection
 	return nsmClient, conn
 }
 
-func (srv *nsmdFullServerImpl) requestNSM(clientName string) *nsmdapi.ClientConnectionReply {
+func (srv *nsmdFullServerImpl) RequestNSM(clientName string) *nsmdapi.ClientConnectionReply {
 	client, con, err := srv.serviceRegistry.NSMDApiClient()
 	if err != nil {
 		panic(err)
@@ -525,7 +525,7 @@ func (srv *nsmdFullServerImpl) requestNSM(clientName string) *nsmdapi.ClientConn
 	return response
 }
 
-func newNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
+func NewNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServerImpl {
 	rootDir, err := ioutil.TempDir("", "nsmd_test")
 	if err != nil {
 		panic(err)
@@ -556,8 +556,8 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 		rootDir:      rootDir,
 	}
 
-	srv.testModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.testModel, srv.serviceRegistry, srv.pluginRegistry)
+	srv.TestModel = model.NewModel()
+	srv.manager = nsm.NewNetworkServiceManager(srv.TestModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener("127.0.0.1:0")
@@ -567,17 +567,43 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	}
 
 	// Lets start NSMD NSE registry service
-	nsmServer, err := nsmd.StartNSMServer(ctx, srv.testModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(ctx, srv.TestModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
 	srv.nsmServer = nsmServer
 	if err != nil {
 		panic(err)
 	}
 
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
-	srv.testModel.AddListener(monitorCrossConnectClient)
+	srv.TestModel.AddListener(monitorCrossConnectClient)
 	probes := probes.New("Test probes", nil)
 
 	nsmServer.StartAPIServerAt(ctx, sock, probes)
 
 	return srv
+}
+
+func CreateRequest() *local_networkservice.NetworkServiceRequest {
+	request := &local_networkservice.NetworkServiceRequest{
+		Connection: &local_connection.Connection{
+			NetworkService: "golden_network",
+			Context: &connectioncontext.ConnectionContext{
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
+			},
+			Labels: make(map[string]string),
+		},
+		MechanismPreferences: []*local_connection.Mechanism{
+			{
+				Type: local_connection.MechanismType_KERNEL_INTERFACE,
+				Parameters: map[string]string{
+					local_connection.NetNsInodeKey:    "10",
+					local_connection.InterfaceNameKey: "icmp-responder1",
+				},
+			},
+		},
+	}
+
+	return request
 }

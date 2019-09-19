@@ -15,12 +15,12 @@ import (
 func TestNSMDRestart1(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
+	storage := NewSharedStorage()
 
-	srv := newNSMDFullServer("nsm1", storage)
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv := NewNSMDFullServer("nsm1", storage)
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	reply := srv.requestNSM("nsm-1")
+	reply := srv.RequestNSM("nsm-1")
 
 	configuration := &common.NSConfiguration{
 		Workspace:        reply.Workspace,
@@ -41,22 +41,22 @@ func TestNSMDRestart1(t *testing.T) {
 	}
 
 	l1 := newTestConnectionModelListener()
-	srv.testModel.AddListener(l1)
+	srv.TestModel.AddListener(l1)
 	_ = nsmEndpoint.Start()
 	defer nsmEndpoint.Delete()
 
 	// Wait for at least one NSE is available.
 	l1.WaitEndpoints(1, time.Second*30, t)
 
-	endpoints1 := srv.testModel.GetEndpointsByNetworkService("test_nse")
+	endpoints1 := srv.TestModel.GetEndpointsByNetworkService("test_nse")
 	g.Expect(len(endpoints1)).To(Equal(1))
 	srv.StopNoClean()
 
 	// We need to restart server
-	storage2 := newSharedStorage()
+	storage2 := NewSharedStorage()
 	srv = newNSMDFullServerAt(context.Background(), "nsm2", storage2, srv.rootDir)
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	endpoints2 := srv.testModel.GetEndpointsByNetworkService("test_nse")
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	endpoints2 := srv.TestModel.GetEndpointsByNetworkService("test_nse")
 
 	g.Expect(len(endpoints2)).To(Equal(1))
 	g.Expect(endpoints1[0].SocketLocation).To(Equal(endpoints2[0].SocketLocation))
