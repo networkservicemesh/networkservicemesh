@@ -39,7 +39,6 @@ func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
 		NsmClientSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmClientSocket,
 		NsmServerSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmServerSocket,
 		Workspace:       h.response.HostBasedir + "/" + h.response.Workspace,
-		TracerEnabled:   false,
 	}
 }
 

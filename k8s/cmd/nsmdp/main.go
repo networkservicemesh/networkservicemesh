@@ -32,15 +32,15 @@ func main() {
 	// Capture signals to cleanup before exiting
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("nsmdp")
-	defer func() {
-		if err := closer.Close(); err != nil {
-			logrus.Errorf("An error during closing: %v", err)
-		}
-	}()
-	opentracing.SetGlobalTracer(tracer)
-
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("nsmdp")
+		defer func() {
+			if err := closer.Close(); err != nil {
+				logrus.Errorf("An error during closing: %v", err)
+			}
+		}()
+		opentracing.SetGlobalTracer(tracer)
+	}
 	serviceRegistry := nsmd.NewServiceRegistry()
 	err := NewNSMDeviceServer(serviceRegistry)
 
