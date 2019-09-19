@@ -183,7 +183,7 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
 	}
 
-	if configuration.TracerEnabled {
+	if tools.IsOpentracingEnabled() {
 		if !opentracing.IsGlobalTracerRegistered() {
 			tracer, closer := tools.InitJaeger("nsm-client")
 			opentracing.SetGlobalTracer(tracer)

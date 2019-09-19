@@ -38,11 +38,11 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("nsc")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() { _ = closer.Close() }()
-
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("nsc")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() { _ = closer.Close() }()
+	}
 	nsc, err := client.NewNSMClient(context.Background(), nil)
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)

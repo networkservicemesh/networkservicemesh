@@ -35,9 +35,12 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	tracer, closer := tools.InitJaeger("nsmd")
-	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("nsmd")
+		opentracing.SetGlobalTracer(tracer)
+		defer closer.Close()
+	}
+
 	span := opentracing.StartSpan("nsmd")
 	defer span.Finish()
 
